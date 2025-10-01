@@ -17,53 +17,50 @@ export const Footer = () => {
 
   return (
     <footer className="border-t bg-background/50 backdrop-blur-sm mt-auto">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* About */}
-          <div>
-            <h3 className="font-bold text-lg mb-3">Yana</h3>
-            <p className="text-sm text-muted-foreground">
-              Platforma ta de analiză contabilă bazată pe AI. 
-              Înțelege financiar instant, fără să aștepți contabilul.
-            </p>
+      <div className="container mx-auto px-4 py-6">
+        {/* Header cu descriere */}
+        <div className="mb-6">
+          <h3 className="font-bold text-lg mb-2">Yana</h3>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Platforma ta de analiză contabilă bazată pe AI. 
+            Înțelege financiar instant, fără să aștepți contabilul.
+          </p>
+        </div>
+
+        {/* Contact și Links pe orizontală */}
+        <div className="flex flex-wrap items-center gap-6 mb-6">
+          <div className="flex items-center gap-2">
+            <h4 className="font-semibold text-sm">Contact:</h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-sm"
+              onClick={handleEmailClick}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {email}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-sm text-green-600 hover:text-green-700"
+              onClick={handleWhatsAppClick}
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              {whatsapp}
+            </Button>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h3 className="font-bold text-lg mb-3">Contact</h3>
-            <div className="space-y-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-sm"
-                onClick={handleEmailClick}
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                {email}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-sm text-green-600 hover:text-green-700"
-                onClick={handleWhatsAppClick}
-              >
-                <MessageCircle className="mr-2 h-4 w-4" />
-                {whatsapp}
-              </Button>
-            </div>
-          </div>
+          <div className="h-6 w-px bg-border" />
 
-          {/* Links */}
-          <div>
-            <h3 className="font-bold text-lg mb-3">Link-uri Rapide</h3>
-            <div className="space-y-2 text-sm">
-              <a href="/" className="block text-muted-foreground hover:text-primary transition-colors">
-                Analiză Balanță
-              </a>
-              <a href="/contact" className="block text-muted-foreground hover:text-primary transition-colors">
-                Contact
-              </a>
-            </div>
+          <div className="flex items-center gap-4">
+            <h4 className="font-semibold text-sm">Link-uri:</h4>
+            <a href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Analiză Balanță
+            </a>
+            <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Contact
+            </a>
           </div>
         </div>
 
