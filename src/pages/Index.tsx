@@ -14,10 +14,12 @@ const Index = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.type !== "application/pdf") {
+      const nameOk = selectedFile.name?.toLowerCase().endsWith(".pdf");
+      const typeOk = selectedFile.type === "application/pdf";
+      if (!nameOk && !typeOk) {
         toast({
           title: "Format invalid",
-          description: "Te rog încarcă doar fișiere PDF cu balanța de verificare.",
+          description: "Se acceptă DOAR fișiere PDF cu balanța de verificare.",
           variant: "destructive",
         });
         return;

@@ -167,24 +167,24 @@ Pentru fiecare cont cheie, extrage datele relevante, efectuează calculele neces
 • Riscuri: [ ]
 • Măsuri: [ ]
 
-2.2) 5121/5311 – Bănci & Casă:
+2.2) 5121/5311 – Bănci \u0026 Casă:
 Contul contabil ce arată câți bani sunt în bancă este 5121, acesta se găsește pe coloana Solduri finale Debit.
 Contul contabil ce arată câți bani sunt în casă este 5311, acesta se găsește pe coloana Solduri finale Debit.
 Analiză: Solduri, fluxuri de numerar, respectarea plafonului de casă (contul 5311 nu are voie să depășească suma de 50000).
 Riscuri: Lichiditate insuficientă, risc de fraudă, nerespectarea legislației privind operațiunile de casă.
 Recomandări de Optimizare: Managementul lichidității, optimizarea plasamentelor pe termen scurt, control intern.
 
-2.3) 121/117 – Rezultat & Reportat:
+2.3) 121/117 – Rezultat \u0026 Reportat:
 Analiză: Verificarea corespondenței cu diferența Clasa 7 - Clasa 6. Analiza evoluției rezultatului.
 Riscuri: Erori contabile, pierderi acumulate, impact asupra solvabilității.
 Recomandări de Optimizare: Strategii de creștere a profitabilității, managementul costurilor, politici de dividend/reinvestire.
 
-2.4) 607/371 – Cheltuieli cu Stocurile & Marjă – dacă în balanță nu apar conturile 371, 378, 607, 707, înseamnă că firma nu are stocuri, adică este o firmă de prestări servicii, deci acest punct nu se analizează, sari peste acest punct:
+2.4) 607/371 – Cheltuieli cu Stocurile \u0026 Marjă – dacă în balanță nu apar conturile 371, 378, 607, 707, înseamnă că firma nu are stocuri, adică este o firmă de prestări servicii, deci acest punct nu se analizează, sari peste acest punct:
 Analiză: Marja brută, rotația stocurilor (DIO). Identifică stocurile cu mișcare lentă sau fără mișcare.
 Riscuri: Stocuri supraevaluate/subevaluate, deprecieri, costuri de depozitare, pierderi din vânzări.
 Recomandări de Optimizare: Managementul stocurilor, optimizarea proceselor de achiziție și vânzare, strategii de preț.
 
-2.5) 421/431/437 – Salarii & Contribuții în Solduri finale Creditoare – dacă aceste conturi nu apar în balanță, înseamnă că firma nu are angajați și nu trebuie analizate, sari peste acest punct:
+2.5) 421/431/437 – Salarii \u0026 Contribuții în Solduri finale Creditoare – dacă aceste conturi nu apar în balanță, înseamnă că firma nu are angajați și nu trebuie analizate, sari peste acest punct:
 Analiză: Verificarea conformității cu legislația muncii și fiscală, corelarea cu statele de salarii.
 Riscuri: Amenzi, litigii de muncă, erori în calculul contribuțiilor.
 Recomandări de Optimizare Fiscală/Management: Optimizarea costurilor salariale, beneficii extra-salariale, conformitate legislativă.
@@ -199,7 +199,7 @@ Analiză: Suma datorată de firmă asociatului. Verifică justificarea și legal
 Riscuri: Reclasificarea ca dividend, implicații fiscale, nerespectarea legislației.
 Recomandări de Optimizare Fiscală: Regularizarea sumelor, documentare, evitarea riscurilor fiscale.
 
-3) Conformitate TVA & Impozite – Analiză Detaliată și Măsuri de Optimizare Fiscală – dacă nu apar în balanță conturile 4426, 4427, 4424, 4423, sari peste acest punct deoarece firma este neplătitoare de TVA și nu trebuie analizată:
+3) Conformitate TVA \u0026 Impozite – Analiză Detaliată și Măsuri de Optimizare Fiscală – dacă nu apar în balanță conturile 4426, 4427, 4424, 4423, sari peste acest punct deoarece firma este neplătitoare de TVA și nu trebuie analizată:
 Cont 4423 (TVA de plată) în sold credit: [valoare] – Analiză cauze, riscuri fiscale, măsuri de corecție și optimizare.
 Cont 4424 (TVA de recuperat) în sold debit: [valoare] – Analiză cauze, oportunități de recuperare/compensare, riscuri, măsuri de accelerare a rambursării.
 Impozit (micro cont 4418 / profit cont 4411 în solduri creditoare): Analiză, riscuri fiscale, oportunități de optimizare a bazei de impozitare, planificare fiscală.
@@ -210,42 +210,66 @@ Măsuri de Optimizare Fiscală: Propune măsuri concrete pentru minimizarea risc
 Extrage valorile numerice din coloana „Total Sume" pentru „Total clasa 7" și „Total clasa 6" denumite \`total_clasa 7\` și \`total_clasa 6\`.
 Calculează diferența: \`diferenta = total_clasa 7 - total_clasa 6\`
 Preia valoarea soldului debitor sau creditor pentru contul 121, numită \`sold_cont 121\`.
-Verifică dacă: \`diferenta == sold_cont121\``;
+Verifică dacă: \`diferenta == sold_cont121\`.
 
-// Helper function to parse PDF content
+Dacă textul PDF-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere PDF lizibile ale balanței de verificare (nu imagini, nu Excel). Reîncarcă un PDF exportat clar din programul de contabilitate."`;
+
+// Helper: decode hex string found in PDFs
+function decodeHexString(hex: string): string {
+  try {
+    const clean = hex.replace(/[^0-9A-Fa-f]/g, "");
+    const bytes = new Uint8Array(clean.length / 2);
+    for (let i = 0; i < clean.length; i += 2) {
+      bytes[i / 2] = parseInt(clean.slice(i, i + 2), 16);
+    }
+    // Detect UTF-16BE (common in PDFs)
+    if (bytes.length > 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+      let out = "";
+      for (let i = 2; i < bytes.length; i += 2) {
+        out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
+      }
+      return out;
+    }
+    // Fallback to latin1
+    let out = "";
+    for (let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
+    return out;
+  } catch {
+    return "";
+  }
+}
+
+// Helper: naive PDF text extractor (works for many text-based PDFs)
 async function parsePDFContent(pdfBase64: string): Promise<string> {
   try {
-    // Decode base64 to get raw bytes
-    const binaryString = atob(pdfBase64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    // Convert to text - this is a simple extraction
-    // For proper PDF parsing, we'll extract visible text
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    let text = decoder.decode(bytes);
-    
-    // Extract text between parentheses (common in PDF encoding)
-    const textMatches = text.match(/\([^\)]{2,}\)/g);
-    if (textMatches && textMatches.length > 0) {
-      text = textMatches
-        .map(match => match.slice(1, -1))
-        .filter(t => t.trim().length > 0)
-        .join(' ');
-    }
-    
-    // Clean up the text
-    text = text
-      .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
-      .replace(/\s+/g, ' ') // Normalize whitespace
+    const bin = atob(pdfBase64);
+    let text = "";
+
+    // 1) Extract literal strings within parentheses (handles escaped \) and \\)
+    const literalMatches = bin.match(/\((?:\\\(|\\\)|\\\\|[^()])*\)/g) || [];
+    const literal = literalMatches
+      .map(m => m.slice(1, -1)
+        .replace(/\\\(/g, "(")
+        .replace(/\\\)/g, ")")
+        .replace(/\\n/g, " \n ")
+        .replace(/\\r/g, " ")
+        .replace(/\\t/g, " ")
+        .replace(/\\\\/g, "\\")
+      ).join(" ");
+
+    // 2) Extract hex strings <...>
+    const hexMatches = bin.match(/<([0-9A-Fa-f\s]+)>/g) || [];
+    const hex = hexMatches.map(h => decodeHexString(h.slice(1, -1))).join(" ");
+
+    text = (literal + " " + hex)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ")
+      .replace(/\s+/g, " ")
       .trim();
-    
+
     return text;
-  } catch (error) {
-    console.error('Eroare la parsarea PDF:', error);
-    throw new Error('Nu s-a putut extrage textul din PDF');
+  } catch (e) {
+    console.error("parsePDFContent error", e);
+    throw new Error("Nu s-a putut extrage textul din PDF");
   }
 }
 
@@ -254,7 +278,6 @@ serve(async (req) => {
 
   try {
     const { pdfBase64, fileName } = await req.json();
-    
     if (!pdfBase64) {
       return new Response(
         JSON.stringify({ error: "Nu s-a furnizat fișierul PDF cu balanța" }),
@@ -262,21 +285,34 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY nu este configurată");
+    console.log(`Procesare PDF: ${fileName || "necunoscut"}`);
+
+    const balanceText = await parsePDFContent(pdfBase64);
+
+    // If we couldn't get enough text, return a clear message (no AI call)
+    if (!balanceText || balanceText.length < 300) {
+      const fallback = [
+        "Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.",
+        "",
+        "Notă importantă: Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI.",
+        "",
+        "Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale.",
+        "",
+        "Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.",
+        "",
+        "Observație privind documentul atașat:",
+        "Nu s-a putut extrage text lizibil din PDF-ul încărcat. Se acceptă DOAR fișiere PDF ale balanței de verificare (nu imagini JPG/PNG, nu Excel). Vă rugăm să reîncărcați un PDF clar, exportat din programul contabil.",
+      ].join("\n");
+
+      return new Response(
+        JSON.stringify({ analysis: fallback }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`Procesare PDF: ${fileName || "necunoscut"}`);
-    
-    // Parse PDF content to extract text
-    const balanceText = await parsePDFContent(pdfBase64);
-    
-    if (!balanceText || balanceText.length < 100) {
-      throw new Error("Nu s-a putut extrage conținut suficient din PDF. Te rog verifică că fișierul este corect.");
-    }
-    
-    console.log(`Text extras din PDF (primele 200 caractere): ${balanceText.substring(0, 200)}`);
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY nu este configurată");
+
     console.log("Trimitere cerere către Lovable AI...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -288,14 +324,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          {
-            role: "system",
-            content: SYSTEM_PROMPT
-          },
-          {
-            role: "user",
-            content: `Analizează următoarea balanță de verificare:\n\n${balanceText}`
-          }
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Analizează următoarea balanță de verificare:\n\n${balanceText}` },
         ],
       }),
     });
@@ -303,42 +333,24 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Eroare Lovable AI:", response.status, errorText);
-      
-      if (response.status === 429) {
-        throw new Error("Rate limit depășit. Te rog încearcă din nou peste câteva minute.");
-      }
-      
-      if (response.status === 402) {
-        throw new Error("Credite insuficiente. Te rog adaugă credite în contul Lovable AI.");
-      }
-      
+      if (response.status === 429) throw new Error("Rate limit depășit. Te rog încearcă din nou peste câteva minute.");
+      if (response.status === 402) throw new Error("Credite insuficiente. Te rog adaugă credite în contul Lovable AI.");
       throw new Error(`Eroare API (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
-    console.log("Răspuns primit de la AI");
-
     const analysis = data.choices?.[0]?.message?.content;
-    
-    if (!analysis) {
-      throw new Error("Nu s-a putut genera analiza");
-    }
+    if (!analysis) throw new Error("Nu s-a putut genera analiza");
 
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
     console.error("Eroare în edge function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "A apărut o eroare la procesarea cererii" 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : "A apărut o eroare la procesarea cererii" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
