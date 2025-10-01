@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
+import { AnalyticsCharts } from './AnalyticsCharts';
+import { parseAnalysisText } from '@/utils/analysisParser';
 
 interface Analysis {
   id: string;
@@ -126,11 +129,35 @@ export const Dashboard = () => {
     );
   }
 
+  // Pregătire date pentru grafice
+  const analyticsData = analyses.map(analysis => ({
+    date: analysis.created_at,
+    fileName: analysis.file_name,
+    indicators: parseAnalysisText(analysis.analysis_text)
+  }));
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <h1 className="text-3xl font-bold mb-8">Istoricul Analizelor</h1>
+      <h1 className="text-3xl font-bold mb-8">Dashboard Financiar</h1>
       
-      <div className="grid md:grid-cols-3 gap-6">
+      <Tabs defaultValue="analytics" className="space-y-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="analytics">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Grafice
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <FileText className="h-4 w-4 mr-2" />
+            Istoric
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analytics" className="space-y-6">
+          <AnalyticsCharts data={analyticsData} />
+        </TabsContent>
+
+        <TabsContent value="history">
+          <div className="grid md:grid-cols-3 gap-6">
         {/* Lista analizelor */}
         <Card className="md:col-span-1">
           <CardHeader>
@@ -226,7 +253,9 @@ export const Dashboard = () => {
             )}
           </CardContent>
         </Card>
-      </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
