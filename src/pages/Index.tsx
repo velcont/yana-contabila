@@ -14,12 +14,13 @@ const Index = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      const nameOk = selectedFile.name?.toLowerCase().endsWith(".pdf");
-      const typeOk = selectedFile.type === "application/pdf";
+      const nameOk = selectedFile.name?.toLowerCase().match(/\.(xls|xlsx)$/);
+      const typeOk = selectedFile.type === "application/vnd.ms-excel" || 
+                     selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
       if (!nameOk && !typeOk) {
         toast({
           title: "Format invalid",
-          description: "Se acceptă DOAR fișiere PDF cu balanța de verificare.",
+          description: "Se acceptă DOAR fișiere Excel (.xls sau .xlsx) cu balanța de verificare.",
           variant: "destructive",
         });
         return;
@@ -30,7 +31,7 @@ const Index = () => {
     }
   };
 
-  const convertPDFToBase64 = async (file: File): Promise<string> => {
+  const convertExcelToBase64 = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -55,10 +56,10 @@ const Index = () => {
     setIsAnalyzing(true);
 
     try {
-      const pdfBase64 = await convertPDFToBase64(file);
+      const excelBase64 = await convertExcelToBase64(file);
 
       const { data, error } = await supabase.functions.invoke("analyze-balance", {
-        body: { pdfBase64, fileName: file.name },
+        body: { excelBase64, fileName: file.name },
       });
 
       if (error) {
@@ -115,7 +116,7 @@ const Index = () => {
               Încarcă Balanța de Verificare
             </CardTitle>
             <CardDescription>
-              Suportă doar format PDF
+              Suportă doar format Excel (.xls, .xlsx)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,7 +124,7 @@ const Index = () => {
               <div className="flex items-center gap-4">
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept=".xls,.xlsx"
                   onChange={handleFileChange}
                   className="hidden"
                   id="file-upload"

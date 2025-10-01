@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,7 +92,7 @@ CLASELE 6–7 (cheltuieli și venituri):
 • Cont 707 – CLASA 7 → se verifică doar "Total sume Creditoare".
 
 4. APLICARE AUTOMATA:
-• În orice analiză automată (GPT, script Python, procesare PDF), această regulă se aplică ca filtru de validare.
+• În orice analiză automată (GPT, script Python, procesare Excel), această regulă se aplică ca filtru de validare.
 • Orice abatere de la ea trebuie marcată explicit: "⚠️ NU SE POATE CONCLUZIONA – analiză incorectă a contului [XXX]".
 
 5. SCOP:
@@ -167,24 +168,24 @@ Pentru fiecare cont cheie, extrage datele relevante, efectuează calculele neces
 • Riscuri: [ ]
 • Măsuri: [ ]
 
-2.2) 5121/5311 – Bănci \u0026 Casă:
+2.2) 5121/5311 – Bănci & Casă:
 Contul contabil ce arată câți bani sunt în bancă este 5121, acesta se găsește pe coloana Solduri finale Debit.
 Contul contabil ce arată câți bani sunt în casă este 5311, acesta se găsește pe coloana Solduri finale Debit.
 Analiză: Solduri, fluxuri de numerar, respectarea plafonului de casă (contul 5311 nu are voie să depășească suma de 50000).
 Riscuri: Lichiditate insuficientă, risc de fraudă, nerespectarea legislației privind operațiunile de casă.
 Recomandări de Optimizare: Managementul lichidității, optimizarea plasamentelor pe termen scurt, control intern.
 
-2.3) 121/117 – Rezultat \u0026 Reportat:
+2.3) 121/117 – Rezultat & Reportat:
 Analiză: Verificarea corespondenței cu diferența Clasa 7 - Clasa 6. Analiza evoluției rezultatului.
 Riscuri: Erori contabile, pierderi acumulate, impact asupra solvabilității.
 Recomandări de Optimizare: Strategii de creștere a profitabilității, managementul costurilor, politici de dividend/reinvestire.
 
-2.4) 607/371 – Cheltuieli cu Stocurile \u0026 Marjă – dacă în balanță nu apar conturile 371, 378, 607, 707, înseamnă că firma nu are stocuri, adică este o firmă de prestări servicii, deci acest punct nu se analizează, sari peste acest punct:
+2.4) 607/371 – Cheltuieli cu Stocurile & Marjă – dacă în balanță nu apar conturile 371, 378, 607, 707, înseamnă că firma nu are stocuri, adică este o firmă de prestări servicii, deci acest punct nu se analizează, sari peste acest punct:
 Analiză: Marja brută, rotația stocurilor (DIO). Identifică stocurile cu mișcare lentă sau fără mișcare.
 Riscuri: Stocuri supraevaluate/subevaluate, deprecieri, costuri de depozitare, pierderi din vânzări.
 Recomandări de Optimizare: Managementul stocurilor, optimizarea proceselor de achiziție și vânzare, strategii de preț.
 
-2.5) 421/431/437 – Salarii \u0026 Contribuții în Solduri finale Creditoare – dacă aceste conturi nu apar în balanță, înseamnă că firma nu are angajați și nu trebuie analizate, sari peste acest punct:
+2.5) 421/431/437 – Salarii & Contribuții în Solduri finale Creditoare – dacă aceste conturi nu apar în balanță, înseamnă că firma nu are angajați și nu trebuie analizate, sari peste acest punct:
 Analiză: Verificarea conformității cu legislația muncii și fiscală, corelarea cu statele de salarii.
 Riscuri: Amenzi, litigii de muncă, erori în calculul contribuțiilor.
 Recomandări de Optimizare Fiscală/Management: Optimizarea costurilor salariale, beneficii extra-salariale, conformitate legislativă.
@@ -199,7 +200,7 @@ Analiză: Suma datorată de firmă asociatului. Verifică justificarea și legal
 Riscuri: Reclasificarea ca dividend, implicații fiscale, nerespectarea legislației.
 Recomandări de Optimizare Fiscală: Regularizarea sumelor, documentare, evitarea riscurilor fiscale.
 
-3) Conformitate TVA \u0026 Impozite – Analiză Detaliată și Măsuri de Optimizare Fiscală – dacă nu apar în balanță conturile 4426, 4427, 4424, 4423, sari peste acest punct deoarece firma este neplătitoare de TVA și nu trebuie analizată:
+3) Conformitate TVA & Impozite – Analiză Detaliată și Măsuri de Optimizare Fiscală – dacă nu apar în balanță conturile 4426, 4427, 4424, 4423, sari peste acest punct deoarece firma este neplătitoare de TVA și nu trebuie analizată:
 Cont 4423 (TVA de plată) în sold credit: [valoare] – Analiză cauze, riscuri fiscale, măsuri de corecție și optimizare.
 Cont 4424 (TVA de recuperat) în sold debit: [valoare] – Analiză cauze, oportunități de recuperare/compensare, riscuri, măsuri de accelerare a rambursării.
 Impozit (micro cont 4418 / profit cont 4411 în solduri creditoare): Analiză, riscuri fiscale, oportunități de optimizare a bazei de impozitare, planificare fiscală.
@@ -212,42 +213,34 @@ Calculează diferența: \`diferenta = total_clasa 7 - total_clasa 6\`
 Preia valoarea soldului debitor sau creditor pentru contul 121, numită \`sold_cont 121\`.
 Verifică dacă: \`diferenta == sold_cont121\`.
 
-Dacă textul PDF-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere PDF lizibile ale balanței de verificare (nu imagini, nu Excel). Reîncarcă un PDF exportat clar din programul de contabilitate."`;
+Dacă textul Excel-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere Excel lizibile ale balanței de verificare. Reîncarcă un Excel exportat clar din programul de contabilitate."`;
 
-// Parse PDF using pdfjs-dist
-async function parsePDFWithPDFJS(pdfBase64: string): Promise<string> {
+// Parse Excel file
+async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
   try {
-    // Import pdfjs-dist dynamically
-    const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs");
-    
-    // Configure worker source for pdfjs
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.worker.mjs";
-    
     // Convert base64 to Uint8Array
-    const binaryString = atob(pdfBase64);
+    const binaryString = atob(excelBase64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Load PDF document
-    const loadingTask = pdfjsLib.getDocument({ data: bytes });
-    const pdf = await loadingTask.promise;
+    // Read Excel file
+    const workbook = XLSX.read(bytes, { type: 'array' });
     
     let fullText = "";
     
-    // Extract text from all pages
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(" ");
-      fullText += pageText + "\n";
-    }
+    // Extract text from all sheets
+    workbook.SheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const csvText = XLSX.utils.sheet_to_csv(sheet);
+      fullText += `\n=== Sheet: ${sheetName} ===\n${csvText}\n`;
+    });
     
     return fullText.trim();
   } catch (error) {
-    console.error("Error parsing PDF with pdfjs:", error);
-    throw new Error("Nu s-a putut extrage textul din PDF cu pdfjs");
+    console.error("Error parsing Excel with xlsx:", error);
+    throw new Error("Nu s-a putut extrage textul din Excel");
   }
 }
 
@@ -255,23 +248,24 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { pdfBase64 } = await req.json();
-    if (!pdfBase64) {
+    const { excelBase64, fileName } = await req.json();
+    if (!excelBase64) {
       return new Response(
-        JSON.stringify({ error: "Lipsește fișierul PDF" }),
+        JSON.stringify({ error: "Lipsește fișierul Excel" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Parsare PDF cu pdfjs-dist...");
-    const balanceText = await parsePDFWithPDFJS(pdfBase64);
+    console.log("Parsare Excel cu xlsx...");
+    console.log("Nume fișier:", fileName);
+    const balanceText = await parseExcelWithXLSX(excelBase64);
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
 
     if (!balanceText || balanceText.length < 100) {
       return new Response(
         JSON.stringify({
-          error: "PDF-ul nu conține suficient text lizibil. Exportă balanța ca PDF text (nu imagine scanată)."
+          error: "Excel-ul nu conține suficient text lizibil. Exportă balanța ca Excel text."
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -347,7 +341,7 @@ serve(async (req) => {
     console.error("Eroare în analyze-balance:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Eroare necunoscută la procesarea PDF-ului"
+        error: error instanceof Error ? error.message : "Eroare necunoscută la procesarea Excel-ului"
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
