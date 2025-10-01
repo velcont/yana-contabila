@@ -212,6 +212,43 @@ Calculează diferența: \`diferenta = total_clasa 7 - total_clasa 6\`
 Preia valoarea soldului debitor sau creditor pentru contul 121, numită \`sold_cont 121\`.
 Verifică dacă: \`diferenta == sold_cont121\``;
 
+// Helper function to parse PDF content
+async function parsePDFContent(pdfBase64: string): Promise<string> {
+  try {
+    // Decode base64 to get raw bytes
+    const binaryString = atob(pdfBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Convert to text - this is a simple extraction
+    // For proper PDF parsing, we'll extract visible text
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    let text = decoder.decode(bytes);
+    
+    // Extract text between parentheses (common in PDF encoding)
+    const textMatches = text.match(/\([^\)]{2,}\)/g);
+    if (textMatches && textMatches.length > 0) {
+      text = textMatches
+        .map(match => match.slice(1, -1))
+        .filter(t => t.trim().length > 0)
+        .join(' ');
+    }
+    
+    // Clean up the text
+    text = text
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Remove control characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    return text;
+  } catch (error) {
+    console.error('Eroare la parsarea PDF:', error);
+    throw new Error('Nu s-a putut extrage textul din PDF');
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -231,7 +268,16 @@ serve(async (req) => {
     }
 
     console.log(`Procesare PDF: ${fileName || "necunoscut"}`);
-    console.log("Trimitere cerere către Lovable AI cu PDF...");
+    
+    // Parse PDF content to extract text
+    const balanceText = await parsePDFContent(pdfBase64);
+    
+    if (!balanceText || balanceText.length < 100) {
+      throw new Error("Nu s-a putut extrage conținut suficient din PDF. Te rog verifică că fișierul este corect.");
+    }
+    
+    console.log(`Text extras din PDF (primele 200 caractere): ${balanceText.substring(0, 200)}`);
+    console.log("Trimitere cerere către Lovable AI...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -248,18 +294,7 @@ serve(async (req) => {
           },
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Analizează balanța de verificare din PDF-ul atașat conform tuturor instrucțiunilor detaliate din prompt."
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:application/pdf;base64,${pdfBase64}`
-                }
-              }
-            ]
+            content: `Analizează următoarea balanță de verificare:\n\n${balanceText}`
           }
         ],
       }),
