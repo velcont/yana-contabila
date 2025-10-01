@@ -19,15 +19,13 @@ ATENȚIE: Unele programe de contabilitate (ex: SmartBill) generează balanțe cu
 - Dacă vezi "Total sume" → sunt cumulate de la început de an
 - Adaptează analiza în funcție de tipul coloanelor disponibile
 
-Dacă structura nu este conformă, răspunde: "⚠️ Format neconform. Balanța trebuie să conțină: Solduri inițiale an, Rulaje/Total sume și Solduri finale. Exportă balanța completă din programul de contabilitate."
+Dacă structura nu este conformă, răspunde: "⚠️ Format neconform. Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă, Total sume și Solduri finale. Exportă balanța completă din programul de contabilitate."
 
-La inceputul anlizei vei scrie urmatorul mesaj: Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.
+La inceputul anlizei vei scrie urmatorul mesaj:
 
-Notă importantă privind :Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare).Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI.
+**Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.**
 
-Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale.
-
-Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.
+**Notă importantă:** Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.
 
 Apoi treci la analiza balanța atașate urmând următoarele reguli și instrucțiuni, prezentând toate informațiile exclusiv sub formă de text, fără a utiliza tabele:
 
@@ -160,17 +158,27 @@ Calculează soldul final al contului 121 pentru un exercițiu financiar anual as
 • Dacă soldul este debitor, societatea a înregistrat pierdere.
 
 INDICATORI CHEIE CEO (Dashboard executiv):
-• Cifra de afaceri (CA): [valoare] - Evoluție vs. perioadă anterioară
-• Profitabilitate: Marja brută %, Marja netă %, EBITDA
-• Lichiditate: Cash disponibil (5121 + 5311), Current ratio
+• Cifra de afaceri (CA): [valoare] - Calculează evoluția lunară/anuală dacă sunt disponibile date
+• Profitabilitate: 
+  - Marja brută % = (Venituri - Cost marfă vândută) / Venituri × 100
+  - Marja netă % = Profit net / Cifra de afaceri × 100
+  - EBITDA estimat = Profit + Cheltuieli financiare + Amortizări
+• Lichiditate: 
+  - Cash disponibil = Cont 5121 (bănci) + Cont 5311 (casă)
+  - Current Ratio = Active curente / Pasive curente
+  - Quick Ratio = (Active curente - Stocuri) / Pasive curente
 • Eficiență operațională: 
-  - DSO (Days Sales Outstanding) - cât de repede încasăm de la clienți
-  - DPO (Days Payable Outstanding) - cât de repede plătim furnizorilor
-  - DIO (Days Inventory Outstanding) - rotația stocurilor (dacă aplicabil)
-  - Cash Conversion Cycle = DSO + DIO - DPO
-• Sănătate financiară: Debt-to-Equity ratio, Working Capital
-• Alerte critice: TVA restant, salarii/contribuții neachitate, stocuri depreciate
-• Oportunități: Economii fiscale, optimizări de cash-flow, zone de creștere
+  - DSO (Days Sales Outstanding) = (Clienți / Cifra de afaceri) × 365 zile
+  - DPO (Days Payable Outstanding) = (Furnizori / Cheltuieli totale) × 365 zile
+  - DIO (Days Inventory Outstanding) = (Stocuri / Cost marfă) × 365 zile (dacă aplicabil)
+  - Cash Conversion Cycle = DSO + DIO - DPO (cu cât este mai mic, cu atât mai bine)
+  - Rotația stocurilor = Cost marfă vândută / Stoc mediu (dacă aplicabil)
+• Sănătate financiară: 
+  - Debt-to-Equity Ratio = Total datorii / Capital propriu
+  - Working Capital = Active curente - Pasive curente
+  - Rata de îndatorare % = Total datorii / Total active × 100
+• Alerte critice: TVA restant, salarii/contribuții neachitate, stocuri cu mișcare lentă, datorii peste 90 zile
+• Oportunități: Economii fiscale, optimizări de cash-flow, negocieri termene plată, reducere DSO
 
 TVA de plată Contul 4423 în Solduri finale Creditoare
 TVA de recuperat Contul 4424 în Solduri finale Debitoare

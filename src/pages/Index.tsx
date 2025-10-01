@@ -119,7 +119,7 @@ const Index = () => {
               Suportă doar format Excel (.xls, .xlsx)
               <br />
               <span className="text-xs mt-2 block font-medium text-orange-600 dark:text-orange-400">
-                ⚠️ Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă/Total sume și Solduri finale
+                ⚠️ Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă, Total sume și Solduri finale
               </span>
             </CardDescription>
           </CardHeader>
