@@ -212,16 +212,15 @@ Calculează diferența: \`diferenta = total_clasa 7 - total_clasa 6\`
 Preia valoarea soldului debitor sau creditor pentru contul 121, numită \`sold_cont 121\`.
 Verifică dacă: \`diferenta == sold_cont121\``;
 
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { balanceText } = await req.json();
+    const { pdfBase64, fileName } = await req.json();
     
-    if (!balanceText) {
+    if (!pdfBase64) {
       return new Response(
-        JSON.stringify({ error: "Nu s-au furnizat date pentru balanță" }),
+        JSON.stringify({ error: "Nu s-a furnizat fișierul PDF cu balanța" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -231,61 +230,80 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY nu este configurată");
     }
 
-    console.log("Trimitere cerere către Lovable AI...");
+    console.log(`Procesare PDF: ${fileName || "necunoscut"}`);
+    console.log("Trimitere cerere către Lovable AI cu PDF...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Analizează următoarea balanță de verificare:\n\n${balanceText}` }
+          {
+            role: "system",
+            content: SYSTEM_PROMPT
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Analizează balanța de verificare din PDF-ul atașat conform tuturor instrucțiunilor detaliate din prompt."
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:application/pdf;base64,${pdfBase64}`
+                }
+              }
+            ]
+          }
         ],
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Eroare AI gateway:", response.status, errorText);
+      console.error("Eroare Lovable AI:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Limita de rate a fost depășită. Te rog încearcă din nou mai târziu." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Fonduri insuficiente. Te rog adaugă credite în Lovable Cloud." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        throw new Error("Rate limit depășit. Te rog încearcă din nou peste câteva minute.");
       }
       
-      throw new Error(`Eroare AI gateway: ${response.status}`);
+      if (response.status === 402) {
+        throw new Error("Credite insuficiente. Te rog adaugă credite în contul Lovable AI.");
+      }
+      
+      throw new Error(`Eroare API (${response.status}): ${errorText}`);
     }
 
     const data = await response.json();
+    console.log("Răspuns primit de la AI");
+
     const analysis = data.choices?.[0]?.message?.content;
-
+    
     if (!analysis) {
-      throw new Error("Nu s-a primit analiză de la AI");
+      throw new Error("Nu s-a putut genera analiza");
     }
-
-    console.log("Analiză generată cu succes");
 
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (error) {
-    console.error("Eroare în funcția analyze-balance:", error);
+    console.error("Eroare în edge function:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Eroare necunoscută" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "A apărut o eroare la procesarea cererii" 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   }
 });

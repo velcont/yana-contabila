@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import * as XLSX from "xlsx";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -15,17 +14,10 @@ const Index = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      const validTypes = [
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "text/csv",
-        "application/pdf"
-      ];
-      
-      if (!validTypes.includes(selectedFile.type)) {
+      if (selectedFile.type !== "application/pdf") {
         toast({
           title: "Format invalid",
-          description: "Te rog încarcă un fișier Excel (.xls, .xlsx), CSV sau PDF.",
+          description: "Te rog încarcă doar fișiere PDF cu balanța de verificare.",
           variant: "destructive",
         });
         return;
@@ -36,23 +28,15 @@ const Index = () => {
     }
   };
 
-  const extractTextFromExcel = async (file: File): Promise<string> => {
+  const convertPDFToBase64 = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: "binary" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const csvText = XLSX.utils.sheet_to_csv(worksheet);
-          resolve(csvText);
-        } catch (error) {
-          reject(error);
-        }
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        resolve(base64.split(',')[1]);
       };
       reader.onerror = reject;
-      reader.readAsBinaryString(file);
+      reader.readAsDataURL(file);
     });
   };
 
@@ -69,22 +53,10 @@ const Index = () => {
     setIsAnalyzing(true);
 
     try {
-      let balanceText = "";
-
-      if (file.type.includes("excel") || file.type.includes("spreadsheet") || file.type.includes("csv")) {
-        balanceText = await extractTextFromExcel(file);
-      } else {
-        toast({
-          title: "Format nesuportat momentan",
-          description: "PDF-urile vor fi suportate în curând. Te rog folosește Excel sau CSV.",
-          variant: "destructive",
-        });
-        setIsAnalyzing(false);
-        return;
-      }
+      const pdfBase64 = await convertPDFToBase64(file);
 
       const { data, error } = await supabase.functions.invoke("analyze-balance", {
-        body: { balanceText },
+        body: { pdfBase64, fileName: file.name },
       });
 
       if (error) {
@@ -141,7 +113,7 @@ const Index = () => {
               Încarcă Balanța de Verificare
             </CardTitle>
             <CardDescription>
-              Suportă formate: Excel (.xls, .xlsx), CSV
+              Suportă doar format PDF
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -149,7 +121,7 @@ const Index = () => {
               <div className="flex items-center gap-4">
                 <input
                   type="file"
-                  accept=".xls,.xlsx,.csv,.pdf"
+                  accept=".pdf"
                   onChange={handleFileChange}
                   className="hidden"
                   id="file-upload"
