@@ -2,8 +2,8 @@ import { Mail, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const Footer = () => {
-  const email = "contact@yana.ro"; // Înlocuiește cu email-ul tău real
-  const whatsapp = "+40700000000"; // Înlocuiește cu numărul tău de WhatsApp
+  const email = "offiice@velcont.com";
+  const whatsapp = "+40731377793";
   const whatsappMessage = "Bună! Sunt interesat de serviciile Yana.";
 
   const handleEmailClick = () => {

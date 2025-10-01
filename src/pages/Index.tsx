@@ -328,9 +328,10 @@ const Index = () => {
           
           <Footer />
         </div>
-        {user && <ChatAI />}
-      </>
-    );
+      </div>
+      {user && <ChatAI />}
+    </>
+  );
 };
 
 export default Index;
