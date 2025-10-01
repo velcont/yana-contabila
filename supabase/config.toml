@@ -1,0 +1,4 @@
+project_id = "ygfsuoloxzjpiulogrjz"
+
+[functions.analyze-balance]
+verify_jwt = false
