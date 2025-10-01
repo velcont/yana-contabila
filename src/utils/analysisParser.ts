@@ -16,53 +16,60 @@ export interface FinancialIndicators {
 export const parseAnalysisText = (text: string): FinancialIndicators => {
   const indicators: FinancialIndicators = {};
 
-  // DSO (Days Sales Outstanding)
-  const dsoMatch = text.match(/DSO[:\s]+(\d+(?:\.\d+)?)/i);
-  if (dsoMatch) indicators.dso = parseFloat(dsoMatch[1]);
+  // Caută secțiunea cu indicatori financiari structurați
+  const structuredSection = text.match(/===\s*INDICATORI\s+FINANCIARI\s*===[\s\S]*?(?=\n\n|$)/i);
+  
+  if (structuredSection) {
+    const section = structuredSection[0];
+    
+    // DSO
+    const dsoMatch = section.match(/DSO[:\s]+(\d+(?:\.\d+)?)/i);
+    if (dsoMatch) indicators.dso = parseFloat(dsoMatch[1]);
 
-  // DPO (Days Payable Outstanding)
-  const dpoMatch = text.match(/DPO[:\s]+(\d+(?:\.\d+)?)/i);
-  if (dpoMatch) indicators.dpo = parseFloat(dpoMatch[1]);
+    // DPO
+    const dpoMatch = section.match(/DPO[:\s]+(\d+(?:\.\d+)?)/i);
+    if (dpoMatch) indicators.dpo = parseFloat(dpoMatch[1]);
 
-  // Cash Conversion Cycle
-  const cccMatch = text.match(/Cash\s+Conversion\s+Cycle[:\s]+(\d+(?:\.\d+)?)/i);
-  if (cccMatch) indicators.cashConversionCycle = parseFloat(cccMatch[1]);
+    // CCC (Cash Conversion Cycle)
+    const cccMatch = section.match(/CCC[:\s]+([+-]?\d+(?:\.\d+)?)/i);
+    if (cccMatch) indicators.cashConversionCycle = parseFloat(cccMatch[1]);
 
-  // EBITDA
-  const ebitdaMatch = text.match(/EBITDA[:\s]+(?:RON\s*)?([+-]?\d+(?:[.,]\d+)?)/i);
-  if (ebitdaMatch) {
-    indicators.ebitda = parseFloat(ebitdaMatch[1].replace(',', ''));
+    // EBITDA
+    const ebitdaMatch = section.match(/EBITDA[:\s]+([+-]?\d+(?:\.\d+)?)/i);
+    if (ebitdaMatch) indicators.ebitda = parseFloat(ebitdaMatch[1]);
+
+    // CA (Cifra de afaceri / Revenue)
+    const caMatch = section.match(/CA[:\s]+(\d+(?:\.\d+)?)/i);
+    if (caMatch) indicators.revenue = parseFloat(caMatch[1]);
+
+    // Cheltuieli
+    const expensesMatch = section.match(/Cheltuieli[:\s]+(\d+(?:\.\d+)?)/i);
+    if (expensesMatch) indicators.expenses = parseFloat(expensesMatch[1]);
+
+    // Profit
+    const profitMatch = section.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
+    if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
+  } else {
+    // Fallback: caută valorile în întregul text (pentru analize vechi)
+    
+    // Cifra de afaceri
+    const caMatch = text.match(/Cifra\s+de\s+afaceri\s+(?:anuală\s+)?(?:cumulată\s+)?[=:]\s*([0-9,.]+)\s*RON/i);
+    if (caMatch) {
+      indicators.revenue = parseFloat(caMatch[1].replace(/,/g, ''));
+    }
+
+    // Profit net
+    const profitMatch = text.match(/Profit(?:\s+net)?[:\s]+([+-]?\d+(?:[.,]\d+)?)\s*RON/i);
+    if (profitMatch) {
+      indicators.profit = parseFloat(profitMatch[1].replace(/,/g, ''));
+    }
+
+    // EBITDA
+    const ebitdaMatch = text.match(/EBITDA[:\s]+(?:RON\s*)?([+-]?\d+(?:[.,]\d+)?)/i);
+    if (ebitdaMatch) {
+      indicators.ebitda = parseFloat(ebitdaMatch[1].replace(/,/g, ''));
+    }
   }
-
-  // Venituri (Revenue)
-  const revenueMatch = text.match(/(?:Venituri|Revenue)[:\s]+(?:RON\s*)?(\d+(?:[.,]\d+)?)/i);
-  if (revenueMatch) {
-    indicators.revenue = parseFloat(revenueMatch[1].replace(',', ''));
-  }
-
-  // Cheltuieli (Expenses)
-  const expensesMatch = text.match(/(?:Cheltuieli|Expenses)[:\s]+(?:RON\s*)?(\d+(?:[.,]\d+)?)/i);
-  if (expensesMatch) {
-    indicators.expenses = parseFloat(expensesMatch[1].replace(',', ''));
-  }
-
-  // Profit
-  const profitMatch = text.match(/(?:Profit|Net\s+Income)[:\s]+(?:RON\s*)?([+-]?\d+(?:[.,]\d+)?)/i);
-  if (profitMatch) {
-    indicators.profit = parseFloat(profitMatch[1].replace(',', ''));
-  }
-
-  // Current Ratio
-  const currentRatioMatch = text.match(/Current\s+Ratio[:\s]+(\d+(?:\.\d+)?)/i);
-  if (currentRatioMatch) indicators.currentRatio = parseFloat(currentRatioMatch[1]);
-
-  // Quick Ratio
-  const quickRatioMatch = text.match(/Quick\s+Ratio[:\s]+(\d+(?:\.\d+)?)/i);
-  if (quickRatioMatch) indicators.quickRatio = parseFloat(quickRatioMatch[1]);
-
-  // Debt Ratio
-  const debtRatioMatch = text.match(/Debt\s+Ratio[:\s]+(\d+(?:\.\d+)?)/i);
-  if (debtRatioMatch) indicators.debtRatio = parseFloat(debtRatioMatch[1]);
 
   return indicators;
 };

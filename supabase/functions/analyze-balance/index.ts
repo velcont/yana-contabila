@@ -249,7 +249,39 @@ Calculează diferența: \`diferenta = total_clasa 7 - total_clasa 6\`
 Preia valoarea soldului debitor sau creditor pentru contul 121, numită \`sold_cont 121\`.
 Verifică dacă: \`diferenta == sold_cont121\`.
 
-Dacă textul Excel-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere Excel lizibile ale balanței de verificare. Reîncarcă un Excel exportat clar din programul de contabilitate."`;
+Dacă textul Excel-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere Excel lizibile ale balanței de verificare. Reîncarcă un Excel exportat clar din programul de contabilitate."
+
+5) INDICATORI FINANCIARI STRUCTURAȚI (OBLIGATORIU LA SFÂRȘIT):
+LA SFÂRȘITUL ANALIZEI, ADAUGĂ O SECȚIUNE CU TITLUL "=== INDICATORI FINANCIARI ===" și include următorii indicatori în format structurat (exact așa cum sunt specificați mai jos):
+
+DSO: [valoare_numerică]
+DPO: [valoare_numerică]
+CCC: [valoare_numerică]
+EBITDA: [valoare_numerică]
+CA: [valoare_numerică]
+Cheltuieli: [valoare_numerică]
+Profit: [valoare_numerică]
+
+Unde:
+- DSO (Days Sales Outstanding) = (Clienți / Cifra de afaceri) × 365
+- DPO (Days Payable Outstanding) = (Furnizori / Cheltuieli) × 365
+- CCC (Cash Conversion Cycle) = DSO - DPO
+- EBITDA = calculat din date disponibile
+- CA = Cifra de afaceri totală
+- Cheltuieli = Total cheltuieli (clasa 6)
+- Profit = sold cont 121
+
+IMPORTANT: Această secțiune trebuie să apară obligatoriu la sfârșitul fiecărei analize, cu valorile numerice clare (fără separatori de mii, doar punct pentru zecimale).
+
+Exemplu de format corect:
+=== INDICATORI FINANCIARI ===
+DSO: 45.5
+DPO: 30.2
+CCC: 15.3
+EBITDA: 261909.27
+CA: 1080733.22
+Cheltuieli: 818823.95
+Profit: 261909.27`;
 
 // Parse Excel file
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
