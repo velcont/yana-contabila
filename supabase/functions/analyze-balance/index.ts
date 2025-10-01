@@ -220,6 +220,9 @@ async function parsePDFWithPDFJS(pdfBase64: string): Promise<string> {
     // Import pdfjs-dist dynamically
     const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs");
     
+    // Configure worker source for pdfjs
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.worker.mjs";
+    
     // Convert base64 to Uint8Array
     const binaryString = atob(pdfBase64);
     const bytes = new Uint8Array(binaryString.length);
