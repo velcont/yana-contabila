@@ -8,7 +8,20 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Analizeaza balanta atasata urmand urmatoarele Instrucțiuni:
 
-La inceputul anlizei vei scrie urmatorul mesaj:Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.
+VALIDARE STRUCTURĂ BALANȚĂ:
+Verifică dacă balanța conține următoarele coloane obligatorii:
+1. Solduri inițiale an (Debit și Credit)
+2. Rulaje perioadă (Debit și Credit) SAU Total sume (Debit și Credit)
+3. Solduri finale (Debit și Credit)
+
+ATENȚIE: Unele programe de contabilitate (ex: SmartBill) generează balanțe cu "Rulaje perioadă" (doar luna curentă), altele cu "Total sume" (cumulate de la începutul anului).
+- Dacă vezi "Rulaje perioadă" → sunt doar din luna curentă
+- Dacă vezi "Total sume" → sunt cumulate de la început de an
+- Adaptează analiza în funcție de tipul coloanelor disponibile
+
+Dacă structura nu este conformă, răspunde: "⚠️ Format neconform. Balanța trebuie să conțină: Solduri inițiale an, Rulaje/Total sume și Solduri finale. Exportă balanța completă din programul de contabilitate."
+
+La inceputul anlizei vei scrie urmatorul mesaj: Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.
 
 Notă importantă privind :Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare).Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI.
 
@@ -132,7 +145,7 @@ CUI: [ ] | J: [ ]
 Perioadă analizată: [Luna/Anul]
 Sursa datelor: Balanta de verificare - sintetica
 
-1) Snapshot Strategic și Recomandări Preliminare:
+1) Snapshot Strategic și Recomandări Preliminare (Dashboard CEO):
 Calculează și apoi raportează Cifra de afaceri anuală astfel: se calculează prin însumarea soldurilor din coloana „Total sume creditoare" a conturilor din clasa 7 (conturile de venituri) pe întreaga perioadă a anului.
 Mai exact, pentru calculul cifrei de afaceri, din balanța de verificare se aleg conturile de venituri din clasa 7, în special grupa 70 (cifra de afaceri netă), incluzând conturi precum 701, 702, 703, 704, 705, 706, 707, 708, după care se scad eventualele reduceri comerciale din contul 709 (dacă există).
 Astfel, cifra de afaceri anuală = suma totală a rulajelor creditoare (total sume creditoare) pentru aceste conturi de venituri din clasa 7 pe anul respectiv, minus eventualele reduceri comerciale (cont 709).
@@ -145,6 +158,20 @@ Calculează soldul final al contului 121 pentru un exercițiu financiar anual as
 • Soldul final al contului 121 reprezintă rezultatul exercițiului financiar:
 • Dacă soldul este creditor, înseamnă că veniturile au fost mai mari decât cheltuielile și societatea a realizat profit.
 • Dacă soldul este debitor, societatea a înregistrat pierdere.
+
+INDICATORI CHEIE CEO (Dashboard executiv):
+• Cifra de afaceri (CA): [valoare] - Evoluție vs. perioadă anterioară
+• Profitabilitate: Marja brută %, Marja netă %, EBITDA
+• Lichiditate: Cash disponibil (5121 + 5311), Current ratio
+• Eficiență operațională: 
+  - DSO (Days Sales Outstanding) - cât de repede încasăm de la clienți
+  - DPO (Days Payable Outstanding) - cât de repede plătim furnizorilor
+  - DIO (Days Inventory Outstanding) - rotația stocurilor (dacă aplicabil)
+  - Cash Conversion Cycle = DSO + DIO - DPO
+• Sănătate financiară: Debt-to-Equity ratio, Working Capital
+• Alerte critice: TVA restant, salarii/contribuții neachitate, stocuri depreciate
+• Oportunități: Economii fiscale, optimizări de cash-flow, zone de creștere
+
 TVA de plată Contul 4423 în Solduri finale Creditoare
 TVA de recuperat Contul 4424 în Solduri finale Debitoare
 Clienți Contul 4111 în Solduri finale Debitoare : [ ] | DSO: [ ] zile
@@ -156,7 +183,8 @@ Materii prime Contul 301 în Solduri finale Debitoare
 Materiale de natura obiectelor de inventar Contul în Solduri finale Debitoare
 Banii care sunt în bancă se regăsesc în contul 512, numit „Conturi curente la bănci". Acest cont înregistrează disponibilitățile în lei și în valută aflate în conturile bancare ale firmei. Soldul debitor al contului arată suma banilor disponibili în conturile bancare, iar soldul creditor reprezintă eventualele credite primite de la bancă.
 Banii care sunt efectiv în casă se găsesc în contul 5311, numit „Casa în lei". Soldul final al acestui cont, aflat pe partea de debit, indică suma de bani cash disponibilă în caserie. Acest cont nu poate avea sold creditor (adică nu poate apărea cu valoare negativă), deoarece nu există bani cu minus în casă.
-Interpretare și Recomandări Preliminare: Pe baza acestor indicatori cheie, oferă o primă evaluare a sănătății financiare a companiei și sugerează direcții inițiale de optimizare sau zone care necesită o investigație mai aprofundată.
+
+Interpretare și Recomandări Preliminare CEO: Pe baza acestor indicatori cheie, oferă o evaluare executivă a performanței companiei, identifică riscuri critice și oportunități strategice de optimizare. Prezintă analiza ca un dashboard managerial actionabil.
 
 2) Analiza Conturilor Cheie – Interpretare, Riscuri și Oportunități de Optimizare:
 Pentru fiecare cont cheie, extrage datele relevante, efectuează calculele necesare și oferă o analiză detaliată, identificând riscuri și propunând măsuri de optimizare.
@@ -265,10 +293,20 @@ serve(async (req) => {
     if (!balanceText || balanceText.length < 100) {
       return new Response(
         JSON.stringify({
-          error: "Excel-ul nu conține suficient text lizibil. Exportă balanța ca Excel text."
+          error: "Excel-ul nu conține suficient text lizibil. Exportă balanța completă (cu toate coloanele: Solduri inițiale, Rulaje/Total sume, Solduri finale) din programul de contabilitate."
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Validare simplă a structurii balanței
+    const hasRequiredColumns = 
+      (balanceText.toLowerCase().includes('solduri') || balanceText.toLowerCase().includes('sold')) &&
+      (balanceText.toLowerCase().includes('rulaje') || balanceText.toLowerCase().includes('total sume')) &&
+      (balanceText.toLowerCase().includes('finale') || balanceText.toLowerCase().includes('final'));
+    
+    if (!hasRequiredColumns) {
+      console.log("Structură balanță incompletă - verificare coloane");
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

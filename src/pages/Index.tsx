@@ -100,7 +100,7 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Analiză Contabilă AI
+            Yana - Analiza Balanței
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Încarcă balanța de verificare și primește o analiză managerială completă, 
@@ -117,6 +117,10 @@ const Index = () => {
             </CardTitle>
             <CardDescription>
               Suportă doar format Excel (.xls, .xlsx)
+              <br />
+              <span className="text-xs mt-2 block font-medium text-orange-600 dark:text-orange-400">
+                ⚠️ Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă/Total sume și Solduri finale
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -192,12 +196,13 @@ const Index = () => {
         {!analysis && (
           <Card className="mt-8 bg-accent/5 border-accent/20">
             <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2 text-accent">Despre această aplicație</h3>
+              <h3 className="font-semibold mb-2 text-accent">Despre Yana</h3>
               <p className="text-sm text-muted-foreground">
-                Această aplicație folosește inteligență artificială pentru a genera analize 
-                contabile manageriale pe baza balanțelor de verificare. Analizele sunt 
-                structurate și ușor de înțeles pentru antreprenori fără pregătire contabilă, 
-                respectând regulile contabile și fiscale din România.
+                Yana folosește inteligență artificială pentru a genera analize contabile manageriale 
+                pe baza balanțelor de verificare. Analizele sunt structurate și ușor de înțeles 
+                pentru antreprenori fără pregătire contabilă, respectând regulile contabile și 
+                fiscale din România. Aplicația funcționează cu balanțe din orice program de 
+                contabilitate (SmartBill, WizOne, Saga, etc.).
               </p>
             </CardContent>
           </Card>
