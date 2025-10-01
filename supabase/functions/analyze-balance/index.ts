@@ -214,62 +214,37 @@ Verifică dacă: \`diferenta == sold_cont121\`.
 
 Dacă textul PDF-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere PDF lizibile ale balanței de verificare (nu imagini, nu Excel). Reîncarcă un PDF exportat clar din programul de contabilitate."`;
 
-// Helper: decode hex string found in PDFs
-function decodeHexString(hex: string): string {
+// Parse PDF using pdfjs-dist
+async function parsePDFWithPDFJS(pdfBase64: string): Promise<string> {
   try {
-    const clean = hex.replace(/[^0-9A-Fa-f]/g, "");
-    const bytes = new Uint8Array(clean.length / 2);
-    for (let i = 0; i < clean.length; i += 2) {
-      bytes[i / 2] = parseInt(clean.slice(i, i + 2), 16);
+    // Import pdfjs-dist dynamically
+    const pdfjsLib = await import("https://esm.sh/pdfjs-dist@4.0.379/legacy/build/pdf.mjs");
+    
+    // Convert base64 to Uint8Array
+    const binaryString = atob(pdfBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
-    // Detect UTF-16BE (common in PDFs)
-    if (bytes.length > 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
-      let out = "";
-      for (let i = 2; i < bytes.length; i += 2) {
-        out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
-      }
-      return out;
+
+    // Load PDF document
+    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = "";
+    
+    // Extract text from all pages
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(" ");
+      fullText += pageText + "\n";
     }
-    // Fallback to latin1
-    let out = "";
-    for (let i = 0; i < bytes.length; i++) out += String.fromCharCode(bytes[i]);
-    return out;
-  } catch {
-    return "";
-  }
-}
-
-// Helper: naive PDF text extractor (works for many text-based PDFs)
-async function parsePDFContent(pdfBase64: string): Promise<string> {
-  try {
-    const bin = atob(pdfBase64);
-    let text = "";
-
-    // 1) Extract literal strings within parentheses (handles escaped \) and \\)
-    const literalMatches = bin.match(/\((?:\\\(|\\\)|\\\\|[^()])*\)/g) || [];
-    const literal = literalMatches
-      .map(m => m.slice(1, -1)
-        .replace(/\\\(/g, "(")
-        .replace(/\\\)/g, ")")
-        .replace(/\\n/g, " \n ")
-        .replace(/\\r/g, " ")
-        .replace(/\\t/g, " ")
-        .replace(/\\\\/g, "\\")
-      ).join(" ");
-
-    // 2) Extract hex strings <...>
-    const hexMatches = bin.match(/<([0-9A-Fa-f\s]+)>/g) || [];
-    const hex = hexMatches.map(h => decodeHexString(h.slice(1, -1))).join(" ");
-
-    text = (literal + " " + hex)
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    return text;
-  } catch (e) {
-    console.error("parsePDFContent error", e);
-    throw new Error("Nu s-a putut extrage textul din PDF");
+    
+    return fullText.trim();
+  } catch (error) {
+    console.error("Error parsing PDF with pdfjs:", error);
+    throw new Error("Nu s-a putut extrage textul din PDF cu pdfjs");
   }
 }
 
@@ -277,79 +252,100 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { pdfBase64, fileName } = await req.json();
+    const { pdfBase64 } = await req.json();
     if (!pdfBase64) {
       return new Response(
-        JSON.stringify({ error: "Nu s-a furnizat fișierul PDF cu balanța" }),
+        JSON.stringify({ error: "Lipsește fișierul PDF" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Procesare PDF: ${fileName || "necunoscut"}`);
+    console.log("Parsare PDF cu pdfjs-dist...");
+    const balanceText = await parsePDFWithPDFJS(pdfBase64);
+    console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
+    console.log("Lungime totală text extras:", balanceText.length);
 
-    const balanceText = await parsePDFContent(pdfBase64);
-
-    // If we couldn't get enough text, return a clear message (no AI call)
-    if (!balanceText || balanceText.length < 300) {
-      const fallback = [
-        "Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.",
-        "",
-        "Notă importantă: Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI.",
-        "",
-        "Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale.",
-        "",
-        "Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.",
-        "",
-        "Observație privind documentul atașat:",
-        "Nu s-a putut extrage text lizibil din PDF-ul încărcat. Se acceptă DOAR fișiere PDF ale balanței de verificare (nu imagini JPG/PNG, nu Excel). Vă rugăm să reîncărcați un PDF clar, exportat din programul contabil.",
-      ].join("\n");
-
+    if (!balanceText || balanceText.length < 100) {
       return new Response(
-        JSON.stringify({ analysis: fallback }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "PDF-ul nu conține suficient text lizibil. Exportă balanța ca PDF text (nu imagine scanată)."
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY nu este configurată");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY nu este configurată");
+      return new Response(
+        JSON.stringify({ error: "Configurare incorectă a serviciului" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    console.log("Trimitere cerere către Lovable AI...");
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    console.log("Trimit cerere către Lovable AI...");
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Analizează următoarea balanță de verificare:\n\n${balanceText}` },
+          { role: "user", content: `Analizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
         ],
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Eroare Lovable AI:", response.status, errorText);
-      if (response.status === 429) throw new Error("Rate limit depășit. Te rog încearcă din nou peste câteva minute.");
-      if (response.status === 402) throw new Error("Credite insuficiente. Te rog adaugă credite în contul Lovable AI.");
-      throw new Error(`Eroare API (${response.status}): ${errorText}`);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("Eroare AI Gateway:", aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Limită de utilizare depășită. Te rog încearcă din nou peste câteva minute." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Credite insuficiente. Te rog adaugă credite în Lovable AI workspace." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ error: "Eroare la serviciul de analiză AI" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const data = await response.json();
-    const analysis = data.choices?.[0]?.message?.content;
-    if (!analysis) throw new Error("Nu s-a putut genera analiza");
+    const aiData = await aiResponse.json();
+    const analysis = aiData.choices?.[0]?.message?.content;
 
+    if (!analysis) {
+      console.error("Răspuns AI invalid:", aiData);
+      return new Response(
+        JSON.stringify({ error: "Răspuns invalid de la serviciul AI" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Analiză generată cu succes!");
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+
   } catch (error) {
-    console.error("Eroare în edge function:", error);
+    console.error("Eroare în analyze-balance:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "A apărut o eroare la procesarea cererii" }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Eroare necunoscută la procesarea PDF-ului"
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
