@@ -16,7 +16,7 @@ export const ChatAI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Bună! Sunt asistentul tău AI Yana. Cu ce te pot ajuta legat de analizele tale financiare?'
+      content: 'Bună! Sunt asistenta ta AI Yana. Cu ce te pot ajuta legat de analizele tale financiare?'
     }
   ]);
   const [input, setInput] = useState('');

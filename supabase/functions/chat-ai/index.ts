@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Ești asistentul AI Yana, specializat în analize financiare și contabilitate pentru antreprenori români.
+const SYSTEM_PROMPT = `Ești asistenta AI Yana, specializată în analize financiare și contabilitate pentru antreprenori români.
 
 Expertiza ta include:
 - Explicarea indicatorilor financiari (CA, profit, lichiditate, DSO, DPO, etc.)
