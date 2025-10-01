@@ -1,15 +1,22 @@
-import { useState } from "react";
-import { Upload, FileText, Loader2, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { ChatAI } from "@/components/ChatAI";
+import { Dashboard } from "@/components/Dashboard";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string>("");
+  const [showDashboard, setShowDashboard] = useState(false);
   const { toast } = useToast();
+  const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -71,9 +78,30 @@ const Index = () => {
       }
 
       setAnalysis(data.analysis);
+      
+      // Salvează analiza dacă userul este autentificat
+      if (user) {
+        try {
+          const { error: saveError } = await supabase
+            .from('analyses')
+            .insert({
+              user_id: user.id,
+              file_name: file.name,
+              analysis_text: data.analysis,
+              metadata: {}
+            });
+
+          if (saveError) throw saveError;
+        } catch (saveError) {
+          console.error('Error saving analysis:', saveError);
+        }
+      }
+      
       toast({
         title: "Analiză completă!",
-        description: "Analiza contabilă a fost generată cu succes.",
+        description: user 
+          ? "Analiza a fost generată și salvată în istoric." 
+          : "Analiza a fost generată cu succes.",
       });
     } catch (error) {
       console.error("Eroare la analiză:", error);
@@ -87,18 +115,126 @@ const Index = () => {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    if (!analysis) return;
+    
+    const jsPDF = (await import('jspdf')).default;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const maxWidth = pageWidth - 2 * margin;
+    
+    doc.setFontSize(18);
+    doc.text('Yana - Analiză Balanță', margin, margin);
+    
+    if (file) {
+      doc.setFontSize(12);
+      doc.text(`Fișier: ${file.name}`, margin, margin + 10);
+    }
+    
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(analysis, maxWidth);
+    let y = margin + 25;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    lines.forEach((line: string) => {
+      if (y > pageHeight - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += 7;
+    });
+    
+    doc.save(`yana-analiza-${new Date().toISOString().split('T')[0]}.pdf`);
+    
     toast({
-      title: "Export PDF",
-      description: "Funcția de export PDF va fi disponibilă în curând.",
+      title: "Export reușit",
+      description: "PDF-ul a fost descărcat cu succes.",
     });
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    setAnalysis("");
+    setFile(null);
+    toast({
+      title: "Deconectat",
+      description: "Te-ai deconectat cu succes.",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="mt-4 text-muted-foreground">Se încarcă...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (showDashboard && user) {
+    return (
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex justify-between items-center mb-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowDashboard(false)}
+              >
+                ← Înapoi la Analiză
+              </Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Deconectare
+              </Button>
+            </div>
+          </div>
+          <Dashboard />
+        </div>
+        <ChatAI />
+      </>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-12">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div></div>
+            <div className="flex gap-2">
+              {user ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowDashboard(true)}
+                  >
+                    <History className="mr-2 h-4 w-4" />
+                    Istoric
+                  </Button>
+                  <Button variant="outline" onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Deconectare
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/auth')}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Autentificare
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Yana - Analiza Balanței
           </h1>
@@ -206,9 +342,11 @@ const Index = () => {
               </p>
             </CardContent>
           </Card>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+      {user && <ChatAI />}
+    </>
   );
 };
 
