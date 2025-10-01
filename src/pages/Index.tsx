@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User } from "lucide-react";
+import { useState } from "react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { ChatAI } from "@/components/ChatAI";
 import { Dashboard } from "@/components/Dashboard";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -69,17 +70,11 @@ const Index = () => {
         body: { excelBase64, fileName: file.name },
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       setAnalysis(data.analysis);
       
-      // Salvează analiza dacă userul este autentificat
       if (user) {
         try {
           const { error: saveError } = await supabase
@@ -90,7 +85,6 @@ const Index = () => {
               analysis_text: data.analysis,
               metadata: {}
             });
-
           if (saveError) throw saveError;
         } catch (saveError) {
           console.error('Error saving analysis:', saveError);
@@ -181,10 +175,7 @@ const Index = () => {
         <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
           <div className="container mx-auto px-4 py-4">
             <div className="flex justify-between items-center mb-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowDashboard(false)}
-              >
+              <Button variant="outline" onClick={() => setShowDashboard(false)}>
                 ← Înapoi la Analiză
               </Button>
               <Button variant="outline" onClick={handleSignOut}>
@@ -194,6 +185,7 @@ const Index = () => {
             </div>
           </div>
           <Dashboard />
+          <Footer />
         </div>
         <ChatAI />
       </>
@@ -204,16 +196,15 @@ const Index = () => {
     <>
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
-          {/* Header */}
           <div className="flex justify-between items-center mb-8">
-            <div></div>
+            <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
+              <Phone className="mr-2 h-4 w-4" />
+              Contact
+            </Button>
             <div className="flex gap-2">
               {user ? (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowDashboard(true)}
-                  >
+                  <Button variant="outline" onClick={() => setShowDashboard(true)}>
                     <History className="mr-2 h-4 w-4" />
                     Istoric
                   </Button>
@@ -223,10 +214,7 @@ const Index = () => {
                   </Button>
                 </>
               ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/auth')}
-                >
+                <Button variant="outline" onClick={() => navigate('/auth')}>
                   <User className="mr-2 h-4 w-4" />
                   Autentificare
                 </Button>
@@ -235,119 +223,114 @@ const Index = () => {
           </div>
 
           <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Yana - Analiza Balanței
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Înțelege situația financiară a afacerii tale instant, fără să aștepți explicații de la contabil.
-            Analiză managerială completă în câteva secunde.
-          </p>
-        </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Yana - Analiza Balanței
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Înțelege situația financiară a afacerii tale instant, fără să aștepți explicații de la contabil.
+              Analiză managerială completă în câteva secunde.
+            </p>
+          </div>
 
-        {/* Upload Section */}
-        <Card className="mb-8 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
-              Încarcă Balanța de Verificare
-            </CardTitle>
-            <CardDescription>
-              Suportă doar format Excel (.xls, .xlsx)
-              <br />
-              <span className="text-xs mt-2 block font-medium text-orange-600 dark:text-orange-400">
-                ⚠️ Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă, Total sume și Solduri finale
-              </span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  accept=".xls,.xlsx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="flex-1 cursor-pointer"
-                >
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
-                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                    {file ? (
-                      <p className="text-sm font-medium">{file.name}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Click pentru a selecta un fișier
-                      </p>
-                    )}
-                  </div>
-                </label>
-              </div>
-
-              <Button
-                onClick={handleAnalyze}
-                disabled={!file || isAnalyzing}
-                className="w-full"
-                size="lg"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analizez...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generează Analiza
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Analysis Result */}
-        {analysis && (
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Analiză Managerială</CardTitle>
-              <Button onClick={handleExportPDF} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export PDF
-              </Button>
+          <Card className="mb-8 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-primary" />
+                Încarcă Balanța de Verificare
+              </CardTitle>
+              <CardDescription>
+                Suportă doar format Excel (.xls, .xlsx)
+                <br />
+                <span className="text-xs mt-2 block font-medium text-orange-600 dark:text-orange-400">
+                  ⚠️ Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă, Total sume și Solduri finale
+                </span>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {analysis}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    accept=".xls,.xlsx"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="flex-1 cursor-pointer">
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
+                      <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      {file ? (
+                        <p className="text-sm font-medium">{file.name}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Click pentru a selecta un fișier
+                        </p>
+                      )}
+                    </div>
+                  </label>
                 </div>
+
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={!file || isAnalyzing}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analizez...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generează Analiza
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Footer Info */}
-        {!analysis && (
-          <Card className="mt-8 bg-accent/5 border-accent/20">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold mb-2 text-accent">Despre Yana</h3>
-              <p className="text-sm text-muted-foreground">
-                Yana folosește inteligență artificială pentru a genera analize contabile manageriale 
-                pe baza balanțelor de verificare. Analizele sunt structurate și ușor de înțeles 
-                pentru antreprenori fără pregătire contabilă, respectând regulile contabile și 
-                fiscale din România. Aplicația funcționează cu balanțe din orice program de 
-                contabilitate (SmartBill, WizOne, Saga, etc.).
-              </p>
-            </CardContent>
-          </Card>
+          {analysis && (
+            <Card className="shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Analiză Managerială</CardTitle>
+                <Button onClick={handleExportPDF} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export PDF
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {analysis}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
+
+          {!analysis && (
+            <Card className="mt-8 bg-accent/5 border-accent/20">
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-2 text-accent">Despre Yana</h3>
+                <p className="text-sm text-muted-foreground">
+                  Yana folosește inteligență artificială pentru a genera analize contabile manageriale 
+                  pe baza balanțelor de verificare. Analizele sunt structurate și ușor de înțeles 
+                  pentru antreprenori fără pregătire contabilă, respectând regulile contabile și 
+                  fiscale din România. Aplicația funcționează cu balanțe din orice program de 
+                  contabilitate (SmartBill, WizOne, Saga, etc.).
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          
+          <Footer />
         </div>
-      </div>
-      {user && <ChatAI />}
-    </>
-  );
+        {user && <ChatAI />}
+      </>
+    );
 };
 
 export default Index;
