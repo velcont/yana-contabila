@@ -103,8 +103,8 @@ const Index = () => {
             Yana - Analiza Balanței
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Încarcă balanța de verificare și primește o analiză managerială completă, 
-            generată automat pentru antreprenorii tăi.
+            Înțelege situația financiară a afacerii tale instant, fără să aștepți explicații de la contabil.
+            Analiză managerială completă în câteva secunde.
           </p>
         </div>
 
