@@ -49,9 +49,46 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     // Profit
     const profitMatch = section.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
     if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
-  } else {
-    // Fallback: caută valorile în întregul text (pentru analize vechi)
-    
+  }
+  
+  // Căutare în ultimele 15 linii ale textului pentru indicatori fără header
+  // (pentru cazurile când AI-ul nu adaugă secțiunea structurată)
+  const lines = text.trim().split('\n');
+  const lastLines = lines.slice(-15).join('\n');
+  
+  // Doar dacă nu am găsit nimic în secțiunea structurată
+  if (Object.keys(indicators).length === 0) {
+    // DSO
+    const dsoMatch = lastLines.match(/DSO[:\s]+(\d+(?:\.\d+)?)/i);
+    if (dsoMatch) indicators.dso = parseFloat(dsoMatch[1]);
+
+    // DPO
+    const dpoMatch = lastLines.match(/DPO[:\s]+(\d+(?:\.\d+)?)/i);
+    if (dpoMatch) indicators.dpo = parseFloat(dpoMatch[1]);
+
+    // CCC (Cash Conversion Cycle)
+    const cccMatch = lastLines.match(/CCC[:\s]+([+-]?\d+(?:\.\d+)?)/i);
+    if (cccMatch) indicators.cashConversionCycle = parseFloat(cccMatch[1]);
+
+    // EBITDA - poate fi și text
+    const ebitdaMatch = lastLines.match(/EBITDA[:\s]+([+-]?\d+(?:\.\d+)?)/i);
+    if (ebitdaMatch) indicators.ebitda = parseFloat(ebitdaMatch[1]);
+
+    // CA (Cifra de afaceri / Revenue)
+    const caMatch = lastLines.match(/CA[:\s]+(\d+(?:\.\d+)?)/i);
+    if (caMatch) indicators.revenue = parseFloat(caMatch[1]);
+
+    // Cheltuieli
+    const expensesMatch = lastLines.match(/Cheltuieli[:\s]+(\d+(?:\.\d+)?)/i);
+    if (expensesMatch) indicators.expenses = parseFloat(expensesMatch[1]);
+
+    // Profit
+    const profitMatch = lastLines.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
+    if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
+  }
+
+  // Fallback final: caută valorile în întregul text (pentru analize vechi)
+  if (Object.keys(indicators).length === 0) {
     // Cifra de afaceri
     const caMatch = text.match(/Cifra\s+de\s+afaceri\s+(?:anuală\s+)?(?:cumulată\s+)?[=:]\s*([0-9,.]+)\s*RON/i);
     if (caMatch) {
