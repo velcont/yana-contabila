@@ -41,6 +41,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_news: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          link: string
+          published_at: string
+          source: string
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          link: string
+          published_at: string
+          source: string
+          title: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          link?: string
+          published_at?: string
+          source?: string
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { AnalyticsCharts } from './AnalyticsCharts';
 import { parseAnalysisText } from '@/utils/analysisParser';
+import { FiscalNews } from './FiscalNews';
 import {
   Select,
   SelectContent,
@@ -180,10 +181,14 @@ export const Dashboard = () => {
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
+          </TabsTrigger>
+          <TabsTrigger value="news">
+            <Newspaper className="h-4 w-4 mr-2" />
+            Știri Fiscale
           </TabsTrigger>
           <TabsTrigger value="history">
             <FileText className="h-4 w-4 mr-2" />
@@ -193,6 +198,10 @@ export const Dashboard = () => {
 
         <TabsContent value="analytics" className="space-y-6">
           <AnalyticsCharts data={analyticsData} />
+        </TabsContent>
+
+        <TabsContent value="news" className="space-y-6">
+          <FiscalNews />
         </TabsContent>
 
         <TabsContent value="history">
