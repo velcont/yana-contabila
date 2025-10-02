@@ -24,6 +24,7 @@ interface Analysis {
   file_name: string;
   analysis_text: string;
   created_at: string;
+  company_name?: string;
 }
 
 export const Dashboard = () => {
@@ -31,6 +32,7 @@ export const Dashboard = () => {
   const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'3' | '6' | '12' | 'all'>('all');
+  const [companyFilter, setCompanyFilter] = useState<string>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -138,17 +140,33 @@ export const Dashboard = () => {
     );
   }
 
-  // Filtrare date pe perioadă
+  // Filtrare date pe perioadă și companie
   const getFilteredAnalyses = () => {
-    if (periodFilter === 'all') return analyses;
+    let filtered = analyses;
     
-    const months = parseInt(periodFilter);
-    const cutoffDate = subMonths(new Date(), months);
+    // Filtrare după perioadă
+    if (periodFilter !== 'all') {
+      const months = parseInt(periodFilter);
+      const cutoffDate = subMonths(new Date(), months);
+      filtered = filtered.filter(analysis => 
+        new Date(analysis.created_at) >= cutoffDate
+      );
+    }
     
-    return analyses.filter(analysis => 
-      new Date(analysis.created_at) >= cutoffDate
-    );
+    // Filtrare după companie
+    if (companyFilter !== 'all') {
+      filtered = filtered.filter(analysis => 
+        (analysis.company_name || 'Firma Principală') === companyFilter
+      );
+    }
+    
+    return filtered;
   };
+  
+  // Lista unică de companii pentru filtru
+  const uniqueCompanies = Array.from(new Set(
+    analyses.map(a => a.company_name || 'Firma Principală')
+  )).sort();
 
   const filteredAnalyses = getFilteredAnalyses();
 
@@ -164,7 +182,7 @@ export const Dashboard = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <Select value={periodFilter} onValueChange={(value: any) => setPeriodFilter(value)}>
             <SelectTrigger className="w-[180px]">
@@ -177,6 +195,22 @@ export const Dashboard = () => {
               <SelectItem value="all">Toate perioadele</SelectItem>
             </SelectContent>
           </Select>
+          
+          {uniqueCompanies.length > 1 && (
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Toate firmele" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate firmele</SelectItem>
+                {uniqueCompanies.map(company => (
+                  <SelectItem key={company} value={company}>
+                    {company}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
       
@@ -232,6 +266,11 @@ export const Dashboard = () => {
                       <p className="text-sm font-medium truncate">
                         {analysis.file_name}
                       </p>
+                      {analysis.company_name && (
+                        <p className="text-xs font-semibold text-primary">
+                          {analysis.company_name}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(analysis.created_at), 'dd MMM yyyy', { locale: ro })}
                       </p>

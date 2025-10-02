@@ -16,6 +16,7 @@ const Index = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string>("");
   const [showDashboard, setShowDashboard] = useState(false);
+  const [companyName, setCompanyName] = useState<string>("");
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
@@ -84,6 +85,7 @@ const Index = () => {
               user_id: user.id,
               file_name: file.name,
               analysis_text: data.analysis,
+              company_name: companyName || 'Firma Principală',
               metadata: {}
             });
           if (saveError) throw saveError;
@@ -249,6 +251,24 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {user && (
+                <div className="mb-4">
+                  <label htmlFor="company-name" className="block text-sm font-medium mb-2">
+                    Nume Firmă (opțional)
+                  </label>
+                  <input
+                    id="company-name"
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Ex: SC Example SRL"
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Dacă gestionezi mai multe firme, introdu numele pentru a le diferenția în istoric
+                  </p>
+                </div>
+              )}
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <input

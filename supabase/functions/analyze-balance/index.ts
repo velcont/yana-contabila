@@ -39,7 +39,9 @@ Specific pentru conturile din Balanta de verificare - sintetica atașată:
 • Contul Furnizori (401) are sold în solduri finale creditoare.
 • Contul Impozit pe profit (4411) este în sold final creditor.
 • Contul Impozit pe venit (4418) în sold final creditor.
-• Conturile 5121 (conturi curente bancare) și 5311 (casa în lei) au solduri finale debitoare deoarece reprezintă disponibilități.
+• Contul 5121 (conturi la bănci în lei) și 5311 (casa în lei) au solduri finale debitoare deoarece reprezintă disponibilități.
+• Contul 5124 este pentru conturi la bănci în valută.
+• Contul 5125 este pentru "Sume în curs de decontare" - NU este cont de bancă în valută, ci reprezintă sume temporare în tranzit (ex: încasări cu cardul în curs de procesare).
 • Conturile de cheltuieli (clasa 6) și venituri (clasa 7) se analizează pe rulaje (total sume debitoare și creditoare), care trebuie să se egaleze.
 • Conturile legate de salarii și contribuții (în clasa 4) au solduri finale creditoare.
 
@@ -189,7 +191,11 @@ Impozitul pe venit Contul 4418 în Solduri finale Creditoare
 Mărfuri Contul 371 în Solduri finale Debitoare
 Materii prime Contul 301 în Solduri finale Debitoare
 Materiale de natura obiectelor de inventar Contul în Solduri finale Debitoare
-Banii care sunt în bancă se regăsesc în contul 512, numit „Conturi curente la bănci". Acest cont înregistrează disponibilitățile în lei și în valută aflate în conturile bancare ale firmei. Soldul debitor al contului arată suma banilor disponibili în conturile bancare, iar soldul creditor reprezintă eventualele credite primite de la bancă.
+Banii care sunt în bancă se regăsesc în următoarele conturi din grupa 512:
+• Contul 5121 „Conturi la bănci în lei" - disponibilități în lei în conturi bancare
+• Contul 5124 „Conturi la bănci în valută" - disponibilități în valută în conturi bancare
+• Contul 5125 „Sume în curs de decontare" - sume temporare în tranzit (ex: încasări cu cardul aflate în curs de procesare de către banca procesatoare, care încă nu au ajuns în contul bancar al firmei)
+Soldurile finale debitoare ale acestor conturi arată sumele disponibile sau în curs de decontare.
 Banii care sunt efectiv în casă se găsesc în contul 5311, numit „Casa în lei". Soldul final al acestui cont, aflat pe partea de debit, indică suma de bani cash disponibilă în caserie. Acest cont nu poate avea sold creditor (adică nu poate apărea cu valoare negativă), deoarece nu există bani cu minus în casă.
 
 Interpretare și Recomandări Preliminare CEO: Pe baza acestor indicatori cheie, oferă o evaluare executivă a performanței companiei, identifică riscuri critice și oportunități strategice de optimizare. Prezintă analiza ca un dashboard managerial actionabil.

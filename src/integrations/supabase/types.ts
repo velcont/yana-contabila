@@ -17,6 +17,7 @@ export type Database = {
       analyses: {
         Row: {
           analysis_text: string
+          company_name: string | null
           created_at: string
           file_name: string
           id: string
@@ -25,6 +26,7 @@ export type Database = {
         }
         Insert: {
           analysis_text: string
+          company_name?: string | null
           created_at?: string
           file_name: string
           id?: string
@@ -33,6 +35,7 @@ export type Database = {
         }
         Update: {
           analysis_text?: string
+          company_name?: string | null
           created_at?: string
           file_name?: string
           id?: string
