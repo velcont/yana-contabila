@@ -192,7 +192,7 @@ export const Dashboard = () => {
           </TabsTrigger>
           <TabsTrigger value="history">
             <FileText className="h-4 w-4 mr-2" />
-            Istoric
+            Analize Anterioare
           </TabsTrigger>
         </TabsList>
 
