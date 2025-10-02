@@ -95,7 +95,7 @@ const Index = () => {
       toast({
         title: "Analiză completă!",
         description: user 
-          ? "Analiza a fost generată și salvată în istoric." 
+          ? "Analiza a fost generată și salvată în Dosarul Meu Financiar." 
           : "Analiza a fost generată cu succes.",
       });
     } catch (error) {
@@ -208,7 +208,7 @@ const Index = () => {
                 <>
                   <Button variant="outline" onClick={() => setShowDashboard(true)}>
                     <History className="mr-2 h-4 w-4" />
-                    Istoric
+                    Dosarul Meu Financiar
                   </Button>
                   <Button variant="outline" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
