@@ -111,10 +111,11 @@ serve(async (req) => {
 
     console.log(`Total relevant items found: ${allItems.length}`);
 
-    // Filter by time (last 12 hours, extend to 24h if needed)
+    // Filter by time (last 12 hours, extend progressively if needed)
     const now = new Date();
     const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     let recentItems = allItems.filter(item => {
       const pubDate = new Date(item.pubDate);
@@ -128,6 +129,16 @@ serve(async (req) => {
       recentItems = allItems.filter(item => {
         const pubDate = new Date(item.pubDate);
         return pubDate >= twentyFourHoursAgo;
+      });
+    }
+
+    if (recentItems.length === 0) {
+      console.log('No items in last 24h, extending to 7 days');
+      timeframeMessage = 'Nimic în ultimele 24h; extind la 7 zile.';
+      recentItems = allItems.filter(item => {
+        const pubDate = new Date(item.pubDate);
+        console.log(`Article date: ${item.pubDate}, Parsed: ${pubDate.toISOString()}, Days old: ${(now.getTime() - pubDate.getTime()) / (24 * 60 * 60 * 1000)}`);
+        return pubDate >= sevenDaysAgo;
       });
     }
 
