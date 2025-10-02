@@ -236,6 +236,30 @@ const Index = () => {
             </p>
           </div>
 
+          {user && (
+            <Card className="mb-6 shadow-lg border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User className="h-5 w-5 text-primary" />
+                  Selectează Firma
+                </CardTitle>
+                <CardDescription>
+                  Dacă gestionezi mai multe firme, introdu numele pentru a le diferenția în istoric
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <input
+                  id="company-name"
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Ex: SC SMART VEST SRL"
+                  className="w-full px-4 py-3 border-2 border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-base"
+                />
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="mb-8 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -251,24 +275,6 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {user && (
-                <div className="mb-4">
-                  <label htmlFor="company-name" className="block text-sm font-medium mb-2">
-                    Nume Firmă (opțional)
-                  </label>
-                  <input
-                    id="company-name"
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Ex: SC Example SRL"
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Dacă gestionezi mai multe firme, introdu numele pentru a le diferenția în istoric
-                  </p>
-                </div>
-              )}
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <input
