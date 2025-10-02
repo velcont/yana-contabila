@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { ChatAI } from "@/components/ChatAI";
 import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -202,6 +203,7 @@ const Index = () => {
               Contact
             </Button>
             <div className="flex gap-2">
+              <ThemeToggle />
               {user ? (
                 <>
                   <Button variant="outline" onClick={() => setShowDashboard(true)}>

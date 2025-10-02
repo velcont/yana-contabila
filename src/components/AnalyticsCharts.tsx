@@ -1,9 +1,10 @@
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { FinancialIndicators, formatCurrency, formatNumber } from '@/utils/analysisParser';
-import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, DollarSign, Calendar, AlertCircle, Clock, PieChart, BarChart3 } from 'lucide-react';
 
 interface AnalysisDataPoint {
   date: string;
@@ -48,15 +49,49 @@ export const AnalyticsCharts = ({ data }: AnalyticsChartsProps) => {
     return { change, isPositive: change > 0 };
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  // Funcții pentru alerte
+  const getDSOAlert = (dso: number) => {
+    if (dso > 60) return { level: 'danger', text: 'Prea mare!' };
+    if (dso > 45) return { level: 'warning', text: 'Atenție' };
+    return { level: 'success', text: 'Bine' };
+  };
+
+  const getEBITDAAlert = (ebitda: number) => {
+    if (ebitda < 0) return { level: 'danger', text: 'Negativ!' };
+    if (ebitda < 10000) return { level: 'warning', text: 'Scăzut' };
+    return { level: 'success', text: 'Sănătos' };
+  };
+
+  const getProfitAlert = (profit: number) => {
+    if (profit < 0) return { level: 'danger', text: 'Pierdere!' };
+    if (profit < 5000) return { level: 'warning', text: 'Scăzut' };
+    return { level: 'success', text: 'Profitabil' };
+  };
+
+  const getBadgeVariant = (level: string): "default" | "destructive" | "secondary" => {
+    if (level === 'danger') return 'destructive';
+    if (level === 'warning') return 'secondary';
+    return 'default';
+  };
+
+  const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background border rounded-lg p-3 shadow-lg">
-          <p className="font-medium mb-2">{payload[0]?.payload?.fullDate}</p>
+        <div className="bg-card border border-border rounded-lg p-4 shadow-xl">
+          <p className="font-semibold mb-2 text-card-foreground">{payload[0]?.payload?.fullDate}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value.toFixed(1)}
-            </p>
+            <div key={index} className="flex items-center gap-2 text-sm py-1">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-muted-foreground">{entry.name}:</span>
+              <span className="font-medium text-card-foreground">
+                {typeof entry.value === 'number' && entry.value > 1000 
+                  ? formatCurrency(entry.value)
+                  : entry.value.toFixed(1)}
+              </span>
+            </div>
           ))}
         </div>
       );
@@ -64,195 +99,318 @@ export const AnalyticsCharts = ({ data }: AnalyticsChartsProps) => {
     return null;
   };
 
+  const latestData = chartData[chartData.length - 1];
+
   return (
     <div className="space-y-6">
-      {/* Indicatori Cheie - KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {chartData.length > 0 && (
-          <>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  DSO (Zile Creanță)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold">
-                    {formatNumber(chartData[chartData.length - 1].dso, 0)} zile
-                  </div>
-                  {getTrend('dso') && (
-                    <div className={`flex items-center text-sm ${getTrend('dso')!.isPositive ? 'text-destructive' : 'text-green-600'}`}>
-                      {getTrend('dso')!.isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-                      {Math.abs(getTrend('dso')!.change).toFixed(1)}%
-                    </div>
-                  )}
+      {/* Indicatori Cheie - KPI Cards Îmbunătățite */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* DSO Card */}
+        <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
+          <CardHeader className="pb-3 relative">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                DSO (Zile Creanță)
+              </CardTitle>
+              <Badge variant={getBadgeVariant(getDSOAlert(latestData.dso).level)} className="text-xs">
+                {getDSOAlert(latestData.dso).text}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="flex items-end justify-between mb-3">
+              <div className="text-3xl font-bold">
+                {formatNumber(latestData.dso, 0)} <span className="text-lg text-muted-foreground">zile</span>
+              </div>
+              {getTrend('dso') && (
+                <div className={`flex items-center text-sm font-medium ${getTrend('dso')!.isPositive ? 'text-destructive' : 'text-green-600'}`}>
+                  {getTrend('dso')!.isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                  {Math.abs(getTrend('dso')!.change).toFixed(1)}%
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
+            {/* Mini Sparkline */}
+            <div className="h-12 -mx-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData.slice(-5)}>
+                  <defs>
+                    <linearGradient id="dsoGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area 
+                    type="monotone" 
+                    dataKey="dso" 
+                    stroke="hsl(var(--chart-1))" 
+                    fill="url(#dsoGradient)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  EBITDA
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(chartData[chartData.length - 1].ebitda)}
-                  </div>
-                  {getTrend('ebitda') && (
-                    <div className={`flex items-center text-sm ${getTrend('ebitda')!.isPositive ? 'text-green-600' : 'text-destructive'}`}>
-                      {getTrend('ebitda')!.isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-                      {Math.abs(getTrend('ebitda')!.change).toFixed(1)}%
-                    </div>
-                  )}
+        {/* EBITDA Card */}
+        <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors" />
+          <CardHeader className="pb-3 relative">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <PieChart className="h-4 w-4" />
+                EBITDA
+              </CardTitle>
+              <Badge variant={getBadgeVariant(getEBITDAAlert(latestData.ebitda).level)} className="text-xs">
+                {getEBITDAAlert(latestData.ebitda).text}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="flex items-end justify-between mb-3">
+              <div className="text-3xl font-bold">
+                {formatCurrency(latestData.ebitda)}
+              </div>
+              {getTrend('ebitda') && (
+                <div className={`flex items-center text-sm font-medium ${getTrend('ebitda')!.isPositive ? 'text-green-600' : 'text-destructive'}`}>
+                  {getTrend('ebitda')!.isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                  {Math.abs(getTrend('ebitda')!.change).toFixed(1)}%
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
+            {/* Mini Sparkline */}
+            <div className="h-12 -mx-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData.slice(-5)}>
+                  <defs>
+                    <linearGradient id="ebitdaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--accent))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--accent))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area 
+                    type="monotone" 
+                    dataKey="ebitda" 
+                    stroke="hsl(var(--accent))" 
+                    fill="url(#ebitdaGradient)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Profit Net
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(chartData[chartData.length - 1].profit)}
-                  </div>
-                  {getTrend('profit') && (
-                    <div className={`flex items-center text-sm ${getTrend('profit')!.isPositive ? 'text-green-600' : 'text-destructive'}`}>
-                      {getTrend('profit')!.isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-                      {Math.abs(getTrend('profit')!.change).toFixed(1)}%
-                    </div>
-                  )}
+        {/* Profit Net Card */}
+        <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-chart-4/5 rounded-full -mr-16 -mt-16 group-hover:bg-chart-4/10 transition-colors" />
+          <CardHeader className="pb-3 relative">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Profit Net
+              </CardTitle>
+              <Badge variant={getBadgeVariant(getProfitAlert(latestData.profit).level)} className="text-xs">
+                {getProfitAlert(latestData.profit).text}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="relative">
+            <div className="flex items-end justify-between mb-3">
+              <div className="text-3xl font-bold">
+                {formatCurrency(latestData.profit)}
+              </div>
+              {getTrend('profit') && (
+                <div className={`flex items-center text-sm font-medium ${getTrend('profit')!.isPositive ? 'text-green-600' : 'text-destructive'}`}>
+                  {getTrend('profit')!.isPositive ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+                  {Math.abs(getTrend('profit')!.change).toFixed(1)}%
                 </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
+              )}
+            </div>
+            {/* Mini Sparkline */}
+            <div className="h-12 -mx-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData.slice(-5)}>
+                  <defs>
+                    <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area 
+                    type="monotone" 
+                    dataKey="profit" 
+                    stroke="hsl(var(--chart-4))" 
+                    fill="url(#profitGradient)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Grafic Indicatori Cash Flow */}
+      {/* Grafic Indicatori Cash Flow - Îmbunătățit */}
       <Card>
         <CardHeader>
-          <CardTitle>Indicatori Cash Flow în Timp</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Indicatori Cash Flow în Timp
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={350}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <defs>
+                <linearGradient id="colorDSO" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
               <XAxis 
                 dataKey="date" 
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                tickMargin={10}
               />
               <YAxis 
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                tickMargin={10}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Legend />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="circle"
+              />
               <Line 
                 type="monotone" 
                 dataKey="dso" 
                 stroke="hsl(var(--chart-1))" 
                 name="DSO (zile)"
-                strokeWidth={2}
+                strokeWidth={3}
+                dot={{ r: 4, strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="dpo" 
                 stroke="hsl(var(--chart-2))" 
                 name="DPO (zile)"
-                strokeWidth={2}
+                strokeWidth={3}
+                dot={{ r: 4, strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="ccc" 
                 stroke="hsl(var(--chart-3))" 
                 name="Cash Conversion Cycle"
-                strokeWidth={2}
+                strokeWidth={3}
+                dot={{ r: 4, strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Grafic Venituri vs Cheltuieli */}
+      {/* Grafic Venituri vs Cheltuieli - Îmbunătățit */}
       <Card>
         <CardHeader>
-          <CardTitle>Venituri vs Cheltuieli</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Venituri vs Cheltuieli
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={350}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
               <XAxis 
                 dataKey="date"
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                tickMargin={10}
               />
               <YAxis 
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                tickMargin={10}
               />
               <Tooltip 
                 content={<CustomTooltip />}
-                formatter={(value: number) => formatCurrency(value)}
               />
-              <Legend />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="square"
+              />
               <Bar 
                 dataKey="revenue" 
                 fill="hsl(var(--chart-4))" 
                 name="Venituri"
+                radius={[8, 8, 0, 0]}
               />
               <Bar 
                 dataKey="expenses" 
                 fill="hsl(var(--chart-5))" 
                 name="Cheltuieli"
+                radius={[8, 8, 0, 0]}
               />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Grafic EBITDA */}
+      {/* Grafic EBITDA - Îmbunătățit cu Area */}
       <Card>
         <CardHeader>
-          <CardTitle>Evoluție EBITDA</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Evoluție EBITDA
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="colorEBITDA" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
               <XAxis 
                 dataKey="date"
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                tickMargin={10}
               />
               <YAxis 
                 className="text-xs"
                 tick={{ fill: 'hsl(var(--muted-foreground))' }}
                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                tickMargin={10}
               />
-              <Tooltip 
-                content={<CustomTooltip />}
-                formatter={(value: number) => formatCurrency(value)}
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="circle"
               />
-              <Legend />
-              <Line 
+              <Area 
                 type="monotone" 
                 dataKey="ebitda" 
                 stroke="hsl(var(--primary))" 
+                fill="url(#colorEBITDA)"
                 name="EBITDA"
                 strokeWidth={3}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

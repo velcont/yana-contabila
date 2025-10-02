@@ -4,12 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3 } from 'lucide-react';
-import { format } from 'date-fns';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar } from 'lucide-react';
+import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { AnalyticsCharts } from './AnalyticsCharts';
 import { parseAnalysisText } from '@/utils/analysisParser';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Analysis {
   id: string;
@@ -22,6 +29,7 @@ export const Dashboard = () => {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [periodFilter, setPeriodFilter] = useState<'3' | '6' | '12' | 'all'>('all');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -129,8 +137,22 @@ export const Dashboard = () => {
     );
   }
 
+  // Filtrare date pe perioadă
+  const getFilteredAnalyses = () => {
+    if (periodFilter === 'all') return analyses;
+    
+    const months = parseInt(periodFilter);
+    const cutoffDate = subMonths(new Date(), months);
+    
+    return analyses.filter(analysis => 
+      new Date(analysis.created_at) >= cutoffDate
+    );
+  };
+
+  const filteredAnalyses = getFilteredAnalyses();
+
   // Pregătire date pentru grafice
-  const analyticsData = analyses.map(analysis => ({
+  const analyticsData = filteredAnalyses.map(analysis => ({
     date: analysis.created_at,
     fileName: analysis.file_name,
     indicators: parseAnalysisText(analysis.analysis_text)
@@ -138,7 +160,24 @@ export const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <h1 className="text-3xl font-bold mb-8">Dashboard Financiar</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
+        
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={periodFilter} onValueChange={(value: any) => setPeriodFilter(value)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selectează perioada" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">Ultimele 3 luni</SelectItem>
+              <SelectItem value="6">Ultimele 6 luni</SelectItem>
+              <SelectItem value="12">Ultimele 12 luni</SelectItem>
+              <SelectItem value="all">Toate perioadele</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
