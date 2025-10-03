@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -20,6 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Analysis {
   id: string;
@@ -348,9 +354,30 @@ export const Dashboard = () => {
         {/* Detalii analiză */}
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>
-              {selectedAnalysis ? 'Detalii Analiză' : 'Selectează o analiză'}
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>
+                {selectedAnalysis ? 'Detalii Analiză' : 'Selectează o analiză'}
+              </CardTitle>
+              {selectedAnalysis && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-md p-4">
+                      <p className="text-sm">
+                        Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), 
+                        pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă 
+                        responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. 
+                        Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat 
+                        sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. 
+                        Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie contabilă validată.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             {selectedAnalysis && (
               <div className="flex gap-2">
                 <Button
