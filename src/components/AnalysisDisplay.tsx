@@ -69,18 +69,27 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       // Extract content for each numbered section
       matches.forEach((match, index) => {
         const sectionNumber = parseInt(match[1]);
-        // Clean title: remove **, $, account numbers, and other unwanted symbols
+        // Clean title: extract only the descriptive name
         let sectionTitle = match[2].trim()
           .replace(/\*\*/g, '')
           .replace(/\$/g, '')
-          // Remove account numbers like "4551 -", "421/431/437 –", etc.
+          // Remove account numbers at the start (e.g., "4551 -", "421/431/437 –", "121/117 –")
           .replace(/^\d+(?:\/\d+)*\s*[–—-]+\s*/g, '')
-          // Remove text in parentheses like "(în Solduri finale Creditoare)"
+          // Remove "Cont" or "**Cont" prefixes
+          .replace(/^\*{0,2}Cont\s+\d+(?:\/\d+)*\s+/gi, '')
+          // Extract text between dashes/colons and parentheses or "în"
+          // Example: "TVA de plată" from "TVA – de plată (text) în Solduri..."
+          .replace(/^([^(]+?)\s*(?:\([^)]*\)|\bîn\b|\bîn\s+Solduri\b).*$/i, '$1')
+          // Remove text in parentheses
           .replace(/\s*\([^)]*\)/g, '')
+          // Remove "în Solduri finale..." and similar
+          .replace(/\s+în\s+(?:Solduri|Total).*$/gi, '')
           // Remove trailing colons and dashes
           .replace(/[:\s–—-]+$/g, '')
           // Replace & with și
           .replace(/\s*&\s*/g, ' și ')
+          // Clean up extra spaces
+          .replace(/\s+/g, ' ')
           .trim();
         const startIndex = match.index!;
         const endIndex = index < matches.length - 1 ? matches[index + 1].index! : text.length;
