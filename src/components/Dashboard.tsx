@@ -89,6 +89,39 @@ export const Dashboard = () => {
     }
   };
 
+  const deleteAllAnalyses = async () => {
+    if (!window.confirm('Ești sigur că vrei să ștergi TOATE analizele? Această acțiune nu poate fi anulată!')) {
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nu ești autentificat');
+
+      const { error } = await supabase
+        .from('analyses')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setAnalyses([]);
+      setSelectedAnalysis(null);
+      
+      toast({
+        title: 'Șters cu succes',
+        description: 'Toate analizele au fost șterse.'
+      });
+    } catch (error) {
+      console.error('Error deleting all analyses:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu am putut șterge analizele.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const exportToPDF = (analysis: Analysis) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -211,6 +244,18 @@ export const Dashboard = () => {
                 ))}
               </SelectContent>
             </Select>
+          )}
+
+          {analyses.length > 0 && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={deleteAllAnalyses}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Șterge toate
+            </Button>
           )}
         </div>
       </div>
