@@ -49,7 +49,7 @@ export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
       target: '[data-tour="dashboard-button"]',
       content: (
         <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Pasul 3: Dosarul meu fiscal 📊</h3>
+          <h3 className="font-semibold text-lg">Pasul 3: Dashboard cu grafice și indicatori 📊</h3>
           <p>Aici vei găsi toate analizele tale salvate, grafice și statistici.</p>
           <p className="text-sm text-muted-foreground">Poți compara luni diferite, filtra și exporta rapoarte.</p>
         </div>

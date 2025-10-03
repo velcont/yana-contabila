@@ -254,7 +254,7 @@ const Index = () => {
                     data-tour="dashboard-button"
                   >
                     <History className="mr-2 h-4 w-4" />
-                    Dosarul Meu Financiar
+                    Dashboard cu grafice și indicatori
                   </Button>
                   <Button variant="outline" onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
