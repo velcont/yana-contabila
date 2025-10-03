@@ -145,24 +145,24 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     const Icon = section.icon;
     return (
       <Card 
-        className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-gradient-to-br ${section.color} border-border/50`}
+        className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-gradient-to-br ${section.color} border-border/50 overflow-hidden`}
         onClick={() => setSelectedSection(section)}
       >
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-background/50">
-                <Icon className="h-6 w-6" />
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                <CardTitle className="text-base font-bold leading-tight break-words">
+                  {section.title}
+                </CardTitle>
               </div>
-              <CardTitle className="text-lg leading-tight">
-                {section.title}
-              </CardTitle>
             </div>
-            <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all flex-shrink-0" />
           </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground line-clamp-3">
+        <CardContent className="pt-0">
+          <p className="text-sm text-muted-foreground line-clamp-3 break-words">
             {section.summary}
           </p>
         </CardContent>
