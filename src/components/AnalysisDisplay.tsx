@@ -69,11 +69,18 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       // Extract content for each numbered section
       matches.forEach((match, index) => {
         const sectionNumber = parseInt(match[1]);
-        // Clean title: remove **, $, and other unwanted symbols
-        const sectionTitle = match[2].trim()
+        // Clean title: remove **, $, account numbers, and other unwanted symbols
+        let sectionTitle = match[2].trim()
           .replace(/\*\*/g, '')
           .replace(/\$/g, '')
-          .replace(/[–—-]+/g, '-')
+          // Remove account numbers like "4551 -", "421/431/437 –", etc.
+          .replace(/^\d+(?:\/\d+)*\s*[–—-]+\s*/g, '')
+          // Remove text in parentheses like "(în Solduri finale Creditoare)"
+          .replace(/\s*\([^)]*\)/g, '')
+          // Remove trailing colons and dashes
+          .replace(/[:\s–—-]+$/g, '')
+          // Replace & with și
+          .replace(/\s*&\s*/g, ' și ')
           .trim();
         const startIndex = match.index!;
         const endIndex = index < matches.length - 1 ? matches[index + 1].index! : text.length;
