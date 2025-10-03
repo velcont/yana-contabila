@@ -69,7 +69,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       // Extract content for each numbered section
       matches.forEach((match, index) => {
         const sectionNumber = parseInt(match[1]);
-        const sectionTitle = match[2].trim().replace(/\*\*/g, '');
+        // Clean title: remove **, $, and other unwanted symbols
+        const sectionTitle = match[2].trim()
+          .replace(/\*\*/g, '')
+          .replace(/\$/g, '')
+          .replace(/[–—-]+/g, '-')
+          .trim();
         const startIndex = match.index!;
         const endIndex = index < matches.length - 1 ? matches[index + 1].index! : text.length;
         const content = text.substring(startIndex, endIndex).trim();
@@ -149,16 +154,14 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         onClick={() => setSelectedSection(section)}
       >
         <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                <CardTitle className="text-base font-bold leading-tight break-words">
-                  {section.title}
-                </CardTitle>
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Icon className="h-5 w-5 flex-shrink-0 text-primary" />
+              <CardTitle className="text-sm font-bold leading-snug truncate">
+                {section.title}
+              </CardTitle>
             </div>
-            <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all flex-shrink-0" />
+            <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all flex-shrink-0" />
           </div>
         </CardHeader>
         <CardContent className="pt-0">
