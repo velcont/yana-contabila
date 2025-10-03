@@ -12,6 +12,7 @@ import { AnalyticsCharts } from './AnalyticsCharts';
 import { parseAnalysisText } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
+import { useUserRole } from '@/hooks/useUserRole';
 import {
   Select,
   SelectContent,
@@ -35,6 +36,7 @@ export const Dashboard = () => {
   const [periodFilter, setPeriodFilter] = useState<'3' | '6' | '12' | 'all'>('all');
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const { toast } = useToast();
+  const { isAdmin, isLoading: isLoadingRole } = useUserRole();
 
   useEffect(() => {
     loadAnalyses();
@@ -246,7 +248,7 @@ export const Dashboard = () => {
             </Select>
           )}
 
-          {analyses.length > 0 && (
+          {analyses.length > 0 && isAdmin && (
             <Button 
               variant="destructive" 
               size="sm"
