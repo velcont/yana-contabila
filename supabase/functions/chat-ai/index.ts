@@ -243,7 +243,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const { message, history, conversationId } = await req.json();
+    const { message, history, conversationId, summaryType = 'detailed' } = await req.json();
 
     if (!message) {
       return new Response(
@@ -261,9 +261,32 @@ serve(async (req) => {
       );
     }
 
+    // Adaptează system prompt pe baza tipului de sumarizare
+    let adaptedPrompt = SYSTEM_PROMPT;
+    
+    if (summaryType === 'short') {
+      adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:
+- Răspunde în maxim 100 cuvinte
+- Doar insight-urile CHEIE
+- Fără introduceri sau detalii suplimentare
+- Format: 3-5 bullet points concentrați
+- Accentuează doar ce e URGENT/CRITIC`;
+    } else if (summaryType === 'action') {
+      adaptedPrompt += `\n\n🎯 MOD ACTION POINTS:
+- Răspunde DOAR cu acțiuni concrete
+- Format: Listă numerotată de pași executabili
+- Pentru fiecare acțiune:
+  • Ce trebuie făcut (verb de acțiune + obiect)
+  • Deadline recomandat (ore/zile)
+  • Impact așteptat (ROI/economie)
+- Fără analize sau explicații
+- Maximum 5-7 action points, prioritizate
+- Exemplu: "1. ✅ Trimite reminder la 15 facturi restante (astăzi, recuperare ~8,500 RON)"`;
+    }
+    
     // Construiește conversația cu system prompt și istoric
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: adaptedPrompt },
       ...(history || []).map((msg: any) => ({
         role: msg.role,
         content: msg.content

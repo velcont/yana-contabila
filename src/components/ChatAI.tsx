@@ -4,9 +4,16 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp } from 'lucide-react';
+import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -22,6 +29,8 @@ interface Insight {
   created_at: string;
 }
 
+type SummaryType = 'detailed' | 'short' | 'action';
+
 export const ChatAI = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -34,6 +43,7 @@ export const ChatAI = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [conversationId] = useState(() => crypto.randomUUID());
+  const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -119,7 +129,8 @@ export const ChatAI = () => {
           body: JSON.stringify({
             message: userMessage,
             history: messages,
-            conversationId
+            conversationId,
+            summaryType
           })
         }
       );
@@ -363,23 +374,53 @@ export const ChatAI = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="flex gap-2 pt-2 border-t">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Întreabă despre analizele tale..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={isLoading || !input.trim()}
-            size="icon"
-            className="shrink-0"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Stil răspuns:</span>
+            <Select value={summaryType} onValueChange={(value: SummaryType) => setSummaryType(value)}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="detailed" className="text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileBarChart className="h-3 w-3" />
+                    <span>Detaliat</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="short" className="text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3 w-3" />
+                    <span>Scurt</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="action" className="text-xs">
+                  <div className="flex items-center gap-2">
+                    <ListChecks className="h-3 w-3" />
+                    <span>Action Points</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Întreabă despre analizele tale..."
+              disabled={isLoading}
+              className="flex-1"
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className="shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
