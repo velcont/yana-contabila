@@ -299,34 +299,46 @@ export const Dashboard = () => {
                 Nu ai analize salvate încă.
               </p>
             ) : (
-              analyses.map((analysis) => (
-                <div
-                  key={analysis.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedAnalysis?.id === analysis.id
-                      ? 'bg-primary/10 border-primary'
-                      : 'hover:bg-muted'
-                  }`}
-                  onClick={() => setSelectedAnalysis(analysis)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {analysis.file_name}
-                      </p>
-                      {analysis.company_name && (
-                        <p className="text-xs font-semibold text-primary">
-                          {analysis.company_name}
+              analyses.map((analysis) => {
+                // Extract period from analysis text
+                const periodMatch = analysis.analysis_text.match(/Perioadă[:\s]+([^\\n]+)/i) || 
+                                  analysis.analysis_text.match(/Pentru perioada[:\s]+([^\\n]+)/i);
+                const period = periodMatch ? periodMatch[1].trim() : null;
+                
+                return (
+                  <div
+                    key={analysis.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedAnalysis?.id === analysis.id
+                        ? 'bg-primary/10 border-primary'
+                        : 'hover:bg-muted'
+                    }`}
+                    onClick={() => setSelectedAnalysis(analysis)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {analysis.file_name}
                         </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(analysis.created_at), 'dd MMM yyyy', { locale: ro })}
-                      </p>
+                        {analysis.company_name && (
+                          <p className="text-xs font-semibold text-primary">
+                            {analysis.company_name}
+                          </p>
+                        )}
+                        {period && (
+                          <p className="text-xs font-medium text-foreground">
+                            {period}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(analysis.created_at), 'dd MMM yyyy', { locale: ro })}
+                        </p>
+                      </div>
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     </div>
-                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </CardContent>
         </Card>
