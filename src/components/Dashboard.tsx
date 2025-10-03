@@ -362,7 +362,7 @@ export const Dashboard = () => {
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help animate-pulse" />
+                      <Info className="h-4 w-4 text-red-500 cursor-help animate-pulse" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-md p-4">
                       <p className="text-sm">

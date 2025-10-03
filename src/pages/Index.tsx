@@ -281,7 +281,7 @@ const Index = () => {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 cursor-help animate-pulse" />
+                        <Info className="h-3.5 w-3.5 text-red-500 cursor-help animate-pulse" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-sm p-3">
                         <p className="text-xs">
