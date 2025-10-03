@@ -60,6 +60,15 @@ export const ChatAI = () => {
 
         if (data && !error) {
           setInsights(data as Insight[]);
+          
+          // Alertează user-ul dacă există insights noi
+          if (data.length > 0) {
+            toast({
+              title: '⚠️ Alerte Detectate',
+              description: `Am detectat ${data.length} ${data.length === 1 ? 'alertă nouă' : 'alerte noi'} în analizele tale`,
+              duration: 5000,
+            });
+          }
         }
       } catch (error) {
         console.error('Error loading insights:', error);
@@ -69,7 +78,7 @@ export const ChatAI = () => {
     if (isOpen) {
       loadInsights();
     }
-  }, [isOpen]);
+  }, [isOpen, toast]);
 
   const markInsightAsRead = async (insightId: string) => {
     try {
@@ -231,6 +240,28 @@ export const ChatAI = () => {
     }
   };
 
+  // Verifică insights chiar și când chat-ul e închis
+  useEffect(() => {
+    const checkInsights = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('chat_insights')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_read', false);
+
+        if (!error && count && count > 0) {
+          setInsights(prev => prev.length === 0 ? [{ id: '', title: '', description: '', severity: 'info', is_read: false, created_at: '' }] : prev);
+        }
+      } catch (error) {
+        console.error('Error checking insights:', error);
+      }
+    };
+
+    checkInsights();
+    const interval = setInterval(checkInsights, 60000); // Verifică la fiecare minut
+    return () => clearInterval(interval);
+  }, []);
+
   if (!isOpen) {
     return (
       <div className="fixed bottom-4 right-4 flex items-center gap-3 animate-in fade-in slide-in-from-right-5 duration-500">
@@ -242,14 +273,22 @@ export const ChatAI = () => {
             <TooltipTrigger asChild>
               <Button
                 onClick={() => setIsOpen(true)}
-                className="rounded-full w-14 h-14 shadow-lg hover:scale-110 transition-transform"
+                className="rounded-full w-14 h-14 shadow-lg hover:scale-110 transition-transform relative"
                 size="icon"
               >
                 <MessageCircle className="h-6 w-6" />
+                {insights.length > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  >
+                    {insights.length}
+                  </Badge>
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
-              <p>Deschide Chat AI</p>
+              <p>Deschide Chat AI {insights.length > 0 && `(${insights.length} alerte)`}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
