@@ -179,26 +179,27 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const companyInfo = extractCompanyInfo(analysisText);
   const sections = extractSections(analysisText);
 
-  const SectionCard = ({ section }: { section: AnalysisSection }) => {
+  const SectionCard = ({ section, index }: { section: AnalysisSection; index: number }) => {
     const Icon = section.icon;
     return (
       <Card 
-        className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-gradient-to-br ${section.color} border-border/50 overflow-hidden`}
+        className={`group cursor-pointer transition-all duration-500 hover:scale-[1.05] hover:shadow-2xl hover:-translate-y-1 bg-gradient-to-br ${section.color} border-border/50 overflow-hidden animate-fade-in`}
+        style={{ animationDelay: `${index * 100}ms` }}
         onClick={() => setSelectedSection(section)}
       >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Icon className="h-5 w-5 flex-shrink-0 text-primary" />
-              <CardTitle className="text-sm font-bold leading-snug truncate">
+              <Icon className="h-5 w-5 flex-shrink-0 text-primary group-hover:scale-110 transition-transform duration-300" />
+              <CardTitle className="text-sm font-bold leading-snug truncate group-hover:text-primary transition-colors">
                 {section.title}
               </CardTitle>
             </div>
-            <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all flex-shrink-0" />
+            <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300 flex-shrink-0" />
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <p className="text-sm text-muted-foreground line-clamp-3 break-words">
+          <p className="text-sm text-muted-foreground line-clamp-3 break-words group-hover:text-foreground transition-colors">
             {section.summary}
           </p>
         </CardContent>
@@ -209,11 +210,11 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   return (
     <div className="space-y-6">
       {/* Company Info Card */}
-      <Card className="border-primary/20 shadow-lg">
+      <Card className="border-primary/20 shadow-lg animate-fade-in">
         <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
           <div className="space-y-3">
             <CardTitle className="text-2xl flex items-center gap-2">
-              <Building className="h-6 w-6 text-primary" />
+              <Building className="h-6 w-6 text-primary animate-scale-in" />
               Firmă
             </CardTitle>
             <div className="space-y-2">
@@ -239,10 +240,10 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       {/* Netflix-style Section Cards */}
       {sections.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Secțiuni Analiză</h2>
+          <h2 className="text-2xl font-bold animate-fade-in">Secțiuni Analiză</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sections.map((section) => (
-              <SectionCard key={section.id} section={section} />
+            {sections.map((section, index) => (
+              <SectionCard key={section.id} section={section} index={index} />
             ))}
           </div>
         </div>
@@ -267,12 +268,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
 
       {/* Dialog for Section Details */}
       <Dialog open={!!selectedSection} onOpenChange={() => setSelectedSection(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 text-xl">
+            <DialogTitle className="flex items-center gap-3 text-xl animate-fade-in">
               {selectedSection && (
                 <>
-                  <div className="p-2 rounded-lg bg-primary/10">
+                  <div className="p-2 rounded-lg bg-primary/10 animate-scale-in">
                     <selectedSection.icon className="h-6 w-6" />
                   </div>
                   {selectedSection.title}
@@ -280,7 +281,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
               )}
             </DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none mt-4 whitespace-pre-wrap">
+          <div className="prose prose-sm dark:prose-invert max-w-none mt-4 whitespace-pre-wrap animate-fade-in" style={{ animationDelay: '100ms' }}>
             {selectedSection?.content}
           </div>
         </DialogContent>
