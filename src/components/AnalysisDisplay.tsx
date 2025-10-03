@@ -104,7 +104,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         );
         const summary = contentLines.slice(0, 2).join(' ').substring(0, 200).trim() + '...';
         
-        const style = sectionStyles[(sectionNumber - 1) % sectionStyles.length];
+        const style = sectionStyles[index % sectionStyles.length];
         
         sections.push({
           id: `section-${index + 1}`,
@@ -163,7 +163,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const sections = extractSections(analysisText);
 
   const SectionCard = ({ section }: { section: AnalysisSection }) => {
-    const Icon = FileText;
+    const Icon = section.icon;
     return (
       <Card 
         className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-gradient-to-br ${section.color} border-border/50 overflow-hidden`}
