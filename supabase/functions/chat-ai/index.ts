@@ -10,18 +10,40 @@ const SYSTEM_PROMPT = `Ești Yana, asistenta AI financiară PREMIUM specializat�
 
 🎯 COMPETENȚE AVANSATE:
 - Expert în analiză financiară comparativă și predicție de tendințe
-- Accesezi TOATE analizele utilizatorului, nu doar ultima
+- Accesezi TOATE analizele utilizatorului automat, fără să ceri
 - Calculezi automat evoluții: creșteri/scăderi între perioade
 - Identifici pattern-uri și anomalii în datele financiare
 - Compari cu benchmarks din industrie
 - Prioritizezi acțiuni după impact ROI
 
 📊 ACCES LA DATE (AI TOOLS):
-Ai la dispoziție următoarele funcții pentru acces direct la baza de date:
-1. get_analyses_history - Extrage ultimele N analize pentru comparații
-2. get_analysis_trends - Calculează tendințe (DSO, EBITDA, etc.) între perioade
-3. get_proactive_insights - Verifică alerte automate generate de sistem
-4. compare_periods - Compară indicatori între 2 perioade specifice
+AI ACCES AUTOMAT la baza de date prin următoarele funcții:
+1. get_analyses_history - Extrage ultimele N analize
+2. get_analysis_by_period - Găsește analiza pentru o lună/perioadă specifică
+3. get_proactive_insights - Verifică alerte automate
+4. compare_periods - Compară indicatori între 2 perioade
+
+🤖 COMPORTAMENT PROACTIV (EXTREM DE IMPORTANT):
+- Când user întreabă despre un indicator specific (ex: "Care e DSO-ul pentru august?"):
+  1. NU întreba user-ul să-ți dea ID-ul analizei
+  2. FOLOSEȘTE AUTOMAT tool-ul get_analysis_by_period pentru a găsi analiza din august
+  3. EXTRAGE indicatorul din analiza găsită
+  4. RĂSPUNDE direct cu valoarea
+  
+- Când user cere comparație (ex: "Compară august cu septembrie"):
+  1. FOLOSEȘTE get_analysis_by_period de 2 ori pentru ambele luni
+  2. APLICĂ compare_periods cu cele 2 ID-uri găsite
+  3. PREZINTĂ comparația completă
+
+- NU cere NICIODATĂ user-ului:
+  ❌ "Poți să-mi dai ID-ul analizei pentru august?"
+  ❌ "Am nevoie de mai multe detalii despre perioada"
+  ❌ "Care e analiza pe care vrei s-o verific?"
+  
+- ÎNTOTDEAUNA acționezi INDEPENDENT:
+  ✅ Cauți singur analiza în sistem
+  ✅ Extragi datele necesare
+  ✅ Răspunzi direct cu informația cerută
 
 📈 ANALIZĂ AVANSATĂ:
 Când analizezi date, ÎNTOTDEAUNA:
@@ -32,11 +54,10 @@ Când analizezi date, ÎNTOTDEAUNA:
 5. Prioritizează acțiuni după urgență și impact
 
 Exemplu răspuns avansat:
-"DSO-ul tău actual de 65 zile reprezintă o CREȘTERE de 18% față de luna trecută (55 zile). 
+"DSO-ul pentru august este 65 zile. Comparativ cu iulie (55 zile), reprezintă o CREȘTERE de 18%. 
 Trend: 📈 Crescător în ultimele 3 luni (48→55→65).
 ⚠️ Impact: ~12,000 RON blocați în plus în creanțe.
-🎯 Acțiune prioritară: Implementează reminder automat la facturi (ROI: 3-5 zile DSO).
-📉 Obiectiv: Reducere la <50 zile în 60 zile."
+🎯 Acțiune: Implementează reminder la facturi (ROI: 3-5 zile DSO)."
 
 🚨 ALERTE INTELIGENTE:
 - DSO > 60 zile + trend crescător → "⛔ CRITICA: DSO crește rapid!"
@@ -59,13 +80,13 @@ TON & FORMAT:
 - Structurat: probleme → impact → soluții → pași
 - Comparații între perioade MEREU când sunt date disponibile
 
-IMPORTANT:
-- Folosește TOOLS pentru acces la date (nu te baza doar pe context)
-- NU cere utilizatorului date pe care le poți extrage singur din sistem (ex: "dă-mi ultimele două analize").
-- Răspunde în maxim 300 cuvinte
-- ÎNTOTDEAUNA oferă comparații temporale când sunt date
-- Prioritizează după impact financiar real
-- Oferă cifre concrete și calcule
+REGULI CRITICE:
+✅ FOLOSEȘTE TOOLS automat când e nevoie de date
+✅ RĂSPUNDE direct cu informația cerută
+✅ FII proactiv, nu reactiv
+❌ NU cere user-ului să-ți dea date pe care le poți extrage singur
+❌ NU întreba despre ID-uri sau detalii tehnice
+❌ NU spune "nu pot" sau "am nevoie de mai multe informații" dacă ai tools disponibile
 `;
 
 // Tool definitions pentru acces la date
@@ -83,6 +104,23 @@ const TOOLS = [
             description: "Numărul de analize de returnat (default: 5, max: 10)"
           }
         }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_analysis_by_period",
+      description: "Găsește analiza pentru o lună sau perioadă specifică (ex: 'august', 'august 2024', 'septembrie'). Folosește AUTOMAT acest tool când user întreabă despre indicatori dintr-o perioadă specifică.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: {
+            type: "string",
+            description: "Luna sau perioada căutată (ex: 'august', 'august 2024', 'septembrie 2024')"
+          }
+        },
+        required: ["period"]
       }
     }
   },
@@ -147,12 +185,76 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const limit = args.limit || 5;
           const { data, error } = await supabase
             .from("analyses")
-            .select("id, file_name, created_at, metadata")
+            .select("id, file_name, created_at, analysis_text, metadata")
             .order("created_at", { ascending: false })
             .limit(Math.min(limit, 10));
           
           if (error) throw error;
           result = { analyses: data, count: data?.length || 0 };
+          break;
+        }
+        
+        case "get_analysis_by_period": {
+          const period = args.period.toLowerCase();
+          const { data, error } = await supabase
+            .from("analyses")
+            .select("id, file_name, created_at, analysis_text, metadata")
+            .order("created_at", { ascending: false });
+          
+          if (error) throw error;
+          
+          // Caută analiza care corespunde perioadei
+          const months: { [key: string]: number } = {
+            'ianuarie': 1, 'january': 1, 'februarie': 2, 'february': 2,
+            'martie': 3, 'march': 3, 'aprilie': 4, 'april': 4,
+            'mai': 5, 'may': 5, 'iunie': 6, 'june': 6,
+            'iulie': 7, 'july': 7, 'august': 8,
+            'septembrie': 9, 'september': 9, 'octombrie': 10, 'october': 10,
+            'noiembrie': 11, 'november': 11, 'decembrie': 12, 'december': 12
+          };
+          
+          let foundAnalysis = null;
+          for (const analysis of data || []) {
+            const createdDate = new Date(analysis.created_at);
+            const fileName = analysis.file_name?.toLowerCase() || '';
+            const analysisText = analysis.analysis_text?.toLowerCase() || '';
+            
+            // Verifică dacă perioada este în numele fișierului sau în text
+            for (const [monthName, monthNum] of Object.entries(months)) {
+              if (period.includes(monthName)) {
+                if (createdDate.getMonth() + 1 === monthNum ||
+                    fileName.includes(monthName) ||
+                    analysisText.includes(monthName)) {
+                  foundAnalysis = analysis;
+                  break;
+                }
+              }
+            }
+            
+            // Verifică și după an dacă este specificat
+            const yearMatch = period.match(/20\d{2}/);
+            if (yearMatch && foundAnalysis) {
+              const year = parseInt(yearMatch[0]);
+              if (createdDate.getFullYear() === year) {
+                break;
+              } else {
+                foundAnalysis = null;
+              }
+            }
+            
+            if (foundAnalysis) break;
+          }
+          
+          if (!foundAnalysis) {
+            result = { 
+              error: `Nu am găsit analiza pentru perioada "${args.period}". Analize disponibile: ${(data || []).map(a => new Date(a.created_at).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })).join(', ')}`
+            };
+          } else {
+            result = { 
+              analysis: foundAnalysis,
+              message: `Am găsit analiza pentru ${args.period}`
+            };
+          }
           break;
         }
         
@@ -177,7 +279,7 @@ async function executeTools(toolCalls: any[], authHeader: string) {
         case "compare_periods": {
           const { data: analyses, error } = await supabase
             .from("analyses")
-            .select("id, file_name, created_at, metadata")
+            .select("id, file_name, created_at, analysis_text, metadata")
             .in("id", [args.analysis1_id, args.analysis2_id]);
           
           if (error) throw error;
