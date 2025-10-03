@@ -3,14 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MessageCircle, Send, X, Loader2, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { parseAnalysisText } from '@/utils/analysisParser';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface Insight {
+  id: string;
+  title: string;
+  description: string;
+  severity: 'info' | 'warning' | 'critical';
+  is_read: boolean;
+  created_at: string;
 }
 
 export const ChatAI = () => {
@@ -18,43 +27,52 @@ export const ChatAI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Bună! Sunt asistenta ta AI Yana. Cu ce te pot ajuta legat de analizele tale financiare?'
+      content: '👋 Bună! Sunt Yana Premium, asistenta ta AI financiară cu acces complet la toate analizele tale. Pot compara perioade, identifica tendințe și oferi insights bazate pe date reale. Cu ce te pot ajuta?'
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [latestAnalysis, setLatestAnalysis] = useState<any>(null);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [conversationId] = useState(() => crypto.randomUUID());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Încarcă ultima analiză pentru context
+  // Încarcă insights proactivi
   useEffect(() => {
-    const loadLatestAnalysis = async () => {
+    const loadInsights = async () => {
       try {
         const { data, error } = await supabase
-          .from('analyses')
+          .from('chat_insights')
           .select('*')
+          .eq('is_read', false)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(3);
 
         if (data && !error) {
-          const indicators = parseAnalysisText(data.analysis_text);
-          setLatestAnalysis({
-            fileName: data.file_name,
-            date: data.created_at,
-            indicators
-          });
+          setInsights(data as Insight[]);
         }
       } catch (error) {
-        console.error('Error loading latest analysis:', error);
+        console.error('Error loading insights:', error);
       }
     };
 
     if (isOpen) {
-      loadLatestAnalysis();
+      loadInsights();
     }
   }, [isOpen]);
+
+  const markInsightAsRead = async (insightId: string) => {
+    try {
+      await supabase
+        .from('chat_insights')
+        .update({ is_read: true })
+        .eq('id', insightId);
+      
+      setInsights(prev => prev.filter(i => i.id !== insightId));
+    } catch (error) {
+      console.error('Error marking insight as read:', error);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,24 +87,109 @@ export const ChatAI = () => {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    const newUserMsg = { role: 'user' as const, content: userMessage };
+    setMessages(prev => [...prev, newUserMsg]);
     setIsLoading(true);
 
+    // Salvează mesajul user în istoric
     try {
-      const { data, error } = await supabase.functions.invoke('chat-ai', {
-        body: { 
-          message: userMessage,
-          history: messages,
-          latestAnalysis: latestAnalysis // Trimite context despre ultima analiză
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: 'user',
+          content: userMessage
+        });
+      }
+    } catch (err) {
+      console.error('Error saving user message:', err);
+    }
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            message: userMessage,
+            history: messages,
+            conversationId
+          })
         }
-      });
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.response 
-      }]);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = '';
+      let thinkingShown = false;
+
+      // Adaugă mesaj assistant gol pentru streaming
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            
+            if (parsed.type === 'thinking') {
+              if (!thinkingShown) {
+                toast({
+                  title: '🤔 Analizez...',
+                  description: parsed.message
+                });
+                thinkingShown = true;
+              }
+            } else if (parsed.type === 'content') {
+              assistantContent += parsed.content;
+              setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = {
+                  role: 'assistant',
+                  content: assistantContent
+                };
+                return newMessages;
+              });
+            }
+          } catch (e) {
+            console.error('Parse error:', e);
+          }
+        }
+      }
+
+      // Salvează răspunsul assistant în istoric
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && assistantContent) {
+          await supabase.from('conversation_history').insert({
+            user_id: user.id,
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: assistantContent
+          });
+        }
+      } catch (err) {
+        console.error('Error saving assistant message:', err);
+      }
+
     } catch (error) {
       console.error('Chat error:', error);
       toast({
@@ -94,16 +197,19 @@ export const ChatAI = () => {
         description: 'Nu am putut trimite mesajul. Te rog încearcă din nou.',
         variant: 'destructive'
       });
+      // Elimină mesajul assistant gol în caz de eroare
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Sugestii contextuale
+  // Sugestii contextuale avansate
   const quickQuestions = [
-    "Ce înseamnă DSO-ul meu?",
-    "Cum pot îmbunătăți cash flow-ul?",
-    "Analizează profitabilitatea",
+    "Compară ultimele 3 luni",
+    "Cum evoluează DSO-ul?",
+    "Ce tendințe observi?",
+    "Prioritizează acțiunile"
   ];
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -159,18 +265,67 @@ export const ChatAI = () => {
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
-        {/* Sugestii rapide */}
-        {messages.length === 1 && latestAnalysis && (
+        {/* Insights proactivi */}
+        {insights.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Întrebări rapide:</p>
+            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Alerte Automate
+            </p>
+            <div className="space-y-2">
+              {insights.map((insight) => (
+                <div
+                  key={insight.id}
+                  className={`p-3 rounded-lg border text-xs ${
+                    insight.severity === 'critical' ? 'border-destructive bg-destructive/5' :
+                    insight.severity === 'warning' ? 'border-yellow-500 bg-yellow-500/5' :
+                    'border-blue-500 bg-blue-500/5'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="font-medium mb-1">{insight.title}</p>
+                      <p className="text-muted-foreground">{insight.description}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => markInsightAsRead(insight.id)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => {
+                      setInput(`Explică-mi mai mult despre: ${insight.title}`);
+                      markInsightAsRead(insight.id);
+                    }}
+                    className="h-auto p-0 mt-1 text-xs"
+                  >
+                    Discută cu Yana →
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sugestii rapide */}
+        {messages.length === 1 && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              Întrebări Avansate
+            </p>
             <div className="flex flex-wrap gap-2">
               {quickQuestions.map((q, idx) => (
                 <button
                   key={idx}
-                  onClick={() => {
-                    setInput(q);
-                  }}
-                  className="text-xs px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                  onClick={() => setInput(q)}
+                  className="text-xs px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors text-primary font-medium"
                 >
                   {q}
                 </button>
