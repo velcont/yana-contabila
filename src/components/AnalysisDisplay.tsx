@@ -44,76 +44,94 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     };
   };
 
-  // Extract major sections from analysis text
+  // Extract ALL sections from analysis text automatically
   const extractSections = (text: string): AnalysisSection[] => {
     const sections: AnalysisSection[] = [];
     
-    // Section 1: Snapshot Strategic (Dashboard CEO)
-    const snapshotMatch = text.match(/(?:###\s*)?(?:1\.\s*)?Snapshot Strategic[^#]*((?:.*\n)*?)(?=###|$)/i);
-    if (snapshotMatch) {
-      const content = snapshotMatch[0];
-      const summary = content.substring(0, 200).trim() + '...';
-      sections.push({
-        id: 'snapshot',
-        title: 'Snapshot Strategic și Recomandări Preliminare',
-        icon: Briefcase,
-        content: content,
-        summary: summary,
-        color: 'from-blue-500/20 to-blue-600/20'
+    // Define icons and colors for different section types
+    const sectionStyles = [
+      { icon: Briefcase, color: 'from-blue-500/20 to-blue-600/20' },
+      { icon: DollarSign, color: 'from-green-500/20 to-green-600/20' },
+      { icon: Receipt, color: 'from-purple-500/20 to-purple-600/20' },
+      { icon: AlertCircle, color: 'from-red-500/20 to-red-600/20' },
+      { icon: TrendingUp, color: 'from-indigo-500/20 to-indigo-600/20' },
+      { icon: Building, color: 'from-orange-500/20 to-orange-600/20' },
+      { icon: FileText, color: 'from-teal-500/20 to-teal-600/20' },
+      { icon: Calendar, color: 'from-pink-500/20 to-pink-600/20' }
+    ];
+    
+    // Try to split by numbered sections: ### 1. or **1.** or just 1.
+    // This regex looks for patterns like "### 1." or "**1.**" or "1." at the start of a line
+    const sectionPattern = /(?:^|\n)(?:#{1,3}\s*)?(?:\*\*)?(\d+)\.\s*(?:\*\*)?\s*([^\n*]+)/g;
+    const matches = Array.from(text.matchAll(sectionPattern));
+    
+    if (matches.length > 0) {
+      // Extract content for each numbered section
+      matches.forEach((match, index) => {
+        const sectionNumber = parseInt(match[1]);
+        const sectionTitle = match[2].trim().replace(/\*\*/g, '');
+        const startIndex = match.index!;
+        const endIndex = index < matches.length - 1 ? matches[index + 1].index! : text.length;
+        const content = text.substring(startIndex, endIndex).trim();
+        
+        // Extract a meaningful summary (first 150 chars of actual content, not title)
+        const contentLines = content.split('\n').filter(line => 
+          line.trim() && 
+          !line.match(/^#{1,3}/) && 
+          !line.match(/^\*\*\d+\./) &&
+          line.length > 20
+        );
+        const summary = contentLines.slice(0, 2).join(' ').substring(0, 200).trim() + '...';
+        
+        const style = sectionStyles[(sectionNumber - 1) % sectionStyles.length];
+        
+        sections.push({
+          id: `section-${sectionNumber}`,
+          title: sectionTitle,
+          icon: style.icon,
+          content: content,
+          summary: summary,
+          color: style.color
+        });
       });
-    }
-
-    // Section 2: Analiza Conturilor Cheie
-    const contouriMatch = text.match(/(?:###\s*)?(?:2\.\s*)?Analiza Conturilor Cheie[^#]*((?:.*\n)*?)(?=###|$)/i);
-    if (contouriMatch) {
-      const content = contouriMatch[0];
-      const summary = content.substring(0, 200).trim() + '...';
-      sections.push({
-        id: 'conturi',
-        title: 'Analiza Conturilor Cheie – Interpretare, Riscuri și Oportunități',
-        icon: DollarSign,
-        content: content,
-        summary: summary,
-        color: 'from-green-500/20 to-green-600/20'
-      });
-    }
-
-    // Section 3: Conformitate TVA & Impozite
-    const tvaMatch = text.match(/(?:###\s*)?(?:3\.\s*)?Conformitate TVA[^#]*((?:.*\n)*?)(?=###|$)/i);
-    if (tvaMatch) {
-      const content = tvaMatch[0];
-      const summary = content.substring(0, 200).trim() + '...';
-      sections.push({
-        id: 'tva',
-        title: 'Conformitate TVA & Impozite – Analiză Detaliată și Măsuri',
-        icon: Receipt,
-        content: content,
-        summary: summary,
-        color: 'from-purple-500/20 to-purple-600/20'
-      });
-    }
-
-    // If no structured sections found, try to split by major headers
-    if (sections.length === 0) {
-      const parts = text.split(/###/);
+    } else {
+      // Fallback: try to split by ### headers
+      const parts = text.split(/(?=###\s+)/);
       parts.forEach((part, index) => {
-        if (part.trim() && index > 0) {
+        if (part.trim() && part.includes('###')) {
           const lines = part.trim().split('\n');
-          const title = lines[0].trim();
+          const titleLine = lines.find(l => l.startsWith('###'));
+          const title = titleLine ? titleLine.replace(/###/g, '').trim() : `Secțiunea ${index + 1}`;
           const content = part.trim();
-          const summary = content.substring(0, 200).trim() + '...';
+          
+          const contentLines = content.split('\n').filter(line => 
+            line.trim() && !line.match(/^#{1,3}/) && line.length > 20
+          );
+          const summary = contentLines.slice(0, 2).join(' ').substring(0, 200).trim() + '...';
+          
+          const style = sectionStyles[index % sectionStyles.length];
           
           sections.push({
-            id: `section-${index}`,
+            id: `section-${index + 1}`,
             title: title,
-            icon: index === 1 ? Briefcase : index === 2 ? DollarSign : Receipt,
+            icon: style.icon,
             content: content,
             summary: summary,
-            color: index === 1 ? 'from-blue-500/20 to-blue-600/20' : 
-                   index === 2 ? 'from-green-500/20 to-green-600/20' : 
-                   'from-purple-500/20 to-purple-600/20'
+            color: style.color
           });
         }
+      });
+    }
+    
+    // If still no sections, show full text as one section
+    if (sections.length === 0) {
+      sections.push({
+        id: 'full-analysis',
+        title: 'Analiză Completă',
+        icon: FileText,
+        content: text,
+        summary: text.substring(0, 200).trim() + '...',
+        color: 'from-blue-500/20 to-blue-600/20'
       });
     }
 
