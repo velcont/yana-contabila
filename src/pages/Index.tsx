@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import {
   Tooltip,
   TooltipContent,
@@ -24,9 +25,22 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<string>("");
   const [showDashboard, setShowDashboard] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
+  const [runTour, setRunTour] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const hasSeenTour = localStorage.getItem('yana-tour-completed');
+    if (user && !hasSeenTour && !loading) {
+      setTimeout(() => setRunTour(true), 1000);
+    }
+  }, [user, loading]);
+
+  const handleTourComplete = () => {
+    setRunTour(false);
+    localStorage.setItem('yana-tour-completed', 'true');
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -215,7 +229,11 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
-                  <Button variant="outline" onClick={() => setShowDashboard(true)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowDashboard(true)}
+                    data-tour="dashboard-button"
+                  >
                     <History className="mr-2 h-4 w-4" />
                     Dosarul Meu Financiar
                   </Button>
@@ -306,7 +324,7 @@ const Index = () => {
                     className="hidden"
                     id="file-upload"
                   />
-                  <label htmlFor="file-upload" className="flex-1 cursor-pointer">
+                  <label htmlFor="file-upload" className="flex-1 cursor-pointer" data-tour="file-upload">
                     <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
                       <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       {file ? (
@@ -325,6 +343,7 @@ const Index = () => {
                   disabled={!file || isAnalyzing}
                   className="w-full"
                   size="lg"
+                  data-tour="analyze-button"
                 >
                   {isAnalyzing ? (
                     <>
@@ -379,6 +398,7 @@ const Index = () => {
         </div>
       </div>
       {user && <ChatAI />}
+      {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
     </>
   );
 };

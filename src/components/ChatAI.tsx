@@ -275,6 +275,7 @@ export const ChatAI = () => {
                 onClick={() => setIsOpen(true)}
                 className="rounded-full w-14 h-14 shadow-lg hover:scale-110 transition-transform relative"
                 size="icon"
+                data-tour="chat-button"
               >
                 <MessageCircle className="h-6 w-6" />
                 {insights.length > 0 && (
