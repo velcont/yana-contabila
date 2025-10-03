@@ -31,6 +31,23 @@ interface AnalysisSection {
 export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisDisplayProps) => {
   const [selectedSection, setSelectedSection] = useState<AnalysisSection | null>(null);
 
+  // Extract month from filename
+  const extractMonthFromFilename = (filename?: string): string => {
+    if (!filename) return 'N/A';
+    
+    // Try to extract date range from filename: [01-03-2025 31-03-2025] or [01/03/2025 31/03/2025]
+    const dateRangeMatch = filename.match(/\[(\d{2})[-\/](\d{2})[-\/](\d{4})\s+\d{2}[-\/](\d{2})[-\/]\d{4}\]/);
+    
+    if (dateRangeMatch) {
+      const monthNum = parseInt(dateRangeMatch[2], 10);
+      const monthNames = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 
+                          'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'];
+      return monthNames[monthNum - 1] || 'N/A';
+    }
+    
+    return 'N/A';
+  };
+
   // Parse company info
   const extractCompanyInfo = (text: string) => {
     const cuiMatch = text.match(/CUI[:\s]+(\d+)/i);
@@ -40,7 +57,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     return {
       name: companyMatch?.[1]?.trim() || 'Firmă',
       cui: cuiMatch?.[1] || 'N/A',
-      period: periodMatch?.[1]?.trim() || 'N/A'
+      period: periodMatch?.[1]?.trim() || extractMonthFromFilename(fileName)
     };
   };
 
@@ -194,27 +211,26 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       {/* Company Info Card */}
       <Card className="border-primary/20 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-          <div className="flex items-start justify-between">
+          <div className="space-y-3">
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <Building className="h-6 w-6 text-primary" />
+              Firmă
+            </CardTitle>
             <div className="space-y-2">
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Building className="h-6 w-6 text-primary" />
-                {companyInfo.name}
-              </CardTitle>
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <span><strong>CUI:</strong> {companyInfo.cui}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span><strong>Perioadă:</strong> {companyInfo.period}</span>
-                </div>
-                {fileName && (
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-4 w-4" />
-                    <span className="truncate max-w-xs" title={fileName}>{fileName}</span>
-                  </div>
-                )}
+              <div className="flex items-start gap-2">
+                <span className="font-semibold min-w-[80px]">CUI:</span>
+                <span>{companyInfo.cui}</span>
               </div>
+              <div className="flex items-start gap-2">
+                <span className="font-semibold min-w-[80px]">Perioadă:</span>
+                <span>{companyInfo.period}</span>
+              </div>
+              {fileName && (
+                <div className="flex items-start gap-2">
+                  <FileText className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="break-all text-sm">{fileName}</span>
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -270,27 +286,6 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         </DialogContent>
       </Dialog>
 
-      {/* Summary Stats */}
-      <Card className="bg-gradient-to-br from-primary/5 to-accent/5">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Sursa Datelor
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-xs text-muted-foreground">
-            Analiză generată automat cu AI pe baza balanței de verificare.
-            {createdAt && ` • ${new Date(createdAt).toLocaleDateString('ro-RO', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}`}
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 };
