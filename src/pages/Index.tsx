@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,11 @@ const Index = () => {
   const handleTourComplete = () => {
     setRunTour(false);
     localStorage.setItem('yana-tour-completed', 'true');
+  };
+
+  const handleRestartTour = () => {
+    localStorage.removeItem('yana-tour-completed');
+    setRunTour(true);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,6 +231,20 @@ const Index = () => {
               Contact
             </Button>
             <div className="flex gap-2">
+              {user && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={handleRestartTour}>
+                        <HelpCircle className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Repornește tutorialul</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               <ThemeToggle />
               {user ? (
                 <>
