@@ -10,6 +10,7 @@ import { ChatAI } from "@/components/ChatAI";
 import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AnalysisDisplay } from "@/components/AnalysisDisplay";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -330,11 +331,10 @@ const Index = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {analysis}
-                  </div>
-                </div>
+                <AnalysisDisplay 
+                  analysisText={analysis}
+                  fileName={file?.name}
+                />
               </CardContent>
             </Card>
           )}

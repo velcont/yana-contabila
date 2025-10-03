@@ -11,6 +11,7 @@ import jsPDF from 'jspdf';
 import { AnalyticsCharts } from './AnalyticsCharts';
 import { parseAnalysisText } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
+import { AnalysisDisplay } from './AnalysisDisplay';
 import {
   Select,
   SelectContent,
@@ -312,26 +313,11 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             {selectedAnalysis ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Fișier:</p>
-                  <p className="text-sm text-muted-foreground">{selectedAnalysis.file_name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Data:</p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedAnalysis.created_at), 'dd MMMM yyyy, HH:mm', { locale: ro })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-2">Analiză:</p>
-                  <div className="prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg">
-                      {selectedAnalysis.analysis_text}
-                    </pre>
-                  </div>
-                </div>
-              </div>
+              <AnalysisDisplay 
+                analysisText={selectedAnalysis.analysis_text}
+                fileName={selectedAnalysis.file_name}
+                createdAt={selectedAnalysis.created_at}
+              />
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
