@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,12 @@ import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -270,8 +276,23 @@ const Index = () => {
               <CardDescription>
                 Suportă doar format Excel (.xls, .xlsx)
                 <br />
-                <span className="text-xs mt-2 block font-medium text-orange-600 dark:text-orange-400">
+                <span className="text-xs mt-2 flex items-center gap-1 font-medium text-orange-600 dark:text-orange-400">
                   ⚠️ Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă, Total sume și Solduri finale
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 cursor-help animate-pulse" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-sm p-3">
+                        <p className="text-xs">
+                          Pentru o analiză corectă și completă, balanța de verificare trebuie să includă toate 
+                          secțiunile: Solduri inițiale la începutul anului, Rulaje pe perioada selectată (Debit și Credit), 
+                          Total sume cumulate și Solduri finale la sfârșitul perioadei. Fără aceste informații, 
+                          analiza AI nu va putea genera rezultate corecte.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </span>
               </CardDescription>
             </CardHeader>
