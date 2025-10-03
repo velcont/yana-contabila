@@ -51,7 +51,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     // Define icons and colors for different section types
     const sectionStyles = [
       { icon: Briefcase, color: 'from-blue-500/20 to-blue-600/20' },
-      { icon: DollarSign, color: 'from-green-500/20 to-green-600/20' },
+      { icon: FileText, color: 'from-green-500/20 to-green-600/20' },
       { icon: Receipt, color: 'from-purple-500/20 to-purple-600/20' },
       { icon: AlertCircle, color: 'from-red-500/20 to-red-600/20' },
       { icon: TrendingUp, color: 'from-indigo-500/20 to-indigo-600/20' },
@@ -62,7 +62,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     
     // Try to split by numbered sections: ### 1. or **1.** or just 1.
     // This regex looks for patterns like "### 1." or "**1.**" or "1." at the start of a line
-    const sectionPattern = /(?:^|\n)(?:#{1,3}\s*)?(?:\*\*)?(\d+)\.\s*(?:\*\*)?\s*([^\n*]+)/g;
+    const sectionPattern = /(?:^|\n)(?:#{1,3}\s*)?(?:\*\*)?(\d+)[\.\)]\s*(?:\*\*)?\s*([^\n*]+)/g;
     const matches = Array.from(text.matchAll(sectionPattern));
     
     if (matches.length > 0) {
@@ -107,7 +107,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         const style = sectionStyles[(sectionNumber - 1) % sectionStyles.length];
         
         sections.push({
-          id: `section-${sectionNumber}`,
+          id: `section-${index + 1}`,
           title: sectionTitle,
           icon: style.icon,
           content: content,
@@ -163,7 +163,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const sections = extractSections(analysisText);
 
   const SectionCard = ({ section }: { section: AnalysisSection }) => {
-    const Icon = section.icon;
+    const Icon = FileText;
     return (
       <Card 
         className={`group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-gradient-to-br ${section.color} border-border/50 overflow-hidden`}
