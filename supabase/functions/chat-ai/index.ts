@@ -61,6 +61,7 @@ TON & FORMAT:
 
 IMPORTANT:
 - Folosește TOOLS pentru acces la date (nu te baza doar pe context)
+- NU cere utilizatorului date pe care le poți extrage singur din sistem (ex: "dă-mi ultimele două analize").
 - Răspunde în maxim 300 cuvinte
 - ÎNTOTDEAUNA oferă comparații temporale când sunt date
 - Prioritizează după impact financiar real
@@ -266,7 +267,8 @@ serve(async (req) => {
       ...(history || []).map((msg: any) => ({
         role: msg.role,
         content: msg.content
-      }))
+      })),
+      { role: "user", content: message }
     ];
 
     console.log("Trimit cerere către Lovable AI cu tool calling...");
