@@ -267,6 +267,10 @@ EBITDA: [valoare_numerică]
 CA: [valoare_numerică]
 Cheltuieli: [valoare_numerică]
 Profit: [valoare_numerică]
+Sold Furnizori: [valoare_numerică]
+Sold Clienti: [valoare_numerică]
+Sold Banca: [valoare_numerică]
+Sold Casa: [valoare_numerică]
 
 Unde:
 - DSO (Days Sales Outstanding) = (Clienți / Cifra de afaceri) × 365
@@ -287,7 +291,11 @@ CCC: 15.3
 EBITDA: 261909.27
 CA: 1080733.22
 Cheltuieli: 818823.95
-Profit: 261909.27`;
+Profit: 261909.27
+Sold Furnizori: 150000.00
+Sold Clienti: 200000.00
+Sold Banca: 50000.00
+Sold Casa: 5000.00`;
 
 // Parse Excel file
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {

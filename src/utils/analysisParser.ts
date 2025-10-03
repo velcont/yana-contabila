@@ -11,6 +11,10 @@ export interface FinancialIndicators {
   currentRatio?: number;
   quickRatio?: number;
   debtRatio?: number;
+  soldFurnizori?: number;
+  soldClienti?: number;
+  soldBanca?: number;
+  soldCasa?: number;
 }
 
 export const parseAnalysisText = (text: string): FinancialIndicators => {
@@ -49,6 +53,22 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     // Profit
     const profitMatch = section.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
     if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
+
+    // Sold Furnizori
+    const furnizoriMatch = section.match(/Sold\s+Furnizori[:\s]+(\d+(?:\.\d+)?)/i);
+    if (furnizoriMatch) indicators.soldFurnizori = parseFloat(furnizoriMatch[1]);
+
+    // Sold Clienti
+    const clientiMatch = section.match(/Sold\s+Clienti[:\s]+(\d+(?:\.\d+)?)/i);
+    if (clientiMatch) indicators.soldClienti = parseFloat(clientiMatch[1]);
+
+    // Sold Banca
+    const bancaMatch = section.match(/Sold\s+Banca[:\s]+(\d+(?:\.\d+)?)/i);
+    if (bancaMatch) indicators.soldBanca = parseFloat(bancaMatch[1]);
+
+    // Sold Casa
+    const casaMatch = section.match(/Sold\s+Casa[:\s]+(\d+(?:\.\d+)?)/i);
+    if (casaMatch) indicators.soldCasa = parseFloat(casaMatch[1]);
   }
   
   // Căutare în ultimele 15 linii ale textului pentru indicatori fără header
@@ -85,6 +105,22 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     // Profit
     const profitMatch = lastLines.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
     if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
+
+    // Sold Furnizori
+    const furnizoriMatch = lastLines.match(/Sold\s+Furnizori[:\s]+(\d+(?:\.\d+)?)/i);
+    if (furnizoriMatch) indicators.soldFurnizori = parseFloat(furnizoriMatch[1]);
+
+    // Sold Clienti
+    const clientiMatch = lastLines.match(/Sold\s+Clienti[:\s]+(\d+(?:\.\d+)?)/i);
+    if (clientiMatch) indicators.soldClienti = parseFloat(clientiMatch[1]);
+
+    // Sold Banca
+    const bancaMatch = lastLines.match(/Sold\s+Banca[:\s]+(\d+(?:\.\d+)?)/i);
+    if (bancaMatch) indicators.soldBanca = parseFloat(bancaMatch[1]);
+
+    // Sold Casa
+    const casaMatch = lastLines.match(/Sold\s+Casa[:\s]+(\d+(?:\.\d+)?)/i);
+    if (casaMatch) indicators.soldCasa = parseFloat(casaMatch[1]);
   }
 
   // Fallback final: caută valorile în întregul text (pentru analize vechi)

@@ -37,6 +37,10 @@ export const AnalyticsCharts = ({ data }: AnalyticsChartsProps) => {
     revenue: point.indicators.revenue || 0,
     expenses: point.indicators.expenses || 0,
     profit: point.indicators.profit || 0,
+    soldFurnizori: point.indicators.soldFurnizori || 0,
+    soldClienti: point.indicators.soldClienti || 0,
+    soldBanca: point.indicators.soldBanca || 0,
+    soldCasa: point.indicators.soldCasa || 0,
   })).reverse(); // Reverse pentru ca ultimele date să fie la dreapta
 
   // Calcul trending pentru ultimele 2 analize
@@ -253,130 +257,307 @@ export const AnalyticsCharts = ({ data }: AnalyticsChartsProps) => {
         </Card>
       </div>
 
-      {/* Grafic Indicatori Cash Flow - Îmbunătățit */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Indicatori Cash Flow în Timp
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={chartData}>
-              <defs>
-                <linearGradient id="colorDSO" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
-              <XAxis 
-                dataKey="date" 
-                className="text-xs"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                tickMargin={10}
-              />
-              <YAxis 
-                className="text-xs"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                tickMargin={10}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="circle"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="dso" 
-                stroke="hsl(var(--chart-1))" 
-                name="DSO (zile)"
-                strokeWidth={3}
-                dot={{ r: 4, strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="dpo" 
-                stroke="hsl(var(--chart-2))" 
-                name="DPO (zile)"
-                strokeWidth={3}
-                dot={{ r: 4, strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="ccc" 
-                stroke="hsl(var(--chart-3))" 
-                name="Cash Conversion Cycle"
-                strokeWidth={3}
-                dot={{ r: 4, strokeWidth: 2 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Grafice în format 2 coloane - Solduri */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Evolutie Sold Furnizori */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4" />
+              Evoluție Sold Furnizori
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorFurnizori" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-5))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--chart-5))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date"
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                  tickMargin={10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="soldFurnizori" 
+                  stroke="hsl(var(--chart-5))" 
+                  fill="url(#colorFurnizori)"
+                  name="Furnizori"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Grafic Venituri vs Cheltuieli - Îmbunătățit */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Venituri vs Cheltuieli
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
-              <XAxis 
-                dataKey="date"
-                className="text-xs"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                tickMargin={10}
-              />
-              <YAxis 
-                className="text-xs"
-                tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-                tickMargin={10}
-              />
-              <Tooltip 
-                content={<CustomTooltip />}
-              />
-              <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
-                iconType="square"
-              />
-              <Bar 
-                dataKey="revenue" 
-                fill="hsl(var(--chart-4))" 
-                name="Venituri"
-                radius={[8, 8, 0, 0]}
-              />
-              <Bar 
-                dataKey="expenses" 
-                fill="hsl(var(--chart-5))" 
-                name="Cheltuieli"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Evolutie Sold Clienti */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4" />
+              Evoluție Sold Clienți
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorClienti" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date"
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                  tickMargin={10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="soldClienti" 
+                  stroke="hsl(var(--chart-1))" 
+                  fill="url(#colorClienti)"
+                  name="Clienți"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Grafic EBITDA - Îmbunătățit cu Area */}
+        {/* Evolutie Sold Banca */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <DollarSign className="h-4 w-4" />
+              Evoluție Sold Bancă
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorBanca" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date"
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                  tickMargin={10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="soldBanca" 
+                  stroke="hsl(var(--chart-2))" 
+                  fill="url(#colorBanca)"
+                  name="Bancă"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Evolutie Sold Casa */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <DollarSign className="h-4 w-4" />
+              Evoluție Sold Casă
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorCasa" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date"
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                  tickMargin={10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="soldCasa" 
+                  stroke="hsl(var(--chart-3))" 
+                  fill="url(#colorCasa)"
+                  name="Casă"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Grid cu grafice în 2 coloane - Indicatori */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Grafic Indicatori Cash Flow */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Activity className="h-4 w-4" />
+              Indicatori Cash Flow
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorDSO" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1}/>
+                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                  iconType="circle"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="dso" 
+                  stroke="hsl(var(--chart-1))" 
+                  name="DSO"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="dpo" 
+                  stroke="hsl(var(--chart-2))" 
+                  name="DPO"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="ccc" 
+                  stroke="hsl(var(--chart-3))" 
+                  name="CCC"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Grafic Venituri vs Cheltuieli */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4" />
+              Venituri vs Cheltuieli
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis 
+                  dataKey="date"
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={10}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                  tickMargin={10}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                  iconType="square"
+                />
+                <Bar 
+                  dataKey="revenue" 
+                  fill="hsl(var(--chart-4))" 
+                  name="Venituri"
+                  radius={[6, 6, 0, 0]}
+                />
+                <Bar 
+                  dataKey="expenses" 
+                  fill="hsl(var(--chart-5))" 
+                  name="Cheltuieli"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Grafic EBITDA - Full Width */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="h-4 w-4" />
             Evoluție EBITDA
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorEBITDA" x1="0" y1="0" x2="0" y2="1">
@@ -399,7 +580,7 @@ export const AnalyticsCharts = ({ data }: AnalyticsChartsProps) => {
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend 
-                wrapperStyle={{ paddingTop: '20px' }}
+                wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
                 iconType="circle"
               />
               <Area 
@@ -408,7 +589,7 @@ export const AnalyticsCharts = ({ data }: AnalyticsChartsProps) => {
                 stroke="hsl(var(--primary))" 
                 fill="url(#colorEBITDA)"
                 name="EBITDA"
-                strokeWidth={3}
+                strokeWidth={2}
               />
             </AreaChart>
           </ResponsiveContainer>
