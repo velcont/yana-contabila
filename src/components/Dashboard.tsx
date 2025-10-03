@@ -300,9 +300,11 @@ export const Dashboard = () => {
               </p>
             ) : (
               analyses.map((analysis) => {
-                // Extract period from analysis text
-                const periodMatch = analysis.analysis_text.match(/Perioadă[:\s]+([^\\n]+)/i) || 
-                                  analysis.analysis_text.match(/Pentru perioada[:\s]+([^\\n]+)/i);
+                // Extract period from analysis text - try multiple patterns
+                const periodMatch = analysis.analysis_text.match(/Perioad[aă][:\s]+([^\n]+)/i) || 
+                                  analysis.analysis_text.match(/Pentru perioad[aă][:\s]+([^\n]+)/i) ||
+                                  analysis.analysis_text.match(/(\d{2}\/\d{2}\/\d{4}\s*-\s*\d{2}\/\d{2}\/\d{4})/i) ||
+                                  analysis.analysis_text.match(/Perioada[:\s]*([^\n]+)/i);
                 const period = periodMatch ? periodMatch[1].trim() : null;
                 
                 return (
