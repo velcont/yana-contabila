@@ -18,6 +18,7 @@ import {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  id?: string; // ID pentru feedback
 }
 
 interface Insight {
@@ -47,6 +48,33 @@ export const ChatAI = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // Feedback handler pentru sistem de învățare
+  const handleFeedback = async (messageId: string, rating: number) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.from('chat_feedback').insert({
+        conversation_message_id: messageId,
+        user_id: user.id,
+        rating,
+        question_category: null, // Va fi extras automat de trigger
+        response_length: null,
+        response_time_ms: null
+      });
+      
+      if (!error) {
+        toast({
+          title: rating > 0 ? '✅ Mulțumim pentru feedback!' : '📝 Feedback înregistrat',
+          description: 'Ne ajuți să îmbunătățim răspunsurile',
+          duration: 2000
+        });
+      }
+    } catch (err) {
+      console.error('Eroare feedback:', err);
+    }
+  };
 
   // Încarcă insights proactivi
   useEffect(() => {
@@ -152,6 +180,7 @@ export const ChatAI = () => {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantContent = '';
+      let assistantMessageId: string | null = null;
       let thinkingShown = false;
 
       // Adaugă mesaj assistant gol pentru streaming
@@ -186,8 +215,19 @@ export const ChatAI = () => {
                 const newMessages = [...prev];
                 newMessages[newMessages.length - 1] = {
                   role: 'assistant',
-                  content: assistantContent
+                  content: assistantContent,
+                  id: assistantMessageId || undefined
                 };
+                return newMessages;
+              });
+            } else if (parsed.type === 'message_id') {
+              // Capturăm message_id pentru feedback
+              assistantMessageId = parsed.message_id;
+              setMessages(prev => {
+                const newMessages = [...prev];
+                if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+                  newMessages[newMessages.length - 1].id = assistantMessageId || undefined;
+                }
                 return newMessages;
               });
             }
@@ -204,7 +244,8 @@ export const ChatAI = () => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
             role: 'assistant',
-            content: assistantContent
+            content: assistantContent,
+            id: assistantMessageId || undefined
           };
           return newMessages;
         });
@@ -418,15 +459,36 @@ export const ChatAI = () => {
               key={idx}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
             >
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted'
-                }`}
-              >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-              </div>
+              {msg.role === 'assistant' ? (
+                <div className="max-w-[85%] space-y-2">
+                  <div className="bg-muted rounded-2xl px-4 py-2.5">
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  </div>
+                  {msg.id && (
+                    <div className="flex items-center gap-2 px-2">
+                      <span className="text-xs text-muted-foreground">A fost util?</span>
+                      <button
+                        onClick={() => handleFeedback(msg.id!, 1)}
+                        className="text-lg hover:scale-110 transition-transform"
+                        title="Răspuns util"
+                      >
+                        👍
+                      </button>
+                      <button
+                        onClick={() => handleFeedback(msg.id!, -1)}
+                        className="text-lg hover:scale-110 transition-transform"
+                        title="Răspuns neutil"
+                      >
+                        👎
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="max-w-[85%] rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground">
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                </div>
+              )}
             </div>
           ))}
           {isLoading && (
