@@ -594,7 +594,8 @@ Cu ce te pot ajuta astăzi?`
           />
         )}
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">{messages.map((msg, idx) => (
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+          {messages.map((msg, idx) => (
             <div
               key={idx}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
