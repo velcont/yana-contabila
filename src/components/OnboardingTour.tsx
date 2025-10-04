@@ -67,7 +67,7 @@ export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
           <p className="text-sm text-muted-foreground">Exemple: "Cum stau cu DSO?", "Compară luna aceasta cu luna trecută"</p>
         </div>
       ),
-      placement: 'left',
+      placement: 'top',
       disableBeacon: true,
     },
     {
@@ -118,6 +118,9 @@ export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
       showSkipButton
       stepIndex={stepIndex}
       callback={handleJoyrideCallback}
+      scrollToFirstStep
+      scrollOffset={120}
+      disableScrolling={false}
       styles={{
         options: {
           primaryColor: 'hsl(var(--primary))',
