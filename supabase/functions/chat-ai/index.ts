@@ -555,6 +555,7 @@ serve(async (req) => {
           let buffer = "";
           let toolCalls: any[] = [];
           let accumulatedContent = "";
+          let sentAnyContent = false;
 
           while (true) {
             const { done, value } = await reader!.read();
@@ -577,6 +578,7 @@ serve(async (req) => {
 
                 if (delta?.content) {
                   accumulatedContent += delta.content;
+                  sentAnyContent = true;
                   controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: delta.content }) + "\n\n"));
                 }
 
@@ -617,31 +619,46 @@ serve(async (req) => {
                     }),
                   });
 
-                  const followUpReader = followUpResponse.body?.getReader();
-                  let followUpBuffer = "";
+                  if (!followUpResponse.ok) {
+                    const errText = await followUpResponse.text();
+                    console.error("Eroare follow-up AI:", followUpResponse.status, errText);
+                    const fallback = "Nu am reușit să finalizez răspunsul acum. Verifică dacă perioada este corectă (ex: ‘martie 2025’) și încearcă din nou.";
+                    controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
+                    sentAnyContent = true;
+                  } else {
+                    const followUpReader = followUpResponse.body?.getReader();
+                    if (!followUpReader) {
+                      const fallback = "Răspunsul a fost procesat, dar nu am primit conținut. Te rog încearcă din nou.";
+                      controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
+                      sentAnyContent = true;
+                    } else {
+                      let followUpBuffer = "";
+                      
+                      while (true) {
+                        const { done: followUpDone, value: followUpValue } = await followUpReader.read();
+                        if (followUpDone) break;
 
-                  while (true) {
-                    const { done: followUpDone, value: followUpValue } = await followUpReader!.read();
-                    if (followUpDone) break;
+                        followUpBuffer += decoder.decode(followUpValue, { stream: true });
+                        const followUpLines = followUpBuffer.split("\n");
+                        followUpBuffer = followUpLines.pop() || "";
 
-                    followUpBuffer += decoder.decode(followUpValue, { stream: true });
-                    const followUpLines = followUpBuffer.split("\n");
-                    followUpBuffer = followUpLines.pop() || "";
+                        for (const followUpLine of followUpLines) {
+                          if (!followUpLine.trim() || followUpLine.startsWith(":")) continue;
+                          if (!followUpLine.startsWith("data: ")) continue;
+                          const followUpData = followUpLine.slice(6);
+                          if (followUpData === "[DONE]") continue;
 
-                    for (const followUpLine of followUpLines) {
-                      if (!followUpLine.trim() || followUpLine.startsWith(":")) continue;
-                      if (!followUpLine.startsWith("data: ")) continue;
-                      const followUpData = followUpLine.slice(6);
-                      if (followUpData === "[DONE]") continue;
-
-                      try {
-                        const followUpParsed = JSON.parse(followUpData);
-                        const followUpContent = followUpParsed.choices?.[0]?.delta?.content;
-                        if (followUpContent) {
-                          controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: followUpContent }) + "\n\n"));
+                          try {
+                            const followUpParsed = JSON.parse(followUpData);
+                            const followUpContent = followUpParsed.choices?.[0]?.delta?.content;
+                            if (followUpContent) {
+                              sentAnyContent = true;
+                              controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: followUpContent }) + "\n\n"));
+                            }
+                          } catch (e) {
+                            console.error("Parse error follow-up:", e);
+                          }
                         }
-                      } catch (e) {
-                        console.error("Parse error follow-up:", e);
                       }
                     }
                   }
@@ -650,6 +667,12 @@ serve(async (req) => {
                 console.error("Parse error:", e);
               }
             }
+          }
+
+          // Dacă nu am livrat niciun conținut, trimitem un fallback sigur
+          if (!sentAnyContent) {
+            const fallback = "Îmi pare rău, nu am putut genera un răspuns în acest moment. Te rog specifică perioada clar (ex: ‘ianuarie 2025 – martie 2025’) sau încearcă din nou în câteva secunde.";
+            controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));

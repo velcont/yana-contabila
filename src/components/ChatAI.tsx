@@ -197,6 +197,19 @@ export const ChatAI = () => {
         }
       }
 
+      // Asigură conținut: dacă streamul n-a livrat nimic, trimitem un fallback prietenos
+      if (!assistantContent.trim()) {
+        assistantContent = 'Îmi pare rău, răspunsul nu a putut fi generat acum. Te rog specifică perioada exactă (ex: „martie 2025”) sau încearcă din nou în câteva secunde.';
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1] = {
+            role: 'assistant',
+            content: assistantContent
+          };
+          return newMessages;
+        });
+      }
+
       // Salvează răspunsul assistant în istoric
       try {
         const { data: { user } } = await supabase.auth.getUser();
