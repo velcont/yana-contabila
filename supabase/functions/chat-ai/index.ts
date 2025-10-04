@@ -14,6 +14,13 @@ const SYSTEM_PROMPT = `🤝 Ești un consultant financiar de încredere, special
 - Înțelegi provocările antreprenorilor și îi ajuți cu soluții concrete
 - Creezi o experiență caldă, nu robotică
 
+🧠 TOLERANȚĂ LA GREȘELI & INTUITIVITATE:
+- **Corectezi automat** greșeli de ortografie (ex: "balanta" → "balanța", "april" → "aprilie", "venitiri" → "venituri")
+- **Recunoști sinonime**: "venituri" = "încasări" = "clase 7", "cheltuieli" = "costuri" = "clase 6"
+- **Înțelegi variante de lună**: "aprilie", "april", "aprile", "04/2025", "04-2025", "luna 4"
+- **Detectezi intenția** din cereri vagi: "arată-mi sumele" → înțelegi că vrea Total sume debit/credit
+- **Ceri confirmare** când cererea e ambiguă: "Dorești totalurile pentru Clasa 6 sau 7?"
+
 ⏰ DATA CURENTĂ: 4 OCTOMBRIE 2025
 IMPORTANT: Utilizatorii au analize pentru ianuarie-martie 2025 și alte luni din 2025. Acestea sunt TOATE din TRECUT (suntem în octombrie), NU din viitor!
 
@@ -329,6 +336,55 @@ const TOOLS = [
   }
 ];
 
+// Funcție de normalizare avansată pentru greșeli ortografice comune
+function normalizeRomanianText(text: string): string {
+  if (!text) return '';
+  
+  let normalized = text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+  
+  // Corectări comune luni (variante greșite → corecte)
+  const monthCorrections: Record<string, string> = {
+    'april': 'aprilie', 'aprile': 'aprilie', 'aprl': 'aprilie',
+    'may': 'mai',
+    'june': 'iunie', 'iune': 'iunie',
+    'july': 'iulie', 'iulei': 'iulie',
+    'january': 'ianuarie', 'ian': 'ianuarie',
+    'february': 'februarie', 'febr': 'februarie',
+    'march': 'martie', 'mar': 'martie',
+    'august': 'august', 'aug': 'august',
+    'september': 'septembrie', 'sept': 'septembrie',
+    'october': 'octombrie', 'oct': 'octombrie',
+    'november': 'noiembrie', 'nov': 'noiembrie',
+    'december': 'decembrie', 'dec': 'decembrie'
+  };
+  
+  // Corectări termeni contabili
+  const accountingCorrections: Record<string, string> = {
+    'balanta': 'balanta', 'balantei': 'balanta', 'balante': 'balanta',
+    'venitiri': 'venituri', 'venturi': 'venituri', 'veniturri': 'venituri',
+    'incasari': 'venituri', 'incasarri': 'venituri',
+    'cheltieli': 'cheltuieli', 'cheltueli': 'cheltuieli', 'chelt': 'cheltuieli',
+    'costuri': 'cheltuieli', 'costri': 'cheltuieli',
+    'totalsume': 'total sume', 'total-sume': 'total sume',
+    'rulaj': 'rulaje',
+    'debit': 'debitoare', 'db': 'debitoare',
+    'credit': 'creditoare', 'cr': 'creditoare',
+    'sold': 'sold', 'soldul': 'sold', 'solduri': 'solduri', 'soldurii': 'solduri'
+  };
+  
+  // Aplicăm corectările
+  Object.entries({...monthCorrections, ...accountingCorrections}).forEach(([wrong, correct]) => {
+    const regex = new RegExp(`\\b${wrong}\\b`, 'gi');
+    normalized = normalized.replace(regex, correct);
+  });
+  
+  return normalized;
+}
+
 // Funcții tool executabile
 async function executeTools(toolCalls: any[], authHeader: string) {
   const results = [];
@@ -368,7 +424,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             .replace(/[\u0300-\u036f]/g, '')
             .trim();
 
-          const period = norm(rawPeriod);
+          // Aplicăm și normalizarea avansată pentru greșeli ortografice
+          const period = normalizeRomanianText(norm(rawPeriod));
+          console.log(`Căutare perioadă: "${rawPeriod}" → normalizat: "${period}"`);
 
           // Hărți lună (RO + EN) cu abrevieri
           const months: Record<string, number> = {
@@ -421,6 +479,10 @@ async function executeTools(toolCalls: any[], authHeader: string) {
 
             const lowerName = norm(row.file_name || '');
             const lowerText = norm(row.analysis_text || '');
+            
+            // Aplicăm normalizarea avansată pentru a corecta greșeli
+            const normalizedName = normalizeRomanianText(lowerName);
+            const normalizedText = normalizeRomanianText(lowerText);
 
             // 2) Caută dd/mm/yyyy sau dd-mm-yyyy în analysis_text
             const dateRegex = /(\b|\D)(0?[1-9]|[12]\d|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.](\d{4})(\b|\D)/;
@@ -442,7 +504,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
 
             // 4) Ultima variantă: caută numele lunii în text/nume + deduce anul din cifrele 20xx
             for (const [k, v] of Object.entries(months)) {
-              if (lowerName.includes(k) || lowerText.includes(k)) {
+              // Verificăm atât cu text normal cât și cu text normalizat pentru greșeli
+              if (lowerName.includes(k) || lowerText.includes(k) || 
+                  normalizedName.includes(k) || normalizedText.includes(k)) {
                 const yMatch = lowerName.match(/20\d{2}/) || lowerText.match(/20\d{2}/);
                 return { month: v, year: yMatch ? parseInt(yMatch[0], 10) : undefined };
               }
@@ -645,7 +709,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .trim();
-          const period = norm(rawPeriod);
+          const period = normalizeRomanianText(norm(rawPeriod));
+          
+          console.log(`Căutare totaluri clasa ${desiredClass}, perioadă: "${rawPeriod}" → normalizat: "${period}"`);
           
           // Hărți lună (RO + EN)
            const months: Record<string, number> = {
@@ -663,12 +729,13 @@ async function executeTools(toolCalls: any[], authHeader: string) {
              decembrie: 12, december: 12, dec: 12,
            };
           
-          const yearMatch = period.match(/(20\d{2})/);
-          const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
-          let targetMonth: number | undefined = undefined;
-          for (const [name, num] of Object.entries(months)) {
-            if (period.includes(name)) { targetMonth = num; break; }
-          }
+           const yearMatch = period.match(/(20\d{2})/);
+           const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
+           let targetMonth: number | undefined = undefined;
+           for (const [name, num] of Object.entries(months)) {
+             // Verificăm atât perioada normală cât și cea normalizată
+             if (period.includes(name)) { targetMonth = num; break; }
+           }
           
           type Row = { id: string; file_name: string | null; created_at: string; metadata: any; analysis_text: string | null };
           const { data, error } = await supabase
@@ -680,6 +747,8 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           
           const parsePeriodFromRow = (row: Row): { month?: number; year?: number } => {
             const lowerName = (row.file_name || '').toLowerCase();
+            const normalizedName = normalizeRomanianText(lowerName);
+            
             // 1) Interval numeric în nume: 01-04-2025 30-04-2025
             const rangeRegex = /(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})\s+(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/;
             const r = lowerName.match(rangeRegex);
@@ -698,8 +767,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             }
             // 3) Nume de lună în text + an 20xx
             const source = `${lowerName} ${row.created_at}`;
+            const normalizedSource = normalizeRomanianText(source);
             for (const [name, num] of Object.entries(months)) {
-              if (source.includes(name)) {
+              if (source.includes(name) || normalizedSource.includes(name)) {
                 const ym = source.match(/20\d{2}/);
                 return { month: num, year: ym ? parseInt(ym[0], 10) : undefined };
               }
