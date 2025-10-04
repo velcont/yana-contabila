@@ -30,10 +30,34 @@ function extractIndicatorsFromText(analysisText: string): {
   // Funcție helper: conversie string → number (1.802,42 → 1802.42)
   const parseValue = (match: RegExpMatchArray | null, groupIndex = 1): number | undefined => {
     if (!match) return undefined;
-    const rawValue = match[groupIndex];
+    const rawValue = (match[groupIndex] || '').replace(/\s/g, '');
     if (!rawValue) return undefined;
-    const cleaned = rawValue.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(cleaned);
+    let s = rawValue;
+    const hasComma = s.includes(',');
+    const hasDot = s.includes('.');
+    if (hasComma && hasDot) {
+      const lastComma = s.lastIndexOf(',');
+      const lastDot = s.lastIndexOf('.');
+      if (lastDot > lastComma) {
+        // Ex: 1,687.48 → '.' este separator zecimal, ',' mii
+        s = s.replace(/,/g, '');
+      } else {
+        // Ex: 1.687,48 → ',' zecimal, '.' mii
+        s = s.replace(/\./g, '').replace(',', '.');
+      }
+    } else if (hasComma) {
+      // Ex: 3417,63 → zecimal cu virgula
+      s = s.replace(',', '.');
+    } else if (hasDot) {
+      // Ex: 13.600 sau 3417.63 → decide: dacă ultimele 3 cifre, tratăm ca mii
+      const last = s.lastIndexOf('.');
+      const decLen = s.length - last - 1;
+      if (/^\d{1,3}(\.\d{3})+$/.test(s) && decLen === 3) {
+        // format mii: 13.600 → 13600
+        s = s.replace(/\./g, '');
+      } // altfel păstrăm '.' ca zecimal
+    }
+    const num = parseFloat(s);
     return isNaN(num) ? undefined : num;
   };
 
