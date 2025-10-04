@@ -662,18 +662,40 @@ serve(async (req) => {
                   const { pattern, category } = patternData[0];
                   
                   // 3. Actualizăm/creăm pattern-ul în chat_patterns
-                  await supabase
+                  // Verificăm dacă pattern-ul există deja
+                  const { data: existingPattern } = await supabase
                     .from("chat_patterns")
-                    .upsert({
-                      question_pattern: pattern,
-                      question_category: category,
-                      frequency: 1,
-                      avg_response_time: responseTime,
-                      last_asked_at: new Date().toISOString()
-                    }, {
-                      onConflict: 'question_pattern',
-                      ignoreDuplicates: false
-                    });
+                    .select("frequency, avg_response_time")
+                    .eq("question_pattern", pattern)
+                    .single();
+                  
+                  if (existingPattern) {
+                    // Actualizăm frecvența și media timpului de răspuns
+                    const newFrequency = existingPattern.frequency + 1;
+                    const newAvgResponseTime = Math.round(
+                      (existingPattern.avg_response_time * existingPattern.frequency + responseTime) / newFrequency
+                    );
+                    
+                    await supabase
+                      .from("chat_patterns")
+                      .update({
+                        frequency: newFrequency,
+                        avg_response_time: newAvgResponseTime,
+                        last_asked_at: new Date().toISOString()
+                      })
+                      .eq("question_pattern", pattern);
+                  } else {
+                    // Creăm pattern nou
+                    await supabase
+                      .from("chat_patterns")
+                      .insert({
+                        question_pattern: pattern,
+                        question_category: category,
+                        frequency: 1,
+                        avg_response_time: responseTime,
+                        last_asked_at: new Date().toISOString()
+                      });
+                  }
                 }
               }
               
