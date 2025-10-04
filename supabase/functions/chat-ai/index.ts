@@ -819,6 +819,11 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           }
           
           // FORMATARE AUTOMATĂ PENTRU AI: diferențiem clasele 1-5 vs 6-7
+          const toNum = (v: any) => {
+            if (typeof v === 'number') return v;
+            if (typeof v === 'string') return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
+            return 0;
+          };
           const formattedAccounts = accounts.map((acc: any) => {
             const firstDigit = acc.code.charAt(0);
             const formatted: any = {
@@ -830,8 +835,8 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             // CLASELE 1-5: folosim solduri finale
             if (['1', '2', '3', '4', '5'].includes(firstDigit)) {
               formatted.type = 'balance_account';
-              formatted.sold_final_debit = acc.sold_final_debit || 0;
-              formatted.sold_final_credit = acc.sold_final_credit || 0;
+              formatted.sold_final_debit = toNum(acc.sold_final_debit);
+              formatted.sold_final_credit = toNum(acc.sold_final_credit);
               // Adaugă interpretare
               if (formatted.sold_final_debit > 0) {
                 formatted.display = `Sold final debitor: ${formatted.sold_final_debit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
@@ -844,8 +849,8 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             // CLASELE 6-7: folosim total sume
             else if (['6', '7'].includes(firstDigit)) {
               formatted.type = 'income_expense_account';
-              formatted.total_sume_debit = acc.total_sume_debit || 0;
-              formatted.total_sume_credit = acc.total_sume_credit || 0;
+              formatted.total_sume_debit = toNum(acc.total_sume_debit);
+              formatted.total_sume_credit = toNum(acc.total_sume_credit);
               // Pentru clasa 6 (cheltuieli): afișăm total sume debitoare
               if (firstDigit === '6') {
                 formatted.display = `Total sume debitoare: ${formatted.total_sume_debit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
@@ -967,8 +972,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             const meta = recent.metadata || {};
             const accounts: any[] = (meta.parsed_balance?.accounts) || [];
             const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
-            let totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
-            let totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+            const toNum = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0 : 0);
+            let totalDebit = filtered.reduce((s: number, a: any) => s + toNum(a.total_sume_debit), 0);
+            let totalCredit = filtered.reduce((s: number, a: any) => s + toNum(a.total_sume_credit), 0);
 
             // Fallback: extrage din textul analizei dacă nu avem valori valide
             if ((filtered.length === 0 || (totalDebit === 0 && totalCredit === 0)) && (recent as any).analysis_text) {
@@ -1000,6 +1006,7 @@ async function executeTools(toolCalls: any[], authHeader: string) {
               analysis_id: recent.id,
               file_name: recent.file_name,
               date: recent.created_at,
+              period: rawPeriod,
               class: desiredClass,
               totals: {
                 total_sume_debitoare: totalDebit,
@@ -1037,8 +1044,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           
           // Pentru clasele 6-7, calculăm din Total sume
           if (desiredClass === '6' || desiredClass === '7') {
-            totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
-            totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+            const toNum = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0 : 0);
+            totalDebit = filtered.reduce((s: number, a: any) => s + toNum(a.total_sume_debit), 0);
+            totalCredit = filtered.reduce((s: number, a: any) => s + toNum(a.total_sume_credit), 0);
             console.log(`💰 Totaluri calculate din accounts (Total sume): D=${totalDebit}, C=${totalCredit}`);
           }
 
@@ -1078,6 +1086,7 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             analysis_id: (found as any).id,
             file_name: (found as any).file_name,
             date: (found as any).created_at,
+            period: rawPeriod,
             class: desiredClass,
             totals: {
               total_sume_debitoare: totalDebit,
@@ -1604,7 +1613,7 @@ serve(async (req) => {
                           const cls7 = byName("get_class_totals_by_period");
                           if (!out && cls7) {
                             const p = JSON.parse(cls7.content || '{}');
-                            const per = p.date ? new Date(p.date).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' }) : message;
+                            const per = p.period || message;
                             const tvc = p?.totals?.total_sume_creditoare ?? 0;
                             out = `Venituri (Clasa 7) ${per}: ${Number(tvc).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
                           }
