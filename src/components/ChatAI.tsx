@@ -639,10 +639,10 @@ export const ChatAI = () => {
                       setInput(suggestion.text);
                       sendMessage();
                     }}
-                    className="h-auto py-3 px-4 text-left justify-start hover:bg-primary/10 hover:border-primary transition-all group"
+                    className="h-auto py-2.5 px-3 text-left justify-start hover:bg-primary/10 hover:border-primary transition-all group"
                   >
                     <Icon className="h-4 w-4 mr-2 text-primary flex-shrink-0 group-hover:scale-110 transition-transform" />
-                    <span className="text-sm leading-tight">{suggestion.text}</span>
+                    <span className="text-sm leading-tight line-clamp-2 break-words">{suggestion.text}</span>
                   </Button>
                 );
               })}
