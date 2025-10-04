@@ -424,29 +424,24 @@ serve(async (req) => {
       );
     }
 
+    // Extragem user_id din auth header pentru sistem de învățare
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
     // Adaptează system prompt pe baza tipului de sumarizare și setează data curentă dinamic
     const now = new Date();
     const roNow = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
-    let adaptedPrompt = SYSTEM_PROMPT + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că ‘ianuarie 2025 – martie 2025’ este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = SYSTEM_PROMPT + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
-      adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:
-- Răspunde în maxim 100 cuvinte
-- Doar insight-urile CHEIE
-- Fără introduceri sau detalii suplimentare
-- Format: 3-5 bullet points concentrați
-- Accentuează doar ce e URGENT/CRITIC`;
+      adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
     } else if (summaryType === 'action') {
-      adaptedPrompt += `\n\n🎯 MOD ACTION POINTS:
-- Răspunde DOAR cu acțiuni concrete
-- Format: Listă numerotată de pași executabili
-- Pentru fiecare acțiune:
-  • Ce trebuie făcut (verb de acțiune + obiect)
-  • Deadline recomandat (ore/zile)
-  • Impact așteptat (ROI/economie)
-- Fără analize sau explicații
-- Maximum 5-7 action points, prioritizate
-- Exemplu: "1. ✅ Trimite reminder la 15 facturi restante (astăzi, recuperare ~8,500 RON)"`;
+      adaptedPrompt += `\n\n🎯 MOD ACTION POINTS:\n- Răspunde DOAR cu acțiuni concrete\n- Format: Listă numerotată de pași executabili\n- Pentru fiecare acțiune:\n  • Ce trebuie făcut (verb de acțiune + obiect)\n  • Deadline recomandat (ore/zile)\n  • Impact așteptat (ROI/economie)\n- Fără analize sau explicații\n- Maximum 5-7 action points, prioritizate\n- Exemplu: "1. ✅ Trimite reminder la 15 facturi restante (astăzi, recuperare ~8,500 RON)"`;
     }
     
     // Construiește conversația cu system prompt și istoric
@@ -503,6 +498,7 @@ serve(async (req) => {
 
     // Stream răspuns
     const encoder = new TextEncoder();
+    const startTime = Date.now(); // Pentru a măsura timpul de răspuns
     const stream = new ReadableStream({
       async start(controller) {
         try {
@@ -512,6 +508,7 @@ serve(async (req) => {
           let toolCalls: any[] = [];
           let accumulatedContent = "";
           let sentAnyContent = false;
+          let assistantMessageId: string | null = null;
 
           while (true) {
             const { done, value } = await reader!.read();
@@ -578,7 +575,7 @@ serve(async (req) => {
                   if (!followUpResponse.ok) {
                     const errText = await followUpResponse.text();
                     console.error("Eroare follow-up AI:", followUpResponse.status, errText);
-                    const fallback = "Nu am reușit să finalizez răspunsul acum. Verifică dacă perioada este corectă (ex: ‘martie 2025’) și încearcă din nou.";
+                    const fallback = "Nu am reușit să finalizez răspunsul acum. Verifică dacă perioada este corectă (ex: 'martie 2025') și încearcă din nou.";
                     controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
                     sentAnyContent = true;
                   } else {
@@ -608,6 +605,7 @@ serve(async (req) => {
                             const followUpParsed = JSON.parse(followUpData);
                             const followUpContent = followUpParsed.choices?.[0]?.delta?.content;
                             if (followUpContent) {
+                              accumulatedContent += followUpContent;
                               sentAnyContent = true;
                               controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: followUpContent }) + "\n\n"));
                             }
@@ -627,8 +625,68 @@ serve(async (req) => {
 
           // Dacă nu am livrat niciun conținut, trimitem un fallback sigur
           if (!sentAnyContent) {
-            const fallback = "Îmi pare rău, nu am putut genera un răspuns în acest moment. Te rog specifică perioada clar (ex: ‘ianuarie 2025 – martie 2025’) sau încearcă din nou în câteva secunde.";
+            const fallback = "Îmi pare rău, nu am putut genera un răspuns în acest moment. Te rog specifică perioada clar (ex: 'ianuarie 2025 – martie 2025') sau încearcă din nou în câteva secunde.";
             controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
+            accumulatedContent = fallback;
+          }
+
+          // === ÎNVĂȚARE AUTOMATĂ: Salvăm răspunsul și extragem pattern-ul ===
+          const responseTime = Date.now() - startTime;
+          
+          try {
+            // 1. Salvăm răspunsul asistentului în conversation_history
+            if (userId) {
+              const { data: savedMessage, error: saveError } = await supabase
+                .from("conversation_history")
+                .insert({
+                  user_id: userId,
+                  conversation_id: conversationId,
+                  role: "assistant",
+                  content: accumulatedContent,
+                  metadata: { 
+                    response_time_ms: responseTime,
+                    summary_type: summaryType || 'default'
+                  }
+                })
+                .select("id")
+                .single();
+
+              if (!saveError && savedMessage) {
+                assistantMessageId = savedMessage.id;
+                
+                // 2. Extragem pattern-ul întrebării (anonimizat)
+                const { data: patternData, error: patternError } = await supabase
+                  .rpc('extract_question_pattern', { question_text: message });
+                
+                if (!patternError && patternData && patternData.length > 0) {
+                  const { pattern, category } = patternData[0];
+                  
+                  // 3. Actualizăm/creăm pattern-ul în chat_patterns
+                  await supabase
+                    .from("chat_patterns")
+                    .upsert({
+                      question_pattern: pattern,
+                      question_category: category,
+                      frequency: 1,
+                      avg_response_time: responseTime,
+                      last_asked_at: new Date().toISOString()
+                    }, {
+                      onConflict: 'question_pattern',
+                      ignoreDuplicates: false
+                    });
+                }
+              }
+              
+              // Trimitem message_id pentru feedback
+              controller.enqueue(encoder.encode("data: " + JSON.stringify({ 
+                type: "message_id", 
+                message_id: assistantMessageId 
+              }) + "\n\n"));
+            }
+            
+          } catch (learningError) {
+            console.error("Eroare sistem învățare:", learningError);
+            // Nu bloăm utilizatorul dacă învățarea eșuează
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
