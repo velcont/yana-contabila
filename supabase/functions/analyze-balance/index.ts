@@ -424,6 +424,50 @@ serve(async (req) => {
     }
 
     console.log("Analiză generată cu succes!");
+    
+    // Extrage indicatori pentru validare post-procesare
+    const indicatorsMatch = analysis.match(/=== INDICATORI FINANCIARI ===([\s\S]*?)(?=\n\n|$)/);
+    if (indicatorsMatch) {
+      const indicators = indicatorsMatch[1];
+      const dsoMatch = indicators.match(/DSO:\s*(\d+\.?\d*)/);
+      const dpoMatch = indicators.match(/DPO:\s*(\d+\.?\d*)/);
+      const ebitdaMatch = indicators.match(/EBITDA:\s*(-?\d+\.?\d*)/);
+      const caMatch = indicators.match(/CA:\s*(\d+\.?\d*)/);
+      const cheltuieliMatch = indicators.match(/Cheltuieli:\s*(\d+\.?\d*)/);
+      const profitMatch = indicators.match(/Profit:\s*(-?\d+\.?\d*)/);
+      const casaMatch = indicators.match(/Sold Casa:\s*(\d+\.?\d*)/);
+      
+      const validationWarnings: string[] = [];
+      
+      // Validare DSO
+      if (dsoMatch && parseFloat(dsoMatch[1]) > 90) {
+        validationWarnings.push(`⚠️ ALERTĂ CRITICĂ: DSO extrem de ridicat (${dsoMatch[1]} zile) - Banii sunt blocați în creanțe prea mult timp`);
+      }
+      
+      // Validare Cash flow negativ
+      if (caMatch && cheltuieliMatch) {
+        const ca = parseFloat(caMatch[1]);
+        const cheltuieli = parseFloat(cheltuieliMatch[1]);
+        if (cheltuieli > ca) {
+          validationWarnings.push(`🔴 PIERDERE GARANTATĂ: Cheltuielile (${cheltuieli.toLocaleString('ro-RO')}) depășesc veniturile (${ca.toLocaleString('ro-RO')})`);
+        }
+      }
+      
+      // Validare plafon casă
+      if (casaMatch && parseFloat(casaMatch[1]) > 50000) {
+        validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit - ${parseFloat(casaMatch[1]).toLocaleString('ro-RO')} RON (max legal: 50.000 RON)`);
+      }
+      
+      // Adaugă warnings la sfârșitul analizei dacă există
+      if (validationWarnings.length > 0) {
+        const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
+        return new Response(
+          JSON.stringify({ analysis: analysis + warningsSection }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    
     return new Response(
       JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

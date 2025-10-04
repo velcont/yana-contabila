@@ -72,37 +72,39 @@ const AdvertisementPopup = ({ intervalMinutes = 10 }: AdvertisementPopupProps) =
           <DialogTitle className="text-2xl font-bold text-primary">
             Servicii Complete de Contabilitate
           </DialogTitle>
-          <DialogDescription className="text-base mt-4 space-y-3">
-            <p className="font-semibold text-foreground">
-              Ai nevoie de un partener de încredere pentru contabilitatea firmei tale?
-            </p>
-            
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">✓</span>
-                <span>Contabilitate primară și fiscalitate</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">✓</span>
-                <span>Consultanță financiară personalizată</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">✓</span>
-                <span>Raportări automate și analize</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">✓</span>
-                <span>Suport dedicat și răspuns rapid</span>
-              </li>
-            </ul>
+          <DialogDescription asChild>
+            <div className="text-base mt-4 space-y-3">
+              <p className="font-semibold text-foreground">
+                Ai nevoie de un partener de încredere pentru contabilitatea firmei tale?
+              </p>
+              
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">✓</span>
+                  <span>Contabilitate primară și fiscalitate</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">✓</span>
+                  <span>Consultanță financiară personalizată</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">✓</span>
+                  <span>Raportări automate și analize</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">✓</span>
+                  <span>Suport dedicat și răspuns rapid</span>
+                </li>
+              </ul>
 
-            <div className="bg-primary/10 p-4 rounded-lg mt-4">
-              <p className="font-semibold text-primary mb-2">
-                🎁 Ofertă specială pentru utilizatorii Yana!
-              </p>
-              <p className="text-sm">
-                Primește o lună gratuită la serviciile noastre de contabilitate
-              </p>
+              <div className="bg-primary/10 p-4 rounded-lg mt-4">
+                <p className="font-semibold text-primary mb-2">
+                  🎁 Ofertă specială pentru utilizatorii Yana!
+                </p>
+                <p className="text-sm">
+                  Primește o lună gratuită la serviciile noastre de contabilitate
+                </p>
+              </div>
             </div>
           </DialogDescription>
         </DialogHeader>
