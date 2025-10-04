@@ -69,7 +69,16 @@ IMPORTANT: Utilizatorii au analize pentru ianuarie-martie 2025 și alte luni din
   2. EXTRAGE analysis_id din rezultat
   3. FOLOSEȘTE get_balance_accounts cu analysis_id-ul obținut
   4. AFIȘEAZĂ lista conturilor cu solduri într-un format clar:
-     • Cont XXX - Denumire - Sold final debit/credit: YYY RON
+     **CRITICĂ: REGULA CLASEI:**
+     • Pentru CLASELE 1-5 (cont începe cu 1, 2, 3, 4, 5): 
+       → Cont XXX - Denumire - Sold final debit/credit: YYY RON
+       → Folosește câmpurile: sold_final_debit sau sold_final_credit
+     • Pentru CLASELE 6-7 (cont începe cu 6 sau 7):
+       → Cont XXX - Denumire - Total sume debit: YYY RON, Total sume credit: ZZZ RON
+       → Folosește câmpurile: total_sume_debit și total_sume_credit
+       → Pentru clasa 6: Afișează total_sume_debit (cheltuieli debitoare)
+       → Pentru clasa 7: Afișează total_sume_credit (venituri creditoare)
+       → NOTĂ: Pentru clasele 6 și 7, total_sume_debit = total_sume_credit (trebuie să fie egale!)
   5. **NU CERE NICIODATĂ** user-ului să îți dea ID-ul manual!
 
 ❌ NU cere NICIODATĂ user-ului ID-uri sau detalii tehnice
@@ -550,13 +559,59 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             }
           }
           
+          // FORMATARE AUTOMATĂ PENTRU AI: diferențiem clasele 1-5 vs 6-7
+          const formattedAccounts = accounts.map((acc: any) => {
+            const firstDigit = acc.code.charAt(0);
+            const formatted: any = {
+              code: acc.code,
+              name: acc.name,
+              class: firstDigit
+            };
+            
+            // CLASELE 1-5: folosim solduri finale
+            if (['1', '2', '3', '4', '5'].includes(firstDigit)) {
+              formatted.type = 'balance_account';
+              formatted.sold_final_debit = acc.sold_final_debit || 0;
+              formatted.sold_final_credit = acc.sold_final_credit || 0;
+              // Adaugă interpretare
+              if (formatted.sold_final_debit > 0) {
+                formatted.display = `Sold final debitor: ${formatted.sold_final_debit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
+              } else if (formatted.sold_final_credit > 0) {
+                formatted.display = `Sold final creditor: ${formatted.sold_final_credit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
+              } else {
+                formatted.display = 'Sold 0';
+              }
+            }
+            // CLASELE 6-7: folosim total sume
+            else if (['6', '7'].includes(firstDigit)) {
+              formatted.type = 'income_expense_account';
+              formatted.total_sume_debit = acc.total_sume_debit || 0;
+              formatted.total_sume_credit = acc.total_sume_credit || 0;
+              // Pentru clasa 6 (cheltuieli): afișăm total sume debitoare
+              if (firstDigit === '6') {
+                formatted.display = `Total sume debitoare: ${formatted.total_sume_debit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
+              }
+              // Pentru clasa 7 (venituri): afișăm total sume creditoare
+              else {
+                formatted.display = `Total sume creditoare: ${formatted.total_sume_credit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
+              }
+              // Verificare anomalie: total sume debit și credit trebuie să fie egale
+              if (Math.abs(formatted.total_sume_debit - formatted.total_sume_credit) > 0.01) {
+                formatted.warning = `⚠️ ANOMALIE: Total sume debit (${formatted.total_sume_debit}) ≠ Total sume credit (${formatted.total_sume_credit})`;
+              }
+            }
+            
+            return formatted;
+          });
+          
           result = {
             analysis_id: analysis.id,
             file_name: analysis.file_name,
             date: analysis.created_at,
-            accounts: accounts,
-            total_accounts: accounts.length,
-            parsed_at: parsedBalance.parsed_at
+            accounts: formattedAccounts,
+            total_accounts: formattedAccounts.length,
+            parsed_at: parsedBalance.parsed_at,
+            instructions: 'Pentru clasele 1-5, folosește sold_final_debit/credit. Pentru clasele 6-7, folosește total_sume_debit/credit. Câmpul "display" conține textul formatat gata de afișat.'
           };
           break;
         }
