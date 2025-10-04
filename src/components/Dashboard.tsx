@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2 } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -15,6 +15,9 @@ import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
 import { TopIssuesWidget } from './TopIssuesWidget';
+import { ProactiveAlerts } from './ProactiveAlerts';
+import { MultiCompanyComparison } from './MultiCompanyComparison';
+import { AIPredictions } from './AIPredictions';
 import { Link } from 'react-router-dom';
 import {
   Select,
@@ -311,25 +314,31 @@ export const Dashboard = () => {
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className={`grid w-full ${isAdmin ? 'max-w-2xl grid-cols-4' : 'max-w-md grid-cols-3'}`}>
+        <TabsList className="grid w-full max-w-4xl grid-cols-6">
           <TabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
           </TabsTrigger>
+          <TabsTrigger value="alerts">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Alerte
+          </TabsTrigger>
+          <TabsTrigger value="predictions">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Predicții
+          </TabsTrigger>
+          <TabsTrigger value="multi-company">
+            <Building2 className="h-4 w-4 mr-2" />
+            Multi-Firmă
+          </TabsTrigger>
           <TabsTrigger value="news">
             <Newspaper className="h-4 w-4 mr-2" />
-            Știri Fiscale
+            Știri
           </TabsTrigger>
           <TabsTrigger value="history">
             <FileText className="h-4 w-4 mr-2" />
-            Dosarul Meu Financiar
+            Dosarul Meu
           </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="ai-analytics" onClick={() => window.location.href = '/analytics'}>
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Analytics AI
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
@@ -338,6 +347,18 @@ export const Dashboard = () => {
           {filteredAnalyses.length >= 2 && (
             <CompareAnalyses analyses={filteredAnalyses} />
           )}
+        </TabsContent>
+
+        <TabsContent value="alerts" className="space-y-6">
+          <ProactiveAlerts />
+        </TabsContent>
+
+        <TabsContent value="predictions" className="space-y-6">
+          <AIPredictions analyses={filteredAnalyses} />
+        </TabsContent>
+
+        <TabsContent value="multi-company" className="space-y-6">
+          <MultiCompanyComparison analyses={analyses} />
         </TabsContent>
 
         <TabsContent value="news" className="space-y-6">
