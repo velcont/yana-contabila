@@ -49,7 +49,15 @@ export const ChatAI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '👋 Bună! Sunt Yana Premium, asistenta ta AI financiară cu acces complet la toate analizele tale. Pot compara perioade, identifica tendințe și oferi insights bazate pe date reale. Cu ce te pot ajuta?'
+      content: `👋 Bună! Sunt Yana Premium, asistenta ta AI financiară îmbunătățită!
+
+✨ **Funcții noi:**
+📚 Istoric Conversații - Click pe iconița 📖 din header
+⚡ Sugestii inteligente în timp real
+💬 Răspunsuri animate și typing indicator
+🎯 Quick replies cu întrebări populare
+
+Cu ce te pot ajuta astăzi?`
     }
   ]);
   const [input, setInput] = useState('');
@@ -469,16 +477,33 @@ export const ChatAI = () => {
               </SheetContent>
             </Sheet>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowHistory(!showHistory)}
-              className="h-8 w-8 hidden md:flex"
-              aria-label="Istoric conversații"
-              data-tour="conversation-history"
-            >
-              <History className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="h-8 w-8 hidden md:flex relative"
+                    aria-label="Istoric conversații"
+                    data-tour="conversation-history"
+                  >
+                    <History className="h-4 w-4" />
+                    {!showHistory && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] animate-pulse"
+                      >
+                        ✨
+                      </Badge>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>📚 Istoric Conversații (NOU!)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -556,17 +581,48 @@ export const ChatAI = () => {
           </div>
         )}
 
-        {/* Quick Actions - Întrebări Frecvente */}
-        {messages.length === 1 && topQuestions.length > 0 && (
-          <QuickReplySuggestions
-            suggestions={topQuestions}
-            onSelectSuggestion={(question) => {
-              setInput(question);
-              inputRef.current?.focus();
-            }}
-            title="Întrebări Populare"
-            showFrequency={true}
-          />
+        {/* Quick Actions - Întrebări Frecvente sau Demo */}
+        {messages.length === 1 && (
+          topQuestions.length > 0 ? (
+            <QuickReplySuggestions
+              suggestions={topQuestions}
+              onSelectSuggestion={(question) => {
+                setInput(question);
+                inputRef.current?.focus();
+              }}
+              title="Întrebări Populare"
+              showFrequency={true}
+            />
+          ) : (
+            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                <Lightbulb className="h-3 w-3" />
+                Întrebări Sugerate (Demo)
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { text: "Cum stă DSO-ul meu?", category: "DSO" },
+                  { text: "Arată-mi profitul din ultima lună", category: "Profit" },
+                  { text: "Compară martie cu aprilie 2025", category: "Comparație" },
+                  { text: "Ce cheltuieli am avut recent?", category: "Cheltuieli" }
+                ].map((suggestion, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInput(suggestion.text)}
+                    className="h-auto py-2 px-3 text-left whitespace-normal hover:bg-primary/5 hover:border-primary/50 transition-all group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-medium">{suggestion.text}</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )
         )}
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
