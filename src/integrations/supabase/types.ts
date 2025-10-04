@@ -369,6 +369,36 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_usage: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          minutes_used: number
+          month_year: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          minutes_used?: number
+          month_year: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          minutes_used?: number
+          month_year?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -381,12 +411,28 @@ export type Database = {
           pattern: string
         }[]
       }
+      get_voice_usage_for_month: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          minutes_remaining: number
+          minutes_used: number
+          month_year: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_voice_usage: {
+        Args: { minutes_to_add: number }
+        Returns: {
+          minutes_remaining: number
+          new_minutes_used: number
+          success: boolean
+        }[]
       }
     }
     Enums: {
