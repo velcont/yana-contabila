@@ -730,11 +730,12 @@ export const ChatAI = () => {
                 </div>
                 <div className="grid grid-cols-1 gap-1.5">
                   {[
-                    { text: "Simulează: dacă plătesc furnizorii în 60 zile în loc de 30, cum arată cash-ul?", icon: TrendingUp },
+                    { text: "Care e DSO-ul meu?", icon: TrendingUp },
+                    { text: "Dividende vs Salarii - ce aleg?", icon: ListChecks },
+                    { text: "Micro vs Profit - care e mai avantajos?", icon: FileBarChart },
+                    { text: "Cum pot îmbunătăți cash flow-ul?", icon: Zap },
                     { text: "Care sunt Top 3 probleme și oportunități din ultima balanță?", icon: AlertCircle },
-                    { text: "Creează plan de acțiune pentru îmbunătățirea DSO", icon: ListChecks },
-                    { text: "Ce impact are un discount de 5% pentru plată în 15 zile?", icon: Zap },
-                    { text: "Simulează reducere DSO cu 10 zile - impact cash flow", icon: TrendingUp }
+                    { text: "Simulează: dacă plătesc furnizorii în 60 zile în loc de 30, cum arată cash-ul?", icon: TrendingUp }
                   ].map((suggestion, idx) => {
                     const Icon = suggestion.icon;
                     return (
