@@ -1542,6 +1542,7 @@ serve(async (req) => {
                       sentAnyContent = true;
                     } else {
                       let followUpBuffer = "";
+                      let followUpProducedContent = false;
                       
                       while (true) {
                         const { done: followUpDone, value: followUpValue } = await followUpReader.read();
@@ -1561,6 +1562,7 @@ serve(async (req) => {
                             const followUpParsed = JSON.parse(followUpData);
                             const followUpContent = followUpParsed.choices?.[0]?.delta?.content;
                             if (followUpContent) {
+                              followUpProducedContent = true;
                               accumulatedContent += followUpContent;
                               sentAnyContent = true;
                               controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: followUpContent }) + "\n\n"));
@@ -1570,6 +1572,53 @@ serve(async (req) => {
                           }
                         }
                       }
+
+                      // Dacă follow-up nu a produs conținut, formăm răspunsul direct din rezultatele tool-urilor
+                      if (!followUpProducedContent) {
+                        try {
+                          const byName = (n: string) => toolResults.find((r: any) => r.name === n);
+                          let out = "";
+
+                          const indTool = byName("get_analysis_indicators");
+                          if (indTool) {
+                            const payload = JSON.parse(indTool.content || '{}');
+                            const ind = payload.indicatori || payload.indicators || {};
+                            const per = payload.perioada || payload.period || (typeof payload === 'object' ? '' : '');
+                            const fmt = (v: any) => (typeof v === 'number' ? v.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : v);
+                            const parts: string[] = [];
+                            if (ind.profit !== undefined) parts.push(`Profit ${per}: ${fmt(ind.profit)} RON`);
+                            if (ind.ca !== undefined) parts.push(`Cifră de afaceri: ${fmt(ind.ca)} RON`);
+                            if (ind.cheltuieli !== undefined) parts.push(`Cheltuieli: ${fmt(ind.cheltuieli)} RON`);
+                            if (ind.banca !== undefined) parts.push(`Bani în bancă (512x): ${fmt(ind.banca)} RON`);
+                            out = parts.join("\n");
+                          }
+
+                          const bankTool = byName("get_bank_balance_by_period");
+                          if (!out && bankTool) {
+                            const payload = JSON.parse(bankTool.content || '{}');
+                            const per = payload.period || rawPeriod;
+                            const val = payload.sold_banca || 0;
+                            out = `Sold bancă (512x) pentru ${per}: ${Number(val).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
+                          }
+
+                          const cls7 = byName("get_class_totals_by_period");
+                          if (!out && cls7) {
+                            const p = JSON.parse(cls7.content || '{}');
+                            const per = p.date ? new Date(p.date).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' }) : rawPeriod;
+                            const tvc = p?.totals?.total_sume_creditoare ?? 0;
+                            out = `Venituri (Clasa 7) ${per}: ${Number(tvc).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
+                          }
+
+                          if (out) {
+                            controller.enqueue(encoder.encode('data: ' + JSON.stringify({ type: 'content', content: out }) + '\n\n'));
+                            sentAnyContent = true;
+                            accumulatedContent += (accumulatedContent ? '\n' : '') + out;
+                          }
+                        } catch (e) {
+                          console.error('Fallback format after tools failed:', e);
+                        }
+                      }
+                    }
                     }
                   }
                 }
