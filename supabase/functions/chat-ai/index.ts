@@ -32,7 +32,7 @@ function extractIndicatorsFromText(analysisText: string): {
     if (!match) return undefined;
     const rawValue = match[groupIndex];
     if (!rawValue) return undefined;
-    const cleaned = rawValue.replace(/\./g, '').replace(',', '.');
+    const cleaned = rawValue.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
     const num = parseFloat(cleaned);
     return isNaN(num) ? undefined : num;
   };
@@ -40,25 +40,25 @@ function extractIndicatorsFromText(analysisText: string): {
   const result: any = {};
 
   // 1. PROFIT/PIERDERE (Cont 121)
-  const profitMatch = text.match(/cont(?:ul)?\s*121[^\n]*?sold\s*final\s*(?:creditor|debitor)?[:\s]*([\d.,]+)\s*RON/i);
+  const profitMatch = text.match(/cont(?:ul)?\s*121[^\n]*?sold\s*final\s*(?:creditor|debitor)?[:\s]*([\d.,\s\-]+)\s*(?:RON)?/i);
   if (profitMatch) {
     result.profit = parseValue(profitMatch);
   }
 
   // 2. CIFRA DE AFACERI (CA) - Cont 707 sau clasa 7 total
-  const caMatch = text.match(/(?:cont(?:ul)?\s*707|cifra?\s*de\s*afaceri|venituri)[^\n]*?(?:sold final credit|total sume credit)?[:\s]*([\d.,]+)\s*RON/i);
+  const caMatch = text.match(/(?:cont(?:ul)?\s*707|cifra?\s*de\s*afaceri|venituri)[^\n]*?(?:sold\s*final\s*credit|total\s*sume\s*credit)?[:\s]*([\d.,\s\-]+)\s*(?:RON)?/i);
   if (caMatch) {
     result.ca = parseValue(caMatch);
   }
 
   // 3. CHELTUIELI - suma claselor 6 sau mențiune directă
-  const cheltuieliMatch = text.match(/(?:cheltuieli|clase?\s*6|total\s*sume\s*debit.*?clase?\s*6)[^\n]*?[:\s]*([\d.,]+)\s*RON/i);
+  const cheltuieliMatch = text.match(/(?:cheltuieli|clase?\s*6|total\s*sume\s*debit.*?clase?\s*6)[^\n]*?[:\s]*([\d.,\s\-]+)\s*(?:RON)?/i);
   if (cheltuieliMatch) {
     result.cheltuieli = parseValue(cheltuieliMatch);
   }
 
   // 4. SOLD BANCĂ (512x) - toate conturile 512x
-  const bancaRegex = /cont(?:ul)?\s*(512\d)[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/gi;
+  const bancaRegex = /cont(?:ul)?\s*(512\d)[^\n]*?sold\s*final.*?([\d.,\s\-]+)\s*(?:RON)?/gi;
   const bancaMatches = Array.from(text.matchAll(bancaRegex));
   if (bancaMatches.length > 0) {
     const totalBanca = bancaMatches.reduce((sum, m) => {
@@ -69,25 +69,25 @@ function extractIndicatorsFromText(analysisText: string): {
   }
 
   // 5. CASĂ (5311)
-  const casaMatch = text.match(/cont(?:ul)?\s*5311[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/i);
+  const casaMatch = text.match(/cont(?:ul)?\s*5311[^\n]*?sold\s*final.*?([\d.,\s\-]+)\s*(?:RON)?/i);
   if (casaMatch) {
     result.casa = parseValue(casaMatch);
   }
 
   // 6. CLIENȚI (411)
-  const clientiMatch = text.match(/cont(?:ul)?\s*411[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/i);
+  const clientiMatch = text.match(/cont(?:ul)?\s*411[^\n]*?sold\s*final.*?([\d.,\s\-]+)\s*(?:RON)?/i);
   if (clientiMatch) {
     result.clienti = parseValue(clientiMatch);
   }
 
   // 7. FURNIZORI (401)
-  const furnizoriMatch = text.match(/cont(?:ul)?\s*401[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/i);
+  const furnizoriMatch = text.match(/cont(?:ul)?\s*401[^\n]*?sold\s*final.*?([\d.,\s\-]+)\s*(?:RON)?/i);
   if (furnizoriMatch) {
     result.furnizori = parseValue(furnizoriMatch);
   }
 
   // 8. STOCURI (3xx)
-  const stocuriRegex = /cont(?:ul)?\s*(3\d{2,3})[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/gi;
+  const stocuriRegex = /cont(?:ul)?\s*(3\d{2,3})[^\n]*?sold\s*final.*?([\d.,\s\-]+)\s*(?:RON)?/gi;
   const stocuriMatches = Array.from(text.matchAll(stocuriRegex));
   if (stocuriMatches.length > 0) {
     const totalStocuri = stocuriMatches.reduce((sum, m) => {
@@ -98,19 +98,19 @@ function extractIndicatorsFromText(analysisText: string): {
   }
 
   // 9. DSO (Days Sales Outstanding)
-  const dsoMatch = text.match(/DSO[^\n]*?([\d.,]+)\s*(?:zile|days)/i);
+  const dsoMatch = text.match(/DSO[^\n]*?([\d.,\s\-]+)\s*(?:zile|days)/i);
   if (dsoMatch) {
     result.dso = parseValue(dsoMatch);
   }
 
   // 10. DPO (Days Payable Outstanding)
-  const dpoMatch = text.match(/DPO[^\n]*?([\d.,]+)\s*(?:zile|days)/i);
+  const dpoMatch = text.match(/DPO[^\n]*?([\d.,\s\-]+)\s*(?:zile|days)/i);
   if (dpoMatch) {
     result.dpo = parseValue(dpoMatch);
   }
 
   // 11. EBITDA
-  const ebitdaMatch = text.match(/EBITDA[^\n]*?([\d.,\-]+)\s*RON/i);
+  const ebitdaMatch = text.match(/EBITDA[^\n]*?([\d.,\-\s]+)\s*(?:RON)?/i);
   if (ebitdaMatch) {
     result.ebitda = parseValue(ebitdaMatch);
   }
@@ -1474,6 +1474,8 @@ serve(async (req) => {
           let accumulatedContent = "";
           let sentAnyContent = false;
           let assistantMessageId: string | null = null;
+          const normalizedUserMsg = normalizeRomanianText(message || "");
+          const dataQuery = /(balant|profit|pierdere|venit|cheltuiel|cont|sold|total sume|clasa|clase)/i.test(normalizedUserMsg);
 
           while (true) {
             const { done, value } = await reader!.read();
@@ -1495,9 +1497,15 @@ serve(async (req) => {
                 const delta = parsed.choices?.[0]?.delta;
 
                 if (delta?.content) {
-                  accumulatedContent += delta.content;
-                  sentAnyContent = true;
-                  controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: delta.content }) + "\n\n"));
+                  // Pentru întrebări de tip date (profit, conturi, solduri), nu afișăm conținut parțial înainte de tool-uri
+                  if (dataQuery && toolCalls.length === 0) {
+                    // ignorăm conținutul preliminar (salvăm doar intern dacă va fi nevoie)
+                    accumulatedContent += delta.content;
+                  } else {
+                    accumulatedContent += delta.content;
+                    sentAnyContent = true;
+                    controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: delta.content }) + "\n\n"));
+                  }
                 }
 
                 if (delta?.tool_calls) {
