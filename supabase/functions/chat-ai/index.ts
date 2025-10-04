@@ -233,6 +233,27 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "get_balance_accounts",
+      description: "Returnează lista completă a conturilor contabile din balanța pentru o analiză specifică. FOLOSEȘTE ACEST TOOL când user cere să 'citească' balanța, să enumere conturi, sau să vadă solduri specifice.",
+      parameters: {
+        type: "object",
+        properties: {
+          analysis_id: {
+            type: "string",
+            description: "ID-ul analizei pentru care se dorește lista de conturi"
+          },
+          class_filter: {
+            type: "string",
+            description: "Opțional: Filtrează conturile după clasă (ex: '1', '4', '6-7')"
+          }
+        },
+        required: ["analysis_id"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       name: "get_proactive_insights",
       description: "Verifică alertele automate generate de sistem pentru probleme financiare",
       parameters: {
@@ -485,6 +506,49 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           }
           
           result = comparison;
+          break;
+        }
+        
+        case "get_balance_accounts": {
+          const { data: analysis, error } = await supabase
+            .from("analyses")
+            .select("id, file_name, created_at, metadata")
+            .eq("id", args.analysis_id)
+            .single();
+          
+          if (error) throw error;
+          if (!analysis) {
+            throw new Error("Analiza nu a fost găsită");
+          }
+          
+          const meta = analysis.metadata || {};
+          const parsedBalance = meta.parsed_balance || {};
+          let accounts = parsedBalance.accounts || [];
+          
+          // Filtrare după clasă dacă e specificată
+          if (args.class_filter) {
+            const classFilter = args.class_filter.toString();
+            if (classFilter.includes('-')) {
+              // Range de clase (ex: "6-7")
+              const [start, end] = classFilter.split('-').map((c: string) => c.trim());
+              accounts = accounts.filter((acc: any) => {
+                const firstDigit = acc.code.charAt(0);
+                return firstDigit >= start && firstDigit <= end;
+              });
+            } else {
+              // Clasă unică (ex: "4")
+              accounts = accounts.filter((acc: any) => acc.code.startsWith(classFilter));
+            }
+          }
+          
+          result = {
+            analysis_id: analysis.id,
+            file_name: analysis.file_name,
+            date: analysis.created_at,
+            accounts: accounts,
+            total_accounts: accounts.length,
+            parsed_at: parsedBalance.parsed_at
+          };
           break;
         }
         

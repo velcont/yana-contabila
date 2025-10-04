@@ -297,8 +297,8 @@ Sold Clienti: 200000.00
 Sold Banca: 50000.00
 Sold Casa: 5000.00`;
 
-// Parse Excel file
-async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
+// Parse Excel file - returnează atât textul cât și datele structurate
+async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; structuredData: any[] }> {
   try {
     // Convert base64 to Uint8Array
     const binaryString = atob(excelBase64);
@@ -311,15 +311,80 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
     const workbook = XLSX.read(bytes, { type: 'array' });
     
     let fullText = "";
+    const structuredAccounts: any[] = [];
     
-    // Extract text from all sheets
+    // Extract text and structured data from all sheets
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
+      
+      // Generate CSV text for AI analysis
       const csvText = XLSX.utils.sheet_to_csv(sheet);
       fullText += `\n=== Sheet: ${sheetName} ===\n${csvText}\n`;
+      
+      // Parse structured data for chatbot access
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+      
+      if (jsonData.length > 1) {
+        const headers = jsonData[0] as any[];
+        const rows = jsonData.slice(1) as any[][];
+        
+        // Identifică coloanele importante
+        const getColumnIndex = (patterns: string[]) => {
+          return headers.findIndex((h: any) => 
+            patterns.some(p => String(h).toLowerCase().includes(p.toLowerCase()))
+          );
+        };
+        
+        const contIdx = getColumnIndex(['cont', 'simbol']);
+        const denumireIdx = getColumnIndex(['denumire', 'nume']);
+        const soldFinalDebitIdx = getColumnIndex(['sold final', 'sold finala'].concat(['debit', 'db']));
+        const soldFinalCreditIdx = getColumnIndex(['sold final', 'sold finala'].concat(['credit', 'cr']));
+        const totalSumeDebitIdx = getColumnIndex(['total sume', 'total'].concat(['debit', 'db']));
+        const totalSumeCreditIdx = getColumnIndex(['total sume', 'total'].concat(['credit', 'cr']));
+        
+        rows.forEach(row => {
+          if (!row || row.length === 0) return;
+          
+          const contCode = contIdx >= 0 ? String(row[contIdx] || '').trim() : '';
+          const denumire = denumireIdx >= 0 ? String(row[denumireIdx] || '').trim() : '';
+          
+          // Filtrăm doar rândurile cu cod de cont valid (numeric)
+          if (!contCode || !/^\d{3,4}/.test(contCode)) return;
+          
+          const account: any = {
+            code: contCode,
+            name: denumire
+          };
+          
+          // Extrage solduri finale
+          if (soldFinalDebitIdx >= 0) {
+            const val = row[soldFinalDebitIdx];
+            account.sold_final_debit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+          }
+          if (soldFinalCreditIdx >= 0) {
+            const val = row[soldFinalCreditIdx];
+            account.sold_final_credit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+          }
+          
+          // Extrage total sume
+          if (totalSumeDebitIdx >= 0) {
+            const val = row[totalSumeDebitIdx];
+            account.total_sume_debit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+          }
+          if (totalSumeCreditIdx >= 0) {
+            const val = row[totalSumeCreditIdx];
+            account.total_sume_credit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+          }
+          
+          structuredAccounts.push(account);
+        });
+      }
     });
     
-    return fullText.trim();
+    return { 
+      text: fullText.trim(),
+      structuredData: structuredAccounts
+    };
   } catch (error) {
     console.error("Error parsing Excel with xlsx:", error);
     throw new Error("Nu s-a putut extrage textul din Excel");
@@ -340,9 +405,12 @@ serve(async (req) => {
 
     console.log("Parsare Excel cu xlsx...");
     console.log("Nume fișier:", fileName);
-    const balanceText = await parseExcelWithXLSX(excelBase64);
+    const balanceData = await parseExcelWithXLSX(excelBase64);
+    const balanceText = balanceData.text;
+    const structuredAccounts = balanceData.structuredData;
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
+    console.log("Conturi structurate găsite:", structuredAccounts.length);
 
     if (!balanceText || balanceText.length < 100) {
       return new Response(
@@ -462,14 +530,20 @@ serve(async (req) => {
       if (validationWarnings.length > 0) {
         const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
         return new Response(
-          JSON.stringify({ analysis: analysis + warningsSection }),
+          JSON.stringify({ 
+            analysis: analysis + warningsSection,
+            structuredAccounts
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
     
     return new Response(
-      JSON.stringify({ analysis }),
+      JSON.stringify({ 
+        analysis,
+        structuredAccounts
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

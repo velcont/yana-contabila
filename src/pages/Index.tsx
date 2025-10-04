@@ -110,6 +110,15 @@ const Index = () => {
           const { parseAnalysisText } = await import('@/utils/analysisParser');
           const indicators = parseAnalysisText(data.analysis);
           
+          // Combine indicators with structured accounts data
+          const metadata = {
+            ...indicators,
+            parsed_balance: {
+              accounts: data.structuredAccounts || [],
+              parsed_at: new Date().toISOString()
+            }
+          };
+          
           const { error: saveError } = await supabase
             .from('analyses')
             .insert({
@@ -117,7 +126,7 @@ const Index = () => {
               file_name: file.name,
               analysis_text: data.analysis,
               company_name: companyName || 'Firma Principală',
-              metadata: indicators as any
+              metadata: metadata as any
             });
           if (saveError) throw saveError;
         } catch (saveError) {
