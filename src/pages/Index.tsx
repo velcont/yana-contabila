@@ -110,14 +110,22 @@ const Index = () => {
           const { parseAnalysisText } = await import('@/utils/analysisParser');
           const indicators = parseAnalysisText(data.analysis);
           
+          console.log('📊 Salvare analiză - conturi structurate primite:', data.structuredAccounts?.length || 0);
+          
           // Combine indicators with structured accounts data
           const metadata = {
             ...indicators,
             parsed_balance: {
               accounts: data.structuredAccounts || [],
-              parsed_at: new Date().toISOString()
+              parsed_at: new Date().toISOString(),
+              total_accounts: (data.structuredAccounts || []).length
             }
           };
+          
+          console.log('💾 Metadata complet pentru salvare:', {
+            indicators_count: Object.keys(indicators).length,
+            accounts_count: metadata.parsed_balance.total_accounts
+          });
           
           const { error: saveError } = await supabase
             .from('analyses')
@@ -128,7 +136,11 @@ const Index = () => {
               company_name: companyName || 'Firma Principală',
               metadata: metadata as any
             });
-          if (saveError) throw saveError;
+          if (saveError) {
+            console.error('❌ Eroare salvare DB:', saveError);
+            throw saveError;
+          }
+          console.log('✅ Analiză salvată cu succes în DB!');
         } catch (saveError) {
           console.error('Error saving analysis:', saveError);
         }

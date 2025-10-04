@@ -854,9 +854,16 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           
           const meta = (found as any).metadata || {};
           const accounts: any[] = (meta.parsed_balance?.accounts) || [];
+          
+          console.log(`📊 DEBUG pentru ${rawPeriod}: găsite ${accounts.length} conturi în metadata`);
+          
           const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
+          console.log(`🎯 Filtrate clasa ${desiredClass}: ${filtered.length} conturi`);
+          
           let totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
           let totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+          
+          console.log(`💰 Totaluri calculate din accounts: D=${totalDebit}, C=${totalCredit}`);
 
           // Fallback din analysis_text dacă nu avem valori valide
           const aText = ((found as any).analysis_text as string) || '';
