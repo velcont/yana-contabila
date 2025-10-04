@@ -174,6 +174,8 @@ export class RealtimeChat {
   private ws: WebSocket | null = null;
   private recorder: AudioRecorder | null = null;
   private audioContext: AudioContext | null = null;
+  private fnArgsBuffer: Record<string, string> = {};
+  private fnNameByCallId: Record<string, string> = {};
 
   constructor(
     private onMessage: (message: any) => void,
@@ -185,19 +187,18 @@ export class RealtimeChat {
     try {
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       
-      // Get ephemeral token from our edge function
-      const tokenUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-realtime-token`;
-      const tokenResponse = await fetch(tokenUrl);
+      // Get ephemeral token from our edge function using Supabase SDK
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-realtime-token', {
+        body: {}
+      });
       
-      if (!tokenResponse.ok) {
-        throw new Error(`Failed to get token: ${await tokenResponse.text()}`);
+      if (tokenError) {
+        throw new Error(tokenError.message || 'Failed to get ephemeral token');
       }
       
-      const tokenData = await tokenResponse.json();
-      console.log("Ephemeral token received");
-      
-      if (!tokenData.client_secret?.value) {
-        throw new Error("No client_secret in response");
+      if (!tokenData?.client_secret?.value) {
+        throw new Error('No client_secret in response');
       }
       
       const EPHEMERAL_KEY = tokenData.client_secret.value;
@@ -241,11 +242,17 @@ export class RealtimeChat {
                 parameters: {
                   type: 'object',
                   properties: {
+                    metric: {
+                      type: 'string',
+                      description: 'Indicatorul dorit',
+                      enum: ['dso','dpo','ebitda','profit','revenue','cash_flow']
+                    },
                     period: {
                       type: 'string',
-                      description: 'Perioada pentru care se cer datele (ex: "martie 2025", "Q1 2025")'
+                      description: 'Perioada cerută (ex: "martie 2025", "03/2025", "2025-03")'
                     }
-                  }
+                  },
+                  required: ['metric']
                 }
               }
             ],
@@ -270,10 +277,27 @@ export class RealtimeChat {
           
           this.onMessage(data);
 
-          // Handle function calls
+          // Handle tool calling events
+          if (data.type === 'response.tool_call.created') {
+            // Map call_id to function name
+            if (data.call_id && data.name) {
+              this.fnNameByCallId[data.call_id] = data.name as string;
+              this.fnArgsBuffer[data.call_id] = '';
+            }
+          }
+
+          if (data.type === 'response.function_call_arguments.delta') {
+            if (data.call_id && typeof data.delta === 'string') {
+              this.fnArgsBuffer[data.call_id] = (this.fnArgsBuffer[data.call_id] || '') + data.delta;
+            }
+          }
+
           if (data.type === 'response.function_call_arguments.done') {
-            console.log("Function call:", data.name, data.arguments);
-            await this.handleFunctionCall(data.call_id, data.name, data.arguments);
+            const callId = data.call_id as string;
+            const name = this.fnNameByCallId[callId] || (data.name as string) || 'get_financial_data';
+            const argsStr = this.fnArgsBuffer[callId] || (data.arguments as string) || '{}';
+            console.log("Function call complete:", name, argsStr);
+            await this.handleFunctionCall(callId, name, argsStr);
           }
 
           if (data.type === 'response.audio.delta' && data.delta) {
@@ -311,47 +335,107 @@ export class RealtimeChat {
       console.log(`Handling function call: ${functionName}`, args);
       
       if (functionName === 'get_financial_data') {
-        // Import supabase client
+        // Parse arguments
+        let period: string | undefined;
+        let metric: string | undefined;
+        try {
+          const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
+          period = parsed?.period as string | undefined;
+          metric = parsed?.metric as string | undefined;
+        } catch (_) {}
+        
         const { supabase } = await import('@/integrations/supabase/client');
         
-        // Get the latest analysis
-        const { data: analyses, error } = await supabase
-          .from('analyses')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(1);
+        // Build period-aware query heuristics (month name or MM/YYYY or YYYY-MM)
+        const monthMap: Record<string, string> = {
+          ianuarie: '01', februarie: '02', martie: '03', aprilie: '04', mai: '05', iunie: '06',
+          iulie: '07', august: '08', septembrie: '09', octombrie: '10', noiembrie: '11', decembrie: '12'
+        };
+        let filters: string[] = [];
+        if (period) {
+          const p = period.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+          const m = Object.keys(monthMap).find((k) => p.includes(k));
+          const yearMatch = p.match(/20\d{2}/)?.[0];
+          const mm = m ? monthMap[m] : undefined;
+          if (yearMatch && mm) {
+            // Try multiple filename and text patterns
+            const patterns = [
+              `*.${yearMatch}-${mm}.*`,
+              `*${mm}-${yearMatch}*`,
+              `*${mm}.${yearMatch}*`,
+              `*${yearMatch}${mm}*`,
+              `*${m}*${yearMatch}*`
+            ];
+            for (const pat of patterns) {
+              filters.push(`ilike(file_name,${pat})`, `ilike(analysis_text,${pat})`);
+            }
+          } else if (yearMatch) {
+            filters.push(`ilike(file_name,*${yearMatch}*)`);
+          } else if (m) {
+            filters.push(`ilike(file_name,*${m}*)`);
+          }
+        }
         
+        let analysesResp;
+        if (filters.length > 0) {
+          analysesResp = await supabase
+            .from('analyses')
+            .select('*')
+            .or(filters.join(','))
+            .order('created_at', { ascending: false })
+            .limit(1);
+        } else {
+          analysesResp = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        }
+        
+        const { data: analyses, error } = analysesResp as any;
         if (error) {
           console.error('Error fetching analysis:', error);
-          this.sendFunctionResult(callId, JSON.stringify({ 
-            error: 'Nu am putut prelua datele financiare.' 
-          }));
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut prelua datele financiare.' }));
           return;
         }
         
         if (!analyses || analyses.length === 0) {
-          this.sendFunctionResult(callId, JSON.stringify({ 
-            message: 'Nu există nicio analiză financiară încărcată încă.' 
-          }));
+          this.sendFunctionResult(callId, JSON.stringify({ message: 'Nu există nicio analiză financiară încărcată încă.' }));
           return;
         }
         
         const analysis = analyses[0];
+        const md = (analysis?.metadata || {}) as Record<string, any>;
+        
+        // Compose structured financial snapshot
+        const val = metric ? md[metric] : undefined;
+        const numericVal = typeof val === 'number' ? val : val ? Number(val) : undefined;
         const result = {
           company_name: analysis.company_name || 'Companie necunoscută',
-          analysis_date: analysis.created_at,
-          file_name: analysis.file_name,
-          metadata: analysis.metadata,
-          analysis_summary: analysis.analysis_text?.substring(0, 500) + '...'
+          period_requested: period || null,
+          assumed_period: md.period || new Date(analysis.created_at).toISOString().slice(0, 10),
+          requested_metric: metric || null,
+          requested_metric_value: numericVal ?? null,
+          indicators: {
+            dso: typeof md.dso === 'number' ? md.dso : md.dso ? Number(md.dso) : undefined,
+            dpo: md.dpo ?? undefined,
+            ebitda: md.ebitda ?? undefined,
+            profit: md.profit ?? undefined,
+            revenue: md.revenue ?? undefined,
+            cash_flow: md.cash_flow ?? undefined,
+          },
+          source: {
+            file_name: analysis.file_name,
+            created_at: analysis.created_at,
+            analysis_id: analysis.id,
+          }
         };
         
         this.sendFunctionResult(callId, JSON.stringify(result));
       }
     } catch (error) {
       console.error('Error handling function call:', error);
-      this.sendFunctionResult(callId, JSON.stringify({ 
-        error: 'A apărut o eroare la preluarea datelor.' 
-      }));
+      this.sendFunctionResult(callId, JSON.stringify({ error: 'A apărut o eroare la preluarea datelor.' }));
     }
   }
 
