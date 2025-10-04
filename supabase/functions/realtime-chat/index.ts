@@ -18,20 +18,43 @@ serve(async (req) => {
   let openAISocket: WebSocket | null = null;
   let sessionReady = false;
 
-  socket.onopen = () => {
+  socket.onopen = async () => {
     console.log("Client WebSocket connected");
     
-    // Connect to OpenAI Realtime API
-    const apiUrl = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01";
-    openAISocket = new WebSocket(apiUrl, [
-      "realtime",
-      `openai-insecure-api-key.${OPENAI_API_KEY}`,
-      "openai-beta.realtime-v1"
-    ]);
+    try {
+      // Get ephemeral token from OpenAI
+      const tokenResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-realtime-preview-2024-12-17",
+          voice: "alloy",
+          instructions: "Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română."
+        }),
+      });
 
-    openAISocket.onopen = () => {
-      console.log("Connected to OpenAI Realtime API");
-    };
+      const tokenData = await tokenResponse.json();
+      console.log("Ephemeral token received");
+
+      if (!tokenData.client_secret?.value) {
+        throw new Error("Failed to get ephemeral token");
+      }
+
+      // Connect to OpenAI Realtime API with ephemeral token
+      const apiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+      openAISocket = new WebSocket(apiUrl, {
+        headers: {
+          "Authorization": `Bearer ${tokenData.client_secret.value}`,
+          "OpenAI-Beta": "realtime=v1"
+        }
+      });
+
+      openAISocket.onopen = () => {
+        console.log("Connected to OpenAI Realtime API");
+      };
 
     openAISocket.onmessage = (event) => {
       try {
@@ -85,12 +108,21 @@ serve(async (req) => {
       }
     };
 
-    openAISocket.onclose = () => {
-      console.log("OpenAI WebSocket closed");
+      openAISocket.onclose = () => {
+        console.log("OpenAI WebSocket closed");
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.close();
+        }
+      };
+    } catch (error) {
+      console.error("Error initializing OpenAI connection:", error);
       if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
+        socket.send(JSON.stringify({ 
+          type: 'error', 
+          error: 'Failed to connect to OpenAI' 
+        }));
       }
-    };
+    }
   };
 
   socket.onmessage = (event) => {
