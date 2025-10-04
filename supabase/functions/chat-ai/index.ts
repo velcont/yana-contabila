@@ -475,8 +475,10 @@ serve(async (req) => {
       );
     }
 
-    // Adaptează system prompt pe baza tipului de sumarizare
-    let adaptedPrompt = SYSTEM_PROMPT;
+    // Adaptează system prompt pe baza tipului de sumarizare și setează data curentă dinamic
+    const now = new Date();
+    const roNow = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
+    let adaptedPrompt = SYSTEM_PROMPT + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că ‘ianuarie 2025 – martie 2025’ este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:
