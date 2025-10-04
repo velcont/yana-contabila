@@ -148,6 +148,11 @@ Conturile contabile se analizează în funcție de clasa lor astfel:
 • Cont 607 – CLASA 6 → se verifică doar "Total sume Debitoare"
 • Cont 707 – CLASA 7 → se verifică doar "Total sume Creditoare"
 
+**IMPORTANT - EXTRAGERE INDICATORI:**
+- Pentru profit, cifră de afaceri, DSO, DPO, EBITDA și alți indicatori: folosește tool-ul get_analysis_indicators
+- Acești indicatori sunt deja calculați corect în analizele generate de AI
+- Contul 121 (profit/pierdere) și toate valorile sunt salvate în metadata fiecărei analize
+
 🔴 REGULI GENERALE SPECIFICE:
 
 Specific pentru conturile din Balanța de verificare - sintetică:
@@ -320,21 +325,17 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "get_profit_for_period_range",
-      description: "Calculează profitul/pierderea pentru o perioadă sau interval de luni (ex: 'ianuarie-iunie 2025', 'Q1 2025'). Folosește formula: Total sume Creditoare clasa 7 - Total sume Debitoare clasa 6.",
+      name: "get_analysis_indicators",
+      description: "Extrage indicatori financiari calculați (profit, DSO, DPO, EBITDA, CA, cheltuieli, banca, casa, etc.) direct din analizele salvate pentru o perioadă. Acești indicatori sunt deja calculați corect de AI.",
       parameters: {
         type: "object",
         properties: {
-          start_period: {
+          period: {
             type: "string",
-            description: "Perioada de start (ex: 'ianuarie 2025')"
-          },
-          end_period: {
-            type: "string",
-            description: "Perioada de sfârșit (ex: 'iunie 2025')"
+            description: "Luna în format 'luna YYYY' (ex: 'ianuarie 2025', 'februarie 2025')"
           }
         },
-        required: ["start_period", "end_period"]
+        required: ["period"]
       }
     }
   },
@@ -975,16 +976,16 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           break;
         }
         
-        case "get_profit_for_period_range": {
-          const startPeriod = (args.start_period || '').toString();
-          const endPeriod = (args.end_period || '').toString();
+        case "get_analysis_indicators": {
+          const rawPeriod = (args.period || '').toString();
+          const period = normalizeRomanianText(rawPeriod.toLowerCase());
           
-          console.log(`📊 Calculare profit pentru ${startPeriod} - ${endPeriod}`);
+          console.log(`📊 Extragere indicatori pentru ${rawPeriod}`);
           
-          // Extrage analizele pentru ambele perioade
+          // Găsește analiza pentru perioada specificată
           const { data, error } = await supabase
             .from('analyses')
-            .select('id, file_name, created_at, metadata')
+            .select('id, file_name, created_at, metadata, analysis_text')
             .order('created_at', { ascending: false })
             .limit(50);
           if (error) throw error;
@@ -1004,86 +1005,74 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             decembrie: 12, december: 12, dec: 12, '12': 12,
           };
           
-          const parsePeriod = (periodStr: string) => {
-            const norm = normalizeRomanianText(periodStr.toLowerCase());
-            const yearMatch = norm.match(/(20\d{2})/);
+          const targetParsed = (() => {
+            const yearMatch = period.match(/(20\d{2})/);
             const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
             
             for (const [name, num] of Object.entries(months)) {
               const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
-              if (wordBoundaryRegex.test(norm)) {
+              if (wordBoundaryRegex.test(period)) {
                 return { month: num, year };
               }
             }
             return { month: undefined, year };
-          };
+          })();
           
-          const start = parsePeriod(startPeriod);
-          const end = parsePeriod(endPeriod);
-          
-          if (!start.month || !end.month || !start.year || !end.year) {
-            result = { error: `Nu am putut identifica perioadele: ${startPeriod} - ${endPeriod}` };
-            break;
-          }
-          
-          // Filtrează analizele în intervalul dat
-          const relevantAnalyses = (data || []).filter((row: any) => {
+          const parsePeriodFromRow = (row: any) => {
             const fileName = (row.file_name || '').toLowerCase();
             const normalizedName = normalizeRomanianText(fileName);
             
-            // Extrage luna și anul din nume fișier
             for (const [name, num] of Object.entries(months)) {
               if (normalizedName.includes(name)) {
                 const yMatch = fileName.match(/20\d{2}/);
-                const rowYear = yMatch ? parseInt(yMatch[0]) : undefined;
-                const rowMonth = num;
-                
-                if (rowYear && rowMonth) {
-                  // Verifică dacă e în interval
-                  const rowDate = rowYear * 100 + rowMonth;
-                  const startDate = start.year! * 100 + start.month;
-                  const endDate = end.year! * 100 + end.month;
-                  
-                  return rowDate >= startDate && rowDate <= endDate;
-                }
+                const year = yMatch ? parseInt(yMatch[0]) : undefined;
+                return { month: num, year };
               }
             }
-            return false;
+            return { month: undefined, year: undefined };
+          };
+          
+          // Găsește analiza potrivită
+          const found = (data || []).find((row: any) => {
+            const rowPeriod = parsePeriodFromRow(row);
+            return rowPeriod.month === targetParsed.month && 
+                   rowPeriod.year === targetParsed.year;
           });
           
-          console.log(`📈 Analize găsite în interval: ${relevantAnalyses.length}`);
-          
-          let totalVenituri = 0;
-          let totalCheltuieli = 0;
-          
-          // Sumează Total sume pentru clasele 6 și 7
-          for (const analysis of relevantAnalyses) {
-            const accounts = analysis.metadata?.parsed_balance?.accounts || [];
-            
-            // Clasa 7 - venituri (Total sume creditoare)
-            const clasa7 = accounts.filter((acc: any) => acc.code?.startsWith('7'));
-            totalVenituri += clasa7.reduce((sum: number, acc: any) => 
-              sum + (Number(acc.total_sume_credit) || 0), 0
-            );
-            
-            // Clasa 6 - cheltuieli (Total sume debitoare)
-            const clasa6 = accounts.filter((acc: any) => acc.code?.startsWith('6'));
-            totalCheltuieli += clasa6.reduce((sum: number, acc: any) => 
-              sum + (Number(acc.total_sume_debit) || 0), 0
-            );
+          if (!found) {
+            result = { 
+              error: `Nu am găsit analiză pentru perioada ${rawPeriod}`,
+              tip: "Încarcă mai întâi balanța contabilă pentru această perioadă."
+            };
+            break;
           }
           
-          const profit = totalVenituri - totalCheltuieli;
+          // Extrage indicatori din metadata (calculați deja de AI)
+          const indicators = found.metadata || {};
+          const text = found.analysis_text || '';
+          
+          // Extrage contul 121 (profit/pierdere) din text dacă există
+          const cont121Match = text.match(/cont(?:ul)?\s*121[^\n]*sold\s*final\s*(?:creditor|debitor)?[:\s]*([\d.,]+)\s*RON/i);
+          const cont121Value = cont121Match ? parseFloat(cont121Match[1].replace(/\./g, '').replace(',', '.')) : null;
           
           result = {
-            start_period: startPeriod,
-            end_period: endPeriod,
-            analyses_count: relevantAnalyses.length,
-            total_venituri: totalVenituri,
-            total_cheltuieli: totalCheltuieli,
-            profit: profit,
-            status: profit >= 0 ? 'profit' : 'pierdere',
-            message: `În perioada ${startPeriod} - ${endPeriod}, ${profit >= 0 ? 'profit de' : 'pierdere de'} ${Math.abs(profit).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`
+            perioada: rawPeriod,
+            indicatori: {
+              profit: indicators.profit || cont121Value,
+              ca: indicators.ca,
+              cheltuieli: indicators.cheltuieli,
+              dso: indicators.dso,
+              dpo: indicators.dpo,
+              ebitda: indicators.ebitda,
+              casa: indicators.casa,
+              banca: indicators.banca,
+              clienti: indicators.clienti,
+              furnizori: indicators.furnizori,
+              stocuri: indicators.stocuri,
+              cont_121: cont121Value
+            },
+            fisier: found.file_name,
+            nota: "Indicatori extrași din analiza AI generată anterior"
           };
           break;
         }
