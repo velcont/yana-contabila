@@ -212,8 +212,54 @@ export class RealtimeChat {
       ]);
 
       this.ws.onopen = () => {
-        console.log("Connected to relay server");
+        console.log("Connected to OpenAI Realtime API");
         this.onConnect();
+        
+        // Send session configuration with tools
+        const sessionConfig = {
+          type: 'session.update',
+          session: {
+            modalities: ['text', 'audio'],
+            instructions: 'Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română. Când utilizatorul îți cere informații despre indicatori financiari (DSO, DPO, EBITDA, profit, etc.), folosește tool-ul get_financial_data pentru a obține datele sale.',
+            voice: 'alloy',
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            input_audio_transcription: {
+              model: 'whisper-1'
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 1000
+            },
+            tools: [
+              {
+                type: 'function',
+                name: 'get_financial_data',
+                description: 'Obține datele financiare ale utilizatorului din ultima analiză încărcată. Returnează indicatori precum DSO, DPO, EBITDA, profit, cifră de afaceri, etc.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    period: {
+                      type: 'string',
+                      description: 'Perioada pentru care se cer datele (ex: "martie 2025", "Q1 2025")'
+                    }
+                  }
+                }
+              }
+            ],
+            tool_choice: 'auto',
+            temperature: 0.8,
+            max_response_output_tokens: 4096
+          }
+        };
+        
+        if (this.ws?.readyState === WebSocket.OPEN) {
+          this.ws.send(JSON.stringify(sessionConfig));
+          console.log("Session configuration with tools sent");
+        }
+        
         this.startRecording();
       };
 
@@ -223,6 +269,12 @@ export class RealtimeChat {
           console.log("Received message type:", data.type);
           
           this.onMessage(data);
+
+          // Handle function calls
+          if (data.type === 'response.function_call_arguments.done') {
+            console.log("Function call:", data.name, data.arguments);
+            await this.handleFunctionCall(data.call_id, data.name, data.arguments);
+          }
 
           if (data.type === 'response.audio.delta' && data.delta) {
             const binaryString = atob(data.delta);
@@ -252,6 +304,75 @@ export class RealtimeChat {
       console.error("Error initializing chat:", error);
       throw error;
     }
+  }
+
+  private async handleFunctionCall(callId: string, functionName: string, args: string) {
+    try {
+      console.log(`Handling function call: ${functionName}`, args);
+      
+      if (functionName === 'get_financial_data') {
+        // Import supabase client
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Get the latest analysis
+        const { data: analyses, error } = await supabase
+          .from('analyses')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          console.error('Error fetching analysis:', error);
+          this.sendFunctionResult(callId, JSON.stringify({ 
+            error: 'Nu am putut prelua datele financiare.' 
+          }));
+          return;
+        }
+        
+        if (!analyses || analyses.length === 0) {
+          this.sendFunctionResult(callId, JSON.stringify({ 
+            message: 'Nu există nicio analiză financiară încărcată încă.' 
+          }));
+          return;
+        }
+        
+        const analysis = analyses[0];
+        const result = {
+          company_name: analysis.company_name || 'Companie necunoscută',
+          analysis_date: analysis.created_at,
+          file_name: analysis.file_name,
+          metadata: analysis.metadata,
+          analysis_summary: analysis.analysis_text?.substring(0, 500) + '...'
+        };
+        
+        this.sendFunctionResult(callId, JSON.stringify(result));
+      }
+    } catch (error) {
+      console.error('Error handling function call:', error);
+      this.sendFunctionResult(callId, JSON.stringify({ 
+        error: 'A apărut o eroare la preluarea datelor.' 
+      }));
+    }
+  }
+
+  private sendFunctionResult(callId: string, output: string) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not ready');
+      return;
+    }
+
+    // Send function result
+    this.ws.send(JSON.stringify({
+      type: 'conversation.item.create',
+      item: {
+        type: 'function_call_output',
+        call_id: callId,
+        output: output
+      }
+    }));
+    
+    // Trigger response generation
+    this.ws.send(JSON.stringify({ type: 'response.create' }));
   }
 
   private async startRecording() {
