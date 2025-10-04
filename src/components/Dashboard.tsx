@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -15,6 +15,7 @@ import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
 import { TopIssuesWidget } from './TopIssuesWidget';
+import { Link } from 'react-router-dom';
 import {
   Select,
   SelectContent,
@@ -253,7 +254,17 @@ export const Dashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
+          {isAdmin && (
+            <Link to="/landing">
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Rocket className="h-4 w-4" />
+                Landing
+              </Button>
+            </Link>
+          )}
+        </div>
         
         <div className="flex flex-wrap items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
