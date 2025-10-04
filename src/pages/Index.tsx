@@ -98,13 +98,16 @@ const Index = () => {
         body: { excelBase64, fileName: file.name },
       });
 
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       setAnalysis(data.analysis);
       
       if (user) {
         try {
+          // Parse financial indicators from analysis text
+          const { parseAnalysisText } = await import('@/utils/analysisParser');
+          const indicators = parseAnalysisText(data.analysis);
+          
           const { error: saveError } = await supabase
             .from('analyses')
             .insert({
@@ -112,7 +115,7 @@ const Index = () => {
               file_name: file.name,
               analysis_text: data.analysis,
               company_name: companyName || 'Firma Principală',
-              metadata: {}
+              metadata: indicators as any
             });
           if (saveError) throw saveError;
         } catch (saveError) {

@@ -433,8 +433,7 @@ export class RealtimeChat {
           const n = Number(mdVal);
           if (!Number.isNaN(n)) numericVal = n;
         }
-        
-        // Try structured parser mapping by metric
+        // Try structured parser mapping by metric  
         if (numericVal == null && metric) {
           const map: Record<string, keyof typeof parsed> = {
             dso: 'dso',
@@ -445,18 +444,11 @@ export class RealtimeChat {
           } as const;
           const key = map[metric.toLowerCase()];
           const val = key ? (parsed as any)[key] : undefined;
-          if (typeof val === 'number') numericVal = val;
+          if (typeof val === 'number' && !Number.isNaN(val)) numericVal = val;
         }
         
-        // Fallback: regex scan for DSO
-        if (numericVal == null && metric) {
-          const dec = (s: string) => Number(s.replace(',', '.'));
-          if (metric.toLowerCase() === 'dso') {
-            const m1 = analysisText.match(/\bDSO(?:-?ul)?\b[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i) 
-              || analysisText.match(/days\s*sales\s*outstanding[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i);
-            if (m1?.[1]) numericVal = dec(m1[1]);
-          }
-        }
+        // If still null, check if indicator exists in parsed with undefined (meaning "not available")
+        const isUnavailable = metric && (parsed as any)[metric.toLowerCase()] === undefined;
         
         const result = {
           company_name: analysis.company_name || 'Companie necunoscută',
@@ -464,13 +456,17 @@ export class RealtimeChat {
           assumed_period: md.period || new Date(analysis.created_at).toISOString().slice(0, 10),
           requested_metric: metric || null,
           requested_metric_value: numericVal,
+          data_available: numericVal !== null || !isUnavailable,
+          message: numericVal === null && isUnavailable 
+            ? `Indicatorul ${metric?.toUpperCase()} nu este disponibil în analiza pentru această perioadă. Acest lucru se poate datora lipsei unor date necesare în balanța contabilă încărcată.`
+            : undefined,
           indicators: {
-            dso: typeof md.dso === 'number' ? md.dso : md.dso ? Number(md.dso) : undefined,
-            dpo: md.dpo ?? undefined,
-            ebitda: md.ebitda ?? undefined,
-            profit: md.profit ?? undefined,
-            revenue: md.revenue ?? undefined,
-            cash_flow: md.cash_flow ?? undefined,
+            dso: parsed.dso ?? (typeof md.dso === 'number' ? md.dso : undefined),
+            dpo: parsed.dpo ?? md.dpo,
+            ebitda: parsed.ebitda ?? md.ebitda,
+            profit: parsed.profit ?? md.profit,
+            revenue: parsed.revenue ?? md.revenue,
+            cash_flow: md.cash_flow,
           },
           source: {
             file_name: analysis.file_name,
