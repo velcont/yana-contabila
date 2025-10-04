@@ -428,25 +428,27 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const period = normalizeRomanianText(norm(rawPeriod));
           console.log(`Căutare perioadă: "${rawPeriod}" → normalizat: "${period}"`);
 
-          // Hărți lună (RO + EN) cu abrevieri
+          // Hărți lună (RO + EN + numere) cu abrevieri
           const months: Record<string, number> = {
-            ianuarie: 1, jan: 1, january: 1, ian: 1,
-            februarie: 2, february: 2, feb: 2,
-            martie: 3, march: 3, mar: 3,
-            aprilie: 4, april: 4, apr: 4, aprile: 4,
-            mai: 5,
-            iunie: 6, june: 6, iun: 6, jun: 6,
-            iulie: 7, july: 7, iul: 7, jul: 7,
-            august: 8, aug: 8,
-            septembrie: 9, september: 9, sept: 9, sep: 9,
-            octombrie: 10, october: 10, oct: 10,
-            noiembrie: 11, november: 11, nov: 11,
-            decembrie: 12, december: 12, dec: 12,
+            ianuarie: 1, jan: 1, january: 1, ian: 1, '01': 1, '1': 1,
+            februarie: 2, february: 2, feb: 2, '02': 2, '2': 2,
+            martie: 3, march: 3, mar: 3, '03': 3, '3': 3,
+            aprilie: 4, april: 4, apr: 4, aprile: 4, '04': 4, '4': 4,
+            mai: 5, may: 5, '05': 5, '5': 5,
+            iunie: 6, june: 6, iun: 6, jun: 6, '06': 6, '6': 6,
+            iulie: 7, july: 7, iul: 7, jul: 7, '07': 7, '7': 7,
+            august: 8, aug: 8, '08': 8, '8': 8,
+            septembrie: 9, september: 9, sept: 9, sep: 9, '09': 9, '9': 9,
+            octombrie: 10, october: 10, oct: 10, '10': 10,
+            noiembrie: 11, november: 11, nov: 11, '11': 11,
+            decembrie: 12, december: 12, dec: 12, '12': 12,
           };
 
           const monthFromText = (() => {
             for (const [k, v] of Object.entries(months)) {
-              if (period.includes(k)) return v;
+              // Match exact pe cuvânt sau cifră izolată
+              const wordBoundaryRegex = new RegExp(`\\b${k}\\b`, 'i');
+              if (wordBoundaryRegex.test(period)) return v;
             }
             return undefined;
           })();
@@ -713,29 +715,37 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           
           console.log(`Căutare totaluri clasa ${desiredClass}, perioadă: "${rawPeriod}" → normalizat: "${period}"`);
           
-          // Hărți lună (RO + EN)
-           const months: Record<string, number> = {
-             ianuarie: 1, jan: 1, january: 1, ian: 1,
-             februarie: 2, february: 2, feb: 2,
-             martie: 3, march: 3, mar: 3,
-             aprilie: 4, april: 4, apr: 4, aprile: 4,
-             mai: 5,
-             iunie: 6, june: 6, iun: 6, jun: 6,
-             iulie: 7, july: 7, iul: 7, jul: 7,
-             august: 8, aug: 8,
-             septembrie: 9, september: 9, sep: 9, sept: 9,
-             octombrie: 10, october: 10, oct: 10,
-             noiembrie: 11, november: 11, nov: 11,
-             decembrie: 12, december: 12, dec: 12,
-           };
+           // Hărți lună (RO + EN + numere)
+            const months: Record<string, number> = {
+              ianuarie: 1, jan: 1, january: 1, ian: 1, '01': 1, '1': 1,
+              februarie: 2, february: 2, feb: 2, '02': 2, '2': 2,
+              martie: 3, march: 3, mar: 3, '03': 3, '3': 3,
+              aprilie: 4, april: 4, apr: 4, aprile: 4, '04': 4, '4': 4,
+              mai: 5, may: 5, '05': 5, '5': 5,
+              iunie: 6, june: 6, iun: 6, jun: 6, '06': 6, '6': 6,
+              iulie: 7, july: 7, iul: 7, jul: 7, '07': 7, '7': 7,
+              august: 8, aug: 8, '08': 8, '8': 8,
+              septembrie: 9, september: 9, sep: 9, sept: 9, '09': 9, '9': 9,
+              octombrie: 10, october: 10, oct: 10, '10': 10,
+              noiembrie: 11, november: 11, nov: 11, '11': 11,
+              decembrie: 12, december: 12, dec: 12, '12': 12,
+            };
           
            const yearMatch = period.match(/(20\d{2})/);
            const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
            let targetMonth: number | undefined = undefined;
+           
+           // Căutăm luna în ordine: nume complet → prescurtări → cifre
            for (const [name, num] of Object.entries(months)) {
-             // Verificăm atât perioada normală cât și cea normalizată
-             if (period.includes(name)) { targetMonth = num; break; }
+             // Match exact pe cuvânt sau cifră izolată
+             const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
+             if (wordBoundaryRegex.test(period)) {
+               targetMonth = num;
+               break;
+             }
            }
+           
+           console.log(`Period: "${period}" → Luna detectată: ${targetMonth}, An: ${targetYear}`);
           
           type Row = { id: string; file_name: string | null; created_at: string; metadata: any; analysis_text: string | null };
           const { data, error } = await supabase
