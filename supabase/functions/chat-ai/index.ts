@@ -1022,21 +1022,39 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             const fileName = (row.file_name || '').toLowerCase();
             const normalizedName = normalizeRomanianText(fileName);
             
+            // 1) Caută date în format dd-mm-yyyy sau interval [01-01-2025 31-01-2025]
+            const dateRangeMatch = fileName.match(/\[?(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+            if (dateRangeMatch) {
+              const month = parseInt(dateRangeMatch[2], 10); // al doilea grup = luna
+              const year = parseInt(dateRangeMatch[3], 10);
+              if (month >= 1 && month <= 12 && year >= 2000) {
+                console.log(`📅 Parsed from "${fileName}": month=${month}, year=${year}`);
+                return { month, year };
+              }
+            }
+            
+            // 2) Fallback: caută nume de lună în text
             for (const [name, num] of Object.entries(months)) {
               if (normalizedName.includes(name)) {
                 const yMatch = fileName.match(/20\d{2}/);
                 const year = yMatch ? parseInt(yMatch[0]) : undefined;
+                console.log(`📅 Parsed from month name in "${fileName}": month=${num}, year=${year}`);
                 return { month: num, year };
               }
             }
             return { month: undefined, year: undefined };
           };
           
+          console.log(`🔍 Căutare pentru: month=${targetParsed.month}, year=${targetParsed.year}`);
+          
           // Găsește analiza potrivită
           const found = (data || []).find((row: any) => {
             const rowPeriod = parsePeriodFromRow(row);
-            return rowPeriod.month === targetParsed.month && 
-                   rowPeriod.year === targetParsed.year;
+            const match = rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
+            if (match) {
+              console.log(`✅ Găsit match: ${row.file_name}`);
+            }
+            return match;
           });
           
           if (!found) {
