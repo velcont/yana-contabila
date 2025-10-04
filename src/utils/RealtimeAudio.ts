@@ -353,12 +353,11 @@ export class RealtimeChat {
         };
         let filters: string[] = [];
         if (period) {
-          const p = period.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+          const p = period.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           const m = Object.keys(monthMap).find((k) => p.includes(k));
           const yearMatch = p.match(/20\d{2}/)?.[0];
           const mm = m ? monthMap[m] : undefined;
           if (yearMatch && mm) {
-            // Try multiple filename and text patterns
             const patterns = [
               `*.${yearMatch}-${mm}.*`,
               `*${mm}-${yearMatch}*`,
@@ -367,12 +366,12 @@ export class RealtimeChat {
               `*${m}*${yearMatch}*`
             ];
             for (const pat of patterns) {
-              filters.push(`ilike(file_name,${pat})`, `ilike(analysis_text,${pat})`);
+              filters.push(`file_name.ilike.${pat}`, `analysis_text.ilike.${pat}`);
             }
           } else if (yearMatch) {
-            filters.push(`ilike(file_name,*${yearMatch}*)`);
+            filters.push(`file_name.ilike.*${yearMatch}*`, `analysis_text.ilike.*${yearMatch}*`);
           } else if (m) {
-            filters.push(`ilike(file_name,*${m}*)`);
+            filters.push(`file_name.ilike.*${m}*`, `analysis_text.ilike.*${m}*`);
           }
         }
         
@@ -423,6 +422,8 @@ export class RealtimeChat {
         const analysis = rows[0];
         const md = (analysis?.metadata || {}) as Record<string, any>;
         const analysisText: string = analysis?.analysis_text || '';
+        const { parseAnalysisText } = await import('@/utils/analysisParser');
+        const parsed = parseAnalysisText(analysisText);
         
         // Compose structured financial snapshot
         const mdVal = metric ? md[metric] : undefined;
@@ -433,11 +434,25 @@ export class RealtimeChat {
           if (!Number.isNaN(n)) numericVal = n;
         }
         
-        // Fallback: try to parse from analysis_text (e.g., DSO)
+        // Try structured parser mapping by metric
+        if (numericVal == null && metric) {
+          const map: Record<string, keyof typeof parsed> = {
+            dso: 'dso',
+            dpo: 'dpo',
+            ebitda: 'ebitda',
+            profit: 'profit',
+            revenue: 'revenue'
+          } as const;
+          const key = map[metric.toLowerCase()];
+          const val = key ? (parsed as any)[key] : undefined;
+          if (typeof val === 'number') numericVal = val;
+        }
+        
+        // Fallback: regex scan for DSO
         if (numericVal == null && metric) {
           const dec = (s: string) => Number(s.replace(',', '.'));
           if (metric.toLowerCase() === 'dso') {
-            const m1 = analysisText.match(/\bDSO\b[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i) 
+            const m1 = analysisText.match(/\bDSO(?:-?ul)?\b[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i) 
               || analysisText.match(/days\s*sales\s*outstanding[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i);
             if (m1?.[1]) numericVal = dec(m1[1]);
           }
