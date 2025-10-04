@@ -30,7 +30,7 @@ const Auth = () => {
           title: "Autentificare reușită!",
           description: "Bine ai revenit!",
         });
-        navigate('/');
+        navigate('/app');
       } else {
         if (!fullName.trim()) {
           throw new Error("Te rog introdu numele complet");

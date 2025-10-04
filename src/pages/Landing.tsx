@@ -119,6 +119,15 @@ export const Landing = () => {
             </svg>
             Vezi Demo (14:33)
           </Button>
+
+          <Button
+            size="lg"
+            variant="secondary"
+            className="text-lg px-8 py-6"
+            onClick={() => navigate('/auth')}
+          >
+            Autentificare
+          </Button>
         </div>
       </section>
 
