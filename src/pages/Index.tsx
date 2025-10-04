@@ -12,6 +12,7 @@ import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import AdvertisementPopup from "@/components/AdvertisementPopup";
 import {
   Tooltip,
   TooltipContent,
@@ -421,6 +422,7 @@ const Index = () => {
       </div>
       {user && <ChatAI />}
       {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
+      <AdvertisementPopup intervalMinutes={10} />
     </>
   );
 };
