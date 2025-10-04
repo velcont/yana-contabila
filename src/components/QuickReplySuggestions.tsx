@@ -23,7 +23,7 @@ const DEFAULT_SUGGESTIONS: QuestionPattern[] = [
   { question_pattern: "Dividende vs Salarii - ce aleg?", question_category: "tax_optimization", frequency: 0 },
   { question_pattern: "Micro vs Profit - care e mai avantajos?", question_category: "tax_optimization", frequency: 0 },
   { question_pattern: "Cum pot îmbunătăți cash flow-ul?", question_category: "cash_flow", frequency: 0 },
-  { question_pattern: "Ce probleme grave am în bilanț?", question_category: "general", frequency: 0 },
+  { question_pattern: "Ce probleme grave am în balanță?", question_category: "general", frequency: 0 },
   { question_pattern: "Compară ultimele 2 luni", question_category: "comparison", frequency: 0 },
 ];
 

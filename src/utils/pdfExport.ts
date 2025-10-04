@@ -157,7 +157,7 @@ export const generateAnalysisPDF = (data: ExportData): void => {
 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Evidențe Bilanț', 15, yPos);
+  doc.text('Evidențe Balanță', 15, yPos);
   yPos += 10;
 
   const balanceData = [
