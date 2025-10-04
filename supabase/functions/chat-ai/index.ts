@@ -375,7 +375,7 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             ianuarie: 1, jan: 1, january: 1, ian: 1,
             februarie: 2, february: 2, feb: 2,
             martie: 3, march: 3, mar: 3,
-            aprilie: 4, april: 4, apr: 4,
+            aprilie: 4, april: 4, apr: 4, aprile: 4,
             mai: 5,
             iunie: 6, june: 6, iun: 6, jun: 6,
             iulie: 7, july: 7, iul: 7, jul: 7,
@@ -648,20 +648,20 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const period = norm(rawPeriod);
           
           // Hărți lună (RO + EN)
-          const months: Record<string, number> = {
-            ianuarie: 1, jan: 1, january: 1, ian: 1,
-            februarie: 2, february: 2, feb: 2,
-            martie: 3, march: 3, mar: 3,
-            aprilie: 4, april: 4, apr: 4,
-            mai: 5,
-            iunie: 6, june: 6, iun: 6, jun: 6,
-            iulie: 7, july: 7, iul: 7, jul: 7,
-            august: 8, aug: 8,
-            septembrie: 9, september: 9, sep: 9, sept: 9,
-            octombrie: 10, october: 10, oct: 10,
-            noiembrie: 11, november: 11, nov: 11,
-            decembrie: 12, december: 12, dec: 12,
-          };
+           const months: Record<string, number> = {
+             ianuarie: 1, jan: 1, january: 1, ian: 1,
+             februarie: 2, february: 2, feb: 2,
+             martie: 3, march: 3, mar: 3,
+             aprilie: 4, april: 4, apr: 4, aprile: 4,
+             mai: 5,
+             iunie: 6, june: 6, iun: 6, jun: 6,
+             iulie: 7, july: 7, iul: 7, jul: 7,
+             august: 8, aug: 8,
+             septembrie: 9, september: 9, sep: 9, sept: 9,
+             octombrie: 10, october: 10, oct: 10,
+             noiembrie: 11, november: 11, nov: 11,
+             decembrie: 12, december: 12, dec: 12,
+           };
           
           const yearMatch = period.match(/(20\d{2})/);
           const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
@@ -679,14 +679,32 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           if (error) throw error;
           
           const parsePeriodFromRow = (row: Row): { month?: number; year?: number } => {
-            const source = `${row.file_name || ''} ${row.created_at}`.toLowerCase();
-            let month: number | undefined;
-            for (const [name, num] of Object.entries(months)) {
-              if (source.includes(name)) { month = num; break; }
+            const lowerName = (row.file_name || '').toLowerCase();
+            // 1) Interval numeric în nume: 01-04-2025 30-04-2025
+            const rangeRegex = /(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})\s+(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/;
+            const r = lowerName.match(rangeRegex);
+            if (r) {
+              const m = parseInt(r[2], 10);
+              const y = parseInt(r[3], 10);
+              if (m >= 1 && m <= 12 && y >= 2000) return { month: m, year: y };
             }
-            const ym = source.match(/(20\d{2})/);
-            const year = ym ? parseInt(ym[1]) : new Date(row.created_at).getFullYear();
-            return { month, year };
+            // 2) Dată unică numerică: dd-mm-yyyy
+            const dateRegex = /(\b|[^0-9])(0?[1-9]|[12]\d|3[01])[\/\.-](0?[1-9]|1[0-2])[\/\.-](\d{4})(\b|[^0-9])/;
+            const d = lowerName.match(dateRegex);
+            if (d) {
+              const m = parseInt(d[3], 10);
+              const y = parseInt(d[4], 10);
+              if (m >= 1 && m <= 12 && y >= 2000) return { month: m, year: y };
+            }
+            // 3) Nume de lună în text + an 20xx
+            const source = `${lowerName} ${row.created_at}`;
+            for (const [name, num] of Object.entries(months)) {
+              if (source.includes(name)) {
+                const ym = source.match(/20\d{2}/);
+                return { month: num, year: ym ? parseInt(ym[0], 10) : undefined };
+              }
+            }
+            return {};
           };
           
           const annotated = (data || []).map((row: Row) => ({ row, ...parsePeriodFromRow(row) }));
