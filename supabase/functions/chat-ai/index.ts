@@ -1204,7 +1204,98 @@ serve(async (req) => {
             }
           }
 
-          // Dacă nu am livrat niciun conținut, trimitem un fallback sigur
+          // Fallback automat: dacă modelul nu a rulat tools, dar cererea indică extragere de date
+          try {
+            const normalizedUserMsg = normalizeRomanianText(message || "");
+            const likelyDataIntent = /(balant|cont|sold|total sume|clasa|clase)/i.test(normalizedUserMsg);
+
+            if (toolCalls.length === 0 && likelyDataIntent) {
+              controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "thinking", message: "Caut balanța și extrag conturile..." }) + "\n\n"));
+
+              // 1) Găsește analiza pe baza perioadei din mesaj
+              const autoCalls1 = [
+                { function: { name: "get_analysis_by_period", arguments: JSON.stringify({ period: message }) } }
+              ];
+              const autoRes1 = await executeTools(autoCalls1, authHeader);
+
+              let analysisId: string | null = null;
+              const ga = autoRes1.find((r: any) => r.name === "get_analysis_by_period");
+              if (ga) {
+                try {
+                  const payload = JSON.parse(ga.content || "{}");
+                  analysisId = payload.analysis?.id || null;
+                } catch {}
+              }
+
+              // 2) Dacă avem analiza, extragem conturile
+              let allToolResults = [...autoRes1];
+              if (analysisId) {
+                const autoCalls2 = [
+                  { function: { name: "get_balance_accounts", arguments: JSON.stringify({ analysis_id: analysisId }) } }
+                ];
+                const autoRes2 = await executeTools(autoCalls2, authHeader);
+                allToolResults = [...autoRes1, ...autoRes2];
+              }
+
+              // 3) Facem un follow-up către AI cu rezultatele tool-urilor, ca să genereze răspunsul final
+              const followUpMessages2 = [
+                ...messages,
+                { role: "assistant", content: accumulatedContent || "Procesez datele extrase..." },
+                ...allToolResults
+              ];
+
+              const followUpResponse2 = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer " + LOVABLE_API_KEY,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-2.5-flash",
+                  messages: followUpMessages2,
+                  stream: true
+                }),
+              });
+
+              if (followUpResponse2.ok) {
+                const followUpReader2 = followUpResponse2.body?.getReader();
+                if (followUpReader2) {
+                  let buf2 = "";
+                  while (true) {
+                    const { done: d2, value: v2 } = await followUpReader2.read();
+                    if (d2) break;
+                    buf2 += decoder.decode(v2, { stream: true });
+                    const lines2 = buf2.split("\n");
+                    buf2 = lines2.pop() || "";
+                    for (const line2 of lines2) {
+                      if (!line2.trim() || line2.startsWith(":")) continue;
+                      if (!line2.startsWith("data: ")) continue;
+                      const data2 = line2.slice(6);
+                      if (data2 === "[DONE]") continue;
+                      try {
+                        const parsed2 = JSON.parse(data2);
+                        const delta2 = parsed2.choices?.[0]?.delta?.content;
+                        if (delta2) {
+                          accumulatedContent += delta2;
+                          sentAnyContent = true;
+                          controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: delta2 }) + "\n\n"));
+                        }
+                      } catch {}
+                    }
+                  }
+                }
+              } else {
+                const fb = "Nu am reușit să finalizez extragerea acum. Reîncearcă te rog.";
+                controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fb }) + "\n\n"));
+                sentAnyContent = true;
+                accumulatedContent += fb;
+              }
+            }
+          } catch (e) {
+            console.error("Fallback auto tools error:", e);
+          }
+
+          // Dacă tot nu am livrat niciun conținut, trimitem un fallback sigur
           if (!sentAnyContent) {
             const fallback = "Îmi pare rău, nu am putut genera un răspuns în acest moment. Te rog specifică perioada clar (ex: 'ianuarie 2025 – martie 2025') sau încearcă din nou în câteva secunde.";
             controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
