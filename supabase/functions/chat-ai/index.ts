@@ -80,7 +80,7 @@ IMPORTANT: Utilizatorii au analize pentru ianuarie-martie 2025 și alte luni din
        → Pentru clasa 7: Afișează total_sume_credit (venituri creditoare)
        → NOTĂ: Pentru clasele 6 și 7, total_sume_debit = total_sume_credit (trebuie să fie egale!)
   5. **NU CERE NICIODATĂ** user-ului să îți dea ID-ul manual!
-
+  6. Când utilizatorul cere totalurile pentru clasa 6 sau 7 într-o perioadă (ex: "total sume debitoare/creditoare la clasa 7 în aprilie 2025"), FOLOSEȘTE direct tool-ul get_class_totals_by_period (period: perioada extrasă, class: "6"/"7") și răspunde cu valorile agregate, fără a solicita ID.
 ❌ NU cere NICIODATĂ user-ului ID-uri sau detalii tehnice
 ✅ ACȚIONEZI INDEPENDENT: cauți singur, extragi, răspunzi
 
@@ -272,7 +272,28 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "get_proactive_insights",
+      name: "get_class_totals_by_period",
+      description: "Obține totalurile pe coloanele 'Total sume Debitoare/Creditoare' pentru o clasă (6 sau 7) dintr-o perioadă specifică. NU necesită ID de analiză.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: {
+            type: "string",
+            description: "Luna sau perioada (ex: 'aprilie 2025')"
+          },
+          class: {
+            type: "string",
+            enum: ["6", "7"],
+            description: "Clasa de cont ('6' cheltuieli, '7' venituri)"
+          }
+        },
+        required: ["period", "class"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
       description: "Verifică alertele automate generate de sistem pentru probleme financiare",
       parameters: {
         type: "object",
@@ -612,6 +633,117 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             total_accounts: formattedAccounts.length,
             parsed_at: parsedBalance.parsed_at,
             instructions: 'Pentru clasele 1-5, folosește sold_final_debit/credit. Pentru clasele 6-7, folosește total_sume_debit/credit. Câmpul "display" conține textul formatat gata de afișat.'
+          };
+          break;
+        }
+        
+        case "get_class_totals_by_period": {
+          const rawPeriod: string = (args.period || '').toString();
+          const desiredClass: string = (args.class || '').toString();
+          const norm = (s: string) => s
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim();
+          const period = norm(rawPeriod);
+          
+          // Hărți lună (RO + EN)
+          const months: Record<string, number> = {
+            ianuarie: 1, jan: 1, january: 1, ian: 1,
+            februarie: 2, february: 2, feb: 2,
+            martie: 3, march: 3, mar: 3,
+            aprilie: 4, april: 4, apr: 4,
+            mai: 5,
+            iunie: 6, june: 6, iun: 6, jun: 6,
+            iulie: 7, july: 7, iul: 7, jul: 7,
+            august: 8, aug: 8,
+            septembrie: 9, september: 9, sep: 9, sept: 9,
+            octombrie: 10, october: 10, oct: 10,
+            noiembrie: 11, november: 11, nov: 11,
+            decembrie: 12, december: 12, dec: 12,
+          };
+          
+          const yearMatch = period.match(/(20\d{2})/);
+          const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
+          let targetMonth: number | undefined = undefined;
+          for (const [name, num] of Object.entries(months)) {
+            if (period.includes(name)) { targetMonth = num; break; }
+          }
+          
+          type Row = { id: string; file_name: string | null; created_at: string; metadata: any };
+          const { data, error } = await supabase
+            .from('analyses')
+            .select('id, file_name, created_at, metadata')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (error) throw error;
+          
+          const parsePeriodFromRow = (row: Row): { month?: number; year?: number } => {
+            const source = `${row.file_name || ''} ${row.created_at}`.toLowerCase();
+            let month: number | undefined;
+            for (const [name, num] of Object.entries(months)) {
+              if (source.includes(name)) { month = num; break; }
+            }
+            const ym = source.match(/(20\d{2})/);
+            const year = ym ? parseInt(ym[1]) : new Date(row.created_at).getFullYear();
+            return { month, year };
+          };
+          
+          const annotated = (data || []).map((row: Row) => ({ row, ...parsePeriodFromRow(row) }));
+          if (!targetMonth) {
+            // dacă lipsește luna din întrebare, alege cea mai recentă analiză
+            const recent = annotated[0]?.row || null;
+            if (!recent) throw new Error('Nu am găsit nicio analiză încărcată.');
+            const meta = recent.metadata || {};
+            const accounts: any[] = (meta.parsed_balance?.accounts) || [];
+            const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
+            const totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
+            const totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+            result = {
+              analysis_id: recent.id,
+              file_name: recent.file_name,
+              date: recent.created_at,
+              class: desiredClass,
+              totals: {
+                total_sume_debitoare: totalDebit,
+                total_sume_creditoare: totalCredit,
+                egale: Math.abs(totalDebit - totalCredit) < 0.01,
+              },
+              accounts_count: filtered.length,
+            };
+            break;
+          }
+          
+          let candidates = annotated.filter(a => (targetMonth ? a.month === targetMonth : true));
+          if (targetYear) candidates = candidates.filter(a => a.year === targetYear);
+          if (!targetYear && targetMonth && candidates.length > 1) {
+            const maxYear = Math.max(...candidates.map(c => c.year || 0));
+            candidates = candidates.filter(c => (c.year || 0) === maxYear);
+          }
+          
+          const found: Row | null = candidates.sort((a, b) => new Date(b.row.created_at).getTime() - new Date(a.row.created_at).getTime())[0]?.row || null;
+          if (!found) {
+            result = { error: `Nu am găsit analiza pentru perioada "${rawPeriod}"` };
+            break;
+          }
+          
+          const meta = (found as any).metadata || {};
+          const accounts: any[] = (meta.parsed_balance?.accounts) || [];
+          const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
+          const totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
+          const totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+          
+          result = {
+            analysis_id: (found as any).id,
+            file_name: (found as any).file_name,
+            date: (found as any).created_at,
+            class: desiredClass,
+            totals: {
+              total_sume_debitoare: totalDebit,
+              total_sume_creditoare: totalCredit,
+              egale: Math.abs(totalDebit - totalCredit) < 0.01,
+            },
+            accounts_count: filtered.length,
           };
           break;
         }
