@@ -53,15 +53,7 @@ export const ChatAI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `👋 Bună! Sunt Yana Premium, asistenta ta AI financiară îmbunătățită!
-
-✨ **Funcții noi:**
-📚 Istoric Conversații - Click pe iconița 📖 din header
-⚡ Sugestii inteligente în timp real
-💬 Răspunsuri animate și typing indicator
-🎯 Quick replies cu întrebări populare
-
-Cu ce te pot ajuta astăzi?`
+      content: `👋 Bună! Sunt Yana, asistenta ta AI financiară. Cu ce te pot ajuta astăzi?`
     }
   ]);
   const [input, setInput] = useState('');
