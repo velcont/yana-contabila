@@ -622,17 +622,40 @@ Cu ce te pot ajuta astăzi?`
           </div>
         )}
 
-        {/* Quick Actions - Întrebări Frecvente sau Demo */}
-        {messages.length === 1 && (
-          <QuickReplySuggestions
-            onSelectSuggestion={(question) => {
-              setInput(question);
-              inputRef.current?.focus();
-            }}
-            contextual={true}
-            showFrequency={true}
-          />
-        )}
+        {/* Întrebări sugerate - mereu vizibile */}
+        <div className="px-4 py-3 bg-gradient-to-r from-primary/5 to-primary/10 border-y border-primary/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+            <span className="text-xs font-semibold text-primary">Întrebări Recomandate</span>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              { text: "Simulează: dacă plătesc furnizorii în 60 zile în loc de 30, cum arată cash-ul?", icon: TrendingUp },
+              { text: "Care sunt Top 3 probleme și oportunități din ultima balanță?", icon: AlertCircle },
+              { text: "Creează plan de acțiune pentru îmbunătățirea DSO", icon: ListChecks },
+              { text: "Ce impact are un discount de 5% pentru plată în 15 zile?", icon: Zap },
+              { text: "Care a fost profitul mediu în ultimele 6 luni?", icon: FileBarChart },
+              { text: "Simulează reducere DSO cu 10 zile - impact cash flow", icon: TrendingUp }
+            ].map((suggestion, idx) => {
+              const Icon = suggestion.icon;
+              return (
+                <Button
+                  key={idx}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setInput(suggestion.text);
+                    inputRef.current?.focus();
+                  }}
+                  className="h-auto py-2 px-3 text-left justify-start hover:bg-primary/10 hover:border-primary transition-all group"
+                >
+                  <Icon className="h-3 w-3 mr-2 text-primary flex-shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="text-xs leading-tight">{suggestion.text}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {messages.map((msg, idx) => (
