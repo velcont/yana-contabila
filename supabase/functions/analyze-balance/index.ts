@@ -299,6 +299,28 @@ Sold Casa: 5000.00`;
 
 // Parse Excel file - returnează atât textul cât și datele structurate
 async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; structuredData: any[] }> {
+  // Helper pentru parsarea numerelor românești
+  const parseRomanianNumber = (str: string): number => {
+    if (!str) return 0;
+    const raw = String(str).trim();
+    if (!raw || raw === '0' || raw === '0.00' || raw === '0,00') return 0;
+    // Elimină spații și detectează ultimul separator (. sau ,)
+    const cleaned = raw.replace(/\s/g, '');
+    const lastDot = cleaned.lastIndexOf('.');
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastSep = Math.max(lastDot, lastComma);
+    
+    if (lastSep < 0) {
+      // Fără separator zecimal
+      return parseFloat(cleaned.replace(/[^0-9-]/g, '')) || 0;
+    }
+    
+    // Partea întreagă (fără separatori de mii) + partea zecimală
+    const integerPart = cleaned.slice(0, lastSep).replace(/[^0-9-]/g, '');
+    const decimalPart = cleaned.slice(lastSep + 1).replace(/[^0-9]/g, '');
+    return parseFloat(`${integerPart}.${decimalPart}`) || 0;
+  };
+
   try {
     // Convert base64 to Uint8Array
     const binaryString = atob(excelBase64);
@@ -361,21 +383,21 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; 
           // Extrage solduri finale
           if (soldFinalDebitIdx >= 0) {
             const val = row[soldFinalDebitIdx];
-            account.sold_final_debit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+            account.sold_final_debit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
           }
           if (soldFinalCreditIdx >= 0) {
             const val = row[soldFinalCreditIdx];
-            account.sold_final_credit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+            account.sold_final_credit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
           }
           
           // Extrage total sume
           if (totalSumeDebitIdx >= 0) {
             const val = row[totalSumeDebitIdx];
-            account.total_sume_debit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+            account.total_sume_debit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
           }
           if (totalSumeCreditIdx >= 0) {
             const val = row[totalSumeCreditIdx];
-            account.total_sume_credit = typeof val === 'number' ? val : (parseFloat(String(val).replace(/[^\d.-]/g, '')) || 0);
+            account.total_sume_credit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
           }
           
           structuredAccounts.push(account);
