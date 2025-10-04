@@ -670,10 +670,10 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             if (period.includes(name)) { targetMonth = num; break; }
           }
           
-          type Row = { id: string; file_name: string | null; created_at: string; metadata: any };
+          type Row = { id: string; file_name: string | null; created_at: string; metadata: any; analysis_text: string | null };
           const { data, error } = await supabase
             .from('analyses')
-            .select('id, file_name, created_at, metadata')
+            .select('id, file_name, created_at, metadata, analysis_text')
             .order('created_at', { ascending: false })
             .limit(50);
           if (error) throw error;
@@ -715,8 +715,35 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             const meta = recent.metadata || {};
             const accounts: any[] = (meta.parsed_balance?.accounts) || [];
             const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
-            const totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
-            const totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+            let totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
+            let totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+
+            // Fallback: extrage din textul analizei dacă nu avem valori valide
+            if ((filtered.length === 0 || (totalDebit === 0 && totalCredit === 0)) && (recent as any).analysis_text) {
+              const text = ((recent as any).analysis_text as string) || '';
+              const parseNum = (str: string) => {
+                const raw = (str || '').replace(/\s/g, '');
+                const last = Math.max(raw.lastIndexOf(','), raw.lastIndexOf('.'));
+                if (last >= 0) {
+                  const intp = raw.slice(0, last).replace(/[\.,]/g, '');
+                  const decp = raw.slice(last + 1);
+                  return parseFloat(`${intp}.${decp}`);
+                }
+                return parseFloat(raw.replace(/[^0-9-]/g, '')) || 0;
+              };
+              const reCredit = new RegExp(`total\\s*sume\\s*credit\\w*[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
+              const reDebit = new RegExp(`total\\s*sume\\s*debit\\w*[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
+              const mC = text.match(reCredit);
+              const mD = text.match(reDebit);
+              if (desiredClass === '7' && mC) {
+                totalCredit = parseNum(mC[1]);
+                totalDebit = totalCredit; // pentru clasa 7, debitoarele = creditoarele
+              } else if (desiredClass === '6' && mD) {
+                totalDebit = parseNum(mD[1]);
+                totalCredit = totalDebit; // pentru clasa 6, debitoarele = creditoarele
+              }
+            }
+
             result = {
               analysis_id: recent.id,
               file_name: recent.file_name,
@@ -748,8 +775,34 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const meta = (found as any).metadata || {};
           const accounts: any[] = (meta.parsed_balance?.accounts) || [];
           const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
-          const totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
-          const totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+          let totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
+          let totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+
+          // Fallback din analysis_text dacă nu avem valori valide
+          const aText = ((found as any).analysis_text as string) || '';
+          if (aText && (filtered.length === 0 || (totalDebit === 0 && totalCredit === 0))) {
+            const parseNum = (str: string) => {
+              const raw = (str || '').replace(/\s/g, '');
+              const last = Math.max(raw.lastIndexOf(','), raw.lastIndexOf('.'));
+              if (last >= 0) {
+                const intp = raw.slice(0, last).replace(/[\.,]/g, '');
+                const decp = raw.slice(last + 1);
+                return parseFloat(`${intp}.${decp}`);
+              }
+              return parseFloat(raw.replace(/[^0-9-]/g, '')) || 0;
+            };
+            const reCredit = new RegExp(`total\\s*sume\\s*credit\\w*[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
+            const reDebit = new RegExp(`total\\s*sume\\s*debit\\w*[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
+            const mC = aText.match(reCredit);
+            const mD = aText.match(reDebit);
+            if (desiredClass === '7' && mC) {
+              totalCredit = parseNum(mC[1]);
+              totalDebit = totalCredit;
+            } else if (desiredClass === '6' && mD) {
+              totalDebit = parseNum(mD[1]);
+              totalCredit = totalDebit;
+            }
+          }
           
           result = {
             analysis_id: (found as any).id,

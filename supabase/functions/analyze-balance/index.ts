@@ -329,18 +329,20 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; 
         const rows = jsonData.slice(1) as any[][];
         
         // Identifică coloanele importante
-        const getColumnIndex = (patterns: string[]) => {
-          return headers.findIndex((h: any) => 
-            patterns.some(p => String(h).toLowerCase().includes(p.toLowerCase()))
-          );
+        // Identifică coloanele importante - folosind potrivire pe TOATE token-urile, nu pe oricare
+        const normalize = (v: any) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const headersNorm = headers.map(h => normalize(h));
+        const getIndexAll = (tokens: string[]) => {
+          const toks = tokens.map(t => normalize(t));
+          return headersNorm.findIndex(h => toks.every(tok => h.includes(tok)));
         };
         
-        const contIdx = getColumnIndex(['cont', 'simbol']);
-        const denumireIdx = getColumnIndex(['denumire', 'nume']);
-        const soldFinalDebitIdx = getColumnIndex(['sold final', 'sold finala'].concat(['debit', 'db']));
-        const soldFinalCreditIdx = getColumnIndex(['sold final', 'sold finala'].concat(['credit', 'cr']));
-        const totalSumeDebitIdx = getColumnIndex(['total sume', 'total'].concat(['debit', 'db']));
-        const totalSumeCreditIdx = getColumnIndex(['total sume', 'total'].concat(['credit', 'cr']));
+        const contIdx = headersNorm.findIndex(h => h.startsWith('cont') || h.includes('simbol'));
+        const denumireIdx = headersNorm.findIndex(h => h.includes('denumire') || h.includes('nume'));
+        const soldFinalDebitIdx = getIndexAll(['sold', 'final', 'debit']);
+        const soldFinalCreditIdx = getIndexAll(['sold', 'final', 'credit']);
+        const totalSumeDebitIdx = getIndexAll(['total', 'sume', 'debit']);
+        const totalSumeCreditIdx = getIndexAll(['total', 'sume', 'credit']);
         
         rows.forEach(row => {
           if (!row || row.length === 0) return;
