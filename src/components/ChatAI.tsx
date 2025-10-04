@@ -20,11 +20,14 @@ import { QuickReplySuggestions } from './QuickReplySuggestions';
 import { ConversationHistory } from './ConversationHistory';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import VoiceInterface from './VoiceInterface';
+import { DividendVsSalaryCalculator } from './calculators/DividendVsSalaryCalculator';
+import { MicroVsProfitCalculator } from './calculators/MicroVsProfitCalculator';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   id?: string; // ID pentru feedback
+  calculatorType?: 'dividend-vs-salary' | 'micro-vs-profit'; // tip calculator
 }
 
 interface Insight {
@@ -165,6 +168,39 @@ Cu ce te pot ajuta astăzi?`
     const newUserMsg = { role: 'user' as const, content: userMessage };
     setMessages(prev => [...prev, newUserMsg]);
     setIsLoading(true);
+
+    // Detectează cereri pentru calculatoare
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Calculator Dividende vs Salarii
+    if (lowerMessage.match(/(dividend|salari).*?(dividend|salari)/i) || 
+        lowerMessage.includes('dividende vs') || 
+        lowerMessage.includes('salarii vs') ||
+        lowerMessage.includes('ce aleg')) {
+      
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '💼 Aici ai calculatorul pentru comparație:',
+        calculatorType: 'dividend-vs-salary'
+      }]);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Calculator Micro vs Profit
+    if (lowerMessage.match(/(micro|profit).*(micro|profit)/i) || 
+        lowerMessage.includes('microintreprindere') ||
+        lowerMessage.includes('impozit pe profit') ||
+        lowerMessage.includes('regim fiscal')) {
+      
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '📊 Aici ai calculatorul pentru comparație regimuri fiscale:',
+        calculatorType: 'micro-vs-profit'
+      }]);
+      setIsLoading(false);
+      return;
+    }
 
     // Salvează mesajul user în istoric
     try {
@@ -602,10 +638,26 @@ Cu ce te pot ajuta astăzi?`
             >
               {msg.role === 'assistant' ? (
                 <div className="max-w-[85%] space-y-2">
-                  <div className="bg-muted rounded-2xl px-4 py-2.5">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                  </div>
-                  {msg.id && (
+                  {msg.calculatorType === 'dividend-vs-salary' ? (
+                    <div className="space-y-2">
+                      <div className="bg-muted rounded-2xl px-4 py-2.5">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      </div>
+                      <DividendVsSalaryCalculator />
+                    </div>
+                  ) : msg.calculatorType === 'micro-vs-profit' ? (
+                    <div className="space-y-2">
+                      <div className="bg-muted rounded-2xl px-4 py-2.5">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      </div>
+                      <MicroVsProfitCalculator />
+                    </div>
+                  ) : (
+                    <div className="bg-muted rounded-2xl px-4 py-2.5">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    </div>
+                  )}
+                  {msg.id && !msg.calculatorType && (
                     <div className="flex items-center gap-2 px-2">
                       <span className="text-xs text-muted-foreground">A fost util?</span>
                       <button
