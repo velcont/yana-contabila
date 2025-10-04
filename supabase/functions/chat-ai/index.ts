@@ -353,8 +353,8 @@ function normalizeRomanianText(text: string): string {
     'june': 'iunie', 'iune': 'iunie',
     'july': 'iulie', 'iulei': 'iulie',
     'january': 'ianuarie', 'ian': 'ianuarie',
-    'february': 'februarie', 'febr': 'februarie',
-    'march': 'martie', 'mar': 'martie',
+    'february': 'februarie', 'febr': 'februarie', 'feb': 'februarie',
+    'march': 'martie', 'mar': 'martie', 'mart': 'martie',
     'august': 'august', 'aug': 'august',
     'september': 'septembrie', 'sept': 'septembrie',
     'october': 'octombrie', 'oct': 'octombrie',
@@ -1237,7 +1237,49 @@ serve(async (req) => {
                 allToolResults = [...autoRes1, ...autoRes2];
               }
 
-              // 3) În loc de un al doilea apel la AI, FORMATEZ ȘI TRIMIT DIRECT REZULTATUL
+              // 3) Dacă întrebarea e despre venituri/cheltuieli/profit, calculez direct totalurile pe clasă
+              const needRevenue = /(venit|clasa\s*7|total\s*sume\s*credit)/i.test(normalizedUserMsg);
+              const needExpenses = /(cheltuiel|clasa\s*6|total\s*sume\s*debit)/i.test(normalizedUserMsg);
+              const needProfit = /(profit|pe\s*profit|pierdere)/i.test(normalizedUserMsg);
+
+              if (needRevenue || needExpenses || needProfit) {
+                const toolCallsTotals: any[] = [];
+                if (needRevenue || needProfit) {
+                  toolCallsTotals.push({ function: { name: 'get_class_totals_by_period', arguments: JSON.stringify({ period: message, class: '7' }) } });
+                }
+                if (needExpenses || needProfit) {
+                  toolCallsTotals.push({ function: { name: 'get_class_totals_by_period', arguments: JSON.stringify({ period: message, class: '6' }) } });
+                }
+                const totalsRes = await executeTools(toolCallsTotals, authHeader);
+                const res7 = totalsRes.find((r: any) => r.name === 'get_class_totals_by_period' && JSON.parse(r.content||'{}').class === '7');
+                const res6 = totalsRes.find((r: any) => r.name === 'get_class_totals_by_period' && JSON.parse(r.content||'{}').class === '6');
+                const p7 = res7 ? JSON.parse(res7.content || '{}') : null;
+                const p6 = res6 ? JSON.parse(res6.content || '{}') : null;
+
+                let out = '';
+                if (p7 && (needRevenue || needProfit)) {
+                  const tvc = p7?.totals?.total_sume_creditoare ?? 0;
+                  out += `Venituri (Clasa 7) ${new Date(p7.date).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })}: ${tvc.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n`;
+                }
+                if (p6 && (needExpenses || needProfit)) {
+                  const tsd = p6?.totals?.total_sume_debitoare ?? 0;
+                  out += `Cheltuieli (Clasa 6): ${tsd.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n`;
+                }
+                if (needProfit) {
+                  const rev = p7?.totals?.total_sume_creditoare ?? 0;
+                  const exp = p6?.totals?.total_sume_debitoare ?? 0;
+                  const prof = rev - exp;
+                  out += `Rezultat: ${prof >= 0 ? 'Profit' : 'Pierdere'} ${Math.abs(prof).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n`;
+                }
+
+                if (out) {
+                  controller.enqueue(encoder.encode('data: ' + JSON.stringify({ type: 'content', content: out.trim() }) + '\n\n'));
+                  sentAnyContent = true;
+                  accumulatedContent += (accumulatedContent ? '\n' : '') + out.trim();
+                }
+              }
+
+              // 4) În loc de un al doilea apel la AI, FORMATEZ ȘI TRIMIT DIRECT REZULTATUL
               let formattedOutput = '';
               try {
                 // Extragem payload-ul de conturi
