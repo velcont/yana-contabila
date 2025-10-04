@@ -44,6 +44,33 @@ export type Database = {
         }
         Relationships: []
       }
+      api_rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          request_count: number | null
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          request_count?: number | null
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          request_count?: number | null
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       chat_analytics: {
         Row: {
           avg_conversation_length: number | null
@@ -83,6 +110,39 @@ export type Database = {
           top_categories?: Json | null
           total_conversations?: number | null
           total_messages?: number | null
+        }
+        Relationships: []
+      }
+      chat_cache: {
+        Row: {
+          answer_text: string
+          created_at: string
+          expires_at: string
+          hit_count: number | null
+          id: string
+          last_used_at: string
+          question_hash: string
+          question_text: string
+        }
+        Insert: {
+          answer_text: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          last_used_at?: string
+          question_hash: string
+          question_text: string
+        }
+        Update: {
+          answer_text?: string
+          created_at?: string
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          last_used_at?: string
+          question_hash?: string
+          question_text?: string
         }
         Relationships: []
       }
@@ -246,6 +306,44 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_analyses: {
+        Row: {
+          analysis_id: string
+          color: string | null
+          created_at: string
+          id: string
+          label: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          color?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_analyses_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fiscal_news: {
         Row: {
           category: string | null
@@ -404,6 +502,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: { p_endpoint: string; p_max_requests?: number; p_user_id: string }
+        Returns: boolean
+      }
+      cleanup_old_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       extract_question_pattern: {
         Args: { question_text: string }
         Returns: {
