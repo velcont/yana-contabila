@@ -23,6 +23,7 @@ serve(async (req) => {
     
     try {
       // Get ephemeral token from OpenAI
+      console.log("Requesting ephemeral token...");
       const tokenResponse = await fetch("https://api.openai.com/v1/realtime/sessions", {
         method: "POST",
         headers: {
@@ -32,81 +33,84 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "gpt-4o-realtime-preview-2024-12-17",
           voice: "alloy",
-          instructions: "Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română."
         }),
       });
+
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error("Token response error:", errorText);
+        throw new Error(`Failed to get token: ${errorText}`);
+      }
 
       const tokenData = await tokenResponse.json();
       console.log("Ephemeral token received");
 
       if (!tokenData.client_secret?.value) {
-        throw new Error("Failed to get ephemeral token");
+        throw new Error("No client_secret in response");
       }
 
-      // Connect to OpenAI Realtime API with ephemeral token
-      const apiUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
-      openAISocket = new WebSocket(apiUrl, {
-        headers: {
-          "Authorization": `Bearer ${tokenData.client_secret.value}`,
-          "OpenAI-Beta": "realtime=v1"
-        }
-      });
+      // Connect to OpenAI Realtime API using ephemeral token
+      // Ephemeral tokens don't require auth in subprotocol
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`;
+      console.log("Connecting to OpenAI WebSocket...");
+      
+      openAISocket = new WebSocket(wsUrl);
 
       openAISocket.onopen = () => {
         console.log("Connected to OpenAI Realtime API");
       };
 
-    openAISocket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log("OpenAI message type:", message.type);
+      openAISocket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log("OpenAI message type:", message.type);
 
-        // When session is created, send configuration
-        if (message.type === 'session.created' && !sessionReady) {
-          sessionReady = true;
-          const sessionConfig = {
-            type: 'session.update',
-            session: {
-              modalities: ['text', 'audio'],
-              instructions: 'Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română.',
-              voice: 'alloy',
-              input_audio_format: 'pcm16',
-              output_audio_format: 'pcm16',
-              input_audio_transcription: {
-                model: 'whisper-1'
-              },
-              turn_detection: {
-                type: 'server_vad',
-                threshold: 0.5,
-                prefix_padding_ms: 300,
-                silence_duration_ms: 1000
-              },
-              temperature: 0.8,
-              max_response_output_tokens: 4096
-            }
-          };
-          openAISocket?.send(JSON.stringify(sessionConfig));
-          console.log("Session configuration sent");
+          // When session is created, send configuration
+          if (message.type === 'session.created' && !sessionReady) {
+            sessionReady = true;
+            const sessionConfig = {
+              type: 'session.update',
+              session: {
+                modalities: ['text', 'audio'],
+                instructions: 'Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română.',
+                voice: 'alloy',
+                input_audio_format: 'pcm16',
+                output_audio_format: 'pcm16',
+                input_audio_transcription: {
+                  model: 'whisper-1'
+                },
+                turn_detection: {
+                  type: 'server_vad',
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 1000
+                },
+                temperature: 0.8,
+                max_response_output_tokens: 4096
+              }
+            };
+            openAISocket?.send(JSON.stringify(sessionConfig));
+            console.log("Session configuration sent");
+          }
+
+          // Forward all messages to client
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(event.data);
+          }
+        } catch (error) {
+          console.error("Error processing OpenAI message:", error);
         }
+      };
 
-        // Forward all messages to client
+      openAISocket.onerror = (error) => {
+        console.error("OpenAI WebSocket error:", error);
         if (socket.readyState === WebSocket.OPEN) {
-          socket.send(event.data);
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            error: 'OpenAI connection error' 
+          }));
         }
-      } catch (error) {
-        console.error("Error processing OpenAI message:", error);
-      }
-    };
-
-    openAISocket.onerror = (error) => {
-      console.error("OpenAI WebSocket error:", error);
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ 
-          type: 'error', 
-          error: 'OpenAI connection error' 
-        }));
-      }
-    };
+      };
 
       openAISocket.onclose = () => {
         console.log("OpenAI WebSocket closed");
@@ -119,7 +123,7 @@ serve(async (req) => {
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ 
           type: 'error', 
-          error: 'Failed to connect to OpenAI' 
+          error: error instanceof Error ? error.message : 'Failed to connect to OpenAI' 
         }));
       }
     }

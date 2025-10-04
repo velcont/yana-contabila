@@ -185,8 +185,29 @@ export class RealtimeChat {
     try {
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       
-      const wsUrl = `wss://ygfsuoloxzjpiulogrjz.supabase.co/functions/v1/realtime-chat`;
-      this.ws = new WebSocket(wsUrl);
+      // Get ephemeral token from our edge function
+      const tokenUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-realtime-token`;
+      const tokenResponse = await fetch(tokenUrl);
+      
+      if (!tokenResponse.ok) {
+        throw new Error(`Failed to get token: ${await tokenResponse.text()}`);
+      }
+      
+      const tokenData = await tokenResponse.json();
+      console.log("Ephemeral token received");
+      
+      if (!tokenData.client_secret?.value) {
+        throw new Error("No client_secret in response");
+      }
+      
+      const EPHEMERAL_KEY = tokenData.client_secret.value;
+      
+      // Connect directly to OpenAI with ephemeral token
+      // Ephemeral tokens are session-based and don't require additional auth
+      const baseUrl = "wss://api.openai.com/v1/realtime";
+      const model = "gpt-4o-realtime-preview-2024-12-17";
+      
+      this.ws = new WebSocket(`${baseUrl}?model=${model}`);
 
       this.ws.onopen = () => {
         console.log("Connected to relay server");
