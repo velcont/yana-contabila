@@ -298,7 +298,7 @@ export const ChatAI = () => {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-full max-w-[400px] h-[600px] shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300">
+    <Card className="fixed bottom-4 right-4 w-full max-w-[650px] h-[650px] shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
