@@ -1669,6 +1669,29 @@ serve(async (req) => {
                 allToolResults = [...autoRes1, ...autoRes2];
               }
 
+              // 2.1) Întotdeauna încearcă să extragi indicatorii DIRECT din text pentru perioada cerută
+              const indCalls = [
+                { function: { name: 'get_analysis_indicators', arguments: JSON.stringify({ period: message }) } }
+              ];
+              const indRes = await executeTools(indCalls, authHeader);
+              allToolResults = [...allToolResults, ...indRes];
+
+              // Dacă avem profit din indicatori, răspunde imediat cu acesta (preferat față de calculul 6/7)
+              const indTool = indRes.find((r: any) => r.name === 'get_analysis_indicators');
+              if (indTool) {
+                try {
+                  const payload = JSON.parse(indTool.content || '{}');
+                  const ind = payload.indicatori || payload.indicators || {};
+                  const per = payload.perioada || payload.period || message;
+                  if (typeof ind.profit === 'number') {
+                    const msg = `Profit ${per}: ${ind.profit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
+                    controller.enqueue(encoder.encode('data: ' + JSON.stringify({ type: 'content', content: msg }) + '\n\n'));
+                    sentAnyContent = true;
+                    accumulatedContent += (accumulatedContent ? '\n' : '') + msg;
+                  }
+                } catch {}
+              }
+
               // 3) Dacă întrebarea e despre venituri/cheltuieli/profit, calculez direct totalurile pe clasă
               const needRevenue = /(venit|clasa\s*7|total\s*sume\s*credit)/i.test(normalizedUserMsg);
               const needExpenses = /(cheltuiel|clasa\s*6|total\s*sume\s*debit)/i.test(normalizedUserMsg);
