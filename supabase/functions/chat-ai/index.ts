@@ -6,6 +6,119 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ========== FUNCȚIE CENTRALIZATĂ: EXTRAGE INDICATORI DIN TEXTUL ANALIZEI ==========
+/**
+ * Extrage valori numerice din textul unei analize folosind regex patterns.
+ * ACEASTA ESTE SURSA DE ADEVĂR - extrage direct din "dosarul meu"
+ */
+function extractIndicatorsFromText(analysisText: string): {
+  profit?: number;
+  ca?: number;
+  cheltuieli?: number;
+  banca?: number;
+  casa?: number;
+  clienti?: number;
+  furnizori?: number;
+  stocuri?: number;
+  dso?: number;
+  dpo?: number;
+  ebitda?: number;
+  [key: string]: number | undefined;
+} {
+  const text = analysisText || '';
+  
+  // Funcție helper: conversie string → number (1.802,42 → 1802.42)
+  const parseValue = (match: RegExpMatchArray | null, groupIndex = 1): number | undefined => {
+    if (!match) return undefined;
+    const rawValue = match[groupIndex];
+    if (!rawValue) return undefined;
+    const cleaned = rawValue.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? undefined : num;
+  };
+
+  const result: any = {};
+
+  // 1. PROFIT/PIERDERE (Cont 121)
+  const profitMatch = text.match(/cont(?:ul)?\s*121[^\n]*?sold\s*final\s*(?:creditor|debitor)?[:\s]*([\d.,]+)\s*RON/i);
+  if (profitMatch) {
+    result.profit = parseValue(profitMatch);
+  }
+
+  // 2. CIFRA DE AFACERI (CA) - Cont 707 sau clasa 7 total
+  const caMatch = text.match(/(?:cont(?:ul)?\s*707|cifra?\s*de\s*afaceri|venituri)[^\n]*?(?:sold final credit|total sume credit)?[:\s]*([\d.,]+)\s*RON/i);
+  if (caMatch) {
+    result.ca = parseValue(caMatch);
+  }
+
+  // 3. CHELTUIELI - suma claselor 6 sau mențiune directă
+  const cheltuieliMatch = text.match(/(?:cheltuieli|clase?\s*6|total\s*sume\s*debit.*?clase?\s*6)[^\n]*?[:\s]*([\d.,]+)\s*RON/i);
+  if (cheltuieliMatch) {
+    result.cheltuieli = parseValue(cheltuieliMatch);
+  }
+
+  // 4. SOLD BANCĂ (512x) - toate conturile 512x
+  const bancaRegex = /cont(?:ul)?\s*(512\d)[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/gi;
+  const bancaMatches = Array.from(text.matchAll(bancaRegex));
+  if (bancaMatches.length > 0) {
+    const totalBanca = bancaMatches.reduce((sum, m) => {
+      const val = parseValue(m, 2);
+      return sum + (val || 0);
+    }, 0);
+    result.banca = totalBanca;
+  }
+
+  // 5. CASĂ (5311)
+  const casaMatch = text.match(/cont(?:ul)?\s*5311[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/i);
+  if (casaMatch) {
+    result.casa = parseValue(casaMatch);
+  }
+
+  // 6. CLIENȚI (411)
+  const clientiMatch = text.match(/cont(?:ul)?\s*411[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/i);
+  if (clientiMatch) {
+    result.clienti = parseValue(clientiMatch);
+  }
+
+  // 7. FURNIZORI (401)
+  const furnizoriMatch = text.match(/cont(?:ul)?\s*401[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/i);
+  if (furnizoriMatch) {
+    result.furnizori = parseValue(furnizoriMatch);
+  }
+
+  // 8. STOCURI (3xx)
+  const stocuriRegex = /cont(?:ul)?\s*(3\d{2,3})[^\n]*?sold\s*final.*?([\d.,]+)\s*RON/gi;
+  const stocuriMatches = Array.from(text.matchAll(stocuriRegex));
+  if (stocuriMatches.length > 0) {
+    const totalStocuri = stocuriMatches.reduce((sum, m) => {
+      const val = parseValue(m, 2);
+      return sum + (val || 0);
+    }, 0);
+    result.stocuri = totalStocuri;
+  }
+
+  // 9. DSO (Days Sales Outstanding)
+  const dsoMatch = text.match(/DSO[^\n]*?([\d.,]+)\s*(?:zile|days)/i);
+  if (dsoMatch) {
+    result.dso = parseValue(dsoMatch);
+  }
+
+  // 10. DPO (Days Payable Outstanding)
+  const dpoMatch = text.match(/DPO[^\n]*?([\d.,]+)\s*(?:zile|days)/i);
+  if (dpoMatch) {
+    result.dpo = parseValue(dpoMatch);
+  }
+
+  // 11. EBITDA
+  const ebitdaMatch = text.match(/EBITDA[^\n]*?([\d.,\-]+)\s*RON/i);
+  if (ebitdaMatch) {
+    result.ebitda = parseValue(ebitdaMatch);
+  }
+
+  console.log('📄 Indicatori extrași din textul analizei:', result);
+  return result;
+}
+
 const SYSTEM_PROMPT = `🤝 Ești un consultant financiar de încredere, specializat în analiza balanțelor contabile pentru companii din România.
 
 👤 PERSONALITATEA TA:
@@ -1008,7 +1121,6 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const targetParsed = (() => {
             const yearMatch = period.match(/(20\d{2})/);
             const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
-            
             for (const [name, num] of Object.entries(months)) {
               const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
               if (wordBoundaryRegex.test(period)) {
@@ -1023,12 +1135,11 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             const normalizedName = normalizeRomanianText(fileName);
             
             // 1) Caută date în format dd-mm-yyyy sau interval [01-01-2025 31-01-2025]
-            const dateRangeMatch = fileName.match(/\[?(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+            const dateRangeMatch = fileName.match(/\[?(\d{2})[\/-](\d{2})[\/-](\d{4})/);
             if (dateRangeMatch) {
-              const month = parseInt(dateRangeMatch[2], 10); // al doilea grup = luna
+              const month = parseInt(dateRangeMatch[2], 10);
               const year = parseInt(dateRangeMatch[3], 10);
               if (month >= 1 && month <= 12 && year >= 2000) {
-                console.log(`📅 Parsed from "${fileName}": month=${month}, year=${year}`);
                 return { month, year };
               }
             }
@@ -1038,23 +1149,16 @@ async function executeTools(toolCalls: any[], authHeader: string) {
               if (normalizedName.includes(name)) {
                 const yMatch = fileName.match(/20\d{2}/);
                 const year = yMatch ? parseInt(yMatch[0]) : undefined;
-                console.log(`📅 Parsed from month name in "${fileName}": month=${num}, year=${year}`);
                 return { month: num, year };
               }
             }
             return { month: undefined, year: undefined };
           };
           
-          console.log(`🔍 Căutare pentru: month=${targetParsed.month}, year=${targetParsed.year}`);
-          
           // Găsește analiza potrivită
           const found = (data || []).find((row: any) => {
             const rowPeriod = parsePeriodFromRow(row);
-            const match = rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
-            if (match) {
-              console.log(`✅ Găsit match: ${row.file_name}`);
-            }
-            return match;
+            return rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
           });
           
           if (!found) {
@@ -1065,32 +1169,14 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             break;
           }
           
-          // Extrage indicatori din metadata (calculați deja de AI)
-          const indicators = found.metadata || {};
-          const text = found.analysis_text || '';
-          
-          // Extrage contul 121 (profit/pierdere) din text dacă există
-          const cont121Match = text.match(/cont(?:ul)?\s*121[^\n]*sold\s*final\s*(?:creditor|debitor)?[:\s]*([\d.,]+)\s*RON/i);
-          const cont121Value = cont121Match ? parseFloat(cont121Match[1].replace(/\./g, '').replace(',', '.')) : null;
+          // FOLOSIM FUNCȚIA CENTRALIZATĂ PENTRU A EXTRAGE DIN TEXT
+          const indicatoriDinText = extractIndicatorsFromText(found.analysis_text || '');
           
           result = {
             perioada: rawPeriod,
-            indicatori: {
-              profit: indicators.profit || cont121Value,
-              ca: indicators.ca,
-              cheltuieli: indicators.cheltuieli,
-              dso: indicators.dso,
-              dpo: indicators.dpo,
-              ebitda: indicators.ebitda,
-              casa: indicators.casa,
-              banca: indicators.banca,
-              clienti: indicators.clienti,
-              furnizori: indicators.furnizori,
-              stocuri: indicators.stocuri,
-              cont_121: cont121Value
-            },
+            indicatori: indicatoriDinText,
             fisier: found.file_name,
-            nota: "Indicatori extrași din analiza AI generată anterior"
+            nota: "Indicatori extrași DIRECT din textul analizei (dosarul tău)"
           };
           break;
         }
@@ -1128,50 +1214,35 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             return { month: undefined, year };
           })();
 
-          // Încearcă să deduci luna/anul din numele fișierului (inclusiv formate [01-03-2025 31-03-2025])
           const parsePeriodFromRow = (row: any) => {
             const fileName = (row.file_name || '').toLowerCase();
             const normalizedName = normalizeRomanianText(fileName);
-
-            // 1) Caută date în format dd-mm-yyyy sau interval [01-01-2025 31-01-2025]
             const dateRangeMatch = fileName.match(/\[?(\d{2})[\/-](\d{2})[\/-](\d{4})/);
             if (dateRangeMatch) {
               const month = parseInt(dateRangeMatch[2], 10);
               const year = parseInt(dateRangeMatch[3], 10);
-              if (month >= 1 && month <= 12 && year >= 2000) {
-                console.log(`📅 Parsed from "${fileName}": month=${month}, year=${year}`);
-                return { month, year };
-              }
+              if (month >= 1 && month <= 12 && year >= 2000) return { month, year };
             }
-
-            // 2) Fallback: caută nume de lună în text
             for (const [name, num] of Object.entries(months)) {
               if (normalizedName.includes(name)) {
                 const yMatch = fileName.match(/20\d{2}/);
                 const year = yMatch ? parseInt(yMatch[0]) : undefined;
-                console.log(`📅 Parsed from month name in "${fileName}": month=${num}, year=${year}`);
                 return { month: num, year };
               }
             }
             return { month: undefined, year: undefined };
           };
 
-          // Citește ultimele analize (inclusiv analysis_text pentru fallback)
           const { data, error } = await supabase
             .from('analyses')
-            .select('id, file_name, created_at, metadata, analysis_text')
+            .select('id, file_name, created_at, analysis_text')
             .order('created_at', { ascending: false })
             .limit(50);
           if (error) throw error;
 
-          console.log(`🔍 Căutare pentru: month=${targetParsed.month}, year=${targetParsed.year}`);
-
-          // Găsește analiza potrivită
           const found = (data || []).find((row: any) => {
             const rowPeriod = parsePeriodFromRow(row);
-            const match = rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
-            if (match) console.log(`✅ Găsit match: ${row.file_name}`);
-            return match;
+            return rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
           });
 
           if (!found) {
@@ -1179,53 +1250,15 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             break;
           }
 
-          // Utilitar: conversie sigură nr din string (1.802,42 -> 1802.42)
-          const toNumber = (v: any) => {
-            if (typeof v === 'number') return v;
-            if (typeof v === 'string') return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
-            return 0;
-          };
-
-          const accounts = found.metadata?.parsed_balance?.accounts || [];
-
-          // Filtrează DOAR conturile 512x (bancă), NU 531x (casă)
-          const bankAccountsMeta = accounts.filter((acc: any) => acc.code?.startsWith('512'));
-          let totalBanca = bankAccountsMeta.reduce((sum: number, acc: any) => sum + toNumber(acc.sold_final_debit), 0);
-
-          // Fallback: dacă nu avem în metadata, încearcă să extragi din textul analizei
-          let bankAccountsFromText: { code: string; name?: string; sold: number }[] = [];
-          if ((!totalBanca || totalBanca === 0) && (found.analysis_text || '').length > 0) {
-            const text = (found.analysis_text as string) || '';
-            const regex = /cont(?:ul)?\s*(512\d)[^\n]*?:?\s*.*?sold\s*final.*?([\d.,]+)\s*RON/gi;
-            const matches = Array.from(text.matchAll(regex));
-            if (matches.length) {
-              const byCode: Record<string, number> = {};
-              for (const m of matches) {
-                const code = m[1];
-                const val = toNumber(m[2]);
-                byCode[code] = (byCode[code] || 0) + val;
-              }
-              bankAccountsFromText = Object.entries(byCode).map(([code, val]) => ({ code, sold: val }));
-              const sumText = bankAccountsFromText.reduce((s, a) => s + a.sold, 0);
-              if (sumText > 0) {
-                totalBanca = sumText;
-                console.log(`📝 Fallback text: găsit sold bancă (512x) = ${totalBanca} RON`);
-              }
-            }
-          }
-
-          console.log(`💰 Sold bancă (doar 512x): ${totalBanca} RON`);
+          // FOLOSIM FUNCȚIA CENTRALIZATĂ
+          const indicatori = extractIndicatorsFromText(found.analysis_text || '');
+          const totalBanca = indicatori.banca || 0;
 
           result = {
             period: rawPeriod,
             sold_banca: totalBanca,
-            accounts_512x: (bankAccountsMeta.length ? bankAccountsMeta.map((acc: any) => ({
-              code: acc.code,
-              name: acc.name,
-              sold: toNumber(acc.sold_final_debit)
-            })) : bankAccountsFromText),
             message: `Sold bancă (doar conturi 512x, fără casa 531x) pentru ${rawPeriod}: ${totalBanca.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
-            nota: bankAccountsMeta.length ? 'Valoare din metadata analiză' : (bankAccountsFromText.length ? 'Valoare extrasă din textul analizei (fallback)' : undefined),
+            nota: 'Valoare extrasă DIRECT din textul analizei (dosarul tău)',
             fisier: found.file_name
           };
           break;
