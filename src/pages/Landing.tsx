@@ -112,7 +112,7 @@ export const Landing = () => {
             size="lg" 
             variant="outline"
             className="text-lg px-8 py-6"
-            onClick={() => window.open('https://youtu.be/nQblxkPPtKo?si=NHp_qiMbnDMV-M2B', '_blank')}
+            onClick={() => window.open('https://youtu.be/nQblxkPPtKo?si=beHEGRvful0cxgqM', '_blank')}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z"/>
