@@ -12,7 +12,10 @@ import {
   ThumbsDown,
   Activity,
   Users,
-  Zap
+  Zap,
+  BookOpen,
+  Edit,
+  Star
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -31,6 +34,19 @@ import {
 } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface PatternStats {
   question_pattern: string;
@@ -51,6 +67,18 @@ interface FeedbackStats {
   positiveRate: number;
 }
 
+interface KnowledgeItem {
+  id: string;
+  topic: string;
+  category: string;
+  response_template: string;
+  priority: number;
+  avg_rating: number;
+  total_ratings: number;
+  usage_count: number;
+  is_active: boolean;
+}
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
 export default function Analytics() {
@@ -63,7 +91,10 @@ export default function Analytics() {
     positiveRate: 0
   });
   const [totalConversations, setTotalConversations] = useState(0);
+  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeItem[]>([]);
+  const [editingItem, setEditingItem] = useState<KnowledgeItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -140,6 +171,16 @@ export default function Analytics() {
         setTotalConversations(uniqueConversations.size);
       }
 
+      // Încarcă knowledge base
+      const { data: knowledgeData } = await supabase
+        .from('knowledge_base')
+        .select('*')
+        .order('avg_rating', { ascending: false });
+
+      if (knowledgeData) {
+        setKnowledgeBase(knowledgeData);
+      }
+
     } catch (error) {
       console.error('Error loading analytics:', error);
       toast({
@@ -149,6 +190,39 @@ export default function Analytics() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveKnowledge = async () => {
+    if (!editingItem) return;
+
+    try {
+      const { error } = await supabase
+        .from('knowledge_base')
+        .update({
+          topic: editingItem.topic,
+          response_template: editingItem.response_template,
+          priority: editingItem.priority,
+          is_active: editingItem.is_active
+        })
+        .eq('id', editingItem.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Salvat cu succes',
+        description: 'Răspunsul a fost actualizat.'
+      });
+
+      setIsDialogOpen(false);
+      loadAnalytics();
+    } catch (error) {
+      console.error('Error updating knowledge:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu am putut salva modificările.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -364,6 +438,132 @@ export default function Analytics() {
               ))}
             </div>
           </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Knowledge Base Management */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Knowledge Base - Învățare din Feedback
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Topic</TableHead>
+                <TableHead>Categorie</TableHead>
+                <TableHead>Prioritate</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead>Utilizări</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Acțiuni</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {knowledgeBase.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.topic}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{item.category}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={item.priority > 5 ? 'default' : 'secondary'}>
+                      {item.priority}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-medium">
+                        {item.avg_rating?.toFixed(1) || 'N/A'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        ({item.total_ratings})
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{item.usage_count}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.is_active ? 'default' : 'destructive'}>
+                      {item.is_active ? 'Activ' : 'Inactiv'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Dialog open={isDialogOpen && editingItem?.id === item.id} onOpenChange={(open) => {
+                      setIsDialogOpen(open);
+                      if (!open) setEditingItem(null);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingItem(item);
+                            setIsDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Editare Răspuns Template</DialogTitle>
+                        </DialogHeader>
+                        {editingItem && (
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Topic</Label>
+                              <Input 
+                                value={editingItem.topic}
+                                onChange={(e) => setEditingItem({...editingItem, topic: e.target.value})}
+                              />
+                            </div>
+                            <div>
+                              <Label>Prioritate (0-10)</Label>
+                              <Input 
+                                type="number"
+                                min="0"
+                                max="10"
+                                value={editingItem.priority}
+                                onChange={(e) => setEditingItem({...editingItem, priority: parseInt(e.target.value)})}
+                              />
+                            </div>
+                            <div>
+                              <Label>Răspuns Template</Label>
+                              <Textarea 
+                                rows={8}
+                                value={editingItem.response_template}
+                                onChange={(e) => setEditingItem({...editingItem, response_template: e.target.value})}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="checkbox"
+                                checked={editingItem.is_active}
+                                onChange={(e) => setEditingItem({...editingItem, is_active: e.target.checked})}
+                              />
+                              <Label>Activ</Label>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                                Anulare
+                              </Button>
+                              <Button onClick={handleSaveKnowledge}>
+                                Salvează
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
