@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap, History, Menu } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -15,6 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { TypingIndicator } from './TypingIndicator';
+import { QuickReplySuggestions } from './QuickReplySuggestions';
+import { ConversationHistory } from './ConversationHistory';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -57,6 +61,8 @@ export const ChatAI = () => {
   const [suggestions, setSuggestions] = useState<QuestionPattern[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -215,10 +221,7 @@ export const ChatAI = () => {
             
             if (parsed.type === 'thinking') {
               if (!thinkingShown) {
-                toast({
-                  title: '🤔 Analizez...',
-                  description: parsed.message
-                });
+                setThinkingMessage(parsed.message || 'Yana analizează...');
                 thinkingShown = true;
               }
             } else if (parsed.type === 'content') {
@@ -419,35 +422,90 @@ export const ChatAI = () => {
   }
 
   return (
-    <Card className={`fixed ${isMaximized ? 'inset-4 w-[calc(100%-2rem)] h-[calc(100%-2rem)]' : 'bottom-4 right-4 w-full max-w-[650px] h-[650px]'} shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-primary" />
+    <div className="fixed inset-0 z-50 flex pointer-events-none">
+      {/* Sidebar Istoric - doar când e deschis */}
+      {showHistory && (
+        <div className="pointer-events-auto w-80 h-full p-4">
+          <ConversationHistory 
+            onSelectConversation={(id) => {
+              console.log('Load conversation:', id);
+              toast({
+                title: 'Funcție în dezvoltare',
+                description: 'Încărcarea conversațiilor anterioare va fi disponibilă în curând'
+              });
+            }}
+            currentConversationId={conversationId}
+          />
+        </div>
+      )}
+      
+      {/* Chat principal */}
+      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4' : 'ml-auto mr-4 mb-4 mt-auto w-full max-w-[650px] h-[650px]'} shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+          <div className="flex items-center gap-2">
+            <Sheet open={showHistory} onOpenChange={setShowHistory}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 md:hidden"
+                  aria-label="Istoric conversații"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0">
+                <ConversationHistory 
+                  onSelectConversation={(id) => {
+                    console.log('Load conversation:', id);
+                    toast({
+                      title: 'Funcție în dezvoltare',
+                      description: 'Încărcarea conversațiilor va fi disponibilă în curând'
+                    });
+                    setShowHistory(false);
+                  }}
+                  currentConversationId={conversationId}
+                />
+              </SheetContent>
+            </Sheet>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowHistory(!showHistory)}
+              className="h-8 w-8 hidden md:flex"
+              aria-label="Istoric conversații"
+              data-tour="conversation-history"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            <CardTitle className="text-lg">Chat AI Yana</CardTitle>
           </div>
-          <CardTitle className="text-lg">Chat AI Yana</CardTitle>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMaximized((v) => !v)}
-            className="h-8 w-8"
-            aria-label={isMaximized ? 'Minimizează chat' : 'Maximizează chat'}
-          >
-            {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsOpen(false)}
-            className="h-8 w-8"
-            aria-label="Închide chatul"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMaximized((v) => !v)}
+              className="h-8 w-8"
+              aria-label={isMaximized ? 'Minimizează chat' : 'Maximizează chat'}
+            >
+              {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(false)}
+              className="h-8 w-8"
+              aria-label="Închide chatul"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
         {/* Insights proactivi */}
@@ -500,31 +558,15 @@ export const ChatAI = () => {
 
         {/* Quick Actions - Întrebări Frecvente */}
         {messages.length === 1 && topQuestions.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              Quick Actions - Alți utilizatori au întrebat
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {topQuestions.map((pattern, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setInput(pattern.question_pattern)}
-                  className="text-xs px-3 py-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 transition-all text-left border border-primary/20 group"
-                >
-                  <div className="flex items-start gap-2">
-                    <Lightbulb className="h-3 w-3 text-primary mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-primary font-medium line-clamp-2">{pattern.question_pattern}</p>
-                      <p className="text-muted-foreground text-[10px] mt-0.5">
-                        Întrebat de {pattern.frequency}x
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          <QuickReplySuggestions
+            suggestions={topQuestions}
+            onSelectSuggestion={(question) => {
+              setInput(question);
+              inputRef.current?.focus();
+            }}
+            title="Întrebări Populare"
+            showFrequency={true}
+          />
         )}
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
@@ -565,14 +607,7 @@ export const ChatAI = () => {
               )}
             </div>
           ))}
-          {isLoading && (
-            <div className="flex justify-start animate-in fade-in duration-300">
-              <div className="bg-muted rounded-2xl px-4 py-3 flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-xs text-muted-foreground">Yana gândește...</span>
-              </div>
-            </div>
-          )}
+          {isLoading && <TypingIndicator message={thinkingMessage} />}
           <div ref={messagesEndRef} />
         </div>
 
@@ -674,5 +709,6 @@ export const ChatAI = () => {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 };

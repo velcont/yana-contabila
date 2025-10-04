@@ -61,12 +61,25 @@ export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
       target: '[data-tour="chat-button"]',
       content: (
         <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Pasul 4: Chat asistent 💬</h3>
+          <h3 className="font-semibold text-lg">Pasul 4: Chat AI Yana 💬</h3>
           <p>Întreabă-mă orice despre datele tale financiare!</p>
-          <p className="text-sm text-muted-foreground">Exemple: "Cât am cheltuit luna asta?", "Cum stau cu profitul?", "Compară august cu septembrie"</p>
+          <p className="text-sm text-muted-foreground">✨ <strong>Nou:</strong> Sugestii inteligente, istoric conversații, răspunsuri în timp real!</p>
+          <p className="text-sm text-muted-foreground">Exemple: "Cum stau cu DSO?", "Compară luna aceasta cu luna trecută"</p>
         </div>
       ),
       placement: 'left',
+      disableBeacon: true,
+    },
+    {
+      target: '[data-tour="conversation-history"]',
+      content: (
+        <div className="space-y-2">
+          <h3 className="font-semibold text-lg">Istoric Conversații 📚</h3>
+          <p>Accesează rapid conversațiile anterioare cu AI-ul.</p>
+          <p className="text-sm text-muted-foreground">Toate întrebările tale sunt salvate și pot fi căutate.</p>
+        </div>
+      ),
+      placement: 'bottom',
       disableBeacon: true,
     },
     {
