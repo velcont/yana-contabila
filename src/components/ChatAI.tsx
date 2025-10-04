@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2 } from 'lucide-react';
+import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -28,6 +29,13 @@ interface Insight {
   severity: 'info' | 'warning' | 'critical';
   is_read: boolean;
   created_at: string;
+}
+
+interface QuestionPattern {
+  question_pattern: string;
+  question_category: string;
+  frequency: number;
+  last_asked_at: string;
 }
 
 type SummaryType = 'detailed' | 'short' | 'action';
@@ -46,7 +54,11 @@ export const ChatAI = () => {
   const [conversationId] = useState(() => crypto.randomUUID());
   const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
   const [isMaximized, setIsMaximized] = useState(false);
+  const [suggestions, setSuggestions] = useState<QuestionPattern[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   // Feedback handler pentru sistem de învățare
@@ -280,13 +292,67 @@ export const ChatAI = () => {
     }
   };
 
-  // Sugestii contextuale avansate
-  const quickQuestions = [
-    "Compară ultimele 3 luni",
-    "Cum evoluează DSO-ul?",
-    "Ce tendințe observi?",
-    "Prioritizează acțiunile"
-  ];
+  // Încarcă top întrebări frecvente
+  useEffect(() => {
+    const loadTopQuestions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('chat_patterns')
+          .select('*')
+          .order('frequency', { ascending: false })
+          .limit(6);
+        
+        if (data && !error) {
+          setTopQuestions(data as QuestionPattern[]);
+        }
+      } catch (error) {
+        console.error('Error loading top questions:', error);
+      }
+    };
+
+    if (isOpen && messages.length === 1) {
+      loadTopQuestions();
+    }
+  }, [isOpen, messages.length]);
+
+  // Autocomplete inteligent cu sugestii din pattern-uri
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      if (!input.trim() || input.length < 3) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('chat_patterns')
+          .select('*')
+          .or(`question_pattern.ilike.%${input}%,question_category.ilike.%${input}%`)
+          .order('frequency', { ascending: false })
+          .limit(5);
+        
+        if (data && !error && data.length > 0) {
+          setSuggestions(data as QuestionPattern[]);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+      }
+    };
+
+    const debounceTimer = setTimeout(loadSuggestions, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [input]);
+
+  const selectSuggestion = (pattern: string) => {
+    setInput(pattern);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -432,21 +498,29 @@ export const ChatAI = () => {
           </div>
         )}
 
-        {/* Sugestii rapide */}
-        {messages.length === 1 && (
+        {/* Quick Actions - Întrebări Frecvente */}
+        {messages.length === 1 && topQuestions.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              Întrebări Avansate
+              <Zap className="h-3 w-3" />
+              Quick Actions - Alți utilizatori au întrebat
             </p>
-            <div className="flex flex-wrap gap-2">
-              {quickQuestions.map((q, idx) => (
+            <div className="grid grid-cols-2 gap-2">
+              {topQuestions.map((pattern, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setInput(q)}
-                  className="text-xs px-3 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors text-primary font-medium"
+                  onClick={() => setInput(pattern.question_pattern)}
+                  className="text-xs px-3 py-2 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 transition-all text-left border border-primary/20 group"
                 >
-                  {q}
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="h-3 w-3 text-primary mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-primary font-medium line-clamp-2">{pattern.question_pattern}</p>
+                      <p className="text-muted-foreground text-[10px] mt-0.5">
+                        Întrebat de {pattern.frequency}x
+                      </p>
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -531,23 +605,71 @@ export const ChatAI = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Întreabă despre analizele tale..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
-              size="icon"
-              className="shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+          
+          <div className="relative">
+            <div className="flex gap-2">
+              <Input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder="Întreabă despre analizele tale..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={isLoading || !input.trim()}
+                size="icon"
+                className="shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Autocomplete Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <Card className="absolute bottom-full mb-2 left-0 right-12 max-h-64 overflow-hidden shadow-lg animate-in slide-in-from-bottom-2 duration-200 z-50">
+                <CardContent className="p-0">
+                  <div className="px-3 py-2 border-b bg-muted/50">
+                    <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+                      <Lightbulb className="h-3 w-3" />
+                      Alți utilizatori au întrebat...
+                    </p>
+                  </div>
+                  <ScrollArea className="max-h-52">
+                    <div className="py-1">
+                      {suggestions.map((pattern, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => selectSuggestion(pattern.question_pattern)}
+                          className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors group"
+                        >
+                          <div className="flex items-start gap-2">
+                            <TrendingUp className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                                {pattern.question_pattern}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                                  {pattern.question_category}
+                                </Badge>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Întrebat de {pattern.frequency}x
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </CardContent>
