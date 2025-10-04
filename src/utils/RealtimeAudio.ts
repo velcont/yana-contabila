@@ -221,7 +221,7 @@ export class RealtimeChat {
           type: 'session.update',
           session: {
             modalities: ['text', 'audio'],
-            instructions: 'Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română. Când utilizatorul cere:\n- Indicatori financiari generali (DSO, DPO, EBITDA, profit, cifră de afaceri) → folosește get_financial_data\n- Solduri de conturi specifice sau detalii contabile (ex: "cont 5121", "conturi la bănci", "furnizori") → folosește search_balance_info\nExtrage informațiile din contextul primit și oferă răspunsuri clare, cu cifre exacte când sunt disponibile.',
+            instructions: 'Ești Yana, un asistent financiar inteligent și proactiv. Răspunde clar și prietenos în limba română. \n\nTOOL-URI DISPONIBILE:\n- get_financial_data: indicatori financiari (DSO, DPO, EBITDA, profit, cifră de afaceri)\n- search_balance_info: solduri de conturi specifice (ex: cont 5121, conturi la bănci)\n- get_analyses_history: ultimele N analize pentru comparații temporale\n- get_analysis_by_period: găsește analiza pentru o lună specifică\n- get_proactive_insights: verifică alertele automate\n- compare_periods: compară indicatori între 2 perioade\n\nCOMPORTAMENT PROACTIV:\n- Când user întreabă despre un indicator, FOLOSEȘTE AUTOMAT get_analysis_by_period\n- Pentru comparații, FOLOSEȘTE compare_periods\n- NU cere user-ului ID-uri sau detalii tehnice\n- Extrage informațiile și oferă răspunsuri clare cu cifre exacte.',
             voice: 'alloy',
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
@@ -272,6 +272,68 @@ export class RealtimeChat {
                     }
                   },
                   required: ['search_term']
+                }
+              },
+              {
+                type: 'function',
+                name: 'get_analyses_history',
+                description: 'Obține ultimele N analize ale utilizatorului pentru comparații temporale și analiza tendințelor',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    limit: {
+                      type: 'number',
+                      description: 'Numărul de analize de returnat (default: 5, max: 10)'
+                    }
+                  }
+                }
+              },
+              {
+                type: 'function',
+                name: 'get_analysis_by_period',
+                description: 'Găsește analiza pentru o lună sau perioadă specifică (ex: "august", "august 2024", "septembrie"). Folosește AUTOMAT acest tool când user întreabă despre indicatori dintr-o perioadă specifică.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    period: {
+                      type: 'string',
+                      description: 'Luna sau perioada căutată (ex: "august", "august 2024", "septembrie 2024")'
+                    }
+                  },
+                  required: ['period']
+                }
+              },
+              {
+                type: 'function',
+                name: 'get_proactive_insights',
+                description: 'Verifică alertele automate generate de sistem pentru probleme financiare',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    only_unread: {
+                      type: 'boolean',
+                      description: 'Dacă true, returnează doar alertele necitite'
+                    }
+                  }
+                }
+              },
+              {
+                type: 'function',
+                name: 'compare_periods',
+                description: 'Compară indicatori financiari între două perioade specifice',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    analysis1_id: {
+                      type: 'string',
+                      description: 'ID-ul primei analize (perioada veche)'
+                    },
+                    analysis2_id: {
+                      type: 'string',
+                      description: 'ID-ul celei de-a doua analize (perioada nouă)'
+                    }
+                  },
+                  required: ['analysis1_id', 'analysis2_id']
                 }
               }
             ],
@@ -624,6 +686,233 @@ export class RealtimeChat {
         };
         
         this.sendFunctionResult(callId, JSON.stringify(result));
+        
+      } else if (functionName === 'get_analyses_history') {
+        // Parse arguments
+        let limit = 5;
+        try {
+          const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
+          limit = parsed?.limit || 5;
+        } catch (_) {}
+        
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const { data: analyses, error } = await supabase
+          .from('analyses')
+          .select('id, file_name, created_at, analysis_text, metadata, company_name')
+          .order('created_at', { ascending: false })
+          .limit(Math.min(limit, 10));
+        
+        if (error) {
+          console.error('Error fetching analyses history:', error);
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut prelua istoricul analizelor.' }));
+          return;
+        }
+        
+        const result = {
+          analyses: analyses || [],
+          count: analyses?.length || 0,
+          message: `Am găsit ${analyses?.length || 0} analize în istoric.`
+        };
+        
+        this.sendFunctionResult(callId, JSON.stringify(result));
+        
+      } else if (functionName === 'get_analysis_by_period') {
+        // Parse arguments
+        let period: string | undefined;
+        try {
+          const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
+          period = parsed?.period as string | undefined;
+        } catch (_) {}
+        
+        if (!period) {
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Perioada lipsește.' }));
+          return;
+        }
+        
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Reutilizez logica de căutare după perioadă
+        const monthMap: Record<string, string> = {
+          ianuarie: '01', februarie: '02', martie: '03', aprilie: '04', mai: '05', iunie: '06',
+          iulie: '07', august: '08', septembrie: '09', octombrie: '10', noiembrie: '11', decembrie: '12'
+        };
+        
+        let filters: string[] = [];
+        const p = period.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const m = Object.keys(monthMap).find((k) => p.includes(k));
+        const yearMatch = p.match(/20\d{2}/)?.[0];
+        const mm = m ? monthMap[m] : undefined;
+        
+        if (yearMatch && mm) {
+          const patterns = [
+            `*.${yearMatch}-${mm}.*`,
+            `*${mm}-${yearMatch}*`,
+            `*${mm}.${yearMatch}*`,
+            `*${yearMatch}${mm}*`,
+            `*${m}*${yearMatch}*`
+          ];
+          for (const pat of patterns) {
+            filters.push(`file_name.ilike.${pat}`, `analysis_text.ilike.${pat}`);
+          }
+        } else if (yearMatch) {
+          filters.push(`file_name.ilike.*${yearMatch}*`, `analysis_text.ilike.*${yearMatch}*`);
+        } else if (m) {
+          filters.push(`file_name.ilike.*${m}*`, `analysis_text.ilike.*${m}*`);
+        }
+        
+        let analysesResp;
+        if (filters.length > 0) {
+          analysesResp = await supabase
+            .from('analyses')
+            .select('*')
+            .or(filters.join(','))
+            .order('created_at', { ascending: false })
+            .limit(1);
+        } else {
+          analysesResp = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        }
+        
+        const { data: analyses, error } = analysesResp as any;
+        if (error) {
+          console.error('Error fetching analysis by period:', error);
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut găsi analiza.' }));
+          return;
+        }
+        
+        let rows = analyses as any[] | null;
+        if (!rows || rows.length === 0) {
+          const { data: recent, error: e2 } = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (e2) {
+            this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut găsi analiza.' }));
+            return;
+          }
+          rows = recent;
+        }
+        
+        if (!rows || rows.length === 0) {
+          this.sendFunctionResult(callId, JSON.stringify({ 
+            error: `Nu am găsit analiza pentru perioada "${period}".`,
+            message: 'Nu există nicio analiză încărcată.'
+          }));
+          return;
+        }
+        
+        const analysis = rows[0];
+        const result = {
+          analysis: analysis,
+          message: `Am găsit analiza pentru ${period}.`
+        };
+        
+        this.sendFunctionResult(callId, JSON.stringify(result));
+        
+      } else if (functionName === 'get_proactive_insights') {
+        // Parse arguments
+        let only_unread = false;
+        try {
+          const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
+          only_unread = parsed?.only_unread || false;
+        } catch (_) {}
+        
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        let query = supabase
+          .from('chat_insights')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (only_unread) {
+          query = query.eq('is_read', false);
+        }
+        
+        const { data: insights, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching insights:', error);
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut prelua alertele.' }));
+          return;
+        }
+        
+        const result = {
+          insights: insights || [],
+          count: insights?.length || 0,
+          message: `Am găsit ${insights?.length || 0} ${only_unread ? 'alerte necitite' : 'alerte'}.`
+        };
+        
+        this.sendFunctionResult(callId, JSON.stringify(result));
+        
+      } else if (functionName === 'compare_periods') {
+        // Parse arguments
+        let analysis1_id: string | undefined;
+        let analysis2_id: string | undefined;
+        try {
+          const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
+          analysis1_id = parsed?.analysis1_id as string | undefined;
+          analysis2_id = parsed?.analysis2_id as string | undefined;
+        } catch (_) {}
+        
+        if (!analysis1_id || !analysis2_id) {
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'ID-urile analizelor lipsesc.' }));
+          return;
+        }
+        
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        const { data: analyses, error } = await supabase
+          .from('analyses')
+          .select('id, file_name, created_at, analysis_text, metadata, company_name')
+          .in('id', [analysis1_id, analysis2_id]);
+        
+        if (error) {
+          console.error('Error comparing periods:', error);
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut compara perioadele.' }));
+          return;
+        }
+        
+        if (!analyses || analyses.length !== 2) {
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am găsit ambele analize pentru comparație.' }));
+          return;
+        }
+        
+        const [old, current] = analyses.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        
+        const oldMeta = (old.metadata || {}) as Record<string, any>;
+        const currentMeta = (current.metadata || {}) as Record<string, any>;
+        
+        const comparison: any = {
+          period_old: { date: old.created_at, file: old.file_name, indicators: oldMeta },
+          period_new: { date: current.created_at, file: current.file_name, indicators: currentMeta },
+          changes: {}
+        };
+        
+        // Calculează schimbări procentuale
+        for (const key of ['dso', 'dpo', 'ebitda', 'profit', 'revenue']) {
+          if (oldMeta[key] && currentMeta[key]) {
+            const oldVal = parseFloat(oldMeta[key]);
+            const newVal = parseFloat(currentMeta[key]);
+            const change = ((newVal - oldVal) / Math.abs(oldVal)) * 100;
+            comparison.changes[key] = {
+              old: oldVal,
+              new: newVal,
+              change_pct: Math.round(change * 10) / 10,
+              trend: change > 0 ? 'crescător' : change < 0 ? 'descrescător' : 'stabil'
+            };
+          }
+        }
+        
+        comparison.message = `Comparație între ${old.file_name} și ${current.file_name}.`;
+        this.sendFunctionResult(callId, JSON.stringify(comparison));
       }
     } catch (error) {
       console.error('Error handling function call:', error);
