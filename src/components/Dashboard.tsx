@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -269,7 +269,7 @@ export const Dashboard = () => {
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className={`grid w-full ${isAdmin ? 'max-w-2xl grid-cols-4' : 'max-w-md grid-cols-3'}`}>
           <TabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
@@ -282,6 +282,12 @@ export const Dashboard = () => {
             <FileText className="h-4 w-4 mr-2" />
             Dosarul Meu Financiar
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="ai-analytics" onClick={() => window.location.href = '/analytics'}>
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Analytics AI
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
