@@ -529,6 +529,100 @@ const TOOLS = [
         required: ["analysis1_id", "analysis2_id"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "detect_issues_opportunities",
+      description: "Analizează TOATE analizele disponibile și identifică TOP 3 probleme și TOP 3 oportunități financiare bazate pe praguri concrete. Funcție 100% deterministă.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: {
+            type: "string",
+            description: "Perioada pentru care se analizează (ex: 'februarie 2025', 'ultimele 3 luni'). Dacă lipsește, analizează cea mai recentă analiză."
+          }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_action_plan",
+      description: "Generează plan de acțiune concret și determinist pentru o problemă financiară identificată. Include pași specifici, termene și template-uri email.",
+      parameters: {
+        type: "object",
+        properties: {
+          issue_type: {
+            type: "string",
+            enum: ["high_dso", "low_dpo", "negative_cash_flow", "high_expenses", "low_profit", "inventory_slow"],
+            description: "Tipul problemei pentru care se generează planul"
+          },
+          current_value: {
+            type: "number",
+            description: "Valoarea actuală a indicatorului problematic"
+          },
+          period: {
+            type: "string",
+            description: "Perioada pentru context (ex: 'februarie 2025')"
+          }
+        },
+        required: ["issue_type"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "simulate_cash_flow",
+      description: "Simulează scenarii 'what if' deterministe pentru cash flow. Calculează impactul exact al schimbărilor în termene de plată, discount-uri sau alte decizii financiare.",
+      parameters: {
+        type: "object",
+        properties: {
+          scenario_type: {
+            type: "string",
+            enum: ["extend_payment_terms", "early_payment_discount", "reduce_dso", "extend_dpo"],
+            description: "Tipul scenariului de simulat"
+          },
+          current_period: {
+            type: "string",
+            description: "Perioada curentă de referință (ex: 'februarie 2025')"
+          },
+          parameters: {
+            type: "object",
+            description: "Parametrii specifici scenariului (ex: { 'new_dpo_days': 60, 'current_dpo_days': 30 })"
+          }
+        },
+        required: ["scenario_type", "current_period"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "query_historical_data",
+      description: "Q&A robust pe arhivă - răspunde la întrebări despre istoricul financiar (ex: 'media DSO ultimele 6 luni', 'în ce lună am avut cel mai bun profit', 'trend venituri ultimele 3 luni'). Funcție 100% deterministă.",
+      parameters: {
+        type: "object",
+        properties: {
+          question_type: {
+            type: "string",
+            enum: ["average", "min", "max", "trend", "comparison", "sum"],
+            description: "Tipul întrebării (medie, minim, maxim, trend, comparație, sumă)"
+          },
+          indicator: {
+            type: "string",
+            description: "Indicatorul de analizat (ex: 'profit', 'dso', 'ca', 'cheltuieli', 'banca')"
+          },
+          period_range: {
+            type: "string",
+            description: "Intervalul de timp (ex: 'ultimele 6 luni', 'ianuarie-iunie 2025', '2025')"
+          }
+        },
+        required: ["question_type", "indicator"]
+      }
+    }
   }
 ];
 
@@ -1313,6 +1407,923 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           break;
         }
         
+        case "detect_issues_opportunities": {
+          // Determină perioada de analiză
+          const rawPeriod = args.period || '';
+          let targetAnalysis = null;
+          
+          if (rawPeriod) {
+            // Găsește analiza pentru perioada specificată
+            const period = normalizeRomanianText(rawPeriod.toLowerCase());
+            const months: Record<string, number> = {
+              ianuarie: 1, februarie: 2, martie: 3, aprilie: 4, mai: 5, iunie: 6,
+              iulie: 7, august: 8, septembrie: 9, octombrie: 10, noiembrie: 11, decembrie: 12
+            };
+            
+            const targetParsed = (() => {
+              const yearMatch = period.match(/(20\d{2})/);
+              const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
+              for (const [name, num] of Object.entries(months)) {
+                if (period.includes(name)) return { month: num, year };
+              }
+              return { month: undefined, year };
+            })();
+            
+            const { data, error } = await supabase
+              .from('analyses')
+              .select('id, file_name, created_at, analysis_text, metadata')
+              .order('created_at', { ascending: false })
+              .limit(50);
+            if (error) throw error;
+            
+            const parsePeriodFromRow = (row: any) => {
+              const fileName = (row.file_name || '').toLowerCase();
+              const dateRangeMatch = fileName.match(/\[?(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+              if (dateRangeMatch) {
+                const month = parseInt(dateRangeMatch[2], 10);
+                const year = parseInt(dateRangeMatch[3], 10);
+                if (month >= 1 && month <= 12 && year >= 2000) return { month, year };
+              }
+              for (const [name, num] of Object.entries(months)) {
+                if (normalizeRomanianText(fileName).includes(name)) {
+                  const yMatch = fileName.match(/20\d{2}/);
+                  return { month: num, year: yMatch ? parseInt(yMatch[0]) : undefined };
+                }
+              }
+              return { month: undefined, year: undefined };
+            };
+            
+            targetAnalysis = (data || []).find((row: any) => {
+              const rowPeriod = parsePeriodFromRow(row);
+              return rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
+            });
+          } else {
+            // Ia cea mai recentă analiză
+            const { data, error } = await supabase
+              .from('analyses')
+              .select('id, file_name, created_at, analysis_text, metadata')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+            if (error) throw error;
+            targetAnalysis = data;
+          }
+          
+          if (!targetAnalysis) {
+            result = { error: "Nu am găsit analize pentru perioada specificată" };
+            break;
+          }
+          
+          // Extrage indicatori
+          const ind = extractIndicatorsFromText(targetAnalysis.analysis_text || '');
+          const toNum = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0 : 0);
+          const accounts = targetAnalysis.metadata?.parsed_balance?.accounts || [];
+          const sumBy = (cls: string, field: 'total_sume_debit' | 'total_sume_credit') =>
+            accounts.filter((a: any) => a.code?.startsWith(cls))
+                    .reduce((s: number, a: any) => s + toNum(a[field]), 0);
+          const ven7 = sumBy('7', 'total_sume_credit');
+          const che6 = sumBy('6', 'total_sume_debit');
+          
+          if (ind.profit === undefined && (ven7 > 0 || che6 > 0)) ind.profit = ven7 - che6;
+          if (ind.ca === undefined && ven7 > 0) ind.ca = ven7;
+          if (ind.cheltuieli === undefined && che6 > 0) ind.cheltuieli = che6;
+          
+          // Detectează probleme și oportunități DETERMINIST
+          const problems = [];
+          const opportunities = [];
+          
+          // PROBLEME
+          if (ind.dso && ind.dso > 60) {
+            problems.push({
+              type: 'high_dso',
+              severity: ind.dso > 90 ? 'critical' : 'high',
+              title: `DSO ridicat: ${ind.dso.toFixed(0)} zile`,
+              description: `Încasezi de la clienți în ${ind.dso.toFixed(0)} zile (recomandat < 60 zile). Banii sunt blocați în creanțe.`,
+              current_value: ind.dso,
+              threshold: 60,
+              impact: `Dacă ai ${(ind.clienti || 0).toLocaleString('ro-RO')} RON în creanțe, ai ~${((ind.clienti || 0) * (ind.dso - 45) / ind.dso).toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON blocați peste normal.`
+            });
+          }
+          
+          if (ind.profit !== undefined && ind.profit < 0) {
+            problems.push({
+              type: 'negative_profit',
+              severity: 'critical',
+              title: `Pierdere: ${ind.profit.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+              description: `Cheltuielile (${(ind.cheltuieli || 0).toLocaleString('ro-RO')}) depășesc veniturile (${(ind.ca || 0).toLocaleString('ro-RO')}).`,
+              current_value: ind.profit,
+              impact: 'Erodează capitalul și pune presiune pe lichiditate.'
+            });
+          }
+          
+          if (ind.casa && ind.casa > 50000) {
+            problems.push({
+              type: 'casa_limit_exceeded',
+              severity: 'critical',
+              title: `NELEGAL: Casă ${ind.casa.toLocaleString('ro-RO')} RON`,
+              description: `Maximum legal: 50.000 RON. Depășire: ${(ind.casa - 50000).toLocaleString('ro-RO')} RON.`,
+              current_value: ind.casa,
+              threshold: 50000,
+              impact: 'Risc amenzi ANAF. Trebuie depus urgent la bancă.'
+            });
+          }
+          
+          if (ind.cheltuieli && ind.ca && ind.cheltuieli > ind.ca) {
+            problems.push({
+              type: 'expenses_exceed_revenue',
+              severity: 'critical',
+              title: 'Cheltuieli > Venituri',
+              description: `Cheltuieli ${ind.cheltuieli.toLocaleString('ro-RO')} RON vs Venituri ${ind.ca.toLocaleString('ro-RO')} RON.`,
+              current_value: ind.cheltuieli - ind.ca,
+              impact: 'Pierdere garantată, situație insustenabilă.'
+            });
+          }
+          
+          if (ind.clienti && ind.furnizori && ind.clienti < ind.furnizori && ind.furnizori > 0) {
+            problems.push({
+              type: 'negative_cash_flow',
+              severity: 'high',
+              title: 'Risc cash flow',
+              description: `Creanțe clienți (${ind.clienti.toLocaleString('ro-RO')}) < Datorii furnizori (${ind.furnizori.toLocaleString('ro-RO')}).`,
+              current_value: ind.furnizori - ind.clienti,
+              impact: 'Riscați să nu aveți bani pentru plăți.'
+            });
+          }
+          
+          // OPORTUNITĂȚI
+          if (ind.dpo && ind.dpo < 30 && ind.dpo > 0) {
+            opportunities.push({
+              type: 'extend_payment_terms',
+              title: `DPO scăzut: ${ind.dpo.toFixed(0)} zile`,
+              description: `Plătești furnizorii în ${ind.dpo.toFixed(0)} zile. Negociază termene 45-60 zile.`,
+              current_value: ind.dpo,
+              recommended_value: '45-60 zile',
+              potential_benefit: `Poți elibera ~${((ind.furnizori || 0) * (45 - ind.dpo) / 45).toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON în cash flow.`
+            });
+          }
+          
+          if (ind.profit !== undefined && ind.profit > 0 && ind.ca && (ind.profit / ind.ca) > 0.15) {
+            opportunities.push({
+              type: 'high_profitability',
+              title: `Marjă profitabilă: ${((ind.profit / ind.ca) * 100).toFixed(1)}%`,
+              description: `Profit ${ind.profit.toLocaleString('ro-RO')} RON pe CA ${ind.ca.toLocaleString('ro-RO')} RON.`,
+              current_value: (ind.profit / ind.ca) * 100,
+              potential_benefit: 'Oportunitate reinvestire sau creștere agresivă.'
+            });
+          }
+          
+          if (ind.banca && ind.banca > (ind.cheltuieli || 0) * 2) {
+            opportunities.push({
+              type: 'excess_liquidity',
+              title: `Lichiditate mare: ${ind.banca.toLocaleString('ro-RO')} RON`,
+              description: `Sold bancă mare vs cheltuieli lunare (${(ind.cheltuieli || 0).toLocaleString('ro-RO')} RON).`,
+              current_value: ind.banca,
+              potential_benefit: 'Oportunitate investiții, depozite sau dividend.'
+            });
+          }
+          
+          if (ind.dso && ind.dso < 45) {
+            opportunities.push({
+              type: 'good_collection',
+              title: `Încasări rapide: DSO ${ind.dso.toFixed(0)} zile`,
+              description: 'Încasezi rapid de la clienți - avantaj competitiv.',
+              current_value: ind.dso,
+              potential_benefit: 'Cash flow sănătos, poți negocia discount-uri la furnizori.'
+            });
+          }
+          
+          // Sortează și ia top 3
+          problems.sort((a, b) => {
+            const severityOrder: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 };
+            return (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0);
+          });
+          
+          result = {
+            period: targetAnalysis.file_name,
+            top_problems: problems.slice(0, 3),
+            top_opportunities: opportunities.slice(0, 3),
+            total_problems: problems.length,
+            total_opportunities: opportunities.length,
+            message: `Am identificat ${problems.length} probleme și ${opportunities.length} oportunități pentru ${targetAnalysis.file_name}`
+          };
+          break;
+        }
+        
+        case "generate_action_plan": {
+          const issueType = args.issue_type;
+          const currentValue = args.current_value;
+          const period = args.period || 'perioada curentă';
+          
+          const actionPlans: Record<string, any> = {
+            high_dso: {
+              title: "Plan de reducere DSO",
+              objective: `Reducere DSO de la ${currentValue?.toFixed(0) || '?'} zile la 45-60 zile în 90 zile`,
+              steps: [
+                {
+                  step: 1,
+                  action: "Identifică top 5 clienți cu întârzieri",
+                  deadline: "Săptămâna 1",
+                  owner: "CFO/Patron",
+                  template: "SELECT * FROM clienti ORDER BY zile_intarziere DESC LIMIT 5"
+                },
+                {
+                  step: 2,
+                  action: "Trimite email formal pentru termene mai scurte",
+                  deadline: "Săptămâna 2",
+                  owner: "Vânzări",
+                  template: `Subiect: Actualizare termene de plată
+
+Bună ziua,
+
+În contextul optimizării proceselor noastre financiare, de la [DATA], termenele de plată pentru clienții noi vor fi de 30 zile (în loc de ${currentValue?.toFixed(0) || 'X'} zile).
+
+Pentru comenzile în curs, rămân termenele anterioare.
+
+Vă mulțumim pentru înțelegere,
+[NUME COMPANIE]`
+                },
+                {
+                  step: 3,
+                  action: "Implementează discount 2-3% pentru plată la 15 zile",
+                  deadline: "Săptămâna 3",
+                  owner: "CFO",
+                  details: "Exemplu: Factură 10.000 RON → 9.700 RON dacă plata în 15 zile"
+                },
+                {
+                  step: 4,
+                  action: "Follow-up săptămânal pentru facturi > 45 zile",
+                  deadline: "Permanent (start săptămâna 4)",
+                  owner: "Contabilitate",
+                  details: "Email automat + apel telefonic"
+                },
+                {
+                  step: 5,
+                  action: "Evaluare rezultate",
+                  deadline: "Luna 3",
+                  owner: "CFO",
+                  kpi: "DSO < 60 zile + cash flow îmbunătățit cu 15-20%"
+                }
+              ],
+              expected_benefit: `Dacă reduci DSO la 50 zile, eliberezi ~${((currentValue || 0) - 50) * 1000} RON în cash (estimare).`
+            },
+            low_dpo: {
+              title: "Plan extindere termene plată furnizori",
+              objective: `Creștere DPO de la ${currentValue?.toFixed(0) || '?'} zile la 45-60 zile`,
+              steps: [
+                {
+                  step: 1,
+                  action: "Identifică top 10 furnizori (80% din volume)",
+                  deadline: "Săptămâna 1",
+                  owner: "Achiziții/CFO"
+                },
+                {
+                  step: 2,
+                  action: "Negociază termene 60 zile cu fiecare furnizor",
+                  deadline: "Săptămâna 2-4",
+                  owner: "Patron/CFO",
+                  template: `Subiect: Solicitare extindere termene plată
+
+Bună ziua,
+
+Datorită creșterii colaborării noastre (volum X RON/lună), dorim să discutăm extinderea termenelor de plată la 60 zile (de la ${currentValue?.toFixed(0) || 'X'} zile).
+
+În schimb, garantăm:
+- Comenzi regulate
+- Plăți punctuale
+- Creștere volum cu 15-20%
+
+Așteptăm feedback,
+[NUME COMPANIE]`
+                },
+                {
+                  step: 3,
+                  action: "Implementează treptat noile termene",
+                  deadline: "Luna 2",
+                  owner: "Contabilitate",
+                  details: "Start cu 45 zile, apoi 60 zile după 2 luni"
+                },
+                {
+                  step: 4,
+                  action: "Monitorizează cash flow săptămânal",
+                  deadline: "Permanent",
+                  owner: "CFO",
+                  kpi: "Cash disponibil crescut cu 20-30%"
+                }
+              ],
+              expected_benefit: `Extindere la 60 zile → cash suplimentar ~${(60 - (currentValue || 30)) * 500} RON (estimare).`
+            },
+            negative_cash_flow: {
+              title: "Plan urgență cash flow",
+              objective: "Echilibrare creanțe vs datorii în 60 zile",
+              steps: [
+                {
+                  step: 1,
+                  action: "Stop plăți neurgente > 30 zile",
+                  deadline: "Imediat",
+                  owner: "CFO",
+                  details: "Prioritizează: salarii > taxe > furnizori critici"
+                },
+                {
+                  step: 2,
+                  action: "Încasează facturile restante (> 45 zile)",
+                  deadline: "Săptămâna 1-2",
+                  owner: "Vânzări",
+                  template: "Email + apel telefonic pentru fiecare client cu restanțe"
+                },
+                {
+                  step: 3,
+                  action: "Negociază eșalonare cu furnizorii mari",
+                  deadline: "Săptămâna 2-3",
+                  owner: "CFO",
+                  details: "Propune plată în 3 tranșe lunare"
+                },
+                {
+                  step: 4,
+                  action: "Evaluează credit de urgență (doar dacă necesar)",
+                  deadline: "Săptămâna 3",
+                  owner: "CFO",
+                  details: "Overdraft sau credit de trezorerie 30-90 zile"
+                }
+              ],
+              expected_benefit: "Cash flow echilibrat → reduce riscul de neplată."
+            },
+            high_expenses: {
+              title: "Plan reducere cheltuieli",
+              objective: "Reducere cheltuieli cu 10-15% în 90 zile",
+              steps: [
+                {
+                  step: 1,
+                  action: "Audit cheltuieli lunare",
+                  deadline: "Săptămâna 1",
+                  owner: "CFO",
+                  details: "Clasifică: obligatorii / opționale / eliminabile"
+                },
+                {
+                  step: 2,
+                  action: "Renegociază contracte furnizori",
+                  deadline: "Săptămâna 2-4",
+                  owner: "Achiziții",
+                  target: "Discount 5-10% la furnizori principali"
+                },
+                {
+                  step: 3,
+                  action: "Elimină cheltuieli inutile",
+                  deadline: "Luna 2",
+                  owner: "Patron",
+                  examples: "Abonamente neutilizate, servicii duplicate"
+                },
+                {
+                  step: 4,
+                  action: "Monitorizare săptămânală",
+                  deadline: "Permanent",
+                  owner: "CFO",
+                  kpi: "Cheltuieli < 85% din venituri"
+                }
+              ],
+              expected_benefit: "Reducere 10% cheltuieli → profit crescut direct."
+            },
+            low_profit: {
+              title: "Plan îmbunătățire profitabilitate",
+              objective: "Creștere profit cu 20% în 6 luni",
+              steps: [
+                {
+                  step: 1,
+                  action: "Analizează produsele/serviciile cu marjă mică",
+                  deadline: "Săptămâna 1-2",
+                  owner: "CFO + Vânzări",
+                  details: "Identifică TOP 20% produse care aduc 80% profit"
+                },
+                {
+                  step: 2,
+                  action: "Crește prețuri cu 5-10% la produse premium",
+                  deadline: "Luna 2",
+                  owner: "Marketing",
+                  justificare: "Inflație, calitate, servicii suplimentare"
+                },
+                {
+                  step: 3,
+                  action: "Elimină/reduce produse neprofitabile",
+                  deadline: "Luna 3",
+                  owner: "Patron",
+                  criteriu: "Marjă < 15%"
+                },
+                {
+                  step: 4,
+                  action: "Focus pe cross-sell/up-sell",
+                  deadline: "Luna 4-6",
+                  owner: "Vânzări",
+                  target: "Vânzare medie +20%"
+                }
+              ],
+              expected_benefit: "Marjă crescută → profit sustenabil."
+            },
+            inventory_slow: {
+              title: "Plan optimizare stocuri",
+              objective: "Reducere DIO (rotație stocuri) cu 30% în 90 zile",
+              steps: [
+                {
+                  step: 1,
+                  action: "Identifică stocuri cu mișcare lentă (> 180 zile)",
+                  deadline: "Săptămâna 1",
+                  owner: "Depozit",
+                  details: "Raport stocuri pe vechime"
+                },
+                {
+                  step: 2,
+                  action: "Promoții pentru lichidare stocuri vechi",
+                  deadline: "Săptămâna 2-6",
+                  owner: "Marketing",
+                  discount: "15-30% reducere pentru stocuri > 6 luni"
+                },
+                {
+                  step: 3,
+                  action: "Renegociază comenzi cu furnizori (Just-in-Time)",
+                  deadline: "Luna 2",
+                  owner: "Achiziții",
+                  obiectiv: "Comenzi mici, frecvente în loc de stoc mare"
+                },
+                {
+                  step: 4,
+                  action: "Implementează sistem de alertă stocuri",
+                  deadline: "Luna 3",
+                  owner: "IT/Contabilitate",
+                  details: "Alertă când stoc > 90 zile fără mișcare"
+                }
+              ],
+              expected_benefit: "Reducere costuri depozitare + cash eliberat din stocuri."
+            }
+          };
+          
+          const plan = actionPlans[issueType];
+          if (!plan) {
+            result = { error: `Nu am găsit plan de acțiune pentru ${issueType}` };
+            break;
+          }
+          
+          result = {
+            period,
+            issue_type: issueType,
+            action_plan: plan,
+            message: `Plan de acțiune generat pentru ${issueType} în ${period}`
+          };
+          break;
+        }
+        
+        case "simulate_cash_flow": {
+          const scenarioType = args.scenario_type;
+          const currentPeriod = args.current_period;
+          const params = args.parameters || {};
+          
+          // Găsește analiza pentru perioada curentă
+          const period = normalizeRomanianText(currentPeriod.toLowerCase());
+          const months: Record<string, number> = {
+            ianuarie: 1, februarie: 2, martie: 3, aprilie: 4, mai: 5, iunie: 6,
+            iulie: 7, august: 8, septembrie: 9, octombrie: 10, noiembrie: 11, decembrie: 12
+          };
+          
+          const targetParsed = (() => {
+            const yearMatch = period.match(/(20\d{2})/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
+            for (const [name, num] of Object.entries(months)) {
+              if (period.includes(name)) return { month: num, year };
+            }
+            return { month: undefined, year };
+          })();
+          
+          const { data, error } = await supabase
+            .from('analyses')
+            .select('id, file_name, created_at, analysis_text, metadata')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (error) throw error;
+          
+          const parsePeriodFromRow = (row: any) => {
+            const fileName = (row.file_name || '').toLowerCase();
+            const dateRangeMatch = fileName.match(/\[?(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+            if (dateRangeMatch) {
+              const month = parseInt(dateRangeMatch[2], 10);
+              const year = parseInt(dateRangeMatch[3], 10);
+              if (month >= 1 && month <= 12 && year >= 2000) return { month, year };
+            }
+            for (const [name, num] of Object.entries(months)) {
+              if (normalizeRomanianText(fileName).includes(name)) {
+                const yMatch = fileName.match(/20\d{2}/);
+                return { month: num, year: yMatch ? parseInt(yMatch[0]) : undefined };
+              }
+            }
+            return { month: undefined, year: undefined };
+          };
+          
+          const found = (data || []).find((row: any) => {
+            const rowPeriod = parsePeriodFromRow(row);
+            return rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
+          });
+          
+          if (!found) {
+            result = { error: `Nu am găsit analiza pentru ${currentPeriod}` };
+            break;
+          }
+          
+          // Extrage indicatori
+          const ind = extractIndicatorsFromText(found.analysis_text || '');
+          const toNum = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0 : 0);
+          const accounts = found.metadata?.parsed_balance?.accounts || [];
+          const sumBy = (cls: string, field: 'total_sume_debit' | 'total_sume_credit') =>
+            accounts.filter((a: any) => a.code?.startsWith(cls))
+                    .reduce((s: number, a: any) => s + toNum(a[field]), 0);
+          const ven7 = sumBy('7', 'total_sume_credit');
+          const che6 = sumBy('6', 'total_sume_debit');
+          
+          if (ind.profit === undefined && (ven7 > 0 || che6 > 0)) ind.profit = ven7 - che6;
+          if (ind.ca === undefined && ven7 > 0) ind.ca = ven7;
+          if (ind.cheltuieli === undefined && che6 > 0) ind.cheltuieli = che6;
+          
+          // Simulări deterministe
+          let simulation: any = {};
+          
+          switch (scenarioType) {
+            case "extend_payment_terms": {
+              const currentDPO = params.current_dpo_days || ind.dpo || 30;
+              const newDPO = params.new_dpo_days || 60;
+              const furnizoriValue = ind.furnizori || 0;
+              
+              // Formula: Cash eliberat = Furnizori × (newDPO - currentDPO) / currentDPO
+              const cashEliberat = furnizoriValue * (newDPO - currentDPO) / currentDPO;
+              const newCash = (ind.banca || 0) + cashEliberat;
+              
+              simulation = {
+                scenario: `Extindere DPO de la ${currentDPO} zile la ${newDPO} zile`,
+                current_state: {
+                  dpo: currentDPO,
+                  furnizori: furnizoriValue,
+                  cash: ind.banca || 0
+                },
+                projected_state_90_days: {
+                  dpo: newDPO,
+                  furnizori: furnizoriValue,
+                  cash: newCash,
+                  cash_improvement: cashEliberat
+                },
+                impact: {
+                  cash_flow_improvement: `+${cashEliberat.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+                  cash_available_increase: `${((cashEliberat / (ind.banca || 1)) * 100).toFixed(1)}%`,
+                  risk: currentDPO < 45 ? "Scăzut - îmbunătățire sănătoasă" : "Mediu - verifică relații furnizori"
+                },
+                action_steps: [
+                  `Negociază cu top 5 furnizori (80% volum)`,
+                  `Implementează treptat: ${currentDPO}d → 45d → ${newDPO}d`,
+                  `Monitorizează relațiile comerciale săptămânal`
+                ]
+              };
+              break;
+            }
+            
+            case "early_payment_discount": {
+              const discountPercent = params.discount_percent || 5;
+              const paymentDays = params.payment_days || 15;
+              const clientiValue = ind.clienti || 0;
+              const estimatedAdoptionRate = params.adoption_rate || 0.3; // 30% clienți acceptă
+              
+              // Cost discount vs beneficiu cash flow
+              const discountCost = clientiValue * estimatedAdoptionRate * (discountPercent / 100);
+              const currentDSO = ind.dso || 60;
+              const cashSpeedUp = clientiValue * estimatedAdoptionRate * (currentDSO - paymentDays) / currentDSO;
+              const netBenefit = cashSpeedUp - discountCost;
+              
+              simulation = {
+                scenario: `Discount ${discountPercent}% pentru plată în ${paymentDays} zile`,
+                assumptions: `${(estimatedAdoptionRate * 100).toFixed(0)}% din clienți acceptă oferta`,
+                current_state: {
+                  dso: currentDSO,
+                  clienti: clientiValue,
+                  cash: ind.banca || 0
+                },
+                projected_state_90_days: {
+                  dso_effective: currentDSO * (1 - estimatedAdoptionRate) + paymentDays * estimatedAdoptionRate,
+                  clienti: clientiValue,
+                  cash: (ind.banca || 0) + netBenefit
+                },
+                financial_impact: {
+                  discount_cost: `-${discountCost.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+                  cash_acceleration: `+${cashSpeedUp.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+                  net_benefit: `${netBenefit > 0 ? '+' : ''}${netBenefit.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+                  roi: `${((netBenefit / discountCost) * 100).toFixed(1)}%`
+                },
+                recommendation: netBenefit > 0 
+                  ? `✅ Merită! Câștigi ${netBenefit.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON net în cash flow.`
+                  : `⚠️ Costă mai mult decât beneficiază. Reducere discount la ${(discountPercent * 0.7).toFixed(1)}% sau zile la ${paymentDays + 5}.`
+              };
+              break;
+            }
+            
+            case "reduce_dso": {
+              const currentDSO = ind.dso || 60;
+              const targetDSO = params.target_dso || 45;
+              const clientiValue = ind.clienti || 0;
+              
+              // Cash eliberat prin reducere DSO
+              const cashEliberat = clientiValue * (currentDSO - targetDSO) / currentDSO;
+              const newCash = (ind.banca || 0) + cashEliberat;
+              
+              simulation = {
+                scenario: `Reducere DSO de la ${currentDSO.toFixed(0)} zile la ${targetDSO} zile`,
+                current_state: {
+                  dso: currentDSO,
+                  clienti: clientiValue,
+                  cash: ind.banca || 0
+                },
+                projected_state_90_days: {
+                  dso: targetDSO,
+                  clienti: clientiValue,
+                  cash: newCash,
+                  cash_improvement: cashEliberat
+                },
+                impact: {
+                  cash_unlocked: `+${cashEliberat.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+                  cash_increase_pct: `${((cashEliberat / (ind.banca || 1)) * 100).toFixed(1)}%`,
+                  working_capital: "Îmbunătățire semnificativă"
+                },
+                action_steps: [
+                  `Follow-up săptămânal pentru facturi > 30 zile`,
+                  `Discount 2-3% pentru plată anticipată`,
+                  `Termene noi clienți: maxim 30 zile`,
+                  `Verificare bonitate clienți noi`
+                ]
+              };
+              break;
+            }
+            
+            case "extend_dpo": {
+              const currentDPO = ind.dpo || 30;
+              const targetDPO = params.target_dpo || 60;
+              const furnizoriValue = ind.furnizori || 0;
+              
+              const cashEliberat = furnizoriValue * (targetDPO - currentDPO) / currentDPO;
+              const newCash = (ind.banca || 0) + cashEliberat;
+              
+              simulation = {
+                scenario: `Extindere DPO de la ${currentDPO.toFixed(0)} zile la ${targetDPO} zile`,
+                current_state: {
+                  dpo: currentDPO,
+                  furnizori: furnizoriValue,
+                  cash: ind.banca || 0
+                },
+                projected_state_90_days: {
+                  dpo: targetDPO,
+                  furnizori: furnizoriValue,
+                  cash: newCash,
+                  cash_improvement: cashEliberat
+                },
+                impact: {
+                  cash_flow_boost: `+${cashEliberat.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON`,
+                  liquidity_improvement: `${((cashEliberat / (ind.banca || 1)) * 100).toFixed(1)}%`
+                },
+                implementation: [
+                  `Negociere cu top 10 furnizori`,
+                  `Argument: volum constant + plăți punctuale`,
+                  `Start 45 zile, apoi 60 zile după 60 zile`
+                ]
+              };
+              break;
+            }
+            
+            default:
+              result = { error: `Scenario type ${scenarioType} nu este suportat` };
+              return;
+          }
+          
+          result = {
+            period: currentPeriod,
+            scenario_type: scenarioType,
+            simulation,
+            message: `Simulare ${scenarioType} pentru ${currentPeriod} completă`
+          };
+          break;
+        }
+        
+        case "query_historical_data": {
+          const questionType = args.question_type;
+          const indicator = args.indicator;
+          const periodRange = args.period_range || 'ultimele 6 luni';
+          
+          // Ia toate analizele
+          const { data: allAnalyses, error } = await supabase
+            .from('analyses')
+            .select('id, file_name, created_at, analysis_text, metadata')
+            .order('created_at', { ascending: false })
+            .limit(100);
+          if (error) throw error;
+          
+          // Parsează perioada pentru fiecare analiză
+          const months: Record<string, number> = {
+            ianuarie: 1, februarie: 2, martie: 3, aprilie: 4, mai: 5, iunie: 6,
+            iulie: 7, august: 8, septembrie: 9, octombrie: 10, noiembrie: 11, decembrie: 12
+          };
+          
+          const parsePeriodFromRow = (row: any) => {
+            const fileName = (row.file_name || '').toLowerCase();
+            const dateRangeMatch = fileName.match(/\[?(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+            if (dateRangeMatch) {
+              const month = parseInt(dateRangeMatch[2], 10);
+              const year = parseInt(dateRangeMatch[3], 10);
+              if (month >= 1 && month <= 12 && year >= 2000) return { month, year };
+            }
+            for (const [name, num] of Object.entries(months)) {
+              if (normalizeRomanianText(fileName).includes(name)) {
+                const yMatch = fileName.match(/20\d{2}/);
+                return { month: num, year: yMatch ? parseInt(yMatch[0]) : undefined };
+              }
+            }
+            return { month: undefined, year: undefined };
+          };
+          
+          // Extrage indicatori pentru fiecare analiză
+          const analysesWithIndicators = (allAnalyses || []).map((row: any) => {
+            const period = parsePeriodFromRow(row);
+            const ind = extractIndicatorsFromText(row.analysis_text || '');
+            const toNum = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0 : 0);
+            const accounts = row.metadata?.parsed_balance?.accounts || [];
+            const sumBy = (cls: string, field: 'total_sume_debit' | 'total_sume_credit') =>
+              accounts.filter((a: any) => a.code?.startsWith(cls))
+                      .reduce((s: number, a: any) => s + toNum(a[field]), 0);
+            const ven7 = sumBy('7', 'total_sume_credit');
+            const che6 = sumBy('6', 'total_sume_debit');
+            
+            if (ind.profit === undefined && (ven7 > 0 || che6 > 0)) ind.profit = ven7 - che6;
+            if (ind.ca === undefined && ven7 > 0) ind.ca = ven7;
+            if (ind.cheltuieli === undefined && che6 > 0) ind.cheltuieli = che6;
+            
+            return {
+              ...row,
+              period,
+              indicators: ind
+            };
+          }).filter((a: any) => a.period.month && a.period.year);
+          
+          // Filtrează pe baza period_range
+          let filtered = analysesWithIndicators;
+          const now = new Date();
+          const currentMonth = now.getMonth() + 1;
+          const currentYear = now.getFullYear();
+          
+          if (periodRange.includes('ultimele')) {
+            const numMonths = parseInt(periodRange.match(/\d+/)?.[0] || '6');
+            filtered = analysesWithIndicators.filter((a: any) => {
+              const diff = (currentYear - a.period.year) * 12 + (currentMonth - a.period.month);
+              return diff >= 0 && diff < numMonths;
+            });
+          } else if (periodRange.match(/\d{4}/)) {
+            const year = parseInt(periodRange.match(/\d{4}/)?.[0] || '0');
+            filtered = analysesWithIndicators.filter((a: any) => a.period.year === year);
+          }
+          
+          if (filtered.length === 0) {
+            result = { error: `Nu am găsit analize pentru ${periodRange}` };
+            break;
+          }
+          
+          // Extrage valorile indicatorului
+          const values = filtered.map((a: any) => ({
+            period: `${months[a.period.month] || a.period.month}/${a.period.year}`,
+            value: a.indicators[indicator],
+            file: a.file_name
+          })).filter((v: any) => v.value !== undefined);
+          
+          if (values.length === 0) {
+            result = { error: `Nu am găsit valori pentru indicatorul ${indicator} în ${periodRange}` };
+            break;
+          }
+          
+          // Calculează pe baza question_type
+          let answer: any = {};
+          
+          switch (questionType) {
+            case "average": {
+              const avg = values.reduce((sum: number, v: any) => sum + v.value, 0) / values.length;
+              answer = {
+                type: 'Medie',
+                indicator,
+                period_range: periodRange,
+                value: avg,
+                formatted: `${avg.toLocaleString('ro-RO', { maximumFractionDigits: 2 })} ${indicator === 'dso' || indicator === 'dpo' ? 'zile' : 'RON'}`,
+                sample_size: values.length,
+                details: values
+              };
+              break;
+            }
+            
+            case "min": {
+              const min = values.reduce((minV: any, v: any) => v.value < minV.value ? v : minV, values[0]);
+              answer = {
+                type: 'Minimum',
+                indicator,
+                period_range: periodRange,
+                value: min.value,
+                formatted: `${min.value.toLocaleString('ro-RO', { maximumFractionDigits: 2 })} ${indicator === 'dso' || indicator === 'dpo' ? 'zile' : 'RON'}`,
+                period: min.period,
+                file: min.file
+              };
+              break;
+            }
+            
+            case "max": {
+              const max = values.reduce((maxV: any, v: any) => v.value > maxV.value ? v : maxV, values[0]);
+              answer = {
+                type: 'Maximum',
+                indicator,
+                period_range: periodRange,
+                value: max.value,
+                formatted: `${max.value.toLocaleString('ro-RO', { maximumFractionDigits: 2 })} ${indicator === 'dso' || indicator === 'dpo' ? 'zile' : 'RON'}`,
+                period: max.period,
+                file: max.file
+              };
+              break;
+            }
+            
+            case "trend": {
+              // Calculează trend simplu (linear regression simplificată)
+              const sorted = [...values].sort((a: any, b: any) => {
+                const [aM, aY] = a.period.split('/').map(Number);
+                const [bM, bY] = b.period.split('/').map(Number);
+                return (aY * 12 + aM) - (bY * 12 + bM);
+              });
+              
+              const first = sorted[0].value;
+              const last = sorted[sorted.length - 1].value;
+              const change = last - first;
+              const changePct = (change / first) * 100;
+              
+              answer = {
+                type: 'Trend',
+                indicator,
+                period_range: periodRange,
+                trend_direction: change > 0 ? 'crescător' : change < 0 ? 'descrescător' : 'stabil',
+                first_value: first,
+                last_value: last,
+                absolute_change: change,
+                percentage_change: changePct,
+                formatted: `${changePct > 0 ? '+' : ''}${changePct.toFixed(1)}% (${first.toLocaleString('ro-RO')} → ${last.toLocaleString('ro-RO')})`,
+                periods: sorted.map((s: any) => s.period)
+              };
+              break;
+            }
+            
+            case "sum": {
+              const total = values.reduce((sum: number, v: any) => sum + v.value, 0);
+              answer = {
+                type: 'Sumă totală',
+                indicator,
+                period_range: periodRange,
+                value: total,
+                formatted: `${total.toLocaleString('ro-RO', { maximumFractionDigits: 2 })} RON`,
+                sample_size: values.length,
+                details: values
+              };
+              break;
+            }
+            
+            case "comparison": {
+              if (values.length < 2) {
+                answer = { error: "Necesită cel puțin 2 perioade pentru comparație" };
+                break;
+              }
+              const sorted = [...values].sort((a: any, b: any) => {
+                const [aM, aY] = a.period.split('/').map(Number);
+                const [bM, bY] = b.period.split('/').map(Number);
+                return (bY * 12 + bM) - (aY * 12 + aM);
+              });
+              const recent = sorted[0];
+              const previous = sorted[1];
+              const diff = recent.value - previous.value;
+              const diffPct = (diff / previous.value) * 100;
+              
+              answer = {
+                type: 'Comparație',
+                indicator,
+                period_range: periodRange,
+                recent: { period: recent.period, value: recent.value },
+                previous: { period: previous.period, value: previous.value },
+                difference: diff,
+                difference_pct: diffPct,
+                formatted: `${recent.period}: ${recent.value.toLocaleString('ro-RO')} vs ${previous.period}: ${previous.value.toLocaleString('ro-RO')} (${diffPct > 0 ? '+' : ''}${diffPct.toFixed(1)}%)`
+              };
+              break;
+            }
+            
+            default:
+              answer = { error: `Question type ${questionType} nu este suportat` };
+          }
+          
+          result = {
+            question_type: questionType,
+            indicator,
+            period_range: periodRange,
+            answer,
+            message: `Răspuns la ${questionType} pentru ${indicator} în ${periodRange}`
+          };
+          break;
+        }
+        
         default:
           result = { error: "Unknown function: " + functionName };
       }
@@ -1569,7 +2580,7 @@ serve(async (req) => {
                   const followUpMessages = [
                     ...messages,
                     { role: "assistant", content: accumulatedContent || null, tool_calls: toolCalls },
-                    ...toolResults
+                    ...(toolResults || [])
                   ];
 
                   const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1633,7 +2644,7 @@ serve(async (req) => {
                       // Dacă follow-up nu a produs conținut, formăm răspunsul direct din rezultatele tool-urilor
                       if (!followUpProducedContent) {
                         try {
-                          const byName = (n: string) => toolResults.find((r: any) => r.name === n);
+                          const byName = (n: string) => (toolResults || []).find((r: any) => r.name === n);
                           let out = "";
 
                           const indTool = byName("get_analysis_indicators");
@@ -1755,7 +2766,7 @@ serve(async (req) => {
               const autoRes1 = await executeTools(autoCalls1, authHeader);
 
               let analysisId: string | null = null;
-              const ga = autoRes1.find((r: any) => r.name === "get_analysis_by_period");
+              const ga = (autoRes1 || []).find((r: any) => r.name === "get_analysis_by_period");
               if (ga) {
                 try {
                   const payload = JSON.parse(ga.content || "{}");
@@ -1764,13 +2775,13 @@ serve(async (req) => {
               }
 
               // 2) Dacă avem analiza, extragem conturile
-              let allToolResults = [...autoRes1];
+              let allToolResults = [...(autoRes1 || [])];
               if (analysisId) {
                 const autoCalls2 = [
                   { function: { name: "get_balance_accounts", arguments: JSON.stringify({ analysis_id: analysisId }) } }
                 ];
                 const autoRes2 = await executeTools(autoCalls2, authHeader);
-                allToolResults = [...autoRes1, ...autoRes2];
+                allToolResults = [...(autoRes1 || []), ...(autoRes2 || [])];
               }
 
               // 2.1) Întotdeauna încearcă să extragi indicatorii DIRECT din text pentru perioada cerută
@@ -1778,10 +2789,10 @@ serve(async (req) => {
                 { function: { name: 'get_analysis_indicators', arguments: JSON.stringify({ period: message }) } }
               ];
               const indRes = await executeTools(indCalls, authHeader);
-              allToolResults = [...allToolResults, ...indRes];
+              allToolResults = [...allToolResults, ...(indRes || [])];
 
               // Dacă avem profit din indicatori, răspunde imediat cu acesta (preferat față de calculul 6/7)
-              const indTool = indRes.find((r: any) => r.name === 'get_analysis_indicators');
+              const indTool = (indRes || []).find((r: any) => r.name === 'get_analysis_indicators');
               if (indTool) {
                 try {
                   const payload = JSON.parse(indTool.content || '{}');
@@ -1810,8 +2821,8 @@ serve(async (req) => {
                   toolCallsTotals.push({ function: { name: 'get_class_totals_by_period', arguments: JSON.stringify({ period: message, class: '6' }) } });
                 }
                 const totalsRes = await executeTools(toolCallsTotals, authHeader);
-                const res7 = totalsRes.find((r: any) => r.name === 'get_class_totals_by_period' && JSON.parse(r.content||'{}').class === '7');
-                const res6 = totalsRes.find((r: any) => r.name === 'get_class_totals_by_period' && JSON.parse(r.content||'{}').class === '6');
+                const res7 = (totalsRes || []).find((r: any) => r.name === 'get_class_totals_by_period' && JSON.parse(r.content||'{}').class === '7');
+                const res6 = (totalsRes || []).find((r: any) => r.name === 'get_class_totals_by_period' && JSON.parse(r.content||'{}').class === '6');
                 const p7 = res7 ? JSON.parse(res7.content || '{}') : null;
                 const p6 = res6 ? JSON.parse(res6.content || '{}') : null;
 
