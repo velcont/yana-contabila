@@ -56,8 +56,11 @@ IMPORTANT: Utilizatorii au analize pentru ianuarie-martie 2025 și alte luni din
 1. get_analyses_history - Extrage ultimele N analize
 2. get_analysis_by_period - Găsește analiza pentru o lună specifică
 3. get_balance_accounts - Extrage lista conturilor cu solduri din balanță
-4. get_proactive_insights - Verifică alerte automate
-5. compare_periods - Compară indicatori între 2 perioade
+4. get_class_totals_by_period - Obține totaluri pentru clasa 6/7 (Total sume debit/credit)
+5. get_profit_for_period_range - Calculează profit/pierdere pe interval (ex: ian-iun 2025)
+6. get_bank_balance_by_period - Sold bancă (DOAR 512x, fără 531x casa)
+7. get_proactive_insights - Verifică alerte automate
+8. compare_periods - Compară indicatori între 2 perioade
 
 🤖 COMPORTAMENT PROACTIV (CRITIC):
 - Când user întreabă despre un indicator (ex: "Care e DSO-ul pentru august?"):
@@ -211,8 +214,24 @@ Soldul final al contului 121 pentru un exercițiu financiar anual se calculează
 • Impozitul pe venit: Contul 4418 în Solduri finale Creditoare
 • Mărfuri: Contul 371 în Solduri finale Debitoare
 • Materii prime: Contul 301 în Solduri finale Debitoare
-• Conturi curente la bănci (512): Solduri finale debitoare (bani în bancă)
-• Casa în lei (5311): Solduri finale debitoare (bani în casă, nu poate avea sold creditor)
+• Conturi curente la bănci (512x): Solduri finale debitoare (bani în bancă)
+  - 5121: Conturi la bănci în lei
+  - 5124: Conturi la bănci în valută
+  - 5125: Sume în curs de decontare (încasări card în procesare)
+• Casa în lei (5311): Solduri finale debitoare (bani cash, max 50.000 RON legal)
+
+🔴 IMPORTANT - DIFERENȚA ÎNTRE SOLD BANCĂ ȘI TOTAL CLASA 5:
+• **Când user cere "sold bancă" sau "bani în bancă"**: 
+  → Folosește get_bank_balance_by_period → returnează DOAR conturile 512x (fără 531x)
+• **Când user cere "total clasa 5" sau "disponibilități totale"**:
+  → Include TOATE conturile clasa 5 (512x + 531x + orice alt cont din clasa 5)
+• **NU confunda cele două! Sold bancă ≠ Total clasa 5**
+
+🔴 CALCUL PROFIT PE PERIOADĂ:
+• Când user întreabă "Am fost pe profit sau pierdere în ianuarie-iunie 2025?":
+  → Folosește get_profit_for_period_range
+  → Formula: Profit = Total sume Creditoare clasa 7 - Total sume Debitoare clasa 6
+  → NU folosi contul 121! Acesta reflectă rezultatul ANUAL, nu pe intervale specifice
 
 🔴 SCOP:
 Asigurarea obiectivității și corectitudinii analizelor, evitarea concluziilor eronate și protejarea utilizatorilor de riscuri interpretative.
@@ -301,6 +320,45 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "get_profit_for_period_range",
+      description: "Calculează profitul/pierderea pentru o perioadă sau interval de luni (ex: 'ianuarie-iunie 2025', 'Q1 2025'). Folosește formula: Total sume Creditoare clasa 7 - Total sume Debitoare clasa 6.",
+      parameters: {
+        type: "object",
+        properties: {
+          start_period: {
+            type: "string",
+            description: "Perioada de start (ex: 'ianuarie 2025')"
+          },
+          end_period: {
+            type: "string",
+            description: "Perioada de sfârșit (ex: 'iunie 2025')"
+          }
+        },
+        required: ["start_period", "end_period"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_bank_balance_by_period",
+      description: "Returnează soldul băncii (doar conturile 512x, FĂRĂ 531x casa) pentru o perioadă specifică.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: {
+            type: "string",
+            description: "Luna sau perioada (ex: 'iunie 2025')"
+          }
+        },
+        required: ["period"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_proactive_insights",
       description: "Verifică alertele automate generate de sistem pentru probleme financiare",
       parameters: {
         type: "object",
@@ -860,14 +918,20 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const filtered = accounts.filter((acc: any) => acc.code?.startsWith(desiredClass));
           console.log(`🎯 Filtrate clasa ${desiredClass}: ${filtered.length} conturi`);
           
-          let totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
-          let totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+          let totalDebit = 0;
+          let totalCredit = 0;
           
-          console.log(`💰 Totaluri calculate din accounts: D=${totalDebit}, C=${totalCredit}`);
+          // Pentru clasele 6-7, calculăm din Total sume
+          if (desiredClass === '6' || desiredClass === '7') {
+            totalDebit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_debit) || 0), 0);
+            totalCredit = filtered.reduce((s: number, a: any) => s + (Number(a.total_sume_credit) || 0), 0);
+            console.log(`💰 Totaluri calculate din accounts (Total sume): D=${totalDebit}, C=${totalCredit}`);
+          }
 
-          // Fallback din analysis_text dacă nu avem valori valide
-          const aText = ((found as any).analysis_text as string) || '';
-          if (aText && (filtered.length === 0 || (totalDebit === 0 && totalCredit === 0))) {
+          // Fallback DOAR dacă nu avem metadata validă
+          if ((filtered.length === 0 || (totalDebit === 0 && totalCredit === 0)) && (found as any).analysis_text) {
+            console.log(`⚠️ Fallback la analysis_text pentru clasa ${desiredClass}`);
+            const text = ((found as any).analysis_text as string) || '';
             const parseNum = (str: string) => {
               const raw = (str || '').replace(/\s/g, '');
               const last = Math.max(raw.lastIndexOf(','), raw.lastIndexOf('.'));
@@ -878,16 +942,21 @@ async function executeTools(toolCalls: any[], authHeader: string) {
               }
               return parseFloat(raw.replace(/[^0-9-]/g, '')) || 0;
             };
-            const reCredit = new RegExp(`total\\s*sume\\s*credit\\w*[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
-            const reDebit = new RegExp(`total\\s*sume\\s*debit\\w*[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
-            const mC = aText.match(reCredit);
-            const mD = aText.match(reDebit);
-            if (desiredClass === '7' && mC) {
-              totalCredit = parseNum(mC[1]);
-              totalDebit = totalCredit;
-            } else if (desiredClass === '6' && mD) {
-              totalDebit = parseNum(mD[1]);
-              totalCredit = totalDebit;
+            
+            // Caută în text "Total clasa X" sau "Total sume ... clasa X"
+            const reTotal = new RegExp(`total\\s*(?:sume\\s*)?(?:credit\\w*|debit\\w*)?[^\\d]*clasa\\s*${desiredClass}[^\\d]*([0-9][0-9\\.,\\s]*)`, 'i');
+            const match = text.match(reTotal);
+            
+            if (match) {
+              const value = parseNum(match[1]);
+              if (desiredClass === '7') {
+                totalCredit = value;
+                totalDebit = value;
+              } else if (desiredClass === '6') {
+                totalDebit = value;
+                totalCredit = value;
+              }
+              console.log(`📝 Extras din text: ${value}`);
             }
           }
           
@@ -902,6 +971,207 @@ async function executeTools(toolCalls: any[], authHeader: string) {
               egale: Math.abs(totalDebit - totalCredit) < 0.01,
             },
             accounts_count: filtered.length,
+          };
+          break;
+        }
+        
+        case "get_profit_for_period_range": {
+          const startPeriod = (args.start_period || '').toString();
+          const endPeriod = (args.end_period || '').toString();
+          
+          console.log(`📊 Calculare profit pentru ${startPeriod} - ${endPeriod}`);
+          
+          // Extrage analizele pentru ambele perioade
+          const { data, error } = await supabase
+            .from('analyses')
+            .select('id, file_name, created_at, metadata')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (error) throw error;
+          
+          const months: Record<string, number> = {
+            ianuarie: 1, jan: 1, january: 1, ian: 1, '01': 1, '1': 1,
+            februarie: 2, february: 2, feb: 2, '02': 2, '2': 2,
+            martie: 3, march: 3, mar: 3, '03': 3, '3': 3,
+            aprilie: 4, april: 4, apr: 4, aprile: 4, '04': 4, '4': 4,
+            mai: 5, may: 5, '05': 5, '5': 5,
+            iunie: 6, june: 6, iun: 6, jun: 6, '06': 6, '6': 6,
+            iulie: 7, july: 7, iul: 7, jul: 7, '07': 7, '7': 7,
+            august: 8, aug: 8, '08': 8, '8': 8,
+            septembrie: 9, september: 9, sep: 9, sept: 9, '09': 9, '9': 9,
+            octombrie: 10, october: 10, oct: 10, '10': 10,
+            noiembrie: 11, november: 11, nov: 11, '11': 11,
+            decembrie: 12, december: 12, dec: 12, '12': 12,
+          };
+          
+          const parsePeriod = (periodStr: string) => {
+            const norm = normalizeRomanianText(periodStr.toLowerCase());
+            const yearMatch = norm.match(/(20\d{2})/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
+            
+            for (const [name, num] of Object.entries(months)) {
+              const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
+              if (wordBoundaryRegex.test(norm)) {
+                return { month: num, year };
+              }
+            }
+            return { month: undefined, year };
+          };
+          
+          const start = parsePeriod(startPeriod);
+          const end = parsePeriod(endPeriod);
+          
+          if (!start.month || !end.month || !start.year || !end.year) {
+            result = { error: `Nu am putut identifica perioadele: ${startPeriod} - ${endPeriod}` };
+            break;
+          }
+          
+          // Filtrează analizele în intervalul dat
+          const relevantAnalyses = (data || []).filter((row: any) => {
+            const fileName = (row.file_name || '').toLowerCase();
+            const normalizedName = normalizeRomanianText(fileName);
+            
+            // Extrage luna și anul din nume fișier
+            for (const [name, num] of Object.entries(months)) {
+              if (normalizedName.includes(name)) {
+                const yMatch = fileName.match(/20\d{2}/);
+                const rowYear = yMatch ? parseInt(yMatch[0]) : undefined;
+                const rowMonth = num;
+                
+                if (rowYear && rowMonth) {
+                  // Verifică dacă e în interval
+                  const rowDate = rowYear * 100 + rowMonth;
+                  const startDate = start.year! * 100 + start.month;
+                  const endDate = end.year! * 100 + end.month;
+                  
+                  return rowDate >= startDate && rowDate <= endDate;
+                }
+              }
+            }
+            return false;
+          });
+          
+          console.log(`📈 Analize găsite în interval: ${relevantAnalyses.length}`);
+          
+          let totalVenituri = 0;
+          let totalCheltuieli = 0;
+          
+          // Sumează Total sume pentru clasele 6 și 7
+          for (const analysis of relevantAnalyses) {
+            const accounts = analysis.metadata?.parsed_balance?.accounts || [];
+            
+            // Clasa 7 - venituri (Total sume creditoare)
+            const clasa7 = accounts.filter((acc: any) => acc.code?.startsWith('7'));
+            totalVenituri += clasa7.reduce((sum: number, acc: any) => 
+              sum + (Number(acc.total_sume_credit) || 0), 0
+            );
+            
+            // Clasa 6 - cheltuieli (Total sume debitoare)
+            const clasa6 = accounts.filter((acc: any) => acc.code?.startsWith('6'));
+            totalCheltuieli += clasa6.reduce((sum: number, acc: any) => 
+              sum + (Number(acc.total_sume_debit) || 0), 0
+            );
+          }
+          
+          const profit = totalVenituri - totalCheltuieli;
+          
+          result = {
+            start_period: startPeriod,
+            end_period: endPeriod,
+            analyses_count: relevantAnalyses.length,
+            total_venituri: totalVenituri,
+            total_cheltuieli: totalCheltuieli,
+            profit: profit,
+            status: profit >= 0 ? 'profit' : 'pierdere',
+            message: `În perioada ${startPeriod} - ${endPeriod}, ${profit >= 0 ? 'profit de' : 'pierdere de'} ${Math.abs(profit).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`
+          };
+          break;
+        }
+        
+        case "get_bank_balance_by_period": {
+          const rawPeriod = (args.period || '').toString();
+          const period = normalizeRomanianText(rawPeriod.toLowerCase());
+          
+          console.log(`🏦 Căutare sold bancă pentru ${rawPeriod}`);
+          
+          const months: Record<string, number> = {
+            ianuarie: 1, jan: 1, january: 1, ian: 1, '01': 1, '1': 1,
+            februarie: 2, february: 2, feb: 2, '02': 2, '2': 2,
+            martie: 3, march: 3, mar: 3, '03': 3, '3': 3,
+            aprilie: 4, april: 4, apr: 4, aprile: 4, '04': 4, '4': 4,
+            mai: 5, may: 5, '05': 5, '5': 5,
+            iunie: 6, june: 6, iun: 6, jun: 6, '06': 6, '6': 6,
+            iulie: 7, july: 7, iul: 7, jul: 7, '07': 7, '7': 7,
+            august: 8, aug: 8, '08': 8, '8': 8,
+            septembrie: 9, september: 9, sep: 9, sept: 9, '09': 9, '9': 9,
+            octombrie: 10, october: 10, oct: 10, '10': 10,
+            noiembrie: 11, november: 11, nov: 11, '11': 11,
+            decembrie: 12, december: 12, dec: 12, '12': 12,
+          };
+          
+          const yearMatch = period.match(/(20\d{2})/);
+          const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
+          let targetMonth: number | undefined = undefined;
+          
+          for (const [name, num] of Object.entries(months)) {
+            const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
+            if (wordBoundaryRegex.test(period)) {
+              targetMonth = num;
+              break;
+            }
+          }
+          
+          const { data, error } = await supabase
+            .from('analyses')
+            .select('id, file_name, created_at, metadata')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (error) throw error;
+          
+          // Găsește analiza pentru perioada specificată
+          const found = (data || []).find((row: any) => {
+            const fileName = (row.file_name || '').toLowerCase();
+            const normalizedName = normalizeRomanianText(fileName);
+            
+            for (const [name, num] of Object.entries(months)) {
+              if (normalizedName.includes(name)) {
+                const yMatch = fileName.match(/20\d{2}/);
+                const rowYear = yMatch ? parseInt(yMatch[0]) : undefined;
+                const rowMonth = num;
+                
+                return rowMonth === targetMonth && (!targetYear || rowYear === targetYear);
+              }
+            }
+            return false;
+          });
+          
+          if (!found) {
+            result = { error: `Nu am găsit analiza pentru perioada ${rawPeriod}` };
+            break;
+          }
+          
+          const accounts = found.metadata?.parsed_balance?.accounts || [];
+          
+          // Filtrează DOAR conturile 512x (bancă), NU 531x (casă)
+          const bankAccounts = accounts.filter((acc: any) => 
+            acc.code?.startsWith('512')
+          );
+          
+          const totalBanca = bankAccounts.reduce((sum: number, acc: any) => 
+            sum + (Number(acc.sold_final_debit) || 0), 0
+          );
+          
+          console.log(`💰 Sold bancă (doar 512x): ${totalBanca} RON`);
+          
+          result = {
+            period: rawPeriod,
+            sold_banca: totalBanca,
+            accounts_512x: bankAccounts.map((acc: any) => ({
+              code: acc.code,
+              name: acc.name,
+              sold: acc.sold_final_debit || 0
+            })),
+            message: `Sold bancă (doar conturi 512x, fără casa 531x) pentru ${rawPeriod}: ${totalBanca.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`
           };
           break;
         }

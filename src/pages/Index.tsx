@@ -111,6 +111,9 @@ const Index = () => {
           const indicators = parseAnalysisText(data.analysis);
           
           console.log('📊 Salvare analiză - conturi structurate primite:', data.structuredAccounts?.length || 0);
+          if (data.structuredAccounts && data.structuredAccounts.length > 0) {
+            console.log('🔍 Primele 3 conturi structurate:', JSON.stringify(data.structuredAccounts.slice(0, 3), null, 2));
+          }
           
           // Combine indicators with structured accounts data
           const metadata = {

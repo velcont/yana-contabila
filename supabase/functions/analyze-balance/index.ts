@@ -350,21 +350,46 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; 
         const headers = jsonData[0] as any[];
         const rows = jsonData.slice(1) as any[][];
         
-        // Identifică coloanele importante
-        // Identifică coloanele importante - folosind potrivire pe TOATE token-urile, nu pe oricare
-        const normalize = (v: any) => String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        // Identifică coloanele importante cu normalizare îmbunătățită
+        const normalize = (v: any) => String(v || '').toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
         const headersNorm = headers.map(h => normalize(h));
-        const getIndexAll = (tokens: string[]) => {
-          const toks = tokens.map(t => normalize(t));
-          return headersNorm.findIndex(h => toks.every(tok => h.includes(tok)));
+        
+        // Caută coloană cu toate cuvintele cheie (cu flexibilitate pentru ordine)
+        const findCol = (keywords: string[]) => {
+          const normed = keywords.map(k => normalize(k));
+          return headersNorm.findIndex(h => 
+            normed.every(kw => h.split(' ').some(word => word.includes(kw) || kw.includes(word)))
+          );
         };
         
-        const contIdx = headersNorm.findIndex(h => h.startsWith('cont') || h.includes('simbol'));
-        const denumireIdx = headersNorm.findIndex(h => h.includes('denumire') || h.includes('nume'));
-        const soldFinalDebitIdx = getIndexAll(['sold', 'final', 'debit']);
-        const soldFinalCreditIdx = getIndexAll(['sold', 'final', 'credit']);
-        const totalSumeDebitIdx = getIndexAll(['total', 'sume', 'debit']);
-        const totalSumeCreditIdx = getIndexAll(['total', 'sume', 'credit']);
+        // Caută cont/simbol
+        const contIdx = headersNorm.findIndex(h => 
+          h.includes('cont') || h.includes('simbol') || h.startsWith('cod')
+        );
+        
+        // Caută denumire
+        const denumireIdx = headersNorm.findIndex(h => 
+          h.includes('denumire') || h.includes('nume') || h.includes('descriere')
+        );
+        
+        // Solduri finale - caută "sold" + "final" + "debit"/"credit"
+        let soldFinalDebitIdx = findCol(['sold', 'final', 'debit']);
+        if (soldFinalDebitIdx < 0) soldFinalDebitIdx = findCol(['solduri', 'finale', 'debitoare']);
+        
+        let soldFinalCreditIdx = findCol(['sold', 'final', 'credit']);
+        if (soldFinalCreditIdx < 0) soldFinalCreditIdx = findCol(['solduri', 'finale', 'creditoare']);
+        
+        // Total sume - caută "total" + "sume" + "debit"/"credit"
+        let totalSumeDebitIdx = findCol(['total', 'sume', 'debit']);
+        if (totalSumeDebitIdx < 0) totalSumeDebitIdx = findCol(['total', 'debitoare']);
+        
+        let totalSumeCreditIdx = findCol(['total', 'sume', 'credit']);
+        if (totalSumeCreditIdx < 0) totalSumeCreditIdx = findCol(['total', 'creditoare']);
         
         rows.forEach(row => {
           if (!row || row.length === 0) return;
