@@ -320,20 +320,20 @@ export class RealtimeChat {
               {
                 type: 'function',
                 name: 'compare_periods',
-                description: 'Compară indicatori financiari între două perioade specifice',
+                description: 'Compară indicatori financiari între două perioade specifice. Acceptă perioade ca "ianuarie 2025", "februarie 2025", etc.',
                 parameters: {
                   type: 'object',
                   properties: {
-                    analysis1_id: {
+                    period1: {
                       type: 'string',
-                      description: 'ID-ul primei analize (perioada veche)'
+                      description: 'Prima perioadă pentru comparație (ex: "ianuarie 2025")'
                     },
-                    analysis2_id: {
+                    period2: {
                       type: 'string',
-                      description: 'ID-ul celei de-a doua analize (perioada nouă)'
+                      description: 'A doua perioadă pentru comparație (ex: "februarie 2025")'
                     }
                   },
-                  required: ['analysis1_id', 'analysis2_id']
+                  required: ['period1', 'period2']
                 }
               }
             ],
@@ -852,36 +852,85 @@ export class RealtimeChat {
         
       } else if (functionName === 'compare_periods') {
         // Parse arguments
-        let analysis1_id: string | undefined;
-        let analysis2_id: string | undefined;
+        let period1: string | undefined;
+        let period2: string | undefined;
         try {
           const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
-          analysis1_id = parsed?.analysis1_id as string | undefined;
-          analysis2_id = parsed?.analysis2_id as string | undefined;
+          period1 = parsed?.period1 as string | undefined;
+          period2 = parsed?.period2 as string | undefined;
         } catch (_) {}
         
-        if (!analysis1_id || !analysis2_id) {
-          this.sendFunctionResult(callId, JSON.stringify({ error: 'ID-urile analizelor lipsesc.' }));
+        if (!period1 || !period2) {
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Perioadele lipsesc.' }));
           return;
         }
         
         const { supabase } = await import('@/integrations/supabase/client');
         
-        const { data: analyses, error } = await supabase
-          .from('analyses')
-          .select('id, file_name, created_at, analysis_text, metadata, company_name')
-          .in('id', [analysis1_id, analysis2_id]);
+        // Helper function to find analysis by period
+        const findAnalysisByPeriod = async (period: string) => {
+          const monthMap: Record<string, string> = {
+            ianuarie: '01', februarie: '02', martie: '03', aprilie: '04', mai: '05', iunie: '06',
+            iulie: '07', august: '08', septembrie: '09', octombrie: '10', noiembrie: '11', decembrie: '12'
+          };
+          
+          let filters: string[] = [];
+          const p = period.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const m = Object.keys(monthMap).find((k) => p.includes(k));
+          const yearMatch = p.match(/20\d{2}/)?.[0];
+          const mm = m ? monthMap[m] : undefined;
+          
+          if (yearMatch && mm) {
+            const patterns = [
+              `*.${yearMatch}-${mm}.*`,
+              `*${mm}-${yearMatch}*`,
+              `*${mm}.${yearMatch}*`,
+              `*${yearMatch}${mm}*`,
+              `*${m}*${yearMatch}*`
+            ];
+            for (const pat of patterns) {
+              filters.push(`file_name.ilike.${pat}`, `analysis_text.ilike.${pat}`);
+            }
+          } else if (yearMatch) {
+            filters.push(`file_name.ilike.*${yearMatch}*`, `analysis_text.ilike.*${yearMatch}*`);
+          } else if (m) {
+            filters.push(`file_name.ilike.*${m}*`, `analysis_text.ilike.*${m}*`);
+          }
+          
+          let analysesResp;
+          if (filters.length > 0) {
+            analysesResp = await supabase
+              .from('analyses')
+              .select('*')
+              .or(filters.join(','))
+              .order('created_at', { ascending: false })
+              .limit(1);
+          } else {
+            analysesResp = await supabase
+              .from('analyses')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(1);
+          }
+          
+          const { data: analyses } = analysesResp as any;
+          return analyses?.[0] || null;
+        };
         
-        if (error) {
-          console.error('Error comparing periods:', error);
-          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut compara perioadele.' }));
+        // Find both analyses
+        const [analysis1, analysis2] = await Promise.all([
+          findAnalysisByPeriod(period1),
+          findAnalysisByPeriod(period2)
+        ]);
+        
+        if (!analysis1 || !analysis2) {
+          this.sendFunctionResult(callId, JSON.stringify({ 
+            error: `Nu am găsit ${!analysis1 ? period1 : ''} ${!analysis1 && !analysis2 ? 'și' : ''} ${!analysis2 ? period2 : ''}.`
+          }));
           return;
         }
         
-        if (!analyses || analyses.length !== 2) {
-          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am găsit ambele analize pentru comparație.' }));
-          return;
-        }
+        const analyses = [analysis1, analysis2];
         
         const [old, current] = analyses.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
