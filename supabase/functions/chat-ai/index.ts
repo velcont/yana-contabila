@@ -239,64 +239,127 @@ async function executeTools(toolCalls: any[], authHeader: string) {
         }
         
         case "get_analysis_by_period": {
-          const period = args.period.toLowerCase();
+          const rawPeriod: string = (args.period || '').toString();
+          const norm = (s: string) => s
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim();
+
+          const period = norm(rawPeriod);
+
+          // Hărți lună (RO + EN) cu abrevieri
+          const months: Record<string, number> = {
+            ianuarie: 1, jan: 1, january: 1, ian: 1,
+            februarie: 2, february: 2, feb: 2,
+            martie: 3, march: 3, mar: 3,
+            aprilie: 4, april: 4, apr: 4,
+            mai: 5,
+            iunie: 6, june: 6, iun: 6, jun: 6,
+            iulie: 7, july: 7, iul: 7, jul: 7,
+            august: 8, aug: 8,
+            septembrie: 9, september: 9, sept: 9, sep: 9,
+            octombrie: 10, october: 10, oct: 10,
+            noiembrie: 11, november: 11, nov: 11,
+            decembrie: 12, december: 12, dec: 12,
+          };
+
+          const monthFromText = (() => {
+            for (const [k, v] of Object.entries(months)) {
+              if (period.includes(k)) return v;
+            }
+            return undefined;
+          })();
+
+          // Extrage anul/ luna numerică din texte de tip "03/2025", "03-2025", "2025-03"
+          const mmYYYY = period.match(/(?:^|\D)(0?[1-9]|1[0-2])[\/\-.](\d{4})(?:\D|$)/);
+          const yyyyMM = period.match(/(?:^|\D)(\d{4})[\/\-.](0?[1-9]|1[0-2])(?!\d)(?:\D|$)/);
+          const yearOnly = period.match(/(?:^|\D)(20\d{2})(?:\D|$)/);
+
+          let targetMonth: number | undefined = monthFromText || (mmYYYY ? parseInt(mmYYYY[1], 10) : (yyyyMM ? parseInt(yyyyMM[2], 10) : undefined));
+          let targetYear: number | undefined = (mmYYYY ? parseInt(mmYYYY[2], 10) : (yyyyMM ? parseInt(yyyyMM[1], 10) : undefined)) || (yearOnly ? parseInt(yearOnly[1], 10) : undefined);
+
           const { data, error } = await supabase
             .from("analyses")
             .select("id, file_name, created_at, analysis_text, metadata")
             .order("created_at", { ascending: false });
-          
           if (error) throw error;
-          
-          // Caută analiza care corespunde perioadei
-          const months: { [key: string]: number } = {
-            'ianuarie': 1, 'january': 1, 'februarie': 2, 'february': 2,
-            'martie': 3, 'march': 3, 'aprilie': 4, 'april': 4,
-            'mai': 5, 'may': 5, 'iunie': 6, 'june': 6,
-            'iulie': 7, 'july': 7, 'august': 8,
-            'septembrie': 9, 'september': 9, 'octombrie': 10, 'october': 10,
-            'noiembrie': 11, 'november': 11, 'decembrie': 12, 'december': 12
+
+          type Row = { id: string; file_name: string | null; created_at: string; analysis_text: string | null; metadata: any };
+
+          // Extrage (luna, anul) din fiecare analiză pe baza metadata / text / nume fișier
+          const parsePeriodFromRow = (row: Row): { month?: number; year?: number } => {
+            const meta = row.metadata || {};
+            // 1) metadata.period_start / period_end (format ISO)
+            const iso = (val?: string) => (typeof val === 'string' ? new Date(val) : undefined);
+            const ms = iso(meta.period_start);
+            const me = iso(meta.period_end);
+            if (ms && !isNaN(ms.getTime())) return { month: ms.getMonth() + 1, year: ms.getFullYear() };
+            if (me && !isNaN(me.getTime())) return { month: me.getMonth() + 1, year: me.getFullYear() };
+
+            const lowerName = norm(row.file_name || '');
+            const lowerText = norm(row.analysis_text || '');
+
+            // 2) Caută dd/mm/yyyy sau dd-mm-yyyy în analysis_text
+            const dateRegex = /(\b|\D)(0?[1-9]|[12]\d|3[01])[\/\-.](0?[1-9]|1[0-2])[\/\-.](\d{4})(\b|\D)/;
+            const m1 = lowerText.match(dateRegex) || lowerName.match(dateRegex);
+            if (m1) {
+              const m = parseInt(m1[3], 10);
+              const y = parseInt(m1[4], 10);
+              if (m >= 1 && m <= 12 && y >= 2000) return { month: m, year: y };
+            }
+
+            // 3) Caută intervale de tip [01-03-2025 31-03-2025] în nume
+            const rangeRegex = /(\d{2})[\/-](\d{2})[\/-](\d{4})\s+(\d{2})[\/-](\d{2})[\/-](\d{4})/;
+            const m2 = lowerName.match(rangeRegex);
+            if (m2) {
+              const m = parseInt(m2[2], 10);
+              const y = parseInt(m2[3], 10);
+              if (m >= 1 && m <= 12 && y >= 2000) return { month: m, year: y };
+            }
+
+            // 4) Ultima variantă: caută numele lunii în text/nume + deduce anul din cifrele 20xx
+            for (const [k, v] of Object.entries(months)) {
+              if (lowerName.includes(k) || lowerText.includes(k)) {
+                const yMatch = lowerName.match(/20\d{2}/) || lowerText.match(/20\d{2}/);
+                return { month: v, year: yMatch ? parseInt(yMatch[0], 10) : undefined };
+              }
+            }
+            return {};
           };
-          
-          let foundAnalysis = null;
-          for (const analysis of data || []) {
-            const createdDate = new Date(analysis.created_at);
-            const fileName = analysis.file_name?.toLowerCase() || '';
-            const analysisText = analysis.analysis_text?.toLowerCase() || '';
-            
-            // Verifică dacă perioada este în numele fișierului sau în text
-            for (const [monthName, monthNum] of Object.entries(months)) {
-              if (period.includes(monthName)) {
-                if (createdDate.getMonth() + 1 === monthNum ||
-                    fileName.includes(monthName) ||
-                    analysisText.includes(monthName)) {
-                  foundAnalysis = analysis;
-                  break;
-                }
-              }
-            }
-            
-            // Verifică și după an dacă este specificat
-            const yearMatch = period.match(/20\d{2}/);
-            if (yearMatch && foundAnalysis) {
-              const year = parseInt(yearMatch[0]);
-              if (createdDate.getFullYear() === year) {
-                break;
-              } else {
-                foundAnalysis = null;
-              }
-            }
-            
-            if (foundAnalysis) break;
+
+          const annotated = (data || []).map((row: Row) => ({
+            row,
+            ...parsePeriodFromRow(row),
+          }));
+
+          // Dacă nu s-a specificat luna, încearcă să o deduci din text (ex: doar "martie")
+          if (!targetMonth && monthFromText) targetMonth = monthFromText;
+
+          // Găsește cea mai potrivită analiză
+          let candidates = annotated.filter(a => (targetMonth ? a.month === targetMonth : true));
+          if (targetYear) candidates = candidates.filter(a => a.year === targetYear);
+
+          // Dacă nu avem an, alege cel mai recent an pentru luna respectivă
+          if (!targetYear && targetMonth && candidates.length > 1) {
+            const maxYear = Math.max(...candidates.map(c => c.year || 0));
+            candidates = candidates.filter(c => (c.year || 0) === maxYear);
           }
-          
-          if (!foundAnalysis) {
-            result = { 
-              error: `Nu am găsit analiza pentru perioada "${args.period}". Analize disponibile: ${(data || []).map(a => new Date(a.created_at).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })).join(', ')}`
+
+          const found = candidates.sort((a, b) => new Date(b.row.created_at).getTime() - new Date(a.row.created_at).getTime())[0]?.row || null;
+
+          if (!found) {
+            const available = annotated
+              .map(a => a.year && a.month ? `${('0'+a.month).slice(-2)}/${a.year}` : null)
+              .filter(Boolean)
+              .slice(0, 12);
+            result = {
+              error: `Nu am găsit analiza pentru perioada "${rawPeriod}". Perioade disponibile: ${available.join(', ')}`
             };
           } else {
-            result = { 
-              analysis: foundAnalysis,
-              message: `Am găsit analiza pentru ${args.period}`
+            result = {
+              analysis: found,
+              message: `Am găsit analiza pentru ${rawPeriod}`
             };
           }
           break;

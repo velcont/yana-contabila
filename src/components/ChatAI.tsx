@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart } from 'lucide-react';
+import { MessageCircle, Send, X, Loader2, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -44,6 +44,7 @@ export const ChatAI = () => {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [conversationId] = useState(() => crypto.randomUUID());
   const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
+  const [isMaximized, setIsMaximized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -298,7 +299,7 @@ export const ChatAI = () => {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-full max-w-[650px] h-[650px] shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300">
+    <Card className={`fixed ${isMaximized ? 'inset-4 w-[calc(100%-2rem)] h-[calc(100%-2rem)]' : 'bottom-4 right-4 w-full max-w-[650px] h-[650px]'} shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -306,14 +307,26 @@ export const ChatAI = () => {
           </div>
           <CardTitle className="text-lg">Chat AI Yana</CardTitle>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsOpen(false)}
-          className="h-8 w-8"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMaximized((v) => !v)}
+            className="h-8 w-8"
+            aria-label={isMaximized ? 'Minimizează chat' : 'Maximizează chat'}
+          >
+            {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsOpen(false)}
+            className="h-8 w-8"
+            aria-label="Închide chatul"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
