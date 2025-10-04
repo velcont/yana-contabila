@@ -44,6 +44,92 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_analytics: {
+        Row: {
+          avg_conversation_length: number | null
+          avg_response_time_ms: number | null
+          avg_user_satisfaction: number | null
+          created_at: string
+          emerging_patterns: Json | null
+          id: string
+          period_end: string
+          period_start: string
+          top_categories: Json | null
+          total_conversations: number | null
+          total_messages: number | null
+        }
+        Insert: {
+          avg_conversation_length?: number | null
+          avg_response_time_ms?: number | null
+          avg_user_satisfaction?: number | null
+          created_at?: string
+          emerging_patterns?: Json | null
+          id?: string
+          period_end: string
+          period_start: string
+          top_categories?: Json | null
+          total_conversations?: number | null
+          total_messages?: number | null
+        }
+        Update: {
+          avg_conversation_length?: number | null
+          avg_response_time_ms?: number | null
+          avg_user_satisfaction?: number | null
+          created_at?: string
+          emerging_patterns?: Json | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          top_categories?: Json | null
+          total_conversations?: number | null
+          total_messages?: number | null
+        }
+        Relationships: []
+      }
+      chat_feedback: {
+        Row: {
+          conversation_message_id: string | null
+          created_at: string
+          feedback_text: string | null
+          id: string
+          question_category: string | null
+          rating: number
+          response_length: number | null
+          response_time_ms: number | null
+          user_id: string
+        }
+        Insert: {
+          conversation_message_id?: string | null
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          question_category?: string | null
+          rating: number
+          response_length?: number | null
+          response_time_ms?: number | null
+          user_id: string
+        }
+        Update: {
+          conversation_message_id?: string | null
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          question_category?: string | null
+          rating?: number
+          response_length?: number | null
+          response_time_ms?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_feedback_conversation_message_id_fkey"
+            columns: ["conversation_message_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_insights: {
         Row: {
           analysis_id: string | null
@@ -90,6 +176,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chat_patterns: {
+        Row: {
+          avg_response_time: number | null
+          created_at: string
+          frequency: number | null
+          id: string
+          last_asked_at: string | null
+          metadata: Json | null
+          question_category: string
+          question_pattern: string
+          success_rate: number | null
+          suggested_response_template: string | null
+        }
+        Insert: {
+          avg_response_time?: number | null
+          created_at?: string
+          frequency?: number | null
+          id?: string
+          last_asked_at?: string | null
+          metadata?: Json | null
+          question_category: string
+          question_pattern: string
+          success_rate?: number | null
+          suggested_response_template?: string | null
+        }
+        Update: {
+          avg_response_time?: number | null
+          created_at?: string
+          frequency?: number | null
+          id?: string
+          last_asked_at?: string | null
+          metadata?: Json | null
+          question_category?: string
+          question_pattern?: string
+          success_rate?: number | null
+          suggested_response_template?: string | null
+        }
+        Relationships: []
       }
       conversation_history: {
         Row: {
@@ -154,6 +279,51 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          avg_rating: number | null
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          priority: number | null
+          response_template: string
+          topic: string
+          total_ratings: number | null
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          avg_rating?: number | null
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          priority?: number | null
+          response_template: string
+          topic: string
+          total_ratings?: number | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          avg_rating?: number | null
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          priority?: number | null
+          response_template?: string
+          topic?: string
+          total_ratings?: number | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -204,6 +374,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      extract_question_pattern: {
+        Args: { question_text: string }
+        Returns: {
+          category: string
+          pattern: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
