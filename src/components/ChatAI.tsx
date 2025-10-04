@@ -584,50 +584,17 @@ Cu ce te pot ajuta astăzi?`
 
         {/* Quick Actions - Întrebări Frecvente sau Demo */}
         {messages.length === 1 && (
-          topQuestions.length > 0 ? (
-            <QuickReplySuggestions
-              suggestions={topQuestions}
-              onSelectSuggestion={(question) => {
-                setInput(question);
-                inputRef.current?.focus();
-              }}
-              title="Întrebări Populare"
-              showFrequency={true}
-            />
-          ) : (
-            <div className="space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                <Lightbulb className="h-3 w-3" />
-                Întrebări Sugerate (Demo)
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { text: "Cum stă DSO-ul meu?", category: "DSO" },
-                  { text: "Arată-mi profitul din ultima lună", category: "Profit" },
-                  { text: "Compară martie cu aprilie 2025", category: "Comparație" },
-                  { text: "Ce cheltuieli am avut recent?", category: "Cheltuieli" }
-                ].map((suggestion, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInput(suggestion.text)}
-                    className="h-auto py-2 px-3 text-left whitespace-normal hover:bg-primary/5 hover:border-primary/50 transition-all group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-3 w-3 text-primary" />
-                      <span className="text-xs font-medium">{suggestion.text}</span>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )
+          <QuickReplySuggestions
+            onSelectSuggestion={(question) => {
+              setInput(question);
+              inputRef.current?.focus();
+            }}
+            contextual={true}
+            showFrequency={true}
+          />
         )}
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-          {messages.map((msg, idx) => (
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">{messages.map((msg, idx) => (
             <div
               key={idx}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}

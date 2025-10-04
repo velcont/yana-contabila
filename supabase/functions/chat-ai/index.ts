@@ -415,6 +415,87 @@ serve(async (req) => {
       );
     }
 
+    // Extragem user_id pentru rate limiting și caching
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "Autentificare necesară" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // RATE LIMITING - max 30 request/min
+    const { data: rateLimitData, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+      p_user_id: userId,
+      p_endpoint: 'chat-ai',
+      p_max_requests: 30
+    });
+
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+    }
+
+    if (rateLimitData === false) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Prea multe cereri. Încercați din nou în 1 minut.",
+          retry_after: 60
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            "Content-Type": "application/json",
+            "Retry-After": "60"
+          } 
+        }
+      );
+    }
+
+    // CACHING - verifică dacă avem răspuns în cache
+    const questionHash = await crypto.subtle.digest(
+      'SHA-256', 
+      new TextEncoder().encode(message.toLowerCase().trim())
+    );
+    const hashHex = Array.from(new Uint8Array(questionHash))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    const { data: cachedData } = await supabase
+      .from('chat_cache')
+      .select('answer_text, hit_count')
+      .eq('question_hash', hashHex)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (cachedData) {
+      console.log('Cache hit for question hash:', hashHex);
+      
+      // Incrementează hit_count
+      await supabase
+        .from('chat_cache')
+        .update({ 
+          hit_count: cachedData.hit_count + 1,
+          last_used_at: new Date().toISOString()
+        })
+        .eq('question_hash', hashHex);
+
+      return new Response(
+        JSON.stringify({ 
+          response: cachedData.answer_text,
+          cached: true
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY nu este configurată");
@@ -423,15 +504,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Extragem user_id din auth header pentru sistem de învățare
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabase = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } }
-    });
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
 
     // Adaptează system prompt pe baza tipului de sumarizare și setează data curentă dinamic
     const now = new Date();
@@ -696,6 +768,23 @@ serve(async (req) => {
                         last_asked_at: new Date().toISOString()
                       });
                   }
+                }
+              }
+              
+              // 4. SALVĂM RĂSPUNSUL ÎN CACHE pentru întrebări frecvente
+              // Doar pentru întrebări simple (< 200 caractere) și răspunsuri > 50 caractere
+              if (message.length < 200 && accumulatedContent.length > 50) {
+                try {
+                  await supabase
+                    .from('chat_cache')
+                    .insert({
+                      question_hash: hashHex,
+                      question_text: message,
+                      answer_text: accumulatedContent
+                    });
+                } catch (cacheErr) {
+                  // Ignorăm eroarea de duplicate key
+                  console.log('Cache insert skipped:', cacheErr);
                 }
               }
               
