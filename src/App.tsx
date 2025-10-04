@@ -9,8 +9,22 @@ import Contact from "./pages/Contact";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import { Landing } from "./pages/Landing";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+const RootRoute = () => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  return user ? <Index /> : <Landing />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,7 +33,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<RootRoute />} />
           <Route path="/landing" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/contact" element={<Contact />} />
