@@ -192,6 +192,7 @@ const Index = () => {
     });
   };
 
+  // Loading state - afișează ecran de încărcare
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -205,8 +206,11 @@ const Index = () => {
 
   // Dacă utilizatorul NU este autentificat, afișează Landing page
   if (!user) {
+    console.log('User is not authenticated, showing Landing page');
     return <Landing />;
   }
+
+  console.log('User is authenticated:', user.email);
 
   if (showDashboard && user) {
     return (
