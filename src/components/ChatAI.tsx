@@ -742,7 +742,6 @@ Cu ce te pot ajuta astăzi?`
                     { text: "Care sunt Top 3 probleme și oportunități din ultima balanță?", icon: AlertCircle },
                     { text: "Creează plan de acțiune pentru îmbunătățirea DSO", icon: ListChecks },
                     { text: "Ce impact are un discount de 5% pentru plată în 15 zile?", icon: Zap },
-                    { text: "Care a fost profitul mediu în ultimele 6 luni?", icon: FileBarChart },
                     { text: "Simulează reducere DSO cu 10 zile - impact cash flow", icon: TrendingUp }
                   ].map((suggestion, idx) => {
                     const Icon = suggestion.icon;
