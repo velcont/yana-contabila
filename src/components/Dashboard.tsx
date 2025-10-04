@@ -8,8 +8,9 @@ import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, 
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
-import { AnalyticsCharts } from './AnalyticsCharts';
-import { parseAnalysisText } from '@/utils/analysisParser';
+import AnalyticsCharts from './AnalyticsCharts';
+import CompareAnalyses from './CompareAnalyses';
+import { parseAnalysisText, type FinancialIndicators } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -34,6 +35,7 @@ interface Analysis {
   analysis_text: string;
   created_at: string;
   company_name?: string;
+  metadata: FinancialIndicators;
 }
 
 export const Dashboard = () => {
@@ -57,7 +59,14 @@ export const Dashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAnalyses(data || []);
+      
+      // Parse metadata pentru fiecare analiză
+      const analysesWithMetadata = (data || []).map(analysis => ({
+        ...analysis,
+        metadata: parseAnalysisText(analysis.analysis_text)
+      }));
+      
+      setAnalyses(analysesWithMetadata);
     } catch (error) {
       console.error('Error loading analyses:', error);
       toast({
@@ -241,13 +250,6 @@ export const Dashboard = () => {
 
   const filteredAnalyses = getFilteredAnalyses();
 
-  // Pregătire date pentru grafice
-  const analyticsData = filteredAnalyses.map(analysis => ({
-    date: analysis.created_at,
-    fileName: analysis.file_name,
-    indicators: parseAnalysisText(analysis.analysis_text)
-  }));
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -321,7 +323,10 @@ export const Dashboard = () => {
 
         <TabsContent value="analytics" className="space-y-6">
           <TopIssuesWidget />
-          <AnalyticsCharts data={analyticsData} />
+          <AnalyticsCharts analyses={filteredAnalyses} />
+          {filteredAnalyses.length >= 2 && (
+            <CompareAnalyses analyses={filteredAnalyses} />
+          )}
         </TabsContent>
 
         <TabsContent value="news" className="space-y-6">
