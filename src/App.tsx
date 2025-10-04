@@ -14,7 +14,7 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const RootRoute = () => {
+const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth();
   if (loading) {
     return (
@@ -23,7 +23,10 @@ const RootRoute = () => {
       </div>
     );
   }
-  return user ? <Index /> : <Landing />;
+  if (!user) {
+    return <Landing />;
+  }
+  return children;
 };
 
 const App = () => (
@@ -37,8 +40,8 @@ const App = () => (
           <Route path="/landing" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/app" element={<Index />} />
+          <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
+          <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
