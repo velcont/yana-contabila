@@ -399,23 +399,56 @@ export class RealtimeChat {
           return;
         }
         
-        if (!analyses || analyses.length === 0) {
+        // Fallback: if no rows matched the period filters, fetch the latest analysis
+        let rows = analyses as any[] | null;
+        if (!rows || rows.length === 0) {
+          const { data: recent, error: e2 } = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (e2) {
+            console.error('Error fetching latest analysis:', e2);
+            this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut prelua datele financiare.' }));
+            return;
+          }
+          rows = recent;
+        }
+        
+        if (!rows || rows.length === 0) {
           this.sendFunctionResult(callId, JSON.stringify({ message: 'Nu există nicio analiză financiară încărcată încă.' }));
           return;
         }
         
-        const analysis = analyses[0];
+        const analysis = rows[0];
         const md = (analysis?.metadata || {}) as Record<string, any>;
+        const analysisText: string = analysis?.analysis_text || '';
         
         // Compose structured financial snapshot
-        const val = metric ? md[metric] : undefined;
-        const numericVal = typeof val === 'number' ? val : val ? Number(val) : undefined;
+        const mdVal = metric ? md[metric] : undefined;
+        let numericVal: number | null = null;
+        if (typeof mdVal === 'number') numericVal = mdVal;
+        else if (mdVal != null) {
+          const n = Number(mdVal);
+          if (!Number.isNaN(n)) numericVal = n;
+        }
+        
+        // Fallback: try to parse from analysis_text (e.g., DSO)
+        if (numericVal == null && metric) {
+          const dec = (s: string) => Number(s.replace(',', '.'));
+          if (metric.toLowerCase() === 'dso') {
+            const m1 = analysisText.match(/\bDSO\b[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i) 
+              || analysisText.match(/days\s*sales\s*outstanding[^0-9]*([0-9]+(?:[.,][0-9]+)?)/i);
+            if (m1?.[1]) numericVal = dec(m1[1]);
+          }
+        }
+        
         const result = {
           company_name: analysis.company_name || 'Companie necunoscută',
           period_requested: period || null,
           assumed_period: md.period || new Date(analysis.created_at).toISOString().slice(0, 10),
           requested_metric: metric || null,
-          requested_metric_value: numericVal ?? null,
+          requested_metric_value: numericVal,
           indicators: {
             dso: typeof md.dso === 'number' ? md.dso : md.dso ? Number(md.dso) : undefined,
             dpo: md.dpo ?? undefined,
