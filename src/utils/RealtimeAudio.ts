@@ -221,7 +221,7 @@ export class RealtimeChat {
           type: 'session.update',
           session: {
             modalities: ['text', 'audio'],
-            instructions: 'Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română. Când utilizatorul îți cere informații despre indicatori financiari (DSO, DPO, EBITDA, profit, etc.), folosește tool-ul get_financial_data pentru a obține datele sale.',
+            instructions: 'Ești Yana, un asistent financiar inteligent care oferă analize și sfaturi despre situația financiară. Răspunde clar și prietenos în limba română. Când utilizatorul cere:\n- Indicatori financiari generali (DSO, DPO, EBITDA, profit, cifră de afaceri) → folosește get_financial_data\n- Solduri de conturi specifice sau detalii contabile (ex: "cont 5121", "conturi la bănci", "furnizori") → folosește search_balance_info\nExtrage informațiile din contextul primit și oferă răspunsuri clare, cu cifre exacte când sunt disponibile.',
             voice: 'alloy',
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
@@ -253,6 +253,25 @@ export class RealtimeChat {
                     }
                   },
                   required: ['metric']
+                }
+              },
+              {
+                type: 'function',
+                name: 'search_balance_info',
+                description: 'Caută informații specifice în balanța contabilă (solduri de conturi, detalii contabile). Folosește această funcție când utilizatorul cere informații despre conturi specifice (ex: cont 5121, conturi la bănci, furnizori, clienți, etc.)',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    search_term: {
+                      type: 'string',
+                      description: 'Termenul sau numărul contului căutat (ex: "5121", "conturi la bănci", "furnizori")'
+                    },
+                    period: {
+                      type: 'string',
+                      description: 'Perioada cerută (ex: "martie 2025", "03/2025", "2025-03")'
+                    }
+                  },
+                  required: ['search_term']
                 }
               }
             ],
@@ -334,7 +353,136 @@ export class RealtimeChat {
     try {
       console.log(`Handling function call: ${functionName}`, args);
       
-      if (functionName === 'get_financial_data') {
+      if (functionName === 'search_balance_info') {
+        // Parse arguments
+        let period: string | undefined;
+        let search_term: string | undefined;
+        try {
+          const parsed = typeof args === 'string' ? JSON.parse(args || '{}') : args;
+          period = parsed?.period as string | undefined;
+          search_term = parsed?.search_term as string | undefined;
+        } catch (_) {}
+        
+        if (!search_term) {
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Termenul de căutare lipsește.' }));
+          return;
+        }
+        
+        const { supabase } = await import('@/integrations/supabase/client');
+        
+        // Build period filters
+        const monthMap: Record<string, string> = {
+          ianuarie: '01', februarie: '02', martie: '03', aprilie: '04', mai: '05', iunie: '06',
+          iulie: '07', august: '08', septembrie: '09', octombrie: '10', noiembrie: '11', decembrie: '12'
+        };
+        let filters: string[] = [];
+        if (period) {
+          const p = period.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          const m = Object.keys(monthMap).find((k) => p.includes(k));
+          const yearMatch = p.match(/20\d{2}/)?.[0];
+          const mm = m ? monthMap[m] : undefined;
+          if (yearMatch && mm) {
+            const patterns = [
+              `*.${yearMatch}-${mm}.*`,
+              `*${mm}-${yearMatch}*`,
+              `*${mm}.${yearMatch}*`,
+              `*${yearMatch}${mm}*`,
+              `*${m}*${yearMatch}*`
+            ];
+            for (const pat of patterns) {
+              filters.push(`file_name.ilike.${pat}`, `analysis_text.ilike.${pat}`);
+            }
+          } else if (yearMatch) {
+            filters.push(`file_name.ilike.*${yearMatch}*`, `analysis_text.ilike.*${yearMatch}*`);
+          } else if (m) {
+            filters.push(`file_name.ilike.*${m}*`, `analysis_text.ilike.*${m}*`);
+          }
+        }
+        
+        let analysesResp;
+        if (filters.length > 0) {
+          analysesResp = await supabase
+            .from('analyses')
+            .select('*')
+            .or(filters.join(','))
+            .order('created_at', { ascending: false })
+            .limit(1);
+        } else {
+          analysesResp = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+        }
+        
+        const { data: analyses, error } = analysesResp as any;
+        if (error) {
+          console.error('Error fetching analysis:', error);
+          this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut prelua datele.' }));
+          return;
+        }
+        
+        let rows = analyses as any[] | null;
+        if (!rows || rows.length === 0) {
+          const { data: recent, error: e2 } = await supabase
+            .from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (e2) {
+            console.error('Error fetching latest analysis:', e2);
+            this.sendFunctionResult(callId, JSON.stringify({ error: 'Nu am putut prelua datele.' }));
+            return;
+          }
+          rows = recent;
+        }
+        
+        if (!rows || rows.length === 0) {
+          this.sendFunctionResult(callId, JSON.stringify({ message: 'Nu există nicio analiză încărcată încă.' }));
+          return;
+        }
+        
+        const analysis = rows[0];
+        const analysisText: string = analysis?.analysis_text || '';
+        
+        // Normalizăm termenul de căutare
+        const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const searchNorm = norm(search_term);
+        
+        // Caută în text contextul în jurul termenului căutat
+        const lines = analysisText.split('\n');
+        const relevantLines: string[] = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+          const lineNorm = norm(lines[i]);
+          // Caută și numeric și text normalizat
+          if (lineNorm.includes(searchNorm) || lines[i].includes(search_term)) {
+            // Adaugă context: 2 linii înainte și 2 linii după
+            const start = Math.max(0, i - 2);
+            const end = Math.min(lines.length, i + 3);
+            for (let j = start; j < end; j++) {
+              if (!relevantLines.includes(lines[j])) {
+                relevantLines.push(lines[j]);
+              }
+            }
+          }
+        }
+
+        const result = {
+          period: period || 'ultima analiză',
+          search_term: search_term,
+          found_info: relevantLines.length > 0,
+          context: relevantLines.join('\n').trim(),
+          company_name: analysis.company_name || 'Companie necunoscută',
+          file_name: analysis.file_name,
+          message: relevantLines.length > 0 
+            ? `Am găsit informații despre ${search_term} în balanța pentru ${period || 'ultima perioadă'}.`
+            : `Nu am găsit informații despre ${search_term} în balanța pentru ${period || 'ultima perioadă'}.`
+        };
+
+        this.sendFunctionResult(callId, JSON.stringify(result));
+        
+      } else if (functionName === 'get_financial_data') {
         // Parse arguments
         let period: string | undefined;
         let metric: string | undefined;
