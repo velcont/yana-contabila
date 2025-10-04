@@ -1116,69 +1116,117 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             decembrie: 12, december: 12, dec: 12, '12': 12,
           };
           
-          const yearMatch = period.match(/(20\d{2})/);
-          const targetYear = yearMatch ? parseInt(yearMatch[1]) : undefined;
-          let targetMonth: number | undefined = undefined;
-          
-          for (const [name, num] of Object.entries(months)) {
-            const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
-            if (wordBoundaryRegex.test(period)) {
-              targetMonth = num;
-              break;
+          const targetParsed = (() => {
+            const yearMatch = period.match(/(20\d{2})/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
+            for (const [name, num] of Object.entries(months)) {
+              const wordBoundaryRegex = new RegExp(`\\b${name}\\b`, 'i');
+              if (wordBoundaryRegex.test(period)) {
+                return { month: num, year };
+              }
             }
-          }
-          
-          const { data, error } = await supabase
-            .from('analyses')
-            .select('id, file_name, created_at, metadata')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          if (error) throw error;
-          
-          // Găsește analiza pentru perioada specificată
-          const found = (data || []).find((row: any) => {
+            return { month: undefined, year };
+          })();
+
+          // Încearcă să deduci luna/anul din numele fișierului (inclusiv formate [01-03-2025 31-03-2025])
+          const parsePeriodFromRow = (row: any) => {
             const fileName = (row.file_name || '').toLowerCase();
             const normalizedName = normalizeRomanianText(fileName);
-            
+
+            // 1) Caută date în format dd-mm-yyyy sau interval [01-01-2025 31-01-2025]
+            const dateRangeMatch = fileName.match(/\[?(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+            if (dateRangeMatch) {
+              const month = parseInt(dateRangeMatch[2], 10);
+              const year = parseInt(dateRangeMatch[3], 10);
+              if (month >= 1 && month <= 12 && year >= 2000) {
+                console.log(`📅 Parsed from "${fileName}": month=${month}, year=${year}`);
+                return { month, year };
+              }
+            }
+
+            // 2) Fallback: caută nume de lună în text
             for (const [name, num] of Object.entries(months)) {
               if (normalizedName.includes(name)) {
                 const yMatch = fileName.match(/20\d{2}/);
-                const rowYear = yMatch ? parseInt(yMatch[0]) : undefined;
-                const rowMonth = num;
-                
-                return rowMonth === targetMonth && (!targetYear || rowYear === targetYear);
+                const year = yMatch ? parseInt(yMatch[0]) : undefined;
+                console.log(`📅 Parsed from month name in "${fileName}": month=${num}, year=${year}`);
+                return { month: num, year };
               }
             }
-            return false;
+            return { month: undefined, year: undefined };
+          };
+
+          // Citește ultimele analize (inclusiv analysis_text pentru fallback)
+          const { data, error } = await supabase
+            .from('analyses')
+            .select('id, file_name, created_at, metadata, analysis_text')
+            .order('created_at', { ascending: false })
+            .limit(50);
+          if (error) throw error;
+
+          console.log(`🔍 Căutare pentru: month=${targetParsed.month}, year=${targetParsed.year}`);
+
+          // Găsește analiza potrivită
+          const found = (data || []).find((row: any) => {
+            const rowPeriod = parsePeriodFromRow(row);
+            const match = rowPeriod.month === targetParsed.month && rowPeriod.year === targetParsed.year;
+            if (match) console.log(`✅ Găsit match: ${row.file_name}`);
+            return match;
           });
-          
+
           if (!found) {
             result = { error: `Nu am găsit analiza pentru perioada ${rawPeriod}` };
             break;
           }
-          
+
+          // Utilitar: conversie sigură nr din string (1.802,42 -> 1802.42)
+          const toNumber = (v: any) => {
+            if (typeof v === 'number') return v;
+            if (typeof v === 'string') return parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0;
+            return 0;
+          };
+
           const accounts = found.metadata?.parsed_balance?.accounts || [];
-          
+
           // Filtrează DOAR conturile 512x (bancă), NU 531x (casă)
-          const bankAccounts = accounts.filter((acc: any) => 
-            acc.code?.startsWith('512')
-          );
-          
-          const totalBanca = bankAccounts.reduce((sum: number, acc: any) => 
-            sum + (Number(acc.sold_final_debit) || 0), 0
-          );
-          
+          const bankAccountsMeta = accounts.filter((acc: any) => acc.code?.startsWith('512'));
+          let totalBanca = bankAccountsMeta.reduce((sum: number, acc: any) => sum + toNumber(acc.sold_final_debit), 0);
+
+          // Fallback: dacă nu avem în metadata, încearcă să extragi din textul analizei
+          let bankAccountsFromText: { code: string; name?: string; sold: number }[] = [];
+          if ((!totalBanca || totalBanca === 0) && (found.analysis_text || '').length > 0) {
+            const text = (found.analysis_text as string) || '';
+            const regex = /cont(?:ul)?\s*(512\d)[^\n]*?:?\s*.*?sold\s*final.*?([\d.,]+)\s*RON/gi;
+            const matches = Array.from(text.matchAll(regex));
+            if (matches.length) {
+              const byCode: Record<string, number> = {};
+              for (const m of matches) {
+                const code = m[1];
+                const val = toNumber(m[2]);
+                byCode[code] = (byCode[code] || 0) + val;
+              }
+              bankAccountsFromText = Object.entries(byCode).map(([code, val]) => ({ code, sold: val }));
+              const sumText = bankAccountsFromText.reduce((s, a) => s + a.sold, 0);
+              if (sumText > 0) {
+                totalBanca = sumText;
+                console.log(`📝 Fallback text: găsit sold bancă (512x) = ${totalBanca} RON`);
+              }
+            }
+          }
+
           console.log(`💰 Sold bancă (doar 512x): ${totalBanca} RON`);
-          
+
           result = {
             period: rawPeriod,
             sold_banca: totalBanca,
-            accounts_512x: bankAccounts.map((acc: any) => ({
+            accounts_512x: (bankAccountsMeta.length ? bankAccountsMeta.map((acc: any) => ({
               code: acc.code,
               name: acc.name,
-              sold: acc.sold_final_debit || 0
-            })),
-            message: `Sold bancă (doar conturi 512x, fără casa 531x) pentru ${rawPeriod}: ${totalBanca.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`
+              sold: toNumber(acc.sold_final_debit)
+            })) : bankAccountsFromText),
+            message: `Sold bancă (doar conturi 512x, fără casa 531x) pentru ${rawPeriod}: ${totalBanca.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+            nota: bankAccountsMeta.length ? 'Valoare din metadata analiză' : (bankAccountsFromText.length ? 'Valoare extrasă din textul analizei (fallback)' : undefined),
+            fisier: found.file_name
           };
           break;
         }
