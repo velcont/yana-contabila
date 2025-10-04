@@ -1204,10 +1204,26 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           
           // FOLOSIM FUNCȚIA CENTRALIZATĂ PENTRU A EXTRAGE DIN TEXT
           const indicatoriDinText = extractIndicatorsFromText(found.analysis_text || '');
+
+          // Fallback calcul profit din metadata (clasa 7 - clasa 6) dacă 121 nu e găsit
+          const toNum = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v.replace(/\./g, '').replace(',', '.')) || 0 : 0);
+          const accounts = found.metadata?.parsed_balance?.accounts || [];
+          const sumBy = (cls: string, field: 'total_sume_debit' | 'total_sume_credit') =>
+            accounts.filter((a: any) => a.code?.startsWith(cls))
+                    .reduce((s: number, a: any) => s + toNum(a[field]), 0);
+          const ven7 = sumBy('7', 'total_sume_credit');
+          const che6 = sumBy('6', 'total_sume_debit');
+          const profitMeta = ven7 - che6;
+          const indicatoriFinali = { ...indicatoriDinText } as any;
+          if (indicatoriFinali.profit === undefined && (ven7 > 0 || che6 > 0)) {
+            indicatoriFinali.profit = profitMeta;
+          }
+          if (indicatoriFinali.ca === undefined && ven7 > 0) indicatoriFinali.ca = ven7;
+          if (indicatoriFinali.cheltuieli === undefined && che6 > 0) indicatoriFinali.cheltuieli = che6;
           
           result = {
             perioada: rawPeriod,
-            indicatori: indicatoriDinText,
+            indicatori: indicatoriFinali,
             fisier: found.file_name,
             nota: "Indicatori extrași DIRECT din textul analizei (dosarul tău)"
           };
