@@ -1237,58 +1237,56 @@ serve(async (req) => {
                 allToolResults = [...autoRes1, ...autoRes2];
               }
 
-              // 3) Facem un follow-up către AI cu rezultatele tool-urilor, ca să genereze răspunsul final
-              const followUpMessages2 = [
-                ...messages,
-                { role: "assistant", content: accumulatedContent || "Procesez datele extrase..." },
-                ...allToolResults
-              ];
+              // 3) În loc de un al doilea apel la AI, FORMATEZ ȘI TRIMIT DIRECT REZULTATUL
+              let formattedOutput = '';
+              try {
+                // Extragem payload-ul de conturi
+                const gb = allToolResults.find((r: any) => r.name === "get_balance_accounts");
+                if (gb) {
+                  const payload = JSON.parse(gb.content || '{}');
+                  const accounts: any[] = payload.accounts || [];
+                  if (accounts.length === 0) {
+                    formattedOutput = 'Nu am găsit conturi în balanță pentru perioada solicitată.';
+                  } else {
+                    const header = 'Iată conturile din balanța solicitată:\n- Clasele 1-5: solduri finale\n- Clasele 6-7: total sume';
+                    const cls15 = accounts.filter(a => ['1','2','3','4','5'].includes(a.class));
+                    const cls6  = accounts.filter(a => a.class === '6');
+                    const cls7  = accounts.filter(a => a.class === '7');
 
-              const followUpResponse2 = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                method: "POST",
-                headers: {
-                  "Authorization": "Bearer " + LOVABLE_API_KEY,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  model: "google/gemini-2.5-flash",
-                  messages: followUpMessages2,
-                  stream: true
-                }),
-              });
+                    const toLines = (arr: any[]) => arr.map(a => `• ${a.code} ${a.name} — ${a.display || ''}`);
 
-              if (followUpResponse2.ok) {
-                const followUpReader2 = followUpResponse2.body?.getReader();
-                if (followUpReader2) {
-                  let buf2 = "";
-                  while (true) {
-                    const { done: d2, value: v2 } = await followUpReader2.read();
-                    if (d2) break;
-                    buf2 += decoder.decode(v2, { stream: true });
-                    const lines2 = buf2.split("\n");
-                    buf2 = lines2.pop() || "";
-                    for (const line2 of lines2) {
-                      if (!line2.trim() || line2.startsWith(":")) continue;
-                      if (!line2.startsWith("data: ")) continue;
-                      const data2 = line2.slice(6);
-                      if (data2 === "[DONE]") continue;
-                      try {
-                        const parsed2 = JSON.parse(data2);
-                        const delta2 = parsed2.choices?.[0]?.delta?.content;
-                        if (delta2) {
-                          accumulatedContent += delta2;
-                          sentAnyContent = true;
-                          controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: delta2 }) + "\n\n"));
-                        }
-                      } catch {}
+                    const parts: string[] = [header];
+                    if (cls15.length) {
+                      parts.push('\nClasa 1-5 (solduri):');
+                      parts.push(...toLines(cls15));
                     }
+                    if (cls6.length) {
+                      parts.push('\nClasa 6 (cheltuieli – total sume debitoare):');
+                      parts.push(...toLines(cls6));
+                    }
+                    if (cls7.length) {
+                      parts.push('\nClasa 7 (venituri – total sume creditoare):');
+                      parts.push(...toLines(cls7));
+                    }
+                    formattedOutput = parts.join('\n');
                   }
+                } else if (!analysisId) {
+                  formattedOutput = 'Nu am găsit analiza pentru perioada cerută. Verifică te rog că balanța pe lună este încărcată.';
+                } else {
+                  formattedOutput = 'Am identificat analiza, dar nu am putut extrage conturile.';
                 }
-              } else {
-                const fb = "Nu am reușit să finalizez extragerea acum. Reîncearcă te rog.";
-                controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fb }) + "\n\n"));
+              } catch {
+                formattedOutput = 'Nu am reușit să formatez rezultatul conturilor.';
+              }
+
+              if (formattedOutput) {
+                // Trimitem în segmente pentru a evita blocarea interfeței
+                const chunks = formattedOutput.match(/[\s\S]{1,1200}/g) || [formattedOutput];
+                for (const ch of chunks) {
+                  controller.enqueue(encoder.encode('data: ' + JSON.stringify({ type: 'content', content: ch }) + '\n\n'));
+                }
                 sentAnyContent = true;
-                accumulatedContent += fb;
+                accumulatedContent += (accumulatedContent ? '\n' : '') + formattedOutput;
               }
             }
           } catch (e) {
