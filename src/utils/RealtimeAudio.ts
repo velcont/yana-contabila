@@ -202,12 +202,14 @@ export class RealtimeChat {
       
       const EPHEMERAL_KEY = tokenData.client_secret.value;
       
-      // Connect directly to OpenAI with ephemeral token
-      // Ephemeral tokens are session-based and don't require additional auth
+      // Connect to OpenAI Realtime WebSocket using subprotocols for auth
       const baseUrl = "wss://api.openai.com/v1/realtime";
       const model = "gpt-4o-realtime-preview-2024-12-17";
-      
-      this.ws = new WebSocket(`${baseUrl}?model=${model}`);
+      this.ws = new WebSocket(`${baseUrl}?model=${model}`, [
+        "realtime",
+        `openai-insecure-api-key.${EPHEMERAL_KEY}`,
+        "openai-beta.realtime-v1"
+      ]);
 
       this.ws.onopen = () => {
         console.log("Connected to relay server");
