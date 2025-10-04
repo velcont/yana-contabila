@@ -72,7 +72,11 @@ Cu ce te pot ajuta astăzi?`
   const [isMaximized, setIsMaximized] = useState(false);
   const [suggestions, setSuggestions] = useState<QuestionPattern[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
+  const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([
+    { question_pattern: "Simulează extindere DPO la 60 zile - impact cash flow", question_category: "simulator", frequency: 95, last_asked_at: '' },
+    { question_pattern: "Top 3 probleme și oportunități ultima lună", question_category: "analysis", frequency: 90, last_asked_at: '' },
+    { question_pattern: "Plan de acțiune pentru reducere DSO", question_category: "action_plan", frequency: 85, last_asked_at: '' },
+  ]);
   const [showHistory, setShowHistory] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const messagesEndRef = useRef<HTMLDivElement>(null);
