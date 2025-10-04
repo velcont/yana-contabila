@@ -614,6 +614,42 @@ export const ChatAI = () => {
           </div>
         )}
 
+        {/* Întrebări Populare - afișate la început */}
+        {messages.length === 1 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">Întrebări Populare</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {[
+                { text: "Care e DSO-ul meu?", icon: TrendingUp },
+                { text: "Dividende vs Salarii - ce aleg?", icon: ListChecks },
+                { text: "Micro vs Profit - care e mai avantajos?", icon: FileBarChart },
+                { text: "Cum pot îmbunătăți cash flow-ul?", icon: Zap },
+                { text: "Care sunt Top 3 probleme și oportunități din ultima balanță?", icon: AlertCircle },
+                { text: "Simulează: dacă plătesc furnizorii în 60 zile în loc de 30, cum arată cash-ul?", icon: TrendingUp }
+              ].map((suggestion, idx) => {
+                const Icon = suggestion.icon;
+                return (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    onClick={() => {
+                      setInput(suggestion.text);
+                      sendMessage();
+                    }}
+                    className="h-auto py-3 px-4 text-left justify-start hover:bg-primary/10 hover:border-primary transition-all group"
+                  >
+                    <Icon className="h-4 w-4 mr-2 text-primary flex-shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="text-sm leading-tight">{suggestion.text}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {messages.map((msg, idx) => (
             <div
@@ -718,45 +754,6 @@ export const ChatAI = () => {
                 }
               }}
             />
-          </div>
-          
-          {/* Întrebări sugerate - compact, deasupra input-ului */}
-          <div className="pb-2">
-            <ScrollArea className="max-h-32">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-                  <span className="text-xs font-semibold text-primary">Întrebări Recomandate</span>
-                </div>
-                <div className="grid grid-cols-1 gap-1.5">
-                  {[
-                    { text: "Care e DSO-ul meu?", icon: TrendingUp },
-                    { text: "Dividende vs Salarii - ce aleg?", icon: ListChecks },
-                    { text: "Micro vs Profit - care e mai avantajos?", icon: FileBarChart },
-                    { text: "Cum pot îmbunătăți cash flow-ul?", icon: Zap },
-                    { text: "Care sunt Top 3 probleme și oportunități din ultima balanță?", icon: AlertCircle },
-                    { text: "Simulează: dacă plătesc furnizorii în 60 zile în loc de 30, cum arată cash-ul?", icon: TrendingUp }
-                  ].map((suggestion, idx) => {
-                    const Icon = suggestion.icon;
-                    return (
-                      <Button
-                        key={idx}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setInput(suggestion.text);
-                          inputRef.current?.focus();
-                        }}
-                        className="h-auto py-1.5 px-2 text-left justify-start hover:bg-primary/10 hover:border-primary transition-all group"
-                      >
-                        <Icon className="h-3 w-3 mr-2 text-primary flex-shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs leading-tight line-clamp-1">{suggestion.text}</span>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            </ScrollArea>
           </div>
           
           <div className="relative">
