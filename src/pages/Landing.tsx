@@ -112,19 +112,14 @@ export const Landing = () => {
             size="lg" 
             variant="outline"
             className="text-lg px-8 py-6"
-            onClick={() => window.open('https://www.youtube.com/watch?v=demo', '_blank')}
+            onClick={() => window.open('https://youtu.be/nQblxkPPtKo?si=NHp_qiMbnDMV-M2B', '_blank')}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z"/>
             </svg>
-            Vezi Demo (60 sec)
+            Vezi Demo (14:33)
           </Button>
         </div>
-
-        <p className="mt-4 text-sm text-muted-foreground">
-          <Clock className="inline h-3 w-3 mr-1" />
-          Testare gratuită 14 zile • Fără card necesar
-        </p>
       </section>
 
       {/* Features Grid */}
@@ -158,7 +153,7 @@ export const Landing = () => {
           Yana vs Competiția
         </h2>
         <p className="text-center text-muted-foreground mb-12">
-          Comparație obiectivă cu DoctorBusiness și alte soluții
+          Comparație obiectivă cu soluțiile tradiționale de analiză financiară
         </p>
 
         <div className="max-w-4xl mx-auto bg-background rounded-xl overflow-hidden shadow-xl">
@@ -199,7 +194,7 @@ export const Landing = () => {
             Ai nevoie de rapoarte sau conversații?
           </p>
           <p className="text-muted-foreground mt-2">
-            DoctorBusiness îți dă 35 de pagini de citit. Yana îți dă răspunsuri în 2 secunde.
+            Soluțiile tradiționale îți dau sute de pagini de citit. Yana îți dă răspunsuri în 2 secunde.
           </p>
         </div>
       </section>
@@ -357,12 +352,12 @@ export const Landing = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button size="lg" className="text-lg px-8 py-6" onClick={() => navigate('/auth')}>
             <Shield className="mr-2 h-5 w-5" />
-            Încearcă Gratuit 14 Zile
+            Începe Gratuit
           </Button>
         </div>
 
         <p className="mt-6 text-sm text-muted-foreground">
-          Fără card necesar • Anulare oricând • Suport în română
+          100% Gratuit • Suport în română
         </p>
       </section>
     </div>

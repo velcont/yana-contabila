@@ -203,6 +203,11 @@ const Index = () => {
     );
   }
 
+  // Dacă utilizatorul NU este autentificat, afișează Landing page
+  if (!user) {
+    return <Landing />;
+  }
+
   if (showDashboard && user) {
     return (
       <>
