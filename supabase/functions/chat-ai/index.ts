@@ -1630,6 +1630,62 @@ serve(async (req) => {
                             controller.enqueue(encoder.encode('data: ' + JSON.stringify({ type: 'content', content: out }) + '\n\n'));
                             sentAnyContent = true;
                             accumulatedContent += (accumulatedContent ? '\n' : '') + out;
+                          } else {
+                            // Fallback direct: extrage profitul din textul analizei pentru perioada cerută
+                            try {
+                              const months: Record<string, number> = {
+                                ianuarie: 1, jan: 1, january: 1, ian: 1, '01': 1, '1': 1,
+                                februarie: 2, february: 2, feb: 2, '02': 2, '2': 2,
+                                martie: 3, march: 3, mar: 3, '03': 3, '3': 3,
+                                aprilie: 4, april: 4, apr: 4, aprile: 4, '04': 4, '4': 4,
+                                mai: 5, may: 5, '05': 5, '5': 5,
+                                iunie: 6, june: 6, iun: 6, jun: 6, '06': 6, '6': 6,
+                                iulie: 7, july: 7, iul: 7, jul: 7, '07': 7, '7': 7,
+                                august: 8, aug: 8, '08': 8, '8': 8,
+                                septembrie: 9, september: 9, sep: 9, sept: 9, '09': 9, '9': 9,
+                                octombrie: 10, october: 10, oct: 10, '10': 10,
+                                noiembrie: 11, november: 11, nov: 11, '11': 11,
+                                decembrie: 12, december: 12, dec: 12, '12': 12,
+                              };
+                              const normMsg = normalizeRomanianText(message || '');
+                              const yearMatch = normMsg.match(/(20\d{2})/);
+                              const year = yearMatch ? parseInt(yearMatch[1]) : undefined;
+                              let month: number | undefined;
+                              for (const [name, num] of Object.entries(months)) {
+                                const re = new RegExp(`\\b${name}\\b`, 'i');
+                                if (re.test(normMsg)) { month = num; break; }
+                              }
+                              const { data: list } = await supabase
+                                .from('analyses')
+                                .select('file_name, analysis_text, created_at')
+                                .order('created_at', { ascending: false })
+                                .limit(50);
+                              if (list && month) {
+                                const foundRow = list.find((row: any) => {
+                                  const fn = (row.file_name || '').toLowerCase();
+                                  const rng = fn.match(/(\d{2})[\/-](\d{2})[\/-](\d{4})/);
+                                  if (rng) {
+                                    const m = parseInt(rng[2], 10); const y = parseInt(rng[3], 10);
+                                    return m === month && (!year || y === year);
+                                  }
+                                  const nm = normalizeRomanianText(fn);
+                                  const ym = fn.match(/20\d{2}/);
+                                  const ry = ym ? parseInt(ym[0]) : undefined;
+                                  return nm.includes(Object.keys(months).find(k => months[k] === month) || '') && (!year || ry === year);
+                                });
+                                if (foundRow?.analysis_text) {
+                                  const inds = extractIndicatorsFromText(foundRow.analysis_text || '');
+                                  if (typeof inds.profit === 'number') {
+                                    const msgOut = `Profit ${message}: ${inds.profit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
+                                    controller.enqueue(encoder.encode('data: ' + JSON.stringify({ type: 'content', content: msgOut }) + '\n\n'));
+                                    sentAnyContent = true;
+                                    accumulatedContent += (accumulatedContent ? '\n' : '') + msgOut;
+                                  }
+                                }
+                              }
+                            } catch (fbErr) {
+                              console.error('Direct fallback extract failed:', fbErr);
+                            }
                           }
                         } catch (e) {
                           console.error('Fallback format after tools failed:', e);
