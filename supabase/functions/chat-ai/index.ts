@@ -1596,7 +1596,7 @@ serve(async (req) => {
                           const bankTool = byName("get_bank_balance_by_period");
                           if (!out && bankTool) {
                             const payload = JSON.parse(bankTool.content || '{}');
-                            const per = payload.period || rawPeriod;
+                            const per = payload.period || message;
                             const val = payload.sold_banca || 0;
                             out = `Sold bancă (512x) pentru ${per}: ${Number(val).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
                           }
@@ -1604,7 +1604,7 @@ serve(async (req) => {
                           const cls7 = byName("get_class_totals_by_period");
                           if (!out && cls7) {
                             const p = JSON.parse(cls7.content || '{}');
-                            const per = p.date ? new Date(p.date).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' }) : rawPeriod;
+                            const per = p.date ? new Date(p.date).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' }) : message;
                             const tvc = p?.totals?.total_sume_creditoare ?? 0;
                             out = `Venituri (Clasa 7) ${per}: ${Number(tvc).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
                           }
@@ -1618,7 +1618,6 @@ serve(async (req) => {
                           console.error('Fallback format after tools failed:', e);
                         }
                       }
-                    }
                     }
                   }
                 }
