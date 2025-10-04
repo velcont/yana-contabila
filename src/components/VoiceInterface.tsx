@@ -111,8 +111,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   };
 
   const endConversation = async () => {
+    let hadValidSession = false;
+    
     // Calculate minutes used
     if (startTimeRef.current) {
+      hadValidSession = true;
       const endTime = Date.now();
       const minutesUsed = (endTime - startTimeRef.current) / 1000 / 60;
       
@@ -153,7 +156,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
     setIsConnected(false);
     setIsSpeaking(false);
     
-    if (!startTimeRef.current) {
+    // Show generic disconnection message only if we didn't have a valid session
+    if (!hadValidSession) {
       toast({
         title: "Deconectat",
         description: "Conversația s-a încheiat",
