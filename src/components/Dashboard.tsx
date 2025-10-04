@@ -13,6 +13,7 @@ import { parseAnalysisText } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
+import { TopIssuesWidget } from './TopIssuesWidget';
 import {
   Select,
   SelectContent,
@@ -130,45 +131,73 @@ export const Dashboard = () => {
     }
   };
 
-  const exportToPDF = (analysis: Analysis) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    
-    // Header
-    doc.setFontSize(18);
-    doc.text('Yana - Analiză Balanță', margin, margin);
-    
-    doc.setFontSize(12);
-    doc.text(`Fișier: ${analysis.file_name}`, margin, margin + 10);
-    doc.text(
-      `Data: ${format(new Date(analysis.created_at), 'dd MMMM yyyy, HH:mm', { locale: ro })}`,
-      margin,
-      margin + 17
-    );
-    
-    // Content
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(analysis.analysis_text, maxWidth);
-    let y = margin + 30;
-    
-    lines.forEach((line: string) => {
-      if (y > pageHeight - margin) {
-        doc.addPage();
-        y = margin;
+  const exportToPDF = async (analysis: Analysis) => {
+    try {
+      // Parse analysis to get structured data
+      const indicators = parseAnalysisText(analysis.analysis_text);
+      
+      // Get insights for this analysis
+      const { data: insights } = await supabase
+        .from('chat_insights')
+        .select('*')
+        .eq('analysis_id', analysis.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      const alerts = (insights || []).map(insight => ({
+        type: insight.insight_type,
+        title: insight.title,
+        description: insight.description,
+        severity: insight.severity as 'critical' | 'warning' | 'info'
+      }));
+
+      // Extract recommendations from analysis text
+      const recommendations: string[] = [];
+      const recMatch = analysis.analysis_text.match(/recomandări?:?\s*([\s\S]*?)(?=\n\n|$)/i);
+      if (recMatch) {
+        const recText = recMatch[1];
+        const recLines = recText.split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 10 && (line.match(/^[•\-*\d]/) || line.includes(':')));
+        recommendations.push(...recLines.slice(0, 8));
       }
-      doc.text(line, margin, y);
-      y += 7;
-    });
-    
-    doc.save(`yana-analiza-${format(new Date(analysis.created_at), 'yyyy-MM-dd')}.pdf`);
-    
-    toast({
-      title: 'Export reușit',
-      description: 'PDF-ul a fost descărcat cu succes.'
-    });
+
+      // Add generic recommendations based on indicators
+      if (indicators.dso > 60) {
+        recommendations.push('Reduce DSO-ul: Implementează sistem automat de reminder pentru facturi restante');
+      }
+      if (indicators.profit < 0) {
+        recommendations.push('Analizează structura costurilor și identifică zone de eficientizare');
+      }
+      if (indicators.ebitda < 0) {
+        recommendations.push('Atenție la profitabilitatea operațională - revizuiește prețurile și costurile');
+      }
+
+      const exportData = {
+        companyName: analysis.company_name || 'Firmă necunoscută',
+        fileName: analysis.file_name,
+        date: format(new Date(analysis.created_at), 'dd MMMM yyyy', { locale: ro }),
+        indicators,
+        alerts,
+        recommendations: recommendations.slice(0, 8)
+      };
+
+      // Dynamic import to reduce bundle size
+      const { generateAnalysisPDF } = await import('@/utils/pdfExport');
+      generateAnalysisPDF(exportData);
+      
+      toast({
+        title: '📄 Export reușit',
+        description: 'Raportul PDF a fost descărcat cu succes.'
+      });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast({
+        title: 'Eroare export',
+        description: 'Nu am putut genera PDF-ul.',
+        variant: 'destructive'
+      });
+    }
   };
 
   if (isLoading) {
@@ -291,6 +320,7 @@ export const Dashboard = () => {
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
+          <TopIssuesWidget />
           <AnalyticsCharts data={analyticsData} />
         </TabsContent>
 

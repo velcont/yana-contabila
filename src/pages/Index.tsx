@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import AdvertisementPopup from "@/components/AdvertisementPopup";
+import { Landing } from "@/pages/Landing";
 import {
   Tooltip,
   TooltipContent,

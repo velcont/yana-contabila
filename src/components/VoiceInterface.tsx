@@ -14,6 +14,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [thinkingStatus, setThinkingStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
   const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
   const chatRef = useRef<RealtimeChat | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -42,15 +43,24 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
     console.log('Message received:', event.type);
     
     if (event.type === 'response.audio_transcript.delta' && event.delta) {
+      setThinkingStatus('speaking');
       onTranscript?.(event.delta, 'assistant');
     } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      setThinkingStatus('thinking');
       onTranscript?.(event.transcript, 'user');
     } else if (event.type === 'response.audio.delta') {
+      setThinkingStatus('speaking');
       setIsSpeaking(true);
     } else if (event.type === 'response.audio.done') {
+      setThinkingStatus('listening');
       setIsSpeaking(false);
+    } else if (event.type === 'input_audio_buffer.speech_started') {
+      setThinkingStatus('listening');
+    } else if (event.type === 'input_audio_buffer.speech_stopped') {
+      setThinkingStatus('thinking');
     } else if (event.type === 'error') {
       console.error('Realtime API error:', event.error);
+      setThinkingStatus('idle');
       toast({
         title: "Eroare",
         description: event.error?.message || "A apărut o eroare",
@@ -88,8 +98,9 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
           startTimeRef.current = Date.now();
           setIsConnected(true);
           setIsConnecting(false);
+          setThinkingStatus('listening');
           toast({
-            title: "Conectat",
+            title: "✅ Conectat",
             description: `Poți vorbi acum cu Yana • ${remaining.toFixed(1)} minute rămase`,
           });
         },
@@ -155,6 +166,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
     chatRef.current?.disconnect();
     setIsConnected(false);
     setIsSpeaking(false);
+    setThinkingStatus('idle');
     
     // Show generic disconnection message only if we didn't have a valid session
     if (!hadValidSession) {
@@ -176,13 +188,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-3">
       {!isConnected ? (
         <Button 
           onClick={startConversation}
           disabled={isConnecting}
           size="lg"
-          className="gap-2"
+          className="gap-2 min-w-[200px]"
         >
           {isConnecting ? (
             <>
@@ -197,28 +209,56 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
           )}
         </Button>
       ) : (
-        <Button 
-          onClick={endConversation}
-          variant="destructive"
-          size="lg"
-          className="gap-2"
-        >
-          <MicOff className="h-5 w-5" />
-          {isSpeaking && (
-            <span className="flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-            </span>
-          )}
-          Oprește
-        </Button>
+        <div className="flex flex-col items-center gap-2">
+          {/* Visual Status Indicator */}
+          <div className="relative flex items-center justify-center">
+            <div className={`
+              absolute w-20 h-20 rounded-full
+              ${thinkingStatus === 'listening' ? 'bg-blue-500/20 animate-pulse' : 
+                thinkingStatus === 'thinking' ? 'bg-yellow-500/20 animate-pulse' :
+                thinkingStatus === 'speaking' ? 'bg-green-500/20 animate-pulse' : ''}
+            `}></div>
+            
+            <div className={`
+              relative w-16 h-16 rounded-full flex items-center justify-center
+              ${thinkingStatus === 'listening' ? 'bg-blue-500' : 
+                thinkingStatus === 'thinking' ? 'bg-yellow-500' :
+                thinkingStatus === 'speaking' ? 'bg-green-500' : 'bg-gray-500'}
+              transition-all duration-300
+            `}>
+              <Mic className="h-8 w-8 text-white" />
+            </div>
+          </div>
+
+          <p className={`
+            text-sm font-medium transition-colors
+            ${thinkingStatus === 'listening' ? 'text-blue-500' : 
+              thinkingStatus === 'thinking' ? 'text-yellow-500' :
+              thinkingStatus === 'speaking' ? 'text-green-500' : ''}
+          `}>
+            {thinkingStatus === 'listening' && '🎤 Ascult...'}
+            {thinkingStatus === 'thinking' && '🤔 Procesez...'}
+            {thinkingStatus === 'speaking' && '🗣️ Răspund...'}
+            {thinkingStatus === 'idle' && 'Conectat'}
+          </p>
+          
+          <Button 
+            onClick={endConversation}
+            variant="destructive"
+            size="lg"
+            className="gap-2 min-w-[200px]"
+          >
+            <MicOff className="h-5 w-5" />
+            Oprește Conversația
+          </Button>
+        </div>
       )}
       
       {!isConnected && minutesRemaining !== null && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground text-center max-w-xs">
           {minutesRemaining > 0 ? (
             <>
-              Ai rămas <span className="font-semibold text-primary">{minutesRemaining.toFixed(1)} minute</span> vocale
+              Ai rămas <span className="font-semibold text-primary">{minutesRemaining.toFixed(1)} minute</span> vocale luna aceasta
             </>
           ) : (
             <>
