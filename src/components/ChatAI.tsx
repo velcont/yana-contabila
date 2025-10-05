@@ -166,8 +166,7 @@ export const ChatAI = () => {
 🔹 Verificare completă balanță
 🔹 Altceva...
 
-💬 Scrie ce te interesează sau pune-mi direct o întrebare!`,
-        timestamp: new Date()
+💬 Scrie ce te interesează sau pune-mi direct o întrebare!`
       };
       setMessages([welcomeMessage]);
     }
