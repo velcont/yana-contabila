@@ -1,8 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCurrency, formatNumber, type FinancialIndicators } from '@/utils/analysisParser';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useState } from 'react';
 
 interface Analysis {
   id: string;
@@ -17,111 +15,28 @@ interface AnalyticsChartsProps {
   analyses: Analysis[];
 }
 
-const extractDateFromFilename = (filename: string, createdAt: string): Date => {
-  const months: Record<string, number> = {
-    'ianuarie': 0, 'ian': 0,
-    'februarie': 1, 'feb': 1,
-    'martie': 2, 'mar': 2,
-    'aprilie': 3, 'apr': 3,
-    'mai': 4,
-    'iunie': 5, 'iun': 5,
-    'iulie': 6, 'iul': 6,
-    'august': 7, 'aug': 7,
-    'septembrie': 8, 'sep': 8, 'sept': 8,
-    'octombrie': 9, 'oct': 9,
-    'noiembrie': 10, 'nov': 10,
-    'decembrie': 11, 'dec': 11
-  };
-
-  const lower = filename.toLowerCase();
-
-  // 1) Caută explicit "[luna] [anul]"
-  for (const [name, idx] of Object.entries(months)) {
-    const monthYear = lower.match(new RegExp(`${name}[^0-9]*(20\\d{2})`));
-    if (monthYear) {
-      const year = parseInt(monthYear[1], 10);
-      return new Date(year, idx + 1, 0); // ultima zi din acea lună
-    }
-  }
-
-  // 2) Caută date numerice în format dd[-._/]mm[-._/]yyyy și alege ULTIMA apariție (de obicei sfârșitul perioadei)
-  const ddmmyyyy = Array.from(lower.matchAll(/(\d{1,2})[\-._\/](\d{1,2})[\-._\/](20\d{2})/g));
-  if (ddmmyyyy.length > 0) {
-    const last = ddmmyyyy[ddmmyyyy.length - 1];
-    const d = parseInt(last[1], 10);
-    const m = parseInt(last[2], 10) - 1; // 0-indexed
-    const y = parseInt(last[3], 10);
-    // Normalizează la ultima zi a lunii respective
-    return new Date(y, m + 1, 0);
-  }
-
-  // 3) Caută format ISO: yyyy[-._/]mm[-._/]dd sau yyyy[-._/]mm
-  const isoFull = lower.match(/(20\d{2})[\-._\/](\d{1,2})[\-._\/](\d{1,2})/);
-  if (isoFull) {
-    const y = parseInt(isoFull[1], 10);
-    const m = parseInt(isoFull[2], 10) - 1;
-    return new Date(y, m + 1, 0);
-  }
-  const isoYearMonth = lower.match(/(20\d{2})[\-._\/]?(\d{1,2})(?![\-._\/]\d)/);
-  if (isoYearMonth) {
-    const y = parseInt(isoYearMonth[1], 10);
-    const m = parseInt(isoYearMonth[2], 10) - 1;
-    return new Date(y, m + 1, 0);
-  }
-
-  // 4) Fallback la created_at din baza de date
-  return new Date(createdAt);
-};
-
 const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
-  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>('');
-  
   if (!analyses || analyses.length === 0) {
     return null;
   }
 
-  const sortedAnalyses = [...analyses].sort((a, b) => {
-    const dateA = extractDateFromFilename(a.file_name, a.created_at);
-    const dateB = extractDateFromFilename(b.file_name, b.created_at);
-    return dateA.getTime() - dateB.getTime();
-  });
+  const sortedAnalyses = [...analyses].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
-  // Selectează prima analiză dacă nu este selectată niciuna
-  const currentAnalysisId = selectedAnalysisId || sortedAnalyses[0]?.id;
-  const selectedAnalysis = sortedAnalyses.find(a => a.id === currentAnalysisId) || sortedAnalyses[0];
+  const chartData = sortedAnalyses.map(a => ({
+    date: new Date(a.created_at).toLocaleDateString('ro-RO', { month: 'short', year: 'numeric' }),
+    revenue: a.metadata.revenue || 0,
+    expenses: a.metadata.expenses || 0,
+    profit: a.metadata.profit || 0,
+    ebitda: a.metadata.ebitda || 0,
+    dso: a.metadata.dso || 0,
+    dpo: a.metadata.dpo || 0,
+    cashConversion: a.metadata.cashConversionCycle || 0,
+  }));
 
-  if (!selectedAnalysis) {
-    return null;
-  }
-
-  const balanceDate = extractDateFromFilename(selectedAnalysis.file_name, selectedAnalysis.created_at);
-  const formattedDate = balanceDate.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
-
-  // Date pentru graficele comparative
-  const profitabilityData = [
-    { name: 'Venituri', value: selectedAnalysis.metadata.revenue || 0, fill: 'hsl(var(--primary))' },
-    { name: 'Cheltuieli', value: selectedAnalysis.metadata.expenses || 0, fill: 'hsl(var(--destructive))' },
-    { name: 'Profit', value: selectedAnalysis.metadata.profit || 0, fill: 'hsl(var(--success))' },
-  ];
-
-  const cashCycleData = [
-    { name: 'DSO (Zile Clienți)', value: selectedAnalysis.metadata.dso || 0, fill: 'hsl(var(--warning))' },
-    { name: 'DPO (Zile Furnizori)', value: selectedAnalysis.metadata.dpo || 0, fill: 'hsl(var(--primary))' },
-  ];
-
-  const treasuryData = [
-    { name: 'Cont 5121 (Banca Lei)', value: selectedAnalysis.metadata.sold5121 || 0, fill: 'hsl(var(--primary))' },
-    { name: 'Cont 5124 (Banca Valută)', value: selectedAnalysis.metadata.sold5124 || 0, fill: 'hsl(var(--success))' },
-  ];
-
-  const commercialData = [
-    { name: 'Furnizori (401)', value: selectedAnalysis.metadata.soldFurnizori || 0, fill: 'hsl(var(--destructive))' },
-    { name: 'Clienți (4111)', value: selectedAnalysis.metadata.soldClienti || 0, fill: 'hsl(var(--success))' },
-  ];
-
-  // Găsește poziția analizei curente pentru comparație
-  const currentIndex = sortedAnalyses.findIndex(a => a.id === selectedAnalysis.id);
-  const previousAnalysis = currentIndex > 0 ? sortedAnalyses[currentIndex - 1] : null;
+  const latestAnalysis = sortedAnalyses[sortedAnalyses.length - 1];
+  const previousAnalysis = sortedAnalyses[sortedAnalyses.length - 2];
 
   const calculateScore = (indicators: FinancialIndicators): number => {
     let score = 50;
@@ -163,7 +78,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
     return Math.max(0, Math.min(100, score));
   };
 
-  const currentScore = calculateScore(selectedAnalysis.metadata);
+  const currentScore = calculateScore(latestAnalysis.metadata);
   const previousScore = previousAnalysis ? calculateScore(previousAnalysis.metadata) : currentScore;
   const scoreDiff = currentScore - previousScore;
 
@@ -182,34 +97,6 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Selector de Lună */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Selectează Perioada de Analiză</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select value={currentAnalysisId} onValueChange={setSelectedAnalysisId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selectează luna" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedAnalyses.map((analysis) => {
-                const date = extractDateFromFilename(analysis.file_name, analysis.created_at);
-                const label = date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
-                return (
-                  <SelectItem key={analysis.id} value={analysis.id}>
-                    {label} {analysis.company_name ? `- ${analysis.company_name}` : ''}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <p className="text-sm text-muted-foreground mt-2">
-            Analiză pentru: <span className="font-semibold">{formattedDate}</span>
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Financial Scorecard */}
       <Card>
         <CardHeader>
@@ -237,11 +124,11 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
           <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'Profitabilitate', value: (selectedAnalysis.metadata.profit || 0) > 0 ? '✓' : '✗', status: (selectedAnalysis.metadata.profit || 0) > 0 },
-              { label: 'EBITDA Pozitiv', value: (selectedAnalysis.metadata.ebitda || 0) > 0 ? '✓' : '✗', status: (selectedAnalysis.metadata.ebitda || 0) > 0 },
-              { label: 'DSO', value: `${formatNumber(selectedAnalysis.metadata.dso || 0)} zile`, status: (selectedAnalysis.metadata.dso || 0) < 60 },
-              { label: 'Cash Flow', value: ((selectedAnalysis.metadata.sold5121 || 0) + (selectedAnalysis.metadata.sold5124 || 0)) > 0 ? 'Pozitiv' : 'Negativ', status: ((selectedAnalysis.metadata.sold5121 || 0) + (selectedAnalysis.metadata.sold5124 || 0)) > 0 },
-              { label: 'Datorii', value: (selectedAnalysis.metadata.soldFurnizori || 0) < (selectedAnalysis.metadata.soldClienti || 0) ? 'OK' : 'Risc', status: (selectedAnalysis.metadata.soldFurnizori || 0) < (selectedAnalysis.metadata.soldClienti || 0) },
+              { label: 'Profitabilitate', value: (latestAnalysis.metadata.profit || 0) > 0 ? '✓' : '✗', status: (latestAnalysis.metadata.profit || 0) > 0 },
+              { label: 'EBITDA Pozitiv', value: (latestAnalysis.metadata.ebitda || 0) > 0 ? '✓' : '✗', status: (latestAnalysis.metadata.ebitda || 0) > 0 },
+              { label: 'DSO', value: `${formatNumber(latestAnalysis.metadata.dso || 0)} zile`, status: (latestAnalysis.metadata.dso || 0) < 60 },
+              { label: 'Cash Flow', value: (latestAnalysis.metadata.soldBanca || 0) > 0 ? 'Pozitiv' : 'Negativ', status: (latestAnalysis.metadata.soldBanca || 0) > 0 },
+              { label: 'Datorii', value: (latestAnalysis.metadata.soldFurnizori || 0) < (latestAnalysis.metadata.soldClienti || 0) ? 'OK' : 'Risc', status: (latestAnalysis.metadata.soldFurnizori || 0) < (latestAnalysis.metadata.soldClienti || 0) },
             ].map((item, idx) => (
               <div key={idx} className="text-center p-3 rounded-lg bg-muted/50">
                 <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
@@ -254,187 +141,57 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Grid pentru Grafice - 2x2 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Grafic 1: Analiza Profitabilității */}
+      {/* Revenue vs Expenses Chart */}
+      {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Grafic 1: Profitabilitate ({formattedDate})</CardTitle>
+            <CardTitle>Evoluție Venituri vs Cheltuieli</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={profitabilityData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="name" 
-                  className="text-xs"
-                  tick={{ fontSize: 10 }}
-                />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" tick={{ fontSize: 10 }} />
+                <XAxis dataKey="date" className="text-xs" />
+                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
                 <Tooltip 
                   formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    fontSize: '12px'
-                  }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="value" name="Valoare (RON)" />
-              </BarChart>
+                <Legend />
+                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" name="Venituri" strokeWidth={2} />
+                <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" name="Cheltuieli" strokeWidth={2} />
+                <Line type="monotone" dataKey="profit" stroke="hsl(var(--success))" name="Profit" strokeWidth={2} />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      )}
 
-        {/* Grafic 2: Analiza Ciclului de Conversie */}
+      {/* DSO/DPO Timeline */}
+      {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Grafic 2: Ciclu Conversie ({formattedDate})</CardTitle>
+            <CardTitle>Timeline DSO vs DPO</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cashCycleData}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="name" 
-                  className="text-xs"
-                  tick={{ fontSize: 10 }}
-                />
-                <YAxis tickFormatter={(value) => `${value}`} className="text-xs" tick={{ fontSize: 10 }} />
+                <XAxis dataKey="date" className="text-xs" />
+                <YAxis tickFormatter={(value) => `${value} zile`} className="text-xs" />
                 <Tooltip 
                   formatter={(value: number) => `${formatNumber(value)} zile`}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    fontSize: '12px'
-                  }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                 />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="value" name="Zile" />
-              </BarChart>
+                <Legend />
+                <Line type="monotone" dataKey="dso" stroke="hsl(var(--warning))" name="DSO (Zile Clienți)" strokeWidth={2} />
+                <Line type="monotone" dataKey="dpo" stroke="hsl(var(--primary))" name="DPO (Zile Furnizori)" strokeWidth={2} />
+                <Line type="monotone" dataKey="cashConversion" stroke="hsl(var(--destructive))" name="Cash Conversion Cycle" strokeWidth={2} strokeDasharray="5 5" />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        {/* Grafic 3: Solduri Trezorerie */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Grafic 3: Trezorerie ({formattedDate})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={treasuryData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="name" 
-                  className="text-xs"
-                  tick={{ fontSize: 10 }}
-                />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" tick={{ fontSize: 10 }} />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="value" name="RON" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Grafic 4: Solduri Comerciale */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Grafic 4: Solduri Comerciale ({formattedDate})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={commercialData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="name" 
-                  className="text-xs"
-                  tick={{ fontSize: 10 }}
-                />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" tick={{ fontSize: 10 }} />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    fontSize: '12px'
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="value" name="RON" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabel 5: Sumar Indicatori Financiari */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tabel 5: Sumar Indicatori Financiari ({formattedDate})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold">Indicator</th>
-                  <th className="text-right py-3 px-4 font-semibold">Valoare (RON)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Venituri (Clasa 7)</td>
-                  <td className="text-right py-3 px-4 font-semibold text-success">{formatCurrency(selectedAnalysis.metadata.revenue || 0)}</td>
-                </tr>
-                <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Cheltuieli (Clasa 6)</td>
-                  <td className="text-right py-3 px-4 font-semibold text-destructive">{formatCurrency(selectedAnalysis.metadata.expenses || 0)}</td>
-                </tr>
-                <tr className="border-b border-border hover:bg-muted/50 bg-muted/30">
-                  <td className="py-3 px-4 font-bold">Profit Net</td>
-                  <td className={`text-right py-3 px-4 font-bold ${(selectedAnalysis.metadata.profit || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(selectedAnalysis.metadata.profit || 0)}
-                  </td>
-                </tr>
-                <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Furnizori (401)</td>
-                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.soldFurnizori || 0)}</td>
-                </tr>
-                <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Clienți (4111)</td>
-                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.soldClienti || 0)}</td>
-                </tr>
-                <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Bancă Lei (5121)</td>
-                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.sold5121 || 0)}</td>
-                </tr>
-                <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Bancă Valută (5124)</td>
-                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.sold5124 || 0)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 };

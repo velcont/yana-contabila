@@ -19,12 +19,10 @@ interface QuickReplySuggestionsProps {
 
 // Sugestii default pentru utilizatorii noi
 const DEFAULT_SUGGESTIONS: QuestionPattern[] = [
-  { question_pattern: "Simulează: dacă plătesc furnizorii în 60 zile în loc de 30, cum arată cash-ul?", question_category: "simulator", frequency: 0 },
-  { question_pattern: "Care sunt Top 3 probleme și oportunități din ultima balanță?", question_category: "analysis", frequency: 0 },
-  { question_pattern: "Creează plan de acțiune pentru îmbunătățirea DSO", question_category: "action_plan", frequency: 0 },
-  { question_pattern: "Ce impact are un discount de 5% pentru plată în 15 zile?", question_category: "simulator", frequency: 0 },
-  { question_pattern: "Care a fost profitul mediu în ultimele 6 luni?", question_category: "historical", frequency: 0 },
-  { question_pattern: "Simulează reducere DSO cu 10 zile - impact cash flow", question_category: "simulator", frequency: 0 },
+  { question_pattern: "Care e DSO-ul meu?", question_category: "dso", frequency: 0 },
+  { question_pattern: "Cum pot îmbunătăți cash flow-ul?", question_category: "cash_flow", frequency: 0 },
+  { question_pattern: "Ce probleme grave am în bilanț?", question_category: "general", frequency: 0 },
+  { question_pattern: "Compară ultimele 2 luni", question_category: "comparison", frequency: 0 },
 ];
 
 export const QuickReplySuggestions = ({ 

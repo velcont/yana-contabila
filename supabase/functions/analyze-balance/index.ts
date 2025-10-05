@@ -271,8 +271,6 @@ Sold Furnizori: [valoare_numerică]
 Sold Clienti: [valoare_numerică]
 Sold Banca: [valoare_numerică]
 Sold Casa: [valoare_numerică]
-Sold 5121: [valoare_numerică]
-Sold 5124: [valoare_numerică]
 
 Unde:
 - DSO (Days Sales Outstanding) = (Clienți / Cifra de afaceri) × 365
@@ -282,8 +280,6 @@ Unde:
 - CA = Cifra de afaceri totală
 - Cheltuieli = Total cheltuieli (clasa 6)
 - Profit = sold cont 121
-- Sold 5121 = sold final debitor cont 5121 (Banca Lei)
-- Sold 5124 = sold final debitor cont 5124 (Banca Valută)
 
 IMPORTANT: Această secțiune trebuie să apară obligatoriu la sfârșitul fiecărei analize, cu valorile numerice clare (fără separatori de mii, doar punct pentru zecimale).
 
@@ -299,34 +295,10 @@ Profit: 261909.27
 Sold Furnizori: 150000.00
 Sold Clienti: 200000.00
 Sold Banca: 50000.00
-Sold Casa: 5000.00
-Sold 5121: 45000.00
-Sold 5124: 5000.00`;
+Sold Casa: 5000.00`;
 
-// Parse Excel file - returnează atât textul cât și datele structurate
-async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; structuredData: any[] }> {
-  // Helper pentru parsarea numerelor românești
-  const parseRomanianNumber = (str: string): number => {
-    if (!str) return 0;
-    const raw = String(str).trim();
-    if (!raw || raw === '0' || raw === '0.00' || raw === '0,00') return 0;
-    // Elimină spații și detectează ultimul separator (. sau ,)
-    const cleaned = raw.replace(/\s/g, '');
-    const lastDot = cleaned.lastIndexOf('.');
-    const lastComma = cleaned.lastIndexOf(',');
-    const lastSep = Math.max(lastDot, lastComma);
-    
-    if (lastSep < 0) {
-      // Fără separator zecimal
-      return parseFloat(cleaned.replace(/[^0-9-]/g, '')) || 0;
-    }
-    
-    // Partea întreagă (fără separatori de mii) + partea zecimală
-    const integerPart = cleaned.slice(0, lastSep).replace(/[^0-9-]/g, '');
-    const decimalPart = cleaned.slice(lastSep + 1).replace(/[^0-9]/g, '');
-    return parseFloat(`${integerPart}.${decimalPart}`) || 0;
-  };
-
+// Parse Excel file
+async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
   try {
     // Convert base64 to Uint8Array
     const binaryString = atob(excelBase64);
@@ -339,107 +311,15 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; 
     const workbook = XLSX.read(bytes, { type: 'array' });
     
     let fullText = "";
-    const structuredAccounts: any[] = [];
     
-    // Extract text and structured data from all sheets
+    // Extract text from all sheets
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
-      
-      // Generate CSV text for AI analysis
       const csvText = XLSX.utils.sheet_to_csv(sheet);
       fullText += `\n=== Sheet: ${sheetName} ===\n${csvText}\n`;
-      
-      // Parse structured data for chatbot access
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-      
-      if (jsonData.length > 1) {
-        const headers = jsonData[0] as any[];
-        const rows = jsonData.slice(1) as any[][];
-        
-        // Identifică coloanele importante cu normalizare îmbunătățită
-        const normalize = (v: any) => String(v || '').toLowerCase()
-          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9\s]/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-        
-        const headersNorm = headers.map(h => normalize(h));
-        
-        // Caută coloană cu toate cuvintele cheie (cu flexibilitate pentru ordine)
-        const findCol = (keywords: string[]) => {
-          const normed = keywords.map(k => normalize(k));
-          return headersNorm.findIndex(h => 
-            normed.every(kw => h.split(' ').some(word => word.includes(kw) || kw.includes(word)))
-          );
-        };
-        
-        // Caută cont/simbol
-        const contIdx = headersNorm.findIndex(h => 
-          h.includes('cont') || h.includes('simbol') || h.startsWith('cod')
-        );
-        
-        // Caută denumire
-        const denumireIdx = headersNorm.findIndex(h => 
-          h.includes('denumire') || h.includes('nume') || h.includes('descriere')
-        );
-        
-        // Solduri finale - caută "sold" + "final" + "debit"/"credit"
-        let soldFinalDebitIdx = findCol(['sold', 'final', 'debit']);
-        if (soldFinalDebitIdx < 0) soldFinalDebitIdx = findCol(['solduri', 'finale', 'debitoare']);
-        
-        let soldFinalCreditIdx = findCol(['sold', 'final', 'credit']);
-        if (soldFinalCreditIdx < 0) soldFinalCreditIdx = findCol(['solduri', 'finale', 'creditoare']);
-        
-        // Total sume - caută "total" + "sume" + "debit"/"credit"
-        let totalSumeDebitIdx = findCol(['total', 'sume', 'debit']);
-        if (totalSumeDebitIdx < 0) totalSumeDebitIdx = findCol(['total', 'debitoare']);
-        
-        let totalSumeCreditIdx = findCol(['total', 'sume', 'credit']);
-        if (totalSumeCreditIdx < 0) totalSumeCreditIdx = findCol(['total', 'creditoare']);
-        
-        rows.forEach(row => {
-          if (!row || row.length === 0) return;
-          
-          const contCode = contIdx >= 0 ? String(row[contIdx] || '').trim() : '';
-          const denumire = denumireIdx >= 0 ? String(row[denumireIdx] || '').trim() : '';
-          
-          // Filtrăm doar rândurile cu cod de cont valid (numeric)
-          if (!contCode || !/^\d{3,4}/.test(contCode)) return;
-          
-          const account: any = {
-            code: contCode,
-            name: denumire
-          };
-          
-          // Extrage solduri finale
-          if (soldFinalDebitIdx >= 0) {
-            const val = row[soldFinalDebitIdx];
-            account.sold_final_debit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
-          }
-          if (soldFinalCreditIdx >= 0) {
-            const val = row[soldFinalCreditIdx];
-            account.sold_final_credit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
-          }
-          
-          // Extrage total sume
-          if (totalSumeDebitIdx >= 0) {
-            const val = row[totalSumeDebitIdx];
-            account.total_sume_debit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
-          }
-          if (totalSumeCreditIdx >= 0) {
-            const val = row[totalSumeCreditIdx];
-            account.total_sume_credit = typeof val === 'number' ? val : parseRomanianNumber(String(val));
-          }
-          
-          structuredAccounts.push(account);
-        });
-      }
     });
     
-    return { 
-      text: fullText.trim(),
-      structuredData: structuredAccounts
-    };
+    return fullText.trim();
   } catch (error) {
     console.error("Error parsing Excel with xlsx:", error);
     throw new Error("Nu s-a putut extrage textul din Excel");
@@ -460,12 +340,9 @@ serve(async (req) => {
 
     console.log("Parsare Excel cu xlsx...");
     console.log("Nume fișier:", fileName);
-    const balanceData = await parseExcelWithXLSX(excelBase64);
-    const balanceText = balanceData.text;
-    const structuredAccounts = balanceData.structuredData;
+    const balanceText = await parseExcelWithXLSX(excelBase64);
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
-    console.log("Conturi structurate găsite:", structuredAccounts.length);
 
     if (!balanceText || balanceText.length < 100) {
       return new Response(
@@ -585,20 +462,14 @@ serve(async (req) => {
       if (validationWarnings.length > 0) {
         const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
         return new Response(
-          JSON.stringify({ 
-            analysis: analysis + warningsSection,
-            structuredAccounts
-          }),
+          JSON.stringify({ analysis: analysis + warningsSection }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
     
     return new Response(
-      JSON.stringify({ 
-        analysis,
-        structuredAccounts
-      }),
+      JSON.stringify({ analysis }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

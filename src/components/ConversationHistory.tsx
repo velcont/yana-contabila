@@ -149,13 +149,11 @@ export const ConversationHistory = ({
         ) : (
           <div className="space-y-2">
             {filteredConversations.map((conv) => (
-              <div
+              <Button
                 key={conv.conversation_id}
-                className={`w-full justify-start text-left h-auto p-3 hover:bg-muted/50 transition-colors rounded-md flex items-center ${currentConversationId === conv.conversation_id ? 'bg-secondary' : ''}`}
+                variant={currentConversationId === conv.conversation_id ? 'secondary' : 'ghost'}
+                className="w-full justify-start text-left h-auto p-3 hover:bg-muted/50 transition-colors"
                 onClick={() => onSelectConversation(conv.conversation_id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') onSelectConversation(conv.conversation_id); }}
               >
                 <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium line-clamp-2">
@@ -177,7 +175,7 @@ export const ConversationHistory = ({
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
-              </div>
+              </Button>
             ))}
           </div>
         )}
