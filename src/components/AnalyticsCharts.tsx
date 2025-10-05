@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { formatCurrency, formatNumber, type FinancialIndicators } from '@/utils/analysisParser';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useState } from 'react';
 
 interface Analysis {
   id: string;
@@ -50,6 +52,8 @@ const extractDateFromFilename = (filename: string): Date => {
 };
 
 const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
+  const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>('');
+  
   if (!analyses || analyses.length === 0) {
     return null;
   }
@@ -60,30 +64,42 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
     return dateA.getTime() - dateB.getTime();
   });
 
-  const chartData = sortedAnalyses.map(a => {
-    const balanceDate = extractDateFromFilename(a.file_name);
-    return {
-      date: balanceDate.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' }),
-      revenue: a.metadata.revenue || 0,
-      expenses: a.metadata.expenses || 0,
-      profit: a.metadata.profit || 0,
-      ebitda: a.metadata.ebitda || 0,
-      dso: a.metadata.dso || 0,
-      dpo: a.metadata.dpo || 0,
-      cashConversion: a.metadata.cashConversionCycle || 0,
-      sold5121: a.metadata.sold5121 || 0,
-      sold5124: a.metadata.sold5124 || 0,
-      soldFurnizori: a.metadata.soldFurnizori || 0,
-      soldClienti: a.metadata.soldClienti || 0,
-    };
-  });
+  // Selectează prima analiză dacă nu este selectată niciuna
+  const currentAnalysisId = selectedAnalysisId || sortedAnalyses[0]?.id;
+  const selectedAnalysis = sortedAnalyses.find(a => a.id === currentAnalysisId) || sortedAnalyses[0];
 
-  // Calculează totalurile pentru tabel
-  const totalRevenue = chartData.reduce((sum, d) => sum + d.revenue, 0);
-  const totalExpenses = chartData.reduce((sum, d) => sum + d.expenses, 0);
+  if (!selectedAnalysis) {
+    return null;
+  }
 
-  const latestAnalysis = sortedAnalyses[sortedAnalyses.length - 1];
-  const previousAnalysis = sortedAnalyses[sortedAnalyses.length - 2];
+  const balanceDate = extractDateFromFilename(selectedAnalysis.file_name);
+  const formattedDate = balanceDate.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+
+  // Date pentru graficele comparative
+  const profitabilityData = [
+    { name: 'Venituri', value: selectedAnalysis.metadata.revenue || 0, fill: 'hsl(var(--primary))' },
+    { name: 'Cheltuieli', value: selectedAnalysis.metadata.expenses || 0, fill: 'hsl(var(--destructive))' },
+    { name: 'Profit', value: selectedAnalysis.metadata.profit || 0, fill: 'hsl(var(--success))' },
+  ];
+
+  const cashCycleData = [
+    { name: 'DSO (Zile Clienți)', value: selectedAnalysis.metadata.dso || 0, fill: 'hsl(var(--warning))' },
+    { name: 'DPO (Zile Furnizori)', value: selectedAnalysis.metadata.dpo || 0, fill: 'hsl(var(--primary))' },
+  ];
+
+  const treasuryData = [
+    { name: 'Cont 5121 (Banca Lei)', value: selectedAnalysis.metadata.sold5121 || 0, fill: 'hsl(var(--primary))' },
+    { name: 'Cont 5124 (Banca Valută)', value: selectedAnalysis.metadata.sold5124 || 0, fill: 'hsl(var(--success))' },
+  ];
+
+  const commercialData = [
+    { name: 'Furnizori (401)', value: selectedAnalysis.metadata.soldFurnizori || 0, fill: 'hsl(var(--destructive))' },
+    { name: 'Clienți (4111)', value: selectedAnalysis.metadata.soldClienti || 0, fill: 'hsl(var(--success))' },
+  ];
+
+  // Găsește poziția analizei curente pentru comparație
+  const currentIndex = sortedAnalyses.findIndex(a => a.id === selectedAnalysis.id);
+  const previousAnalysis = currentIndex > 0 ? sortedAnalyses[currentIndex - 1] : null;
 
   const calculateScore = (indicators: FinancialIndicators): number => {
     let score = 50;
@@ -125,7 +141,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
     return Math.max(0, Math.min(100, score));
   };
 
-  const currentScore = calculateScore(latestAnalysis.metadata);
+  const currentScore = calculateScore(selectedAnalysis.metadata);
   const previousScore = previousAnalysis ? calculateScore(previousAnalysis.metadata) : currentScore;
   const scoreDiff = currentScore - previousScore;
 
@@ -144,6 +160,34 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Selector de Lună */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Selectează Perioada de Analiză</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select value={currentAnalysisId} onValueChange={setSelectedAnalysisId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selectează luna" />
+            </SelectTrigger>
+            <SelectContent>
+              {sortedAnalyses.map((analysis) => {
+                const date = extractDateFromFilename(analysis.file_name);
+                const label = date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+                return (
+                  <SelectItem key={analysis.id} value={analysis.id}>
+                    {label} - {analysis.company_name || analysis.file_name}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground mt-2">
+            Analiză pentru: <span className="font-semibold">{formattedDate}</span>
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Financial Scorecard */}
       <Card>
         <CardHeader>
@@ -171,11 +215,11 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
           <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'Profitabilitate', value: (latestAnalysis.metadata.profit || 0) > 0 ? '✓' : '✗', status: (latestAnalysis.metadata.profit || 0) > 0 },
-              { label: 'EBITDA Pozitiv', value: (latestAnalysis.metadata.ebitda || 0) > 0 ? '✓' : '✗', status: (latestAnalysis.metadata.ebitda || 0) > 0 },
-              { label: 'DSO', value: `${formatNumber(latestAnalysis.metadata.dso || 0)} zile`, status: (latestAnalysis.metadata.dso || 0) < 60 },
-              { label: 'Cash Flow', value: (latestAnalysis.metadata.soldBanca || 0) > 0 ? 'Pozitiv' : 'Negativ', status: (latestAnalysis.metadata.soldBanca || 0) > 0 },
-              { label: 'Datorii', value: (latestAnalysis.metadata.soldFurnizori || 0) < (latestAnalysis.metadata.soldClienti || 0) ? 'OK' : 'Risc', status: (latestAnalysis.metadata.soldFurnizori || 0) < (latestAnalysis.metadata.soldClienti || 0) },
+              { label: 'Profitabilitate', value: (selectedAnalysis.metadata.profit || 0) > 0 ? '✓' : '✗', status: (selectedAnalysis.metadata.profit || 0) > 0 },
+              { label: 'EBITDA Pozitiv', value: (selectedAnalysis.metadata.ebitda || 0) > 0 ? '✓' : '✗', status: (selectedAnalysis.metadata.ebitda || 0) > 0 },
+              { label: 'DSO', value: `${formatNumber(selectedAnalysis.metadata.dso || 0)} zile`, status: (selectedAnalysis.metadata.dso || 0) < 60 },
+              { label: 'Cash Flow', value: ((selectedAnalysis.metadata.sold5121 || 0) + (selectedAnalysis.metadata.sold5124 || 0)) > 0 ? 'Pozitiv' : 'Negativ', status: ((selectedAnalysis.metadata.sold5121 || 0) + (selectedAnalysis.metadata.sold5124 || 0)) > 0 },
+              { label: 'Datorii', value: (selectedAnalysis.metadata.soldFurnizori || 0) < (selectedAnalysis.metadata.soldClienti || 0) ? 'OK' : 'Risc', status: (selectedAnalysis.metadata.soldFurnizori || 0) < (selectedAnalysis.metadata.soldClienti || 0) },
             ].map((item, idx) => (
               <div key={idx} className="text-center p-3 rounded-lg bg-muted/50">
                 <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
@@ -188,159 +232,130 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Grafic 1: Evoluția Profitabilității */}
-      {chartData.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Grafic 1: Evoluția Profitabilității</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-xs"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '12px'
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" name="Venituri" strokeWidth={2} />
-                <Line type="monotone" dataKey="expenses" stroke="hsl(var(--destructive))" name="Cheltuieli" strokeWidth={2} />
-                <Line type="monotone" dataKey="profit" stroke="hsl(var(--success))" name="Profit" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Grafic 2: Analiza Ciclului de Conversie a Banilor */}
-      {chartData.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Grafic 2: Analiza Ciclului de Conversie a Banilor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-xs"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis tickFormatter={(value) => `${value} zile`} className="text-xs" />
-                <Tooltip 
-                  formatter={(value: number) => `${formatNumber(value)} zile`}
-                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '12px'
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="dso" stroke="hsl(var(--warning))" name="DSO (Zile Clienți)" strokeWidth={2} />
-                <Line type="monotone" dataKey="dpo" stroke="hsl(var(--primary))" name="DPO (Zile Furnizori)" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Grafic 3: Evoluția Soldurilor de Trezorerie */}
-      {chartData.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Grafic 3: Evoluția Soldurilor de Trezorerie</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-xs"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '12px'
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="sold5121" stroke="hsl(var(--primary))" name="Cont 5121 (Banca Lei)" strokeWidth={2} />
-                <Line type="monotone" dataKey="sold5124" stroke="hsl(var(--success))" name="Cont 5124 (Banca Valută)" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Grafic 4: Evoluția Soldurilor Comerciale */}
-      {chartData.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Grafic 4: Evoluția Soldurilor Comerciale</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-xs"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '12px'
-                  }}
-                />
-                <Legend />
-                <Line type="monotone" dataKey="soldFurnizori" stroke="hsl(var(--destructive))" name="Furnizori (401)" strokeWidth={2} />
-                <Line type="monotone" dataKey="soldClienti" stroke="hsl(var(--success))" name="Clienți (4111)" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Tabel 5: Sumar Venituri și Cheltuieli */}
+      {/* Grafic 1: Analiza Profitabilității */}
       <Card>
         <CardHeader>
-          <CardTitle>Tabel 5: Sumar Venituri și Cheltuieli ({chartData[0]?.date} – {chartData[chartData.length - 1]?.date})</CardTitle>
+          <CardTitle>Grafic 1: Analiza Profitabilității ({formattedDate})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={profitabilityData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="name" 
+                className="text-xs"
+              />
+              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
+              <Tooltip 
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}
+              />
+              <Legend />
+              <Bar dataKey="value" name="Valoare (RON)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Grafic 2: Analiza Ciclului de Conversie a Banilor */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Grafic 2: Analiza Ciclului de Conversie a Banilor ({formattedDate})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={cashCycleData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="name" 
+                className="text-xs"
+              />
+              <YAxis tickFormatter={(value) => `${value} zile`} className="text-xs" />
+              <Tooltip 
+                formatter={(value: number) => `${formatNumber(value)} zile`}
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}
+              />
+              <Legend />
+              <Bar dataKey="value" name="Număr Zile" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Grafic 3: Analiza Soldurilor de Trezorerie */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Grafic 3: Analiza Soldurilor de Trezorerie ({formattedDate})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={treasuryData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="name" 
+                className="text-xs"
+              />
+              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
+              <Tooltip 
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}
+              />
+              <Legend />
+              <Bar dataKey="value" name="Valoare (RON)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Grafic 4: Analiza Soldurilor Comerciale */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Grafic 4: Analiza Soldurilor Comerciale ({formattedDate})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={commercialData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="name" 
+                className="text-xs"
+              />
+              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
+              <Tooltip 
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  padding: '12px'
+                }}
+              />
+              <Legend />
+              <Bar dataKey="value" name="Valoare (RON)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Tabel 5: Sumar Indicatori Financiari */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tabel 5: Sumar Indicatori Financiari ({formattedDate})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -348,23 +363,39 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-semibold">Indicator</th>
-                  <th className="text-right py-3 px-4 font-semibold">Valoare Totală (RON)</th>
+                  <th className="text-right py-3 px-4 font-semibold">Valoare (RON)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Total Venituri</td>
-                  <td className="text-right py-3 px-4 font-semibold text-success">{formatCurrency(totalRevenue)}</td>
+                  <td className="py-3 px-4">Venituri (Clasa 7)</td>
+                  <td className="text-right py-3 px-4 font-semibold text-success">{formatCurrency(selectedAnalysis.metadata.revenue || 0)}</td>
                 </tr>
                 <tr className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">Total Cheltuieli</td>
-                  <td className="text-right py-3 px-4 font-semibold text-destructive">{formatCurrency(totalExpenses)}</td>
+                  <td className="py-3 px-4">Cheltuieli (Clasa 6)</td>
+                  <td className="text-right py-3 px-4 font-semibold text-destructive">{formatCurrency(selectedAnalysis.metadata.expenses || 0)}</td>
                 </tr>
                 <tr className="border-b border-border hover:bg-muted/50 bg-muted/30">
-                  <td className="py-3 px-4 font-bold">Profit Net Total</td>
-                  <td className={`text-right py-3 px-4 font-bold ${(totalRevenue - totalExpenses) >= 0 ? 'text-success' : 'text-destructive'}`}>
-                    {formatCurrency(totalRevenue - totalExpenses)}
+                  <td className="py-3 px-4 font-bold">Profit Net</td>
+                  <td className={`text-right py-3 px-4 font-bold ${(selectedAnalysis.metadata.profit || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {formatCurrency(selectedAnalysis.metadata.profit || 0)}
                   </td>
+                </tr>
+                <tr className="border-b border-border hover:bg-muted/50">
+                  <td className="py-3 px-4">Furnizori (401)</td>
+                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.soldFurnizori || 0)}</td>
+                </tr>
+                <tr className="border-b border-border hover:bg-muted/50">
+                  <td className="py-3 px-4">Clienți (4111)</td>
+                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.soldClienti || 0)}</td>
+                </tr>
+                <tr className="border-b border-border hover:bg-muted/50">
+                  <td className="py-3 px-4">Bancă Lei (5121)</td>
+                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.sold5121 || 0)}</td>
+                </tr>
+                <tr className="border-b border-border hover:bg-muted/50">
+                  <td className="py-3 px-4">Bancă Valută (5124)</td>
+                  <td className="text-right py-3 px-4 font-semibold">{formatCurrency(selectedAnalysis.metadata.sold5124 || 0)}</td>
                 </tr>
               </tbody>
             </table>
