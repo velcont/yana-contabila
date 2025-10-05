@@ -15,25 +15,64 @@ interface AnalyticsChartsProps {
   analyses: Analysis[];
 }
 
+const extractDateFromFilename = (filename: string): Date => {
+  const months: Record<string, number> = {
+    'ianuarie': 0, 'ian': 0,
+    'februarie': 1, 'feb': 1,
+    'martie': 2, 'mar': 2,
+    'aprilie': 3, 'apr': 3,
+    'mai': 4,
+    'iunie': 5, 'iun': 5,
+    'iulie': 6, 'iul': 6,
+    'august': 7, 'aug': 7,
+    'septembrie': 8, 'sep': 8, 'sept': 8,
+    'octombrie': 9, 'oct': 9,
+    'noiembrie': 10, 'nov': 10,
+    'decembrie': 11, 'dec': 11
+  };
+
+  // Încearcă să găsească luna și anul în numele fișierului
+  const lowerFilename = filename.toLowerCase();
+  
+  for (const [monthName, monthIndex] of Object.entries(months)) {
+    if (lowerFilename.includes(monthName)) {
+      // Caută anul (4 cifre)
+      const yearMatch = filename.match(/20\d{2}/);
+      const year = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear();
+      
+      // Setează data la ultima zi a lunii
+      return new Date(year, monthIndex + 1, 0);
+    }
+  }
+  
+  // Fallback la created_at dacă nu găsește data în nume
+  return new Date();
+};
+
 const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
   if (!analyses || analyses.length === 0) {
     return null;
   }
 
-  const sortedAnalyses = [...analyses].sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  const sortedAnalyses = [...analyses].sort((a, b) => {
+    const dateA = extractDateFromFilename(a.file_name);
+    const dateB = extractDateFromFilename(b.file_name);
+    return dateA.getTime() - dateB.getTime();
+  });
 
-  const chartData = sortedAnalyses.map(a => ({
-    date: new Date(a.created_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }),
-    revenue: a.metadata.revenue || 0,
-    expenses: a.metadata.expenses || 0,
-    profit: a.metadata.profit || 0,
-    ebitda: a.metadata.ebitda || 0,
-    dso: a.metadata.dso || 0,
-    dpo: a.metadata.dpo || 0,
-    cashConversion: a.metadata.cashConversionCycle || 0,
-  }));
+  const chartData = sortedAnalyses.map(a => {
+    const balanceDate = extractDateFromFilename(a.file_name);
+    return {
+      date: balanceDate.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }),
+      revenue: a.metadata.revenue || 0,
+      expenses: a.metadata.expenses || 0,
+      profit: a.metadata.profit || 0,
+      ebitda: a.metadata.ebitda || 0,
+      dso: a.metadata.dso || 0,
+      dpo: a.metadata.dpo || 0,
+      cashConversion: a.metadata.cashConversionCycle || 0,
+    };
+  });
 
   const latestAnalysis = sortedAnalyses[sortedAnalyses.length - 1];
   const previousAnalysis = sortedAnalyses[sortedAnalyses.length - 2];
