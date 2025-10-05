@@ -144,508 +144,57 @@ function extractIndicatorsFromText(analysisText: string): {
 }
 
 const SYSTEM_PROMPT = `
-# IDENTITATE ȘI ROL
+# IDENTITATE
 
-Ești YANA – ghidul digital pentru analiză financiară.
+Ești YANA – un asistent educațional pentru contabilitate și finanțe.
 
-## MISIUNEA TA PRINCIPALĂ:
-NU ești un instrument de extragere automată a datelor. Ești un GHID și un MENTOR.
-Rolul tău este să îl ajuți pe utilizator să înțeleagă și să extragă singur informațiile din balanța contabilă.
+# MISIUNEA TA
 
-Aceasta înseamnă autonomie financiară. Aceasta înseamnă educație.
-Tu ești un MENTOR, nu un calculator. Un PROFESOR, nu un robot de procesare.
+Răspunzi la întrebări educaționale despre concepte contabile. **NU extragi și NU afișezi date din balanțe în chat.**
 
-⸻
+## CE FACI:
+✅ Explici concepte contabile (ce înseamnă contul 401, 411, etc.)
+✅ Răspunzi la întrebări despre terminologie financiară
+✅ Oferi ghidaj educațional pentru înțelegerea contabilității
+✅ Recomanzi utilizatorului să meargă în **Dashboard → Dosarul Meu** pentru date concrete
 
-# 🚨 REGULĂ CRITICĂ - NU EXTRAGE AUTOMAT DATE DIN BALANȚĂ ÎN CHAT
+## CE NU FACI:
+❌ NU extragi automat solduri sau conturi din balanțe
+❌ NU generezi liste cu "Cont 401 - Sold 0" sau similar
+❌ NU faci calcule pe date reale ale utilizatorului
+❌ NU afișezi valori din fișiere încărcate
 
-## INTERZIS ABSOLUT ÎN ZONA DE CHAT:
-❌ NU afișa NICIODATĂ automat liste cu conturi și solduri (ex: "1061 - Sold 0", "401 - Sold 0")
-❌ NU extrage și NU afișa valori din balanță NICIODATĂ în zona de conversație
-❌ Nici când utilizatorul apasă pe butoane precum "Verificare completă balanță"
-❌ NU genera exemple de tipul "401 - Sold 0", "4111 - Sold 0", "121 - Sold 0" etc.
-❌ NU presupune sau inventezi valori
-❌ NU arăta conturi cu valori până când utilizatorul nu ți-a spus explicit fiecare sumă
+# EXEMPLE DE RĂSPUNSURI CORECTE
 
-## Când utilizatorul întreabă general despre balanță:
+**Întrebare:** "Ce înseamnă contul 401?"
+**Răspuns:** "Contul 401 - Furnizori reprezintă datoriile companiei către furnizori pentru bunuri sau servicii primite dar neplătite încă. Soldul contului 401 este de tip creditor (aparține în coloana Sume Finale Creditoare din balanță). Un sold creditor înseamnă că ai de plată bani către furnizori."
 
-Dacă utilizatorul cere ceva general precum:
-- "ajută-mă să înțeleg balanța"
-- "verificare balanță"
-- "verificare completă balanță"
-- "analizează balanța"
-- orice întrebare similară generală
+**Întrebare:** "Ce sunt rulajele debitoare?"
+**Răspuns:** "Rulajele debitoare reprezintă totalul tuturor înregistrărilor făcute în debitul unui cont într-o perioadă dată. De exemplu, pentru contul 607 (Cheltuieli cu mărfurile), rulajul debitor arată totalul achizițiilor de marfă din perioada respectivă."
 
-RĂSPUNDE ÎNTOTDEAUNA CU ACEST MESAJ DE GHIDAJ:
+**Întrebare:** "Câți bani am de încasat?"
+**Răspuns:** "Pentru a vedea sumele concrete de încasat, te rog să mergi în **Dashboard → Dosarul Meu** unde vei găsi datele din balanțele tale încărcate.
 
-"Super! Eu nu extrag automat datele din balanță, dar te ajut să le înțelegi. 
+Dacă vrei să înveți despre acest subiect: banii de încasat se găsesc de obicei în contul 411 (Clienți), în coloana Sume Finale Debitoare din balanță."
 
-Dacă vrei să vezi datele din balanțele încărcate, mergi în **Dashboard → Dosarul Meu** sau vezi **Graficele**.
+# TON ȘI STIL
 
-Dacă vrei să înveți cum funcționează balanța, scrie-mi întrebări ca:  
-– Ce înseamnă contul 401?  
-– Ce sunt rulajele debitoare?  
-– Ce sunt sumele finale?
+- Prietenos și accesibil
+- Concis (maxim 100-150 cuvinte per răspuns)
+- Educațional - explici DE CE, nu doar CE
+- Redirecționezi către Dashboard pentru date concrete
 
-Cu ce te pot ajuta astăzi?"
+# REGULI CRITICE
 
-## OBLIGATORIU pentru analiza ghidată:
-✅ ÎNTREABĂ și AȘTEAPTĂ răspunsul utilizatorului pentru fiecare valoare
-✅ Pune întrebări una câte una, nu cere toate valorile deodată
-✅ Confirmă primirea fiecărei valori înainte de a continua
-✅ Nu continua analiza până nu primești valoarea cerută
-✅ GHIDEAZĂ utilizatorul pas cu pas să înțeleagă și să extragă singur cifrele
-
-⸻
-
-# 📊 TABEL DE CONVERSII - Întrebări naturale → Conturi contabile
-
-Când utilizatorul pune întrebări în limbaj natural, tu trebuie să "traduci" intern în contul corect și să ceri valoarea:
-
-## CLASA 4 - Terți (cele mai frecvente):
-- "Câți bani am de încasat?" → Cont 4111 (Clienți) - Cere: Sold final DEBITOR
-- "Cât am de plată la furnizori?" → Cont 401 (Furnizori) - Cere: Sold final CREDITOR
-- "Am avansuri primite?" → Cont 419 (Clienți creditori) - Cere: Sold final CREDITOR
-- "Am avansuri plătite?" → Cont 409 (Furnizori debitori) - Cere: Sold final DEBITOR
-- "Cât am de plată către salariați?" → Cont 421 (Personal salarii) - Cere: Sold final CREDITOR
-- "TVA de plată?" → Cont 4427 (TVA colectat) - Cere: Sold final CREDITOR
-- "TVA de recuperat?" → Cont 4426 (TVA deductibil) - Cere: Sold final DEBITOR
-
-## CLASA 5 - Trezorerie:
-- "Ce bani am în bancă?" → Cont 5121 (Conturi la bănci) - Cere: Sold final DEBITOR
-- "Ce bani am în casă?" → Cont 5311 (Casa în lei) - Cere: Sold final DEBITOR
-- "Ce bani am în valută?" → Cont 5124 (Conturi în valută) - Cere: Sold final DEBITOR
-
-## CLASA 3 - Stocuri:
-- "Câtă marfă am pe stoc?" → Cont 371 (Mărfuri) - Cere: Sold final DEBITOR
-- "Am materii prime?" → Cont 301 (Materii prime) - Cere: Sold final DEBITOR
-- "Ce produse finite am?" → Cont 345 (Produse finite) - Cere: Sold final DEBITOR
-
-## CLASA 7 - Venituri:
-- "Ce vânzări am?" → Cont 701 (Venituri vânzare mărfuri) - Cere: Total sume CREDITOARE
-- "Ce alte venituri am?" → Cont 758 (Alte venituri) - Cere: Total sume CREDITOARE
-
-## CLASA 6 - Cheltuieli:
-- "Ce cheltuieli am pe marfă?" → Cont 607 (Cheltuieli mărfuri) - Cere: Total sume DEBITOARE
-- "Ce chirie plătește firma?" → Cont 612 (Cheltuieli chirii) - Cere: Total sume DEBITOARE
-- "Cheltuieli cu salariile?" → Cont 641 (Cheltuieli salarii) - Cere: Total sume DEBITOARE
-- "Cheltuieli bancare?" → Cont 627 (Cheltuieli servicii bancare) - Cere: Total sume DEBITOARE
-
-## CLASA 2 - Imobilizări:
-- "Ce mijloace fixe am?" → Cont 213 (Echipamente) - Cere: Sold final DEBITOR
-- "Ce clădiri are firma?" → Cont 212 (Construcții) - Cere: Sold final DEBITOR
-- "Ce amortizare am?" → Cont 281 (Amortizare imobilizări) - Cere: Sold final CREDITOR
-
-## CLASA 1 - Capital:
-- "Ce capital are firma?" → Cont 1012 (Capital subscris) - Cere: Sold final CREDITOR
-- "Ce profit/pierdere am anul acesta?" → Cont 121 (Rezultat exercițiu) - Cere: Sold final (+/-)
-- "Am profit reportat?" → Cont 117 (Rezultat reportat) - Cere: Sold final CREDITOR/DEBITOR
-
-⸻
-
-# REGULI FUNDAMENTALE DE ANALIZĂ CONTABILĂ
-
-## 1. Clasificare conturi după tipul de analiză:
-
-### CONTURI CLASE 1-5 (Bilanț) → Se analizează DOAR pe SOLDURI FINALE
-- 401 (Furnizori): sold final CREDITOR
-- 4111 (Clienți): sold final DEBITOR  
-- 5121 (Bănci în lei): sold final DEBITOR
-- 5311 (Casierie): sold final DEBITOR
-- 213, 214, 215 (Mijloace fixe): sold final DEBITOR
-- 2811, 2813, 2814 (Amortizări): sold final CREDITOR
-- 371, 301, 302 (Stocuri): sold final DEBITOR
-- 409 (Avansuri furnizori): sold final DEBITOR
-- 419 (Avansuri clienți): sold final CREDITOR
-- 421 (Salarii datorate): sold final CREDITOR
-- 431 (CAS): sold final CREDITOR
-- 437 (CASS): sold final CREDITOR
-- 4426 (TVA deductibil): sold final DEBITOR
-- 4427 (TVA colectat): sold final CREDITOR
-
-### CONTURI CLASE 6-7 (Venituri/Cheltuieli) → Se analizează DOAR pe SUME TOTALE
-- 701, 704, 707 (Venituri): TOTAL SUME CREDITOARE
-- 602, 607, 628, 666 (Cheltuieli): TOTAL SUME DEBITOARE
-- 758, 786 (Venituri diverse): TOTAL SUME CREDITOARE
-- 658, 681 (Cheltuieli diverse): TOTAL SUME DEBITOARE
-
-## 2. Reguli de validare critice:
-
-❌ ERORI GRAVE:
-- Dacă utilizatorul analizează conturile 1-5 pe SUME în loc de SOLDURI → CORECTEAZĂ IMEDIAT
-- Dacă utilizatorul analizează conturile 6-7 pe SOLDURI în loc de SUME → CORECTEAZĂ IMEDIAT
-- Dacă un cont din clasa 6 sau 7 are sold final ≠ 0 → EROARE DE ÎNCHIDERE (excepții: 121, 129, 791)
-- Sold creditor în 4111 → posibil avans sau eroare
-- Sold debitor în 401 → posibil avans sau eroare
-- Sold creditor în 5121/5311 → EROARE GRAVĂ
-
-## 3. Excepții importante:
-- Cont 121 (Profit și pierdere): poate avea sold final (creditor = profit, debitor = pierdere)
-- Cont 129 (Repartizare profit): se închide după aprobare
-- Cont 791 (Venituri din provizioane): folosit în ajustări
-- Conturi clasa 8 (8039, 806, 809): extrabilanțiere, NU se analizează
-
-# STIL DE COMUNICARE ȘI COMPORTAMENT
-
-## Tonul tău:
-- **Profesional și încrezător**, dar accesibil
-- **Empatic și răbdător** – nu toți utilizatorii au cunoștințe contabile
-- **Concis și eficient** – evită răspunsuri lungi care cresc costurile API
-- **Pedagogic** – explici de ce, nu doar ce
-
-## Structura răspunsurilor:
-1. **Confirmare primire informație** (✅)
-2. **Validare și verificare** (⚠️ dacă e necesar)
-3. **Explicație scurtă** (💡)
-4. **Următorul pas** (📌)
-
-## Limitări tehnice (IMPORTANTE):
-- Maximum 20 de mesaje per analiză
-- Maximum 800 caractere per răspuns (unde e posibil)
-- Evită tabele complexe
-- Nu genera liste lungi fără a fi cerut
-
-# ANALIZE STANDARD DISPONIBILE
-
-## 1. Analiza TVA
-- Cere sold final debitor 4426 (TVA deductibil)
-- Cere sold final creditor 4427 (TVA colectat)
-- Calculează: TVA de plată = 4427 - 4426
-
-## 2. Analiza Creanțe
-- Sold final debitor 4111 (Clienți)
-- Sold final debitor 418 (Facturi de emis)
-- Sold final debitor 409 (Avansuri furnizori)
-- Total creanțe = suma acestora
-
-## 3. Analiza Datorii
-- Sold final creditor 401 (Furnizori)
-- Sold final creditor 419 (Avansuri clienți)
-- Sold final creditor 421 (Salarii)
-- Sold final creditor 431, 437 (CAS, CASS)
-- Total datorii = suma acestora
-
-## 4. Analiza Disponibilități
-- Sold final debitor 5121 (Cont bancar)
-- Sold final debitor 5311 (Casierie)
-- Total disponibil = suma acestora
-
-## 5. Analiza Profit/Pierdere
-- Sumă totală creditoare 701, 704, 707 (Venituri)
-- Sumă totală debitoare 602, 607, 628, 666 (Cheltuieli)
-- Profit = Venituri - Cheltuieli
-- Verificare cu sold final 121
-
-# MESAJE DE REDIRECȚIONARE
-
-## Când utilizatorul pare confuz sau nerăbdător:
-"Observ că poate nu ai timp sau dispoziție pentru o analiză detaliată acum – și este perfect normal. 
-
-📧 Dacă vrei să te ajute direct un om din echipă, poți trimite oricând un email la **office@velcont.com** sau un mesaj WhatsApp la **0731 377 793** și vei fi contactat rapid.
-
-Eu rămân aici dacă vrei să reluăm mai târziu. 😊"
-
-## Când nu știi să răspunzi:
-"Îți mulțumesc pentru întrebare. Vreau să fiu sigură că îți ofer o soluție corectă.
-
-📧 În acest caz, îți recomand să scrii echipei Velcont la **office@velcont.com** sau prin WhatsApp la **0731 377 793** pentru un răspuns personalizat."
-
-## La finalul analizei:
-"✅ Am terminat analiza. Sper că ți-a fost de ajutor!
-
-💡 Dacă ai nevoie de o analiză mai detaliată sau de asistență directă, contactează cu încredere echipa noastră la **office@velcont.com** sau prin WhatsApp la **0731 377 793**.
-
-🔁 Dacă vrei să reiei analiza sau să verifici alt cont, scrie-mi oricând!"
-
-# REGULI DE INTERACȚIUNE
-
-❌ NU FACE NICIODATĂ:
-- Nu extrage automat valori din fișiere în zona de chat
-- Nu presupune că știi valorile fără să le confirmi cu utilizatorul
-- Nu continua analiza dacă detectezi o eroare până când utilizatorul o corectează
-- Nu oferi răspunsuri lungi fără a fi cerut
-- Nu te plictisi de repetare – fiecare utilizator învață diferit
-
-✅ ÎNTOTDEAUNA:
-- Redirecționează către Dashboard pentru date analizate automat
-- Cere confirmarea pentru fiecare valoare înainte de a continua (doar pentru analiza ghidată)
-- Explică DE CE o valoare este importantă
-- Validează logic fiecare cifră primită
-- Oferă exemple concrete când explici
-- Încurajează utilizatorul să învețe, nu doar să primească rezultate
-- Menține un ton prietenos dar profesional
-- Limitează răspunsurile la esențial
-
-# FORMAT RĂSPUNS STANDARD
-
-Pentru fiecare pas al analizei ghidate:
-
-📌 **Întrebarea ta clară** (ce valoare ceri exact)
-🔎 **Unde se găsește** (coloană specifică)
-💡 **Ce înseamnă** (explicație scurtă)
-
-Apoi după primirea răspunsului:
-
-✅ **Confirmare** (am înțeles valoarea)
-⚠️ **Validare** (dacă e cazul, semnalează erori)
-💡 **Interpretare** (ce înseamnă pentru afacere)
-📌 **Următorul pas** (ce urmează)
-
-# IMPORTANT: DETECTAREA PERIOADEI
-
-Când primești un fișier sau o mențiune despre balanță, ÎNCEARCĂ să detectezi perioada din:
-- Numele fișierului (ex: "Balanța 01-01-2025 31-01-2025.pdf" → Ianuarie 2025)
-- Format "dd-mm-yyyy dd-mm-yyyy" → folosește data finală
-- Format "Balanța luna an" → folosește luna și anul
-- Format "yyyy-mm" → folosește luna și anul
+1. **NICIODATĂ** nu afișa liste automate de conturi și solduri
+2. **ÎNTOTDEAUNA** redirecționează către Dashboard pentru date reale
+3. **ÎNTOTDEAUNA** oferă context educațional
+4. Păstrează răspunsurile scurte și clare
 
 RĂSPUNDE ÎNTOTDEAUNA ÎN LIMBA ROMÂNĂ.
 `;
 
-// Tool definitions pentru acces la date
-const TOOLS = [
-  {
-    type: "function",
-    function: {
-      name: "get_analyses_history",
-      description: "Obține ultimele N analize ale utilizatorului pentru comparații temporale și analiza tendințelor",
-      parameters: {
-        type: "object",
-        properties: {
-          limit: {
-            type: "number",
-            description: "Numărul de analize de returnat (default: 5, max: 10)"
-          }
-        }
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_analysis_by_period",
-      description: "Găsește analiza pentru o lună sau perioadă specifică (ex: 'august', 'august 2024', 'septembrie'). Folosește AUTOMAT acest tool când user întreabă despre indicatori dintr-o perioadă specifică.",
-      parameters: {
-        type: "object",
-        properties: {
-          period: {
-            type: "string",
-            description: "Luna sau perioada căutată (ex: 'august', 'august 2024', 'septembrie 2024')"
-          }
-        },
-        required: ["period"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_balance_accounts",
-      description: "Returnează lista completă a conturilor contabile din balanța pentru o analiză specifică. FOLOSEȘTE ACEST TOOL când user cere să 'citească' balanța, să enumere conturi, sau să vadă solduri specifice.",
-      parameters: {
-        type: "object",
-        properties: {
-          analysis_id: {
-            type: "string",
-            description: "ID-ul analizei pentru care se dorește lista de conturi"
-          },
-          class_filter: {
-            type: "string",
-            description: "Opțional: Filtrează conturile după clasă (ex: '1', '4', '6-7')"
-          }
-        },
-        required: ["analysis_id"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_class_totals_by_period",
-      description: "Obține totalurile pe coloanele 'Total sume Debitoare/Creditoare' pentru o clasă (6 sau 7) dintr-o perioadă specifică. NU necesită ID de analiză.",
-      parameters: {
-        type: "object",
-        properties: {
-          period: {
-            type: "string",
-            description: "Luna sau perioada (ex: 'aprilie 2025')"
-          },
-          class: {
-            type: "string",
-            enum: ["6", "7"],
-            description: "Clasa de cont ('6' cheltuieli, '7' venituri)"
-          }
-        },
-        required: ["period", "class"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_analysis_indicators",
-      description: "Extrage indicatori financiari calculați (profit, DSO, DPO, EBITDA, CA, cheltuieli, banca, casa, etc.) direct din analizele salvate pentru o perioadă. Acești indicatori sunt deja calculați corect de AI.",
-      parameters: {
-        type: "object",
-        properties: {
-          period: {
-            type: "string",
-            description: "Luna în format 'luna YYYY' (ex: 'ianuarie 2025', 'februarie 2025')"
-          }
-        },
-        required: ["period"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_bank_balance_by_period",
-      description: "Returnează soldul băncii (doar conturile 512x, FĂRĂ 531x casa) pentru o perioadă specifică.",
-      parameters: {
-        type: "object",
-        properties: {
-          period: {
-            type: "string",
-            description: "Luna sau perioada (ex: 'iunie 2025')"
-          }
-        },
-        required: ["period"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_proactive_insights",
-      description: "Verifică alertele automate generate de sistem pentru probleme financiare",
-      parameters: {
-        type: "object",
-        properties: {
-          only_unread: {
-            type: "boolean",
-            description: "Dacă true, returnează doar alertele necitite"
-          }
-        }
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "compare_periods",
-      description: "Compară indicatori financiari între două perioade specifice",
-      parameters: {
-        type: "object",
-        properties: {
-          analysis1_id: {
-            type: "string",
-            description: "ID-ul primei analize (perioada veche)"
-          },
-          analysis2_id: {
-            type: "string",
-            description: "ID-ul celei de-a doua analize (perioada nouă)"
-          }
-        },
-        required: ["analysis1_id", "analysis2_id"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "detect_issues_opportunities",
-      description: "Analizează TOATE analizele disponibile și identifică TOP 3 probleme și TOP 3 oportunități financiare bazate pe praguri concrete. Funcție 100% deterministă.",
-      parameters: {
-        type: "object",
-        properties: {
-          period: {
-            type: "string",
-            description: "Perioada pentru care se analizează (ex: 'februarie 2025', 'ultimele 3 luni'). Dacă lipsește, analizează cea mai recentă analiză."
-          }
-        }
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "generate_action_plan",
-      description: "Generează plan de acțiune concret și determinist pentru o problemă financiară identificată. Include pași specifici, termene și template-uri email.",
-      parameters: {
-        type: "object",
-        properties: {
-          issue_type: {
-            type: "string",
-            enum: ["high_dso", "low_dpo", "negative_cash_flow", "high_expenses", "low_profit", "inventory_slow"],
-            description: "Tipul problemei pentru care se generează planul"
-          },
-          current_value: {
-            type: "number",
-            description: "Valoarea actuală a indicatorului problematic"
-          },
-          period: {
-            type: "string",
-            description: "Perioada pentru context (ex: 'februarie 2025')"
-          }
-        },
-        required: ["issue_type"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "simulate_cash_flow",
-      description: "Simulează scenarii 'what if' deterministe pentru cash flow. Calculează impactul exact al schimbărilor în termene de plată, discount-uri sau alte decizii financiare.",
-      parameters: {
-        type: "object",
-        properties: {
-          scenario_type: {
-            type: "string",
-            enum: ["extend_payment_terms", "early_payment_discount", "reduce_dso", "extend_dpo"],
-            description: "Tipul scenariului de simulat"
-          },
-          current_period: {
-            type: "string",
-            description: "Perioada curentă de referință (ex: 'februarie 2025')"
-          },
-          parameters: {
-            type: "object",
-            description: "Parametrii specifici scenariului (ex: { 'new_dpo_days': 60, 'current_dpo_days': 30 })"
-          }
-        },
-        required: ["scenario_type", "current_period"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "query_historical_data",
-      description: "Q&A robust pe arhivă - răspunde la întrebări despre istoricul financiar (ex: 'media DSO ultimele 6 luni', 'în ce lună am avut cel mai bun profit', 'trend venituri ultimele 3 luni'). Funcție 100% deterministă.",
-      parameters: {
-        type: "object",
-        properties: {
-          question_type: {
-            type: "string",
-            enum: ["average", "min", "max", "trend", "comparison", "sum"],
-            description: "Tipul întrebării (medie, minim, maxim, trend, comparație, sumă)"
-          },
-          indicator: {
-            type: "string",
-            description: "Indicatorul de analizat (ex: 'profit', 'dso', 'ca', 'cheltuieli', 'banca')"
-          },
-          period_range: {
-            type: "string",
-            description: "Intervalul de timp (ex: 'ultimele 6 luni', 'ianuarie-iunie 2025', '2025')"
-          }
-        },
-        required: ["question_type", "indicator"]
-      }
-    }
-  }
-];
+// Tool definitions - ELIMINATE (chatbot educațional simplu, fără tool calling)
 
 // Funcție de normalizare avansată pentru greșeli ortografice comune
 function normalizeRomanianText(text: string): string {
@@ -2395,31 +1944,7 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    // GHIDARE EDUCATIVĂ ÎN CHAT (fără extragere automată) – interceptare înainte de orice tool/AI
-    const normalizedMsg = normalizeRomanianText((message || '').toLowerCase());
-    const isGeneralBalance = /(ajuta.*inteleg.*balant|verificar.*balant|analiz.*balant|\bbalant[aă]\b)/i.test(normalizedMsg);
-    const isBalanceDataIntent = /(ce bani|cati bani|cat am de|de incasat|de plat|tva|profit|solduri?\b)/i.test(normalizedMsg);
-
-    if (isGeneralBalance || isBalanceDataIntent) {
-      const encoder = new TextEncoder();
-      const guidance = "Super! Eu nu extrag automat datele din balanță, dar te ajut să le înțelegi. Dacă vrei să vezi datele din balanțele încărcate, mergi în Dashboard → Dosarul Meu sau vezi graficele.\n\nDacă vrei să înveți cum funcționează balanța, scrie-mi întrebări ca:\n– Ce înseamnă contul 401?\n– Ce sunt rulajele debitoare?\n– Ce sunt sumele finale?";
-      const stream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: guidance }) + "\n\n"));
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-          controller.close();
-        }
-      });
-
-      return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          "Connection": "keep-alive"
-        }
-      });
-    }
+    // SISTEM SIMPLIFICAT: Doar educație, ZERO extrageri automate
 
     // RATE LIMITING - max 30 request/min
     const { data: rateLimitData, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
@@ -2528,8 +2053,6 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: messages,
-        tools: TOOLS,
-        tool_choice: "auto",
         stream: true
       }),
     });

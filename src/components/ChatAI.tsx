@@ -556,126 +556,125 @@ export const ChatAI = () => {
                 {message.role === "assistant" ? (
                   <div className="max-w-[90%] space-y-4 w-full">
                     {message.content === 'welcome-screen' ? (
-                      // Welcome Screen with Action Buttons
+                      // Welcome Screen with Large Action Buttons
                       <div className="space-y-6">
                         <div className="bg-gradient-to-br from-primary/5 to-accent/5 rounded-3xl px-8 py-10 border border-primary/10">
                           <div className="space-y-4">
                             <div className="flex items-center gap-3 mb-6">
-                              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                <span className="text-3xl">👋</span>
+                              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                <span className="text-4xl">✨</span>
                               </div>
                               <div>
-                                <h2 className="text-2xl font-bold text-foreground">Bun venit!</h2>
-                                <p className="text-muted-foreground">Sunt Yana, ghidul tău financiar</p>
+                                <h2 className="text-3xl font-bold text-foreground">Alege ce vrei să faci</h2>
+                                <p className="text-muted-foreground mt-1">Sunt Yana, asistentul tău financiar</p>
                               </div>
-                            </div>
-                            
-                            <div className="bg-card/50 rounded-2xl p-6 space-y-3 border border-border/50">
-                              <p className="text-base leading-relaxed text-foreground">
-                                <strong>Important:</strong> NU voi extrage automat datele din balanță. 
-                                Te voi ghida pas cu pas să le înțelegi și să le extragi singur.
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Aceasta este educație financiară reală – vei învăța cum funcționează cifrele tale.
-                              </p>
                             </div>
                           </div>
                         </div>
 
-                        {/* Action Buttons Grid */}
-                        <div className="space-y-4">
-                          <h3 className="text-lg font-semibold text-foreground px-2">Cu ce te pot ajuta astăzi?</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <Button
-                              variant="outline"
-                              className="h-auto py-5 px-6 justify-start gap-4 hover:bg-primary/5 hover:border-primary/30 transition-all group"
-                              onClick={() => handleQuickAction("Câți bani am de încasat?")}
-                            >
-                              <div className="h-12 w-12 rounded-xl bg-chart-1/10 flex items-center justify-center group-hover:bg-chart-1/20 transition-colors flex-shrink-0">
-                                <ArrowDownToLine className="h-6 w-6 text-chart-1" />
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="font-semibold text-base text-foreground">Câți bani am de încasat?</div>
-                                <div className="text-sm text-muted-foreground">Vezi creanțele de la clienți</div>
-                              </div>
-                            </Button>
+                        {/* Large Action Buttons Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Button
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 hover:bg-chart-1/10 hover:border-chart-1/50 transition-all group border-2"
+                            onClick={() => handleQuickAction("Vreau să învăț despre contul 401")}
+                          >
+                            <div className="h-16 w-16 rounded-2xl bg-chart-1/10 flex items-center justify-center group-hover:bg-chart-1/20 transition-colors">
+                              <ArrowDownToLine className="h-8 w-8 text-chart-1" />
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-foreground">💰 Încasări</div>
+                              <div className="text-sm text-muted-foreground">Învață despre clienți (cont 411)</div>
+                            </div>
+                          </Button>
 
-                            <Button
-                              variant="outline"
-                              className="h-auto py-5 px-6 justify-start gap-4 hover:bg-destructive/5 hover:border-destructive/30 transition-all group"
-                              onClick={() => handleQuickAction("Cât am de plată?")}
-                            >
-                              <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors flex-shrink-0">
-                                <ArrowUpFromLine className="h-6 w-6 text-destructive" />
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="font-semibold text-base text-foreground">Cât am de plată?</div>
-                                <div className="text-sm text-muted-foreground">Verifică datoriile către furnizori</div>
-                              </div>
-                            </Button>
+                          <Button
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 hover:bg-destructive/10 hover:border-destructive/50 transition-all group border-2"
+                            onClick={() => handleQuickAction("Vreau să învăț despre contul 401")}
+                          >
+                            <div className="h-16 w-16 rounded-2xl bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
+                              <ArrowUpFromLine className="h-8 w-8 text-destructive" />
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-foreground">💸 Plăți</div>
+                              <div className="text-sm text-muted-foreground">Învață despre furnizori (cont 401)</div>
+                            </div>
+                          </Button>
 
-                            <Button
-                              variant="outline"
-                              className="h-auto py-5 px-6 justify-start gap-4 hover:bg-success/5 hover:border-success/30 transition-all group"
-                              onClick={() => handleQuickAction("Ce bani am în cont?")}
-                            >
-                              <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors flex-shrink-0">
-                                <Landmark className="h-6 w-6 text-success" />
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="font-semibold text-base text-foreground">Ce bani am în cont?</div>
-                                <div className="text-sm text-muted-foreground">Bancă și casă disponibile</div>
-                              </div>
-                            </Button>
+                          <Button
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 hover:bg-warning/10 hover:border-warning/50 transition-all group border-2"
+                            onClick={() => handleQuickAction("Vreau să învăț despre TVA")}
+                          >
+                            <div className="h-16 w-16 rounded-2xl bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
+                              <Receipt className="h-8 w-8 text-warning" />
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-foreground">📊 TVA</div>
+                              <div className="text-sm text-muted-foreground">Cum se calculează TVA-ul</div>
+                            </div>
+                          </Button>
 
-                            <Button
-                              variant="outline"
-                              className="h-auto py-5 px-6 justify-start gap-4 hover:bg-accent/5 hover:border-accent/30 transition-all group"
-                              onClick={() => handleQuickAction("Ce profit am?")}
-                            >
-                              <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors flex-shrink-0">
-                                <TrendingUp className="h-6 w-6 text-accent" />
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="font-semibold text-base text-foreground">Ce profit am?</div>
-                                <div className="text-sm text-muted-foreground">Analiză venituri și cheltuieli</div>
-                              </div>
-                            </Button>
+                          <Button
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 hover:bg-accent/10 hover:border-accent/50 transition-all group border-2"
+                            onClick={() => handleQuickAction("Vreau să învăț despre profit")}
+                          >
+                            <div className="h-16 w-16 rounded-2xl bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                              <TrendingUp className="h-8 w-8 text-accent" />
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-foreground">📈 Profit</div>
+                              <div className="text-sm text-muted-foreground">Cum funcționează profitul</div>
+                            </div>
+                          </Button>
 
-                            <Button
-                              variant="outline"
-                              className="h-auto py-5 px-6 justify-start gap-4 hover:bg-warning/5 hover:border-warning/30 transition-all group"
-                              onClick={() => handleQuickAction("Ce TVA am de plată?")}
-                            >
-                              <div className="h-12 w-12 rounded-xl bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors flex-shrink-0">
-                                <Receipt className="h-6 w-6 text-warning" />
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="font-semibold text-base text-foreground">Ce TVA am de plată?</div>
-                                <div className="text-sm text-muted-foreground">TVA de plată sau recuperat</div>
-                              </div>
-                            </Button>
+                          <Button
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 hover:bg-success/10 hover:border-success/50 transition-all group border-2"
+                            onClick={() => handleQuickAction("Vreau să învăț despre solduri bancă și casă")}
+                          >
+                            <div className="h-16 w-16 rounded-2xl bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                              <Landmark className="h-8 w-8 text-success" />
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-foreground">🏦 Bancă & Casă</div>
+                              <div className="text-sm text-muted-foreground">Înțelege conturile 512 și 531</div>
+                            </div>
+                          </Button>
 
-                            <Button
-                              variant="outline"
-                              className="h-auto py-5 px-6 justify-start gap-4 hover:bg-chart-4/5 hover:border-chart-4/30 transition-all group"
-                              onClick={() => handleQuickAction("Verificare completă balanță")}
-                            >
-                              <div className="h-12 w-12 rounded-xl bg-chart-4/10 flex items-center justify-center group-hover:bg-chart-4/20 transition-colors flex-shrink-0">
-                                <FileText className="h-6 w-6 text-chart-4" />
-                              </div>
-                              <div className="text-left flex-1">
-                                <div className="font-semibold text-base text-foreground">Verificare completă</div>
-                                <div className="text-sm text-muted-foreground">Analiză detaliată a balanței</div>
-                              </div>
-                            </Button>
-                          </div>
+                          <Button
+                            variant="outline"
+                            className="h-32 flex flex-col items-center justify-center gap-3 hover:bg-chart-4/10 hover:border-chart-4/50 transition-all group border-2"
+                            onClick={() => handleQuickAction("Învață-mă despre balanță")}
+                          >
+                            <div className="h-16 w-16 rounded-2xl bg-chart-4/10 flex items-center justify-center group-hover:bg-chart-4/20 transition-colors">
+                              <FileText className="h-8 w-8 text-chart-4" />
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-lg text-foreground">📚 Educație</div>
+                              <div className="text-sm text-muted-foreground">Cum citești o balanță</div>
+                            </div>
+                          </Button>
                         </div>
 
                         {/* Help Section */}
-                        <div className="bg-muted/30 rounded-2xl px-6 py-4 border border-border/50">
-                          <p className="text-sm text-muted-foreground text-center">
-                            💬 Sau scrie direct întrebarea ta în câmpul de mai jos
+                        <div className="bg-muted/30 rounded-2xl px-6 py-5 border border-border/50">
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-foreground text-center">
+                              💡 Sau întreabă direct despre concepte contabile
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Ex: "Ce înseamnă contul 411?", "Cum funcționează rulajele?"
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Important Notice */}
+                        <div className="bg-warning/10 border border-warning/30 rounded-2xl px-6 py-4">
+                          <p className="text-sm text-center">
+                            <strong className="text-warning">⚠️ Important:</strong> <span className="text-muted-foreground">Pentru solduri concrete din balanțele tale, mergi în <strong>Dashboard → Dosarul Meu</strong></span>
                           </p>
                         </div>
                       </div>
