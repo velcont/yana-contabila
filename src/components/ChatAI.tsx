@@ -141,32 +141,37 @@ export const ChatAI = () => {
   };
 
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      // Adaugă mesajul de prezentare automat
-      setMessages([{
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: `welcome-${Date.now()}`,
         role: 'assistant',
-        content: `Salut! Sunt **Yana**, consultantul tău financiar avansat. 
+        content: `👋 **Bun venit! Sunt Yana** – ghidul tău digital pentru analiză financiară.
 
-Misiunea mea este să **transform cifrele din balanțele contabile în strategii clare** pentru succesul afacerii tale. 
+🎓 **Important de știut:** NU voi extrage automat datele din balanță. Este esențial ca TU să le înțelegi.
 
-Indiferent dacă ești un antreprenor la început de drum sau un manager experimentat, te voi ajuta să:
+💡 **Eu voi fi aici să:**
+- Te **ghidez** pas cu pas în analiza balanței
+- Îți **explic** conceptele contabile într-un limbaj simplu
+- Îți **arăt** exact unde să cauți fiecare valoare
+- **Verific** împreună cu tine dacă ai făcut corect
 
-✨ **Înțelegi în profunzime** situația financiară prin analize detaliate și indicatori cheie (lichiditate, rentabilitate, solvabilitate, eficiență)
+✨ **Asta înseamnă autonomie financiară. Asta înseamnă educație.**
 
-📈 **Identifici tendințe** și evoluții în performanța financiară a afacerii tale
+📊 **Ce vrei să analizăm astăzi?**
 
-🔮 **Anticipezi provocările** cu previziuni strategice și scenarii "what-if" pentru planificare eficientă
+🔹 Analiza TVA (de plată/recuperat)
+🔹 Creanțe și datorii
+🔹 Profit sau pierdere
+🔹 Disponibilități (bani în cont/casă)
+🔹 Verificare completă balanță
+🔹 Altceva...
 
-💡 **Iei decizii informate** bazate pe recomandări acționabile și personalizate pentru optimizarea afacerii, creșterea profitabilității și gestionarea riscurilor
-
-🎯 **Accesezi calculatoare** specializate (Dividende vs Salarii, Micro vs Profit)
-
-Pregătește-te să descoperi noi perspective și să optimizezi fiecare aspect al performanței tale financiare. **Cum te pot asista astăzi?**`
-      }]);
-      loadInsights();
-      loadTopQuestions();
+💬 Scrie ce te interesează sau pune-mi direct o întrebare!`,
+        timestamp: new Date()
+      };
+      setMessages([welcomeMessage]);
     }
-  }, [isOpen, toast]);
+  }, [messages.length]);
 
   const markInsightAsRead = async (insightId: string) => {
     try {
