@@ -271,6 +271,8 @@ Sold Furnizori: [valoare_numerică]
 Sold Clienti: [valoare_numerică]
 Sold Banca: [valoare_numerică]
 Sold Casa: [valoare_numerică]
+Sold 5121: [valoare_numerică]
+Sold 5124: [valoare_numerică]
 
 Unde:
 - DSO (Days Sales Outstanding) = (Clienți / Cifra de afaceri) × 365
@@ -280,6 +282,8 @@ Unde:
 - CA = Cifra de afaceri totală
 - Cheltuieli = Total cheltuieli (clasa 6)
 - Profit = sold cont 121
+- Sold 5121 = sold final debitor cont 5121 (Banca Lei)
+- Sold 5124 = sold final debitor cont 5124 (Banca Valută)
 
 IMPORTANT: Această secțiune trebuie să apară obligatoriu la sfârșitul fiecărei analize, cu valorile numerice clare (fără separatori de mii, doar punct pentru zecimale).
 
@@ -295,7 +299,9 @@ Profit: 261909.27
 Sold Furnizori: 150000.00
 Sold Clienti: 200000.00
 Sold Banca: 50000.00
-Sold Casa: 5000.00`;
+Sold Casa: 5000.00
+Sold 5121: 45000.00
+Sold 5124: 5000.00`;
 
 // Parse Excel file - returnează atât textul cât și datele structurate
 async function parseExcelWithXLSX(excelBase64: string): Promise<{ text: string; structuredData: any[] }> {

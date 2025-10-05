@@ -71,8 +71,8 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
       dso: a.metadata.dso || 0,
       dpo: a.metadata.dpo || 0,
       cashConversion: a.metadata.cashConversionCycle || 0,
-      soldBanca: a.metadata.soldBanca || 0,
-      soldCasa: a.metadata.soldCasa || 0,
+      sold5121: a.metadata.sold5121 || 0,
+      sold5124: a.metadata.sold5124 || 0,
       soldFurnizori: a.metadata.soldFurnizori || 0,
       soldClienti: a.metadata.soldClienti || 0,
     };
@@ -292,8 +292,8 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
                   }}
                 />
                 <Legend />
-                <Line type="monotone" dataKey="soldBanca" stroke="hsl(var(--primary))" name="Soldul Băncii" strokeWidth={2} />
-                <Line type="monotone" dataKey="soldCasa" stroke="hsl(var(--success))" name="Soldul Casei" strokeWidth={2} />
+                <Line type="monotone" dataKey="sold5121" stroke="hsl(var(--primary))" name="Cont 5121 (Banca Lei)" strokeWidth={2} />
+                <Line type="monotone" dataKey="sold5124" stroke="hsl(var(--success))" name="Cont 5124 (Banca Valută)" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

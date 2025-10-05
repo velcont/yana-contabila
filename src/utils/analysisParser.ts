@@ -15,6 +15,8 @@ export interface FinancialIndicators {
   soldClienti?: number;
   soldBanca?: number;
   soldCasa?: number;
+  sold5121?: number; // Banca Lei
+  sold5124?: number; // Banca Valută
 }
 
 export const parseAnalysisText = (text: string): FinancialIndicators => {
@@ -69,6 +71,14 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     // Sold Casa
     const casaMatch = section.match(/Sold\s+Casa[:\s]+(\d+(?:\.\d+)?)/i);
     if (casaMatch) indicators.soldCasa = parseFloat(casaMatch[1]);
+
+    // Sold 5121 (Banca Lei)
+    const sold5121Match = section.match(/Sold\s+5121[:\s]+(\d+(?:\.\d+)?)/i);
+    if (sold5121Match) indicators.sold5121 = parseFloat(sold5121Match[1]);
+
+    // Sold 5124 (Banca Valută)
+    const sold5124Match = section.match(/Sold\s+5124[:\s]+(\d+(?:\.\d+)?)/i);
+    if (sold5124Match) indicators.sold5124 = parseFloat(sold5124Match[1]);
   }
   
   // Căutare în ultimele 15 linii ale textului pentru indicatori fără header
@@ -121,6 +131,14 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     // Sold Casa
     const casaMatch = lastLines.match(/Sold\s+Casa[:\s]+(\d+(?:\.\d+)?)/i);
     if (casaMatch) indicators.soldCasa = parseFloat(casaMatch[1]);
+
+    // Sold 5121 (Banca Lei)
+    const sold5121Match = lastLines.match(/Sold\s+5121[:\s]+(\d+(?:\.\d+)?)/i);
+    if (sold5121Match) indicators.sold5121 = parseFloat(sold5121Match[1]);
+
+    // Sold 5124 (Banca Valută)
+    const sold5124Match = lastLines.match(/Sold\s+5124[:\s]+(\d+(?:\.\d+)?)/i);
+    if (sold5124Match) indicators.sold5124 = parseFloat(sold5124Match[1]);
   }
 
   // Fallback final: caută valorile în întregul text (pentru analize vechi)
