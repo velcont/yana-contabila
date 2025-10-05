@@ -2395,6 +2395,31 @@ serve(async (req) => {
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    // GHIDARE EDUCATIVĂ ÎN CHAT (fără extragere automată) – interceptare înainte de orice tool/AI
+    const normalizedMsg = normalizeRomanianText((message || '').toLowerCase());
+    const isGeneralBalance = /(ajuta.*inteleg.*balant|verificar.*balant|analiz.*balant|\bbalant[aă]\b)/i.test(normalizedMsg);
+    const isBalanceDataIntent = /(ce bani|cati bani|cat am de|de incasat|de plat|tva|profit|solduri?\b)/i.test(normalizedMsg);
+
+    if (isGeneralBalance || isBalanceDataIntent) {
+      const encoder = new TextEncoder();
+      const guidance = "Super! Eu nu extrag automat datele din balanță, dar te ajut să le înțelegi. Dacă vrei să vezi datele din balanțele încărcate, mergi în Dashboard → Dosarul Meu sau vezi graficele.\n\nDacă vrei să înveți cum funcționează balanța, scrie-mi întrebări ca:\n– Ce înseamnă contul 401?\n– Ce sunt rulajele debitoare?\n– Ce sunt sumele finale?";
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: guidance }) + "\n\n"));
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive"
+        }
+      });
+    }
 
     // RATE LIMITING - max 30 request/min
     const { data: rateLimitData, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
