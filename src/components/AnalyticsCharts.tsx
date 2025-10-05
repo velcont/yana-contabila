@@ -254,125 +254,136 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
         </CardContent>
       </Card>
 
-      {/* Grafic 1: Analiza Profitabilității */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Grafic 1: Analiza Profitabilității ({formattedDate})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={profitabilityData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="name" 
-                className="text-xs"
-              />
-              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
-              <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
-              <Bar dataKey="value" name="Valoare (RON)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Grid pentru Grafice - 2x2 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Grafic 1: Analiza Profitabilității */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Grafic 1: Profitabilitate ({formattedDate})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={profitabilityData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="name" 
+                  className="text-xs"
+                  tick={{ fontSize: 10 }}
+                />
+                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" tick={{ fontSize: 10 }} />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="value" name="Valoare (RON)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Grafic 2: Analiza Ciclului de Conversie a Banilor */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Grafic 2: Analiza Ciclului de Conversie a Banilor ({formattedDate})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={cashCycleData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="name" 
-                className="text-xs"
-              />
-              <YAxis tickFormatter={(value) => `${value} zile`} className="text-xs" />
-              <Tooltip 
-                formatter={(value: number) => `${formatNumber(value)} zile`}
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
-              <Bar dataKey="value" name="Număr Zile" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Grafic 2: Analiza Ciclului de Conversie */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Grafic 2: Ciclu Conversie ({formattedDate})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={cashCycleData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="name" 
+                  className="text-xs"
+                  tick={{ fontSize: 10 }}
+                />
+                <YAxis tickFormatter={(value) => `${value}`} className="text-xs" tick={{ fontSize: 10 }} />
+                <Tooltip 
+                  formatter={(value: number) => `${formatNumber(value)} zile`}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="value" name="Zile" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Grafic 3: Analiza Soldurilor de Trezorerie */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Grafic 3: Analiza Soldurilor de Trezorerie ({formattedDate})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={treasuryData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="name" 
-                className="text-xs"
-              />
-              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
-              <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
-              <Bar dataKey="value" name="Valoare (RON)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Grafic 3: Solduri Trezorerie */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Grafic 3: Trezorerie ({formattedDate})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={treasuryData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="name" 
+                  className="text-xs"
+                  tick={{ fontSize: 10 }}
+                />
+                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" tick={{ fontSize: 10 }} />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="value" name="RON" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Grafic 4: Analiza Soldurilor Comerciale */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Grafic 4: Analiza Soldurilor Comerciale ({formattedDate})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={commercialData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="name" 
-                className="text-xs"
-              />
-              <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
-              <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  padding: '12px'
-                }}
-              />
-              <Legend />
-              <Bar dataKey="value" name="Valoare (RON)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Grafic 4: Solduri Comerciale */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Grafic 4: Solduri Comerciale ({formattedDate})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={commercialData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="name" 
+                  className="text-xs"
+                  tick={{ fontSize: 10 }}
+                />
+                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" tick={{ fontSize: 10 }} />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    fontSize: '12px'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="value" name="RON" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Tabel 5: Sumar Indicatori Financiari */}
       <Card>
