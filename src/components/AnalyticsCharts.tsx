@@ -33,21 +33,43 @@ const extractDateFromFilename = (filename: string, createdAt: string): Date => {
     'decembrie': 11, 'dec': 11
   };
 
-  // Încearcă să găsească luna și anul în numele fișierului
-  const lowerFilename = filename.toLowerCase();
-  
-  for (const [monthName, monthIndex] of Object.entries(months)) {
-    if (lowerFilename.includes(monthName)) {
-      // Caută anul (4 cifre)
-      const yearMatch = filename.match(/20\d{2}/);
-      const year = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear();
-      
-      // Setează data la ultima zi a lunii
-      return new Date(year, monthIndex + 1, 0);
+  const lower = filename.toLowerCase();
+
+  // 1) Caută explicit "[luna] [anul]"
+  for (const [name, idx] of Object.entries(months)) {
+    const monthYear = lower.match(new RegExp(`${name}[^0-9]*(20\\d{2})`));
+    if (monthYear) {
+      const year = parseInt(monthYear[1], 10);
+      return new Date(year, idx + 1, 0); // ultima zi din acea lună
     }
   }
-  
-  // Fallback la created_at dacă nu găsește data în nume
+
+  // 2) Caută date numerice în format dd[-._/]mm[-._/]yyyy și alege ULTIMA apariție (de obicei sfârșitul perioadei)
+  const ddmmyyyy = Array.from(lower.matchAll(/(\d{1,2})[\-._\/](\d{1,2})[\-._\/](20\d{2})/g));
+  if (ddmmyyyy.length > 0) {
+    const last = ddmmyyyy[ddmmyyyy.length - 1];
+    const d = parseInt(last[1], 10);
+    const m = parseInt(last[2], 10) - 1; // 0-indexed
+    const y = parseInt(last[3], 10);
+    // Normalizează la ultima zi a lunii respective
+    return new Date(y, m + 1, 0);
+  }
+
+  // 3) Caută format ISO: yyyy[-._/]mm[-._/]dd sau yyyy[-._/]mm
+  const isoFull = lower.match(/(20\d{2})[\-._\/](\d{1,2})[\-._\/](\d{1,2})/);
+  if (isoFull) {
+    const y = parseInt(isoFull[1], 10);
+    const m = parseInt(isoFull[2], 10) - 1;
+    return new Date(y, m + 1, 0);
+  }
+  const isoYearMonth = lower.match(/(20\d{2})[\-._\/]?(\d{1,2})(?![\-._\/]\d)/);
+  if (isoYearMonth) {
+    const y = parseInt(isoYearMonth[1], 10);
+    const m = parseInt(isoYearMonth[2], 10) - 1;
+    return new Date(y, m + 1, 0);
+  }
+
+  // 4) Fallback la created_at din baza de date
   return new Date(createdAt);
 };
 
