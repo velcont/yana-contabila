@@ -25,7 +25,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
   );
 
   const chartData = sortedAnalyses.map(a => ({
-    date: new Date(a.created_at).toLocaleDateString('ro-RO', { month: 'short', year: 'numeric' }),
+    date: new Date(a.created_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short', year: 'numeric' }),
     revenue: a.metadata.revenue || 0,
     expenses: a.metadata.expenses || 0,
     profit: a.metadata.profit || 0,
