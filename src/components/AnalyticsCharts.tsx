@@ -155,7 +155,13 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
                 <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} className="text-xs" />
                 <Tooltip 
                   formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '12px'
+                  }}
                 />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" name="Venituri" strokeWidth={2} />
@@ -181,7 +187,13 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
                 <YAxis tickFormatter={(value) => `${value} zile`} className="text-xs" />
                 <Tooltip 
                   formatter={(value: number) => `${formatNumber(value)} zile`}
-                  contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    padding: '12px'
+                  }}
                 />
                 <Legend />
                 <Line type="monotone" dataKey="dso" stroke="hsl(var(--warning))" name="DSO (Zile Clienți)" strokeWidth={2} />
