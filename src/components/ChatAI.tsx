@@ -50,12 +50,7 @@ type SummaryType = 'detailed' | 'short' | 'action';
 
 export const ChatAI = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `👋 Bună! Sunt Yana, asistenta ta AI financiară. Cu ce te pot ajuta astăzi?`
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
@@ -102,36 +97,74 @@ export const ChatAI = () => {
     }
   };
 
-  // Încarcă insights proactivi
-  useEffect(() => {
-    const loadInsights = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('chat_insights')
-          .select('*')
-          .eq('is_read', false)
-          .order('created_at', { ascending: false })
-          .limit(3);
+  // Încarcă insights proactivi și mesaj de prezentare
+  const loadInsights = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_insights')
+        .select('*')
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(3);
 
-        if (data && !error) {
-          setInsights(data as Insight[]);
-          
-          // Alertează user-ul dacă există insights noi
-          if (data.length > 0) {
-            toast({
-              title: '⚠️ Alerte Detectate',
-              description: `Am detectat ${data.length} ${data.length === 1 ? 'alertă nouă' : 'alerte noi'} în analizele tale`,
-              duration: 5000,
-            });
-          }
+      if (data && !error) {
+        setInsights(data as Insight[]);
+        
+        // Alertează user-ul dacă există insights noi
+        if (data.length > 0) {
+          toast({
+            title: '⚠️ Alerte Detectate',
+            description: `Am detectat ${data.length} ${data.length === 1 ? 'alertă nouă' : 'alerte noi'} în analizele tale`,
+            duration: 5000,
+          });
         }
-      } catch (error) {
-        console.error('Error loading insights:', error);
       }
-    };
+    } catch (error) {
+      console.error('Error loading insights:', error);
+    }
+  };
 
-    if (isOpen) {
+  const loadTopQuestions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_patterns')
+        .select('*')
+        .order('frequency', { ascending: false })
+        .limit(6);
+      
+      if (data && !error) {
+        setTopQuestions(data as QuestionPattern[]);
+      }
+    } catch (error) {
+      console.error('Error loading top questions:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      // Adaugă mesajul de prezentare automat
+      setMessages([{
+        role: 'assistant',
+        content: `Salut! Sunt **Yana**, consultantul tău financiar avansat. 
+
+Misiunea mea este să **transform cifrele din balanțele contabile în strategii clare** pentru succesul afacerii tale. 
+
+Indiferent dacă ești un antreprenor la început de drum sau un manager experimentat, te voi ajuta să:
+
+✨ **Înțelegi în profunzime** situația financiară prin analize detaliate și indicatori cheie (lichiditate, rentabilitate, solvabilitate, eficiență)
+
+📈 **Identifici tendințe** și evoluții în performanța financiară a afacerii tale
+
+🔮 **Anticipezi provocările** cu previziuni strategice și scenarii "what-if" pentru planificare eficientă
+
+💡 **Iei decizii informate** bazate pe recomandări acționabile și personalizate pentru optimizarea afacerii, creșterea profitabilității și gestionarea riscurilor
+
+🎯 **Accesezi calculatoare** specializate (Dividende vs Salarii, Micro vs Profit)
+
+Pregătește-te să descoperi noi perspective și să optimizezi fiecare aspect al performanței tale financiare. **Cum te pot asista astăzi?**`
+      }]);
       loadInsights();
+      loadTopQuestions();
     }
   }, [isOpen, toast]);
 
@@ -336,28 +369,6 @@ export const ChatAI = () => {
     }
   };
 
-  // Încarcă top întrebări frecvente
-  useEffect(() => {
-    const loadTopQuestions = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('chat_patterns')
-          .select('*')
-          .order('frequency', { ascending: false })
-          .limit(6);
-        
-        if (data && !error) {
-          setTopQuestions(data as QuestionPattern[]);
-        }
-      } catch (error) {
-        console.error('Error loading top questions:', error);
-      }
-    };
-
-    if (isOpen && messages.length === 1) {
-      loadTopQuestions();
-    }
-  }, [isOpen, messages.length]);
 
   // Autocomplete inteligent cu sugestii din pattern-uri
   useEffect(() => {
