@@ -17,7 +17,7 @@ interface AnalyticsChartsProps {
   analyses: Analysis[];
 }
 
-const extractDateFromFilename = (filename: string): Date => {
+const extractDateFromFilename = (filename: string, createdAt: string): Date => {
   const months: Record<string, number> = {
     'ianuarie': 0, 'ian': 0,
     'februarie': 1, 'feb': 1,
@@ -48,7 +48,7 @@ const extractDateFromFilename = (filename: string): Date => {
   }
   
   // Fallback la created_at dacă nu găsește data în nume
-  return new Date();
+  return new Date(createdAt);
 };
 
 const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
@@ -59,8 +59,8 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
   }
 
   const sortedAnalyses = [...analyses].sort((a, b) => {
-    const dateA = extractDateFromFilename(a.file_name);
-    const dateB = extractDateFromFilename(b.file_name);
+    const dateA = extractDateFromFilename(a.file_name, a.created_at);
+    const dateB = extractDateFromFilename(b.file_name, b.created_at);
     return dateA.getTime() - dateB.getTime();
   });
 
@@ -72,7 +72,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
     return null;
   }
 
-  const balanceDate = extractDateFromFilename(selectedAnalysis.file_name);
+  const balanceDate = extractDateFromFilename(selectedAnalysis.file_name, selectedAnalysis.created_at);
   const formattedDate = balanceDate.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
 
   // Date pentru graficele comparative
@@ -172,11 +172,11 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
             </SelectTrigger>
             <SelectContent>
               {sortedAnalyses.map((analysis) => {
-                const date = extractDateFromFilename(analysis.file_name);
+                const date = extractDateFromFilename(analysis.file_name, analysis.created_at);
                 const label = date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
                 return (
                   <SelectItem key={analysis.id} value={analysis.id}>
-                    {label} - {analysis.company_name || analysis.file_name}
+                    {label} {analysis.company_name ? `- ${analysis.company_name}` : ''}
                   </SelectItem>
                 );
               })}
