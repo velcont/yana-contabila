@@ -209,7 +209,7 @@ export class RealtimeChat {
       this.ws = new WebSocket(`${baseUrl}?model=${model}`, [
         "realtime",
         `openai-insecure-api-key.${EPHEMERAL_KEY}`,
-        "openai-beta-realtime=v1"
+        "openai-beta.realtime-v1"
       ]);
 
       // onopen: only signal UI; send config after 'session.created'
@@ -217,14 +217,15 @@ export class RealtimeChat {
         type: 'session.update',
         session: {
           modalities: ['text', 'audio'],
-          instructions: 'Ești Yana, un asistent financiar inteligent și proactiv. Răspunde clar și prietenos în limba română. '\
-            + '\n\nTOOL-URI DISPONIBILE:' +
-            '\n- get_financial_data: indicatori financiari (DSO, DPO, EBITDA, profit, cifră de afaceri)' +
-            '\n- search_balance_info: solduri de conturi specifice (ex: cont 5121, conturi la bănci)' +
-            '\n- get_analyses_history: ultimele N analize pentru comparații temporale' +
-            '\n- get_analysis_by_period: găsește analiza pentru o lună specifică' +
-            '\n- get_proactive_insights: verifică alertele automate' +
-            '\n- compare_periods: compară indicatori între 2 perioade',
+          instructions: `Ești Yana, un asistent financiar inteligent și proactiv. Răspunde clar și prietenos în limba română.
+
+TOOL-URI DISPONIBILE:
+- get_financial_data: indicatori financiari (DSO, DPO, EBITDA, profit, cifră de afaceri)
+- search_balance_info: solduri de conturi specifice (ex: cont 5121, conturi la bănci)
+- get_analyses_history: ultimele N analize pentru comparații temporale
+- get_analysis_by_period: găsește analiza pentru o lună specifică
+- get_proactive_insights: verifică alertele automate
+- compare_periods: compară indicatori între 2 perioade`,
           voice: 'alloy',
           input_audio_format: 'pcm16',
           output_audio_format: 'pcm16',

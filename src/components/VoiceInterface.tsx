@@ -193,7 +193,14 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   };
 
   useEffect(() => {
-    checkVoiceUsage();
+    checkVoiceUsage().finally(() => {
+      // Auto-start voice conversation on mount (will request mic permission)
+      setTimeout(() => {
+        if (!isConnected && !isConnecting) {
+          startConversation();
+        }
+      }, 300);
+    });
     
     return () => {
       if (chatRef.current) {
