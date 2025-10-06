@@ -9,12 +9,6 @@ verify_jwt = true
 [functions.fetch-fiscal-news]
 verify_jwt = false
 
-[functions.realtime-chat]
-verify_jwt = false
-
-[functions.get-realtime-token]
-verify_jwt = false
-
 [functions.generate-predictions]
 verify_jwt = true
 
