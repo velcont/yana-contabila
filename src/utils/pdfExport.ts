@@ -12,11 +12,6 @@ declare module 'jspdf' {
   }
 }
 
-interface AnalysisSection {
-  title: string;
-  content: string;
-}
-
 interface ExportData {
   companyName: string;
   fileName: string;
@@ -36,49 +31,6 @@ const PRIMARY_COLOR: [number, number, number] = [59, 130, 246]; // rgb(59, 130, 
 const DANGER_COLOR: [number, number, number] = [239, 68, 68]; // rgb(239, 68, 68) - red
 const WARNING_COLOR: [number, number, number] = [245, 158, 11]; // rgb(245, 158, 11) - amber
 const SUCCESS_COLOR: [number, number, number] = [16, 185, 129]; // rgb(16, 185, 129) - green
-
-// Helper function to extract sections from analysis text
-const extractSections = (text: string): AnalysisSection[] => {
-  const sections: AnalysisSection[] = [];
-  
-  // Try to split by numbered sections: ### 1. or **1.** or just 1.
-  const sectionPattern = /(?:^|\n)(?:#{1,3}\s*)?(?:\*\*)?(\d+)[\.\)]\s*(?:\*\*)?\s*([^\n*]+)/g;
-  const matches = Array.from(text.matchAll(sectionPattern));
-  
-  if (matches.length > 0) {
-    matches.forEach((match, index) => {
-      let sectionTitle = match[2].trim()
-        .replace(/\*\*/g, '')
-        .replace(/\$/g, '')
-        .replace(/^\d+(?:\/\d+)*\s*[–—-]+\s*/g, '')
-        .replace(/^\*{0,2}Cont\s+\d+(?:\/\d+)*\s+/gi, '')
-        .replace(/^([^(]+?)\s*(?:\([^)]*\)|\bîn\b|\bîn\s+Solduri\b).*$/i, '$1')
-        .replace(/\s*\([^)]*\)/g, '')
-        .replace(/\s+în\s+(?:Solduri|Total).*$/gi, '')
-        .replace(/[:\s–—-]+$/g, '')
-        .replace(/\s*&\s*/g, ' și ')
-        .replace(/\s+/g, ' ')
-        .trim();
-        
-      const startIndex = match.index!;
-      const endIndex = index < matches.length - 1 ? matches[index + 1].index! : text.length;
-      const content = text.substring(startIndex, endIndex).trim();
-      
-      sections.push({
-        title: sectionTitle,
-        content: content
-      });
-    });
-  } else {
-    // Fallback: treat entire text as one section
-    sections.push({
-      title: 'Analiză Financiară Completă',
-      content: text
-    });
-  }
-  
-  return sections;
-};
 
 export const generateAnalysisPDF = (data: ExportData): void => {
   const doc = new jsPDF();
@@ -235,98 +187,48 @@ export const generateAnalysisPDF = (data: ExportData): void => {
 
   yPos = (doc as any).lastAutoTable.finalY + 15;
 
-  // Full Analysis Text - All Sections
+  // Full Analysis Text - Exactly as shown in interface
   if (data.fullAnalysisText) {
-    const sections = extractSections(data.fullAnalysisText);
-    
-    sections.forEach((section, sectionIndex) => {
-      // Check if we need a new page
-      if (yPos > 260) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      // Section Header
-      doc.setFillColor(...PRIMARY_COLOR);
-      doc.rect(10, yPos - 5, 190, 10, 'F');
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255);
-      doc.text(`${sectionIndex + 1}. ${section.title}`, 15, yPos);
-      yPos += 12;
-      
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-
-      // Clean and split content into lines
-      const cleanContent = section.content
-        .replace(/#{1,3}\s*/g, '') // Remove markdown headers
-        .replace(/\*\*/g, '') // Remove bold markers
-        .replace(/^\d+[\.\)]\s*[^\n]+\n/gm, '') // Remove section title line
-        .trim();
-
-      const contentLines = doc.splitTextToSize(cleanContent, 180);
-      
-      // Add content lines
-      contentLines.forEach((line: string) => {
-        if (yPos > 280) {
-          doc.addPage();
-          yPos = 20;
-        }
-        
-        // Check if line looks like a bullet point or list item
-        if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().match(/^\d+\./)) {
-          doc.setFont('helvetica', 'normal');
-          doc.text(line, 20, yPos);
-        } else if (line.trim().length > 0) {
-          doc.text(line, 15, yPos);
-        }
-        
-        yPos += 5;
-      });
-      
-      yPos += 5; // Space between sections
-    });
-  }
-
-  // Recommendations Section (if not already included in full text)
-  if (data.recommendations.length > 0) {
+    // Check if we need a new page
     if (yPos > 240) {
       doc.addPage();
       yPos = 20;
     }
 
-    doc.setFillColor(...SUCCESS_COLOR);
+    // Analysis Header
+    doc.setFillColor(...PRIMARY_COLOR);
     doc.rect(10, yPos - 5, 190, 10, 'F');
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text('💡 Recomandări Acționabile', 15, yPos);
+    doc.text('Analiză Completă', 15, yPos);
     yPos += 12;
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
 
-    data.recommendations.slice(0, 8).forEach((rec, idx) => {
-      if (yPos > 270) {
+    // Split the full text into lines and add to PDF exactly as is
+    const textLines = data.fullAnalysisText.split('\n');
+    
+    textLines.forEach((line: string) => {
+      if (yPos > 280) {
         doc.addPage();
         yPos = 20;
       }
-
-      doc.setFillColor(...SUCCESS_COLOR);
-      doc.circle(13, yPos - 1.5, 1.5, 'F');
       
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${idx + 1}.`, 20, yPos);
+      // Use splitTextToSize to handle long lines
+      const wrappedLines = doc.splitTextToSize(line || ' ', 180);
       
-      doc.setFont('helvetica', 'normal');
-      const recLines = doc.splitTextToSize(rec, 165);
-      doc.text(recLines, 27, yPos);
-      yPos += recLines.length * 4 + 2;
+      wrappedLines.forEach((wrappedLine: string) => {
+        if (yPos > 280) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.text(wrappedLine, 15, yPos);
+        yPos += 5;
+      });
     });
   }
 
