@@ -15,6 +15,7 @@ import { TopIssuesWidget } from '@/components/TopIssuesWidget';
 import { ProactiveAlerts } from '@/components/ProactiveAlerts';
 import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import { AIPredictions } from '@/components/AIPredictions';
+import { ResilienceAnalysis } from '@/components/ResilienceAnalysis';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 
@@ -281,7 +282,7 @@ export const Demo = () => {
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-4xl grid-cols-6">
+        <TabsList className="grid w-full max-w-5xl grid-cols-7">
           <TabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
@@ -293,6 +294,10 @@ export const Demo = () => {
           <TabsTrigger value="predictions">
             <Sparkles className="h-4 w-4 mr-2" />
             Predicții
+          </TabsTrigger>
+          <TabsTrigger value="resilience">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Reziliență
           </TabsTrigger>
           <TabsTrigger value="multi-company">
             <Building2 className="h-4 w-4 mr-2" />
@@ -390,6 +395,18 @@ export const Demo = () => {
             </CardContent>
           </Card>
           <AIPredictions analyses={demoAnalyses} />
+        </TabsContent>
+
+        <TabsContent value="resilience" className="space-y-6">
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                <Info className="h-4 w-4 inline mr-2" />
+                Analiza de reziliență evaluează capacitatea firmei de a face față șocurilor externe și identifică vulnerabilitățile.
+              </p>
+            </CardContent>
+          </Card>
+          <ResilienceAnalysis analyses={demoAnalyses} />
         </TabsContent>
 
         <TabsContent value="multi-company" className="space-y-6">

@@ -18,6 +18,7 @@ import { TopIssuesWidget } from './TopIssuesWidget';
 import { ProactiveAlerts } from './ProactiveAlerts';
 import { MultiCompanyComparison } from './MultiCompanyComparison';
 import { AIPredictions } from './AIPredictions';
+import { ResilienceAnalysis } from './ResilienceAnalysis';
 import { EmailAnalysisDialog } from './EmailAnalysisDialog';
 import { ShareAnalysisDialog } from './ShareAnalysisDialog';
 import { AnalysisComments } from './AnalysisComments';
@@ -566,7 +567,7 @@ INDICATORI OPERAȚIONALI:
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-4xl grid-cols-6">
+        <TabsList className="grid w-full max-w-5xl grid-cols-7">
           <TabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
@@ -578,6 +579,10 @@ INDICATORI OPERAȚIONALI:
           <TabsTrigger value="predictions">
             <Sparkles className="h-4 w-4 mr-2" />
             Predicții
+          </TabsTrigger>
+          <TabsTrigger value="resilience">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Reziliență
           </TabsTrigger>
           <TabsTrigger value="multi-company">
             <Building2 className="h-4 w-4 mr-2" />
@@ -607,6 +612,10 @@ INDICATORI OPERAȚIONALI:
 
         <TabsContent value="predictions" className="space-y-6">
           <AIPredictions analyses={filteredAnalyses} />
+        </TabsContent>
+
+        <TabsContent value="resilience" className="space-y-6">
+          <ResilienceAnalysis analyses={filteredAnalyses} />
         </TabsContent>
 
         <TabsContent value="multi-company" className="space-y-6">
