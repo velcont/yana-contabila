@@ -16,7 +16,6 @@ interface ExportData {
   companyName: string;
   fileName: string;
   date: string;
-  fullAnalysisText: string;
   indicators: FinancialIndicators;
   alerts: Array<{
     type: string;
@@ -187,48 +186,42 @@ export const generateAnalysisPDF = (data: ExportData): void => {
 
   yPos = (doc as any).lastAutoTable.finalY + 15;
 
-  // Full Analysis Text - Exactly as shown in interface
-  if (data.fullAnalysisText) {
-    // Check if we need a new page
+  // Recommendations Section
+  if (data.recommendations.length > 0) {
     if (yPos > 240) {
       doc.addPage();
       yPos = 20;
     }
 
-    // Analysis Header
     doc.setFillColor(...PRIMARY_COLOR);
     doc.rect(10, yPos - 5, 190, 10, 'F');
     
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text('Analiză Completă', 15, yPos);
+    doc.text('💡 Recomandări Acționabile', 15, yPos);
     yPos += 12;
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
 
-    // Split the full text into lines and add to PDF exactly as is
-    const textLines = data.fullAnalysisText.split('\n');
-    
-    textLines.forEach((line: string) => {
-      if (yPos > 280) {
+    data.recommendations.slice(0, 8).forEach((rec, idx) => {
+      if (yPos > 270) {
         doc.addPage();
         yPos = 20;
       }
+
+      doc.setFillColor(...SUCCESS_COLOR);
+      doc.circle(13, yPos - 1.5, 1.5, 'F');
       
-      // Use splitTextToSize to handle long lines
-      const wrappedLines = doc.splitTextToSize(line || ' ', 180);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${idx + 1}.`, 20, yPos);
       
-      wrappedLines.forEach((wrappedLine: string) => {
-        if (yPos > 280) {
-          doc.addPage();
-          yPos = 20;
-        }
-        doc.text(wrappedLine, 15, yPos);
-        yPos += 5;
-      });
+      doc.setFont('helvetica', 'normal');
+      const recLines = doc.splitTextToSize(rec, 165);
+      doc.text(recLines, 27, yPos);
+      yPos += recLines.length * 4 + 2;
     });
   }
 

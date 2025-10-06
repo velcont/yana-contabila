@@ -184,16 +184,13 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const AutoScrollText = () => {
     const [isScrolling, setIsScrolling] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [hasAutoStarted, setHasAutoStarted] = useState(false);
     const [lastScrollPosition, setLastScrollPosition] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollSpeed = 1.5; // pixels per frame
 
-    // Text-to-Speech functionality - auto-start only on first mount
+    // Text-to-Speech functionality
     useEffect(() => {
-      // Only auto-start if we haven't started yet (fresh page load)
-      if (hasAutoStarted) return;
-
+      // Start speaking automatically when component mounts
       const startSpeaking = () => {
         if ('speechSynthesis' in window) {
           // Cancel any ongoing speech
@@ -228,7 +225,6 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
           utterance.onerror = () => setIsSpeaking(false);
 
           window.speechSynthesis.speak(utterance);
-          setHasAutoStarted(true);
         }
       };
 
@@ -244,7 +240,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       return () => {
         window.speechSynthesis.cancel();
       };
-    }, [hasAutoStarted]);
+    }, []);
 
     const toggleSpeech = () => {
       if (isSpeaking) {
