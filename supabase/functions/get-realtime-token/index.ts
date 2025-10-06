@@ -40,7 +40,10 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log("Ephemeral token obtained successfully");
+    console.log("Ephemeral token obtained successfully", {
+      expires_at: data?.client_secret?.expires_at,
+      prefix: data?.client_secret?.value?.slice(0, 8),
+    });
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -76,11 +76,11 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
       console.log('[VoiceInterface] Starting conversation...');
       setIsConnecting(true);
       setMicPermissionDenied(false);
-      
+
       // Check if user has minutes remaining FIRST
       const remaining = await checkVoiceUsage();
       console.log('[VoiceInterface] Minutes remaining:', remaining);
-      
+
       if (remaining <= 0) {
         console.log('[VoiceInterface] No minutes remaining');
         setIsConnecting(false);
@@ -92,16 +92,36 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
         });
         return;
       }
-      
-      // Request microphone permission NOW (not before checking minutes)
-      console.log('[VoiceInterface] Requesting microphone permission...');
+
+      // Log current microphone permission state (if supported)
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log('[VoiceInterface] Microphone permission granted');
+        const perm: any = await (navigator as any).permissions?.query?.({ name: 'microphone' as any });
+        console.log('[VoiceInterface] Microphone permission state (pre-request):', perm?.state);
+        if (perm && 'onchange' in perm) {
+          perm.onchange = () => console.log('[VoiceInterface] Microphone permission changed:', (perm as any)?.state);
+        }
+      } catch {
+        console.log('[VoiceInterface] Permissions API not available');
+      }
+
+      // Request microphone permission NOW (not before checking minutes)
+      const constraints = {
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      } as const;
+      console.log('[VoiceInterface] Requesting microphone with constraints:', constraints);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('[VoiceInterface] Microphone permission granted. Tracks:', stream.getTracks().map(t => ({ kind: t.kind, label: t.label, enabled: t.enabled })));
         // Stop the test stream immediately
         stream.getTracks().forEach(track => track.stop());
-      } catch (err) {
-        console.error('[VoiceInterface] Microphone permission denied:', err);
+      } catch (err: any) {
+        console.error('[VoiceInterface] Microphone permission error:', { name: err?.name, message: err?.message });
         setIsConnecting(false);
         setMicPermissionDenied(true);
         toast({
@@ -133,7 +153,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
           endConversation();
         }
       );
-      
+
       console.log('[VoiceInterface] Calling init()...');
       await chatRef.current.init();
       console.log('[VoiceInterface] Init completed');

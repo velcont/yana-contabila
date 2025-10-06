@@ -192,9 +192,8 @@ export class RealtimeChat {
       // Get ephemeral token from our edge function using Supabase SDK
       console.log('[RealtimeChat] Fetching ephemeral token...');
       const { supabase } = await import('@/integrations/supabase/client');
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-realtime-token', {
-        body: {}
-      });
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-realtime-token', { body: {} });
+      console.log('[RealtimeChat] Token fetch response keys:', tokenData ? Object.keys(tokenData) : null, 'error:', tokenError?.message);
       
       if (tokenError) {
         console.error('[RealtimeChat] Token error:', tokenError);
@@ -206,7 +205,9 @@ export class RealtimeChat {
         throw new Error('No client_secret in response');
       }
       
-      console.log('[RealtimeChat] Ephemeral token obtained');
+      const expires = (tokenData as any)?.client_secret?.expires_at;
+      const prefix = (tokenData as any)?.client_secret?.value?.slice(0, 8);
+      console.log('[RealtimeChat] Ephemeral token meta:', { expires_at: expires, prefix });
       const EPHEMERAL_KEY = tokenData.client_secret.value;
       
       // Connect to OpenAI Realtime WebSocket using subprotocols for auth
@@ -218,6 +219,7 @@ export class RealtimeChat {
         `openai-insecure-api-key.${EPHEMERAL_KEY}`,
         "openai-beta.realtime-v1"
       ]);
+      console.log('[RealtimeChat] WS created, readyState:', this.ws.readyState);
 
       // onopen: only signal UI; send config after 'session.created'
       const buildSessionConfig = () => ({
