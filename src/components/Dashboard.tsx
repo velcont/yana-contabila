@@ -481,29 +481,38 @@ export const Dashboard = () => {
                   let credit = 0;
                   
                   // Caută orice mențiune despre contul 473 cu sumă în RON
-                  // Pattern 1: "473...debitor...de X RON" sau "473...creditor...de X RON"
-                  const pattern1 = /473[^.]*?(debitor|creditor)[^.]*?(?:de\s+)?([\d.,]+)\s*RON/i;
-                  const match1 = selectedAnalysis.analysis_text.match(pattern1);
+                  // Pattern A: "473 ... debitor|creditor ... X RON"
+                  const patternA = /473[^\n.]*?(debitor|creditor)[^\n.]*?(?:de\s+)?([\d.,]+)\s*RON\b/i;
+                  const matchA = selectedAnalysis.analysis_text.match(patternA);
                   
-                  if (match1) {
-                    const amount = parseFloat(match1[2].replace(/,/g, ''));
-                    if (match1[1].toLowerCase() === 'debitor') {
-                      debit = amount;
-                    } else {
-                      credit = amount;
+                  if (matchA) {
+                    const amount = parseFloat(matchA[2].replace(/,/g, ''));
+                    if (matchA[1].toLowerCase() === 'debitor') debit = amount; else credit = amount;
+                  }
+                  
+                  // Pattern B: "debitor|creditor ... 473 ... X RON"
+                  if (debit === 0 && credit === 0) {
+                    const patternB = /(debitor|creditor)[^\n.]*?473[^\n.]*?(?:de\s+)?([\d.,]+)\s*RON\b/i;
+                    const matchB = selectedAnalysis.analysis_text.match(patternB);
+                    if (matchB) {
+                      const amount = parseFloat(matchB[2].replace(/,/g, ''));
+                      if (matchB[1].toLowerCase() === 'debitor') debit = amount; else credit = amount;
                     }
                   }
                   
-                  // Pattern 2: Format tabelar (backup)
+                  // Pattern C: Linie care conține 473 și o sumă în RON (fără a ști natura)
                   if (debit === 0 && credit === 0) {
-                    const lines = selectedAnalysis.analysis_text.split('\n');
-                    const account473Line = lines.find(line => /^473\s+/i.test(line.trim()));
-                    
-                    if (account473Line) {
-                      const numbers = account473Line.match(/[\d.,]+/g);
-                      if (numbers && numbers.length >= 2) {
-                        debit = parseFloat(numbers[numbers.length - 2].replace(/,/g, ''));
-                        credit = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+                    const line = selectedAnalysis.analysis_text
+                      .split('\n')
+                      .find(l => /\b473\b/.test(l));
+                    if (line) {
+                      const amt = line.match(/([\d.,]+)\s*RON\b/);
+                      if (amt) {
+                        const amount = parseFloat(amt[1].replace(/,/g, ''));
+                        // Decide în funcție de cuvintele cheie din aceeași linie
+                        if (/debitor/i.test(line)) debit = amount;
+                        else if (/creditor/i.test(line)) credit = amount;
+                        else debit = amount; // default: considerăm debitor
                       }
                     }
                   }
@@ -515,7 +524,7 @@ export const Dashboard = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
                           <AlertTriangle className="h-5 w-5" />
-                          Alerte Cont 473 - Decontări Salariale
+                          Alerte Cont 473 — Decontări în curs de clarificare
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
@@ -528,7 +537,7 @@ export const Dashboard = () => {
                                   Sold Debitor: {formatCurrency(debit)}
                                 </p>
                                 <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
-                                  Aveți avansuri acordate angajaților nedecontate. Acestea trebuie justificate cu documente (bonuri, facturi) și decontate în timp util conform legislației muncii.
+                                  Sume în curs de clarificare nedecontate. Verificați documentele justificative și închideți contul prin înregistrări corecte (ex.: 473 = 401/411/531/512).
                                 </p>
                               </div>
                             </div>
@@ -542,7 +551,7 @@ export const Dashboard = () => {
                                   Sold Creditor: {formatCurrency(credit)}
                                 </p>
                                 <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
-                                  Aveți obligații de plată către angajați (salarii, prime, deconturi). Asigurați-vă că aceste sume sunt plătite conform termenelor legale pentru a evita sancțiuni și nemulțumiri ale angajaților.
+                                  Sume în clarificare de regularizat/restuit. Verificați natura sumelor (de ex. încasări/plăți nealocate, diferențe de curs, deconturi) și închideți contul prin regularizare.
                                 </p>
                               </div>
                             </div>
@@ -551,7 +560,7 @@ export const Dashboard = () => {
                         
                         <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                           <p className="text-sm text-blue-900 dark:text-blue-200">
-                            <strong>Recomandare:</strong> Verificați regulat contul 473 și asigurați-vă că toate decontările salariale sunt efectuate conform termenelor legale. Menținerea unui sold zero pe acest cont indică o gestionare corectă a decontărilor cu angajații.
+                            <strong>Recomandare:</strong> Mențineți contul 473 la sold zero la final de lună. Clarificați lunar toate sumele (note contabile de regularizare) și documentați justificativ fiecare poziție.
                           </p>
                         </div>
                       </CardContent>
