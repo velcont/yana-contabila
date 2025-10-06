@@ -179,31 +179,88 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const companyInfo = extractCompanyInfo(analysisText);
   const sections = extractSections(analysisText);
 
-  const SectionCard = ({ section, index }: { section: AnalysisSection; index: number }) => {
+  const ChapterSection = ({ section, index }: { section: AnalysisSection; index: number }) => {
     const Icon = section.icon;
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    // Define specific background colors for each chapter using semantic tokens
+    const chapterColors = [
+      'bg-blue-500/10 border-blue-500/30',
+      'bg-green-500/10 border-green-500/30',
+      'bg-purple-500/10 border-purple-500/30',
+      'bg-red-500/10 border-red-500/30',
+      'bg-indigo-500/10 border-indigo-500/30',
+      'bg-orange-500/10 border-orange-500/30',
+      'bg-teal-500/10 border-teal-500/30',
+      'bg-pink-500/10 border-pink-500/30'
+    ];
+    
+    const iconColors = [
+      'text-blue-600 dark:text-blue-400',
+      'text-green-600 dark:text-green-400',
+      'text-purple-600 dark:text-purple-400',
+      'text-red-600 dark:text-red-400',
+      'text-indigo-600 dark:text-indigo-400',
+      'text-orange-600 dark:text-orange-400',
+      'text-teal-600 dark:text-teal-400',
+      'text-pink-600 dark:text-pink-400'
+    ];
+    
+    const bgClass = chapterColors[index % chapterColors.length];
+    const iconClass = iconColors[index % iconColors.length];
+    
     return (
-      <Card 
-        className={`group cursor-pointer transition-all duration-500 hover:scale-[1.05] hover:shadow-2xl hover:-translate-y-1 bg-gradient-to-br ${section.color} border-border/50 overflow-hidden animate-fade-in`}
+      <div 
+        className={`border-l-4 rounded-lg p-6 space-y-4 transition-all duration-300 animate-fade-in ${bgClass}`}
         style={{ animationDelay: `${index * 100}ms` }}
-        onClick={() => setSelectedSection(section)}
       >
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Icon className="h-5 w-5 flex-shrink-0 text-primary group-hover:scale-110 transition-transform duration-300" />
-              <CardTitle className="text-sm font-bold leading-snug truncate group-hover:text-primary transition-colors">
-                {section.title}
-              </CardTitle>
-            </div>
-            <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300 flex-shrink-0" />
+        {/* Chapter Header */}
+        <div className="flex items-start gap-4">
+          <div className={`p-3 rounded-xl bg-background/50 backdrop-blur-sm ${iconClass}`}>
+            <Icon className="h-8 w-8" />
           </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <p className="text-sm text-muted-foreground line-clamp-3 break-words group-hover:text-foreground transition-colors">
+          <div className="flex-1 space-y-2">
+            <h3 className="text-2xl font-bold leading-tight">
+              Capitolul {index + 1}
+            </h3>
+            <h4 className="text-xl font-semibold text-foreground/90">
+              {section.title}
+            </h4>
+          </div>
+        </div>
+        
+        {/* Chapter Summary */}
+        <div className="space-y-3 pl-16">
+          <p className="text-base text-foreground/80 leading-relaxed">
             {section.summary}
           </p>
-        </CardContent>
-      </Card>
+          
+          {/* Expandable Content */}
+          {isExpanded && (
+            <div className="pt-4 border-t border-border/50 prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap animate-fade-in">
+              {section.content}
+            </div>
+          )}
+          
+          {/* Expand/Collapse Button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors group"
+          >
+            {isExpanded ? (
+              <>
+                <span>Ascunde detaliile</span>
+                <ChevronRight className="h-4 w-4 -rotate-90 group-hover:-translate-y-1 transition-transform" />
+              </>
+            ) : (
+              <>
+                <span>Vezi detalii complete</span>
+                <ChevronRight className="h-4 w-4 rotate-90 group-hover:translate-y-1 transition-transform" />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     );
   };
 
@@ -237,13 +294,18 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         </CardHeader>
       </Card>
 
-      {/* Netflix-style Section Cards */}
+      {/* Chapter-Based Analysis Sections */}
       {sections.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold animate-fade-in">Secțiuni Analiză</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-6">
+          <div className="space-y-2 animate-fade-in">
+            <h2 className="text-3xl font-bold">Analiză pe Capitole</h2>
+            <p className="text-muted-foreground">
+              Informațiile din balanță organizate în secțiuni clare și ușor de urmărit
+            </p>
+          </div>
+          <div className="space-y-6">
             {sections.map((section, index) => (
-              <SectionCard key={section.id} section={section} index={index} />
+              <ChapterSection key={section.id} section={section} index={index} />
             ))}
           </div>
         </div>
