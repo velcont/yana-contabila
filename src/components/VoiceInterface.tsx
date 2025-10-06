@@ -71,16 +71,24 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   };
 
   const startConversation = async () => {
-    if (!isMicEnabled) {
-      toast({
-        title: "Activează microfonul",
-        description: "Apasă butonul de microfon pentru a-l activa",
-      });
-      return;
-    }
-
     try {
       setIsConnecting(true);
+      
+      // Ensure microphone permission; auto-enable if granted
+      if (!isMicEnabled) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(track => track.stop());
+          setIsMicEnabled(true);
+        } catch (err) {
+          setIsConnecting(false);
+          toast({
+            title: "Activează microfonul",
+            description: "Permite accesul la microfon pentru a porni conversația.",
+          });
+          return;
+        }
+      }
       
       // Check if user has minutes remaining
       const remaining = await checkVoiceUsage();
@@ -96,10 +104,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
         return;
       }
       
-      const hasPermission = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (hasPermission) {
-        hasPermission.getTracks().forEach(track => track.stop());
-      }
+      // Permission already checked above
 
       chatRef.current = new RealtimeChat(
         handleMessage,
