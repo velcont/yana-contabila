@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, TrendingUp, TrendingDown, AlertCircle, Loader2 } from 'lucide-react';
+import { Sparkles, TrendingUp, TrendingDown, AlertCircle, Loader2, Lightbulb } from 'lucide-react';
 import { formatCurrency, type FinancialIndicators } from '@/utils/analysisParser';
 
 interface Analysis {
@@ -31,8 +33,15 @@ interface AIPredictionsProps {
 
 export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [originalPredictions, setOriginalPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  
+  // What If simulation parameters
+  const [expenseChange, setExpenseChange] = useState(0); // -50 to +50 %
+  const [dsoDelay, setDsoDelay] = useState(0); // 0 to 60 days
+  const [revenueChange, setRevenueChange] = useState(0); // -50 to +50 %
+  const [showSimulation, setShowSimulation] = useState(false);
 
   const generatePredictions = async () => {
     if (analyses.length < 2) {
@@ -57,7 +66,9 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
 
       if (error) throw error;
 
-      setPredictions(data.predictions || []);
+      const generatedPredictions = data.predictions || [];
+      setPredictions(generatedPredictions);
+      setOriginalPredictions(generatedPredictions);
       toast({
         title: 'Predicții generate!',
         description: 'AI-ul a analizat datele și a generat scenarii pentru următoarele 3 luni.',
@@ -98,6 +109,40 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
       default:
         return scenario;
     }
+  };
+
+  const applySimulation = () => {
+    if (originalPredictions.length === 0) return;
+
+    const simulatedPredictions = originalPredictions.map(pred => {
+      // Apply revenue change
+      const adjustedRevenue = pred.revenue_forecast * (1 + revenueChange / 100);
+      
+      // Apply expense change (impacts cash flow)
+      const expenseImpact = pred.revenue_forecast * (expenseChange / 100);
+      
+      // DSO delay impacts cash flow (rough estimate: each day delay reduces available cash)
+      const dsoImpact = (pred.revenue_forecast / 30) * dsoDelay * -0.5;
+      
+      const adjustedCashFlow = pred.cash_flow - expenseImpact + dsoImpact;
+
+      return {
+        ...pred,
+        revenue_forecast: adjustedRevenue,
+        cash_flow: adjustedCashFlow,
+      };
+    });
+
+    setPredictions(simulatedPredictions);
+    setShowSimulation(true);
+  };
+
+  const resetSimulation = () => {
+    setPredictions(originalPredictions);
+    setExpenseChange(0);
+    setDsoDelay(0);
+    setRevenueChange(0);
+    setShowSimulation(false);
   };
 
   return (
@@ -145,6 +190,116 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
             </div>
           ) : (
             <div className="space-y-6">
+              {/* What If Simulator */}
+              {originalPredictions.length > 0 && (
+                <Card className="border-2 border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Lightbulb className="h-5 w-5 text-primary" />
+                      Simulări Interactive "What If"
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Ajustează variabilele pentru a vedea impactul asupra predicțiilor
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      {/* Revenue Change */}
+                      <div className="space-y-2">
+                        <Label className="flex justify-between">
+                          <span>Schimbare Venituri</span>
+                          <span className="font-mono text-sm">
+                            {revenueChange > 0 ? '+' : ''}{revenueChange}%
+                          </span>
+                        </Label>
+                        <Slider
+                          value={[revenueChange]}
+                          onValueChange={(val) => setRevenueChange(val[0])}
+                          min={-50}
+                          max={50}
+                          step={5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Ce se întâmplă dacă veniturile {revenueChange >= 0 ? 'cresc' : 'scad'} cu {Math.abs(revenueChange)}%?
+                        </p>
+                      </div>
+
+                      {/* Expense Change */}
+                      <div className="space-y-2">
+                        <Label className="flex justify-between">
+                          <span>Schimbare Cheltuieli</span>
+                          <span className="font-mono text-sm">
+                            {expenseChange > 0 ? '+' : ''}{expenseChange}%
+                          </span>
+                        </Label>
+                        <Slider
+                          value={[expenseChange]}
+                          onValueChange={(val) => setExpenseChange(val[0])}
+                          min={-50}
+                          max={50}
+                          step={5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Ce se întâmplă dacă cheltuielile {expenseChange >= 0 ? 'cresc' : 'scad'} cu {Math.abs(expenseChange)}%?
+                        </p>
+                      </div>
+
+                      {/* DSO Delay */}
+                      <div className="space-y-2">
+                        <Label className="flex justify-between">
+                          <span>Întârziere Încasări (DSO)</span>
+                          <span className="font-mono text-sm">+{dsoDelay} zile</span>
+                        </Label>
+                        <Slider
+                          value={[dsoDelay]}
+                          onValueChange={(val) => setDsoDelay(val[0])}
+                          min={0}
+                          max={60}
+                          step={5}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Cum arată cash flow-ul dacă clienții întârzie cu {dsoDelay} zile?
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={applySimulation}
+                        className="flex-1"
+                        variant="default"
+                      >
+                        <Lightbulb className="h-4 w-4 mr-2" />
+                        Aplică Simulare
+                      </Button>
+                      {showSimulation && (
+                        <Button 
+                          onClick={resetSimulation}
+                          variant="outline"
+                        >
+                          Reset
+                        </Button>
+                      )}
+                    </div>
+
+                    {showSimulation && (
+                      <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                        <p className="text-sm font-medium text-primary flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          Simulare Activă
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Predicțiile afișate reflectă scenariul ajustat
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {predictions.map((prediction, idx) => (
                 <Card key={idx} className="border-2">
                   <CardHeader>
