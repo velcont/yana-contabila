@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { ResearchDataImport } from "./ResearchDataImport";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Analysis {
   id: string;
@@ -33,6 +34,7 @@ interface ResilienceAnalysisProps {
 export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
   const [researchData, setResearchData] = useState<any[]>([]);
   const { toast } = useToast();
+  const { isAdmin, isLoading: isLoadingRole } = useUserRole();
 
   const fetchResearchData = async () => {
     const { data, error } = await supabase
@@ -257,7 +259,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               <Shield className="h-5 w-5" />
               Analiza Rezilienței Financiare
             </div>
-            <ResearchDataImport onImportSuccess={fetchResearchData} />
+            {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
           </CardTitle>
           <CardDescription>
             Sunt necesare minimum 2 analize pentru a calcula indicatorii de reziliență
@@ -328,7 +330,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               <Shield className="h-5 w-5" />
               Scor Global Reziliență
             </div>
-            <ResearchDataImport onImportSuccess={fetchResearchData} />
+            {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
           </CardTitle>
           <CardDescription>
             Indicator compozit al capacității afacerii de a face față șocurilor externe
@@ -542,7 +544,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                 <p className="text-sm text-muted-foreground mb-4">
                   Folosește butonul "Import Date Cercetare" pentru a adăuga date din cursurile de doctorat
                 </p>
-                <ResearchDataImport onImportSuccess={fetchResearchData} />
+                {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
               </CardContent>
             </Card>
           ) : (
