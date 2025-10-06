@@ -118,7 +118,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: "Yana AI <noreply@velcont.com>",
+          from: "Yana AI <noreply@yana-contabila.velcont.com>",
           to: [userData.email],
           subject: `🚨 ${criticalAlerts.length} Alerte Critice - Raport Săptămânal Yana`,
           html,
