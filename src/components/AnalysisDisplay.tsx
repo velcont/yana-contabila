@@ -8,7 +8,9 @@ import {
   DollarSign,
   Receipt,
   Briefcase,
-  ChevronRight
+  ChevronRight,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -181,8 +183,97 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
 
   const AutoScrollText = () => {
     const [isScrolling, setIsScrolling] = useState(true);
+    const [isSpeaking, setIsSpeaking] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollSpeed = 1.5; // pixels per frame
+
+    // Text-to-Speech functionality
+    useEffect(() => {
+      // Start speaking automatically when component mounts
+      const startSpeaking = () => {
+        if ('speechSynthesis' in window) {
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel();
+
+          const utterance = new SpeechSynthesisUtterance(analysisText);
+          
+          // Configure speech parameters
+          utterance.lang = 'ro-RO';
+          utterance.rate = 0.9; // Slightly slower for clarity
+          utterance.pitch = 1.1; // Slightly higher for feminine voice
+          utterance.volume = 1.0;
+
+          // Try to find a Romanian female voice
+          const voices = window.speechSynthesis.getVoices();
+          const romanianFemaleVoice = voices.find(voice => 
+            voice.lang.startsWith('ro') && voice.name.toLowerCase().includes('female')
+          );
+          const romanianVoice = voices.find(voice => voice.lang.startsWith('ro'));
+          const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
+
+          if (romanianFemaleVoice) {
+            utterance.voice = romanianFemaleVoice;
+          } else if (romanianVoice) {
+            utterance.voice = romanianVoice;
+          } else if (femaleVoice) {
+            utterance.voice = femaleVoice;
+          }
+
+          utterance.onstart = () => setIsSpeaking(true);
+          utterance.onend = () => setIsSpeaking(false);
+          utterance.onerror = () => setIsSpeaking(false);
+
+          window.speechSynthesis.speak(utterance);
+        }
+      };
+
+      // Load voices and start speaking
+      if (window.speechSynthesis.getVoices().length > 0) {
+        startSpeaking();
+      } else {
+        window.speechSynthesis.onvoiceschanged = () => {
+          startSpeaking();
+        };
+      }
+
+      return () => {
+        window.speechSynthesis.cancel();
+      };
+    }, []);
+
+    const toggleSpeech = () => {
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      } else {
+        const utterance = new SpeechSynthesisUtterance(analysisText);
+        utterance.lang = 'ro-RO';
+        utterance.rate = 0.9;
+        utterance.pitch = 1.1;
+        utterance.volume = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const romanianFemaleVoice = voices.find(voice => 
+          voice.lang.startsWith('ro') && voice.name.toLowerCase().includes('female')
+        );
+        const romanianVoice = voices.find(voice => voice.lang.startsWith('ro'));
+        const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
+
+        if (romanianFemaleVoice) {
+          utterance.voice = romanianFemaleVoice;
+        } else if (romanianVoice) {
+          utterance.voice = romanianVoice;
+        } else if (femaleVoice) {
+          utterance.voice = femaleVoice;
+        }
+
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = () => setIsSpeaking(false);
+
+        window.speechSynthesis.speak(utterance);
+      }
+    };
 
     useEffect(() => {
       let animationFrameId: number;
@@ -212,10 +303,28 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
 
     return (
       <div className="relative rounded-lg overflow-hidden border border-primary/20 shadow-lg animate-fade-in">
+        {/* Voice Control Button */}
+        <button
+          onClick={toggleSpeech}
+          className="absolute top-4 right-4 z-10 px-4 py-2 bg-accent/80 hover:bg-accent backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-accent/50 flex items-center gap-2"
+        >
+          {isSpeaking ? (
+            <>
+              <VolumeX className="h-4 w-4" />
+              Oprește Vocea
+            </>
+          ) : (
+            <>
+              <Volume2 className="h-4 w-4" />
+              Pornește Vocea
+            </>
+          )}
+        </button>
+
         {/* Scroll Control Button */}
         <button
           onClick={toggleScroll}
-          className="absolute top-4 right-4 z-10 px-4 py-2 bg-primary/20 hover:bg-primary/30 backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-primary/30"
+          className="absolute top-4 right-44 z-10 px-4 py-2 bg-primary/20 hover:bg-primary/30 backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-primary/30"
         >
           {isScrolling ? 'Oprește Scroll' : 'Pornește Scroll'}
         </button>
