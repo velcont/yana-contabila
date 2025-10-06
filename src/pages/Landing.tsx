@@ -224,7 +224,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
             size="lg" 
             variant="outline"
             className="text-lg px-8 py-6"
-            onClick={loadDemoData}
+            onClick={() => navigate('/demo')}
           >
             <Database className="mr-2 h-5 w-5" />
             Vezi Demo Interactiv

@@ -9,6 +9,7 @@ import Contact from "./pages/Contact";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import { Landing } from "./pages/Landing";
+import { Demo } from "./pages/Demo";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
@@ -38,6 +39,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/landing" element={<Landing />} />
+          <Route path="/demo" element={<Demo />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
