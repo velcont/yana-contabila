@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   AlertCircle, 
   TrendingUp, 
@@ -179,87 +179,63 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const companyInfo = extractCompanyInfo(analysisText);
   const sections = extractSections(analysisText);
 
-  const ChapterSection = ({ section, index }: { section: AnalysisSection; index: number }) => {
-    const Icon = section.icon;
-    const [isExpanded, setIsExpanded] = useState(false);
-    
-    // Define specific background colors for each chapter using semantic tokens
-    const chapterColors = [
-      'bg-blue-500/10 border-blue-500/30',
-      'bg-green-500/10 border-green-500/30',
-      'bg-purple-500/10 border-purple-500/30',
-      'bg-red-500/10 border-red-500/30',
-      'bg-indigo-500/10 border-indigo-500/30',
-      'bg-orange-500/10 border-orange-500/30',
-      'bg-teal-500/10 border-teal-500/30',
-      'bg-pink-500/10 border-pink-500/30'
-    ];
-    
-    const iconColors = [
-      'text-blue-600 dark:text-blue-400',
-      'text-green-600 dark:text-green-400',
-      'text-purple-600 dark:text-purple-400',
-      'text-red-600 dark:text-red-400',
-      'text-indigo-600 dark:text-indigo-400',
-      'text-orange-600 dark:text-orange-400',
-      'text-teal-600 dark:text-teal-400',
-      'text-pink-600 dark:text-pink-400'
-    ];
-    
-    const bgClass = chapterColors[index % chapterColors.length];
-    const iconClass = iconColors[index % iconColors.length];
-    
+  const AutoScrollText = () => {
+    const [isScrolling, setIsScrolling] = useState(true);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const scrollSpeed = 0.5; // pixels per frame
+
+    useEffect(() => {
+      let animationFrameId: number;
+      
+      const scrollStep = () => {
+        if (isScrolling && containerRef.current) {
+          containerRef.current.scrollTop += scrollSpeed;
+          
+          // Reset to top when reaching bottom
+          if (containerRef.current.scrollTop >= containerRef.current.scrollHeight - containerRef.current.clientHeight) {
+            containerRef.current.scrollTop = 0;
+          }
+        }
+        animationFrameId = requestAnimationFrame(scrollStep);
+      };
+
+      animationFrameId = requestAnimationFrame(scrollStep);
+
+      return () => {
+        cancelAnimationFrame(animationFrameId);
+      };
+    }, [isScrolling]);
+
+    const toggleScroll = () => {
+      setIsScrolling(!isScrolling);
+    };
+
     return (
-      <div 
-        className={`border-l-4 rounded-lg p-6 space-y-4 transition-all duration-300 animate-fade-in ${bgClass}`}
-        style={{ animationDelay: `${index * 100}ms` }}
-      >
-        {/* Chapter Header */}
-        <div className="flex items-start gap-4">
-          <div className={`p-3 rounded-xl bg-background/50 backdrop-blur-sm ${iconClass}`}>
-            <Icon className="h-8 w-8" />
-          </div>
-          <div className="flex-1 space-y-2">
-            <h3 className="text-2xl font-bold leading-tight">
-              Capitolul {index + 1}
-            </h3>
-            <h4 className="text-xl font-semibold text-foreground/90">
-              {section.title}
-            </h4>
+      <div className="relative rounded-lg overflow-hidden border border-primary/20 shadow-lg animate-fade-in">
+        {/* Scroll Control Button */}
+        <button
+          onClick={toggleScroll}
+          className="absolute top-4 right-4 z-10 px-4 py-2 bg-primary/20 hover:bg-primary/30 backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-primary/30"
+        >
+          {isScrolling ? 'Oprește Scroll' : 'Pornește Scroll'}
+        </button>
+
+        {/* Scrolling Container */}
+        <div
+          ref={containerRef}
+          onClick={toggleScroll}
+          className="h-[70vh] overflow-hidden bg-background/95 backdrop-blur-sm cursor-pointer px-8 py-12"
+          style={{
+            scrollBehavior: 'auto'
+          }}
+        >
+          <div className="space-y-6 font-mono text-base leading-relaxed text-foreground/90 whitespace-pre-line">
+            {analysisText}
           </div>
         </div>
-        
-        {/* Chapter Summary */}
-        <div className="space-y-3 pl-16">
-          <p className="text-base text-foreground/80 leading-relaxed">
-            {section.summary}
-          </p>
-          
-          {/* Expandable Content */}
-          {isExpanded && (
-            <div className="pt-4 border-t border-border/50 prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap animate-fade-in">
-              {section.content}
-            </div>
-          )}
-          
-          {/* Expand/Collapse Button */}
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors group"
-          >
-            {isExpanded ? (
-              <>
-                <span>Ascunde detaliile</span>
-                <ChevronRight className="h-4 w-4 -rotate-90 group-hover:-translate-y-1 transition-transform" />
-              </>
-            ) : (
-              <>
-                <span>Vezi detalii complete</span>
-                <ChevronRight className="h-4 w-4 rotate-90 group-hover:translate-y-1 transition-transform" />
-              </>
-            )}
-          </button>
-        </div>
+
+        {/* Bottom Gradient Fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none" />
       </div>
     );
   };
@@ -294,39 +270,17 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         </CardHeader>
       </Card>
 
-      {/* Chapter-Based Analysis Sections */}
-      {sections.length > 0 && (
-        <div className="space-y-6">
-          <div className="space-y-2 animate-fade-in">
-            <h2 className="text-3xl font-bold">Analiză pe Capitole</h2>
-            <p className="text-muted-foreground">
-              Informațiile din balanță organizate în secțiuni clare și ușor de urmărit
-            </p>
-          </div>
-          <div className="space-y-6">
-            {sections.map((section, index) => (
-              <ChapterSection key={section.id} section={section} index={index} />
-            ))}
-          </div>
+      {/* Auto-Scrolling Analysis Text */}
+      <div className="space-y-6">
+        <div className="space-y-2 animate-fade-in">
+          <h2 className="text-3xl font-bold">Analiză Completă</h2>
+          <p className="text-muted-foreground">
+            Click pe text sau pe buton pentru a opri/porni scrollul automat
+          </p>
         </div>
-      )}
+        <AutoScrollText />
+      </div>
 
-      {/* Full Analysis Fallback */}
-      {sections.length === 0 && (
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Analiză Completă
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-              {analysisText}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Dialog for Section Details */}
       <Dialog open={!!selectedSection} onOpenChange={() => setSelectedSection(null)}>
