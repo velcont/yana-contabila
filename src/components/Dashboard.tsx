@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -144,6 +144,242 @@ export const Dashboard = () => {
       toast({
         title: 'Eroare',
         description: 'Nu am putut șterge analizele.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const loadDemoData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nu ești autentificat');
+
+      // Check if demo data already exists
+      const { data: existingDemo } = await supabase
+        .from('analyses')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('company_name', 'SC DEMO CONSTRUCT SRL')
+        .limit(1);
+
+      if (existingDemo && existingDemo.length > 0) {
+        toast({
+          title: 'Date demo existente',
+          description: 'Ai deja date demo încărcate. Șterge-le mai întâi dacă vrei să reîncarci.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Demo data - 4 analyses from different months
+      const demoAnalyses = [
+        {
+          company_name: 'SC DEMO CONSTRUCT SRL',
+          file_name: 'Balanta_Ianuarie_2025.xlsx',
+          created_at: new Date('2025-01-31').toISOString(),
+          analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/01/2025 - 31/01/2025
+
+INDICATORI CHEIE:
+- Cifra de afaceri (CA): 450,000 RON
+- Cheltuieli totale: 380,000 RON
+- Profit net: 70,000 RON
+- EBITDA: 95,000 RON
+- Marja profitului: 15.56%
+
+SITUAȚIA TREZORERIEI:
+- Sold bancă: 125,000 RON
+- Sold casă: 8,500 RON
+- Creanțe clienți: 180,000 RON
+- Datorii furnizori: 95,000 RON
+
+INDICATORI OPERAȚIONALI:
+- DSO (Days Sales Outstanding): 45 zile
+- DPO (Days Payable Outstanding): 28 zile
+- DIO (Days Inventory Outstanding): 35 zile
+- Cash Conversion Cycle: 52 zile
+
+OBSERVAȚII:
+Situație financiară bună în ianuarie. Lichidități solide, profit pozitiv și EBITDA sănătos. DSO este acceptabil dar ar putea fi îmbunătățit.`,
+          metadata: {
+            ca: 450000,
+            cheltuieli: 380000,
+            profit: 70000,
+            ebitda: 95000,
+            profit_margin: 15.56,
+            soldBanca: 125000,
+            soldClienti: 180000,
+            soldFurnizori: 95000,
+            dso: 45,
+            dpo: 28,
+            dio: 35,
+            cashConversionCycle: 52
+          }
+        },
+        {
+          company_name: 'SC DEMO CONSTRUCT SRL',
+          file_name: 'Balanta_Februarie_2025.xlsx',
+          created_at: new Date('2025-02-28').toISOString(),
+          analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/02/2025 - 28/02/2025
+
+INDICATORI CHEIE:
+- Cifra de afaceri (CA): 520,000 RON
+- Cheltuieli totale: 465,000 RON
+- Profit net: 55,000 RON
+- EBITDA: 78,000 RON
+- Marja profitului: 10.58%
+
+SITUAȚIA TREZORERIEI:
+- Sold bancă: 98,000 RON
+- Sold casă: 12,000 RON
+- Creanțe clienți: 285,000 RON
+- Datorii furnizori: 145,000 RON
+
+INDICATORI OPERAȚIONALI:
+- DSO (Days Sales Outstanding): 68 zile ⚠️
+- DPO (Days Payable Outstanding): 35 zile
+- DIO (Days Inventory Outstanding): 42 zile
+- Cash Conversion Cycle: 75 zile
+
+⚠️ ALERTĂ: DSO crescut semnificativ! Clienții întârzie la plată.
+⚠️ ALERTĂ: Cash flow redus față de luna trecută.
+⚠️ Marja profitului a scăzut de la 15.56% la 10.58%.`,
+          metadata: {
+            ca: 520000,
+            cheltuieli: 465000,
+            profit: 55000,
+            ebitda: 78000,
+            profit_margin: 10.58,
+            soldBanca: 98000,
+            soldClienti: 285000,
+            soldFurnizori: 145000,
+            dso: 68,
+            dpo: 35,
+            dio: 42,
+            cashConversionCycle: 75
+          }
+        },
+        {
+          company_name: 'SC DEMO CONSTRUCT SRL',
+          file_name: 'Balanta_Martie_2025.xlsx',
+          created_at: new Date('2025-03-31').toISOString(),
+          analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/03/2025 - 31/03/2025
+
+INDICATORI CHEIE:
+- Cifra de afaceri (CA): 385,000 RON
+- Cheltuieli totale: 420,000 RON
+- Profit net: -35,000 RON 🔴
+- EBITDA: -18,000 RON 🔴
+- Marja profitului: -9.09%
+
+SITUAȚIA TREZORERIEI:
+- Sold bancă: 65,000 RON
+- Sold casă: 15,000 RON
+- Creanțe clienți: 325,000 RON
+- Datorii furnizori: 185,000 RON
+
+INDICATORI OPERAȚIONALI:
+- DSO (Days Sales Outstanding): 82 zile 🔴
+- DPO (Days Payable Outstanding): 38 zile
+- DIO (Days Inventory Outstanding): 48 zile
+- Cash Conversion Cycle: 92 zile
+
+🔴 ALERTĂ CRITICĂ: Profit negativ! Cheltuielile depășesc veniturile.
+🔴 ALERTĂ CRITICĂ: EBITDA negativ - pierderi operaționale.
+🔴 ALERTĂ: DSO foarte ridicat - probleme serioase la încasări.
+⚠️ Cash flow în scădere continuă - risc de lichiditate.`,
+          metadata: {
+            ca: 385000,
+            cheltuieli: 420000,
+            profit: -35000,
+            ebitda: -18000,
+            profit_margin: -9.09,
+            soldBanca: 65000,
+            soldClienti: 325000,
+            soldFurnizori: 185000,
+            dso: 82,
+            dpo: 38,
+            dio: 48,
+            cashConversionCycle: 92
+          }
+        },
+        {
+          company_name: 'SC DEMO CONSTRUCT SRL',
+          file_name: 'Balanta_Aprilie_2025.xlsx',
+          created_at: new Date('2025-04-30').toISOString(),
+          analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/04/2025 - 30/04/2025
+
+INDICATORI CHEIE:
+- Cifra de afaceri (CA): 580,000 RON
+- Cheltuieli totale: 485,000 RON
+- Profit net: 95,000 RON ✅
+- EBITDA: 125,000 RON ✅
+- Marja profitului: 16.38%
+
+SITUAȚIA TREZORERIEI:
+- Sold bancă: 145,000 RON
+- Sold casă: 9,500 RON
+- Creanțe clienți: 235,000 RON
+- Datorii furnizori: 125,000 RON
+
+INDICATORI OPERAȚIONALI:
+- DSO (Days Sales Outstanding): 52 zile
+- DPO (Days Payable Outstanding): 32 zile
+- DIO (Days Inventory Outstanding): 38 zile
+- Cash Conversion Cycle: 58 zile
+
+✅ ÎMBUNĂTĂȚIRE: Revenire pe profit și EBITDA pozitiv!
+✅ ÎMBUNĂTĂȚIRE: DSO redus semnificativ - încasări mai rapide.
+✅ Cash flow îmbunătățit considerabil.
+💡 RECOMANDARE: Menține disciplina încasărilor din aprilie.`,
+          metadata: {
+            ca: 580000,
+            cheltuieli: 485000,
+            profit: 95000,
+            ebitda: 125000,
+            profit_margin: 16.38,
+            soldBanca: 145000,
+            soldClienti: 235000,
+            soldFurnizori: 125000,
+            dso: 52,
+            dpo: 32,
+            dio: 38,
+            cashConversionCycle: 58
+          }
+        }
+      ];
+
+      // Insert demo analyses
+      const analysesToInsert = demoAnalyses.map(demo => ({
+        user_id: user.id,
+        company_name: demo.company_name,
+        file_name: demo.file_name,
+        created_at: demo.created_at,
+        analysis_text: demo.analysis_text,
+        metadata: demo.metadata
+      }));
+
+      const { error } = await supabase
+        .from('analyses')
+        .insert(analysesToInsert);
+
+      if (error) throw error;
+
+      // Reload analyses
+      await loadAnalyses();
+
+      toast({
+        title: '✨ Date demo încărcate!',
+        description: '4 analize demo pentru SC DEMO CONSTRUCT SRL au fost adăugate. Explorează toate funcționalitățile!',
+      });
+    } catch (error) {
+      console.error('Error loading demo data:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu am putut încărca datele demo.',
         variant: 'destructive'
       });
     }
@@ -304,6 +540,16 @@ export const Dashboard = () => {
               </SelectContent>
             </Select>
           )}
+
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={loadDemoData}
+            className="flex items-center gap-2"
+          >
+            <Database className="h-4 w-4" />
+            Încarcă Date Demo
+          </Button>
 
           {analyses.length > 0 && isAdmin && (
             <Button 
