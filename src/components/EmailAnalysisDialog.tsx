@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Mail, Plus, X } from "lucide-react";
+import { Mail, Plus, X, UserCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface EmailAnalysisDialogProps {
   open: boolean;
@@ -25,12 +30,76 @@ export const EmailAnalysisDialog = ({
   analysisDate,
 }: EmailAnalysisDialogProps) => {
   const [emails, setEmails] = useState<string[]>([""]);
+  const [savedContacts, setSavedContacts] = useState<Array<{ id: string; email: string; name: string | null }>>([]);
   const [hasEmployees, setHasEmployees] = useState(false);
   const [hasIntraCommunity, setHasIntraCommunity] = useState(false);
   const [isVATpayer, setIsVATpayer] = useState(false);
   const [vatFrequency, setVatFrequency] = useState<"lunar" | "trimestrial">("lunar");
   const [taxType, setTaxType] = useState<"microenterprise" | "profit">("microenterprise");
   const [isSending, setIsSending] = useState(false);
+
+  // Încarcă contactele salvate
+  useEffect(() => {
+    if (open) {
+      loadSavedContacts();
+    }
+  }, [open]);
+
+  const loadSavedContacts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('email_contacts')
+        .select('id, email, name')
+        .order('last_used_at', { ascending: false });
+
+      if (error) throw error;
+      setSavedContacts(data || []);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+    }
+  };
+
+  const saveEmailContact = async (email: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('email_contacts')
+        .upsert({
+          user_id: user.id,
+          email: email.trim(),
+          last_used_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,email',
+        });
+    } catch (error) {
+      console.error('Error saving contact:', error);
+    }
+  };
+
+  const deleteContact = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('email_contacts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast.success("Contact șters");
+      loadSavedContacts();
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      toast.error("Eroare la ștergerea contactului");
+    }
+  };
+
+  const selectContact = (email: string, index: number) => {
+    const newEmails = [...emails];
+    newEmails[index] = email;
+    setEmails(newEmails);
+  };
 
   const addEmailField = () => {
     setEmails([...emails, ""]);
@@ -83,6 +152,9 @@ export const EmailAnalysisDialog = ({
 
       if (error) throw error;
 
+      // Salvează contactele folosite
+      await Promise.all(validEmails.map(email => saveEmailContact(email)));
+
       toast.success(`Emailul a fost trimis cu succes către ${data.emailsSent} destinatar(i)!`);
       onOpenChange(false);
       
@@ -117,7 +189,14 @@ export const EmailAnalysisDialog = ({
         <div className="space-y-6 py-4">
           {/* Email addresses */}
           <div className="space-y-3">
-            <Label>Adrese Email *</Label>
+            <div className="flex items-center justify-between">
+              <Label>Adrese Email *</Label>
+              {savedContacts.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {savedContacts.length} {savedContacts.length === 1 ? 'contact salvat' : 'contacte salvate'}
+                </span>
+              )}
+            </div>
             {emails.map((email, index) => (
               <div key={index} className="flex gap-2">
                 <Input
@@ -127,6 +206,53 @@ export const EmailAnalysisDialog = ({
                   onChange={(e) => updateEmail(index, e.target.value)}
                   className="flex-1"
                 />
+                {savedContacts.length > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        title="Selectează din contacte salvate"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm mb-3">Contacte Salvate</h4>
+                        <div className="max-h-60 overflow-y-auto space-y-1">
+                          {savedContacts.map((contact) => (
+                            <div
+                              key={contact.id}
+                              className="flex items-center justify-between p-2 hover:bg-accent rounded-md group"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => selectContact(contact.email, index)}
+                                className="flex-1 text-left text-sm"
+                              >
+                                <div className="font-medium">{contact.email}</div>
+                                {contact.name && (
+                                  <div className="text-xs text-muted-foreground">{contact.name}</div>
+                                )}
+                              </button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                                onClick={() => deleteContact(contact.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 {emails.length > 1 && (
                   <Button
                     type="button"
