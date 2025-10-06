@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 
 const Index = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<string>("");
   const [showDashboard, setShowDashboard] = useState(false);
@@ -50,12 +50,16 @@ const Index = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      const nameOk = selectedFile.name?.toLowerCase().match(/\.(xls|xlsx)$/);
-      const typeOk = selectedFile.type === "application/vnd.ms-excel" || 
-                     selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      if (!nameOk && !typeOk) {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length > 0) {
+      const invalidFiles = selectedFiles.filter(file => {
+        const nameOk = file.name?.toLowerCase().match(/\.(xls|xlsx)$/);
+        const typeOk = file.type === "application/vnd.ms-excel" || 
+                       file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        return !nameOk && !typeOk;
+      });
+
+      if (invalidFiles.length > 0) {
         toast({
           title: "Format invalid",
           description: "Se acceptă DOAR fișiere Excel (.xls sau .xlsx) cu balanța de verificare.",
@@ -64,7 +68,7 @@ const Index = () => {
         return;
       }
       
-      setFile(selectedFile);
+      setFiles(selectedFiles);
       setAnalysis("");
     }
   };
@@ -82,60 +86,81 @@ const Index = () => {
   };
 
   const handleAnalyze = async () => {
-    if (!file) {
+    if (files.length === 0) {
       toast({
         title: "Niciun fișier selectat",
-        description: "Te rog încarcă o balanță de verificare.",
+        description: "Te rog încarcă cel puțin o balanță de verificare.",
         variant: "destructive",
       });
       return;
     }
 
     setIsAnalyzing(true);
+    let successCount = 0;
+    let failCount = 0;
 
     try {
-      const excelBase64 = await convertExcelToBase64(file);
-
-      const { data, error } = await supabase.functions.invoke("analyze-balance", {
-        body: { excelBase64, fileName: file.name },
-      });
-
-      if (data?.error) throw new Error(data.error);
-
-      setAnalysis(data.analysis);
-      
-      if (user) {
+      // Process each file separately
+      for (const file of files) {
         try {
-          // Parse financial indicators from analysis text
-          const { parseAnalysisText } = await import('@/utils/analysisParser');
-          const indicators = parseAnalysisText(data.analysis);
+          const excelBase64 = await convertExcelToBase64(file);
+
+          const { data, error } = await supabase.functions.invoke("analyze-balance", {
+            body: { excelBase64, fileName: file.name },
+          });
+
+          if (data?.error) throw new Error(data.error);
+
+          // Show analysis only for the last file processed
+          if (file === files[files.length - 1]) {
+            setAnalysis(data.analysis);
+          }
           
-          const { error: saveError } = await supabase
-            .from('analyses')
-            .insert({
-              user_id: user.id,
-              file_name: file.name,
-              analysis_text: data.analysis,
-              company_name: companyName || 'Firma Principală',
-              metadata: indicators as any
-            });
-          if (saveError) throw saveError;
-        } catch (saveError) {
-          console.error('Error saving analysis:', saveError);
+          if (user) {
+            try {
+              // Parse financial indicators from analysis text
+              const { parseAnalysisText } = await import('@/utils/analysisParser');
+              const indicators = parseAnalysisText(data.analysis);
+              
+              const { error: saveError } = await supabase
+                .from('analyses')
+                .insert({
+                  user_id: user.id,
+                  file_name: file.name,
+                  analysis_text: data.analysis,
+                  company_name: companyName || 'Firma Principală',
+                  metadata: indicators as any
+                });
+              if (saveError) throw saveError;
+            } catch (saveError) {
+              console.error('Error saving analysis:', saveError);
+              failCount++;
+              continue;
+            }
+          }
+          
+          successCount++;
+        } catch (fileError) {
+          console.error(`Error analyzing ${file.name}:`, fileError);
+          failCount++;
         }
       }
-      
-      toast({
-        title: "Analiză completă!",
-        description: user 
-          ? "Analiza a fost generată și salvată în Dosarul Meu Financiar." 
-          : "Analiza a fost generată cu succes.",
-      });
+
+      if (successCount > 0) {
+        toast({
+          title: "Analiză completă!",
+          description: user 
+            ? `${successCount} ${successCount === 1 ? 'analiză a fost generată' : 'analize au fost generate'} și ${successCount === 1 ? 'salvată' : 'salvate'} separat în Dosarul Meu Financiar.${failCount > 0 ? ` (${failCount} ${failCount === 1 ? 'eșuată' : 'eșuate'})` : ''}`
+            : `${successCount} ${successCount === 1 ? 'analiză a fost generată' : 'analize au fost generate'} cu succes.`,
+        });
+      } else {
+        throw new Error("Toate analizele au eșuat");
+      }
     } catch (error) {
       console.error("Eroare la analiză:", error);
       toast({
         title: "Eroare",
-        description: error instanceof Error ? error.message : "A apărut o eroare la generarea analizei.",
+        description: error instanceof Error ? error.message : "A apărut o eroare la generarea analizelor.",
         variant: "destructive",
       });
     } finally {
@@ -155,9 +180,9 @@ const Index = () => {
     doc.setFontSize(18);
     doc.text('Yana - Analiză Balanță', margin, margin);
     
-    if (file) {
+    if (files.length > 0) {
       doc.setFontSize(12);
-      doc.text(`Fișier: ${file.name}`, margin, margin + 10);
+      doc.text(`Fișier: ${files[files.length - 1].name}`, margin, margin + 10);
     }
     
     doc.setFontSize(10);
@@ -185,7 +210,7 @@ const Index = () => {
   const handleSignOut = async () => {
     await signOut();
     setAnalysis("");
-    setFile(null);
+    setFiles([]);
     toast({
       title: "Deconectat",
       description: "Te-ai deconectat cu succes.",
@@ -356,15 +381,24 @@ const Index = () => {
                     onChange={handleFileChange}
                     className="hidden"
                     id="file-upload"
+                    multiple
                   />
                   <label htmlFor="file-upload" className="flex-1 cursor-pointer" data-tour="file-upload">
                     <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors">
                       <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      {file ? (
-                        <p className="text-sm font-medium">{file.name}</p>
+                      {files.length > 0 ? (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">{files.length} {files.length === 1 ? 'fișier selectat' : 'fișiere selectate'}</p>
+                          {files.length <= 3 && files.map((f, idx) => (
+                            <p key={idx} className="text-xs text-muted-foreground">{f.name}</p>
+                          ))}
+                          {files.length > 3 && (
+                            <p className="text-xs text-muted-foreground">și alte {files.length - 3} fișiere...</p>
+                          )}
+                        </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          Click pentru a selecta un fișier
+                          Click pentru a selecta unul sau mai multe fișiere
                         </p>
                       )}
                     </div>
@@ -373,7 +407,7 @@ const Index = () => {
 
                 <Button
                   onClick={handleAnalyze}
-                  disabled={!file || isAnalyzing}
+                  disabled={files.length === 0 || isAnalyzing}
                   className="w-full"
                   size="lg"
                   data-tour="analyze-button"
@@ -381,12 +415,12 @@ const Index = () => {
                   {isAnalyzing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analizez...
+                      Analizez {files.length} {files.length === 1 ? 'balanță' : 'balanțe'}...
                     </>
                   ) : (
                     <>
                       <FileText className="mr-2 h-4 w-4" />
-                      Generează Analiza
+                      Generează {files.length > 0 ? `${files.length} ${files.length === 1 ? 'Analiză' : 'Analize'}` : 'Analiza'}
                     </>
                   )}
                 </Button>
@@ -406,7 +440,7 @@ const Index = () => {
               <CardContent>
                 <AnalysisDisplay 
                   analysisText={analysis}
-                  fileName={file?.name}
+                  fileName={files[files.length - 1]?.name}
                 />
               </CardContent>
             </Card>
