@@ -188,55 +188,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollSpeed = 1.5; // pixels per frame
 
-    // Text-to-Speech functionality
+    // Text-to-Speech functionality - DON'T auto-start
     useEffect(() => {
-      // Start speaking automatically when component mounts
-      const startSpeaking = () => {
-        if ('speechSynthesis' in window) {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
-
-          const utterance = new SpeechSynthesisUtterance(analysisText);
-          
-          // Configure speech parameters
-          utterance.lang = 'ro-RO';
-          utterance.rate = 0.9; // Slightly slower for clarity
-          utterance.pitch = 1.1; // Slightly higher for feminine voice
-          utterance.volume = 1.0;
-
-          // Try to find a Romanian female voice
-          const voices = window.speechSynthesis.getVoices();
-          const romanianFemaleVoice = voices.find(voice => 
-            voice.lang.startsWith('ro') && voice.name.toLowerCase().includes('female')
-          );
-          const romanianVoice = voices.find(voice => voice.lang.startsWith('ro'));
-          const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
-
-          if (romanianFemaleVoice) {
-            utterance.voice = romanianFemaleVoice;
-          } else if (romanianVoice) {
-            utterance.voice = romanianVoice;
-          } else if (femaleVoice) {
-            utterance.voice = femaleVoice;
-          }
-
-          utterance.onstart = () => setIsSpeaking(true);
-          utterance.onend = () => setIsSpeaking(false);
-          utterance.onerror = () => setIsSpeaking(false);
-
-          window.speechSynthesis.speak(utterance);
-        }
-      };
-
-      // Load voices and start speaking
-      if (window.speechSynthesis.getVoices().length > 0) {
-        startSpeaking();
-      } else {
-        window.speechSynthesis.onvoiceschanged = () => {
-          startSpeaking();
-        };
-      }
-
+      // Cleanup speech on unmount
       return () => {
         window.speechSynthesis.cancel();
       };
