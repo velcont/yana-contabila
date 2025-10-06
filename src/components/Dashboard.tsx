@@ -10,7 +10,7 @@ import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import AnalyticsCharts from './AnalyticsCharts';
 import CompareAnalyses from './CompareAnalyses';
-import { parseAnalysisText, type FinancialIndicators } from '@/utils/analysisParser';
+import { parseAnalysisText, formatCurrency, type FinancialIndicators } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -472,13 +472,89 @@ export const Dashboard = () => {
               </div>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             {selectedAnalysis ? (
-              <AnalysisDisplay 
-                analysisText={selectedAnalysis.analysis_text}
-                fileName={selectedAnalysis.file_name}
-                createdAt={selectedAnalysis.created_at}
-              />
+              <>
+                {/* Card cu Alerte pentru contul 473 */}
+                {(() => {
+                  // Extrage informații despre contul 473 din textul analizei
+                  const account473Regex = /473[^\n]*?\s+(?:[\d.,]+\s+){0,2}([\d.,]+)\s+([\d.,]+)/i;
+                  const match = selectedAnalysis.analysis_text.match(account473Regex);
+                  
+                  let debit = 0;
+                  let credit = 0;
+                  
+                  if (match) {
+                    // Încearcă să identifice soldurile finale (ultimele 2 coloane)
+                    const numbers = selectedAnalysis.analysis_text
+                      .split('\n')
+                      .find(line => line.includes('473'))
+                      ?.match(/[\d.,]+/g);
+                    
+                    if (numbers && numbers.length >= 2) {
+                      // Ultimele două numere sunt soldurile finale
+                      debit = parseFloat(numbers[numbers.length - 2].replace(/,/g, ''));
+                      credit = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+                    }
+                  }
+                  
+                  const hasAccount473Balance = debit > 0 || credit > 0;
+                  
+                  return hasAccount473Balance ? (
+                    <Card className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                          <AlertTriangle className="h-5 w-5" />
+                          Alerte Cont 473 - Decontări Salariale
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2">
+                          {debit > 0 && (
+                            <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+                              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="font-semibold text-orange-900 dark:text-orange-200">
+                                  Sold Debitor: {formatCurrency(debit)}
+                                </p>
+                                <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
+                                  Aveți avansuri acordate angajaților nedecontate. Acestea trebuie justificate cu documente (bonuri, facturi) și decontate în timp util conform legislației muncii.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {credit > 0 && (
+                            <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+                              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="font-semibold text-orange-900 dark:text-orange-200">
+                                  Sold Creditor: {formatCurrency(credit)}
+                                </p>
+                                <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
+                                  Aveți obligații de plată către angajați (salarii, prime, deconturi). Asigurați-vă că aceste sume sunt plătite conform termenelor legale pentru a evita sancțiuni și nemulțumiri ale angajaților.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                          <p className="text-sm text-blue-900 dark:text-blue-200">
+                            <strong>Recomandare:</strong> Verificați regulat contul 473 și asigurați-vă că toate decontările salariale sunt efectuate conform termenelor legale. Menținerea unui sold zero pe acest cont indică o gestionare corectă a decontărilor cu angajații.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null;
+                })()}
+                
+                <AnalysisDisplay 
+                  analysisText={selectedAnalysis.analysis_text}
+                  fileName={selectedAnalysis.file_name}
+                  createdAt={selectedAnalysis.created_at}
+                />
+              </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
