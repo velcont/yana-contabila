@@ -477,24 +477,41 @@ export const Dashboard = () => {
               <>
                 {/* Card cu Alerte pentru contul 473 */}
                 {(() => {
-                  // Extrage informații despre contul 473 din textul analizei
-                  const account473Regex = /473[^\n]*?\s+(?:[\d.,]+\s+){0,2}([\d.,]+)\s+([\d.,]+)/i;
-                  const match = selectedAnalysis.analysis_text.match(account473Regex);
-                  
                   let debit = 0;
                   let credit = 0;
                   
-                  if (match) {
-                    // Încearcă să identifice soldurile finale (ultimele 2 coloane)
-                    const numbers = selectedAnalysis.analysis_text
-                      .split('\n')
-                      .find(line => line.includes('473'))
-                      ?.match(/[\d.,]+/g);
+                  // 1. Caută în textul descriptiv (format standard din alertele AI)
+                  const textualPattern = /473[^:]+:\s*(?:Sold\s+(?:final\s+)?(?:debitor|creditor)\s+(?:de\s+)?)?(?:debitor\s+(?:de\s+)?)?([\d.,]+)\s*RON/i;
+                  const textMatch = selectedAnalysis.analysis_text.match(textualPattern);
+                  
+                  if (textMatch) {
+                    const amount = parseFloat(textMatch[1].replace(/,/g, ''));
+                    // Detectează dacă e debitor sau creditor din context
+                    const context = selectedAnalysis.analysis_text.substring(
+                      Math.max(0, textMatch.index! - 100),
+                      textMatch.index! + textMatch[0].length + 50
+                    );
                     
-                    if (numbers && numbers.length >= 2) {
-                      // Ultimele două numere sunt soldurile finale
-                      debit = parseFloat(numbers[numbers.length - 2].replace(/,/g, ''));
-                      credit = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+                    if (/debitor/i.test(context)) {
+                      debit = amount;
+                    } else if (/creditor/i.test(context)) {
+                      credit = amount;
+                    } else {
+                      // Dacă nu se specifică, presupunem debitor (mai frecvent pentru 473)
+                      debit = amount;
+                    }
+                  } else {
+                    // 2. Caută în format tabelar (dacă există)
+                    const lines = selectedAnalysis.analysis_text.split('\n');
+                    const account473Line = lines.find(line => /^473\s+/i.test(line.trim()));
+                    
+                    if (account473Line) {
+                      const numbers = account473Line.match(/[\d.,]+/g);
+                      if (numbers && numbers.length >= 2) {
+                        // Ultimele două coloane sunt solduri finale (debit și credit)
+                        debit = parseFloat(numbers[numbers.length - 2].replace(/,/g, ''));
+                        credit = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
+                      }
                     }
                   }
                   
