@@ -185,25 +185,32 @@ export class RealtimeChat {
 
   async init() {
     try {
+      console.log('[RealtimeChat] Initializing...');
       this.audioContext = new AudioContext({ sampleRate: 24000 });
+      console.log('[RealtimeChat] AudioContext created');
       
       // Get ephemeral token from our edge function using Supabase SDK
+      console.log('[RealtimeChat] Fetching ephemeral token...');
       const { supabase } = await import('@/integrations/supabase/client');
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke('get-realtime-token', {
         body: {}
       });
       
       if (tokenError) {
+        console.error('[RealtimeChat] Token error:', tokenError);
         throw new Error(tokenError.message || 'Failed to get ephemeral token');
       }
       
       if (!tokenData?.client_secret?.value) {
+        console.error('[RealtimeChat] No client_secret in response:', tokenData);
         throw new Error('No client_secret in response');
       }
       
+      console.log('[RealtimeChat] Ephemeral token obtained');
       const EPHEMERAL_KEY = tokenData.client_secret.value;
       
       // Connect to OpenAI Realtime WebSocket using subprotocols for auth
+      console.log('[RealtimeChat] Connecting to OpenAI WebSocket...');
       const baseUrl = "wss://api.openai.com/v1/realtime";
       const model = "gpt-4o-realtime-preview-2024-12-17";
       this.ws = new WebSocket(`${baseUrl}?model=${model}`, [
@@ -377,18 +384,18 @@ TOOL-URI DISPONIBILE:
       };
 
       this.ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+        console.error('[RealtimeChat] WebSocket error:', error);
         try { this.onDisconnect(); } catch (_) {}
         this.stopRecording();
       };
 
-      this.ws.onclose = () => {
-        console.log("Disconnected from server");
+      this.ws.onclose = (event) => {
+        console.log('[RealtimeChat] WebSocket closed:', event.code, event.reason);
         this.onDisconnect();
         this.stopRecording();
       };
     } catch (error) {
-      console.error("Error initializing chat:", error);
+      console.error('[RealtimeChat] Error in init():', error);
       throw error;
     }
   }
@@ -972,6 +979,7 @@ TOOL-URI DISPONIBILE:
   }
 
   private async startRecording() {
+    console.log('[RealtimeChat] Starting audio recording...');
     try {
       this.recorder = new AudioRecorder((audioData) => {
         if (this.ws?.readyState === WebSocket.OPEN) {
@@ -983,14 +991,15 @@ TOOL-URI DISPONIBILE:
         }
       });
       await this.recorder.start();
-      console.log("Recording started");
+      console.log('[RealtimeChat] Recording started successfully');
     } catch (error) {
-      console.error("Error starting recording:", error);
+      console.error('[RealtimeChat] Error starting recording:', error);
       throw error;
     }
   }
 
   private stopRecording() {
+    console.log('[RealtimeChat] Stopping recording...');
     if (this.recorder) {
       this.recorder.stop();
       this.recorder = null;
@@ -1018,6 +1027,7 @@ TOOL-URI DISPONIBILE:
   }
 
   disconnect() {
+    console.log('[RealtimeChat] Disconnecting...');
     this.stopRecording();
     if (this.ws) {
       this.ws.close();
@@ -1027,5 +1037,6 @@ TOOL-URI DISPONIBILE:
       this.audioContext.close();
       this.audioContext = null;
     }
+    console.log('[RealtimeChat] Disconnected');
   }
 }

@@ -14,11 +14,12 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isMicEnabled, setIsMicEnabled] = useState(false); // Disabled by default
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
   const [thinkingStatus, setThinkingStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
   const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
   const chatRef = useRef<RealtimeChat | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const autoStartAttemptedRef = useRef(false);
 
   const checkVoiceUsage = async () => {
     try {
@@ -72,28 +73,16 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
 
   const startConversation = async () => {
     try {
+      console.log('[VoiceInterface] Starting conversation...');
       setIsConnecting(true);
+      setMicPermissionDenied(false);
       
-      // Ensure microphone permission; auto-enable if granted
-      if (!isMicEnabled) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          stream.getTracks().forEach(track => track.stop());
-          setIsMicEnabled(true);
-        } catch (err) {
-          setIsConnecting(false);
-          toast({
-            title: "Activează microfonul",
-            description: "Permite accesul la microfon pentru a porni conversația.",
-          });
-          return;
-        }
-      }
-      
-      // Check if user has minutes remaining
+      // Check if user has minutes remaining FIRST
       const remaining = await checkVoiceUsage();
+      console.log('[VoiceInterface] Minutes remaining:', remaining);
       
       if (remaining <= 0) {
+        console.log('[VoiceInterface] No minutes remaining');
         setIsConnecting(false);
         toast({
           title: "Ai epuizat minutele vocale",
@@ -104,33 +93,59 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
         return;
       }
       
-      // Permission already checked above
+      // Request microphone permission NOW (not before checking minutes)
+      console.log('[VoiceInterface] Requesting microphone permission...');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('[VoiceInterface] Microphone permission granted');
+        // Stop the test stream immediately
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        console.error('[VoiceInterface] Microphone permission denied:', err);
+        setIsConnecting(false);
+        setMicPermissionDenied(true);
+        toast({
+          title: "⚠️ Permisiune necesară",
+          description: "Pentru conversații vocale, trebuie să permiți accesul la microfon în browser. Apasă pe butonul \"Pornește Conversația\" și permite accesul.",
+          variant: "destructive",
+          duration: 10000,
+        });
+        return;
+      }
 
+      console.log('[VoiceInterface] Initializing RealtimeChat...');
       chatRef.current = new RealtimeChat(
         handleMessage,
         () => {
+          console.log('[VoiceInterface] Connected successfully');
           startTimeRef.current = Date.now();
           setIsConnected(true);
           setIsConnecting(false);
           setThinkingStatus('listening');
           toast({
-            title: "✅ Conectat",
-            description: `Poți vorbi acum cu Yana • ${remaining.toFixed(1)} minute rămase`,
+            title: "✅ Conectat cu Yana",
+            description: `Vorbește acum! Ai ${remaining.toFixed(1)} minute rămase luna aceasta`,
+            duration: 5000,
           });
         },
         () => {
+          console.log('[VoiceInterface] Disconnected from server');
           endConversation();
         }
       );
       
+      console.log('[VoiceInterface] Calling init()...');
       await chatRef.current.init();
+      console.log('[VoiceInterface] Init completed');
     } catch (error) {
-      console.error('Error starting conversation:', error);
+      console.error('[VoiceInterface] Error starting conversation:', error);
       setIsConnecting(false);
+      setMicPermissionDenied(true);
       toast({
-        title: "Eroare",
-        description: error instanceof Error ? error.message : 'Nu s-a putut porni conversația',
+        title: "❌ Eroare la pornire",
+        description: error instanceof Error ? error.message : 'Nu s-a putut porni conversația vocală',
         variant: "destructive",
+        duration: 8000,
       });
     }
   };
@@ -193,16 +208,27 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   };
 
   useEffect(() => {
-    checkVoiceUsage().finally(() => {
-      // Auto-start voice conversation on mount (will request mic permission)
-      setTimeout(() => {
-        if (!isConnected && !isConnecting) {
-          startConversation();
-        }
-      }, 300);
+    console.log('[VoiceInterface] Component mounted');
+    
+    // Check usage first, then attempt auto-start ONCE
+    checkVoiceUsage().then((remaining) => {
+      console.log('[VoiceInterface] Usage check complete:', remaining);
+      
+      if (!autoStartAttemptedRef.current && remaining > 0) {
+        autoStartAttemptedRef.current = true;
+        console.log('[VoiceInterface] Attempting auto-start...');
+        
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+          if (!isConnected && !isConnecting) {
+            startConversation();
+          }
+        }, 500);
+      }
     });
     
     return () => {
+      console.log('[VoiceInterface] Component unmounting');
       if (chatRef.current) {
         chatRef.current.disconnect();
       }
@@ -210,38 +236,36 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      {/* Microphone toggle */}
-      <div className="flex gap-2 items-center">
-        <Button
-          onClick={() => setIsMicEnabled(!isMicEnabled)}
-          variant={isMicEnabled ? "default" : "outline"}
-          size="icon"
-          title={isMicEnabled ? "Dezactivează microfonul" : "Activează microfonul"}
-        >
-          {isMicEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-        </Button>
-        <span className="text-sm text-muted-foreground">
-          {isMicEnabled ? "Microfon activat" : "Microfon dezactivat"}
-        </span>
-      </div>
+    <div className="flex flex-col items-center gap-4">
+      {/* Show permission error if needed */}
+      {micPermissionDenied && !isConnected && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 max-w-md">
+          <p className="text-sm text-center text-destructive font-medium mb-2">
+            🎤 Permisiune microfon necesară
+          </p>
+          <p className="text-xs text-center text-muted-foreground">
+            Pentru conversații vocale, browser-ul tău trebuie să permită accesul la microfon. 
+            Apasă pe butonul de mai jos și selectează "Permite" când browser-ul solicită.
+          </p>
+        </div>
+      )}
 
       {!isConnected ? (
         <Button 
           onClick={startConversation}
-          disabled={isConnecting || !isMicEnabled}
+          disabled={isConnecting}
           size="lg"
-          className="gap-2 min-w-[200px]"
+          className="gap-2 min-w-[220px]"
         >
           {isConnecting ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Conectare...
+              Se conectează...
             </>
           ) : (
             <>
               <Mic className="h-5 w-5" />
-              Conversație Vocală
+              {micPermissionDenied ? 'Încearcă din nou' : 'Pornește Conversația'}
             </>
           )}
         </Button>
