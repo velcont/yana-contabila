@@ -17,6 +17,9 @@ interface CompanyData {
 interface EmailRequest {
   emails: string[];
   companyName: string;
+  phoneNumber?: string;
+  administratorName?: string;
+  comments?: string;
   analysisText: string;
   companyData: CompanyData;
   analysisDate: string;
@@ -38,7 +41,7 @@ serve(async (req) => {
       throw new Error('Missing authorization header');
     }
 
-    const { emails, companyName, analysisText, companyData, analysisDate }: EmailRequest = await req.json();
+    const { emails, companyName, phoneNumber, administratorName, comments, analysisText, companyData, analysisDate }: EmailRequest = await req.json();
 
     if (!emails || emails.length === 0) {
       throw new Error('At least one email address is required');
@@ -49,6 +52,16 @@ serve(async (req) => {
       <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
         <h3 style="color: #374151; margin: 0 0 15px 0;">Date Firmă</h3>
         <ul style="list-style: none; padding: 0; margin: 0;">
+          ${administratorName ? `
+            <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+              <strong>Administrator:</strong> ${administratorName}
+            </li>
+          ` : ''}
+          ${phoneNumber ? `
+            <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+              <strong>Telefon Contact:</strong> ${phoneNumber}
+            </li>
+          ` : ''}
           <li style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <strong>Salariați:</strong> ${companyData.hasEmployees ? 'Da' : 'Nu'}
           </li>
@@ -82,6 +95,15 @@ serve(async (req) => {
           </p>
 
           ${companyDetails}
+
+          ${comments ? `
+            <div style="margin: 30px 0;">
+              <h3 style="color: #374151; margin: 0 0 15px 0;">Comentarii și Note</h3>
+              <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; white-space: pre-wrap; line-height: 1.6; color: #78350f;">
+                ${comments}
+              </div>
+            </div>
+          ` : ''}
 
           <div style="margin: 30px 0;">
             <h3 style="color: #374151; margin: 0 0 15px 0;">Analiză Completă</h3>

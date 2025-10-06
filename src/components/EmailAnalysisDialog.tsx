@@ -31,12 +31,21 @@ export const EmailAnalysisDialog = ({
 }: EmailAnalysisDialogProps) => {
   const [emails, setEmails] = useState<string[]>([""]);
   const [savedContacts, setSavedContacts] = useState<Array<{ id: string; email: string; name: string | null }>>([]);
+  const [editableCompanyName, setEditableCompanyName] = useState(companyName);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [administratorName, setAdministratorName] = useState("");
+  const [comments, setComments] = useState("");
   const [hasEmployees, setHasEmployees] = useState(false);
   const [hasIntraCommunity, setHasIntraCommunity] = useState(false);
   const [isVATpayer, setIsVATpayer] = useState(false);
   const [vatFrequency, setVatFrequency] = useState<"lunar" | "trimestrial">("lunar");
   const [taxType, setTaxType] = useState<"microenterprise" | "profit">("microenterprise");
   const [isSending, setIsSending] = useState(false);
+
+  // Update editable company name when prop changes
+  useEffect(() => {
+    setEditableCompanyName(companyName);
+  }, [companyName]);
 
   // Încarcă contactele salvate
   useEffect(() => {
@@ -137,7 +146,10 @@ export const EmailAnalysisDialog = ({
       const { data, error } = await supabase.functions.invoke('send-analysis-email', {
         body: {
           emails: validEmails,
-          companyName,
+          companyName: editableCompanyName,
+          phoneNumber: phoneNumber.trim(),
+          administratorName: administratorName.trim(),
+          comments: comments.trim(),
           analysisText,
           companyData: {
             hasEmployees,
@@ -160,6 +172,10 @@ export const EmailAnalysisDialog = ({
       
       // Reset form
       setEmails([""]);
+      setEditableCompanyName(companyName);
+      setPhoneNumber("");
+      setAdministratorName("");
+      setComments("");
       setHasEmployees(false);
       setHasIntraCommunity(false);
       setIsVATpayer(false);
@@ -187,6 +203,43 @@ export const EmailAnalysisDialog = ({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Company Name */}
+          <div className="space-y-2">
+            <Label htmlFor="companyName">Nume Firmă *</Label>
+            <Input
+              id="companyName"
+              type="text"
+              value={editableCompanyName}
+              onChange={(e) => setEditableCompanyName(e.target.value)}
+              placeholder="Ex: SC SMART VEST SRL"
+              required
+            />
+          </div>
+
+          {/* Administrator Name */}
+          <div className="space-y-2">
+            <Label htmlFor="administratorName">Numele Administratorului</Label>
+            <Input
+              id="administratorName"
+              type="text"
+              value={administratorName}
+              onChange={(e) => setAdministratorName(e.target.value)}
+              placeholder="Ex: Ion Popescu"
+            />
+          </div>
+
+          {/* Phone Number */}
+          <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Telefon de Contact</Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="Ex: 0722123456"
+            />
+          </div>
+
           {/* Email addresses */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -363,6 +416,19 @@ export const EmailAnalysisDialog = ({
                 </div>
               </RadioGroup>
             </div>
+          </div>
+
+          {/* Comments */}
+          <div className="space-y-2 border-t pt-4">
+            <Label htmlFor="comments">Comentarii / Note Suplimentare</Label>
+            <textarea
+              id="comments"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder="Adaugă orice informații suplimentare sau note relevante..."
+              rows={4}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            />
           </div>
         </div>
 
