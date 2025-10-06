@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -13,11 +14,21 @@ import {
   Star,
   Clock,
   Shield,
-  Sparkles
+  Sparkles,
+  Database,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  DollarSign
 } from 'lucide-react';
+import AnalyticsCharts from '@/components/AnalyticsCharts';
+import { AIPredictions } from '@/components/AIPredictions';
+import { formatCurrency } from '@/utils/analysisParser';
 
 export const Landing = () => {
   const navigate = useNavigate();
+  const [showDemo, setShowDemo] = useState(false);
+  const [demoAnalyses, setDemoAnalyses] = useState<any[]>([]);
 
   const features = [
     {
@@ -41,6 +52,107 @@ export const Landing = () => {
       description: "Vizualizări interactive, nu rapoarte statice"
     }
   ];
+
+  const loadDemoData = () => {
+    const demos = [
+      {
+        id: 'demo-1',
+        company_name: 'SC DEMO CONSTRUCT SRL',
+        file_name: 'Balanta_Ianuarie_2025.xlsx',
+        created_at: new Date('2025-01-31').toISOString(),
+        analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/01/2025 - 31/01/2025`,
+        metadata: {
+          ca: 450000,
+          cheltuieli: 380000,
+          profit: 70000,
+          ebitda: 95000,
+          profit_margin: 15.56,
+          soldBanca: 125000,
+          soldClienti: 180000,
+          soldFurnizori: 95000,
+          dso: 45,
+          dpo: 28,
+          dio: 35,
+          cashConversionCycle: 52
+        }
+      },
+      {
+        id: 'demo-2',
+        company_name: 'SC DEMO CONSTRUCT SRL',
+        file_name: 'Balanta_Februarie_2025.xlsx',
+        created_at: new Date('2025-02-28').toISOString(),
+        analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/02/2025 - 28/02/2025`,
+        metadata: {
+          ca: 520000,
+          cheltuieli: 465000,
+          profit: 55000,
+          ebitda: 78000,
+          profit_margin: 10.58,
+          soldBanca: 98000,
+          soldClienti: 285000,
+          soldFurnizori: 145000,
+          dso: 68,
+          dpo: 35,
+          dio: 42,
+          cashConversionCycle: 75
+        }
+      },
+      {
+        id: 'demo-3',
+        company_name: 'SC DEMO CONSTRUCT SRL',
+        file_name: 'Balanta_Martie_2025.xlsx',
+        created_at: new Date('2025-03-31').toISOString(),
+        analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/03/2025 - 31/03/2025`,
+        metadata: {
+          ca: 385000,
+          cheltuieli: 420000,
+          profit: -35000,
+          ebitda: -18000,
+          profit_margin: -9.09,
+          soldBanca: 65000,
+          soldClienti: 325000,
+          soldFurnizori: 185000,
+          dso: 82,
+          dpo: 38,
+          dio: 48,
+          cashConversionCycle: 92
+        }
+      },
+      {
+        id: 'demo-4',
+        company_name: 'SC DEMO CONSTRUCT SRL',
+        file_name: 'Balanta_Aprilie_2025.xlsx',
+        created_at: new Date('2025-04-30').toISOString(),
+        analysis_text: `Analiză Financiară - SC DEMO CONSTRUCT SRL
+Perioada: 01/04/2025 - 30/04/2025`,
+        metadata: {
+          ca: 580000,
+          cheltuieli: 485000,
+          profit: 95000,
+          ebitda: 125000,
+          profit_margin: 16.38,
+          soldBanca: 145000,
+          soldClienti: 235000,
+          soldFurnizori: 125000,
+          dso: 52,
+          dpo: 32,
+          dio: 38,
+          cashConversionCycle: 58
+        }
+      }
+    ];
+    
+    setDemoAnalyses(demos);
+    setShowDemo(true);
+    
+    // Scroll to demo section
+    setTimeout(() => {
+      document.getElementById('demo-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
 
   const comparison = [
     {
@@ -112,12 +224,22 @@ export const Landing = () => {
             size="lg" 
             variant="outline"
             className="text-lg px-8 py-6"
+            onClick={loadDemoData}
+          >
+            <Database className="mr-2 h-5 w-5" />
+            Vezi Demo Interactiv
+          </Button>
+          
+          <Button 
+            size="lg" 
+            variant="ghost"
+            className="text-lg px-8 py-6"
             onClick={() => window.open('https://youtu.be/nQblxkPPtKo?si=beHEGRvful0cxgqM', '_blank')}
           >
             <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z"/>
             </svg>
-            Vezi Demo (14:33)
+            Video (14:33)
           </Button>
 
           <Button
@@ -130,6 +252,110 @@ export const Landing = () => {
           </Button>
         </div>
       </section>
+
+      {/* Demo Section */}
+      {showDemo && (
+        <section id="demo-section" className="container mx-auto px-4 py-20 bg-muted/30 rounded-3xl mb-20">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">
+                📊 Demo Interactiv - SC DEMO CONSTRUCT SRL
+              </h2>
+              <p className="text-muted-foreground">
+                Explorează funcționalitățile YANA cu date demo reale. Fără autentificare necesară!
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setShowDemo(false)}>
+              Închide Demo
+            </Button>
+          </div>
+
+          {/* KPIs Overview */}
+          <div className="grid md:grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Cifra de Afaceri</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{formatCurrency(demoAnalyses[demoAnalyses.length - 1]?.metadata?.ca || 0)}</p>
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Aprilie 2025</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Profit Net</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className={`text-2xl font-bold ${(demoAnalyses[demoAnalyses.length - 1]?.metadata?.profit || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {formatCurrency(demoAnalyses[demoAnalyses.length - 1]?.metadata?.profit || 0)}
+                  </p>
+                  {(demoAnalyses[demoAnalyses.length - 1]?.metadata?.profit || 0) >= 0 ? (
+                    <TrendingUp className="h-5 w-5 text-success" />
+                  ) : (
+                    <TrendingDown className="h-5 w-5 text-destructive" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Marja: {demoAnalyses[demoAnalyses.length - 1]?.metadata?.profit_margin?.toFixed(2)}%
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">DSO (Zile Încasări)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{demoAnalyses[demoAnalyses.length - 1]?.metadata?.dso || 0}</p>
+                  <AlertCircle className={`h-5 w-5 ${(demoAnalyses[demoAnalyses.length - 1]?.metadata?.dso || 0) > 60 ? 'text-destructive' : 'text-success'}`} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {(demoAnalyses[demoAnalyses.length - 1]?.metadata?.dso || 0) > 60 ? '⚠️ Ridicat' : '✅ Normal'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Cash Flow Cycle</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold">{demoAnalyses[demoAnalyses.length - 1]?.metadata?.cashConversionCycle || 0}</p>
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">zile</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts */}
+          <div className="mb-8">
+            <AnalyticsCharts analyses={demoAnalyses} />
+          </div>
+
+          {/* AI Predictions */}
+          <div>
+            <AIPredictions analyses={demoAnalyses} />
+          </div>
+
+          {/* CTA after demo */}
+          <div className="mt-12 text-center p-8 bg-primary/5 rounded-2xl border-2 border-primary/20">
+            <h3 className="text-2xl font-bold mb-4">Vrei să analizezi propriile tale balanțe?</h3>
+            <p className="text-muted-foreground mb-6">Creează cont gratuit și începe să încarci balanțele tale în doar 30 de secunde.</p>
+            <Button size="lg" onClick={() => navigate('/auth')}>
+              <Shield className="mr-2 h-5 w-5" />
+              Începe Gratuit Acum
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Features Grid */}
       <section className="container mx-auto px-4 py-20">
