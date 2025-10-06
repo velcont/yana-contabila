@@ -24,8 +24,56 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
+  // Extract date from filename or use created_at
+  const extractDateFromFilename = (fileName: string, createdAt: string): string => {
+    // Try to extract month and year from filename (e.g., "ianuarie_2025", "01_2025", "2025-01")
+    const monthNames: { [key: string]: number } = {
+      'ianuarie': 0, 'februarie': 1, 'martie': 2, 'aprilie': 3,
+      'mai': 4, 'iunie': 5, 'iulie': 6, 'august': 7,
+      'septembrie': 8, 'octombrie': 9, 'noiembrie': 10, 'decembrie': 11
+    };
+    
+    // Pattern: month_name_year or month_name.year
+    const monthNamePattern = /\b(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)[_\.\s-]*(\d{4})\b/i;
+    const monthNameMatch = fileName.toLowerCase().match(monthNamePattern);
+    if (monthNameMatch) {
+      const monthName = monthNameMatch[1].toLowerCase();
+      const year = parseInt(monthNameMatch[2]);
+      const monthIndex = monthNames[monthName];
+      const date = new Date(year, monthIndex, 1);
+      return date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+    }
+    
+    // Pattern: MM_YYYY or MM-YYYY or MM.YYYY
+    const numericPattern = /\b(\d{1,2})[_\.\-](\d{4})\b/;
+    const numericMatch = fileName.match(numericPattern);
+    if (numericMatch) {
+      const month = parseInt(numericMatch[1]) - 1; // 0-indexed
+      const year = parseInt(numericMatch[2]);
+      if (month >= 0 && month <= 11) {
+        const date = new Date(year, month, 1);
+        return date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+      }
+    }
+    
+    // Pattern: YYYY-MM or YYYY_MM
+    const reversePattern = /\b(\d{4})[_\.\-](\d{1,2})\b/;
+    const reverseMatch = fileName.match(reversePattern);
+    if (reverseMatch) {
+      const year = parseInt(reverseMatch[1]);
+      const month = parseInt(reverseMatch[2]) - 1; // 0-indexed
+      if (month >= 0 && month <= 11) {
+        const date = new Date(year, month, 1);
+        return date.toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+      }
+    }
+    
+    // Fallback: use created_at
+    return new Date(createdAt).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+  };
+
   const chartData = sortedAnalyses.map(a => ({
-    date: new Date(a.created_at).toLocaleDateString('ro-RO', { month: 'short', year: 'numeric' }),
+    date: extractDateFromFilename(a.file_name, a.created_at),
     revenue: a.metadata.revenue || 0,
     expenses: a.metadata.expenses || 0,
     profit: a.metadata.profit || 0,
