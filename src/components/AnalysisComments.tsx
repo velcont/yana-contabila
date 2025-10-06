@@ -25,7 +25,7 @@ export const AnalysisComments = ({ analysisId }: AnalysisCommentsProps) => {
         .from('analysis_comments')
         .select(`
           *,
-          profiles!analysis_comments_user_id_fkey (
+          profiles:user_id (
             full_name,
             email
           )

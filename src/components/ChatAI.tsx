@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap, History, Menu, Volume2, VolumeX } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap, History, Menu } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -19,7 +19,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { QuickReplySuggestions } from './QuickReplySuggestions';
 import { ConversationHistory } from './ConversationHistory';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useSpeech } from '@/hooks/useSpeech';
+import VoiceInterface from './VoiceInterface';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -50,14 +50,13 @@ export const ChatAI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
+      content: `👋 Bună! Sunt Yana Premium, asistenta ta AI financiară îmbunătățită!
 
-✨ **Funcții:**
+✨ **Funcții noi:**
 📚 Istoric Conversații - Click pe iconița 📖 din header
 ⚡ Sugestii inteligente în timp real
 💬 Răspunsuri animate și typing indicator
 🎯 Quick replies cu întrebări populare
-🔊 Text-to-Speech - Ascultă răspunsurile
 
 Cu ce te pot ajuta astăzi?`
     }
@@ -73,11 +72,9 @@ Cu ce te pot ajuta astăzi?`
   const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
-  const [speakingMessageIndex, setSpeakingMessageIndex] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { speak, stop, isSpeaking, isSupported } = useSpeech();
   
   // Feedback handler pentru sistem de învățare
   const handleFeedback = async (messageId: string, rating: number) => {
@@ -608,61 +605,25 @@ Cu ce te pot ajuta astăzi?`
                   <div className="bg-muted rounded-2xl px-4 py-2.5">
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   </div>
-                  <div className="flex items-center gap-2 px-2">
-                    {/* TTS Button */}
-                    {isSupported && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={() => {
-                                if (isSpeaking && speakingMessageIndex === idx) {
-                                  stop();
-                                  setSpeakingMessageIndex(null);
-                                } else {
-                                  stop();
-                                  setSpeakingMessageIndex(idx);
-                                  speak(msg.content);
-                                }
-                              }}
-                            >
-                              {isSpeaking && speakingMessageIndex === idx ? (
-                                <VolumeX className="h-3 w-3" />
-                              ) : (
-                                <Volume2 className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{isSpeaking && speakingMessageIndex === idx ? 'Oprește' : 'Ascultă răspunsul'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                    
-                    {msg.id && (
-                      <>
-                        <span className="text-xs text-muted-foreground">A fost util?</span>
-                        <button
-                          onClick={() => handleFeedback(msg.id!, 1)}
-                          className="text-lg hover:scale-110 transition-transform"
-                          title="Răspuns util"
-                        >
-                          👍
-                        </button>
-                        <button
-                          onClick={() => handleFeedback(msg.id!, -1)}
-                          className="text-lg hover:scale-110 transition-transform"
-                          title="Răspuns neutil"
-                        >
-                          👎
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  {msg.id && (
+                    <div className="flex items-center gap-2 px-2">
+                      <span className="text-xs text-muted-foreground">A fost util?</span>
+                      <button
+                        onClick={() => handleFeedback(msg.id!, 1)}
+                        className="text-lg hover:scale-110 transition-transform"
+                        title="Răspuns util"
+                      >
+                        👍
+                      </button>
+                      <button
+                        onClick={() => handleFeedback(msg.id!, -1)}
+                        className="text-lg hover:scale-110 transition-transform"
+                        title="Răspuns neutil"
+                      >
+                        👎
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="max-w-[85%] rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground">
@@ -703,6 +664,24 @@ Cu ce te pot ajuta astăzi?`
                 </SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="flex items-center gap-2 pb-2">
+            <VoiceInterface 
+              onTranscript={(text, role) => {
+                if (role === 'user') {
+                  setMessages(prev => [...prev, { role: 'user', content: text }]);
+                } else {
+                  setMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg?.role === 'assistant') {
+                      return [...prev.slice(0, -1), { role: 'assistant', content: lastMsg.content + text }];
+                    }
+                    return [...prev, { role: 'assistant', content: text }];
+                  });
+                }
+              }}
+            />
           </div>
           
           <div className="relative">
