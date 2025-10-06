@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -673,9 +673,19 @@ export const Dashboard = () => {
                 <AnalysisComments analysisId={selectedAnalysis.id} />
               </>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Selectează o analiză din listă pentru a vedea detaliile</p>
+              <div className="text-center py-12">
+                <div className="relative inline-block mb-6">
+                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+                  <div className="relative bg-gradient-to-br from-primary to-primary/60 rounded-full p-6 animate-bounce">
+                    <Bot className="h-16 w-16 text-primary-foreground" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold mb-2 animate-fade-in">
+                  👋 Salut! Sunt Yana
+                </h3>
+                <p className="text-muted-foreground animate-fade-in">
+                  Alege o balanță din listă ca să încep analiza.
+                </p>
               </div>
             )}
           </CardContent>
