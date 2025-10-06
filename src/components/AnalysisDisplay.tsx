@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   AlertCircle, 
   TrendingUp, 
@@ -184,49 +185,117 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const AutoScrollText = () => {
     const [isScrolling, setIsScrolling] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isLoadingAudio, setIsLoadingAudio] = useState(false);
     const [lastScrollPosition, setLastScrollPosition] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
     const scrollSpeed = 1.5; // pixels per frame
 
-    // Text-to-Speech functionality - DON'T auto-start
+    // Cleanup audio on unmount
     useEffect(() => {
-      // Cleanup speech on unmount
       return () => {
-        window.speechSynthesis.cancel();
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
       };
     }, []);
 
-    const toggleSpeech = () => {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
+    const toggleSpeech = async () => {
+      if (isSpeaking && audioRef.current) {
+        // Stop current audio
+        audioRef.current.pause();
+        audioRef.current = null;
         setIsSpeaking(false);
-      } else {
-        const utterance = new SpeechSynthesisUtterance(analysisText);
-        utterance.lang = 'ro-RO';
-        utterance.rate = 0.9;
-        utterance.pitch = 1.1;
-        utterance.volume = 1.0;
+        return;
+      }
 
-        const voices = window.speechSynthesis.getVoices();
-        const romanianFemaleVoice = voices.find(voice => 
-          voice.lang.startsWith('ro') && voice.name.toLowerCase().includes('female')
-        );
-        const romanianVoice = voices.find(voice => voice.lang.startsWith('ro'));
-        const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
-
-        if (romanianFemaleVoice) {
-          utterance.voice = romanianFemaleVoice;
-        } else if (romanianVoice) {
-          utterance.voice = romanianVoice;
-        } else if (femaleVoice) {
-          utterance.voice = femaleVoice;
+      try {
+        setIsLoadingAudio(true);
+        
+        // Split text into chunks (OpenAI TTS has 4096 char limit)
+        const maxChunkLength = 4000;
+        const chunks: string[] = [];
+        let currentChunk = '';
+        
+        const sentences = analysisText.split(/(?<=[.!?])\s+/);
+        
+        for (const sentence of sentences) {
+          if ((currentChunk + sentence).length > maxChunkLength && currentChunk) {
+            chunks.push(currentChunk);
+            currentChunk = sentence;
+          } else {
+            currentChunk += (currentChunk ? ' ' : '') + sentence;
+          }
+        }
+        
+        if (currentChunk) {
+          chunks.push(currentChunk);
         }
 
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        // Generate audio for first chunk
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: { text: chunks[0] }
+        });
 
-        window.speechSynthesis.speak(utterance);
+        if (error) throw error;
+
+        // Create audio element
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+        audioRef.current = audio;
+        
+        audio.onplay = () => setIsSpeaking(true);
+        audio.onended = async () => {
+          // Play next chunks if available
+          let currentChunkIndex = 1;
+          
+          const playNextChunk = async () => {
+            if (currentChunkIndex >= chunks.length) {
+              setIsSpeaking(false);
+              return;
+            }
+            
+            try {
+              const { data: nextData, error: nextError } = await supabase.functions.invoke('text-to-speech', {
+                body: { text: chunks[currentChunkIndex] }
+              });
+              
+              if (nextError) throw nextError;
+              
+              const nextAudio = new Audio(`data:audio/mp3;base64,${nextData.audioContent}`);
+              audioRef.current = nextAudio;
+              
+              nextAudio.onended = () => {
+                currentChunkIndex++;
+                playNextChunk();
+              };
+              
+              nextAudio.onerror = () => {
+                setIsSpeaking(false);
+                console.error('Error playing audio chunk');
+              };
+              
+              await nextAudio.play();
+            } catch (err) {
+              console.error('Error loading next chunk:', err);
+              setIsSpeaking(false);
+            }
+          };
+          
+          await playNextChunk();
+        };
+        
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          console.error('Error playing audio');
+        };
+        
+        await audio.play();
+      } catch (error) {
+        console.error('Error generating speech:', error);
+        setIsSpeaking(false);
+      } finally {
+        setIsLoadingAudio(false);
       }
     };
 
@@ -277,9 +346,15 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         {/* Voice Control Button */}
         <button
           onClick={toggleSpeech}
-          className="absolute top-4 right-4 z-10 px-4 py-2 bg-accent/80 hover:bg-accent backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-accent/50 flex items-center gap-2"
+          disabled={isLoadingAudio}
+          className="absolute top-4 right-4 z-10 px-4 py-2 bg-accent/80 hover:bg-accent backdrop-blur-sm rounded-lg text-sm font-medium transition-colors border border-accent/50 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSpeaking ? (
+          {isLoadingAudio ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Se încarcă...
+            </>
+          ) : isSpeaking ? (
             <>
               <VolumeX className="h-4 w-4" />
               Oprește Vocea
