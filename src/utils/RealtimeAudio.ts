@@ -212,143 +212,105 @@ export class RealtimeChat {
         "openai-beta-realtime=v1"
       ]);
 
+      // onopen: only signal UI; send config after 'session.created'
+      const buildSessionConfig = () => ({
+        type: 'session.update',
+        session: {
+          modalities: ['text', 'audio'],
+          instructions: 'Ești Yana, un asistent financiar inteligent și proactiv. Răspunde clar și prietenos în limba română. '\
+            + '\n\nTOOL-URI DISPONIBILE:' +
+            '\n- get_financial_data: indicatori financiari (DSO, DPO, EBITDA, profit, cifră de afaceri)' +
+            '\n- search_balance_info: solduri de conturi specifice (ex: cont 5121, conturi la bănci)' +
+            '\n- get_analyses_history: ultimele N analize pentru comparații temporale' +
+            '\n- get_analysis_by_period: găsește analiza pentru o lună specifică' +
+            '\n- get_proactive_insights: verifică alertele automate' +
+            '\n- compare_periods: compară indicatori între 2 perioade',
+          voice: 'alloy',
+          input_audio_format: 'pcm16',
+          output_audio_format: 'pcm16',
+          input_audio_transcription: { model: 'whisper-1' },
+          turn_detection: {
+            type: 'server_vad',
+            threshold: 0.5,
+            prefix_padding_ms: 300,
+            silence_duration_ms: 1000
+          },
+          tools: [
+            {
+              type: 'function',
+              name: 'get_financial_data',
+              description: 'Obține datele financiare ale utilizatorului din ultima analiză încărcată. Returnează indicatori precum DSO, DPO, EBITDA, profit, cifră de afaceri, etc.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  metric: { type: 'string', enum: ['dso','dpo','ebitda','profit','revenue','cash_flow'] },
+                  period: { type: 'string' }
+                },
+                required: ['metric']
+              }
+            },
+            {
+              type: 'function',
+              name: 'search_balance_info',
+              description: 'Caută informații specifice în balanța contabilă (solduri de conturi, detalii contabile).',
+              parameters: {
+                type: 'object',
+                properties: {
+                  search_term: { type: 'string' },
+                  period: { type: 'string' }
+                },
+                required: ['search_term']
+              }
+            },
+            {
+              type: 'function',
+              name: 'get_analyses_history',
+              description: 'Obține ultimele N analize ale utilizatorului',
+              parameters: {
+                type: 'object',
+                properties: { limit: { type: 'number' } }
+              }
+            },
+            {
+              type: 'function',
+              name: 'get_analysis_by_period',
+              description: 'Găsește analiza pentru o perioadă specifică',
+              parameters: {
+                type: 'object',
+                properties: { period: { type: 'string' } },
+                required: ['period']
+              }
+            },
+            {
+              type: 'function',
+              name: 'get_proactive_insights',
+              description: 'Verifică alertele automate generate de sistem',
+              parameters: {
+                type: 'object',
+                properties: { only_unread: { type: 'boolean' } }
+              }
+            },
+            {
+              type: 'function',
+              name: 'compare_periods',
+              description: 'Compară indicatori între două perioade',
+              parameters: {
+                type: 'object',
+                properties: { period1: { type: 'string' }, period2: { type: 'string' } },
+                required: ['period1','period2']
+              }
+            }
+          ],
+          tool_choice: 'auto',
+          temperature: 0.8,
+          max_response_output_tokens: 4096
+        }
+      });
+
+      // onopen: only signal UI; send config after 'session.created'
       this.ws.onopen = () => {
         console.log("Connected to OpenAI Realtime API");
         this.onConnect();
-        
-        // Send session configuration with tools
-        const sessionConfig = {
-          type: 'session.update',
-          session: {
-            modalities: ['text', 'audio'],
-            instructions: 'Ești Yana, un asistent financiar inteligent și proactiv. Răspunde clar și prietenos în limba română. \n\nTOOL-URI DISPONIBILE:\n- get_financial_data: indicatori financiari (DSO, DPO, EBITDA, profit, cifră de afaceri)\n- search_balance_info: solduri de conturi specifice (ex: cont 5121, conturi la bănci)\n- get_analyses_history: ultimele N analize pentru comparații temporale\n- get_analysis_by_period: găsește analiza pentru o lună specifică\n- get_proactive_insights: verifică alertele automate\n- compare_periods: compară indicatori între 2 perioade\n\nCOMPORTAMENT PROACTIV:\n- Când user întreabă despre un indicator, FOLOSEȘTE AUTOMAT get_analysis_by_period\n- Pentru comparații, FOLOSEȘTE compare_periods\n- NU cere user-ului ID-uri sau detalii tehnice\n- Extrage informațiile și oferă răspunsuri clare cu cifre exacte.',
-            voice: 'alloy',
-            input_audio_format: 'pcm16',
-            output_audio_format: 'pcm16',
-            input_audio_transcription: {
-              model: 'whisper-1'
-            },
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 1000
-            },
-            tools: [
-              {
-                type: 'function',
-                name: 'get_financial_data',
-                description: 'Obține datele financiare ale utilizatorului din ultima analiză încărcată. Returnează indicatori precum DSO, DPO, EBITDA, profit, cifră de afaceri, etc.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    metric: {
-                      type: 'string',
-                      description: 'Indicatorul dorit',
-                      enum: ['dso','dpo','ebitda','profit','revenue','cash_flow']
-                    },
-                    period: {
-                      type: 'string',
-                      description: 'Perioada cerută (ex: "martie 2025", "03/2025", "2025-03")'
-                    }
-                  },
-                  required: ['metric']
-                }
-              },
-              {
-                type: 'function',
-                name: 'search_balance_info',
-                description: 'Caută informații specifice în balanța contabilă (solduri de conturi, detalii contabile). Folosește această funcție când utilizatorul cere informații despre conturi specifice (ex: cont 5121, conturi la bănci, furnizori, clienți, etc.)',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    search_term: {
-                      type: 'string',
-                      description: 'Termenul sau numărul contului căutat (ex: "5121", "conturi la bănci", "furnizori")'
-                    },
-                    period: {
-                      type: 'string',
-                      description: 'Perioada cerută (ex: "martie 2025", "03/2025", "2025-03")'
-                    }
-                  },
-                  required: ['search_term']
-                }
-              },
-              {
-                type: 'function',
-                name: 'get_analyses_history',
-                description: 'Obține ultimele N analize ale utilizatorului pentru comparații temporale și analiza tendințelor',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    limit: {
-                      type: 'number',
-                      description: 'Numărul de analize de returnat (default: 5, max: 10)'
-                    }
-                  }
-                }
-              },
-              {
-                type: 'function',
-                name: 'get_analysis_by_period',
-                description: 'Găsește analiza pentru o lună sau perioadă specifică (ex: "august", "august 2024", "septembrie"). Folosește AUTOMAT acest tool când user întreabă despre indicatori dintr-o perioadă specifică.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    period: {
-                      type: 'string',
-                      description: 'Luna sau perioada căutată (ex: "august", "august 2024", "septembrie 2024")'
-                    }
-                  },
-                  required: ['period']
-                }
-              },
-              {
-                type: 'function',
-                name: 'get_proactive_insights',
-                description: 'Verifică alertele automate generate de sistem pentru probleme financiare',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    only_unread: {
-                      type: 'boolean',
-                      description: 'Dacă true, returnează doar alertele necitite'
-                    }
-                  }
-                }
-              },
-              {
-                type: 'function',
-                name: 'compare_periods',
-                description: 'Compară indicatori financiari între două perioade specifice. Acceptă perioade ca "ianuarie 2025", "februarie 2025", etc.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    period1: {
-                      type: 'string',
-                      description: 'Prima perioadă pentru comparație (ex: "ianuarie 2025")'
-                    },
-                    period2: {
-                      type: 'string',
-                      description: 'A doua perioadă pentru comparație (ex: "februarie 2025")'
-                    }
-                  },
-                  required: ['period1', 'period2']
-                }
-              }
-            ],
-            tool_choice: 'auto',
-            temperature: 0.8,
-            max_response_output_tokens: 4096
-          }
-        };
-        
-        if (this.ws?.readyState === WebSocket.OPEN) {
-          this.ws.send(JSON.stringify(sessionConfig));
-          console.log("Session configuration with tools sent");
-        }
-        
-        this.startRecording();
       };
 
       this.ws.onmessage = async (event) => {
@@ -357,6 +319,23 @@ export class RealtimeChat {
           console.log("Received message type:", data.type);
           
           this.onMessage(data);
+
+          // Send session configuration after session is created
+          if (data.type === 'session.created') {
+            if (this.ws?.readyState === WebSocket.OPEN) {
+              this.ws.send(JSON.stringify(buildSessionConfig()));
+              console.log('Session configuration with tools sent after session.created');
+            }
+            return;
+          }
+
+          // Start recording after session is updated
+          if (data.type === 'session.updated') {
+            if (!this.recorder) {
+              await this.startRecording();
+              console.log('Recording started after session.updated');
+            }
+          }
 
           // Handle tool calling events
           if (data.type === 'response.tool_call.created') {
