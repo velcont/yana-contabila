@@ -209,7 +209,7 @@ export class RealtimeChat {
       this.ws = new WebSocket(`${baseUrl}?model=${model}`, [
         "realtime",
         `openai-insecure-api-key.${EPHEMERAL_KEY}`,
-        "openai-beta.realtime-v1"
+        "openai-beta-realtime=v1"
       ]);
 
       this.ws.onopen = () => {
@@ -398,6 +398,8 @@ export class RealtimeChat {
 
       this.ws.onerror = (error) => {
         console.error("WebSocket error:", error);
+        try { this.onDisconnect(); } catch (_) {}
+        this.stopRecording();
       };
 
       this.ws.onclose = () => {

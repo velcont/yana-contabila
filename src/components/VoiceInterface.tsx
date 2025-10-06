@@ -176,7 +176,8 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
     setIsConnected(false);
     setIsSpeaking(false);
     setThinkingStatus('idle');
-    
+    setIsConnecting(false);
+
     // Show generic disconnection message only if we didn't have a valid session
     if (!hadValidSession) {
       toast({
