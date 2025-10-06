@@ -19,7 +19,6 @@ import { TypingIndicator } from './TypingIndicator';
 import { QuickReplySuggestions } from './QuickReplySuggestions';
 import { ConversationHistory } from './ConversationHistory';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import VoiceInterface from './VoiceInterface';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -664,24 +663,6 @@ Cu ce te pot ajuta astăzi?`
                 </SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="flex items-center gap-2 pb-2">
-            <VoiceInterface 
-              onTranscript={(text, role) => {
-                if (role === 'user') {
-                  setMessages(prev => [...prev, { role: 'user', content: text }]);
-                } else {
-                  setMessages(prev => {
-                    const lastMsg = prev[prev.length - 1];
-                    if (lastMsg?.role === 'assistant') {
-                      return [...prev.slice(0, -1), { role: 'assistant', content: lastMsg.content + text }];
-                    }
-                    return [...prev, { role: 'assistant', content: text }];
-                  });
-                }
-              }}
-            />
           </div>
           
           <div className="relative">
