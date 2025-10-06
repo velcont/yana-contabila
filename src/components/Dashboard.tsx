@@ -480,35 +480,28 @@ export const Dashboard = () => {
                   let debit = 0;
                   let credit = 0;
                   
-                  // 1. Caută în textul descriptiv (format standard din alertele AI)
-                  const textualPattern = /473[^:]+:\s*(?:Sold\s+(?:final\s+)?(?:debitor|creditor)\s+(?:de\s+)?)?(?:debitor\s+(?:de\s+)?)?([\d.,]+)\s*RON/i;
-                  const textMatch = selectedAnalysis.analysis_text.match(textualPattern);
+                  // Caută orice mențiune despre contul 473 cu sumă în RON
+                  // Pattern 1: "473...debitor...de X RON" sau "473...creditor...de X RON"
+                  const pattern1 = /473[^.]*?(debitor|creditor)[^.]*?(?:de\s+)?([\d.,]+)\s*RON/i;
+                  const match1 = selectedAnalysis.analysis_text.match(pattern1);
                   
-                  if (textMatch) {
-                    const amount = parseFloat(textMatch[1].replace(/,/g, ''));
-                    // Detectează dacă e debitor sau creditor din context
-                    const context = selectedAnalysis.analysis_text.substring(
-                      Math.max(0, textMatch.index! - 100),
-                      textMatch.index! + textMatch[0].length + 50
-                    );
-                    
-                    if (/debitor/i.test(context)) {
+                  if (match1) {
+                    const amount = parseFloat(match1[2].replace(/,/g, ''));
+                    if (match1[1].toLowerCase() === 'debitor') {
                       debit = amount;
-                    } else if (/creditor/i.test(context)) {
-                      credit = amount;
                     } else {
-                      // Dacă nu se specifică, presupunem debitor (mai frecvent pentru 473)
-                      debit = amount;
+                      credit = amount;
                     }
-                  } else {
-                    // 2. Caută în format tabelar (dacă există)
+                  }
+                  
+                  // Pattern 2: Format tabelar (backup)
+                  if (debit === 0 && credit === 0) {
                     const lines = selectedAnalysis.analysis_text.split('\n');
                     const account473Line = lines.find(line => /^473\s+/i.test(line.trim()));
                     
                     if (account473Line) {
                       const numbers = account473Line.match(/[\d.,]+/g);
                       if (numbers && numbers.length >= 2) {
-                        // Ultimele două coloane sunt solduri finale (debit și credit)
                         debit = parseFloat(numbers[numbers.length - 2].replace(/,/g, ''));
                         credit = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
                       }
