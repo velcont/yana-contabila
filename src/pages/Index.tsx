@@ -95,6 +95,15 @@ const Index = () => {
       return;
     }
 
+    if (!companyName.trim() && user) {
+      toast({
+        title: "Nume firmă lipsă",
+        description: "Te rog introdu numele firmei înainte de analiză.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     let successCount = 0;
     let failCount = 0;
@@ -128,7 +137,7 @@ const Index = () => {
                   user_id: user.id,
                   file_name: file.name,
                   analysis_text: data.analysis,
-                  company_name: companyName || 'Firma Principală',
+                  company_name: companyName.trim(),
                   metadata: indicators as any
                 });
               if (saveError) throw saveError;
@@ -324,10 +333,10 @@ const Index = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <User className="h-5 w-5 text-primary" />
-                  Selectează Firma
+                  Nume Firmă *
                 </CardTitle>
                 <CardDescription>
-                  Dacă gestionezi mai multe firme, introdu numele pentru a le diferenția în istoric
+                  Introdu numele firmei pentru identificare în istoric și emailuri
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -337,6 +346,7 @@ const Index = () => {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="Ex: SC SMART VEST SRL"
+                  required
                   className="w-full px-4 py-3 border-2 border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-base"
                 />
               </CardContent>

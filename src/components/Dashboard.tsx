@@ -246,7 +246,7 @@ export const Dashboard = () => {
     // Filtrare după companie
     if (companyFilter !== 'all') {
       filtered = filtered.filter(analysis => 
-        (analysis.company_name || 'Firma Principală') === companyFilter
+        analysis.company_name === companyFilter
       );
     }
     
@@ -255,7 +255,7 @@ export const Dashboard = () => {
   
   // Lista unică de companii pentru filtru
   const uniqueCompanies = Array.from(new Set(
-    analyses.map(a => a.company_name || 'Firma Principală')
+    analyses.map(a => a.company_name).filter(Boolean)
   )).sort();
 
   const filteredAnalyses = getFilteredAnalyses();
@@ -699,7 +699,7 @@ export const Dashboard = () => {
         <EmailAnalysisDialog
           open={isEmailDialogOpen}
           onOpenChange={setIsEmailDialogOpen}
-          companyName={selectedAnalysis.company_name || 'Firmă necunoscută'}
+          companyName={selectedAnalysis.company_name || ''}
           analysisText={selectedAnalysis.analysis_text}
           analysisDate={format(new Date(selectedAnalysis.created_at), 'dd MMMM yyyy', { locale: ro })}
         />
