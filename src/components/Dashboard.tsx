@@ -195,6 +195,7 @@ export const Dashboard = () => {
         companyName: analysis.company_name || 'Firmă necunoscută',
         fileName: analysis.file_name,
         date: format(new Date(analysis.created_at), 'dd MMMM yyyy', { locale: ro }),
+        fullAnalysisText: analysis.analysis_text,
         indicators,
         alerts,
         recommendations: recommendations.slice(0, 8)
