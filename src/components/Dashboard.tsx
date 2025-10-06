@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2 } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -18,6 +18,9 @@ import { TopIssuesWidget } from './TopIssuesWidget';
 import { ProactiveAlerts } from './ProactiveAlerts';
 import { MultiCompanyComparison } from './MultiCompanyComparison';
 import { AIPredictions } from './AIPredictions';
+import { EmailAnalysisDialog } from './EmailAnalysisDialog';
+import { ShareAnalysisDialog } from './ShareAnalysisDialog';
+import { AnalysisComments } from './AnalysisComments';
 import { Link } from 'react-router-dom';
 import {
   Select,
@@ -48,6 +51,8 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [periodFilter, setPeriodFilter] = useState<'3' | '6' | '12' | 'all'>('all');
   const [companyFilter, setCompanyFilter] = useState<string>('all');
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -452,7 +457,23 @@ export const Dashboard = () => {
               )}
             </div>
             {selectedAnalysis && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEmailDialogOpen(true)}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Trimite Email
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsShareDialogOpen(true)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Partajează
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -646,6 +667,9 @@ export const Dashboard = () => {
                   fileName={selectedAnalysis.file_name}
                   createdAt={selectedAnalysis.created_at}
                 />
+                
+                {/* Comments Section */}
+                <AnalysisComments analysisId={selectedAnalysis.id} />
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
@@ -658,6 +682,26 @@ export const Dashboard = () => {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Email Dialog */}
+      {selectedAnalysis && (
+        <EmailAnalysisDialog
+          open={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          companyName={selectedAnalysis.company_name || 'Firmă necunoscută'}
+          analysisText={selectedAnalysis.analysis_text}
+          analysisDate={format(new Date(selectedAnalysis.created_at), 'dd MMMM yyyy', { locale: ro })}
+        />
+      )}
+      
+      {/* Share Dialog */}
+      {selectedAnalysis && (
+        <ShareAnalysisDialog
+          open={isShareDialogOpen}
+          onOpenChange={setIsShareDialogOpen}
+          analysisId={selectedAnalysis.id}
+        />
+      )}
     </div>
   );
 };

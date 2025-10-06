@@ -14,6 +14,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMicEnabled, setIsMicEnabled] = useState(false); // Disabled by default
   const [thinkingStatus, setThinkingStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
   const [minutesRemaining, setMinutesRemaining] = useState<number | null>(null);
   const chatRef = useRef<RealtimeChat | null>(null);
@@ -70,6 +71,14 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
   };
 
   const startConversation = async () => {
+    if (!isMicEnabled) {
+      toast({
+        title: "Activează microfonul",
+        description: "Apasă butonul de microfon pentru a-l activa",
+      });
+      return;
+    }
+
     try {
       setIsConnecting(true);
       
@@ -189,10 +198,25 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
 
   return (
     <div className="flex flex-col items-center gap-3">
+      {/* Microphone toggle */}
+      <div className="flex gap-2 items-center">
+        <Button
+          onClick={() => setIsMicEnabled(!isMicEnabled)}
+          variant={isMicEnabled ? "default" : "outline"}
+          size="icon"
+          title={isMicEnabled ? "Dezactivează microfonul" : "Activează microfonul"}
+        >
+          {isMicEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+        </Button>
+        <span className="text-sm text-muted-foreground">
+          {isMicEnabled ? "Microfon activat" : "Microfon dezactivat"}
+        </span>
+      </div>
+
       {!isConnected ? (
         <Button 
           onClick={startConversation}
-          disabled={isConnecting}
+          disabled={isConnecting || !isMicEnabled}
           size="lg"
           className="gap-2 min-w-[200px]"
         >

@@ -184,6 +184,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const AutoScrollText = () => {
     const [isScrolling, setIsScrolling] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [lastScrollPosition, setLastScrollPosition] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollSpeed = 1.5; // pixels per frame
 
@@ -278,26 +279,42 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     useEffect(() => {
       let animationFrameId: number;
       
+      // Restore last scroll position when resuming
+      if (isScrolling && containerRef.current && lastScrollPosition > 0) {
+        containerRef.current.scrollTop = lastScrollPosition;
+      }
+      
       const scrollStep = () => {
         if (isScrolling && containerRef.current) {
-          containerRef.current.scrollTop += scrollSpeed;
+          const newScrollTop = containerRef.current.scrollTop + scrollSpeed;
+          containerRef.current.scrollTop = newScrollTop;
+          setLastScrollPosition(newScrollTop);
           
           // Reset to top when reaching bottom
           if (containerRef.current.scrollTop >= containerRef.current.scrollHeight - containerRef.current.clientHeight) {
             containerRef.current.scrollTop = 0;
+            setLastScrollPosition(0);
           }
         }
         animationFrameId = requestAnimationFrame(scrollStep);
       };
 
-      animationFrameId = requestAnimationFrame(scrollStep);
+      if (isScrolling) {
+        animationFrameId = requestAnimationFrame(scrollStep);
+      }
 
       return () => {
-        cancelAnimationFrame(animationFrameId);
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
       };
     }, [isScrolling]);
 
     const toggleScroll = () => {
+      // Save current position when stopping
+      if (isScrolling && containerRef.current) {
+        setLastScrollPosition(containerRef.current.scrollTop);
+      }
       setIsScrolling(!isScrolling);
     };
 
