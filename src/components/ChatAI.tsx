@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap, History, Menu } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap, History, Menu, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -19,6 +19,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { QuickReplySuggestions } from './QuickReplySuggestions';
 import { ConversationHistory } from './ConversationHistory';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import VoiceInterface from './VoiceInterface';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -70,6 +71,7 @@ Cu ce te pot ajuta astăzi?`
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showVoice, setShowVoice] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -499,9 +501,22 @@ Cu ce te pot ajuta astăzi?`
                     )}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>📚 Istoric Conversații (NOU!)</p>
-                </TooltipContent>
+                <TooltipContent>Istoric Conversații</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowVoice(!showVoice)}
+                    className="h-8 w-8"
+                    aria-label="Conversație vocală"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Conversație Vocală (20 min/lună)</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             
@@ -591,6 +606,35 @@ Cu ce te pot ajuta astăzi?`
             contextual={true}
             showFrequency={true}
           />
+        )}
+
+        {/* Voice Interface */}
+        {showVoice && (
+          <div className="p-4 bg-muted/50 rounded-lg border">
+            <VoiceInterface 
+              onTranscript={(text, role) => {
+                if (role === 'user') {
+                  setMessages(prev => [...prev, { role: 'user', content: text }]);
+                } else {
+                  setMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg && lastMsg.role === 'assistant') {
+                      // Append to existing assistant message
+                      const newMessages = [...prev];
+                      newMessages[newMessages.length - 1] = {
+                        ...lastMsg,
+                        content: lastMsg.content + text
+                      };
+                      return newMessages;
+                    } else {
+                      // Create new assistant message
+                      return [...prev, { role: 'assistant', content: text }];
+                    }
+                  });
+                }
+              }}
+            />
+          </div>
         )}
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
