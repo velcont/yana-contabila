@@ -1,9 +1,13 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target } from "lucide-react";
+import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
+import { ResearchDataImport } from "./ResearchDataImport";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Analysis {
   id: string;
@@ -27,6 +31,32 @@ interface ResilienceAnalysisProps {
 }
 
 export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
+  const [researchData, setResearchData] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  const fetchResearchData = async () => {
+    const { data, error } = await supabase
+      .from('research_data')
+      .select('*')
+      .order('data_collection_date', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching research data:', error);
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca datele de cercetare",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResearchData(data || []);
+  };
+
+  useEffect(() => {
+    fetchResearchData();
+  }, []);
+
   // Calculate resilience metrics
   const calculateResilienceScore = () => {
     if (analyses.length < 2) return null;
@@ -222,14 +252,60 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Analiza Rezilienței Financiare
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Analiza Rezilienței Financiare
+            </div>
+            <ResearchDataImport onImportSuccess={fetchResearchData} />
           </CardTitle>
           <CardDescription>
             Sunt necesare minimum 2 analize pentru a calcula indicatorii de reziliență
+            {researchData.length > 0 && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                📚 {researchData.length} {researchData.length === 1 ? 'set de date de cercetare importat' : 'seturi de date de cercetare importate'}
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
+        
+        {researchData.length > 0 && (
+          <CardContent>
+            <div className="space-y-4">
+              {researchData.map((data) => (
+                <Card key={data.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      {data.course_name}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(data.data_collection_date).toLocaleDateString('ro-RO')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <span className="text-sm font-medium">Temă: </span>
+                      <Badge variant="outline">{data.research_theme}</Badge>
+                    </div>
+                    {data.case_studies && data.case_studies.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium">Studii de caz: </span>
+                        <span className="text-sm text-muted-foreground">
+                          {data.case_studies.length} compan{data.case_studies.length === 1 ? 'ie' : 'ii'} analizat{data.case_studies.length === 1 ? 'ă' : 'e'}
+                        </span>
+                      </div>
+                    )}
+                    {data.research_notes && (
+                      <p className="text-sm text-muted-foreground">{data.research_notes}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        )}
       </Card>
     );
   }
@@ -247,12 +323,20 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       {/* Overall Resilience Score */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Scor Global Reziliență
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Scor Global Reziliență
+            </div>
+            <ResearchDataImport onImportSuccess={fetchResearchData} />
           </CardTitle>
           <CardDescription>
             Indicator compozit al capacității afacerii de a face față șocurilor externe
+            {researchData.length > 0 && (
+              <span className="ml-2 text-xs">
+                📚 {researchData.length} {researchData.length === 1 ? 'set doctorat' : 'seturi doctorat'}
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -309,10 +393,11 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       </Card>
 
       <Tabs defaultValue="adaptability" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="adaptability">Adaptabilitate</TabsTrigger>
           <TabsTrigger value="radar">Analiză Vizuală</TabsTrigger>
           <TabsTrigger value="scenarios">Scenarii de Criză</TabsTrigger>
+          <TabsTrigger value="research">Date Doctorat</TabsTrigger>
         </TabsList>
 
         <TabsContent value="adaptability" className="space-y-4">
@@ -446,6 +531,104 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </CardContent>
             </Card>
           ))}
+        </TabsContent>
+
+        <TabsContent value="research" className="space-y-4">
+          {researchData.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">Nicio dată de cercetare încă</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Folosește butonul "Import Date Cercetare" pentru a adăuga date din cursurile de doctorat
+                </p>
+                <ResearchDataImport onImportSuccess={fetchResearchData} />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {researchData.map((data) => (
+                <Card key={data.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      {data.course_name}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(data.data_collection_date).toLocaleDateString('ro-RO')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <span className="text-sm font-medium">Temă de cercetare: </span>
+                      <Badge variant="outline">{data.research_theme}</Badge>
+                    </div>
+
+                    {data.case_studies && data.case_studies.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-semibold">Studii de caz ({data.case_studies.length})</h4>
+                        {data.case_studies.map((caseStudy: any, idx: number) => (
+                          <Card key={idx} className="bg-muted/50">
+                            <CardContent className="pt-4 space-y-2">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h5 className="font-medium">{caseStudy.company_name}</h5>
+                                  <p className="text-xs text-muted-foreground">{caseStudy.industry}</p>
+                                </div>
+                                {caseStudy.resilience_impact?.cost_flexibility && (
+                                  <Badge variant="secondary">
+                                    Flexibilitate: {caseStudy.resilience_impact.cost_flexibility}/10
+                                  </Badge>
+                                )}
+                              </div>
+                              {caseStudy.digital_tools_adopted && caseStudy.digital_tools_adopted.length > 0 && (
+                                <div>
+                                  <span className="text-xs font-medium">Instrumente digitale: </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {caseStudy.digital_tools_adopted.map((tool: string, i: number) => (
+                                      <Badge key={i} variant="outline" className="text-xs">{tool}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {caseStudy.key_insights && (
+                                <p className="text-xs text-muted-foreground italic">{caseStudy.key_insights}</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+
+                    {data.metrics_collected && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {data.metrics_collected.avg_digital_maturity_score && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-xs text-muted-foreground">Maturitate Digitală</p>
+                            <p className="text-2xl font-bold">{data.metrics_collected.avg_digital_maturity_score}</p>
+                          </div>
+                        )}
+                        {data.metrics_collected.avg_resilience_score && (
+                          <div className="p-3 bg-muted rounded-lg">
+                            <p className="text-xs text-muted-foreground">Scor Reziliență</p>
+                            <p className="text-2xl font-bold">{data.metrics_collected.avg_resilience_score}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {data.research_notes && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-1">Note de cercetare</h4>
+                        <p className="text-sm text-muted-foreground">{data.research_notes}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

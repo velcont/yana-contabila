@@ -546,6 +546,48 @@ export type Database = {
         }
         Relationships: []
       }
+      research_data: {
+        Row: {
+          case_studies: Json
+          course_name: string
+          created_at: string
+          data_collection_date: string
+          id: string
+          metrics_collected: Json
+          research_notes: string | null
+          research_theme: string
+          theoretical_frameworks: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_studies?: Json
+          course_name: string
+          created_at?: string
+          data_collection_date: string
+          id?: string
+          metrics_collected?: Json
+          research_notes?: string | null
+          research_theme: string
+          theoretical_frameworks?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_studies?: Json
+          course_name?: string
+          created_at?: string
+          data_collection_date?: string
+          id?: string
+          metrics_collected?: Json
+          research_notes?: string | null
+          research_theme?: string
+          theoretical_frameworks?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
