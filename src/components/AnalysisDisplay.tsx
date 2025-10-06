@@ -83,15 +83,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     const matches = Array.from(text.matchAll(sectionPattern));
     
     if (matches.length > 0) {
-      // Extract content for each numbered section, but SKIP first 3 chapters
+      // Extract content for each numbered section
       matches.forEach((match, index) => {
         const sectionNumber = parseInt(match[1]);
-        
-        // SKIP chapters 1, 2, and 3
-        if (sectionNumber <= 3) {
-          return;
-        }
-        
         // Clean title: extract only the descriptive name
         let sectionTitle = match[2].trim()
           .replace(/\*\*/g, '')
@@ -127,10 +121,10 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         );
         const summary = contentLines.slice(0, 2).join(' ').substring(0, 200).trim() + '...';
         
-        const style = sectionStyles[sections.length % sectionStyles.length];
+        const style = sectionStyles[index % sectionStyles.length];
         
         sections.push({
-          id: `section-${sectionNumber}`,
+          id: `section-${index + 1}`,
           title: sectionTitle,
           icon: style.icon,
           content: content,
