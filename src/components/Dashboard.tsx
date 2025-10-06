@@ -475,97 +475,170 @@ export const Dashboard = () => {
           <CardContent className="space-y-6">
             {selectedAnalysis ? (
               <>
-                {/* Card cu Alerte pentru contul 473 */}
+                {/* Helper function pentru extragerea soldului unui cont */}
                 {(() => {
-                  let debit = 0;
-                  let credit = 0;
-                  
-                  // Caută orice mențiune despre contul 473 cu sumă în RON
-                  // Pattern A: "473 ... debitor|creditor ... X RON"
-                  const patternA = /473[^\n.]*?(debitor|creditor)[^\n.]*?(?:de\s+)?([\d.,]+)\s*RON\b/i;
-                  const matchA = selectedAnalysis.analysis_text.match(patternA);
-                  
-                  if (matchA) {
-                    const amount = parseFloat(matchA[2].replace(/,/g, ''));
-                    if (matchA[1].toLowerCase() === 'debitor') debit = amount; else credit = amount;
-                  }
-                  
-                  // Pattern B: "debitor|creditor ... 473 ... X RON"
-                  if (debit === 0 && credit === 0) {
-                    const patternB = /(debitor|creditor)[^\n.]*?473[^\n.]*?(?:de\s+)?([\d.,]+)\s*RON\b/i;
-                    const matchB = selectedAnalysis.analysis_text.match(patternB);
-                    if (matchB) {
-                      const amount = parseFloat(matchB[2].replace(/,/g, ''));
-                      if (matchB[1].toLowerCase() === 'debitor') debit = amount; else credit = amount;
+                  const extractAccountBalance = (accountNumber: string) => {
+                    let debit = 0;
+                    let credit = 0;
+                    
+                    // Pattern A: "XXX ... debitor|creditor ... Y RON"
+                    const patternA = new RegExp(`${accountNumber}[^\\n.]*?(debitor|creditor)[^\\n.]*?(?:de\\s+)?([\\d.,]+)\\s*RON\\b`, 'i');
+                    const matchA = selectedAnalysis.analysis_text.match(patternA);
+                    
+                    if (matchA) {
+                      const amount = parseFloat(matchA[2].replace(/,/g, ''));
+                      if (matchA[1].toLowerCase() === 'debitor') debit = amount; else credit = amount;
                     }
-                  }
-                  
-                  // Pattern C: Linie care conține 473 și o sumă în RON (fără a ști natura)
-                  if (debit === 0 && credit === 0) {
-                    const line = selectedAnalysis.analysis_text
-                      .split('\n')
-                      .find(l => /\b473\b/.test(l));
-                    if (line) {
-                      const amt = line.match(/([\d.,]+)\s*RON\b/);
-                      if (amt) {
-                        const amount = parseFloat(amt[1].replace(/,/g, ''));
-                        // Decide în funcție de cuvintele cheie din aceeași linie
-                        if (/debitor/i.test(line)) debit = amount;
-                        else if (/creditor/i.test(line)) credit = amount;
-                        else debit = amount; // default: considerăm debitor
+                    
+                    // Pattern B: "debitor|creditor ... XXX ... Y RON"
+                    if (debit === 0 && credit === 0) {
+                      const patternB = new RegExp(`(debitor|creditor)[^\\n.]*?${accountNumber}[^\\n.]*?(?:de\\s+)?([\\d.,]+)\\s*RON\\b`, 'i');
+                      const matchB = selectedAnalysis.analysis_text.match(patternB);
+                      if (matchB) {
+                        const amount = parseFloat(matchB[2].replace(/,/g, ''));
+                        if (matchB[1].toLowerCase() === 'debitor') debit = amount; else credit = amount;
                       }
                     }
-                  }
+                    
+                    // Pattern C: Linie care conține accountNumber și o sumă în RON
+                    if (debit === 0 && credit === 0) {
+                      const regex = new RegExp(`\\b${accountNumber}\\b`);
+                      const line = selectedAnalysis.analysis_text
+                        .split('\n')
+                        .find(l => regex.test(l));
+                      if (line) {
+                        const amt = line.match(/([\d.,]+)\s*RON\b/);
+                        if (amt) {
+                          const amount = parseFloat(amt[1].replace(/,/g, ''));
+                          if (/debitor/i.test(line)) debit = amount;
+                          else if (/creditor/i.test(line)) credit = amount;
+                          else debit = amount;
+                        }
+                      }
+                    }
+                    
+                    return { debit, credit };
+                  };
+
+                  const account473 = extractAccountBalance('473');
+                  const hasAccount473Balance = account473.debit > 0 || account473.credit > 0;
                   
-                  const hasAccount473Balance = debit > 0 || credit > 0;
-                  
-                  return hasAccount473Balance ? (
-                    <Card className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
-                          <AlertTriangle className="h-5 w-5" />
-                          Alerte Cont 473 — Decontări în curs de clarificare
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="space-y-2">
-                          {debit > 0 && (
-                            <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
-                              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="font-semibold text-orange-900 dark:text-orange-200">
-                                  Sold Debitor: {formatCurrency(debit)}
-                                </p>
-                                <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
-                                  Sume în curs de clarificare nedecontate. Verificați documentele justificative și închideți contul prin înregistrări corecte (ex.: 473 = 401/411/531/512).
+                  // Configurație alerte pentru toate conturile
+                  const accountAlerts = [
+                    {
+                      number: '473',
+                      title: 'Cont 473 — Decontări în curs de clarificare',
+                      debitMsg: 'Sume în curs de clarificare nedecontate. Verificați documentele justificative și închideți contul prin înregistrări corecte (ex.: 473 = 401/411/531/512).',
+                      creditMsg: 'Sume în clarificare de regularizat/restuit. Verificați natura sumelor (de ex. încasări/plăți nealocate, diferențe de curs, deconturi) și închideți contul prin regularizare.',
+                      recommendation: 'Mențineți contul 473 la sold zero la final de lună. Clarificați lunar toate sumele (note contabile de regularizare) și documentați justificativ fiecare poziție.',
+                      balance: account473
+                    },
+                    {
+                      number: '461',
+                      title: 'Cont 461 — Debitori diverși',
+                      debitMsg: 'Sold debitor la debitori diverși. Verificați natura creanțelor, solicitați decontarea sau clarificarea acestora.',
+                      creditMsg: 'Sold creditor neașteptat la debitori diverși. Verificați și corectați înregistrările contabile.',
+                      recommendation: 'Monitorizați lunar soldurile și clarificați operațiunile vechi sau nejustificate.',
+                      balance: extractAccountBalance('461')
+                    },
+                    {
+                      number: '462',
+                      title: 'Cont 462 — Creditori diverși',
+                      debitMsg: 'Sold debitor neașteptat la creditori diverși. Verificați și corectați înregistrările contabile.',
+                      creditMsg: 'Datorii către creditori diverși. Asigurați-vă că sumele sunt justificate și planificați decontarea.',
+                      recommendation: 'Verificați documentele justificative și asigurați-vă că toate obligațiile sunt înregistrate corect.',
+                      balance: extractAccountBalance('462')
+                    },
+                    {
+                      number: '409',
+                      title: 'Cont 409 — Furnizori - debitori',
+                      debitMsg: 'Avansuri către furnizori sau solduri debitoare. Verificați starea comenzilor și solicitați decontarea avansurilor nefolosite.',
+                      creditMsg: 'Sold creditor neașteptat la furnizori-debitori. Verificați și corectați înregistrările.',
+                      recommendation: 'Reconciliați lunar cu furnizorii și clarificați avansurile vechi.',
+                      balance: extractAccountBalance('409')
+                    },
+                    {
+                      number: '419',
+                      title: 'Cont 419 — Clienți - creditori',
+                      debitMsg: 'Sold debitor neașteptat la clienți-creditori. Verificați și corectați înregistrările contabile.',
+                      creditMsg: 'Avansuri primite de la clienți. Asigurați-vă că sunt justificate prin comenzi ferme și planificați livrarea.',
+                      recommendation: 'Monitorizați avansurile primite și asigurați îndeplinirea obligațiilor contractuale.',
+                      balance: extractAccountBalance('419')
+                    },
+                    {
+                      number: '581',
+                      title: 'Cont 581 — Decontări între unități',
+                      debitMsg: 'Sume de încasat de la alte unități/filiale. Verificați și solicitați decontarea lunară.',
+                      creditMsg: 'Sume de plată către alte unități/filiale. Planificați decontarea promptă.',
+                      recommendation: 'Reconciliați lunar cu toate unitățile și închideți soldurile prin viramente bancare sau note contabile.',
+                      balance: extractAccountBalance('581')
+                    },
+                    {
+                      number: '542',
+                      title: 'Cont 542 — Conturi curente la bănci (în valută)',
+                      debitMsg: 'Disponibilități în valută la bănci. Monitorizați cursul de schimb și riscurile valutare.',
+                      creditMsg: 'Sold creditor neașteptat la conturile bancare în valută. Verificați reconcilierea bancară și corectați eventualele erori.',
+                      recommendation: 'Efectuați reconcilieri bancare lunare și monitorizați diferențele de curs valutar.',
+                      balance: extractAccountBalance('542')
+                    }
+                  ];
+
+                  return (
+                    <>
+                      {accountAlerts.map(alert => {
+                        const hasBalance = alert.balance.debit > 0 || alert.balance.credit > 0;
+                        if (!hasBalance) return null;
+
+                        return (
+                          <Card key={alert.number} className="border-orange-500/50 bg-orange-50 dark:bg-orange-950/20">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                                <AlertTriangle className="h-5 w-5" />
+                                Alerte {alert.title}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="space-y-2">
+                                {alert.balance.debit > 0 && (
+                                  <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+                                    <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <p className="font-semibold text-orange-900 dark:text-orange-200">
+                                        Sold Debitor: {formatCurrency(alert.balance.debit)}
+                                      </p>
+                                      <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
+                                        {alert.debitMsg}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {alert.balance.credit > 0 && (
+                                  <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
+                                    <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <p className="font-semibold text-orange-900 dark:text-orange-200">
+                                        Sold Creditor: {formatCurrency(alert.balance.credit)}
+                                      </p>
+                                      <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
+                                        {alert.creditMsg}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                                <p className="text-sm text-blue-900 dark:text-blue-200">
+                                  <strong>Recomandare:</strong> {alert.recommendation}
                                 </p>
                               </div>
-                            </div>
-                          )}
-                          
-                          {credit > 0 && (
-                            <div className="flex items-start gap-3 p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700">
-                              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="font-semibold text-orange-900 dark:text-orange-200">
-                                  Sold Creditor: {formatCurrency(credit)}
-                                </p>
-                                <p className="text-sm text-orange-800 dark:text-orange-300 mt-1">
-                                  Sume în clarificare de regularizat/restuit. Verificați natura sumelor (de ex. încasări/plăți nealocate, diferențe de curs, deconturi) și închideți contul prin regularizare.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                          <p className="text-sm text-blue-900 dark:text-blue-200">
-                            <strong>Recomandare:</strong> Mențineți contul 473 la sold zero la final de lună. Clarificați lunar toate sumele (note contabile de regularizare) și documentați justificativ fiecare poziție.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : null;
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </>
+                  );
                 })()}
                 
                 <AnalysisDisplay 
