@@ -512,6 +512,7 @@ Cu ce te pot ajuta astăzi?`
                     onClick={() => setShowVoice(!showVoice)}
                     className="h-8 w-8"
                     aria-label="Conversație vocală"
+                    data-tour="voice-button"
                   >
                     <Mic className="h-4 w-4" />
                   </Button>
