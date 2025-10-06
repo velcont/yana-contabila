@@ -190,7 +190,14 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
 
     // Text-to-Speech functionality
     useEffect(() => {
-      // Start speaking automatically when component mounts
+      // Check if user previously disabled voice
+      const voiceDisabled = localStorage.getItem('yana-voice-disabled') === 'true';
+      
+      // Only start speaking automatically if user hasn't disabled it
+      if (voiceDisabled) {
+        return;
+      }
+
       const startSpeaking = () => {
         if ('speechSynthesis' in window) {
           // Cancel any ongoing speech
@@ -246,7 +253,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       if (isSpeaking) {
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
+        // Save preference to localStorage
+        localStorage.setItem('yana-voice-disabled', 'true');
       } else {
+        // Clear the disabled preference
+        localStorage.removeItem('yana-voice-disabled');
+        
         const utterance = new SpeechSynthesisUtterance(analysisText);
         utterance.lang = 'ro-RO';
         utterance.rate = 0.9;

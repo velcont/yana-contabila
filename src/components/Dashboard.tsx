@@ -197,7 +197,8 @@ export const Dashboard = () => {
         date: format(new Date(analysis.created_at), 'dd MMMM yyyy', { locale: ro }),
         indicators,
         alerts,
-        recommendations: recommendations.slice(0, 8)
+        recommendations: recommendations.slice(0, 8),
+        fullAnalysisText: analysis.analysis_text
       };
 
       // Dynamic import to reduce bundle size

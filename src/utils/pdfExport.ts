@@ -24,6 +24,7 @@ interface ExportData {
     severity: 'critical' | 'warning' | 'info';
   }>;
   recommendations: string[];
+  fullAnalysisText: string;
 }
 
 const PRIMARY_COLOR: [number, number, number] = [59, 130, 246]; // rgb(59, 130, 246) - primary blue
@@ -186,7 +187,38 @@ export const generateAnalysisPDF = (data: ExportData): void => {
 
   yPos = (doc as any).lastAutoTable.finalY + 15;
 
-  // Recommendations Section
+  // Full Analysis Text Section - EXACT content from interface
+  if (yPos > 240) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  doc.setFillColor(...PRIMARY_COLOR);
+  doc.rect(10, yPos - 5, 190, 10, 'F');
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('📊 Analiză Completă', 15, yPos);
+  yPos += 15;
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  // Split the full analysis text into lines that fit the page
+  const analysisLines = doc.splitTextToSize(data.fullAnalysisText, 180);
+  
+  analysisLines.forEach((line: string) => {
+    if (yPos > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+    doc.text(line, 15, yPos);
+    yPos += 5;
+  });
+
+  yPos += 10;
   if (data.recommendations.length > 0) {
     if (yPos > 240) {
       doc.addPage();
