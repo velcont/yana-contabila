@@ -182,7 +182,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
   const AutoScrollText = () => {
     const [isScrolling, setIsScrolling] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
-    const scrollSpeed = 0.5; // pixels per frame
+    const scrollSpeed = 1.5; // pixels per frame
 
     useEffect(() => {
       let animationFrameId: number;
@@ -224,9 +224,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
         <div
           ref={containerRef}
           onClick={toggleScroll}
-          className="h-[70vh] overflow-hidden bg-background/95 backdrop-blur-sm cursor-pointer px-8 py-12"
+          className={`h-[70vh] bg-background/95 backdrop-blur-sm cursor-pointer px-8 py-12 ${isScrolling ? 'overflow-hidden' : 'overflow-y-auto'}`}
           style={{
-            scrollBehavior: 'auto'
+            scrollBehavior: 'smooth'
           }}
         >
           <div className="space-y-6 font-mono text-base leading-relaxed text-foreground/90 whitespace-pre-line">
