@@ -113,6 +113,7 @@ const Admin = () => {
           return { ...conv, profiles: profile || { id: conv.user_id, email: "Unknown", full_name: null, created_at: "" } };
         })
       );
+      console.log("Loaded conversations:", conversationsWithProfiles.length);
       setConversations(conversationsWithProfiles as Conversation[]);
     } catch (error) {
       console.error("Error loading admin data:", error);
@@ -136,6 +137,10 @@ const Admin = () => {
     acc[conv.conversation_id].push(conv);
     return acc;
   }, {} as Record<string, Conversation[]>);
+
+  console.log("Grouped conversations:", Object.keys(groupedConversations).length);
+  console.log("Total conversations loaded:", conversations.length);
+  console.log("Filtered conversations:", filteredConversations.length);
 
   if (roleLoading || loading) {
     return (
