@@ -188,62 +188,8 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollSpeed = 1.5; // pixels per frame
 
-    // Text-to-Speech functionality
+    // Text-to-Speech functionality - cleanup on unmount
     useEffect(() => {
-      // Check if user previously disabled voice
-      const voiceDisabled = localStorage.getItem('yana-voice-disabled') === 'true';
-      
-      // Only start speaking automatically if user hasn't disabled it
-      if (voiceDisabled) {
-        return;
-      }
-
-      const startSpeaking = () => {
-        if ('speechSynthesis' in window) {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
-
-          const utterance = new SpeechSynthesisUtterance(analysisText);
-          
-          // Configure speech parameters
-          utterance.lang = 'ro-RO';
-          utterance.rate = 0.9; // Slightly slower for clarity
-          utterance.pitch = 1.1; // Slightly higher for feminine voice
-          utterance.volume = 1.0;
-
-          // Try to find a Romanian female voice
-          const voices = window.speechSynthesis.getVoices();
-          const romanianFemaleVoice = voices.find(voice => 
-            voice.lang.startsWith('ro') && voice.name.toLowerCase().includes('female')
-          );
-          const romanianVoice = voices.find(voice => voice.lang.startsWith('ro'));
-          const femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
-
-          if (romanianFemaleVoice) {
-            utterance.voice = romanianFemaleVoice;
-          } else if (romanianVoice) {
-            utterance.voice = romanianVoice;
-          } else if (femaleVoice) {
-            utterance.voice = femaleVoice;
-          }
-
-          utterance.onstart = () => setIsSpeaking(true);
-          utterance.onend = () => setIsSpeaking(false);
-          utterance.onerror = () => setIsSpeaking(false);
-
-          window.speechSynthesis.speak(utterance);
-        }
-      };
-
-      // Load voices and start speaking
-      if (window.speechSynthesis.getVoices().length > 0) {
-        startSpeaking();
-      } else {
-        window.speechSynthesis.onvoiceschanged = () => {
-          startSpeaking();
-        };
-      }
-
       return () => {
         window.speechSynthesis.cancel();
       };
@@ -253,12 +199,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
       if (isSpeaking) {
         window.speechSynthesis.cancel();
         setIsSpeaking(false);
-        // Save preference to localStorage
-        localStorage.setItem('yana-voice-disabled', 'true');
       } else {
-        // Clear the disabled preference
-        localStorage.removeItem('yana-voice-disabled');
-        
         const utterance = new SpeechSynthesisUtterance(analysisText);
         utterance.lang = 'ro-RO';
         utterance.rate = 0.9;
