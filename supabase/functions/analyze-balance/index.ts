@@ -297,7 +297,7 @@ Sold Clienti: 200000.00
 Sold Banca: 50000.00
 Sold Casa: 5000.00`;
 
-// Parse Excel file
+// Parse Excel file with proper number formatting
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
   try {
     // Convert base64 to Uint8Array
@@ -307,18 +307,45 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Read Excel file
-    const workbook = XLSX.read(bytes, { type: 'array' });
+    // Read Excel file with proper number parsing
+    const workbook = XLSX.read(bytes, { 
+      type: 'array',
+      cellDates: false,
+      cellNF: true,  // Keep number formats
+      cellText: false // Don't convert to text prematurely
+    });
     
     let fullText = "";
     
-    // Extract text from all sheets
+    // Extract text from all sheets with proper number formatting
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
-      const csvText = XLSX.utils.sheet_to_csv(sheet);
+      
+      // Convert sheet to JSON first to preserve numeric values
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { 
+        header: 1,
+        raw: false, // Format numbers as strings with decimals
+        defval: '' 
+      });
+      
+      // Convert JSON back to CSV with proper formatting
+      let csvText = '';
+      jsonData.forEach((row: any) => {
+        const formattedRow = row.map((cell: any) => {
+          // Ensure numeric values keep their decimal separators
+          if (typeof cell === 'number') {
+            // Format with 2 decimals if it's a decimal number
+            return cell % 1 !== 0 ? cell.toFixed(2) : cell.toString();
+          }
+          return cell;
+        });
+        csvText += formattedRow.join(',') + '\n';
+      });
+      
       fullText += `\n=== Sheet: ${sheetName} ===\n${csvText}\n`;
     });
     
+    console.log("Excel parsed with preserved decimal formatting");
     return fullText.trim();
   } catch (error) {
     console.error("Error parsing Excel with xlsx:", error);
