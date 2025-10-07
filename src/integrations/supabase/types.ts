@@ -144,6 +144,42 @@ export type Database = {
         }
         Relationships: []
       }
+      app_updates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          include_in_next_email: boolean | null
+          is_published: boolean | null
+          published_at: string | null
+          title: string
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          include_in_next_email?: boolean | null
+          is_published?: boolean | null
+          published_at?: string | null
+          title: string
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          include_in_next_email?: boolean | null
+          is_published?: boolean | null
+          published_at?: string | null
+          title?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       chat_analytics: {
         Row: {
           avg_conversation_length: number | null
@@ -403,6 +439,39 @@ export type Database = {
           last_used_at?: string
           name?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          email_type: string
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          recipient_user_id: string | null
+          sent_at: string
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          email_type: string
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          recipient_user_id?: string | null
+          sent_at?: string
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          email_type?: string
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          recipient_user_id?: string | null
+          sent_at?: string
+          status?: string | null
+          subject?: string
         }
         Relationships: []
       }
