@@ -228,36 +228,36 @@ const Admin = () => {
                                   ID: {profile.id}
                                 </p>
                               </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Înregistrat:{" "}
-                                {format(
-                                  new Date(profile.created_at),
-                                  "dd MMM yyyy",
-                                  { locale: ro }
-                                )}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Analize:{" "}
-                                {
-                                  analyses.filter((a) => a.user_id === profile.id)
-                                    .length
-                                }
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Conversații:{" "}
-                                {
-                                  new Set(
-                                    conversations
-                                      .filter((c) => c.user_id === profile.id)
-                                      .map((c) => c.conversation_id)
-                                  ).size
-                                }
-                              </p>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">
+                                  Înregistrat:{" "}
+                                  {format(
+                                    new Date(profile.created_at),
+                                    "dd MMM yyyy",
+                                    { locale: ro }
+                                  )}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Analize:{" "}
+                                  {
+                                    analyses.filter((a) => a.user_id === profile.id)
+                                      .length
+                                  }
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Conversații:{" "}
+                                  {
+                                    new Set(
+                                      conversations
+                                        .filter((c) => c.user_id === profile.id)
+                                        .map((c) => c.conversation_id)
+                                    ).size
+                                  }
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
                       );
                     })}
                   </div>
