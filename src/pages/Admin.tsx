@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -198,29 +198,36 @@ const Admin = () => {
               <CardContent>
                 <ScrollArea className="h-[600px]">
                   <div className="space-y-4">
-                    {profiles.map((profile) => (
-                      <Card
-                        key={profile.id}
-                        className={`cursor-pointer transition-colors ${
-                          selectedUser === profile.id
-                            ? "border-primary"
-                            : "hover:border-primary/50"
-                        }`}
-                        onClick={() => setSelectedUser(profile.id)}
-                      >
-                        <CardContent className="pt-6">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold">
-                                {profile.full_name || "Fără nume"}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {profile.email}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                ID: {profile.id}
-                              </p>
-                            </div>
+                    {profiles.map((profile) => {
+                      const isSelected = selectedUser === profile.id;
+                      return (
+                        <Card
+                          key={profile.id}
+                          className={`cursor-pointer transition-all ${
+                            isSelected
+                              ? "border-primary border-2 bg-primary/5 shadow-lg"
+                              : "hover:border-primary/50 hover:shadow-md"
+                          }`}
+                          onClick={() => setSelectedUser(profile.id)}
+                        >
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                {isSelected && (
+                                  <span className="text-xs font-bold text-primary mb-1 block">
+                                    ✓ SELECTAT
+                                  </span>
+                                )}
+                                <p className="font-semibold">
+                                  {profile.full_name || "Fără nume"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {profile.email}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  ID: {profile.id}
+                                </p>
+                              </div>
                             <div className="text-right">
                               <p className="text-xs text-muted-foreground">
                                 Înregistrat:{" "}
@@ -251,7 +258,8 @@ const Admin = () => {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </CardContent>
@@ -261,25 +269,34 @@ const Admin = () => {
           <TabsContent value="analyses">
             <div className="space-y-4">
               {selectedUser && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedUser(null)}
-                  >
-                    Arată toate analizele
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Filtrează pentru:{" "}
-                    {profiles.find((p) => p.id === selectedUser)?.email}
-                  </span>
-                </div>
+                <Alert>
+                  <User className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>
+                      Filtrare activă pentru:{" "}
+                      <strong>{profiles.find((p) => p.id === selectedUser)?.email}</strong>
+                      {" "}({filteredAnalyses.length} {filteredAnalyses.length === 1 ? 'analiză' : 'analize'})
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedUser(null)}
+                    >
+                      Anulează filtrul
+                    </Button>
+                  </AlertDescription>
+                </Alert>
               )}
               <Card>
                 <CardHeader>
-                  <CardTitle>Toate Analizele</CardTitle>
+                  <CardTitle>
+                    {selectedUser ? 'Analizele utilizatorului selectat' : 'Toate Analizele'}
+                  </CardTitle>
                   <CardDescription>
-                    Analize balanțe încărcate de utilizatori
+                    {selectedUser 
+                      ? `Analize balanțe pentru ${profiles.find((p) => p.id === selectedUser)?.email}`
+                      : 'Analize balanțe încărcate de toți utilizatorii'
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -340,25 +357,34 @@ const Admin = () => {
           <TabsContent value="conversations">
             <div className="space-y-4">
               {selectedUser && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedUser(null)}
-                  >
-                    Arată toate conversațiile
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Filtrează pentru:{" "}
-                    {profiles.find((p) => p.id === selectedUser)?.email}
-                  </span>
-                </div>
+                <Alert>
+                  <User className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span>
+                      Filtrare activă pentru:{" "}
+                      <strong>{profiles.find((p) => p.id === selectedUser)?.email}</strong>
+                      {" "}({Object.keys(groupedConversations).length} {Object.keys(groupedConversations).length === 1 ? 'conversație' : 'conversații'})
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedUser(null)}
+                    >
+                      Anulează filtrul
+                    </Button>
+                  </AlertDescription>
+                </Alert>
               )}
               <Card>
                 <CardHeader>
-                  <CardTitle>Toate Conversațiile</CardTitle>
+                  <CardTitle>
+                    {selectedUser ? 'Conversațiile utilizatorului selectat' : 'Toate Conversațiile'}
+                  </CardTitle>
                   <CardDescription>
-                    Istoric conversații cu chatbot-ul Yana
+                    {selectedUser 
+                      ? `Conversații cu Yana pentru ${profiles.find((p) => p.id === selectedUser)?.email}`
+                      : 'Istoric conversații cu chatbot-ul Yana pentru toți utilizatorii'
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
