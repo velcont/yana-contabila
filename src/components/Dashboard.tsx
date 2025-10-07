@@ -634,12 +634,12 @@ INDICATORI OPERAȚIONALI:
             <CardTitle>Analizele Tale</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-            {analyses.length === 0 ? (
+            {filteredAnalyses.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Nu ai analize salvate încă.
               </p>
             ) : (
-              analyses.map((analysis) => {
+              filteredAnalyses.map((analysis) => {
                 // Extract period from analysis text - try multiple patterns
                 const periodMatch = analysis.analysis_text.match(/Perioad[aă][:\s]+([^\n]+)/i) || 
                                   analysis.analysis_text.match(/Pentru perioad[aă][:\s]+([^\n]+)/i) ||
