@@ -28,20 +28,38 @@ serve(async (req) => {
       throw new Error('Utilizator neautentificat');
     }
 
-    console.log('🔍 Căutare literatură științifică...');
+    console.log('🔍 Căutare literatură științifică din reviste de top...');
 
-    // Căutare în Semantic Scholar (API gratuit)
+    // Reviste țintă pentru căutare
+    const targetJournals = [
+      'Technological Forecasting and Social Change',
+      'Journal of Business Research',
+      'Sustainability',
+      'Long Range Planning',
+      'Small Business Economics',
+      'Journal of Cleaner Production',
+      'Management Decision',
+      'Electronic Markets',
+      'Amfiteatru Economic',
+      'Management & Marketing'
+    ];
+
+    // Query-uri pentru tema de doctorat
     const searchQueries = [
-      'digital innovation business models sustainability',
+      'digital innovation sustainable business models',
       'organizational resilience competitive advantage',
-      'digital transformation sustainable business'
+      'digital transformation sustainability SME',
+      'business model innovation digital economy',
+      'resilient organizations crisis management'
     ];
 
     const allPapers: any[] = [];
 
+    // Căutare combinată: query + journal
     for (const query of searchQueries) {
-      const response = await fetch(
-        `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=title,abstract,authors,year,citationCount,publicationTypes,url&limit=10`,
+      // Căutare generală
+      const generalResponse = await fetch(
+        `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(query)}&fields=title,abstract,authors,year,citationCount,venue,publicationTypes,url&limit=15`,
         {
           headers: {
             'Accept': 'application/json',
@@ -49,12 +67,29 @@ serve(async (req) => {
         }
       );
 
-      if (response.ok) {
-        const data = await response.json();
+      if (generalResponse.ok) {
+        const data = await generalResponse.json();
         if (data.data) {
-          allPapers.push(...data.data);
+          // Filtrează articole din revistele țintă
+          const relevantPapers = data.data.filter((paper: any) => {
+            if (!paper.venue) return false;
+            return targetJournals.some(journal => 
+              paper.venue.toLowerCase().includes(journal.toLowerCase().substring(0, 20))
+            );
+          });
+          
+          allPapers.push(...relevantPapers);
+          
+          // Adaugă și articole cu citări înalte chiar dacă nu sunt din reviste țintă
+          const highCitationPapers = data.data
+            .filter((p: any) => (p.citationCount || 0) > 50)
+            .slice(0, 3);
+          allPapers.push(...highCitationPapers);
         }
       }
+
+      // Delay pentru a nu depăși rate limit
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log(`📚 Găsite ${allPapers.length} articole`);
@@ -69,13 +104,18 @@ serve(async (req) => {
       );
     }
 
-    // Sortează după număr de citări și ia primele 5
-    const topPapers = allPapers
+    // Remove duplicates based on title
+    const uniquePapers = Array.from(
+      new Map(allPapers.map(p => [p.title?.toLowerCase().trim(), p])).values()
+    );
+
+    // Sortează după număr de citări și ia primele 7
+    const topPapers = uniquePapers
       .filter(p => p.abstract && p.abstract.length > 100)
       .sort((a, b) => (b.citationCount || 0) - (a.citationCount || 0))
-      .slice(0, 5);
+      .slice(0, 7);
 
-    console.log(`🎯 Selectate ${topPapers.length} articole relevante pentru procesare AI`);
+    console.log(`🎯 Selectate ${topPapers.length} articole unice din reviste de top pentru procesare AI`);
 
     // Procesează cu Lovable AI pentru a extrage informații relevante
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -101,6 +141,7 @@ Returnează DOAR JSON valid în acest format:
 
     const papersText = topPapers.map((p, i) => 
       `Articol ${i+1}: ${p.title}\n` +
+      `Revistă: ${p.venue || 'N/A'}\n` +
       `Autori: ${p.authors?.map((a: any) => a.name).join(', ') || 'N/A'}\n` +
       `An: ${p.year || 'N/A'}\n` +
       `Citări: ${p.citationCount || 0}\n` +
@@ -156,7 +197,7 @@ Returnează DOAR JSON valid în acest format:
         case_studies: extractedData.case_studies || [],
         theoretical_frameworks: extractedData.theoretical_frameworks || [],
         metrics_collected: extractedData.metrics_collected || {},
-        research_notes: `Date extrase automat din ${topPapers.length} articole științifice. Surse: ${topPapers.map(p => p.title).join('; ')}`
+        research_notes: `Date extrase automat din ${topPapers.length} articole științifice de top. Reviste țintă: Technological Forecasting, Journal of Business Research, Sustainability, Small Business Economics, și altele. Surse: ${topPapers.map(p => `${p.title} (${p.venue || 'N/A'})`).join('; ')}`
       });
 
     if (insertError) {
