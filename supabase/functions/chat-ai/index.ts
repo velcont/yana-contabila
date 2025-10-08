@@ -406,14 +406,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const { message, history, conversationId, summaryType = 'detailed' } = await req.json();
-
-    if (!message) {
-      return new Response(
-        JSON.stringify({ error: "Mesajul lipsește" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { message, history, conversationId, summaryType = 'detailed', attachments = [] } = await req.json();
 
     // Extragem user_id pentru rate limiting și caching
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -428,6 +421,56 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Autentificare necesară" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // PROCESARE DOCUMENTE JURIDICE (dacă există)
+    let documentAnalyses = "";
+    if (attachments && attachments.length > 0) {
+      console.log("Processing legal documents:", attachments.length);
+      
+      for (const attachment of attachments) {
+        try {
+          const analyzeResponse = await fetch(
+            `${supabaseUrl}/functions/v1/analyze-legal-document`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                filePath: attachment.path,
+                fileName: attachment.name,
+                fileType: attachment.type,
+                conversationId,
+                userQuestion: message
+              })
+            }
+          );
+
+          if (analyzeResponse.ok) {
+            const analyzeData = await analyzeResponse.json();
+            documentAnalyses += `\n\n📄 **${attachment.name}**:\n${analyzeData.analysis}\n`;
+          } else {
+            console.error("Error analyzing document:", await analyzeResponse.text());
+            documentAnalyses += `\n\n📄 **${attachment.name}**: Eroare la procesare\n`;
+          }
+        } catch (err) {
+          console.error("Error processing attachment:", err);
+        }
+      }
+    }
+
+    // Dacă există analize de documente, le adăugăm la mesaj
+    const enrichedMessage = documentAnalyses 
+      ? `${message}\n\n--- DOCUMENTE ANALIZATE ---${documentAnalyses}`
+      : message;
+
+    if (!enrichedMessage.trim() && attachments.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Mesajul lipsește" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -459,41 +502,43 @@ serve(async (req) => {
       );
     }
 
-    // CACHING - verifică dacă avem răspuns în cache
-    const questionHash = await crypto.subtle.digest(
-      'SHA-256', 
-      new TextEncoder().encode(message.toLowerCase().trim())
-    );
-    const hashHex = Array.from(new Uint8Array(questionHash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    const { data: cachedData } = await supabase
-      .from('chat_cache')
-      .select('answer_text, hit_count')
-      .eq('question_hash', hashHex)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
-
-    if (cachedData) {
-      console.log('Cache hit for question hash:', hashHex);
-      
-      // Incrementează hit_count
-      await supabase
-        .from('chat_cache')
-        .update({ 
-          hit_count: cachedData.hit_count + 1,
-          last_used_at: new Date().toISOString()
-        })
-        .eq('question_hash', hashHex);
-
-      return new Response(
-        JSON.stringify({ 
-          response: cachedData.answer_text,
-          cached: true
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    // CACHING - verifică dacă avem răspuns în cache (doar pentru întrebări fără documente)
+    if (attachments.length === 0) {
+      const questionHash = await crypto.subtle.digest(
+        'SHA-256', 
+        new TextEncoder().encode(enrichedMessage.toLowerCase().trim())
       );
+      const hashHex = Array.from(new Uint8Array(questionHash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      const { data: cachedData } = await supabase
+        .from('chat_cache')
+        .select('answer_text, hit_count')
+        .eq('question_hash', hashHex)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (cachedData) {
+        console.log('Cache hit for question hash:', hashHex);
+        
+        // Incrementează hit_count
+        await supabase
+          .from('chat_cache')
+          .update({ 
+            hit_count: cachedData.hit_count + 1,
+            last_used_at: new Date().toISOString()
+          })
+          .eq('question_hash', hashHex);
+
+        return new Response(
+          JSON.stringify({ 
+            response: cachedData.answer_text,
+            cached: true
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -772,14 +817,22 @@ serve(async (req) => {
               }
               
               // 4. SALVĂM RĂSPUNSUL ÎN CACHE pentru întrebări frecvente
-              // Doar pentru întrebări simple (< 200 caractere) și răspunsuri > 50 caractere
-              if (message.length < 200 && accumulatedContent.length > 50) {
+              // Doar pentru întrebări simple (< 200 caractere) și răspunsuri > 50 caractere fără attachments
+              if (attachments.length === 0 && enrichedMessage.length < 200 && accumulatedContent.length > 50) {
                 try {
+                  const questionHash = await crypto.subtle.digest(
+                    'SHA-256', 
+                    new TextEncoder().encode(enrichedMessage.toLowerCase().trim())
+                  );
+                  const hashHex = Array.from(new Uint8Array(questionHash))
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+                    
                   await supabase
                     .from('chat_cache')
                     .insert({
                       question_hash: hashHex,
-                      question_text: message,
+                      question_text: enrichedMessage,
                       answer_text: accumulatedContent
                     });
                 } catch (cacheErr) {
