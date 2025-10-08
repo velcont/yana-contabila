@@ -4,22 +4,17 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, Zap, History, Menu, Mic } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TypingIndicator } from './TypingIndicator';
 import { QuickReplySuggestions } from './QuickReplySuggestions';
 import { ConversationHistory } from './ConversationHistory';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
+import { Progress } from '@/components/ui/progress';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -67,12 +62,15 @@ Cu ce te pot ajuta astăzi?`
   const [conversationId] = useState(() => crypto.randomUUID());
   const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState(false);
   const [suggestions, setSuggestions] = useState<QuestionPattern[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
+  const [streamingProgress, setStreamingProgress] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -213,10 +211,14 @@ Cu ce te pot ajuta astăzi?`
 
       // Adaugă mesaj assistant gol pentru streaming
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      setStreamingProgress(0);
 
       while (true) {
         const { done, value } = await reader!.read();
-        if (done) break;
+        if (done) {
+          setStreamingProgress(100);
+          break;
+        }
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
@@ -236,6 +238,7 @@ Cu ce te pot ajuta astăzi?`
               }
             } else if (parsed.type === 'content') {
               assistantContent += parsed.content;
+              setStreamingProgress(prev => Math.min(prev + 2, 90));
               setMessages(prev => {
                 const newMessages = [...prev];
                 newMessages[newMessages.length - 1] = {
@@ -302,6 +305,7 @@ Cu ce te pot ajuta astăzi?`
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
+      setStreamingProgress(0);
     }
   };
 
@@ -450,15 +454,16 @@ Cu ce te pot ajuta astăzi?`
       )}
       
       {/* Chat principal */}
-      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4' : 'ml-auto mr-4 mb-4 mt-auto w-full max-w-[650px] h-[650px]'} shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
-          <div className="flex items-center gap-2">
+      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4' : 'ml-auto mr-4 mb-4 mt-auto w-full max-w-full md:max-w-[900px] lg:max-w-[1000px]'} ${isMaximized ? 'h-[calc(100vh-2rem)]' : 'h-[650px]'} shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b bg-gradient-to-r from-background to-muted/30">
+          {/* Grup stânga - Branding + Actions */}
+          <div className="flex items-center gap-3">
             <Sheet open={showHistory} onOpenChange={setShowHistory}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 md:hidden"
+                  className="h-9 w-9 md:hidden"
                   aria-label="Istoric conversații"
                 >
                   <Menu className="h-4 w-4" />
@@ -479,26 +484,31 @@ Cu ce te pot ajuta astăzi?`
               </SheetContent>
             </Sheet>
             
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-sm">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="hidden sm:block">
+                <CardTitle className="text-base font-semibold">Chat AI Yana</CardTitle>
+                <p className="text-[10px] text-muted-foreground">Asistentă Financiară</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Grup dreapta - Controale */}
+          <div className="flex items-center gap-1">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant={showHistory ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowHistory(!showHistory)}
-                    className="h-8 w-8 hidden md:flex relative"
+                    className="h-9 w-9 hidden md:flex relative"
                     aria-label="Istoric conversații"
                     data-tour="conversation-history"
                   >
                     <History className="h-4 w-4" />
-                    {!showHistory && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] animate-pulse"
-                      >
-                        ✨
-                      </Badge>
-                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Istoric Conversații</TooltipContent>
@@ -507,106 +517,159 @@ Cu ce te pot ajuta astăzi?`
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant={showVoice ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowVoice(!showVoice)}
-                    className="h-8 w-8"
+                    className="h-9 w-9"
                     aria-label="Conversație vocală"
                     data-tour="voice-button"
                   >
                     <Mic className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Conversație Vocală (20 min/lună)</TooltipContent>
+                <TooltipContent>Conversație Vocală</TooltipContent>
               </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={showInsights ? "secondary" : "ghost"}
+                    size="icon"
+                    onClick={() => setShowInsights(!showInsights)}
+                    className="h-9 w-9 relative"
+                    aria-label="Alerte"
+                  >
+                    <Bell className="h-4 w-4" />
+                    {insights.length > 0 && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                      >
+                        {insights.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Alerte ({insights.length})</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={isReadingMode ? "secondary" : "ghost"}
+                    size="icon"
+                    onClick={() => setIsReadingMode(!isReadingMode)}
+                    className="h-9 w-9 hidden lg:flex"
+                    aria-label="Mod Lectură"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Mod Lectură</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsMaximized((v) => !v)}
+                    className="h-9 w-9"
+                    aria-label={isMaximized ? 'Minimizează' : 'Maximizează'}
+                  >
+                    {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isMaximized ? 'Minimizează' : 'Maximizează'}</TooltipContent>
+              </Tooltip>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="h-9 w-9"
+                aria-label="Închide"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </TooltipProvider>
-            
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <CardTitle className="text-lg">Chat AI Yana</CardTitle>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsMaximized((v) => !v)}
-              className="h-8 w-8"
-              aria-label={isMaximized ? 'Minimizează chat' : 'Maximizează chat'}
-            >
-              {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="h-8 w-8"
-              aria-label="Închide chatul"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </CardHeader>
       
-      <CardContent className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
-        {/* Insights proactivi */}
-        {insights.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              Alerte Automate
-            </p>
-            <div className="space-y-2">
-              {insights.map((insight) => (
-                <div
-                  key={insight.id}
-                  className={`p-3 rounded-lg border text-xs ${
-                    insight.severity === 'critical' ? 'border-destructive bg-destructive/5' :
-                    insight.severity === 'warning' ? 'border-yellow-500 bg-yellow-500/5' :
-                    'border-blue-500 bg-blue-500/5'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <p className="font-medium mb-1">{insight.title}</p>
-                      <p className="text-muted-foreground">{insight.description}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => markInsightAsRead(insight.id)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() => {
-                      setInput(`Explică-mi mai mult despre: ${insight.title}`);
-                      markInsightAsRead(insight.id);
-                    }}
-                    className="h-auto p-0 mt-1 text-xs"
-                  >
-                    Discută cu Yana →
-                  </Button>
+      <CardContent className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden">
+        {/* Sheet Insights - Floating */}
+        <Sheet open={showInsights} onOpenChange={setShowInsights}>
+          <SheetContent side="right" className="w-full sm:w-96">
+            <div className="space-y-4 mt-8">
+              <div className="flex items-center gap-2">
+                <Bell className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-lg">Alerte Automate</h3>
+              </div>
+              {insights.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <Bell className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p>Nicio alertă nouă</p>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-3">
+                  {insights.map((insight) => (
+                    <Card
+                      key={insight.id}
+                      className={`${
+                        insight.severity === 'critical' ? 'border-destructive' :
+                        insight.severity === 'warning' ? 'border-yellow-500' :
+                        'border-blue-500'
+                      }`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <Badge variant={insight.severity === 'critical' ? 'destructive' : 'secondary'}>
+                            {insight.severity === 'critical' ? 'Critic' : insight.severity === 'warning' ? 'Atenție' : 'Info'}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => markInsightAsRead(insight.id)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <h4 className="font-medium text-sm mb-1">{insight.title}</h4>
+                        <p className="text-xs text-muted-foreground mb-3">{insight.description}</p>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => {
+                            setInput(`Explică-mi mai mult despre: ${insight.title}`);
+                            markInsightAsRead(insight.id);
+                            setShowInsights(false);
+                          }}
+                          className="h-auto p-0 text-xs"
+                        >
+                          Discută cu Yana →
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          </SheetContent>
+        </Sheet>
 
-        {/* Quick Actions - Întrebări Frecvente sau Demo */}
+        {/* Quick Actions - sticky când scrollezi */}
         {messages.length === 1 && (
-          <QuickReplySuggestions
-            onSelectSuggestion={(question) => {
-              setInput(question);
-              inputRef.current?.focus();
-            }}
-            contextual={true}
-            showFrequency={true}
-          />
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-2 -mx-4 px-4">
+            <QuickReplySuggestions
+              onSelectSuggestion={(question) => {
+                setInput(question);
+                inputRef.current?.focus();
+              }}
+              contextual={true}
+              showFrequency={true}
+            />
+          </div>
         )}
 
         {/* Voice Interface */}
@@ -638,76 +701,94 @@ Cu ce te pot ajuta astăzi?`
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
-            >
-              {msg.role === 'assistant' ? (
-                <div className="max-w-[85%] space-y-2">
-                  <div className="bg-muted rounded-2xl px-4 py-2.5">
+        <ScrollArea className="flex-1 pr-2">
+          <div className="space-y-4 py-2">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300`}
+              >
+                {msg.role === 'assistant' ? (
+                  <div className={`flex gap-2 ${isReadingMode ? 'max-w-full' : 'max-w-[90%]'} group`}>
+                    {/* Avatar AI */}
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0 border-2 border-primary/20">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      {/* Progress bar pentru streaming */}
+                      {isLoading && idx === messages.length - 1 && streamingProgress > 0 && streamingProgress < 100 && (
+                        <Progress value={streamingProgress} className="h-1 mb-2" />
+                      )}
+                      <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 border-l-2 border-primary/30">
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      </div>
+                      {msg.id && (
+                        <div className="flex items-center gap-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleFeedback(msg.id!, 1)}
+                                  className="p-1 hover:bg-muted rounded transition-colors"
+                                  title="Răspuns util"
+                                >
+                                  <ThumbsUp className="h-3 w-3 text-muted-foreground hover:text-green-600" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Răspuns util</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => handleFeedback(msg.id!, -1)}
+                                  className="p-1 hover:bg-muted rounded transition-colors"
+                                  title="Răspuns neutil"
+                                >
+                                  <ThumbsDown className="h-3 w-3 text-muted-foreground hover:text-red-600" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Răspuns neutil</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-[90%] rounded-2xl rounded-tr-sm px-4 py-3 bg-primary text-primary-foreground shadow-sm ml-auto">
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   </div>
-                  {msg.id && (
-                    <div className="flex items-center gap-2 px-2">
-                      <span className="text-xs text-muted-foreground">A fost util?</span>
-                      <button
-                        onClick={() => handleFeedback(msg.id!, 1)}
-                        className="text-lg hover:scale-110 transition-transform"
-                        title="Răspuns util"
-                      >
-                        👍
-                      </button>
-                      <button
-                        onClick={() => handleFeedback(msg.id!, -1)}
-                        className="text-lg hover:scale-110 transition-transform"
-                        title="Răspuns neutil"
-                      >
-                        👎
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="max-w-[85%] rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground">
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                </div>
-              )}
-            </div>
-          ))}
-          {isLoading && <TypingIndicator message={thinkingMessage} />}
-          <div ref={messagesEndRef} />
-        </div>
+                )}
+              </div>
+            ))}
+            {isLoading && <TypingIndicator message={thinkingMessage} />}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
 
-        <div className="space-y-2 pt-2 border-t">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Stil răspuns:</span>
-            <Select value={summaryType} onValueChange={(value: SummaryType) => setSummaryType(value)}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="detailed" className="text-xs">
-                  <div className="flex items-center gap-2">
-                    <FileBarChart className="h-3 w-3" />
-                    <span>Detaliat</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="short" className="text-xs">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-3 w-3" />
-                    <span>Scurt</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="action" className="text-xs">
-                  <div className="flex items-center gap-2">
-                    <ListChecks className="h-3 w-3" />
-                    <span>Action Points</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="space-y-3 pt-3 border-t bg-background/95 backdrop-blur-sm">
+          {/* Stiluri răspuns - tabs vizibile */}
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              Stil:
+            </span>
+            <Tabs value={summaryType} onValueChange={(value) => setSummaryType(value as SummaryType)} className="flex-1">
+              <TabsList className="grid w-full grid-cols-3 h-9">
+                <TabsTrigger value="detailed" className="text-xs gap-1.5">
+                  <FileBarChart className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Detaliat</span>
+                </TabsTrigger>
+                <TabsTrigger value="short" className="text-xs gap-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Scurt</span>
+                </TabsTrigger>
+                <TabsTrigger value="action" className="text-xs gap-1.5">
+                  <ListChecks className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Acțiuni</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
           
           <div className="relative">
@@ -735,12 +816,12 @@ Cu ce te pot ajuta astăzi?`
             
             {/* Autocomplete Dropdown */}
             {showSuggestions && suggestions.length > 0 && (
-              <Card className="absolute bottom-full mb-2 left-0 right-12 max-h-64 overflow-hidden shadow-lg animate-in slide-in-from-bottom-2 duration-200 z-50">
+              <Card className="absolute bottom-full mb-2 left-0 right-12 max-h-64 overflow-hidden shadow-xl border-primary/20 animate-in slide-in-from-bottom-2 duration-200 z-[60] bg-background/95 backdrop-blur-sm">
                 <CardContent className="p-0">
-                  <div className="px-3 py-2 border-b bg-muted/50">
-                    <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                      <Lightbulb className="h-3 w-3" />
-                      Alți utilizatori au întrebat...
+                  <div className="px-3 py-2 border-b bg-gradient-to-r from-primary/10 to-primary/5">
+                    <p className="text-xs font-semibold flex items-center gap-1.5">
+                      <Lightbulb className="h-3.5 w-3.5 text-primary" />
+                      Sugestii populare
                     </p>
                   </div>
                   <ScrollArea className="max-h-52">
@@ -749,20 +830,20 @@ Cu ce te pot ajuta astăzi?`
                         <button
                           key={idx}
                           onClick={() => selectSuggestion(pattern.question_pattern)}
-                          className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors group"
+                          className="w-full px-3 py-2.5 text-left hover:bg-primary/5 transition-all group border-l-2 border-transparent hover:border-primary"
                         >
                           <div className="flex items-start gap-2">
-                            <TrendingUp className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
+                            <TrendingUp className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                                 {pattern.question_pattern}
                               </p>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-2 mt-1.5">
                                 <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
                                   {pattern.question_category}
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground">
-                                  Întrebat de {pattern.frequency}x
+                                  {pattern.frequency}× întrebat
                                 </span>
                               </div>
                             </div>
