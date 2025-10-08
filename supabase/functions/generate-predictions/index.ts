@@ -29,11 +29,18 @@ serve(async (req) => {
   }
 
   try {
-    const { analyses } = await req.json();
+    const { analyses, businessSector } = await req.json();
 
     if (!analyses || analyses.length < 2) {
       return new Response(
         JSON.stringify({ error: 'Minimum 2 analyses required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!businessSector) {
+      return new Response(
+        JSON.stringify({ error: 'Business sector is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -58,27 +65,66 @@ serve(async (req) => {
 - Datorii furnizori: ${a.indicators.soldFurnizori || 0} RON`
     ).join('\n\n');
 
-    const prompt = `Ești un analist financiar expert. Analizează datele istorice și generează predicții pentru următoarele 3 luni.
+    // Map business sector to Romanian name
+    const sectorNames: Record<string, string> = {
+      'retail': 'Comerț cu amănuntul',
+      'wholesale': 'Comerț cu ridicata',
+      'manufacturing': 'Producție/Manufacturing',
+      'construction': 'Construcții',
+      'it_software': 'IT & Software',
+      'professional_services': 'Servicii profesionale',
+      'horeca': 'HoReCa (Restaurante, Hoteluri)',
+      'transport_logistics': 'Transport & Logistică',
+      'agriculture': 'Agricultură',
+      'healthcare_pharma': 'Sănătate & Farmacie',
+      'education': 'Educație',
+      'real_estate': 'Imobiliare',
+      'energy_utilities': 'Energie & Utilități',
+      'telecommunications': 'Telecomunicații',
+      'other': 'Altele'
+    };
+    const sectorName = sectorNames[businessSector] || businessSector;
 
-DATE ISTORICE:
+    const prompt = `Ești un analist financiar expert specializat în analiza macroeconomică și sectorială.
+
+CONTEXT ECONOMIC:
+- Domeniul de activitate: ${sectorName}
+- Locație: România (membru UE)
+- Data actuală: ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}
+
+DATE ISTORICE FIRMĂ:
 ${historicalData}
 
-Generează 3 scenarii (optimist, realist, pesimist) pentru următoarele 3 luni.
+INSTRUCȚIUNI CRITICE:
+1. FOLOSEȘTE date macroeconomice și microeconomice REALE și ACTUALIZATE pentru ${sectorName}:
+   - Rata inflației actuale în România și UE
+   - Creșterea/scăderea PIB-ului în sectorul ${sectorName}
+   - Statistici sectoriale publice (Eurostat, INS, Banca Națională a României)
+   - Tendințe de consum/cerere în acest sector
+   - Costuri cu energia, materiile prime, forța de muncă specifice sectorului
+   - Evoluția ratei dobânzii și impactul asupra sectorului
+   - Schimbări legislative recente care afectează sectorul
+   - Date despre concurență și saturația pieței în acest domeniu
 
-Pentru fiecare scenariu, returnează:
-1. timeframe (ex: "Luna 1 - Ianuarie 2025")
-2. scenario (optimistic/realistic/pessimistic)
-3. cash_flow (estimare cash flow în RON)
-4. revenue_forecast (estimare venituri în RON)
-5. key_risks (array de 3-5 riscuri identificate)
-6. opportunities (array de 3-5 oportunități)
-7. recommended_actions (array de 3-5 acțiuni concrete recomandate)
+2. Generează 3 scenarii (optimist, realist, pesimist) pentru următoarele 3 luni.
 
-IMPORTANT:
-- Numerele să fie realiste bazate pe tendințele istorice
-- Riscurile și oportunitățile să fie CONCRETE și SPECIFICE pentru această afacere
-- Acțiunile să fie ACȚIONABILE și PRIORITIZATE
-- Răspunde DOAR în JSON, fără alt text
+3. Pentru fiecare scenariu, returnează:
+   - timeframe (ex: "Luna 1 - Ianuarie 2025")
+   - scenario (optimistic/realistic/pessimistic)
+   - cash_flow (estimare cash flow în RON)
+   - revenue_forecast (estimare venituri în RON)
+   - key_risks (array de 3-5 riscuri CONCRETE și SPECIFICE bazate pe context economic real)
+   - opportunities (array de 3-5 oportunități CONCRETE bazate pe tendințe economice reale)
+   - recommended_actions (array de 3-5 acțiuni ACȚIONABILE și PRIORITIZATE)
+
+4. IMPORTANT:
+   - Numerele să fie REALISTE bazate pe: datele istorice + context macroeconomic + particularități sectoriale
+   - Riscurile și oportunitățile să fie CONCRETE, nu generice
+   - Menționează DATE și SURSE economice reale când este posibil (ex: "inflația de 6.8% raportată de BNR")
+   - Acțiunile să fie PRACTICE și adaptate contextului economic actual
+   - Predicțiile să reflecte REALITATEA economică, nu doar tendințele interne
+
+5. Răspunde DOAR în JSON, fără alt text.
 
 Format JSON așteptat:
 {
@@ -88,9 +134,9 @@ Format JSON așteptat:
       "scenario": "realistic",
       "cash_flow": 50000,
       "revenue_forecast": 200000,
-      "key_risks": ["...", "...", "..."],
-      "opportunities": ["...", "...", "..."],
-      "recommended_actions": ["...", "...", "..."]
+      "key_risks": ["Inflația de X% în sectorul Y crește costurile cu...", "..."],
+      "opportunities": ["Creșterea cererii cu Z% în sectorul...", "..."],
+      "recommended_actions": ["Bazat pe tendința X, recomand...", "..."]
     }
   ]
 }`;

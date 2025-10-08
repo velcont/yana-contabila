@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles, TrendingUp, TrendingDown, AlertCircle, Loader2, Lightbulb } from 'lucide-react';
+import { Sparkles, TrendingUp, TrendingDown, AlertCircle, Loader2, Lightbulb, Building2 } from 'lucide-react';
 import { formatCurrency, type FinancialIndicators } from '@/utils/analysisParser';
 
 interface Analysis {
@@ -35,6 +36,7 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [originalPredictions, setOriginalPredictions] = useState<Prediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [businessSector, setBusinessSector] = useState<string>('');
   const { toast } = useToast();
   
   // What If simulation parameters
@@ -53,6 +55,15 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
       return;
     }
 
+    if (!businessSector) {
+      toast({
+        title: 'Selectează domeniul de activitate',
+        description: 'Pentru predicții realiste, trebuie să selectezi domeniul firmei.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-predictions', {
@@ -61,6 +72,7 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
             date: a.created_at,
             indicators: a.metadata,
           })),
+          businessSector,
         },
       });
 
@@ -150,18 +162,51 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
                 Predicții AI - Următoarele 3 Luni
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Scenarii generate de AI bazate pe analiza tendințelor tale istorice
+                Scenarii realiste bazate pe date istorice și contextul economic actual
               </p>
+              
+              {/* Business Sector Selector */}
+              <div className="mt-4 max-w-md">
+                <Label htmlFor="business-sector" className="flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4" />
+                  <span className="font-semibold">Domeniul de activitate al firmei</span>
+                </Label>
+                <Select value={businessSector} onValueChange={setBusinessSector}>
+                  <SelectTrigger id="business-sector">
+                    <SelectValue placeholder="Selectează domeniul..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="retail">Comerț cu amănuntul</SelectItem>
+                    <SelectItem value="wholesale">Comerț cu ridicata</SelectItem>
+                    <SelectItem value="manufacturing">Producție/Manufacturing</SelectItem>
+                    <SelectItem value="construction">Construcții</SelectItem>
+                    <SelectItem value="it_software">IT & Software</SelectItem>
+                    <SelectItem value="professional_services">Servicii profesionale</SelectItem>
+                    <SelectItem value="horeca">HoReCa (Restaurante, Hoteluri)</SelectItem>
+                    <SelectItem value="transport_logistics">Transport & Logistică</SelectItem>
+                    <SelectItem value="agriculture">Agricultură</SelectItem>
+                    <SelectItem value="healthcare_pharma">Sănătate & Farmacie</SelectItem>
+                    <SelectItem value="education">Educație</SelectItem>
+                    <SelectItem value="real_estate">Imobiliare</SelectItem>
+                    <SelectItem value="energy_utilities">Energie & Utilități</SelectItem>
+                    <SelectItem value="telecommunications">Telecomunicații</SelectItem>
+                    <SelectItem value="other">Altele</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Acest lucru ajută AI-ul să folosească date macroeconomice relevante sectorului tău
+                </p>
+              </div>
             </div>
             <Button
               onClick={generatePredictions}
-              disabled={isLoading || analyses.length < 2}
+              disabled={isLoading || analyses.length < 2 || !businessSector}
               className="gap-2"
             >
               {isLoading ? (
