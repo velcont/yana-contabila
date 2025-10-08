@@ -146,14 +146,17 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
   return (
     <div className="space-y-6">
       {/* Financial Scorecard */}
-      <Card>
+      <Card className="border-2 animate-pulse hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <CardHeader>
-          <CardTitle>Scor Sănătate Financiară</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <span className="text-2xl">📊</span>
+            Scor Sănătate Financiară
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <div className={`text-5xl font-bold ${getScoreColor(currentScore)}`}>
+              <div className={`text-5xl font-bold ${getScoreColor(currentScore)} animate-fade-in`}>
                 {currentScore.toFixed(0)}/100
               </div>
               <div className="text-sm text-muted-foreground">
@@ -191,9 +194,12 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
       {/* Revenue vs Expenses Chart */}
       {chartData.length > 1 && (
-        <Card>
+        <Card className="border-2 animate-pulse hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-success/5 via-background to-primary/5">
           <CardHeader>
-            <CardTitle>Evoluție Venituri vs Cheltuieli</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">📈</span>
+              Evoluție Venituri vs Cheltuieli
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -217,9 +223,12 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
       {/* DSO/DPO Timeline */}
       {chartData.length > 1 && (
-        <Card>
+        <Card className="border-2 animate-pulse hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-warning/5 via-background to-accent/5">
           <CardHeader>
-            <CardTitle>Timeline DSO vs DPO</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">⏱️</span>
+              Timeline DSO vs DPO
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
