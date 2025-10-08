@@ -88,7 +88,11 @@ IMPORTANT: Marchează clar cu [DRAFT - NECESITĂ EDITARE] secțiunile care neces
 
       if (error) throw error;
 
-      const generatedText = data.response;
+      const generatedText = data?.response || data?.message || data;
+      
+      if (!generatedText || typeof generatedText !== 'string') {
+        throw new Error("Răspuns invalid de la AI");
+      }
       
       // Parse raspunsul in sectiuni
       const sections: ThesisSection[] = [
@@ -134,7 +138,9 @@ IMPORTANT: Marchează clar cu [DRAFT - NECESITĂ EDITARE] secțiunile care neces
     }
   };
 
-  const extractSection = (text: string, chapterMarker: string): string => {
+  const extractSection = (text: string | undefined, chapterMarker: string): string => {
+    if (!text) return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
+    
     const lines = text.split('\n');
     const startIdx = lines.findIndex(line => line.includes(chapterMarker));
     if (startIdx === -1) return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
