@@ -436,10 +436,11 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       </Card>
 
       <Tabs defaultValue="adaptability" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="adaptability">Adaptabilitate</TabsTrigger>
           <TabsTrigger value="radar">Analiză Vizuală</TabsTrigger>
           <TabsTrigger value="scenarios">Scenarii de Criză</TabsTrigger>
+          <TabsTrigger value="comparison">Comparație Academică</TabsTrigger>
           <TabsTrigger value="research">Date Doctorat</TabsTrigger>
         </TabsList>
 
@@ -574,6 +575,163 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </CardContent>
             </Card>
           ))}
+        </TabsContent>
+
+        <TabsContent value="comparison" className="space-y-4">
+          {researchData.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">Niciun benchmark academic disponibil</h3>
+                <p className="text-sm text-muted-foreground">
+                  Adaugă date de cercetare pentru a compara indicatorii tăi cu studiile academice
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Comparație cu Benchmark-uri Academice
+                  </CardTitle>
+                  <CardDescription>
+                    Compară indicatorii companiei tale cu valorile medii din studiile științifice
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {researchData
+                    .filter(data => data.metrics_collected?.avg_resilience_score)
+                    .map((data) => {
+                      const academicScore = data.metrics_collected.avg_resilience_score;
+                      const userScore = resilienceScore?.overall || 0;
+                      const difference = userScore - academicScore;
+                      const percentageDiff = academicScore !== 0 ? ((difference / academicScore) * 100).toFixed(1) : '0';
+                      
+                      return (
+                        <div key={data.id} className="space-y-4 mb-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold">{data.course_name}</h4>
+                              <p className="text-xs text-muted-foreground">{data.research_theme}</p>
+                            </div>
+                            <Badge variant={difference >= 0 ? "default" : "secondary"}>
+                              {difference >= 0 ? '↑' : '↓'} {Math.abs(difference).toFixed(0)} puncte
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+                              <p className="text-xs text-muted-foreground mb-1">Scorul Tău</p>
+                              <p className="text-3xl font-bold text-blue-600">{userScore}</p>
+                            </div>
+                            <div className="p-4 bg-muted rounded-lg">
+                              <p className="text-xs text-muted-foreground mb-1">Benchmark Academic</p>
+                              <p className="text-3xl font-bold">{academicScore}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span>Diferență relativă:</span>
+                              <span className={`font-bold ${difference >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                {difference >= 0 ? '+' : ''}{percentageDiff}%
+                              </span>
+                            </div>
+                            <Progress 
+                              value={Math.min(100, Math.max(0, ((userScore / (academicScore || 1)) * 100)))} 
+                              className="h-2"
+                            />
+                          </div>
+                          
+                          <div className="p-3 bg-muted/50 rounded-lg">
+                            <p className="text-sm">
+                              {difference >= 10 ? (
+                                <><span className="font-semibold text-green-600">✓ Performanță excelentă!</span> Scorul tău depășește semnificativ benchmark-ul academic. Continuă strategiile actuale.</>
+                              ) : difference >= 0 ? (
+                                <><span className="font-semibold text-green-600">✓ Peste medie.</span> Companiaeste peste benchmark-ul academic, dar există spațiu de îmbunătățire.</>
+                              ) : difference >= -10 ? (
+                                <><span className="font-semibold text-orange-600">⚠ Ușor sub medie.</span> Companiaeste aproape de benchmark. Analizează recomandările pentru îmbunătățire.</>
+                              ) : (
+                                <><span className="font-semibold text-red-600">✗ Sub benchmark.</span> Scorul este semnificativ sub medie. Prioritizează acțiunile de reziliență.</>
+                              )}
+                            </p>
+                          </div>
+
+                          {data.metrics_collected.avg_digital_maturity_score && (
+                            <div className="border-t pt-4">
+                              <h5 className="text-sm font-semibold mb-2">Maturitate Digitală (Benchmark)</h5>
+                              <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                  <Progress value={data.metrics_collected.avg_digital_maturity_score * 10} />
+                                </div>
+                                <span className="text-2xl font-bold">{data.metrics_collected.avg_digital_maturity_score}/10</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                Companiile din studiu au un grad mediu de maturitate digitală de {data.metrics_collected.avg_digital_maturity_score}. 
+                                Instrumentele digitale pot îmbunătăți reziliența cu până la 30%.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Factori de Succes din Cercetare</CardTitle>
+                  <CardDescription>
+                    Strategii validate științific pentru îmbunătățirea rezilienței
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {researchData.map((data) => (
+                    data.theoretical_frameworks && data.theoretical_frameworks.length > 0 && (
+                      <div key={data.id} className="space-y-3 mb-4">
+                        <h4 className="font-semibold text-sm">{data.course_name}</h4>
+                        {data.theoretical_frameworks.map((framework: any, idx: number) => (
+                          <Card key={idx} className="bg-muted/30">
+                            <CardContent className="pt-4">
+                              <h5 className="font-medium mb-2">{framework.framework_name}</h5>
+                              {framework.success_factors && framework.success_factors.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-muted-foreground">Factori de succes:</p>
+                                  <ul className="space-y-1">
+                                    {framework.success_factors.map((factor: string, i: number) => (
+                                      <li key={i} className="text-sm flex items-start gap-2">
+                                        <span className="text-green-600 mt-0.5">✓</span>
+                                        <span>{factor}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {framework.challenges && framework.challenges.length > 0 && (
+                                <div className="space-y-1 mt-3">
+                                  <p className="text-xs font-semibold text-muted-foreground">Provocări comune:</p>
+                                  <ul className="space-y-1">
+                                    {framework.challenges.map((challenge: string, i: number) => (
+                                      <li key={i} className="text-sm flex items-start gap-2">
+                                        <span className="text-orange-600 mt-0.5">!</span>
+                                        <span>{challenge}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )
+                  ))}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="research" className="space-y-4">
