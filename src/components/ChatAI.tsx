@@ -52,7 +52,7 @@ export const ChatAI = () => {
       role: 'assistant',
       content: `Bună ziua! Sunt Yana, asistenta ta virtuală în domeniul contabil și juridic.
 
-Te ajut cu analiza bilanțurilor, indicatori financiari și verificarea contractelor comerciale.
+Te ajut cu analiza balanțelor, indicatori financiari și verificarea contractelor comerciale.
 
 Cum te pot ajuta?`
     }
