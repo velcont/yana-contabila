@@ -463,10 +463,37 @@ Cu ce te pot ajuta astăzi?`
           
           analyses.slice(0, 5).forEach((analysis, idx) => {
             const fileName = analysis.file_name || '';
-            const monthMatch = fileName.match(/(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*(\d{4})/i);
-            const period = monthMatch ? `${monthMatch[1]} ${monthMatch[2]}` : `Balanța ${idx + 1}`;
-            const isMostRecent = idx === 0;
             
+            // Mapare luni
+            const monthNames: { [key: string]: string } = {
+              '01': 'ianuarie', '02': 'februarie', '03': 'martie', '04': 'aprilie',
+              '05': 'mai', '06': 'iunie', '07': 'iulie', '08': 'august',
+              '09': 'septembrie', '10': 'octombrie', '11': 'noiembrie', '12': 'decembrie'
+            };
+            
+            // Încearcă să extragă luna în format text
+            let monthMatch = fileName.match(/(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*(\d{4})/i);
+            let period = '';
+            
+            if (monthMatch) {
+              period = `${monthMatch[1].charAt(0).toUpperCase() + monthMatch[1].slice(1).toLowerCase()} ${monthMatch[2]}`;
+            } else {
+              // Încearcă să extragă luna în format numeric (01, 02, etc.)
+              const numericMatch = fileName.match(/(\d{2})[\s._-]*(\d{4})/);
+              if (numericMatch) {
+                const monthNum = numericMatch[1];
+                const year = numericMatch[2];
+                if (monthNames[monthNum]) {
+                  period = `${monthNames[monthNum].charAt(0).toUpperCase() + monthNames[monthNum].slice(1)} ${year}`;
+                } else {
+                  period = `Balanța ${idx + 1}`;
+                }
+              } else {
+                period = `Balanța ${idx + 1}`;
+              }
+            }
+            
+            const isMostRecent = idx === 0;
             autoMessage += `${isMostRecent ? '🔹' : '  •'} **${period}** - ${analysis.company_name || 'Companie'}${isMostRecent ? ' *(cea mai recentă)*' : ''}\n`;
           });
           
