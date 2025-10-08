@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Send, Trash2, Mail, History, Download, Play, CheckCircle2, FileText } from "lucide-react";
+import { Plus, Send, Trash2, Mail, History, Download, Play, CheckCircle2, FileText, ArrowLeft } from "lucide-react";
 
 export default function UpdatesManager() {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [version, setVersion] = useState("");
@@ -179,7 +181,12 @@ export default function UpdatesManager() {
   return (
     <div className="container mx-auto p-6 max-w-5xl">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Manager Update-uri Aplicație</h1>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => navigate("/admin")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold">Manager Update-uri Aplicație</h1>
+        </div>
         <Button variant="outline" onClick={exportChangelog}>
           <Download className="h-4 w-4 mr-2" />
           Export Changelog

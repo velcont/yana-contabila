@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -157,11 +157,17 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Panou Administrare</h1>
-          <p className="text-muted-foreground">
-            Vizualizare date utilizatori și conversații
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Panou Administrare</h1>
+            <p className="text-muted-foreground">
+              Vizualizare date utilizatori și conversații
+            </p>
+          </div>
+          <Button onClick={() => navigate("/updates")} size="lg">
+            <Package className="h-4 w-4 mr-2" />
+            Management Versiuni
+          </Button>
         </div>
 
         <Alert className="mb-6">
