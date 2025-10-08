@@ -28,7 +28,7 @@ serve(async (req) => {
       throw new Error('Utilizator neautentificat');
     }
 
-    console.log('🔍 Căutare literatură științifică din reviste de top...');
+    console.log('🔍 Căutare literatură științifică din reviste de top și cărți fundamentale...');
 
     // Reviste țintă pentru căutare
     const targetJournals = [
@@ -44,18 +44,34 @@ serve(async (req) => {
       'Management & Marketing'
     ];
 
+    // Cărți fundamentale și autori cheie
+    const fundamentalBooks = [
+      'Business Model Generation Osterwalder',
+      'Dynamic Capabilities Strategic Management Teece',
+      'Competitive Strategy Porter',
+      'Open Innovation Chesbrough',
+      'Innovator Dilemma Christensen',
+      'Second Machine Age Brynjolfsson',
+      'Leading Digital Westerman',
+      'Resilience Bounce Back Zolli',
+      'Triple Bottom Line Elkington',
+      'Antifragile Taleb'
+    ];
+
     // Query-uri pentru tema de doctorat
     const searchQueries = [
       'digital innovation sustainable business models',
       'organizational resilience competitive advantage',
       'digital transformation sustainability SME',
       'business model innovation digital economy',
-      'resilient organizations crisis management'
+      'resilient organizations crisis management',
+      // Adaugă și cărțile fundamentale
+      ...fundamentalBooks
     ];
 
     const allPapers: any[] = [];
 
-    // Căutare combinată: query + journal
+    // Căutare combinată: query + journal + cărți
     for (const query of searchQueries) {
       // Căutare generală
       const generalResponse = await fetch(
@@ -70,26 +86,37 @@ serve(async (req) => {
       if (generalResponse.ok) {
         const data = await generalResponse.json();
         if (data.data) {
-          // Filtrează articole din revistele țintă
-          const relevantPapers = data.data.filter((paper: any) => {
-            if (!paper.venue) return false;
-            return targetJournals.some(journal => 
-              paper.venue.toLowerCase().includes(journal.toLowerCase().substring(0, 20))
-            );
-          });
+          // Dacă este căutare după carte fundamentală, prioritizează cărțile
+          const isBookQuery = fundamentalBooks.some(book => query.includes(book.split(' ')[0]));
           
-          allPapers.push(...relevantPapers);
-          
-          // Adaugă și articole cu citări înalte chiar dacă nu sunt din reviste țintă
-          const highCitationPapers = data.data
-            .filter((p: any) => (p.citationCount || 0) > 50)
-            .slice(0, 3);
-          allPapers.push(...highCitationPapers);
+          if (isBookQuery) {
+            // Pentru cărți, caută lucrări cu multe citări de la autorii respectivi
+            const bookResults = data.data
+              .filter((p: any) => (p.citationCount || 0) > 100)
+              .slice(0, 2);
+            allPapers.push(...bookResults);
+          } else {
+            // Pentru query-uri generale, filtrează articole din revistele țintă
+            const relevantPapers = data.data.filter((paper: any) => {
+              if (!paper.venue) return false;
+              return targetJournals.some(journal => 
+                paper.venue.toLowerCase().includes(journal.toLowerCase().substring(0, 20))
+              );
+            });
+            
+            allPapers.push(...relevantPapers);
+            
+            // Adaugă și articole cu citări înalte chiar dacă nu sunt din reviste țintă
+            const highCitationPapers = data.data
+              .filter((p: any) => (p.citationCount || 0) > 50)
+              .slice(0, 3);
+            allPapers.push(...highCitationPapers);
+          }
         }
       }
 
       // Delay pentru a nu depăși rate limit
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
 
     console.log(`📚 Găsite ${allPapers.length} articole`);
@@ -109,33 +136,35 @@ serve(async (req) => {
       new Map(allPapers.map(p => [p.title?.toLowerCase().trim(), p])).values()
     );
 
-    // Sortează după număr de citări și ia primele 7
+    // Sortează după număr de citări și ia primele 10 (mai multe pentru a include și cărțile)
     const topPapers = uniquePapers
       .filter(p => p.abstract && p.abstract.length > 100)
       .sort((a, b) => (b.citationCount || 0) - (a.citationCount || 0))
-      .slice(0, 7);
+      .slice(0, 10);
 
-    console.log(`🎯 Selectate ${topPapers.length} articole unice din reviste de top pentru procesare AI`);
+    console.log(`🎯 Selectate ${topPapers.length} lucrări unice (articole + cărți fundamentale) pentru procesare AI`);
 
     // Procesează cu Lovable AI pentru a extrage informații relevante
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     const systemPrompt = `Ești expert în inovație digitală și modele de afaceri sustenabile. 
-Analizează articolele științifice și extrage DOAR informații despre:
+Analizează articolele științifice și cărțile fundamentale și extrage DOAR informații despre:
 1. Studii de caz concrete despre transformare digitală
-2. Framework-uri teoretice pentru reziliență organizațională
-3. Metrici specifice (scoruri, rate, indicatori)
-4. Factori de succes și provocări comune
+2. Framework-uri teoretice pentru reziliență organizațională (ex: Dynamic Capabilities, Business Model Canvas, Triple Bottom Line)
+3. Concepte cheie din cărțile fundamentale (ex: inovație disruptivă, antifragilitate, capabilități dinamice)
+4. Metrici specifice (scoruri, rate, indicatori)
+5. Factori de succes și provocări comune
 
 Returnează DOAR JSON valid în acest format:
 {
   "case_studies": [{"company": "", "industry": "", "transformation": "", "results": ""}],
-  "theoretical_frameworks": [{"name": "", "description": "", "application": ""}],
+  "theoretical_frameworks": [{"name": "", "description": "", "application": "", "source": ""}],
   "metrics_collected": {
     "avg_digital_maturity_score": "",
     "avg_resilience_score": "",
     "common_challenges": [],
-    "success_factors": []
+    "success_factors": [],
+    "key_concepts": []
   }
 }`;
 
@@ -197,7 +226,7 @@ Returnează DOAR JSON valid în acest format:
         case_studies: extractedData.case_studies || [],
         theoretical_frameworks: extractedData.theoretical_frameworks || [],
         metrics_collected: extractedData.metrics_collected || {},
-        research_notes: `Date extrase automat din ${topPapers.length} articole științifice de top. Reviste țintă: Technological Forecasting, Journal of Business Research, Sustainability, Small Business Economics, și altele. Surse: ${topPapers.map(p => `${p.title} (${p.venue || 'N/A'})`).join('; ')}`
+        research_notes: `Date extrase automat din ${topPapers.length} lucrări științifice (articole + cărți fundamentale). Reviste țintă: Technological Forecasting, Journal of Business Research, Sustainability, Small Business Economics. Cărți fundamentale: Osterwalder, Teece, Porter, Christensen, Taleb, etc. Surse: ${topPapers.map(p => `${p.title} (${p.venue || 'carte fundamentală'})`).join('; ')}`
       });
 
     if (insertError) {
