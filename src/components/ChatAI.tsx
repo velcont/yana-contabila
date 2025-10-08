@@ -47,14 +47,16 @@ interface ChatAIProps {
 
 export const ChatAI = ({ autoStart = false, onAutoStartComplete }: ChatAIProps = {}) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
+  const [messages, setMessages] = useState<Message[]>(
+    autoStart ? [] : [
+      {
+        role: 'assistant',
+        content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
 Cu ce te pot ajuta astăzi?`
-    }
-  ]);
+      }
+    ]
+  );
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
