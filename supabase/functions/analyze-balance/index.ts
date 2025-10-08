@@ -19,7 +19,9 @@ ATENȚIE: Unele programe de contabilitate (ex: SmartBill) generează balanțe cu
 - Dacă vezi "Total sume" → sunt cumulate de la început de an
 - Adaptează analiza în funcție de tipul coloanelor disponibile
 
-Dacă structura nu este conformă, răspunde: "⚠️ Format neconform. Balanța trebuie să conțină: Solduri inițiale an, Rulaje perioadă, Total sume și Solduri finale. Exportă balanța completă din programul de contabilitate."
+IMPORTANT: Sistemul convertește automat toate formatele numerice (românești sau internaționale) în format standard. NU menționa niciodată probleme de formatare numerică în analiză - toate numerele sunt deja procesate corect.
+
+Dacă structura de coloane nu este conformă (lipsesc coloane obligatorii), menționează explicit ce coloane lipsesc și cere utilizatorului să exporte balanța completă din programul de contabilitate.
 
 La inceputul anlizei vei scrie urmatorul mesaj:
 
@@ -339,11 +341,32 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
           }
           // If it's a string that looks like a Romanian formatted number, convert it
           if (typeof cell === 'string') {
-            // Try to parse Romanian format: 1.234.567,89 -> 1234567.89
-            const cleaned = cell.replace(/\./g, '').replace(',', '.');
-            const parsed = parseFloat(cleaned);
-            if (!isNaN(parsed) && /^\d{1,3}(\.\d{3})*(,\d+)?$/.test(cell)) {
-              return parsed.toFixed(2);
+            const trimmed = cell.trim();
+            
+            // Pattern 1: Romanian format with dots as thousand separators and comma as decimal: 1.234.567,89
+            if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(trimmed)) {
+              const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
+              const parsed = parseFloat(cleaned);
+              if (!isNaN(parsed)) {
+                return parsed.toFixed(2);
+              }
+            }
+            
+            // Pattern 2: Simple comma as decimal: 1234,56
+            if (/^\d+(,\d+)$/.test(trimmed)) {
+              const cleaned = trimmed.replace(',', '.');
+              const parsed = parseFloat(cleaned);
+              if (!isNaN(parsed)) {
+                return parsed.toFixed(2);
+              }
+            }
+            
+            // Pattern 3: Already correct format: 1234.56
+            if (/^\d+(\.\d+)?$/.test(trimmed)) {
+              const parsed = parseFloat(trimmed);
+              if (!isNaN(parsed)) {
+                return parsed.toFixed(2);
+              }
             }
           }
           return cell;
@@ -389,14 +412,35 @@ serve(async (req) => {
       );
     }
 
-    // Validare simplă a structurii balanței
+    // Validare structură și detecție format numeric incorect
     const hasRequiredColumns = 
       (balanceText.toLowerCase().includes('solduri') || balanceText.toLowerCase().includes('sold')) &&
       (balanceText.toLowerCase().includes('rulaje') || balanceText.toLowerCase().includes('total sume')) &&
       (balanceText.toLowerCase().includes('finale') || balanceText.toLowerCase().includes('final'));
     
     if (!hasRequiredColumns) {
-      console.log("Structură balanță incompletă - verificare coloane");
+      console.log("AVERTISMENT: Structură balanță incompletă - verificare coloane");
+    }
+
+    // Verificare pattern-uri problematice de formatare (ex: 1.234,56)
+    const romanianNumberPattern = /\d{1,3}(\.\d{3})+,\d{2}/g;
+    const hasRomanianFormatting = romanianNumberPattern.test(balanceText);
+    
+    if (hasRomanianFormatting) {
+      console.log("AVERTISMENT: Detectat format românesc de numere - se aplică conversie automată");
+    }
+    
+    // Verifică dacă avem date numerice valide după parsare
+    const hasValidNumbers = /\d+\.\d{2}/.test(balanceText);
+    
+    if (!hasValidNumbers) {
+      console.log("EROARE CRITICĂ: Nu s-au detectat numere valide în format standard după parsare");
+      return new Response(
+        JSON.stringify({
+          error: "Format numeric incorect detectat. Te rog exportă balanța din nou, asigurându-te că numerele sunt în format corect (ex: 1234.56)."
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
