@@ -146,11 +146,13 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
   return (
     <div className="space-y-6">
       {/* Financial Scorecard */}
-      <Card className="border-2 animate-pulse hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <Card className="border-2 animate-glow-pulse bg-gradient-to-br from-primary/10 via-background to-accent/10 bg-[length:200%_200%] animate-gradient-shift">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <span className="text-2xl">📊</span>
-            Scor Sănătate Financiară
+            <span className="text-2xl animate-bounce">📊</span>
+            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%]">
+              Scor Sănătate Financiară
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -194,11 +196,13 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
       {/* Revenue vs Expenses Chart */}
       {chartData.length > 1 && (
-        <Card className="border-2 animate-pulse hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-success/5 via-background to-primary/5">
+        <Card className="border-2 animate-glow-pulse bg-gradient-to-br from-success/10 via-background to-primary/10 bg-[length:200%_200%] animate-gradient-shift">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-2xl">📈</span>
-              Evoluție Venituri vs Cheltuieli
+              <span className="text-2xl animate-bounce">📈</span>
+              <span className="bg-gradient-to-r from-success via-primary to-success bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%]">
+                Evoluție Venituri vs Cheltuieli
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -223,11 +227,13 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
       {/* DSO/DPO Timeline */}
       {chartData.length > 1 && (
-        <Card className="border-2 animate-pulse hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-warning/5 via-background to-accent/5">
+        <Card className="border-2 animate-glow-pulse bg-gradient-to-br from-warning/10 via-background to-accent/10 bg-[length:200%_200%] animate-gradient-shift">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="text-2xl">⏱️</span>
-              Timeline DSO vs DPO
+              <span className="text-2xl animate-bounce">⏱️</span>
+              <span className="bg-gradient-to-r from-warning via-accent to-warning bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%]">
+                Timeline DSO vs DPO
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>

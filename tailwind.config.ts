@@ -95,10 +95,32 @@ export default {
             height: "0",
           },
         },
+        "glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 20px hsl(var(--primary) / 0.5)",
+            borderColor: "hsl(var(--primary) / 0.8)",
+            transform: "scale(1)",
+          },
+          "50%": {
+            boxShadow: "0 0 40px hsl(var(--primary) / 0.8), 0 0 60px hsl(var(--accent) / 0.6)",
+            borderColor: "hsl(var(--accent))",
+            transform: "scale(1.02)",
+          },
+        },
+        "gradient-shift": {
+          "0%, 100%": {
+            backgroundPosition: "0% 50%",
+          },
+          "50%": {
+            backgroundPosition: "100% 50%",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "glow-pulse": "glow-pulse 3s ease-in-out infinite",
+        "gradient-shift": "gradient-shift 5s ease infinite",
       },
     },
   },
