@@ -72,6 +72,7 @@ Cu ce te pot ajuta astăzi?`
   const [streamingProgress, setStreamingProgress] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
   const { toast } = useToast();
   
   // Feedback handler pentru sistem de învățare
@@ -380,7 +381,7 @@ Cu ce te pot ajuta astăzi?`
 
   // Deschide automat chatbot-ul când autoStart devine true
   useEffect(() => {
-    if (autoStart) {
+    if (autoStart && !autoStartedRef.current) {
       setIsOpen(true);
     }
   }, [autoStart]);
@@ -388,7 +389,10 @@ Cu ce te pot ajuta astăzi?`
   // Pornire automată după încărcarea balanței
   useEffect(() => {
     const startAutomaticAnalysis = async () => {
-      if (!autoStart || !isOpen) return;
+      if (!autoStart || !isOpen || autoStartedRef.current) return;
+      
+      // Marchează că autostart-ul a fost deja executat
+      autoStartedRef.current = true;
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
