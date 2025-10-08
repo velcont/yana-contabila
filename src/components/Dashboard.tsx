@@ -568,15 +568,9 @@ INDICATORI OPERAȚIONALI:
       
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full max-w-5xl grid-cols-7">
-          <TabsTrigger value="analytics" className="relative">
-            <BarChart3 className="h-4 w-4 mr-2 animate-bounce" />
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%]">
-              📊 Grafice Live
-            </span>
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-            </span>
+          <TabsTrigger value="analytics">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Grafice
           </TabsTrigger>
           <TabsTrigger value="alerts">
             <AlertTriangle className="h-4 w-4 mr-2" />

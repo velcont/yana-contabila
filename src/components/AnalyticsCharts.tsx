@@ -146,17 +146,11 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
   return (
     <div className="space-y-6">
       {/* Financial Scorecard */}
-      <Card className="relative overflow-hidden border-4 animate-glow-pulse bg-gradient-to-br from-primary/20 via-background to-accent/20 bg-[length:200%_200%] animate-gradient-shift shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-accent/10 animate-gradient-shift bg-[length:200%_200%]"></div>
-        <CardHeader className="relative">
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <span className="text-3xl animate-bounce">📊</span>
-            <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%] font-bold">
-              Scor Sănătate Financiară
-            </span>
-          </CardTitle>
+      <Card>
+        <CardHeader>
+          <CardTitle>Scor Sănătate Financiară</CardTitle>
         </CardHeader>
-        <CardContent className="relative">
+        <CardContent>
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className={`text-5xl font-bold ${getScoreColor(currentScore)} animate-fade-in`}>
@@ -197,17 +191,11 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
       {/* Revenue vs Expenses Chart */}
       {chartData.length > 1 && (
-        <Card className="relative overflow-hidden border-4 animate-glow-pulse bg-gradient-to-br from-success/20 via-background to-primary/20 bg-[length:200%_200%] animate-gradient-shift shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-success/10 via-transparent to-primary/10 animate-gradient-shift bg-[length:200%_200%]"></div>
-          <CardHeader className="relative">
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <span className="text-3xl animate-bounce">📈</span>
-              <span className="bg-gradient-to-r from-success via-primary to-success bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%] font-bold">
-                Evoluție Venituri vs Cheltuieli
-              </span>
-            </CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Evoluție Venituri vs Cheltuieli</CardTitle>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -229,17 +217,11 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
 
       {/* DSO/DPO Timeline */}
       {chartData.length > 1 && (
-        <Card className="relative overflow-hidden border-4 animate-glow-pulse bg-gradient-to-br from-warning/20 via-background to-accent/20 bg-[length:200%_200%] animate-gradient-shift shadow-2xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-warning/10 via-transparent to-accent/10 animate-gradient-shift bg-[length:200%_200%]"></div>
-          <CardHeader className="relative">
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <span className="text-3xl animate-bounce">⏱️</span>
-              <span className="bg-gradient-to-r from-warning via-accent to-warning bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%] font-bold">
-                Timeline DSO vs DPO
-              </span>
-            </CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Timeline DSO vs DPO</CardTitle>
           </CardHeader>
-          <CardContent className="relative">
+          <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
