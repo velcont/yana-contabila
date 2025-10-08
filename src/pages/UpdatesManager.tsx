@@ -324,7 +324,7 @@ export default function UpdatesManager() {
                     </div>
                     <div className="flex-1 pb-8">
                       <div className="flex items-start justify-between mb-2">
-                        <div>
+                        <div className="flex-1">
                           <h3 className="font-semibold text-lg">
                             {update.version && `v${update.version} - `}
                             {update.title}
@@ -337,7 +337,20 @@ export default function UpdatesManager() {
                             })}
                           </p>
                         </div>
-                        {getStatusBadge(update.status || "published")}
+                        <div className="flex items-center gap-3">
+                          {getStatusBadge(update.status || "published")}
+                          <div className="flex items-center gap-2 ml-4">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <Switch
+                              checked={update.include_in_next_email || false}
+                              onCheckedChange={() => toggleEmailMutation.mutate({ 
+                                id: update.id, 
+                                currentValue: update.include_in_next_email || false 
+                              })}
+                            />
+                            <span className="text-xs text-muted-foreground">Email</span>
+                          </div>
+                        </div>
                       </div>
                       <p className="text-muted-foreground whitespace-pre-wrap">
                         {update.description}
