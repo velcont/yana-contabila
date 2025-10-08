@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Contact from "./pages/Contact";
 import Analytics from "./pages/Analytics";
 import Admin from "./pages/Admin";
+import UpdatesManager from "./pages/UpdatesManager";
 import NotFound from "./pages/NotFound";
 import { Landing } from "./pages/Landing";
 import { Demo } from "./pages/Demo";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
           <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+          <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
           <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

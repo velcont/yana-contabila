@@ -39,6 +39,40 @@ export const ShareAnalysisDialog = ({
     enabled: open,
   });
 
+  // Fetch analysis details for email
+  const { data: analysisData } = useQuery({
+    queryKey: ['analysis-for-share', analysisId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('analyses')
+        .select('file_name, user_id')
+        .eq('id', analysisId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  // Fetch owner profile for email
+  const { data: ownerProfile } = useQuery({
+    queryKey: ['owner-profile', analysisData?.user_id],
+    queryFn: async () => {
+      if (!analysisData?.user_id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', analysisData.user_id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!analysisData?.user_id,
+  });
+
   // Add share mutation
   const addShareMutation = useMutation({
     mutationFn: async () => {
@@ -60,10 +94,22 @@ export const ShareAnalysisDialog = ({
         });
 
       if (error) throw error;
+
+      // Send welcome email
+      const inviterName = ownerProfile?.full_name || ownerProfile?.email || 'Un coleg';
+      const analysisName = analysisData?.file_name || 'o analiză';
+
+      await supabase.functions.invoke('send-partner-welcome', {
+        body: {
+          recipientEmail: newEmail.trim(),
+          inviterName,
+          analysisName,
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['analysis-shares', analysisId] });
-      toast.success("Analiză partajată cu succes!");
+      toast.success("Analiză partajată cu succes! Email de bun venit trimis.");
       setNewEmail("");
       setPermission("view");
     },

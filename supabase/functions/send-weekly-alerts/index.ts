@@ -1,148 +1,176 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 
-
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    console.log('Starting weekly alerts email process');
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Obține toate alertele necitite din ultima săptămână
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    // Get updates marked for next email
+    const { data: updates, error: updatesError } = await supabase
+      .from('app_updates')
+      .select('*')
+      .eq('include_in_next_email', true)
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
 
-    const { data: alerts, error: alertsError } = await supabaseClient
-      .from('chat_insights')
-      .select('*, profiles!inner(email, full_name)')
-      .eq('is_read', false)
-      .gte('created_at', oneWeekAgo.toISOString())
-      .order('severity', { ascending: true }); // critical first
+    if (updatesError) throw updatesError;
 
-    if (alertsError) throw alertsError;
-
-    if (!alerts || alerts.length === 0) {
+    if (!updates || updates.length === 0) {
+      console.log('No updates to send');
       return new Response(
-        JSON.stringify({ message: 'No unread alerts to send' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ message: 'No updates to send' }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Grupează alertele pe utilizator
-    const userAlerts = new Map();
-    alerts.forEach((alert: any) => {
-      const email = alert.profiles.email;
-      if (!userAlerts.has(email)) {
-        userAlerts.set(email, {
-          email,
-          fullName: alert.profiles.full_name,
-          alerts: []
+    // Get all user emails
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('email');
+
+    if (profilesError) throw profilesError;
+
+    if (!profiles || profiles.length === 0) {
+      console.log('No users to send emails to');
+      return new Response(
+        JSON.stringify({ message: 'No users found' }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Build updates HTML
+    const updatesHtml = updates.map(update => `
+      <div style="background: white; padding: 20px; margin: 15px 0; border-left: 4px solid #667eea; border-radius: 5px;">
+        <h3 style="color: #667eea; margin: 0 0 10px 0;">
+          ${update.version ? `v${update.version} - ` : ''}${update.title}
+        </h3>
+        <p style="color: #555; margin: 0;">${update.description}</p>
+        <p style="color: #999; font-size: 12px; margin: 10px 0 0 0;">
+          ${new Date(update.created_at).toLocaleDateString('ro-RO')}
+        </p>
+      </div>
+    `).join('');
+
+    // Send email to all users
+    const emailPromises = profiles.map(async (profile) => {
+      try {
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: "Yana Updates <onboarding@resend.dev>",
+            to: [profile.email],
+            subject: `🚀 Noutăți Yana - ${updates.length} ${updates.length === 1 ? 'update nou' : 'update-uri noi'}!`,
+            html: `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+                    .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>🚀 Noutăți în Yana!</h1>
+                    </div>
+                    <div class="content">
+                      <p>Bună!</p>
+                      
+                      <p>Avem vești bune! Am adus îmbunătățiri noi platformei Yana pentru tine:</p>
+                      
+                      ${updatesHtml}
+                      
+                      <p style="text-align: center;">
+                        <a href="${supabaseUrl.replace('https://ygfsuoloxzjpiulogrjz.supabase.co', 'https://ygfsuoloxzjpiulogrjz.lovable.app')}" class="button">
+                          Explorează Noile Funcționalități
+                        </a>
+                      </p>
+                      
+                      <p>Mulțumim că folosești Yana!</p>
+                      
+                      <p>Cu respect,<br><strong>Echipa Yana</strong></p>
+                    </div>
+                    <div class="footer">
+                      <p>© ${new Date().getFullYear()} Yana - Analiză Financiară Inteligentă</p>
+                    </div>
+                  </div>
+                </body>
+              </html>
+            `,
+          }),
         });
+
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json();
+          throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
+        }
+
+        // Log successful email
+        await supabase.from('email_logs').insert({
+          email_type: 'weekly_update',
+          recipient_email: profile.email,
+          subject: `🚀 Noutăți Yana - ${updates.length} ${updates.length === 1 ? 'update nou' : 'update-uri noi'}!`,
+          status: 'sent',
+          metadata: { updates_count: updates.length }
+        });
+
+        console.log(`Email sent to ${profile.email}`);
+        return { success: true, email: profile.email };
+      } catch (error) {
+        console.error(`Failed to send email to ${profile.email}:`, error);
+        return { success: false, email: profile.email, error };
       }
-      userAlerts.get(email).alerts.push(alert);
     });
 
-    // Trimite email fiecărui utilizator
-    const emailPromises = Array.from(userAlerts.values()).map(async (userData) => {
-      const criticalAlerts = userData.alerts.filter((a: any) => a.severity === 'critical');
-      const warningAlerts = userData.alerts.filter((a: any) => a.severity === 'warning');
+    const results = await Promise.all(emailPromises);
+    const successCount = results.filter(r => r.success).length;
 
-      const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 30px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">YANA</h1>
-            <p style="margin: 10px 0 0 0;">Raport Săptămânal de Alerte</p>
-          </div>
-          
-          <div style="padding: 30px; background: #f9fafb;">
-            <p style="font-size: 16px; color: #374151;">Bună ${userData.fullName || 'Utilizator'},</p>
-            <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">
-              Ai <strong>${userData.alerts.length}</strong> alerte noi în această săptămână care necesită atenția ta.
-            </p>
+    // Reset include_in_next_email flag for sent updates
+    await supabase
+      .from('app_updates')
+      .update({ include_in_next_email: false })
+      .eq('include_in_next_email', true);
 
-            ${criticalAlerts.length > 0 ? `
-              <div style="margin: 20px 0; padding: 20px; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 4px;">
-                <h3 style="color: #dc2626; margin: 0 0 15px 0; font-size: 18px;">⚠️ Alerte CRITICE (${criticalAlerts.length})</h3>
-                ${criticalAlerts.map((alert: any) => `
-                  <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #fee2e2;">
-                    <p style="margin: 0; font-weight: bold; color: #991b1b;">${alert.title}</p>
-                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #7f1d1d;">${alert.description}</p>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            ${warningAlerts.length > 0 ? `
-              <div style="margin: 20px 0; padding: 20px; background: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px;">
-                <h3 style="color: #d97706; margin: 0 0 15px 0; font-size: 18px;">⚡ Alerte de ATENȚIE (${warningAlerts.length})</h3>
-                ${warningAlerts.map((alert: any) => `
-                  <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #fef3c7;">
-                    <p style="margin: 0; font-weight: bold; color: #92400e;">${alert.title}</p>
-                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #78350f;">${alert.description}</p>
-                  </div>
-                `).join('')}
-              </div>
-            ` : ''}
-
-            <div style="margin-top: 30px; text-align: center;">
-              <a href="${Deno.env.get('SUPABASE_URL') || 'https://yana-contabila.velcont.com'}" 
-                 style="display: inline-block; padding: 12px 30px; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                Vezi Dashboard Complet
-              </a>
-            </div>
-
-            <p style="margin-top: 30px; font-size: 12px; color: #9ca3af; text-align: center;">
-              Primești acest email pentru că ai activat notificările săptămânale în Yana.<br>
-              Poți dezactiva notificările din setările Dashboard-ului.
-            </p>
-          </div>
-        </div>
-      `;
-
-      // Trimite email folosind Resend API direct
-      return fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: "Yana AI <noreply@yana-contabila.velcont.com>",
-          to: [userData.email],
-          subject: `🚨 ${criticalAlerts.length} Alerte Critice - Raport Săptămânal Yana`,
-          html,
-        }),
-      });
-    });
-
-    const results = await Promise.allSettled(emailPromises);
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    console.log(`Sent ${successCount}/${profiles.length} emails successfully`);
 
     return new Response(
       JSON.stringify({ 
-        success: true,
-        emailsSent: successCount,
-        totalAlerts: alerts.length 
+        message: `Sent ${successCount}/${profiles.length} emails`,
+        results 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
-
   } catch (error: any) {
     console.error("Error in send-weekly-alerts function:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
-});
+};
+
+serve(handler);
