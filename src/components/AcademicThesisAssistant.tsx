@@ -65,6 +65,7 @@ export default function AcademicThesisAssistant() {
     try {
       const { data, error } = await supabase.functions.invoke("chat-ai", {
         body: {
+          stream: false,
           message: `Analizează următoarele date de cercetare și generează o structură preliminară pentru o teză de doctorat despre inovare digitală și modele de business sustenabile în România:
 
 Date disponibile:

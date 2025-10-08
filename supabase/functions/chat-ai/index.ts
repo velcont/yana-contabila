@@ -406,7 +406,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const { message, history, conversationId, summaryType = 'detailed' } = await req.json();
+    const { message, history, conversationId, summaryType = 'detailed', stream: streamResponse = true } = await req.json();
 
     if (!message) {
       return new Response(
@@ -540,7 +540,7 @@ serve(async (req) => {
         messages: messages,
         tools: TOOLS,
         tool_choice: "auto",
-        stream: true
+        stream: streamResponse
       }),
     });
 
@@ -565,6 +565,17 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Eroare la serviciul de AI" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Dacă streamResponse este false, colectăm tot răspunsul și returnăm JSON
+    if (!streamResponse) {
+      const responseData = await aiResponse.json();
+      const content = responseData.choices?.[0]?.message?.content || "";
+      
+      return new Response(
+        JSON.stringify({ response: content, message: content }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
