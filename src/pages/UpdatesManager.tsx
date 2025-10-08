@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Send, Trash2, Mail } from "lucide-react";
+import { Plus, Send, Trash2, Mail, History, Download } from "lucide-react";
 
 export default function UpdatesManager() {
   const [title, setTitle] = useState("");
@@ -127,10 +127,43 @@ export default function UpdatesManager() {
   });
 
   const updatesToEmail = updates?.filter(u => u.include_in_next_email && u.is_published) || [];
+  const publishedUpdates = updates?.filter(u => u.is_published) || [];
+
+  // Export changelog as markdown
+  const exportChangelog = () => {
+    if (!publishedUpdates.length) {
+      toast.error("Niciun update publicat pentru export");
+      return;
+    }
+
+    const markdown = `# Changelog Yana\n\n${publishedUpdates
+      .map(
+        (update) =>
+          `## ${update.version ? `v${update.version}` : new Date(update.published_at || update.created_at).toLocaleDateString('ro-RO')}\n**${update.title}**\n\n${update.description}\n\n---\n`
+      )
+      .join('\n')}`;
+
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'changelog-yana.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Changelog exportat!");
+  };
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-6">Manager Update-uri Aplicație</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Manager Update-uri Aplicație</h1>
+        <Button variant="outline" onClick={exportChangelog}>
+          <Download className="h-4 w-4 mr-2" />
+          Export Changelog
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Create New Update */}
@@ -220,17 +253,76 @@ export default function UpdatesManager() {
         </Card>
       </div>
 
-      {/* Updates List */}
+      {/* Changelog - Published Updates */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Update-uri Existente</CardTitle>
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5" />
+            <CardTitle>Changelog - Istoric Update-uri Publicate</CardTitle>
+          </div>
+          <CardDescription>
+            Toate modificările publicate în ordine cronologică ({publishedUpdates.length} update-uri)
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Se încarcă...</p>
-          ) : updates && updates.length > 0 ? (
+          ) : publishedUpdates.length > 0 ? (
+            <div className="space-y-6">
+              {publishedUpdates.map((update, index) => (
+                <div key={update.id} className="relative">
+                  {index !== publishedUpdates.length - 1 && (
+                    <div className="absolute left-4 top-12 bottom-0 w-0.5 bg-border" />
+                  )}
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm z-10">
+                      {update.version ? `v${update.version.split('.')[0]}` : index + 1}
+                    </div>
+                    <div className="flex-1 pb-8">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {update.version && `v${update.version} - `}
+                            {update.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(update.published_at || update.created_at).toLocaleDateString('ro-RO', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                        <Badge variant="default">Publicat</Badge>
+                      </div>
+                      <p className="text-muted-foreground whitespace-pre-wrap">
+                        {update.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-8 text-muted-foreground">
+              Niciun update publicat încă
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Draft Updates List */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Update-uri Draft (Nepublicate)</CardTitle>
+          <CardDescription>Gestionează update-urile care nu au fost încă publicate</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-center py-8 text-muted-foreground">Se încarcă...</p>
+          ) : updates && updates.filter(u => !u.is_published).length > 0 ? (
             <div className="space-y-4">
-              {updates.map((update) => (
+              {updates.filter(u => !u.is_published).map((update) => (
                 <div
                   key={update.id}
                   className="flex items-start justify-between p-4 border rounded-lg"
@@ -241,17 +333,7 @@ export default function UpdatesManager() {
                         {update.version && `v${update.version} - `}
                         {update.title}
                       </h3>
-                      {update.is_published ? (
-                        <Badge variant="default">Publicat</Badge>
-                      ) : (
-                        <Badge variant="secondary">Draft</Badge>
-                      )}
-                      {update.include_in_next_email && (
-                        <Badge variant="outline">
-                          <Mail className="h-3 w-3 mr-1" />
-                          Email
-                        </Badge>
-                      )}
+                      <Badge variant="secondary">Draft</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
                       {update.description}
@@ -261,28 +343,13 @@ export default function UpdatesManager() {
                     </p>
                   </div>
                   <div className="flex items-center gap-4 ml-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Include în email</Label>
-                      <Switch
-                        checked={update.include_in_next_email || false}
-                        onCheckedChange={() =>
-                          toggleEmailMutation.mutate({
-                            id: update.id,
-                            currentValue: update.include_in_next_email || false,
-                          })
-                        }
-                        disabled={!update.is_published}
-                      />
-                    </div>
-                    {!update.is_published && (
-                      <Button
-                        size="sm"
-                        onClick={() => publishMutation.mutate(update.id)}
-                      >
-                        <Send className="h-3 w-3 mr-1" />
-                        Publică
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      onClick={() => publishMutation.mutate(update.id)}
+                    >
+                      <Send className="h-3 w-3 mr-1" />
+                      Publică
+                    </Button>
                     <Button
                       size="sm"
                       variant="destructive"
@@ -296,7 +363,7 @@ export default function UpdatesManager() {
             </div>
           ) : (
             <p className="text-center py-8 text-muted-foreground">
-              Niciun update adăugat încă
+              Toate update-urile au fost publicate
             </p>
           )}
         </CardContent>
