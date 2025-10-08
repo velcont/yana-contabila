@@ -198,7 +198,9 @@ export default function UpdatesManager() {
         <Card>
           <CardHeader>
             <CardTitle>Crează Update Nou</CardTitle>
-            <CardDescription>Adaugă un update pentru utilizatori</CardDescription>
+            <CardDescription>
+              Alege status "Publicat" pentru ca update-ul să apară imediat în Changelog mai jos
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -213,17 +215,22 @@ export default function UpdatesManager() {
               </p>
             </div>
             <div>
-              <Label>Status</Label>
+              <Label>Status *</Label>
               <Select value={status} onValueChange={(value: any) => setStatus(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="in_progress">În Lucru</SelectItem>
-                  <SelectItem value="published">Publicat</SelectItem>
+                  <SelectItem value="draft">Draft - Doar idee</SelectItem>
+                  <SelectItem value="in_progress">În Lucru - Se dezvoltă</SelectItem>
+                  <SelectItem value="published">✅ Publicat - Apare în Changelog</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {status === "published" ? "✅ Update-ul va apărea în Changelog imediat după creare" : 
+                 status === "in_progress" ? "⚙️ Update-ul se va afișa în secțiunea 'În Lucru'" : 
+                 "📝 Update-ul va fi salvat ca draft"}
+              </p>
             </div>
             <div>
               <Label>Titlu</Label>
@@ -305,7 +312,7 @@ export default function UpdatesManager() {
             <CardTitle>Changelog - Istoric Update-uri Publicate</CardTitle>
           </div>
           <CardDescription>
-            Toate modificările publicate în ordine cronologică ({publishedUpdates.length} update-uri)
+            Toate modificările cu status "Publicat" apar automat aici ({publishedUpdates.length} update-uri)
           </CardDescription>
         </CardHeader>
         <CardContent>
