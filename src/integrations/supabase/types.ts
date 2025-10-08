@@ -594,51 +594,6 @@ export type Database = {
         }
         Relationships: []
       }
-      legal_document_analyses: {
-        Row: {
-          analysis_summary: Json | null
-          conversation_id: string
-          created_at: string
-          document_name: string
-          document_path: string
-          document_type: string
-          extracted_text: string | null
-          id: string
-          key_points: Json | null
-          risk_level: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          analysis_summary?: Json | null
-          conversation_id: string
-          created_at?: string
-          document_name: string
-          document_path: string
-          document_type: string
-          extracted_text?: string | null
-          id?: string
-          key_points?: Json | null
-          risk_level?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          analysis_summary?: Json | null
-          conversation_id?: string
-          created_at?: string
-          document_name?: string
-          document_path?: string
-          document_type?: string
-          extracted_text?: string | null
-          id?: string
-          key_points?: Json | null
-          risk_level?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           created_at: string

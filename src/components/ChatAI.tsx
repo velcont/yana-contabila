@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, Paperclip, File } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -20,11 +20,6 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   id?: string; // ID pentru feedback
-  attachments?: {
-    name: string;
-    type: string;
-    path: string;
-  }[];
 }
 
 interface Insight {
@@ -50,11 +45,15 @@ export const ChatAI = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: `Bună ziua! Sunt Yana, asistenta ta virtuală în domeniul contabil și juridic.
+      content: `👋 Bună! Sunt Yana Premium, asistenta ta AI financiară îmbunătățită!
 
-Te ajut cu analiza balanțelor, indicatori financiari și verificarea contractelor comerciale.
+✨ **Funcții noi:**
+📚 Istoric Conversații - Click pe iconița 📖 din header
+⚡ Sugestii inteligente în timp real
+💬 Răspunsuri animate și typing indicator
+🎯 Quick replies cu întrebări populare
 
-Cum te pot ajuta?`
+Cu ce te pot ajuta astăzi?`
     }
   ]);
   const [input, setInput] = useState('');
@@ -72,11 +71,8 @@ Cum te pot ajuta?`
   const [showInsights, setShowInsights] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const [streamingProgress, setStreamingProgress] = useState(0);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   // Feedback handler pentru sistem de învățare
@@ -160,99 +156,14 @@ Cum te pot ajuta?`
     scrollToBottom();
   }, [messages]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(file => {
-      const isValidType = file.type === 'application/pdf' || 
-                          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-                          file.type === 'application/msword';
-      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
-      
-      if (!isValidType) {
-        toast({
-          title: 'Format invalid',
-          description: `${file.name} nu este PDF sau DOCX`,
-          variant: 'destructive'
-        });
-      }
-      if (!isValidSize) {
-        toast({
-          title: 'Fișier prea mare',
-          description: `${file.name} depășește 10MB`,
-          variant: 'destructive'
-        });
-      }
-      
-      return isValidType && isValidSize;
-    });
-    
-    setUploadedFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadFilesToStorage = async (userId: string): Promise<{name: string; type: string; path: string}[]> => {
-    const uploadedPaths = [];
-    
-    for (const file of uploadedFiles) {
-      const filePath = `${userId}/${conversationId}/${Date.now()}_${file.name}`;
-      
-      const { error } = await supabase.storage
-        .from('legal-documents')
-        .upload(filePath, file);
-      
-      if (error) throw error;
-      
-      uploadedPaths.push({
-        name: file.name,
-        type: file.type,
-        path: filePath
-      });
-    }
-    
-    return uploadedPaths;
-  };
-
   const sendMessage = async () => {
-    if ((!input.trim() && uploadedFiles.length === 0) || isLoading) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     setInput('');
-    setIsLoading(true);
-    setIsUploading(uploadedFiles.length > 0);
-
-    let attachments: {name: string; type: string; path: string}[] = [];
-    
-    // Upload fișiere dacă există
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Nu ești autentificat');
-
-      if (uploadedFiles.length > 0) {
-        attachments = await uploadFilesToStorage(user.id);
-        setUploadedFiles([]);
-      }
-    } catch (err) {
-      console.error('Error uploading files:', err);
-      toast({
-        title: 'Eroare upload',
-        description: 'Nu am putut încărca documentele',
-        variant: 'destructive'
-      });
-      setIsLoading(false);
-      setIsUploading(false);
-      return;
-    }
-
-    const newUserMsg: Message = { 
-      role: 'user' as const, 
-      content: userMessage || '📎 Document atașat',
-      attachments
-    };
+    const newUserMsg = { role: 'user' as const, content: userMessage };
     setMessages(prev => [...prev, newUserMsg]);
-    setIsUploading(false);
+    setIsLoading(true);
 
     // Salvează mesajul user în istoric
     try {
@@ -281,11 +192,10 @@ Cum te pot ajuta?`
             ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
           },
           body: JSON.stringify({
-            message: userMessage || '📎 Document atașat pentru analiză',
+            message: userMessage,
             history: messages,
             conversationId,
-            summaryType,
-            attachments
+            summaryType
           })
         }
       );
@@ -846,20 +756,8 @@ Cum te pot ajuta?`
                     </div>
                   </div>
                 ) : (
-                  <div className="max-w-[90%] ml-auto space-y-2">
-                    <div className="rounded-2xl rounded-tr-sm px-4 py-3 bg-primary text-primary-foreground shadow-sm">
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                    </div>
-                    {msg.attachments && msg.attachments.length > 0 && (
-                      <div className="space-y-1">
-                        {msg.attachments.map((file, fileIdx) => (
-                          <div key={fileIdx} className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-2 text-xs">
-                            <File className="h-4 w-4 text-primary" />
-                            <span className="text-primary truncate">{file.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <div className="max-w-[90%] rounded-2xl rounded-tr-sm px-4 py-3 bg-primary text-primary-foreground shadow-sm ml-auto">
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                   </div>
                 )}
               </div>
@@ -870,24 +768,6 @@ Cum te pot ajuta?`
         </ScrollArea>
 
         <div className="space-y-3 pt-3 border-t bg-background/95 backdrop-blur-sm">
-          {/* Previzualizare fișiere încărcate */}
-          {uploadedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-1">
-              {uploadedFiles.map((file, idx) => (
-                <div key={idx} className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2 text-xs border group">
-                  <File className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground truncate max-w-[150px]">{file.name}</span>
-                  <button
-                    onClick={() => removeFile(idx)}
-                    className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
           {/* Stiluri răspuns - tabs vizibile */}
           <div className="flex items-center gap-2 px-1">
             <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
@@ -914,32 +794,6 @@ Cum te pot ajuta?`
           
           <div className="relative">
             <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc"
-                multiple
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading || uploadedFiles.length >= 5}
-                      size="icon"
-                      variant="outline"
-                      className="shrink-0"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Atașează contracte sau documente (PDF, DOCX)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
               <Input
                 ref={inputRef}
                 value={input}
@@ -947,21 +801,17 @@ Cum te pot ajuta?`
                 onKeyPress={handleKeyPress}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder={uploadedFiles.length > 0 ? "Adaugă întrebare despre document..." : "Întreabă despre analizele tale..."}
+                placeholder="Întreabă despre analizele tale..."
                 disabled={isLoading}
                 className="flex-1"
               />
               <Button
                 onClick={sendMessage}
-                disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                disabled={isLoading || !input.trim()}
                 size="icon"
                 className="shrink-0"
               >
-                {isUploading ? (
-                  <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                <Send className="h-4 w-4" />
               </Button>
             </div>
             

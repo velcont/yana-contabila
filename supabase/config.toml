@@ -3,9 +3,6 @@ project_id = "ygfsuoloxzjpiulogrjz"
 [functions.analyze-balance]
 verify_jwt = false
 
-[functions.analyze-legal-document]
-verify_jwt = true
-
 [functions.chat-ai]
 verify_jwt = true
 
