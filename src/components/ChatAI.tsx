@@ -181,14 +181,32 @@ Cu ce te pot ajuta astăzi?`
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      // Verifică dacă utilizatorul este autentificat
+      if (!session || sessionError) {
+        toast({
+          title: "Sesiune expirată",
+          description: "Sesiunea ta a expirat. Te rog să te reconectezi pentru a continua.",
+          variant: "destructive",
+        });
+        setInput('');
+        setIsLoading(false);
+        setStreamingProgress(0);
+        // Redirectează la pagina de autentificare după 2 secunde
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 2000);
+        return;
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+            'Authorization': `Bearer ${session.access_token}`
           },
           body: JSON.stringify({
             message: userMessage,
@@ -200,6 +218,17 @@ Cu ce te pot ajuta astăzi?`
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          toast({
+            title: "Autentificare necesară",
+            description: "Sesiunea ta a expirat. Te rog să te reconectezi.",
+            variant: "destructive",
+          });
+          setTimeout(() => {
+            window.location.href = '/auth';
+          }, 2000);
+          return;
+        }
         throw new Error(`HTTP ${response.status}`);
       }
 
