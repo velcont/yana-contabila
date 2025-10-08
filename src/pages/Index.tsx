@@ -20,6 +20,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -28,6 +35,7 @@ const Index = () => {
   const [showDashboard, setShowDashboard] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
   const [runTour, setRunTour] = useState(false);
+  const [showChatbotPrompt, setShowChatbotPrompt] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
@@ -162,6 +170,9 @@ const Index = () => {
             ? `${successCount} ${successCount === 1 ? 'analiză a fost generată' : 'analize au fost generate'} și ${successCount === 1 ? 'salvată' : 'salvate'} separat în Dosarul Meu Financiar.${failCount > 0 ? ` (${failCount} ${failCount === 1 ? 'eșuată' : 'eșuate'})` : ''}`
             : `${successCount} ${successCount === 1 ? 'analiză a fost generată' : 'analize au fost generate'} cu succes.`,
         });
+        
+        // Afișează pop-up-ul cu recomandarea de a folosi chatbot-ul
+        setShowChatbotPrompt(true);
       } else {
         throw new Error("Toate analizele au eșuat");
       }
@@ -477,6 +488,30 @@ const Index = () => {
       {user && <ChatAI />}
       {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
       <AdvertisementPopup intervalMinutes={10} />
+      
+      <Dialog open={showChatbotPrompt} onOpenChange={setShowChatbotPrompt}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">💬 Folosește Chatbot-ul pentru Interpretări Rapide!</DialogTitle>
+            <DialogDescription className="text-base space-y-3 pt-2">
+              <p>
+                Înainte de a explora graficele și analizele, vă recomandăm să folosiți chatbot-ul nostru. 
+                Doar specificați luna și anul dorit, iar asistentul vă va oferi rapid interpretări personalizate.
+              </p>
+              <div className="bg-muted/50 p-3 rounded-md space-y-1.5">
+                <p className="font-medium text-sm">Exemple de întrebări:</p>
+                <p className="text-sm text-muted-foreground">• "Cum stau cu firma în septembrie 2025?"</p>
+                <p className="text-sm text-muted-foreground">• "Cât am avut cifra de afaceri în octombrie 2025?"</p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button onClick={() => setShowChatbotPrompt(false)} variant="default">
+              Am înțeles!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
