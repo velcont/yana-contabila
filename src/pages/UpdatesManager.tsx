@@ -19,6 +19,7 @@ export default function UpdatesManager() {
   const [description, setDescription] = useState("");
   const [version, setVersion] = useState("");
   const [status, setStatus] = useState<"draft" | "in_progress" | "published">("draft");
+  const [includeInEmail, setIncludeInEmail] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch updates
@@ -48,7 +49,7 @@ export default function UpdatesManager() {
         created_by: userData.user.id,
         is_published: status === "published",
         status: status,
-        include_in_next_email: false,
+        include_in_next_email: status === "published" && includeInEmail,
       });
 
       if (error) throw error;
@@ -60,6 +61,7 @@ export default function UpdatesManager() {
       setDescription("");
       setVersion("");
       setStatus("draft");
+      setIncludeInEmail(false);
     },
     onError: (error: any) => {
       toast.error("Eroare: " + error.message);
@@ -249,6 +251,23 @@ export default function UpdatesManager() {
                 rows={4}
               />
             </div>
+            {status === "published" && (
+              <div className="flex items-center space-x-2 p-4 bg-primary/10 rounded-md border border-primary/20">
+                <Switch
+                  id="include-email"
+                  checked={includeInEmail}
+                  onCheckedChange={setIncludeInEmail}
+                />
+                <div className="flex-1">
+                  <Label htmlFor="include-email" className="cursor-pointer font-semibold">
+                    📧 Trimite email automat la toți utilizatorii
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Update-ul va fi trimis imediat după salvare la toți utilizatorii înregistrați
+                  </p>
+                </div>
+              </div>
+            )}
             <Button
               onClick={() => createMutation.mutate()}
               disabled={!title || !description || !version || createMutation.isPending}
