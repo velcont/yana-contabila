@@ -378,6 +378,13 @@ Cu ce te pot ajuta astăzi?`
     }
   };
 
+  // Deschide automat chatbot-ul când autoStart devine true
+  useEffect(() => {
+    if (autoStart) {
+      setIsOpen(true);
+    }
+  }, [autoStart]);
+
   // Pornire automată după încărcarea balanței
   useEffect(() => {
     const startAutomaticAnalysis = async () => {
