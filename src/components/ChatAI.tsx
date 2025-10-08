@@ -40,7 +40,12 @@ interface QuestionPattern {
 
 type SummaryType = 'detailed' | 'short' | 'action';
 
-export const ChatAI = () => {
+interface ChatAIProps {
+  autoStart?: boolean;
+  onAutoStartComplete?: () => void;
+}
+
+export const ChatAI = ({ autoStart = false, onAutoStartComplete }: ChatAIProps = {}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -372,6 +377,115 @@ Cu ce te pot ajuta astăzi?`
       sendMessage();
     }
   };
+
+  // Pornire automată după încărcarea balanței
+  useEffect(() => {
+    const startAutomaticAnalysis = async () => {
+      if (!autoStart || !isOpen) return;
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Încarcă toate balanțele utilizatorului
+        const { data: analyses, error } = await supabase
+          .from('analyses')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error || !analyses || analyses.length === 0) return;
+
+        let autoMessage = '';
+        
+        if (analyses.length === 1) {
+          // O singură balanță - prezintă direct
+          const analysis = analyses[0];
+          const metadata = analysis.metadata as any;
+          const fileName = analysis.file_name || '';
+          const monthMatch = fileName.match(/(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*(\d{4})/i);
+          const period = monthMatch ? `${monthMatch[1]} ${monthMatch[2]}` : 'ultima perioadă';
+          
+          autoMessage = `👋 Bună! Am analizat balanța companiei **${analysis.company_name || 'dvs.'}** din **${period}**.\n\n`;
+          
+          // Indicatori critici
+          const criticalIssues = [];
+          if (metadata?.profit && parseFloat(metadata.profit) < 0) {
+            criticalIssues.push(`🔴 **Profit negativ**: ${metadata.profit} RON`);
+          }
+          if (metadata?.ebitda && parseFloat(metadata.ebitda) < 0) {
+            criticalIssues.push(`🔴 **EBITDA negativ**: ${metadata.ebitda} RON`);
+          }
+          if (metadata?.casa && parseFloat(metadata.casa) > 50000) {
+            criticalIssues.push(`⛔ **Casa depășește plafonul legal**: ${metadata.casa} RON (max 50.000 RON)`);
+          }
+          
+          // Avertismente
+          const warnings = [];
+          if (metadata?.dso && parseFloat(metadata.dso) > 60) {
+            warnings.push(`⚠️ **DSO ridicat**: ${metadata.dso} zile (banii sunt blocați)`);
+          }
+          if (metadata?.dio && parseFloat(metadata.dio) > 90) {
+            warnings.push(`⚠️ **Stocuri cu rotație lentă**: ${metadata.dio} zile`);
+          }
+          
+          // Indicatori pozitivi
+          const positives = [];
+          if (metadata?.ca) {
+            positives.push(`✅ **Cifră de afaceri**: ${metadata.ca} RON`);
+          }
+          if (metadata?.profit && parseFloat(metadata.profit) > 0) {
+            positives.push(`✅ **Profit net**: ${metadata.profit} RON`);
+          }
+          
+          if (criticalIssues.length > 0) {
+            autoMessage += '**🚨 Probleme critice detectate:**\n' + criticalIssues.join('\n') + '\n\n';
+          }
+          if (warnings.length > 0) {
+            autoMessage += '**⚠️ Avertismente:**\n' + warnings.join('\n') + '\n\n';
+          }
+          if (positives.length > 0) {
+            autoMessage += '**📊 Indicatori:**\n' + positives.join('\n') + '\n\n';
+          }
+          
+          autoMessage += '**Vrei să pornim o analiză detaliată?**';
+          
+        } else {
+          // Multiple balanțe - întreabă utilizatorul
+          autoMessage = `👋 Bună! Am detectat **${analyses.length} balanțe** încărcate:\n\n`;
+          
+          analyses.slice(0, 5).forEach((analysis, idx) => {
+            const fileName = analysis.file_name || '';
+            const monthMatch = fileName.match(/(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*(\d{4})/i);
+            const period = monthMatch ? `${monthMatch[1]} ${monthMatch[2]}` : `Balanța ${idx + 1}`;
+            const isMostRecent = idx === 0;
+            
+            autoMessage += `${isMostRecent ? '🔹' : '  •'} **${period}** - ${analysis.company_name || 'Companie'}${isMostRecent ? ' *(cea mai recentă)*' : ''}\n`;
+          });
+          
+          if (analyses.length > 5) {
+            autoMessage += `\n*...și alte ${analyses.length - 5} balanțe*\n`;
+          }
+          
+          autoMessage += '\n**Care perioadă vrei să o analizez în detaliu?**';
+        }
+        
+        // Adaugă mesajul automat
+        setMessages(prev => [...prev, { role: 'assistant', content: autoMessage }]);
+        
+        // Notifică că autostart-ul s-a completat
+        if (onAutoStartComplete) {
+          onAutoStartComplete();
+        }
+      } catch (error) {
+        console.error('Error in automatic analysis:', error);
+      }
+    };
+
+    if (autoStart && isOpen) {
+      startAutomaticAnalysis();
+    }
+  }, [autoStart, isOpen, onAutoStartComplete]);
 
   // Verifică insights chiar și când chat-ul e închis
   useEffect(() => {

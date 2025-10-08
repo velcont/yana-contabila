@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, HelpCircle } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, HelpCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,7 @@ const Index = () => {
   const [companyName, setCompanyName] = useState<string>("");
   const [runTour, setRunTour] = useState(false);
   const [showChatbotPrompt, setShowChatbotPrompt] = useState(false);
+  const [triggerAutoChat, setTriggerAutoChat] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
@@ -171,8 +172,8 @@ const Index = () => {
             : `${successCount} ${successCount === 1 ? 'analiză a fost generată' : 'analize au fost generate'} cu succes.`,
         });
         
-        // Afișează pop-up-ul cu recomandarea de a folosi chatbot-ul
-        setShowChatbotPrompt(true);
+        // Pornește automat chatbot-ul
+        setTriggerAutoChat(true);
       } else {
         throw new Error("Toate analizele au eșuat");
       }
@@ -275,7 +276,10 @@ const Index = () => {
           <Dashboard />
           <Footer />
         </div>
-        <ChatAI />
+        <ChatAI 
+          autoStart={triggerAutoChat}
+          onAutoStartComplete={() => setTriggerAutoChat(false)}
+        />
       </>
     );
   }
@@ -485,7 +489,12 @@ const Index = () => {
           <Footer />
         </div>
       </div>
-      {user && <ChatAI />}
+      {user && (
+        <ChatAI 
+          autoStart={triggerAutoChat}
+          onAutoStartComplete={() => setTriggerAutoChat(false)}
+        />
+      )}
       {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
       <AdvertisementPopup intervalMinutes={10} />
       
