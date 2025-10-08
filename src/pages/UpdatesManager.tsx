@@ -8,13 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Send, Trash2, Mail, History, Download } from "lucide-react";
+import { Plus, Send, Trash2, Mail, History, Download, Play, CheckCircle2, FileText } from "lucide-react";
 
 export default function UpdatesManager() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [version, setVersion] = useState("");
+  const [status, setStatus] = useState<"draft" | "in_progress" | "published">("draft");
   const queryClient = useQueryClient();
 
   // Fetch updates
@@ -42,7 +44,8 @@ export default function UpdatesManager() {
         description,
         version: version || null,
         created_by: userData.user.id,
-        is_published: false,
+        is_published: status === "published",
+        status: status,
         include_in_next_email: false,
       });
 
@@ -54,6 +57,7 @@ export default function UpdatesManager() {
       setTitle("");
       setDescription("");
       setVersion("");
+      setStatus("draft");
     },
     onError: (error: any) => {
       toast.error("Eroare: " + error.message);
@@ -76,22 +80,26 @@ export default function UpdatesManager() {
     },
   });
 
-  // Publish update
-  const publishMutation = useMutation({
-    mutationFn: async (id: string) => {
+  // Update status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: string }) => {
+      const updates: any = { status: newStatus };
+      
+      if (newStatus === "published") {
+        updates.is_published = true;
+        updates.published_at = new Date().toISOString();
+      }
+
       const { error } = await supabase
         .from('app_updates')
-        .update({ 
-          is_published: true, 
-          published_at: new Date().toISOString() 
-        })
+        .update(updates)
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['app-updates'] });
-      toast.success("Update publicat!");
+      toast.success("Status actualizat!");
     },
   });
 
@@ -127,7 +135,20 @@ export default function UpdatesManager() {
   });
 
   const updatesToEmail = updates?.filter(u => u.include_in_next_email && u.is_published) || [];
-  const publishedUpdates = updates?.filter(u => u.is_published) || [];
+  const publishedUpdates = updates?.filter(u => u.status === "published") || [];
+  const inProgressUpdates = updates?.filter(u => u.status === "in_progress") || [];
+  const draftUpdates = updates?.filter(u => u.status === "draft") || [];
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "published":
+        return <Badge className="bg-success"><CheckCircle2 className="h-3 w-3 mr-1" />Publicat</Badge>;
+      case "in_progress":
+        return <Badge className="bg-warning text-warning-foreground"><Play className="h-3 w-3 mr-1" />În Lucru</Badge>;
+      default:
+        return <Badge variant="secondary"><FileText className="h-3 w-3 mr-1" />Draft</Badge>;
+    }
+  };
 
   // Export changelog as markdown
   const exportChangelog = () => {
@@ -174,12 +195,28 @@ export default function UpdatesManager() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Versiune (opțional)</Label>
+              <Label>Versiune *</Label>
               <Input
-                placeholder="1.2.0"
+                placeholder="1.5.0 (semantic versioning)"
                 value={version}
                 onChange={(e) => setVersion(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Format: MAJOR.MINOR.PATCH (ex: 1.5.0)
+              </p>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={(value: any) => setStatus(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="in_progress">În Lucru</SelectItem>
+                  <SelectItem value="published">Publicat</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Titlu</Label>
@@ -200,7 +237,7 @@ export default function UpdatesManager() {
             </div>
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={!title || !description || createMutation.isPending}
+              disabled={!title || !description || !version || createMutation.isPending}
               className="w-full"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -293,7 +330,7 @@ export default function UpdatesManager() {
                             })}
                           </p>
                         </div>
-                        <Badge variant="default">Publicat</Badge>
+                        {getStatusBadge(update.status || "published")}
                       </div>
                       <p className="text-muted-foreground whitespace-pre-wrap">
                         {update.description}
@@ -311,21 +348,24 @@ export default function UpdatesManager() {
         </CardContent>
       </Card>
 
-      {/* Draft Updates List */}
+      {/* In Progress Updates */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Update-uri Draft (Nepublicate)</CardTitle>
-          <CardDescription>Gestionează update-urile care nu au fost încă publicate</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Play className="h-5 w-5 text-warning" />
+            Update-uri În Lucru ({inProgressUpdates.length})
+          </CardTitle>
+          <CardDescription>Versiuni pe care lucrezi activ</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Se încarcă...</p>
-          ) : updates && updates.filter(u => !u.is_published).length > 0 ? (
+          ) : inProgressUpdates.length > 0 ? (
             <div className="space-y-4">
-              {updates.filter(u => !u.is_published).map((update) => (
+              {inProgressUpdates.map((update) => (
                 <div
                   key={update.id}
-                  className="flex items-start justify-between p-4 border rounded-lg"
+                  className="flex items-start justify-between p-4 border-l-4 border-warning rounded-lg bg-warning/5"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -333,23 +373,29 @@ export default function UpdatesManager() {
                         {update.version && `v${update.version} - `}
                         {update.title}
                       </h3>
-                      <Badge variant="secondary">Draft</Badge>
+                      {getStatusBadge(update.status)}
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
                       {update.description}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(update.created_at).toLocaleDateString('ro-RO')}
+                      Creat: {new Date(update.created_at).toLocaleDateString('ro-RO')}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 ml-4">
-                    <Button
-                      size="sm"
-                      onClick={() => publishMutation.mutate(update.id)}
+                  <div className="flex items-center gap-2 ml-4">
+                    <Select
+                      value={update.status}
+                      onValueChange={(value) => updateStatusMutation.mutate({ id: update.id, newStatus: value })}
                     >
-                      <Send className="h-3 w-3 mr-1" />
-                      Publică
-                    </Button>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="in_progress">În Lucru</SelectItem>
+                        <SelectItem value="published">Publicat</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       size="sm"
                       variant="destructive"
@@ -363,7 +409,74 @@ export default function UpdatesManager() {
             </div>
           ) : (
             <p className="text-center py-8 text-muted-foreground">
-              Toate update-urile au fost publicate
+              Nicio versiune în lucru
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Draft Updates List */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Update-uri Draft ({draftUpdates.length})
+          </CardTitle>
+          <CardDescription>Idei și planuri pentru viitoare update-uri</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-center py-8 text-muted-foreground">Se încarcă...</p>
+          ) : draftUpdates.length > 0 ? (
+            <div className="space-y-4">
+              {draftUpdates.map((update) => (
+                <div
+                  key={update.id}
+                  className="flex items-start justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold">
+                        {update.version && `v${update.version} - `}
+                        {update.title}
+                      </h3>
+                      {getStatusBadge(update.status)}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {update.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Creat: {new Date(update.created_at).toLocaleDateString('ro-RO')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Select
+                      value={update.status}
+                      onValueChange={(value) => updateStatusMutation.mutate({ id: update.id, newStatus: value })}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="in_progress">În Lucru</SelectItem>
+                        <SelectItem value="published">Publicat</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteMutation.mutate(update.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-8 text-muted-foreground">
+              Niciun draft
             </p>
           )}
         </CardContent>

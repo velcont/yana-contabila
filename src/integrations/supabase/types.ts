@@ -153,6 +153,7 @@ export type Database = {
           include_in_next_email: boolean | null
           is_published: boolean | null
           published_at: string | null
+          status: string | null
           title: string
           version: string | null
         }
@@ -164,6 +165,7 @@ export type Database = {
           include_in_next_email?: boolean | null
           is_published?: boolean | null
           published_at?: string | null
+          status?: string | null
           title: string
           version?: string | null
         }
@@ -175,6 +177,7 @@ export type Database = {
           include_in_next_email?: boolean | null
           is_published?: boolean | null
           published_at?: string | null
+          status?: string | null
           title?: string
           version?: string | null
         }
