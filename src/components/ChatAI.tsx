@@ -77,6 +77,13 @@ Cu ce te pot ajuta astăzi?`
   const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
   const { toast } = useToast();
   
+  // Golește mesajele când autoStart devine activ
+  useEffect(() => {
+    if (autoStart && !autoStartedRef.current) {
+      setMessages([]);
+    }
+  }, [autoStart]);
+  
   // Feedback handler pentru sistem de învățare
   const handleFeedback = async (messageId: string, rating: number) => {
     try {
