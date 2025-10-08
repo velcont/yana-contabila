@@ -311,8 +311,8 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
     const workbook = XLSX.read(bytes, { 
       type: 'array',
       cellDates: false,
-      cellNF: true,  // Keep number formats
-      cellText: false // Don't convert to text prematurely
+      cellNF: false,  // Don't keep number formats - we want raw numbers
+      cellText: false
     });
     
     let fullText = "";
@@ -321,21 +321,30 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
     workbook.SheetNames.forEach(sheetName => {
       const sheet = workbook.Sheets[sheetName];
       
-      // Convert sheet to JSON first to preserve numeric values
+      // Convert sheet to JSON with RAW numeric values
       const jsonData = XLSX.utils.sheet_to_json(sheet, { 
         header: 1,
-        raw: false, // Format numbers as strings with decimals
+        raw: true, // Get raw numeric values, not formatted strings
         defval: '' 
       });
       
-      // Convert JSON back to CSV with proper formatting
+      // Convert JSON back to CSV with consistent number formatting
       let csvText = '';
       jsonData.forEach((row: any) => {
         const formattedRow = row.map((cell: any) => {
-          // Ensure numeric values keep their decimal separators
+          // Format all numbers consistently with dot as decimal separator
           if (typeof cell === 'number') {
-            // Format with 2 decimals if it's a decimal number
-            return cell % 1 !== 0 ? cell.toFixed(2) : cell.toString();
+            // Format with 2 decimals for consistency
+            return cell.toFixed(2);
+          }
+          // If it's a string that looks like a Romanian formatted number, convert it
+          if (typeof cell === 'string') {
+            // Try to parse Romanian format: 1.234.567,89 -> 1234567.89
+            const cleaned = cell.replace(/\./g, '').replace(',', '.');
+            const parsed = parseFloat(cleaned);
+            if (!isNaN(parsed) && /^\d{1,3}(\.\d{3})*(,\d+)?$/.test(cell)) {
+              return parsed.toFixed(2);
+            }
           }
           return cell;
         });
