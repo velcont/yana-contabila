@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.fetch-fiscal-news]
 verify_jwt = false
 
+[functions.fetch-research-data]
+verify_jwt = true
+
 [functions.realtime-chat]
 verify_jwt = false
 

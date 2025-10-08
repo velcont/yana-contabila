@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar, Search, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ interface ResilienceAnalysisProps {
 
 export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
   const [researchData, setResearchData] = useState<any[]>([]);
+  const [isFetchingResearch, setIsFetchingResearch] = useState(false);
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
 
@@ -58,6 +60,45 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
   useEffect(() => {
     fetchResearchData();
   }, []);
+
+  const handleFetchResearchData = async () => {
+    setIsFetchingResearch(true);
+    
+    try {
+      console.log('🔍 Apelare funcție căutare literatură...');
+      
+      const { data, error } = await supabase.functions.invoke('fetch-research-data', {
+        body: {}
+      });
+
+      if (error) {
+        console.error('Eroare apel funcție:', error);
+        throw error;
+      }
+
+      console.log('✅ Răspuns funcție:', data);
+
+      if (data?.success) {
+        toast({
+          title: "✅ Date găsite cu succes!",
+          description: `Au fost analizate ${data.papers_analyzed} articole științifice și datele au fost salvate.`,
+        });
+        
+        await fetchResearchData();
+      } else {
+        throw new Error(data?.error || 'Eroare necunoscută');
+      }
+    } catch (error) {
+      console.error('Eroare căutare:', error);
+      toast({
+        title: "Eroare",
+        description: error instanceof Error ? error.message : "Nu s-au putut găsi date din literatură",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetchingResearch(false);
+    }
+  };
 
   // Calculate resilience metrics
   const calculateResilienceScore = () => {
@@ -536,15 +577,37 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         </TabsContent>
 
         <TabsContent value="research" className="space-y-4">
+          {isAdmin && (
+            <div className="flex gap-2 mb-4">
+              <Button 
+                onClick={handleFetchResearchData}
+                disabled={isFetchingResearch}
+                className="gap-2"
+              >
+                {isFetchingResearch ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Se caută...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4" />
+                    Caută Literatură Științifică
+                  </>
+                )}
+              </Button>
+              <ResearchDataImport onImportSuccess={fetchResearchData} />
+            </div>
+          )}
+          
           {researchData.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h3 className="text-lg font-semibold mb-2">Nicio dată de cercetare încă</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Folosește butonul "Import Date Cercetare" pentru a adăuga date din cursurile de doctorat
+                  Folosește butonul "Caută Literatură Științifică" pentru date automate sau "Import Date Cercetare" pentru datele tale proprii
                 </p>
-                {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
               </CardContent>
             </Card>
           ) : (
