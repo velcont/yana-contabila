@@ -194,6 +194,51 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_analytics: {
         Row: {
           avg_conversation_length: number | null
@@ -928,6 +973,15 @@ export type Database = {
           new_minutes_used: number
           success: boolean
         }[]
+      }
+      log_audit_event: {
+        Args: {
+          p_action_type: string
+          p_metadata?: Json
+          p_record_id?: string
+          p_table_name: string
+        }
+        Returns: undefined
       }
       log_security_event: {
         Args: { event_details?: Json; event_type: string }
