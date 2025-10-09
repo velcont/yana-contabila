@@ -431,6 +431,74 @@ serve(async (req) => {
       );
     }
 
+    // DETECTARE "ȚINE MINTE" - Salvare în knowledge base
+    const rememberRegex = /^(ține\s+minte|tine\s+minte)[:\s]+(.+)/i;
+    const rememberMatch = message.match(rememberRegex);
+    
+    if (rememberMatch) {
+      const knowledgeContent = rememberMatch[2].trim();
+      
+      try {
+        // Extragem categoria automată din conținut
+        let category = 'general';
+        let topic = 'Informație generală';
+        
+        if (/\b(dso|zile\s+client|incasare)\b/i.test(knowledgeContent)) {
+          category = 'dso';
+          topic = 'DSO și zile clienți';
+        } else if (/\b(dpo|zile\s+furnizor|plata)\b/i.test(knowledgeContent)) {
+          category = 'dpo';
+          topic = 'DPO și zile furnizori';
+        } else if (/\b(profit|pierdere|rentabilitate)\b/i.test(knowledgeContent)) {
+          category = 'profit';
+          topic = 'Profit și rentabilitate';
+        } else if (/\b(cash|numerar|lichiditate)\b/i.test(knowledgeContent)) {
+          category = 'cash_flow';
+          topic = 'Cash flow și lichidități';
+        } else if (/\b(stoc|inventar|marfa)\b/i.test(knowledgeContent)) {
+          category = 'inventory';
+          topic = 'Stocuri și inventar';
+        } else if (/\b(contabil|cont|balanta)\b/i.test(knowledgeContent)) {
+          category = 'accounting';
+          topic = 'Contabilitate și balanțe';
+        }
+        
+        // Salvăm în knowledge_base
+        const { error: kbError } = await supabase
+          .from('knowledge_base')
+          .insert({
+            category,
+            topic,
+            response_template: knowledgeContent,
+            is_active: true,
+            priority: 5
+          });
+        
+        if (kbError) {
+          console.error('Eroare salvare knowledge:', kbError);
+          return new Response(
+            JSON.stringify({ 
+              response: "Am întâmpinat o problemă la salvarea informației. Te rog încearcă din nou.",
+              cached: false
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        // Returnăm confirmare
+        return new Response(
+          JSON.stringify({ 
+            response: `✅ **Am învățat!**\n\nAm salvat această informație în baza mea de cunoștințe:\n\n"${knowledgeContent}"\n\n📚 Categorie: **${topic}**\n\nDe acum înainte, voi folosi această informație când răspund la întrebări pentru TOȚI utilizatorii aplicației. Mulțumesc pentru că mă ajuți să devin mai inteligentă! 🎓`,
+            cached: false,
+            knowledge_saved: true
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (err) {
+        console.error('Eroare procesare knowledge:', err);
+      }
+    }
+
     // RATE LIMITING - max 30 request/min
     const { data: rateLimitData, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
       p_user_id: userId,
@@ -505,10 +573,31 @@ serve(async (req) => {
       );
     }
 
+    // Consultăm knowledge_base pentru informații suplimentare
+    let knowledgeContext = '';
+    try {
+      const { data: knowledgeData, error: kbError } = await supabase
+        .from('knowledge_base')
+        .select('category, topic, response_template')
+        .eq('is_active', true)
+        .order('priority', { ascending: false })
+        .limit(20);
+      
+      if (!kbError && knowledgeData && knowledgeData.length > 0) {
+        knowledgeContext = '\n\n📚 **CUNOȘTINȚE SUPLIMENTARE** (învățate de la utilizatori):\n';
+        knowledgeData.forEach((kb: any, idx: number) => {
+          knowledgeContext += `${idx + 1}. [${kb.topic}]: ${kb.response_template}\n`;
+        });
+        knowledgeContext += '\n✅ Folosește aceste informații când răspunzi la întrebări relevante.\n';
+      }
+    } catch (err) {
+      console.error('Eroare citire knowledge_base:', err);
+    }
+    
     // Adaptează system prompt pe baza tipului de sumarizare și setează data curentă dinamic
     const now = new Date();
     const roNow = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
-    let adaptedPrompt = SYSTEM_PROMPT + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = SYSTEM_PROMPT + knowledgeContext + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
