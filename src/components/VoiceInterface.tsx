@@ -96,9 +96,20 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
         return;
       }
       
-      const hasPermission = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (hasPermission) {
-        hasPermission.getTracks().forEach(track => track.stop());
+      // Check microphone permissions first (mobile-friendly)
+      console.log('[VoiceInterface] Checking microphone permissions...');
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microfonul nu este suportat pe acest dispozitiv');
+      }
+      
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('[VoiceInterface] Microphone permission granted');
+        testStream.getTracks().forEach(track => track.stop());
+      } catch (permError) {
+        console.error('[VoiceInterface] Microphone permission denied:', permError);
+        throw new Error('Te rugăm să permiți accesul la microfon în setările browserului');
       }
 
       chatRef.current = new RealtimeChat(

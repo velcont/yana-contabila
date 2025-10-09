@@ -8,6 +8,9 @@ export class AudioRecorder {
 
   async start() {
     try {
+      console.log('[AudioRecorder] Requesting microphone access...');
+      
+      // Request microphone with mobile-friendly constraints
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
@@ -18,9 +21,26 @@ export class AudioRecorder {
         }
       });
       
-      this.audioContext = new AudioContext({
+      console.log('[AudioRecorder] Microphone access granted');
+      
+      // Support both standard and webkit AudioContext for iOS
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('AudioContext not supported on this device');
+      }
+      
+      this.audioContext = new AudioContextClass({
         sampleRate: 24000,
+        latencyHint: 'interactive'
       });
+      
+      // Resume AudioContext if suspended (iOS requirement)
+      if (this.audioContext.state === 'suspended') {
+        console.log('[AudioRecorder] Resuming suspended AudioContext...');
+        await this.audioContext.resume();
+      }
+      
+      console.log('[AudioRecorder] AudioContext state:', this.audioContext.state);
       
       this.source = this.audioContext.createMediaStreamSource(this.stream);
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
@@ -188,7 +208,26 @@ export class RealtimeChat {
 
   async init() {
     try {
-      this.audioContext = new AudioContext({ sampleRate: 24000 });
+      console.log('[RealtimeChat] Initializing...');
+      
+      // Support both standard and webkit AudioContext for iOS
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('AudioContext not supported on this device');
+      }
+      
+      this.audioContext = new AudioContextClass({ 
+        sampleRate: 24000,
+        latencyHint: 'interactive'
+      });
+      
+      // Resume AudioContext if suspended (iOS requirement)
+      if (this.audioContext.state === 'suspended') {
+        console.log('[RealtimeChat] Resuming suspended AudioContext...');
+        await this.audioContext.resume();
+      }
+      
+      console.log('[RealtimeChat] AudioContext state:', this.audioContext.state);
       
       // Get ephemeral token from our edge function using Supabase SDK
       const { supabase } = await import('@/integrations/supabase/client');
