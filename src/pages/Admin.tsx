@@ -74,30 +74,48 @@ const Admin = () => {
       if (profilesError) throw profilesError;
       setProfiles(profilesData || []);
 
-      // Load all analyses with JOIN (optimized query)
+      // Load all analyses
       const { data: analysesData, error: analysesError } = await supabase
         .from("analyses")
-        .select(`
-          *,
-          profiles!inner(id, email, full_name, created_at)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (analysesError) throw analysesError;
-      setAnalyses(analysesData as Analysis[] || []);
 
-      // Load all conversations with JOIN (optimized query)
+      // Enrich analyses with profile data
+      const analysesWithProfiles = await Promise.all(
+        (analysesData || []).map(async (analysis) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", analysis.user_id)
+            .single();
+          return { ...analysis, profiles: profile || { id: analysis.user_id, email: "Unknown", full_name: null, created_at: "" } };
+        })
+      );
+      setAnalyses(analysesWithProfiles as Analysis[]);
+
+      // Load all conversations
       const { data: conversationsData, error: conversationsError } = await supabase
         .from("conversation_history")
-        .select(`
-          *,
-          profiles!inner(id, email, full_name, created_at)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (conversationsError) throw conversationsError;
-      console.log("Loaded conversations:", conversationsData?.length || 0);
-      setConversations(conversationsData as Conversation[] || []);
+
+      // Enrich conversations with profile data
+      const conversationsWithProfiles = await Promise.all(
+        (conversationsData || []).map(async (conv) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", conv.user_id)
+            .single();
+          return { ...conv, profiles: profile || { id: conv.user_id, email: "Unknown", full_name: null, created_at: "" } };
+        })
+      );
+      console.log("Loaded conversations:", conversationsWithProfiles.length);
+      setConversations(conversationsWithProfiles as Conversation[]);
     } catch (error) {
       console.error("Error loading admin data:", error);
     } finally {
