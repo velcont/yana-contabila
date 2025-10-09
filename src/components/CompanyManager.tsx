@@ -12,6 +12,49 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Plus, Edit, Trash2, Filter } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import { z } from "zod";
+
+// Validation schema for company data
+const companySchema = z.object({
+  company_name: z.string()
+    .trim()
+    .min(1, { message: "Numele firmei este obligatoriu" })
+    .max(255, { message: "Numele firmei nu poate depăși 255 caractere" }),
+  cif: z.string()
+    .trim()
+    .max(50, { message: "CIF-ul nu poate depăși 50 caractere" })
+    .regex(/^[A-Z0-9]*$/, { message: "CIF-ul poate conține doar litere mari și cifre" })
+    .optional()
+    .or(z.literal("")),
+  registration_number: z.string()
+    .trim()
+    .max(100, { message: "Numărul de înregistrare nu poate depăși 100 caractere" })
+    .optional()
+    .or(z.literal("")),
+  address: z.string()
+    .trim()
+    .max(500, { message: "Adresa nu poate depăși 500 caractere" })
+    .optional()
+    .or(z.literal("")),
+  phone: z.string()
+    .trim()
+    .max(20, { message: "Numărul de telefon nu poate depăși 20 caractere" })
+    .regex(/^[\d\s\+\-\(\)]*$/, { message: "Număr de telefon invalid" })
+    .optional()
+    .or(z.literal("")),
+  contact_person: z.string()
+    .trim()
+    .max(255, { message: "Numele persoanei de contact nu poate depăși 255 caractere" })
+    .optional()
+    .or(z.literal("")),
+  notes: z.string()
+    .trim()
+    .max(2000, { message: "Notițele nu pot depăși 2000 caractere" })
+    .optional()
+    .or(z.literal("")),
+  vat_payer: z.boolean(),
+  tax_type: z.enum(["micro", "profit", "dividend", "norma_venit"])
+});
 
 interface Company {
   id: string;
@@ -75,7 +118,11 @@ export const CompanyManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     try {
+      // Validate form data using zod schema
+      const validatedData = companySchema.parse(formData);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nu ești autentificat");
 
@@ -83,15 +130,15 @@ export const CompanyManager = () => {
         const { error } = await supabase
           .from("companies")
           .update({
-            company_name: formData.company_name,
-            cif: formData.cif,
-            vat_payer: formData.vat_payer,
-            tax_type: formData.tax_type as 'micro' | 'profit' | 'dividend' | 'norma_venit',
-            registration_number: formData.registration_number,
-            address: formData.address,
-            phone: formData.phone,
-            contact_person: formData.contact_person,
-            notes: formData.notes,
+            company_name: validatedData.company_name,
+            cif: validatedData.cif || null,
+            vat_payer: validatedData.vat_payer,
+            tax_type: validatedData.tax_type,
+            registration_number: validatedData.registration_number || null,
+            address: validatedData.address || null,
+            phone: validatedData.phone || null,
+            contact_person: validatedData.contact_person || null,
+            notes: validatedData.notes || null,
           })
           .eq("id", editingCompany.id);
 
@@ -101,8 +148,15 @@ export const CompanyManager = () => {
         const { error } = await supabase
           .from("companies")
           .insert([{ 
-            ...formData, 
-            tax_type: formData.tax_type as 'micro' | 'profit' | 'dividend' | 'norma_venit',
+            company_name: validatedData.company_name,
+            cif: validatedData.cif || null,
+            vat_payer: validatedData.vat_payer,
+            tax_type: validatedData.tax_type,
+            registration_number: validatedData.registration_number || null,
+            address: validatedData.address || null,
+            phone: validatedData.phone || null,
+            contact_person: validatedData.contact_person || null,
+            notes: validatedData.notes || null,
             user_id: user.id 
           }]);
 
@@ -114,11 +168,21 @@ export const CompanyManager = () => {
       resetForm();
       fetchCompanies();
     } catch (error: any) {
-      toast({
-        title: "Eroare",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error instanceof z.ZodError) {
+        // Handle validation errors
+        const firstError = error.errors[0];
+        toast({
+          title: "Date invalide",
+          description: firstError.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Eroare",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     }
   };
 
