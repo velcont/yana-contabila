@@ -65,7 +65,7 @@ const Index = () => {
         const nameOk = file.name?.toLowerCase().match(/\.(xls|xlsx)$/);
         const typeOk = file.type === "application/vnd.ms-excel" || 
                        file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        return !nameOk && !typeOk;
+        return !nameOk || !typeOk; // FIX: Changed from && to || for correct validation
       });
 
       if (invalidFiles.length > 0) {
