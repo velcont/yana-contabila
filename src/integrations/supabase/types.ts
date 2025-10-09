@@ -17,6 +17,7 @@ export type Database = {
       analyses: {
         Row: {
           analysis_text: string
+          company_id: string | null
           company_name: string | null
           created_at: string
           file_name: string
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           analysis_text: string
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
           file_name: string
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           analysis_text?: string
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
           file_name?: string
@@ -42,7 +45,15 @@ export type Database = {
           metadata?: Json | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "analyses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analysis_comments: {
         Row: {
@@ -388,6 +399,54 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          address: string | null
+          cif: string | null
+          company_name: string
+          contact_person: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          phone: string | null
+          registration_number: string | null
+          tax_type: Database["public"]["Enums"]["tax_type"] | null
+          updated_at: string
+          user_id: string
+          vat_payer: boolean | null
+        }
+        Insert: {
+          address?: string | null
+          cif?: string | null
+          company_name: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          registration_number?: string | null
+          tax_type?: Database["public"]["Enums"]["tax_type"] | null
+          updated_at?: string
+          user_id: string
+          vat_payer?: boolean | null
+        }
+        Update: {
+          address?: string | null
+          cif?: string | null
+          company_name?: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          registration_number?: string | null
+          tax_type?: Database["public"]["Enums"]["tax_type"] | null
+          updated_at?: string
+          user_id?: string
+          vat_payer?: boolean | null
+        }
+        Relationships: []
+      }
       conversation_history: {
         Row: {
           content: string
@@ -415,6 +474,45 @@ export type Database = {
           metadata?: Json | null
           role?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      email_broadcasts: {
+        Row: {
+          created_at: string
+          created_by: string
+          filter_criteria: Json | null
+          id: string
+          message: string
+          scheduled_at: string | null
+          sent_at: string | null
+          sent_to_count: number | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          filter_criteria?: Json | null
+          id?: string
+          message: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_to_count?: number | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          filter_criteria?: Json | null
+          id?: string
+          message?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_to_count?: number | null
+          status?: string | null
+          subject?: string
         }
         Relationships: []
       }
@@ -594,6 +692,51 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_document_analyses: {
+        Row: {
+          analysis_summary: Json | null
+          conversation_id: string
+          created_at: string
+          document_name: string
+          document_path: string
+          document_type: string
+          extracted_text: string | null
+          id: string
+          key_points: Json | null
+          risk_level: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_summary?: Json | null
+          conversation_id: string
+          created_at?: string
+          document_name: string
+          document_path: string
+          document_type: string
+          extracted_text?: string | null
+          id?: string
+          key_points?: Json | null
+          risk_level?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_summary?: Json | null
+          conversation_id?: string
+          created_at?: string
+          document_name?: string
+          document_path?: string
+          document_type?: string
+          extracted_text?: string | null
+          id?: string
+          key_points?: Json | null
+          risk_level?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -757,6 +900,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      tax_type: "profit" | "micro" | "dividend" | "norma_venit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -885,6 +1029,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      tax_type: ["profit", "micro", "dividend", "norma_venit"],
     },
   },
 } as const
