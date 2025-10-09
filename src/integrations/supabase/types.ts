@@ -447,6 +447,38 @@ export type Database = {
         }
         Relationships: []
       }
+      companies_audit_log: {
+        Row: {
+          accessed_at: string | null
+          accessed_by: string | null
+          action: string
+          company_id: string | null
+          id: string
+        }
+        Insert: {
+          accessed_at?: string | null
+          accessed_by?: string | null
+          action: string
+          company_id?: string | null
+          id?: string
+        }
+        Update: {
+          accessed_at?: string | null
+          accessed_by?: string | null
+          action?: string
+          company_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_history: {
         Row: {
           content: string
