@@ -10,18 +10,24 @@ export class AudioRecorder {
     try {
       console.log('[AudioRecorder] Requesting microphone access...');
       
-      // Request microphone with mobile-friendly constraints
+      // iOS-friendly: simpler constraints that work across all devices
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 24000,
-          channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
         }
       });
       
-      console.log('[AudioRecorder] Microphone access granted');
+      console.log('[AudioRecorder] Microphone access granted, stream tracks:', 
+        this.stream.getTracks().length);
+      
+      // Verify we got an audio track
+      const audioTracks = this.stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error('No audio track found in stream');
+      }
+      console.log('[AudioRecorder] Audio track:', audioTracks[0].label);
       
       // Support both standard and webkit AudioContext for iOS
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -30,7 +36,6 @@ export class AudioRecorder {
       }
       
       this.audioContext = new AudioContextClass({
-        sampleRate: 24000,
         latencyHint: 'interactive'
       });
       
@@ -40,7 +45,8 @@ export class AudioRecorder {
         await this.audioContext.resume();
       }
       
-      console.log('[AudioRecorder] AudioContext state:', this.audioContext.state);
+      console.log('[AudioRecorder] AudioContext state:', this.audioContext.state, 
+        'Sample rate:', this.audioContext.sampleRate);
       
       this.source = this.audioContext.createMediaStreamSource(this.stream);
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
@@ -52,8 +58,12 @@ export class AudioRecorder {
       
       this.source.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
+      
+      console.log('[AudioRecorder] Recording started successfully');
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      console.error('[AudioRecorder] Error accessing microphone:', error);
+      console.error('[AudioRecorder] Error name:', (error as any)?.name);
+      console.error('[AudioRecorder] Error message:', (error as any)?.message);
       throw error;
     }
   }
@@ -217,7 +227,6 @@ export class RealtimeChat {
       }
       
       this.audioContext = new AudioContextClass({ 
-        sampleRate: 24000,
         latencyHint: 'interactive'
       });
       
@@ -227,7 +236,8 @@ export class RealtimeChat {
         await this.audioContext.resume();
       }
       
-      console.log('[RealtimeChat] AudioContext state:', this.audioContext.state);
+      console.log('[RealtimeChat] AudioContext state:', this.audioContext.state,
+        'Sample rate:', this.audioContext.sampleRate);
       
       // Get ephemeral token from our edge function using Supabase SDK
 // Connect to our Lovable Cloud voice proxy (WebSocket)
