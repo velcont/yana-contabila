@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,14 +119,27 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
         `;
 
-        const emailResponse = await resend.emails.send({
-          from: "Analiza Financiară <onboarding@resend.dev>",
-          to: [profile.email],
-          subject: subject,
-          html: emailHtml,
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: "Analiza Financiară <onboarding@resend.dev>",
+            to: [profile.email],
+            subject: subject,
+            html: emailHtml,
+          }),
         });
 
-        console.log(`Email trimis către ${profile.email}:`, emailResponse);
+        if (!emailResponse.ok) {
+          const errorData = await emailResponse.json();
+          throw new Error(`Resend API error: ${JSON.stringify(errorData)}`);
+        }
+
+        const emailData = await emailResponse.json();
+        console.log(`Email trimis către ${profile.email}:`, emailData);
         successCount++;
 
         // Loghează în email_logs
@@ -141,8 +153,9 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Eroare la trimitere email către ${profile.email}:`, error);
-        errors.push(`${profile.email}: ${error.message}`);
+        errors.push(`${profile.email}: ${errorMessage}`);
         
         // Loghează eroarea
         await supabaseClient.from("email_logs").insert({
@@ -151,7 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
           recipient_email: profile.email,
           subject: subject,
           status: "failed",
-          metadata: { broadcast_id: broadcastId, error: error.message }
+          metadata: { broadcast_id: broadcastId, error: errorMessage }
         });
       }
     }

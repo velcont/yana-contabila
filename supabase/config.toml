@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.send-analysis-email]
 verify_jwt = true
+
+[functions.send-broadcast-email]
+verify_jwt = true
+
+[functions.send-partner-welcome]
+verify_jwt = true

@@ -82,7 +82,17 @@ export const CompanyManager = () => {
       if (editingCompany) {
         const { error } = await supabase
           .from("companies")
-          .update(formData)
+          .update({
+            company_name: formData.company_name,
+            cif: formData.cif,
+            vat_payer: formData.vat_payer,
+            tax_type: formData.tax_type as 'micro' | 'profit' | 'dividend' | 'norma_venit',
+            registration_number: formData.registration_number,
+            address: formData.address,
+            phone: formData.phone,
+            contact_person: formData.contact_person,
+            notes: formData.notes,
+          })
           .eq("id", editingCompany.id);
 
         if (error) throw error;
@@ -90,7 +100,11 @@ export const CompanyManager = () => {
       } else {
         const { error } = await supabase
           .from("companies")
-          .insert([{ ...formData, user_id: user.id }]);
+          .insert([{ 
+            ...formData, 
+            tax_type: formData.tax_type as 'micro' | 'profit' | 'dividend' | 'norma_venit',
+            user_id: user.id 
+          }]);
 
         if (error) throw error;
         toast({ title: "Firmă adăugată cu succes!" });

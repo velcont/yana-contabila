@@ -33,17 +33,25 @@ export const EmailBroadcast = () => {
       setLoading(true);
 
       // Salvează broadcast-ul în baza de date
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nu ești autentificat");
+
+      const filterCriteria = useFilters ? {
+        vatPayer: filterVat,
+        taxType: filterTaxType,
+      } : null;
+
+      const hasFilters = useFilters && (filterVat !== undefined || filterTaxType !== undefined);
+
       const { data: broadcastData, error: broadcastError } = await supabase
         .from("email_broadcasts")
-        .insert({
+        .insert([{
           subject,
           message,
-          status: "sending",
-          filter_criteria: useFilters ? {
-            vatPayer: filterVat,
-            taxType: filterTaxType,
-          } : {},
-        })
+          filter_criteria: hasFilters ? filterCriteria : null,
+          created_by: user.id,
+          status: 'pending',
+        }])
         .select()
         .single();
 
