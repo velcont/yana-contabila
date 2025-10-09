@@ -5,7 +5,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyManager } from "@/components/CompanyManager";
 import { EmailBroadcast } from "@/components/EmailBroadcast";
-import { Loader2, Building2, Mail } from "lucide-react";
+import { UsersList } from "@/components/UsersList";
+import { Loader2, Building2, Mail, Users } from "lucide-react";
 
 const CRM = () => {
   const { user, loading: authLoading } = useAuth();
@@ -41,8 +42,12 @@ const CRM = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Tabs defaultValue="companies" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Utilizatori
+          </TabsTrigger>
           <TabsTrigger value="companies" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Firme
@@ -52,6 +57,10 @@ const CRM = () => {
             Email Broadcast
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="users">
+          <UsersList />
+        </TabsContent>
 
         <TabsContent value="companies">
           <CompanyManager />
