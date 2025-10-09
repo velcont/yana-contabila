@@ -929,6 +929,10 @@ export type Database = {
           success: boolean
         }[]
       }
+      log_security_event: {
+        Args: { event_details?: Json; event_type: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "user"
