@@ -15,7 +15,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
-import { useNavigate } from 'react-router-dom';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -44,9 +43,10 @@ type SummaryType = 'detailed' | 'short' | 'action';
 interface ChatAIProps {
   autoStart?: boolean;
   onAutoStartComplete?: () => void;
+  onOpenDashboard?: () => void;
 }
 
-export const ChatAI = ({ autoStart = false, onAutoStartComplete }: ChatAIProps = {}) => {
+export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard }: ChatAIProps = {}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(
     autoStart ? [] : [
@@ -79,7 +79,6 @@ Cu ce te pot ajuta astăzi?`
   const inputRef = useRef<HTMLInputElement>(null);
   const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   // Golește mesajele când autoStart devine activ
   useEffect(() => {
@@ -882,8 +881,10 @@ Cu ce te pot ajuta astăzi?`
                     size="sm"
                     variant="default"
                     onClick={() => {
-                      navigate('/app');
-                      setIsOpen(false);
+                      if (onOpenDashboard) {
+                        onOpenDashboard();
+                        setIsOpen(false);
+                      }
                     }}
                     className="flex items-center gap-1 h-8 text-xs whitespace-nowrap"
                   >

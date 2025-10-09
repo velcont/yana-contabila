@@ -279,6 +279,7 @@ const Index = () => {
         <ChatAI 
           autoStart={triggerAutoChat}
           onAutoStartComplete={() => setTriggerAutoChat(false)}
+          onOpenDashboard={() => setShowDashboard(true)}
         />
       </>
     );
@@ -500,6 +501,7 @@ const Index = () => {
         <ChatAI 
           autoStart={triggerAutoChat}
           onAutoStartComplete={() => setTriggerAutoChat(false)}
+          onOpenDashboard={() => setShowDashboard(true)}
         />
       )}
       {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
