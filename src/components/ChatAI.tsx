@@ -468,6 +468,7 @@ Cu ce te pot ajuta astăzi?`
             autoMessage += '**📊 Indicatori:**\n' + positives.join('\n') + '\n\n';
           }
           
+          autoMessage += '💡 **Nu uita:** Pentru evoluție completă și grafice detaliate, accesează **Dashboard-ul** (butonul "📊 Dashboard cu grafice și indicatori" din header).\n\n';
           autoMessage += '**Vrei să pornim o analiză detaliată?**';
           
         } else {
@@ -514,7 +515,8 @@ Cu ce te pot ajuta astăzi?`
             autoMessage += `\n*...și alte ${analyses.length - 5} balanțe*\n`;
           }
           
-          autoMessage += '\n**Care perioadă vrei să o analizez în detaliu?**';
+          autoMessage += '\n💡 **Nu uita:** Pentru evoluție completă și grafice detaliate, accesează **Dashboard-ul** (butonul "📊 Dashboard cu grafice și indicatori" din header).\n\n';
+          autoMessage += '**Care perioadă vrei să o analizez în detaliu?**';
         }
         
         // Adaugă mesajul automat
