@@ -8,6 +8,22 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Analizeaza balanta atasata urmand urmatoarele Instrucțiuni:
 
+🔴 **REGULĂ CRITICĂ - CONTUL 121 (Profit sau Pierdere)** 🔴
+
+ATENȚIE MAXIMĂ LA INTERPRETAREA CONTULUI 121:
+• Contul 121 se analizează EXCLUSIV pe coloana "SOLDURI FINALE"
+• Sold final CREDITOR pe contul 121 = PROFIT (veniturile > cheltuielile)
+• Sold final DEBITOR pe contul 121 = PIERDERE (cheltuielile > veniturile)
+
+**EXEMPLU CONCRET:**
+- Dacă contul 121 are "Solduri finale" → Debit: 5.052,09 și Credit: 0,00
+  → Acest sold DEBITOR înseamnă PIERDERE de 5.052,09 RON
+- Dacă contul 121 are "Solduri finale" → Debit: 0,00 și Credit: 5.052,09
+  → Acest sold CREDITOR înseamnă PROFIT de 5.052,09 RON
+
+NU confunda "Rulaje perioadă" cu "Solduri finale"!
+NU inversa interpretarea! Sold DEBITOR pe 121 = PIERDERE, NU profit!
+
 VALIDARE STRUCTURĂ BALANȚĂ:
 Verifică dacă balanța conține următoarele coloane obligatorii:
 1. Solduri inițiale an (Debit și Credit)
@@ -536,6 +552,35 @@ serve(async (req) => {
       // Validare plafon casă
       if (casaMatch && parseFloat(casaMatch[1]) > 50000) {
         validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit - ${parseFloat(casaMatch[1]).toLocaleString('ro-RO')} RON (max legal: 50.000 RON)`);
+      }
+      
+      // Validare CRITICĂ: Verifică dacă interpretarea profitului/pierderii este corectă
+      if (profitMatch) {
+        const profitValue = parseFloat(profitMatch[1]);
+        const analysisLower = analysis.toLowerCase();
+        
+        // Detectează contradicții în interpretarea profitului
+        if (profitValue < 0 && 
+            (analysisLower.includes('profit de') || analysisLower.includes('profitul de')) && 
+            !analysisLower.includes('pierdere')) {
+          validationWarnings.push(
+            `🔴 **CORECȚIE CRITICĂ**: Analiza menționează "profit" dar contul 121 are sold DEBITOR (${Math.abs(profitValue).toLocaleString('ro-RO')} RON), ` +
+            `ceea ce înseamnă de fapt **PIERDERE**! În contabilitate:\n` +
+            `• Sold DEBITOR pe contul 121 = PIERDERE ❌\n` +
+            `• Sold CREDITOR pe contul 121 = PROFIT ✅\n\n` +
+            `**Concluzie corectă**: Compania a înregistrat o **PIERDERE de ${Math.abs(profitValue).toLocaleString('ro-RO')} RON**, NU profit!`
+          );
+        } else if (profitValue > 0 && 
+                   (analysisLower.includes('pierdere de') || analysisLower.includes('pierderea de')) && 
+                   !analysisLower.includes('profit')) {
+          validationWarnings.push(
+            `🔴 **CORECȚIE CRITICĂ**: Analiza menționează "pierdere" dar contul 121 are sold CREDITOR (${profitValue.toLocaleString('ro-RO')} RON), ` +
+            `ceea ce înseamnă de fapt **PROFIT**! În contabilitate:\n` +
+            `• Sold CREDITOR pe contul 121 = PROFIT ✅\n` +
+            `• Sold DEBITOR pe contul 121 = PIERDERE ❌\n\n` +
+            `**Concluzie corectă**: Compania a înregistrat un **PROFIT de ${profitValue.toLocaleString('ro-RO')} RON**, NU pierdere!`
+          );
+        }
       }
       
       // Adaugă warnings la sfârșitul analizei dacă există
