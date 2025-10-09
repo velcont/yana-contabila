@@ -10,14 +10,22 @@ export class AudioRecorder {
     try {
       console.log('[AudioRecorder] Requesting microphone access...');
       
-      // iOS-friendly: simpler constraints that work across all devices
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      // Check if we're on iOS and handle the specific requirements
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        console.log('[AudioRecorder] iOS device detected');
+      }
+      
+      // Basic constraints that work on all platforms
+      const constraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
         }
-      });
+      };
+      
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       console.log('[AudioRecorder] Microphone access granted, stream tracks:', 
         this.stream.getTracks().length);
@@ -25,14 +33,16 @@ export class AudioRecorder {
       // Verify we got an audio track
       const audioTracks = this.stream.getAudioTracks();
       if (audioTracks.length === 0) {
-        throw new Error('No audio track found in stream');
+        throw new Error('Nu s-a găsit niciun track audio în stream');
       }
-      console.log('[AudioRecorder] Audio track:', audioTracks[0].label);
+      
+      console.log('[AudioRecorder] Audio track:', audioTracks[0].label, 
+        'Settings:', audioTracks[0].getSettings());
       
       // Support both standard and webkit AudioContext for iOS
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) {
-        throw new Error('AudioContext not supported on this device');
+        throw new Error('AudioContext nu este suportat pe acest dispozitiv');
       }
       
       this.audioContext = new AudioContextClass({
@@ -64,6 +74,16 @@ export class AudioRecorder {
       console.error('[AudioRecorder] Error accessing microphone:', error);
       console.error('[AudioRecorder] Error name:', (error as any)?.name);
       console.error('[AudioRecorder] Error message:', (error as any)?.message);
+      
+      // Provide more specific error messages
+      if ((error as any)?.name === 'NotAllowedError') {
+        throw new Error('Accesul la microfon a fost refuzat. Te rugăm să permiți accesul în setările browserului.');
+      } else if ((error as any)?.name === 'NotFoundError') {
+        throw new Error('Nu s-a găsit niciun microfon. Verifică dacă ai un microfon conectat și funcțional.');
+      } else if ((error as any)?.name === 'NotReadableError') {
+        throw new Error('Microfonul este folosit de altă aplicație. Închide alte aplicații care ar putea folosi microfonul.');
+      }
+      
       throw error;
     }
   }
@@ -890,6 +910,23 @@ this.ws = new WebSocket(EDGE_WS_URL);
 
   private async startRecording() {
     try {
+      console.log('[RealtimeChat] Starting audio recording...');
+      
+      // For iOS: Request microphone access with user interaction
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        console.log('[RealtimeChat] iOS detected, checking audio capabilities...');
+        
+        // Test microphone access first
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('[RealtimeChat] iOS microphone test passed');
+          testStream.getTracks().forEach(track => track.stop());
+        } catch (iosError) {
+          console.error('[RealtimeChat] iOS microphone test failed:', iosError);
+          throw new Error('Pe iOS te rugăm să permiți accesul la microfon în setările Safari: Settings > Safari > Camera & Microphone');
+        }
+      }
+      
       this.recorder = new AudioRecorder((audioData) => {
         if (this.ws?.readyState === WebSocket.OPEN) {
           const encoded = encodeAudioForAPI(audioData);
@@ -899,10 +936,11 @@ this.ws = new WebSocket(EDGE_WS_URL);
           }));
         }
       });
+      
       await this.recorder.start();
-      console.log("Recording started");
+      console.log("[RealtimeChat] Recording started successfully");
     } catch (error) {
-      console.error("Error starting recording:", error);
+      console.error("[RealtimeChat] Error starting recording:", error);
       throw error;
     }
   }
