@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -76,6 +77,7 @@ Cu ce te pot ajuta astăzi?`
   const inputRef = useRef<HTMLInputElement>(null);
   const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Golește mesajele când autoStart devine activ
   useEffect(() => {
@@ -468,12 +470,12 @@ Cu ce te pot ajuta astăzi?`
             autoMessage += '**📊 Indicatori:**\n' + positives.join('\n') + '\n\n';
           }
           
-          autoMessage += '💡 **Nu uita:** Pentru evoluție completă și grafice detaliate, accesează **Dashboard-ul** (butonul "📊 Dashboard cu grafice și indicatori" din header).\n\n';
-          autoMessage += '**Vrei să pornim o analiză detaliată?**';
+          autoMessage += '💡 **Recomandare:** Vezi **Dashboard-ul** pentru grafice interactive și evoluție completă!\n\n';
+          autoMessage += '**Cu ce te pot ajuta astăzi?**';
           
         } else {
           // Multiple balanțe - întreabă utilizatorul
-          autoMessage = `👋 Bună! Am detectat **${analyses.length} balanțe** încărcate:\n\n`;
+          autoMessage = `👋 Bună! Am detectat **${analyses.length} balanțe** încărcate.\n\n📊 **Vizualizează toate datele în Dashboard** pentru grafice și comparații complete!\n\n`;
           
           analyses.slice(0, 5).forEach((analysis, idx) => {
             const fileName = analysis.file_name || '';
@@ -515,7 +517,7 @@ Cu ce te pot ajuta astăzi?`
             autoMessage += `\n*...și alte ${analyses.length - 5} balanțe*\n`;
           }
           
-          autoMessage += '\n💡 **Nu uita:** Pentru evoluție completă și grafice detaliate, accesează **Dashboard-ul** (butonul "📊 Dashboard cu grafice și indicatori" din header).\n\n';
+          autoMessage += '\n📊 **Vizualizează toate datele în Dashboard** pentru grafice și comparații complete!\n\n';
           autoMessage += '**Care perioadă vrei să o analizez în detaliu?**';
         }
         
@@ -861,6 +863,37 @@ Cu ce te pot ajuta astăzi?`
 
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-4 py-2">
+            {/* Banner promovare Dashboard - apare după primele mesaje */}
+            {messages.length > 2 && (
+              <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 mb-4">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1">
+                      <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium mb-0.5">Vezi Dashboard-ul pentru mai multe!</p>
+                        <p className="text-[10px] text-muted-foreground">Grafice interactive, evoluții și comparații complete</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => {
+                        navigate('/app');
+                        setIsOpen(false);
+                      }}
+                      className="flex items-center gap-1 h-8 text-xs whitespace-nowrap"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      <span className="hidden sm:inline">Deschide</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {messages.map((msg, idx) => (
               <div
                 key={idx}
