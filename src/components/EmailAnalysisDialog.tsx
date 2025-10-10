@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Mail, Plus, X, UserCheck, Trash2 } from "lucide-react";
+import { Mail, Plus, X, UserCheck, Trash2, Upload, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -41,6 +41,8 @@ export const EmailAnalysisDialog = ({
   const [vatFrequency, setVatFrequency] = useState<"lunar" | "trimestrial">("lunar");
   const [taxType, setTaxType] = useState<"microenterprise" | "profit">("microenterprise");
   const [isSending, setIsSending] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Update editable company name when prop changes
   useEffect(() => {
@@ -124,6 +126,35 @@ export const EmailAnalysisDialog = ({
     setEmails(newEmails);
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(file => {
+      const isValidType = file.type === 'application/vnd.ms-excel' || 
+                          file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                          file.type === 'application/pdf';
+      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
+      
+      if (!isValidType) {
+        toast.error(`${file.name}: Tip fișier invalid. Doar Excel (.xls, .xlsx) și PDF sunt permise.`);
+        return false;
+      }
+      if (!isValidSize) {
+        toast.error(`${file.name}: Fișier prea mare. Maxim 10MB per fișier.`);
+        return false;
+      }
+      return true;
+    });
+
+    setAttachedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const validateEmails = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const validEmails = emails.filter(email => email.trim() && emailRegex.test(email.trim()));
@@ -140,9 +171,38 @@ export const EmailAnalysisDialog = ({
     const validEmails = validateEmails();
     if (!validEmails) return;
 
+    // Validare fișiere obligatorii
+    if (attachedFiles.length === 0) {
+      toast.error("Te rog să atașezi cel puțin o balanță!");
+      return;
+    }
+
     setIsSending(true);
+    setIsUploading(true);
 
     try {
+      // Upload fișiere în storage
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nu ești autentificat");
+
+      const uploadedFileUrls: string[] = [];
+      
+      for (const file of attachedFiles) {
+        const fileName = `${user.id}/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('balance-attachments')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('balance-attachments')
+          .getPublicUrl(fileName);
+          
+        uploadedFileUrls.push(publicUrl);
+      }
+
+      setIsUploading(false);
       const { data, error } = await supabase.functions.invoke('send-analysis-email', {
         body: {
           emails: validEmails,
@@ -159,6 +219,8 @@ export const EmailAnalysisDialog = ({
             taxType,
           },
           analysisDate,
+          attachmentUrls: uploadedFileUrls,
+          attachmentNames: attachedFiles.map(f => f.name),
         },
       });
 
@@ -181,11 +243,13 @@ export const EmailAnalysisDialog = ({
       setIsVATpayer(false);
       setVatFrequency("lunar");
       setTaxType("microenterprise");
+      setAttachedFiles([]);
     } catch (error: any) {
       console.error("Error sending email:", error);
       toast.error("Eroare la trimiterea emailului: " + error.message);
     } finally {
       setIsSending(false);
+      setIsUploading(false);
     }
   };
 
@@ -418,6 +482,55 @@ export const EmailAnalysisDialog = ({
             </div>
           </div>
 
+          {/* Atașează Balanțe - OBLIGATORIU */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Atașează Balanțe * <span className="text-xs text-destructive">(Obligatoriu)</span>
+            </Label>
+            <div className="border-2 border-dashed border-input rounded-lg p-6 text-center hover:border-primary transition-colors">
+              <input
+                type="file"
+                id="fileUpload"
+                multiple
+                accept=".xls,.xlsx,.pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <label htmlFor="fileUpload" className="cursor-pointer">
+                <FileSpreadsheet className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm font-medium mb-1">Click pentru a selecta fișiere</p>
+                <p className="text-xs text-muted-foreground">Excel (.xls, .xlsx) sau PDF • Max 10MB per fișier</p>
+              </label>
+            </div>
+            
+            {attachedFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">{attachedFiles.length} fișier(e) atașat(e):</p>
+                {attachedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-md">
+                    <div className="flex items-center gap-2">
+                      <FileSpreadsheet className="h-4 w-4 text-primary" />
+                      <span className="text-sm truncate max-w-xs">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                      disabled={isSending}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Comments */}
           <div className="space-y-2 border-t pt-4">
             <Label htmlFor="comments">Comentarii / Note Suplimentare</Label>
@@ -436,8 +549,8 @@ export const EmailAnalysisDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSending}>
             Anulează
           </Button>
-          <Button onClick={handleSend} disabled={isSending}>
-            {isSending ? "Se trimite..." : "Trimite Email"}
+          <Button onClick={handleSend} disabled={isSending || isUploading}>
+            {isUploading ? "Se încarcă fișiere..." : isSending ? "Se trimite..." : "Trimite Email"}
           </Button>
         </DialogFooter>
       </DialogContent>

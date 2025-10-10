@@ -23,6 +23,8 @@ interface EmailRequest {
   analysisText: string;
   companyData: CompanyData;
   analysisDate: string;
+  attachmentUrls?: string[];
+  attachmentNames?: string[];
 }
 
 serve(async (req) => {
@@ -41,7 +43,7 @@ serve(async (req) => {
       throw new Error('Missing authorization header');
     }
 
-    const { emails, companyName, phoneNumber, administratorName, comments, analysisText, companyData, analysisDate }: EmailRequest = await req.json();
+    const { emails, companyName, phoneNumber, administratorName, comments, analysisText, companyData, analysisDate, attachmentUrls, attachmentNames }: EmailRequest = await req.json();
 
     if (!emails || emails.length === 0) {
       throw new Error('At least one email address is required');
@@ -105,6 +107,21 @@ serve(async (req) => {
             </div>
           ` : ''}
 
+          ${attachmentUrls && attachmentUrls.length > 0 ? `
+            <div style="margin: 30px 0;">
+              <h3 style="color: #374151; margin: 0 0 15px 0;">📎 Balanțe Atașate</h3>
+              <div style="background: #e0f2fe; padding: 20px; border-radius: 8px; border-left: 4px solid #0284c7;">
+                ${attachmentNames?.map((name, idx) => `
+                  <div style="padding: 8px 0;">
+                    <a href="${attachmentUrls[idx]}" style="color: #0284c7; text-decoration: none; font-weight: 500;">
+                      📄 ${name}
+                    </a>
+                  </div>
+                `).join('') || ''}
+              </div>
+            </div>
+          ` : ''}
+
           <div style="margin: 30px 0;">
             <h3 style="color: #374151; margin: 0 0 15px 0;">Analiză Completă</h3>
             <div style="background: #f9fafb; padding: 20px; border-radius: 8px; white-space: pre-wrap; line-height: 1.8; color: #1f2937;">
@@ -128,30 +145,56 @@ serve(async (req) => {
     `;
 
     // Trimite email către fiecare destinatar
-    const emailPromises = emails.map(email => 
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: "Yana AI <noreply@yana-contabila.velcont.com>",
-          to: [email],
-          subject: `📊 Analiză Financiară - ${companyName} (${analysisDate})`,
-          html,
-        }),
-      })
-    );
+    console.log(`📧 Trimit emailuri către ${emails.length} destinatar(i)...`);
+    
+    const emailPromises = emails.map(async (email, index) => {
+      try {
+        console.log(`📤 Trimit email ${index + 1}/${emails.length} către: ${email}`);
+        
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: "Yana AI <noreply@yana-contabila.velcont.com>",
+            to: [email],
+            subject: `📊 Analiză Financiară - ${companyName} (${analysisDate})`,
+            html,
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          console.error(`❌ Eroare trimitere email către ${email}:`, result);
+          throw new Error(result.message || 'Email send failed');
+        }
+        
+        console.log(`✅ Email trimis cu succes către ${email}`, result);
+        return { email, success: true, result };
+      } catch (error: any) {
+        console.error(`❌ Excepție trimitere email către ${email}:`, error);
+        return { email, success: false, error: error.message };
+      }
+    });
 
     const results = await Promise.allSettled(emailPromises);
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
+    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success));
+    
+    console.log(`✅ Succes: ${successful.length}/${emails.length} emailuri trimise`);
+    if (failed.length > 0) {
+      console.warn(`⚠️ Eșuate: ${failed.length} emailuri`, failed);
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        emailsSent: successCount,
-        totalEmails: emails.length 
+        emailsSent: successful.length,
+        totalEmails: emails.length,
+        failedEmails: failed.length > 0 ? failed.map(f => f.status === 'fulfilled' ? f.value.email : 'unknown') : []
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

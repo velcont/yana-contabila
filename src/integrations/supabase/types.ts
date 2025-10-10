@@ -22,6 +22,8 @@ export type Database = {
           created_at: string
           file_name: string
           id: string
+          is_locked: boolean | null
+          locked_at: string | null
           metadata: Json | null
           user_id: string
         }
@@ -32,6 +34,8 @@ export type Database = {
           created_at?: string
           file_name: string
           id?: string
+          is_locked?: boolean | null
+          locked_at?: string | null
           metadata?: Json | null
           user_id: string
         }
@@ -42,6 +46,8 @@ export type Database = {
           created_at?: string
           file_name?: string
           id?: string
+          is_locked?: boolean | null
+          locked_at?: string | null
           metadata?: Json | null
           user_id?: string
         }
