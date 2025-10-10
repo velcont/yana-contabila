@@ -103,6 +103,11 @@ export const AIUsageDashboard = () => {
   const costUSD = usage ? (usage.total_cost_cents / 100).toFixed(2) : "0.00";
   const budgetUSD = usage ? (usage.budget_cents / 100).toFixed(2) : "10.00";
   const usagePercent = usage?.usage_percent || 0;
+  const remainingUSD = (() => {
+    const b = parseFloat(budgetUSD);
+    const c = parseFloat(costUSD);
+    return Math.max(0, b - c).toFixed(2);
+  })();
 
   return (
     <div className="space-y-6">
@@ -114,9 +119,8 @@ export const AIUsageDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${costUSD}</div>
-            <p className="text-xs text-muted-foreground">
-              din ${budgetUSD} buget
-            </p>
+            <p className="text-xs text-muted-foreground">din ${budgetUSD} buget</p>
+            <p className="text-xs text-muted-foreground">Rămas: ${remainingUSD}</p>
           </CardContent>
         </Card>
 
@@ -200,6 +204,7 @@ export const AIUsageDashboard = () => {
                 value={newBudget}
                 onChange={(e) => setNewBudget(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Buget curent: ${budgetUSD} • Rămas: ${remainingUSD}</p>
             </div>
             <div className="flex items-end">
               <Button onClick={updateBudget}>
