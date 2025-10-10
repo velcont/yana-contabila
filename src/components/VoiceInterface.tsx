@@ -33,7 +33,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
         return remaining;
       }
       
-      return 20; // Default limit
+      return 10; // Default limit
     } catch (error) {
       console.error('Error checking voice usage:', error);
       return 20;
@@ -88,10 +88,10 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
       if (remaining <= 0) {
         setIsConnecting(false);
         toast({
-          title: "Ai epuizat minutele vocale",
-          description: "Ai folosit toate cele 20 de minute vocale pentru această lună. Poți continua să folosești chat-ul text, care este NELIMITAT! 💬",
+          title: "Limita de convorbiri vocale atinsă",
+          description: "Datorită costurilor mari de întreținere, convorbirile vocale sunt limitate la 10 minute lunar. Vă invităm să continuați utilizând chat-ul text, care rămâne complet NELIMITAT și la dispoziția dumneavoastră! 💬",
           variant: "destructive",
-          duration: 8000,
+          duration: 10000,
         });
         return;
       }
@@ -167,14 +167,14 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
           
           if (remaining <= 0) {
             toast({
-              title: "Ai epuizat minutele vocale! 🎤",
-              description: "Nu-ți face griji! Poți continua să folosești chat-ul text, care este NELIMITAT! Scrie-mi orice întrebare mai jos. 💬",
-              duration: 8000,
+              title: "Limita de convorbiri vocale atinsă",
+              description: "Datorită costurilor mari de întreținere, convorbirile vocale sunt limitate la 10 minute lunar. Vă rugăm să continuați cu chat-ul text, care este NELIMITAT! 💬",
+              duration: 10000,
             });
           } else if (remaining < 5) {
             toast({
-              title: `Mai ai doar ${remaining.toFixed(1)} minute vocale`,
-              description: "Reține: chat-ul text este NELIMITAT, îl poți folosi oricât! 💬",
+              title: `Mai aveți ${remaining.toFixed(1)} minute vocale disponibile`,
+              description: "Amintire: chat-ul text rămâne NELIMITAT și vă stă la dispoziție! 💬",
               duration: 6000,
             });
           }
