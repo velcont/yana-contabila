@@ -19,6 +19,8 @@ export class AudioRecorder {
       // Basic constraints that work on all platforms
       const constraints = {
         audio: {
+          sampleRate: 24000,
+          channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
@@ -46,6 +48,7 @@ export class AudioRecorder {
       }
       
       this.audioContext = new AudioContextClass({
+        sampleRate: 24000,
         latencyHint: 'interactive'
       });
       
@@ -247,6 +250,7 @@ export class RealtimeChat {
       }
       
       this.audioContext = new AudioContextClass({ 
+        sampleRate: 24000,
         latencyHint: 'interactive'
       });
       
@@ -300,16 +304,23 @@ this.ws = new WebSocket(EDGE_WS_URL);
             await this.handleFunctionCall(callId, name, argsStr);
           }
 
-          if (data.type === 'response.audio.delta' && data.delta) {
-            const binaryString = atob(data.delta);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            if (this.audioContext) {
-              await playAudioData(this.audioContext, bytes);
-            }
-          }
+           if (data.type === 'response.audio.delta' && data.delta) {
+             const binaryString = atob(data.delta);
+             const bytes = new Uint8Array(binaryString.length);
+             for (let i = 0; i < binaryString.length; i++) {
+               bytes[i] = binaryString.charCodeAt(i);
+             }
+             if (this.audioContext) {
+               if (this.audioContext.state !== 'running') {
+                 try {
+                   await this.audioContext.resume();
+                 } catch (e) {
+                   console.warn('[RealtimeChat] Failed to resume AudioContext', e);
+                 }
+               }
+               await playAudioData(this.audioContext, bytes);
+             }
+           }
         } catch (error) {
           console.error("Error processing message:", error);
         }
