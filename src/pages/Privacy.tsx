@@ -61,7 +61,7 @@ const Privacy = () => {
 
             <h3>3.3 Date Financiare</h3>
             <ul>
-              <li><strong>Bilanțuri contabile:</strong> Fișiere Excel încărcate</li>
+              <li><strong>Balanțe contabile:</strong> Fișiere Excel încărcate</li>
               <li><strong>Rezultate analize:</strong> Output-ul AI generat</li>
               <li><strong>Documente anexate:</strong> Fișiere PDF/Excel suplimentare</li>
             </ul>
@@ -110,7 +110,7 @@ const Privacy = () => {
             
             <h3>5.1 Funcționalități Principale</h3>
             <ul>
-              <li><strong>Analiză AI:</strong> Procesăm bilanțurile pentru a genera analize automate</li>
+              <li><strong>Analiză AI:</strong> Procesăm balanțele pentru a genera analize automate</li>
               <li><strong>Chatbot:</strong> Răspundem la întrebări folosind istoricul conversațiilor</li>
               <li><strong>Voice AI:</strong> Procesăm audiouri pentru conversații vocale</li>
               <li><strong>Comparații:</strong> Comparăm analize între perioade și companii</li>
