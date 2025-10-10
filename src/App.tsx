@@ -14,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import { Landing } from "./pages/Landing";
 import { Demo } from "./pages/Demo";
 import SystemHealth from "./pages/SystemHealth";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
@@ -51,6 +53,8 @@ const App = () => (
           <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
           <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
           <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

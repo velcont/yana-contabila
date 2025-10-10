@@ -72,6 +72,12 @@ export const Footer = () => {
             <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Contact
             </a>
+            <a href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Termeni
+            </a>
+            <a href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+              Confidențialitate
+            </a>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <button className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
