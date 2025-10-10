@@ -29,7 +29,13 @@ export const AIUsageDashboard = () => {
       const { data, error } = await supabase.rpc("get_monthly_ai_usage");
 
       if (error) throw error;
-      setUsage(data?.[0] || null);
+      const usageData = data?.[0] || null;
+      setUsage(usageData);
+      
+      // Preumple câmpul cu bugetul curent
+      if (usageData && !newBudget) {
+        setNewBudget((usageData.budget_cents / 100).toFixed(2));
+      }
     } catch (error) {
       console.error("Error fetching AI usage:", error);
       toast.error("Eroare la încărcarea datelor de utilizare");
