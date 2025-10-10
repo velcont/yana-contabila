@@ -202,7 +202,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
         </Badge>
         
         <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-in fade-in slide-in-from-bottom-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          YANA - Analiză Balanței
+          YANA - Analiza Balanței
         </h1>
         
         <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
