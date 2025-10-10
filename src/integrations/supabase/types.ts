@@ -1083,6 +1083,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_admin_access_rate: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       check_ai_budget: {
         Args: { p_user_id: string }
         Returns: {
@@ -1142,6 +1146,10 @@ export type Database = {
           new_minutes_used: number
           success: boolean
         }[]
+      }
+      log_admin_access: {
+        Args: { p_action?: string; p_record_id: string; p_table_name: string }
+        Returns: undefined
       }
       log_audit_event: {
         Args: {
