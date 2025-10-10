@@ -53,44 +53,48 @@ export const UsersList = () => {
 
       if (profilesError) throw profilesError;
 
-      // Fetch all companies and analyses to count them efficiently
-      const { data: allCompanies } = await supabase
-        .from("companies")
-        .select("user_id");
-
+      // Fetch all analyses with company names
       const { data: allAnalyses } = await supabase
         .from("analyses")
-        .select("user_id, created_at");
+        .select("user_id, created_at, company_name");
 
       // Create maps for counting
       const companiesCountMap = new Map<string, number>();
       const analysesCountMap = new Map<string, number>();
       const lastAnalysisMap = new Map<string, string>();
 
-      // Count companies per user
-      allCompanies?.forEach((company) => {
-        const count = companiesCountMap.get(company.user_id) || 0;
-        companiesCountMap.set(company.user_id, count + 1);
-      });
-
-      // Count analyses and track last analysis date per user
+      // Count unique companies and analyses per user
       allAnalyses?.forEach((analysis) => {
-        const count = analysesCountMap.get(analysis.user_id) || 0;
-        analysesCountMap.set(analysis.user_id, count + 1);
+        // Count analyses
+        const analysesCount = analysesCountMap.get(analysis.user_id) || 0;
+        analysesCountMap.set(analysis.user_id, analysesCount + 1);
 
+        // Count unique companies (based on company_name)
+        if (!companiesCountMap.has(analysis.user_id)) {
+          companiesCountMap.set(analysis.user_id, new Set<string>() as any);
+        }
+        const companiesSet = companiesCountMap.get(analysis.user_id) as any;
+        if (analysis.company_name) {
+          companiesSet.add(analysis.company_name);
+        }
+
+        // Track last analysis date
         const existingDate = lastAnalysisMap.get(analysis.user_id);
         if (!existingDate || new Date(analysis.created_at) > new Date(existingDate)) {
           lastAnalysisMap.set(analysis.user_id, analysis.created_at);
         }
       });
 
-      // Build users with stats
-      const usersWithStats = profiles.map((profile) => ({
-        ...profile,
-        companies_count: companiesCountMap.get(profile.id) || 0,
-        analyses_count: analysesCountMap.get(profile.id) || 0,
-        last_analysis_date: lastAnalysisMap.get(profile.id) || null,
-      }));
+      // Build users with stats (convert Sets to counts)
+      const usersWithStats = profiles.map((profile) => {
+        const companiesSet = companiesCountMap.get(profile.id) as any;
+        return {
+          ...profile,
+          companies_count: companiesSet ? companiesSet.size : 0,
+          analyses_count: analysesCountMap.get(profile.id) || 0,
+          last_analysis_date: lastAnalysisMap.get(profile.id) || null,
+        };
+      });
 
       setUsers(usersWithStats);
       setFilteredUsers(usersWithStats);
