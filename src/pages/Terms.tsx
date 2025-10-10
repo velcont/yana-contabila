@@ -113,7 +113,7 @@ const Terms = () => {
             <h2>6. Proprietate Intelectuală</h2>
             <p>
               Serviciul, inclusiv dar fără a se limita la software, design, text, grafică, 
-              și alte materiale, sunt proprietatea VELCONT SRL și sunt protejate de legile 
+              și alte materiale, sunt proprietatea lui Suciu Gyorfi Nicolae și sunt protejate de legile 
               privind drepturile de autor și proprietatea intelectuală din România și internaționale.
             </p>
 
