@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -411,6 +412,47 @@ serve(async (req) => {
         JSON.stringify({ error: "Lipsește fișierul Excel" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Initialize Supabase client
+    const authHeader = req.headers.get('Authorization');
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      authHeader ? {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      } : undefined
+    );
+
+    // Save original file to storage
+    console.log("Salvare fișier original în storage...");
+    const timestamp = new Date().getTime();
+    const sanitizedFileName = fileName?.replace(/[^a-zA-Z0-9.-]/g, '_') || 'balanta.xlsx';
+    const storagePath = `${timestamp}_${sanitizedFileName}`;
+    
+    try {
+      // Convert base64 to bytes
+      const fileBytes = Uint8Array.from(atob(excelBase64), c => c.charCodeAt(0));
+      
+      const { error: uploadError } = await supabaseClient
+        .storage
+        .from('balance-attachments')
+        .upload(storagePath, fileBytes, {
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error("Eroare salvare în storage:", uploadError);
+        // Continue with analysis even if storage fails
+      } else {
+        console.log("Fișier salvat în storage:", storagePath);
+      }
+    } catch (storageError) {
+      console.error("Eroare salvare fișier:", storageError);
+      // Continue with analysis
     }
 
     console.log("Parsare Excel cu xlsx...");
