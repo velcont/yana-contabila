@@ -216,64 +216,80 @@ Cu ce te pot ajuta astăzi?`
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      // Check if response is JSON (for "remember" functionality) or streaming
+      const contentType = response.headers.get('content-type');
       let assistantContent = '';
       let assistantMessageId: string | null = null;
-      let thinkingShown = false;
+      
+      if (contentType?.includes('application/json')) {
+        // Handle JSON response (for "Ține minte" functionality)
+        const jsonData = await response.json();
+        assistantContent = jsonData.response || jsonData.error || 'Răspuns primit.';
+        
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: assistantContent,
+          id: assistantMessageId || undefined
+        }]);
+      } else {
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let thinkingShown = false;
 
-      // Adaugă mesaj assistant gol pentru streaming
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-      setStreamingProgress(0);
+        // Adaugă mesaj assistant gol pentru streaming
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        setStreamingProgress(0);
 
-      while (true) {
-        const { done, value } = await reader!.read();
-        if (done) {
-          setStreamingProgress(100);
-          break;
-        }
+        while (true) {
+          const { done, value } = await reader!.read();
+          if (done) {
+            setStreamingProgress(100);
+            break;
+          }
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
 
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
+          for (const line of lines) {
+            if (!line.trim() || !line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
 
-          try {
-            const parsed = JSON.parse(data);
-            
-            if (parsed.type === 'thinking') {
-              if (!thinkingShown) {
-                setThinkingMessage(parsed.message || 'Yana analizează...');
-                thinkingShown = true;
-              }
-            } else if (parsed.type === 'content') {
-              assistantContent += parsed.content;
-              setStreamingProgress(prev => Math.min(prev + 2, 90));
-              setMessages(prev => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = {
-                  role: 'assistant',
-                  content: assistantContent,
-                  id: assistantMessageId || undefined
-                };
-                return newMessages;
-              });
-            } else if (parsed.type === 'message_id') {
-              // Capturăm message_id pentru feedback
-              assistantMessageId = parsed.message_id;
-              setMessages(prev => {
-                const newMessages = [...prev];
-                if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
-                  newMessages[newMessages.length - 1].id = assistantMessageId || undefined;
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.type === 'thinking') {
+                if (!thinkingShown) {
+                  setThinkingMessage(parsed.message || 'Yana analizează...');
+                  thinkingShown = true;
                 }
-                return newMessages;
-              });
+              } else if (parsed.type === 'content') {
+                assistantContent += parsed.content;
+                setStreamingProgress(prev => Math.min(prev + 2, 90));
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1] = {
+                    role: 'assistant',
+                    content: assistantContent,
+                    id: assistantMessageId || undefined
+                  };
+                  return newMessages;
+                });
+              } else if (parsed.type === 'message_id') {
+                // Capturăm message_id pentru feedback
+                assistantMessageId = parsed.message_id;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+                    newMessages[newMessages.length - 1].id = assistantMessageId || undefined;
+                  }
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              console.error('Parse error:', e);
             }
-          } catch (e) {
-            console.error('Parse error:', e);
           }
         }
       }
