@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_budget_limits: {
+        Row: {
+          alert_at_percent: number
+          created_at: string
+          id: string
+          is_active: boolean
+          monthly_budget_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_at_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_budget_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_at_percent?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          monthly_budget_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_usage: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          estimated_cost_cents: number
+          id: string
+          input_tokens: number
+          model: string
+          month_year: string
+          output_tokens: number
+          request_duration_ms: number | null
+          success: boolean
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error_message?: string | null
+          estimated_cost_cents?: number
+          id?: string
+          input_tokens?: number
+          model: string
+          month_year: string
+          output_tokens?: number
+          request_duration_ms?: number | null
+          success?: boolean
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          estimated_cost_cents?: number
+          id?: string
+          input_tokens?: number
+          model?: string
+          month_year?: string
+          output_tokens?: number
+          request_duration_ms?: number | null
+          success?: boolean
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           analysis_text: string
@@ -1005,6 +1083,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_ai_budget: {
+        Args: { p_user_id: string }
+        Returns: {
+          budget_cents: number
+          can_proceed: boolean
+          current_usage_cents: number
+          message: string
+          usage_percent: number
+        }[]
+      }
       check_rate_limit: {
         Args: { p_endpoint: string; p_max_requests?: number; p_user_id: string }
         Returns: boolean
@@ -1018,6 +1106,18 @@ export type Database = {
         Returns: {
           category: string
           pattern: string
+        }[]
+      }
+      get_monthly_ai_usage: {
+        Args: { p_month_year?: string; p_user_id?: string }
+        Returns: {
+          budget_cents: number
+          month_year: string
+          total_cost_cents: number
+          total_requests: number
+          total_tokens: number
+          usage_percent: number
+          user_id: string
         }[]
       }
       get_voice_usage_for_month: {

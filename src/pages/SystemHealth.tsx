@@ -2,7 +2,9 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import HealthStatus from '@/components/HealthStatus';
+import { AIUsageDashboard } from '@/components/AIUsageDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle } from 'lucide-react';
 
 const SystemHealth = () => {
@@ -43,16 +45,22 @@ const SystemHealth = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6 max-w-7xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Monitorizare Sistem</h1>
         <p className="text-muted-foreground mt-2">
-          Verifică starea serviciilor și componentelor aplicației
+          Verifică starea serviciilor, componentelor și costurilor AI
         </p>
       </div>
 
-      <div className="space-y-6">
-        <HealthStatus />
+      <Tabs defaultValue="health" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="health">Status Servicii</TabsTrigger>
+          <TabsTrigger value="ai-costs">Costuri AI</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="health" className="space-y-6">
+          <HealthStatus />
 
         <Card>
           <CardHeader>
@@ -86,7 +94,12 @@ const SystemHealth = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="ai-costs">
+          <AIUsageDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
