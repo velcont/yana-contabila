@@ -78,8 +78,8 @@ export const AIUsageDashboard = () => {
       }
 
       toast.success("Buget actualizat cu succes");
+      await fetchUsage();
       setNewBudget("");
-      fetchUsage();
     } catch (error) {
       console.error("Error updating budget:", error);
       toast.error("Eroare la actualizarea bugetului");
