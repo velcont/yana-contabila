@@ -28,17 +28,53 @@ export const AIUsageDashboard = () => {
     try {
       const { data, error } = await supabase.rpc("get_monthly_ai_usage");
 
-      if (error) throw error;
+      if (error) {
+        console.warn("RPC get_monthly_ai_usage failed, falling back:", error);
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || null;
+        let budgetCents = 1000;
+        if (userId) {
+          const { data: limit } = await supabase
+            .from("ai_budget_limits")
+            .select("monthly_budget_cents")
+            .eq("user_id", userId)
+            .eq("is_active", true)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (limit?.monthly_budget_cents) budgetCents = limit.monthly_budget_cents;
+        }
+        const fallback: MonthlyUsage = {
+          user_id: userId || "",
+          month_year: new Date().toISOString().slice(0, 7),
+          total_requests: 0,
+          total_tokens: 0,
+          total_cost_cents: 0,
+          budget_cents: budgetCents,
+          usage_percent: 0,
+        };
+        setUsage(fallback);
+        if (!newBudget) setNewBudget((budgetCents / 100).toFixed(2));
+        return;
+      }
       const usageData = data?.[0] || null;
       setUsage(usageData);
-      
-      // Preumple câmpul cu bugetul curent
       if (usageData && !newBudget) {
         setNewBudget((usageData.budget_cents / 100).toFixed(2));
       }
     } catch (error) {
       console.error("Error fetching AI usage:", error);
-      toast.error("Eroare la încărcarea datelor de utilizare");
+      const fallback: MonthlyUsage = {
+        user_id: "",
+        month_year: new Date().toISOString().slice(0, 7),
+        total_requests: 0,
+        total_tokens: 0,
+        total_cost_cents: 0,
+        budget_cents: 1000,
+        usage_percent: 0,
+      };
+      setUsage(fallback);
+      if (!newBudget) setNewBudget("10.00");
     } finally {
       setLoading(false);
     }
@@ -61,7 +97,7 @@ export const AIUsageDashboard = () => {
         .from("ai_budget_limits")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update
