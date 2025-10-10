@@ -29,7 +29,7 @@ const Terms = () => {
             <h2>1. Acceptarea Termenilor</h2>
             <p>
               Prin accesarea și utilizarea platformei YANA (denumită în continuare "Serviciul"), 
-              operată de VELCONT SRL, vă exprimați acordul de a respecta și de a fi obligat de 
+              operată de Suciu Gyorfi Nicolae, vă exprimați acordul de a respecta și de a fi obligat de 
               prezentii Termeni și Condiții. Dacă nu sunteți de acord cu acești termeni, 
               vă rugăm să nu utilizați Serviciul.
             </p>
@@ -147,7 +147,7 @@ const Terms = () => {
 
             <h3>8.2 Limitare Generală</h3>
             <p>
-              În nicio circumstanță VELCONT SRL nu va fi răspunzătoare pentru:
+              În nicio circumstanță Suciu Gyorfi Nicolae nu va fi răspunzător pentru:
             </p>
             <ul>
               <li>Pierderi financiare directe sau indirecte</li>
@@ -200,7 +200,7 @@ const Terms = () => {
             </p>
             <ul>
               <li><strong>Email:</strong> office@velcont.com</li>
-              <li><strong>Adresă:</strong> VELCONT SRL, România</li>
+              <li><strong>Adresă:</strong> Suciu Gyorfi Nicolae, România</li>
             </ul>
 
             <h2>14. Dispoziții Finale</h2>

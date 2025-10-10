@@ -28,7 +28,7 @@ const Privacy = () => {
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <h2>1. Introducere</h2>
             <p>
-              VELCONT SRL ("noi", "nostru" sau "compania") operează platforma YANA 
+              Suciu Gyorfi Nicolae ("noi", "nostru" sau "compania") operează platforma YANA 
               (yana-contabila.velcont.com). Această Politică de Confidențialitate 
               explică modul în care colectăm, utilizăm, dezvăluim și protejăm 
               informațiile dumneavoastră personale în conformitate cu Regulamentul 
@@ -37,7 +37,7 @@ const Privacy = () => {
 
             <h2>2. Operator de Date</h2>
             <p>
-              <strong>Operator de date:</strong> VELCONT SRL<br />
+              <strong>Operator de date:</strong> Suciu Gyorfi Nicolae<br />
               <strong>Adresă:</strong> România<br />
               <strong>Email contact DPO:</strong> office@velcont.com
             </p>
