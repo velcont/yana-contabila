@@ -53,38 +53,44 @@ export const UsersList = () => {
 
       if (profilesError) throw profilesError;
 
-      // Fetch statistics for each user
-      const usersWithStats = await Promise.all(
-        profiles.map(async (profile) => {
-          // Count companies
-          const { count: companiesCount } = await supabase
-            .from("companies")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", profile.id);
+      // Fetch all companies and analyses to count them efficiently
+      const { data: allCompanies } = await supabase
+        .from("companies")
+        .select("user_id");
 
-          // Count analyses
-          const { count: analysesCount } = await supabase
-            .from("analyses")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", profile.id);
+      const { data: allAnalyses } = await supabase
+        .from("analyses")
+        .select("user_id, created_at");
 
-          // Get last analysis date
-          const { data: lastAnalysis } = await supabase
-            .from("analyses")
-            .select("created_at")
-            .eq("user_id", profile.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
+      // Create maps for counting
+      const companiesCountMap = new Map<string, number>();
+      const analysesCountMap = new Map<string, number>();
+      const lastAnalysisMap = new Map<string, string>();
 
-          return {
-            ...profile,
-            companies_count: companiesCount || 0,
-            analyses_count: analysesCount || 0,
-            last_analysis_date: lastAnalysis?.created_at || null,
-          };
-        })
-      );
+      // Count companies per user
+      allCompanies?.forEach((company) => {
+        const count = companiesCountMap.get(company.user_id) || 0;
+        companiesCountMap.set(company.user_id, count + 1);
+      });
+
+      // Count analyses and track last analysis date per user
+      allAnalyses?.forEach((analysis) => {
+        const count = analysesCountMap.get(analysis.user_id) || 0;
+        analysesCountMap.set(analysis.user_id, count + 1);
+
+        const existingDate = lastAnalysisMap.get(analysis.user_id);
+        if (!existingDate || new Date(analysis.created_at) > new Date(existingDate)) {
+          lastAnalysisMap.set(analysis.user_id, analysis.created_at);
+        }
+      });
+
+      // Build users with stats
+      const usersWithStats = profiles.map((profile) => ({
+        ...profile,
+        companies_count: companiesCountMap.get(profile.id) || 0,
+        analyses_count: analysesCountMap.get(profile.id) || 0,
+        last_analysis_date: lastAnalysisMap.get(profile.id) || null,
+      }));
 
       setUsers(usersWithStats);
       setFilteredUsers(usersWithStats);
