@@ -15,8 +15,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
-import { useTutorialMode } from '@/hooks/useTutorialMode';
-import { TutorialOverlay } from './TutorialOverlay';
+import { useTutorial } from '@/contexts/TutorialContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -70,8 +69,6 @@ Cu ce te pot ajuta astăzi?`
   const [isMaximized, setIsMaximized] = useState(false);
   const [isReadingMode, setIsReadingMode] = useState(false);
   const [suggestions, setSuggestions] = useState<QuestionPattern[]>([]);
-  const { startTutorial, isActive: isTutorialActive } = useTutorialMode();
-  const [tutorialVoiceEnabled, setTutorialVoiceEnabled] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -83,6 +80,7 @@ Cu ce te pot ajuta astăzi?`
   const inputRef = useRef<HTMLInputElement>(null);
   const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
   const { toast } = useToast();
+  const { setShowTutorialMenu } = useTutorial();
   
   // Golește mesajele când autoStart devine activ
   useEffect(() => {
@@ -684,7 +682,7 @@ Cu ce te pot ajuta astăzi?`
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={startTutorial}
+                    onClick={() => setShowTutorialMenu(true)}
                     className="h-9 w-9"
                     aria-label="Tutorial interactiv"
                   >
@@ -1086,13 +1084,6 @@ Cu ce te pot ajuta astăzi?`
         </div>
       </CardContent>
     </Card>
-    
-    {isTutorialActive && (
-      <TutorialOverlay 
-        voiceEnabled={tutorialVoiceEnabled}
-        onVoiceToggle={() => setTutorialVoiceEnabled(!tutorialVoiceEnabled)}
-      />
-    )}
     </div>
   );
 };

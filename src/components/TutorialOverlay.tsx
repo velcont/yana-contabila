@@ -1,15 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
-import { useTutorialMode } from '@/hooks/useTutorialMode';
+import { X, ChevronLeft, ChevronRight, Volume2, VolumeX, Menu } from 'lucide-react';
+import { useTutorial } from '@/contexts/TutorialContext';
 
-interface TutorialOverlayProps {
-  voiceEnabled?: boolean;
-  onVoiceToggle?: () => void;
-}
-
-export const TutorialOverlay = ({ voiceEnabled = false, onVoiceToggle }: TutorialOverlayProps) => {
+export const TutorialOverlay = () => {
   const {
     isActive,
     currentStep,
@@ -19,9 +14,10 @@ export const TutorialOverlay = ({ voiceEnabled = false, onVoiceToggle }: Tutoria
     stopTutorial,
     nextStep,
     previousStep,
-  } = useTutorialMode();
-
-  const [isPaused, setIsPaused] = useState(false);
+    voiceEnabled,
+    toggleVoice,
+    setShowTutorialMenu,
+  } = useTutorial();
 
   useEffect(() => {
     if (!isActive) return;
@@ -79,20 +75,20 @@ export const TutorialOverlay = ({ voiceEnabled = false, onVoiceToggle }: Tutoria
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setIsPaused(!isPaused)}
+                onClick={() => setShowTutorialMenu(true)}
+                title="Meniu tutorial"
               >
-                {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                <Menu className="h-4 w-4" />
               </Button>
 
-              {onVoiceToggle && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={onVoiceToggle}
-                >
-                  {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleVoice}
+                title={voiceEnabled ? "Dezactivează voce" : "Activează voce"}
+              >
+                {voiceEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
