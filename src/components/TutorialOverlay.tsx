@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, ChevronLeft, ChevronRight, Volume2, VolumeX, Menu } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Volume2, VolumeX, Menu, BarChart3, ExternalLink } from 'lucide-react';
 import { useTutorial } from '@/contexts/TutorialContext';
 
 export const TutorialOverlay = () => {
+  const navigate = useNavigate();
   const {
     isActive,
     currentStep,
@@ -18,6 +20,8 @@ export const TutorialOverlay = () => {
     toggleVoice,
     setShowTutorialMenu,
   } = useTutorial();
+
+  const isDashboardStep = currentStep?.title === 'Dashboard cu Grafice';
 
   useEffect(() => {
     if (!isActive) return;
@@ -68,7 +72,40 @@ export const TutorialOverlay = () => {
         </CardHeader>
 
         <CardContent>
-          <p className="text-base mb-6">{currentStep.description}</p>
+          {isDashboardStep ? (
+            <div className="space-y-4">
+              {/* Banner similar cu cel din Chat */}
+              <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <BarChart3 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-1">📊 Dashboard cu Grafice Interactive</p>
+                        <p className="text-xs text-muted-foreground">Evoluții complete și comparații financiare</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => {
+                        navigate('/analytics');
+                        nextStep();
+                      }}
+                      className="flex items-center gap-1.5 h-9 text-sm whitespace-nowrap"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>Deschide</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <p className="text-base mb-6">{currentStep.description}</p>
+          )}
 
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
