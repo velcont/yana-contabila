@@ -210,6 +210,13 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
     };
   }, []);
 
+  // Auto-pornește conversația când utilizatorul activează microfonul
+  useEffect(() => {
+    if (isMicEnabled && !isConnected && !isConnecting) {
+      startConversation();
+    }
+  }, [isMicEnabled, isConnected, isConnecting]);
+
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Microphone toggle */}

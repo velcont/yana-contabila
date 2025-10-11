@@ -633,7 +633,7 @@ Cu ce te pot ajuta astăzi?`
       )}
       
       {/* Chat principal */}
-      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4' : 'ml-auto mr-4 mb-4 mt-auto w-full max-w-full md:max-w-[900px] lg:max-w-[1000px]'} ${isMaximized ? 'h-[calc(100vh-2rem)]' : 'h-[650px]'} shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4' : 'ml-auto mr-4 mb-4 mt-auto w-full max-w-full md:max-w-[900px] lg:max-w-[1000px]'} ${isMaximized ? 'h-[calc(100vh-2rem)]' : 'h-[75vh] md:h-[650px]'} bg-background/95 backdrop-blur-sm shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b bg-gradient-to-r from-background to-muted/30">
           {/* Grup stânga - Branding + Actions */}
           <div className="flex items-center gap-3">
