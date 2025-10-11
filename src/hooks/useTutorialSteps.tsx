@@ -61,39 +61,46 @@ export const useTutorialSteps = () => {
       highlight: '[data-tour="history-button"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Grafice Interactive',
       description: 'Vizualizează evoluția indicatorilor financiari în timp: profit, lichiditate, solvabilitate și mai mult.',
+      highlight: '[value="analytics"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Alerte Proactive',
       description: 'Primești notificări automate pentru probleme financiare critice și oportunități de îmbunătățire.',
+      highlight: '[value="alerts"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Predicții AI',
       description: 'AI-ul Yana prezice evoluția viitoare bazată pe datele istorice și tendințele identificate.',
+      highlight: '[value="predictions"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Analiză Reziliență',
       description: 'Evaluează capacitatea firmei de a rezista în fața crizelor și șocurilor economice.',
+      highlight: '[value="resilience"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Comparație Multi-Firmă',
       description: 'Compară performanța financiară între mai multe firme pentru a identifica cele mai bune practici.',
+      highlight: '[value="multi-company"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Știri Fiscale',
       description: 'Rămâi la curent cu ultimele modificări legislative și fiscale relevante pentru afacerea ta.',
+      highlight: '[value="news"]',
     },
     {
-      page: '/analytics',
+      page: '/app',
       title: 'Dosarul Meu',
       description: 'Istoricul complet al tuturor analizelor tale cu opțiuni de export, partajare și ștergere.',
+      highlight: '[value="history"]',
     },
   ];
 
