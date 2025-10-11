@@ -85,7 +85,7 @@ Cu ce te pot ajuta astăzi?`
   
   // Auto-open chat effect
   useEffect(() => {
-    if (openOnLoad && !isOpen) {
+    if (openOnLoad) {
       setIsOpen(true);
     }
   }, [openOnLoad]);

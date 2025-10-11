@@ -19,34 +19,32 @@ export const useTutorialSteps = () => {
     },
     {
       page: '/app',
-      title: 'Upload Balanță',
-      description: 'Aici încarci fișierele Excel cu balanța de verificare. Poți încărca mai multe balanțe odată pentru analiză comparativă.',
+      title: 'Analize Recente',
+      description: 'Aici vezi ultimele tale analize generate. Click pe orice analiză pentru acces rapid la dashboard și detalii complete.',
+      highlight: '.animate-fade-in',
+    },
+    {
+      page: '/app',
+      title: 'Funcții Principale',
+      description: 'Descoperă toate funcțiile Yana: Chat AI, Dashboard cu grafice, Comparare analize, Export PDF și multe altele!',
+    },
+    {
+      page: '/app',
+      title: 'Chat AI - Încarcă Balanța',
+      description: 'Cel mai rapid mod: deschide Chat-ul și încarcă balanța Excel direct acolo! Vei primi o analiză completă în câteva secunde.',
+      highlight: '[data-tour="chat-button"]',
+    },
+    {
+      page: '/app',
+      title: 'Upload Balanță Tradițional',
+      description: 'Sau poți încărca fișierele Excel cu balanța aici. Poți încărca mai multe balanțe odată pentru analiză comparativă.',
       highlight: '#file-upload',
-    },
-    {
-      page: '/app',
-      title: 'Nume Firmă',
-      description: 'Introdu numele firmei pentru a identifica analizele în istoric și pentru rapoarte personalizate.',
-      highlight: '#company-name',
-    },
-    {
-      page: '/app',
-      title: 'Generare Analiză',
-      description: 'Apasă aici pentru a genera analiza AI. Vei primi o analiză completă financiară în câteva secunde!',
-      highlight: '[data-tour="analyze-button"]',
-      action: 'demo-upload',
     },
     {
       page: '/app',
       title: 'Dashboard cu Grafice',
       description: 'Aici găsești istoricul analizelor tale, grafice interactive și indicatori financiari. Vei vedea evoluția în timp a firmei tale.',
       highlight: '[data-tour="dashboard-button"]',
-    },
-    {
-      page: '/app',
-      title: 'Chat AI - Yana',
-      description: 'Chatbot-ul Yana te ajută să înțelegi mai bine datele financiare. Pune întrebări despre analize, cere sfaturi și explicații!',
-      highlight: '[data-tour="chat-button"]',
     },
     {
       page: '/app',
