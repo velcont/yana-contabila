@@ -38,8 +38,8 @@ export const TutorialOverlay = () => {
 
   return (
     <>
-      {/* Overlay backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40 pointer-events-none" />
+      {/* Overlay backdrop - reduced opacity to allow visibility */}
+      <div className="fixed inset-0 bg-black/20 z-40 pointer-events-none" />
 
       {/* Tutorial control card */}
       <Card className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl mx-4 shadow-2xl border-2 border-primary">
