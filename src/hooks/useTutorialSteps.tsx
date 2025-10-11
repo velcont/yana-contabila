@@ -97,24 +97,7 @@ export const useTutorialSteps = () => {
     },
   ];
 
-  const adminSteps: TutorialStep[] = [
-    ...userSteps,
-    {
-      page: '/analytics',
-      title: 'Analytics - Statistici Avansate',
-      description: 'Aici vezi statistici detaliate despre utilizarea aplicației, cele mai populare întrebări și pattern-uri de comportament.',
-    },
-    {
-      page: '/crm',
-      title: 'CRM - Gestionare Clienți',
-      description: 'Tabloul de bord pentru gestionarea utilizatorilor, conversațiilor și analizelor create.',
-    },
-    {
-      page: '/admin',
-      title: 'Admin Panel',
-      description: 'Panou de administrare cu acces la toate funcțiile avansate de management.',
-    },
-  ];
+  const adminSteps: TutorialStep[] = [...userSteps];
 
   return {
     steps: isAdmin ? adminSteps : userSteps,
