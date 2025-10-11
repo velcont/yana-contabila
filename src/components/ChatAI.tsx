@@ -470,6 +470,25 @@ Cu ce te pot ajuta astăzi?`
 
           if (error) throw error;
 
+          // Save analysis to database
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user && data) {
+            const { error: saveError } = await supabase
+              .from('analyses')
+              .insert({
+                user_id: user.id,
+                period: data.period || 'N/A',
+                analysis_text: data.analysis || '',
+                metadata: data.metadata || {},
+                file_name: file.name,
+                company_name: data.company_name || null
+              });
+
+            if (saveError) {
+              console.error('Error saving analysis to database:', saveError);
+            }
+          }
+
           // Add AI response
           const aiMessage: Message = {
             id: crypto.randomUUID(),
@@ -480,7 +499,6 @@ Cu ce te pot ajuta astăzi?`
           scrollToBottom();
 
           // Save to conversation history
-          const { data: { user } } = await supabase.auth.getUser();
           if (user) {
             await supabase.from('conversation_history').insert([
               {
@@ -501,7 +519,7 @@ Cu ce te pot ajuta astăzi?`
 
           toast({
             title: "Succes!",
-            description: "Balanța a fost analizată cu succes."
+            description: "Balanța a fost analizată și salvată în dosarul tău."
           });
         } catch (error) {
           console.error('Error analyzing balance:', error);
