@@ -38,18 +38,22 @@ export const StorageManager = () => {
   const fetchFiles = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.storage
-        .from("balance-attachments")
-        .list();
+      // Query all objects in the bucket (includes nested paths like user_id/filename)
+      const { data, error } = await (supabase as any)
+        .from('storage.objects')
+        .select('id, name, created_at, metadata')
+        .eq('bucket_id', 'balance-attachments')
+        .order('created_at', { ascending: false })
+        .limit(1000);
 
-      if (error) throw error;
-      setFiles(data || []);
+      if (error) throw error as any;
+      setFiles((data as any) || []);
     } catch (error: any) {
-      console.error("Error fetching files:", error);
+      console.error('Error fetching files:', error);
       toast({
-        title: "Eroare",
-        description: error.message || "Nu s-au putut încărca fișierele",
-        variant: "destructive",
+        title: 'Eroare',
+        description: error.message || 'Nu s-au putut încărca fișierele',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -122,7 +126,7 @@ export const StorageManager = () => {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
   };
 
-  const totalSize = files.reduce((acc, file) => acc + (file.metadata?.size || 0), 0);
+  const totalSize = files.reduce((acc, file) => acc + (Number(file.metadata?.size) || 0), 0);
 
   if (loading) {
     return (
