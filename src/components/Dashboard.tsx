@@ -61,6 +61,13 @@ export const Dashboard = () => {
     loadAnalyses();
   }, []);
 
+  // Refresh automatically when a new analysis is created from ChatAI
+  useEffect(() => {
+    const handler = () => loadAnalyses();
+    window.addEventListener('analysis:created', handler);
+    return () => window.removeEventListener('analysis:created', handler);
+  }, []);
+
   const loadAnalyses = async () => {
     try {
       const { data, error } = await supabase

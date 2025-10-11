@@ -477,7 +477,6 @@ Cu ce te pot ajuta astăzi?`
               .from('analyses')
               .insert({
                 user_id: user.id,
-                period: data.period || 'N/A',
                 analysis_text: data.analysis || '',
                 metadata: data.metadata || {},
                 file_name: file.name,
@@ -486,6 +485,8 @@ Cu ce te pot ajuta astăzi?`
 
             if (saveError) {
               console.error('Error saving analysis to database:', saveError);
+            } else {
+              window.dispatchEvent(new CustomEvent('analysis:created'));
             }
           }
 
