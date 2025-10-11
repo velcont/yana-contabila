@@ -44,11 +44,11 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TutorialProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <TutorialProvider>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/landing" element={<Landing />} />
@@ -68,9 +68,9 @@ const App = () => (
             </Routes>
             <TutorialOverlay />
             <TutorialMenu />
-          </BrowserRouter>
-        </TooltipProvider>
-      </TutorialProvider>
+          </TutorialProvider>
+        </BrowserRouter>
+      </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );
