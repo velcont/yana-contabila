@@ -38,7 +38,7 @@ export const useTutorialSteps = () => {
     },
     {
       page: '/app',
-      title: 'Dashboard',
+      title: 'Dashboard cu Grafice',
       description: 'Aici găsești istoricul analizelor tale, grafice interactive și indicatori financiari. Vei vedea evoluția în timp a firmei tale.',
       highlight: '[data-tour="dashboard-button"]',
     },
