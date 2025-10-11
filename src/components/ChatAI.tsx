@@ -45,10 +45,11 @@ interface ChatAIProps {
   autoStart?: boolean;
   onAutoStartComplete?: () => void;
   onOpenDashboard?: () => void;
+  openOnLoad?: boolean;
 }
 
-export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard }: ChatAIProps = {}) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
+  const [isOpen, setIsOpen] = useState(openOnLoad);
   const [messages, setMessages] = useState<Message[]>(
     autoStart ? [] : [
       {
@@ -82,6 +83,13 @@ Cu ce te pot ajuta astăzi?`
   const { toast } = useToast();
   const { setShowTutorialMenu } = useTutorial();
   
+  // Auto-open chat effect
+  useEffect(() => {
+    if (openOnLoad && !isOpen) {
+      setIsOpen(true);
+    }
+  }, [openOnLoad]);
+
   // Golește mesajele când autoStart devine activ
   useEffect(() => {
     if (autoStart && !autoStartedRef.current) {
@@ -1167,7 +1175,7 @@ Cu ce te pot ajuta astăzi?`
                         {/* Animated arrow indicator */}
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce">
                           <span className="text-[10px] font-medium text-primary whitespace-nowrap bg-primary/10 px-2 py-0.5 rounded-full">
-                            Încarcă aici
+                            Încarcă balanța aici
                           </span>
                           <svg 
                             className="w-4 h-4 text-primary animate-pulse" 

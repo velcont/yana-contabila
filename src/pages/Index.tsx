@@ -15,6 +15,7 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import AdvertisementPopup from "@/components/AdvertisementPopup";
 import { Landing } from "@/pages/Landing";
 import { RecentAnalysesWidget } from "@/components/RecentAnalysesWidget";
+import { QuickStartGuide } from "@/components/QuickStartGuide";
 import {
   Tooltip,
   TooltipContent,
@@ -36,7 +37,8 @@ const Index = () => {
   const [showDashboard, setShowDashboard] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
   const [runTour, setRunTour] = useState(false);
-  const [showChatbotPrompt, setShowChatbotPrompt] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [showChatOnLoad, setShowChatOnLoad] = useState(false);
   const [triggerAutoChat, setTriggerAutoChat] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
@@ -46,6 +48,17 @@ const Index = () => {
     const hasSeenTour = localStorage.getItem('yana-tour-completed');
     if (user && !hasSeenTour && !loading) {
       setTimeout(() => setRunTour(true), 1000);
+    }
+    
+    // Auto-open chat when user logs in
+    if (user && !loading) {
+      const hasOpenedChat = sessionStorage.getItem('chat-opened-on-login');
+      if (!hasOpenedChat) {
+        setTimeout(() => {
+          setShowChatOnLoad(true);
+          sessionStorage.setItem('chat-opened-on-login', 'true');
+        }, 1500);
+      }
     }
   }, [user, loading]);
 
@@ -347,6 +360,8 @@ const Index = () => {
 
           {user && <RecentAnalysesWidget onViewAll={() => setShowDashboard(true)} />}
 
+          {user && <QuickStartGuide onOpenChat={() => setShowChatOnLoad(true)} onOpenDashboard={() => setShowDashboard(true)} />}
+
           <Card className="mb-8 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -473,34 +488,11 @@ const Index = () => {
           autoStart={triggerAutoChat}
           onAutoStartComplete={() => setTriggerAutoChat(false)}
           onOpenDashboard={() => setShowDashboard(true)}
+          openOnLoad={showChatOnLoad}
         />
       )}
       {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
       <AdvertisementPopup intervalMinutes={10} />
-      
-      <Dialog open={showChatbotPrompt} onOpenChange={setShowChatbotPrompt}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl">💬 Folosește Chatbot-ul pentru Interpretări Rapide!</DialogTitle>
-            <DialogDescription className="text-base space-y-3 pt-2">
-              <p>
-                Înainte de a explora graficele și analizele, vă recomandăm să folosiți chatbot-ul nostru. 
-                Doar specificați luna și anul dorit, iar asistentul vă va oferi rapid interpretări personalizate.
-              </p>
-              <div className="bg-muted/50 p-3 rounded-md space-y-1.5">
-                <p className="font-medium text-sm">Exemple de întrebări:</p>
-                <p className="text-sm text-muted-foreground">• "Cum stau cu firma în septembrie 2025?"</p>
-                <p className="text-sm text-muted-foreground">• "Cât am avut cifra de afaceri în octombrie 2025?"</p>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 mt-2">
-            <Button onClick={() => setShowChatbotPrompt(false)} variant="default">
-              Am înțeles!
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
