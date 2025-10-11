@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Building2, FileText, Calendar } from "lucide-react";
+import { Search, Building2, FileText, Calendar, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface UserStats {
   id: string;
@@ -105,6 +107,29 @@ export const UsersList = () => {
     }
   };
 
+  const copyUsersToClipboard = async () => {
+    try {
+      // Creează text formatat cu datele utilizatorilor
+      const usersText = filteredUsers
+        .map((user) => {
+          const name = user.full_name || "Fără nume";
+          return `${name}\t${user.email}`;
+        })
+        .join("\n");
+
+      // Adaugă header
+      const fullText = `Nume\tEmail\n${usersText}`;
+
+      await navigator.clipboard.writeText(fullText);
+      toast.success(`${filteredUsers.length} utilizatori copiați în clipboard!`, {
+        description: "Poți lipi datele în Excel sau Google Sheets",
+      });
+    } catch (error) {
+      console.error("Error copying to clipboard:", error);
+      toast.error("Eroare la copierea datelor");
+    }
+  };
+
   const getActivityBadge = (lastAnalysisDate: string | null) => {
     if (!lastAnalysisDate) return <Badge variant="outline">Inactiv</Badge>;
 
@@ -144,6 +169,15 @@ export const UsersList = () => {
             Total: {users.length} utilizatori
           </p>
         </div>
+        <Button
+          onClick={copyUsersToClipboard}
+          variant="outline"
+          className="gap-2"
+          disabled={filteredUsers.length === 0}
+        >
+          <Copy className="h-4 w-4" />
+          Copiază {filteredUsers.length > 0 ? `(${filteredUsers.length})` : ""}
+        </Button>
       </div>
 
       <div className="relative">
