@@ -188,7 +188,13 @@ export const EmailAnalysisDialog = ({
       const uploadedFileUrls: string[] = [];
       
       for (const file of attachedFiles) {
-        const fileName = `${user.id}/${Date.now()}_${file.name}`;
+        // Sanitizează numele fișierului - elimină caractere invalide pentru storage
+        const sanitizedFileName = file.name
+          .replace(/[\[\]\(\)\{\}<>]/g, '') // Elimină paranteze și alte caractere speciale
+          .replace(/\s+/g, '_') // Înlocuiește spațiile cu underscore
+          .replace(/[^\w\-_.]/g, ''); // Elimină orice alte caractere non-alfanumerice (păstrează doar a-zA-Z0-9_-.)
+        
+        const fileName = `${user.id}/${Date.now()}_${sanitizedFileName}`;
         const { error: uploadError } = await supabase.storage
           .from('balance-attachments')
           .upload(fileName, file);
