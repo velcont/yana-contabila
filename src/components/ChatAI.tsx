@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Volume2, VolumeX } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -74,12 +74,9 @@ Cu ce te pot ajuta astăzi?`
   const [showInsights, setShowInsights] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const [streamingProgress, setStreamingProgress] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
-  const lastSpokenMessageRef = useRef<string>('');
   const { toast } = useToast();
   const { setShowTutorialMenu } = useTutorial();
   
@@ -170,87 +167,6 @@ Cu ce te pot ajuta astăzi?`
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  // Text-to-Speech functionality
-  const stopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
-  const speakText = (text: string) => {
-    if (!('speechSynthesis' in window)) {
-      toast({
-        title: 'Text-to-Speech indisponibil',
-        description: 'Browser-ul tău nu suportă citirea vocală',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Oprește orice vorbire anterioară
-    stopSpeaking();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ro-RO';
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      toast({
-        title: 'Eroare citire vocală',
-        description: 'Nu s-a putut citi textul',
-        variant: 'destructive'
-      });
-    };
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const toggleTTS = () => {
-    const newState = !ttsEnabled;
-    setTtsEnabled(newState);
-    
-    if (!newState) {
-      stopSpeaking();
-      toast({
-        title: '🔇 Citire vocală dezactivată',
-        description: 'Răspunsurile nu vor mai fi citite automat',
-        duration: 2000
-      });
-    } else {
-      toast({
-        title: '🔊 Citire vocală activată',
-        description: 'Răspunsurile vor fi citite automat cu voce tare',
-        duration: 2000
-      });
-    }
-  };
-
-  // Auto-citire răspunsuri când TTS este activat
-  useEffect(() => {
-    if (!ttsEnabled || !messages.length) return;
-
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'assistant' && lastMessage.content && lastMessage.content !== lastSpokenMessageRef.current) {
-      // Verifică dacă mesajul e complet (nu e în curs de streaming)
-      if (!isLoading) {
-        lastSpokenMessageRef.current = lastMessage.content;
-        speakText(lastMessage.content);
-      }
-    }
-  }, [messages, ttsEnabled, isLoading]);
-
-  // Oprește vorbirea când utilizatorul închide chat-ul
-  useEffect(() => {
-    if (!isOpen) {
-      stopSpeaking();
-    }
-  }, [isOpen]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -775,27 +691,6 @@ Cu ce te pot ajuta astăzi?`
                 <TooltipContent>Istoric Conversații</TooltipContent>
               </Tooltip>
               
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={ttsEnabled ? "secondary" : "ghost"}
-                    size="icon"
-                    onClick={toggleTTS}
-                    className="h-9 w-9"
-                    aria-label={ttsEnabled ? "Dezactivează citire vocală" : "Activează citire vocală"}
-                  >
-                    {ttsEnabled ? (
-                      <Volume2 className={`h-4 w-4 ${isSpeaking ? 'animate-pulse' : ''}`} />
-                    ) : (
-                      <VolumeX className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {ttsEnabled ? 'Dezactivează citire vocală' : 'Activează citire vocală'}
-                </TooltipContent>
-              </Tooltip>
-
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
