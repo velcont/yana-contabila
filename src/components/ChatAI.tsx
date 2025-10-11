@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -15,6 +15,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
+import { useTutorialMode } from '@/hooks/useTutorialMode';
+import { TutorialOverlay } from './TutorialOverlay';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -68,6 +70,8 @@ Cu ce te pot ajuta astăzi?`
   const [isMaximized, setIsMaximized] = useState(false);
   const [isReadingMode, setIsReadingMode] = useState(false);
   const [suggestions, setSuggestions] = useState<QuestionPattern[]>([]);
+  const { startTutorial, isActive: isTutorialActive } = useTutorialMode();
+  const [tutorialVoiceEnabled, setTutorialVoiceEnabled] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [topQuestions, setTopQuestions] = useState<QuestionPattern[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -678,6 +682,21 @@ Cu ce te pot ajuta astăzi?`
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={startTutorial}
+                    className="h-9 w-9"
+                    aria-label="Tutorial interactiv"
+                  >
+                    <GraduationCap className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Tutorial Interactiv</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
                     variant={showHistory ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowHistory(!showHistory)}
@@ -1067,6 +1086,13 @@ Cu ce te pot ajuta astăzi?`
         </div>
       </CardContent>
     </Card>
+    
+    {isTutorialActive && (
+      <TutorialOverlay 
+        voiceEnabled={tutorialVoiceEnabled}
+        onVoiceToggle={() => setTutorialVoiceEnabled(!tutorialVoiceEnabled)}
+      />
+    )}
     </div>
   );
 };
