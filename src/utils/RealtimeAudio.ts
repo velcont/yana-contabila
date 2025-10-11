@@ -278,6 +278,32 @@ this.ws = new WebSocket(EDGE_WS_URL);
         try {
           const data = JSON.parse(event.data);
           console.log("Received message type:", data.type);
+
+          // After session is created, ensure correct audio settings
+          if (data.type === 'session.created') {
+            try {
+              this.ws?.send(JSON.stringify({
+                type: 'session.update',
+                session: {
+                  modalities: ['text', 'audio'],
+                  voice: 'alloy',
+                  input_audio_format: 'pcm16',
+                  output_audio_format: 'pcm16',
+                  input_audio_transcription: { model: 'whisper-1' },
+                  turn_detection: {
+                    type: 'server_vad',
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 1000
+                  },
+                  instructions: 'Ești Yana, asistent financiar. Vorbește prietenos în română.'
+                }
+              }));
+              console.log('[RealtimeChat] Sent session.update');
+            } catch (e) {
+              console.warn('[RealtimeChat] Failed to send session.update', e);
+            }
+          }
           
           this.onMessage(data);
 

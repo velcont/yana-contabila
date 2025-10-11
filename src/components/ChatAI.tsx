@@ -615,7 +615,7 @@ Cu ce te pot ajuta astăzi?`
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex pointer-events-none">
+    <div className={`${isMaximized || showHistory || showInsights ? 'fixed inset-0 z-50 flex pointer-events-none' : 'fixed bottom-4 right-4 z-50 pointer-events-none'}`}>
       {/* Sidebar Istoric - doar când e deschis */}
       {showHistory && (
         <div className="pointer-events-auto w-80 h-full p-4">
@@ -633,7 +633,7 @@ Cu ce te pot ajuta astăzi?`
       )}
       
       {/* Chat principal */}
-      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4' : 'ml-auto mr-4 mb-4 mt-auto w-full max-w-full md:max-w-[900px] lg:max-w-[1000px]'} ${isMaximized ? 'h-[calc(100vh-2rem)]' : 'h-[75vh] md:h-[650px]'} bg-background/95 backdrop-blur-sm shadow-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b bg-gradient-to-r from-background to-muted/30">
           {/* Grup stânga - Branding + Actions */}
           <div className="flex items-center gap-3">
