@@ -60,6 +60,41 @@ export const useTutorialSteps = () => {
       description: 'Toate conversațiile tale cu Yana sunt salvate aici. Poți reveni oricând la discuțiile anterioare.',
       highlight: '[data-tour="history-button"]',
     },
+    {
+      page: '/analytics',
+      title: 'Grafice Interactive',
+      description: 'Vizualizează evoluția indicatorilor financiari în timp: profit, lichiditate, solvabilitate și mai mult.',
+    },
+    {
+      page: '/analytics',
+      title: 'Alerte Proactive',
+      description: 'Primești notificări automate pentru probleme financiare critice și oportunități de îmbunătățire.',
+    },
+    {
+      page: '/analytics',
+      title: 'Predicții AI',
+      description: 'AI-ul Yana prezice evoluția viitoare bazată pe datele istorice și tendințele identificate.',
+    },
+    {
+      page: '/analytics',
+      title: 'Analiză Reziliență',
+      description: 'Evaluează capacitatea firmei de a rezista în fața crizelor și șocurilor economice.',
+    },
+    {
+      page: '/analytics',
+      title: 'Comparație Multi-Firmă',
+      description: 'Compară performanța financiară între mai multe firme pentru a identifica cele mai bune practici.',
+    },
+    {
+      page: '/analytics',
+      title: 'Știri Fiscale',
+      description: 'Rămâi la curent cu ultimele modificări legislative și fiscale relevante pentru afacerea ta.',
+    },
+    {
+      page: '/analytics',
+      title: 'Dosarul Meu',
+      description: 'Istoricul complet al tuturor analizelor tale cu opțiuni de export, partajare și ștergere.',
+    },
   ];
 
   const adminSteps: TutorialStep[] = [
