@@ -1151,6 +1151,10 @@ export type Database = {
         Args: { p_action?: string; p_record_id: string; p_table_name: string }
         Returns: undefined
       }
+      log_and_check_admin_profile_access: {
+        Args: { profile_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           p_action_type: string
