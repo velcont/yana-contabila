@@ -1152,24 +1152,39 @@ Cu ce te pot ajuta astăzi?`
                 onChange={handleFileUpload}
                 className="hidden"
               />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading || isUploadingFile}
-                      variant="outline"
-                      size="icon"
-                      className="shrink-0"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Încarcă balanță Excel</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div className="relative">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading || isUploadingFile}
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0 relative"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        {/* Animated arrow indicator */}
+                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce">
+                          <span className="text-[10px] font-medium text-primary whitespace-nowrap bg-primary/10 px-2 py-0.5 rounded-full">
+                            Încarcă aici
+                          </span>
+                          <svg 
+                            className="w-4 h-4 text-primary animate-pulse" 
+                            fill="currentColor" 
+                            viewBox="0 0 20 20"
+                          >
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V4a1 1 0 011-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Încarcă balanță Excel pentru analiză</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 ref={inputRef}
                 value={input}

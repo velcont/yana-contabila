@@ -14,6 +14,7 @@ import { AnalysisDisplay } from "@/components/AnalysisDisplay";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import AdvertisementPopup from "@/components/AdvertisementPopup";
 import { Landing } from "@/pages/Landing";
+import { RecentAnalysesWidget } from "@/components/RecentAnalysesWidget";
 import {
   Tooltip,
   TooltipContent,
@@ -104,14 +105,7 @@ const Index = () => {
       return;
     }
 
-    if (!companyName.trim() && user) {
-      toast({
-        title: "Nume firmă lipsă",
-        description: "Te rog introdu numele firmei înainte de analiză.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Company name is now optional - can be filled later from dashboard
 
     setIsAnalyzing(true);
     let successCount = 0;
@@ -146,7 +140,7 @@ const Index = () => {
                   user_id: user.id,
                   file_name: file.name,
                   analysis_text: data.analysis,
-                  company_name: companyName.trim(),
+                  company_name: companyName.trim() || 'Firmă nouă',
                   metadata: indicators as any
                 });
               if (saveError) throw saveError;
@@ -351,30 +345,7 @@ const Index = () => {
             </p>
           </div>
 
-          {user && (
-            <Card className="mb-6 shadow-lg border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <User className="h-5 w-5 text-primary" />
-                  Nume Firmă *
-                </CardTitle>
-                <CardDescription>
-                  Introdu numele firmei pentru identificare în istoric și emailuri
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <input
-                  id="company-name"
-                  type="text"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Ex: SC SMART VEST SRL"
-                  required
-                  className="w-full px-4 py-3 border-2 border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-base"
-                />
-              </CardContent>
-            </Card>
-          )}
+          {user && <RecentAnalysesWidget onViewAll={() => setShowDashboard(true)} />}
 
           <Card className="mb-8 shadow-lg">
             <CardHeader>
