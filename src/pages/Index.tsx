@@ -14,7 +14,6 @@ import { AnalysisDisplay } from "@/components/AnalysisDisplay";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import AdvertisementPopup from "@/components/AdvertisementPopup";
 import { Landing } from "@/pages/Landing";
-import { RecentAnalysesWidget } from "@/components/RecentAnalysesWidget";
 import { QuickStartGuide } from "@/components/QuickStartGuide";
 import {
   Tooltip,
@@ -357,8 +356,6 @@ const Index = () => {
               Analiză managerială completă în câteva secunde.
             </p>
           </div>
-
-          {user && <RecentAnalysesWidget onViewAll={() => setShowDashboard(true)} />}
 
           {user && <QuickStartGuide onOpenChat={() => setShowChatOnLoad(true)} onOpenDashboard={() => setShowDashboard(true)} />}
 
