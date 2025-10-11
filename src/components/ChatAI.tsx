@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Paperclip } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -74,8 +74,10 @@ Cu ce te pot ajuta astăzi?`
   const [showInsights, setShowInsights] = useState(false);
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const [streamingProgress, setStreamingProgress] = useState(0);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const autoStartedRef = useRef(false); // Protecție împotriva execuției duble
   const { toast } = useToast();
   const { setShowTutorialMenu } = useTutorial();
@@ -404,6 +406,140 @@ Cu ce te pot ajuta astăzi?`
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Format invalid",
+        description: "Te rog încarcă un fișier Excel (.xlsx sau .xls)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Fișier prea mare",
+        description: "Mărimea maximă permisă este 10MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploadingFile(true);
+    
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const base64 = event.target?.result as string;
+          const base64Data = base64.split(',')[1];
+
+          // Add user message
+          const userMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'user',
+            content: `📎 Am încărcat balanța: **${file.name}**\n\nAștept analiza...`
+          };
+          setMessages(prev => [...prev, userMessage]);
+          scrollToBottom();
+
+          // Show loading
+          setIsLoading(true);
+          setThinkingMessage("Analizez balanța încărcată...");
+
+          // Call analyze-balance edge function
+          const { data, error } = await supabase.functions.invoke('analyze-balance', {
+            body: { 
+              excelBase64: base64Data,
+              fileName: file.name 
+            }
+          });
+
+          if (error) throw error;
+
+          // Add AI response
+          const aiMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: data.analysis || "Am analizat balanța. Cum te pot ajuta mai departe?"
+          };
+          setMessages(prev => [...prev, aiMessage]);
+          scrollToBottom();
+
+          // Save to conversation history
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from('conversation_history').insert([
+              {
+                user_id: user.id,
+                conversation_id: conversationId,
+                role: 'user',
+                content: userMessage.content,
+                metadata: { fileName: file.name, fileSize: file.size }
+              },
+              {
+                user_id: user.id,
+                conversation_id: conversationId,
+                role: 'assistant',
+                content: aiMessage.content
+              }
+            ]);
+          }
+
+          toast({
+            title: "Succes!",
+            description: "Balanța a fost analizată cu succes."
+          });
+        } catch (error) {
+          console.error('Error analyzing balance:', error);
+          toast({
+            title: "Eroare",
+            description: "Nu am putut analiza balanța. Te rog încearcă din nou.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+          setThinkingMessage('Yana analizează...');
+          setIsUploadingFile(false);
+        }
+      };
+      
+      reader.onerror = () => {
+        toast({
+          title: "Eroare",
+          description: "Nu am putut citi fișierul.",
+          variant: "destructive"
+        });
+        setIsUploadingFile(false);
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Eroare",
+        description: "Eroare la încărcarea fișierului.",
+        variant: "destructive"
+      });
+      setIsUploadingFile(false);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -990,6 +1126,31 @@ Cu ce te pot ajuta astăzi?`
         <div className="space-y-3 pt-3 border-t bg-background/95 backdrop-blur-sm">
           <div className="relative">
             <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoading || isUploadingFile}
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Încarcă balanță Excel</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Input
                 ref={inputRef}
                 value={input}
@@ -997,13 +1158,13 @@ Cu ce te pot ajuta astăzi?`
                 onKeyPress={handleKeyPress}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder="Întreabă despre analizele tale..."
-                disabled={isLoading}
+                placeholder={isUploadingFile ? "Încărcare..." : "Întreabă despre analizele tale sau încarcă o balanță..."}
+                disabled={isLoading || isUploadingFile}
                 className="flex-1"
               />
               <Button
                 onClick={sendMessage}
-                disabled={isLoading || !input.trim()}
+                disabled={isLoading || !input.trim() || isUploadingFile}
                 size="icon"
                 className="shrink-0"
               >
