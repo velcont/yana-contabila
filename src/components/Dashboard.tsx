@@ -568,27 +568,27 @@ INDICATORI OPERAȚIONALI:
       
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full max-w-5xl grid-cols-7">
-          <TabsTrigger value="analytics">
+          <TabsTrigger value="analytics" data-tour="tab-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
           </TabsTrigger>
-          <TabsTrigger value="alerts">
+          <TabsTrigger value="alerts" data-tour="tab-alerts">
             <AlertTriangle className="h-4 w-4 mr-2" />
             Alerte
           </TabsTrigger>
-          <TabsTrigger value="predictions">
+          <TabsTrigger value="predictions" data-tour="tab-predictions">
             <Sparkles className="h-4 w-4 mr-2" />
             Predicții
           </TabsTrigger>
-          <TabsTrigger value="resilience">
+          <TabsTrigger value="resilience" data-tour="tab-resilience">
             <TrendingUp className="h-4 w-4 mr-2" />
             Reziliență
           </TabsTrigger>
-          <TabsTrigger value="multi-company">
+          <TabsTrigger value="multi-company" data-tour="tab-multi-company">
             <Building2 className="h-4 w-4 mr-2" />
             Multi-Firmă
           </TabsTrigger>
-          <TabsTrigger value="news">
+          <TabsTrigger value="news" data-tour="tab-news">
             <Newspaper className="h-4 w-4 mr-2" />
             Știri
           </TabsTrigger>

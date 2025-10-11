@@ -34,6 +34,39 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
 
   const currentStep = steps[currentStepIndex];
 
+  // Activează și focalizează elementul țintă; dacă suntem pe /app și
+  // elementul nu există încă, deschide Dashboard-ul și încearcă din nou.
+  const activateTarget = useCallback((selector?: string) => {
+    if (!selector) return;
+    let attempts = 0;
+    const isApp = window.location.pathname === '/app';
+
+    const tryActivate = () => {
+      const el = document.querySelector(selector!) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const isTabTrigger = el.getAttribute('role') === 'tab' || selector!.includes('[value=');
+        if (isTabTrigger) {
+          el.click();
+        }
+        return;
+      }
+
+      // Prima încercare: dacă suntem pe /app și Dashboard-ul nu e deschis, apasă butonul
+      if (attempts === 0 && isApp) {
+        const dashBtn = document.querySelector('[data-tour="dashboard-button"]') as HTMLElement | null;
+        dashBtn?.click();
+      }
+
+      if (attempts < 12) { // ~2.4s retry window
+        attempts++;
+        setTimeout(tryActivate, 200);
+      }
+    };
+
+    setTimeout(tryActivate, 300);
+  }, []);
+
   // Salvează progresul în localStorage
   useEffect(() => {
     if (isActive) {
@@ -55,12 +88,7 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
 
     if (steps[stepIndex]?.highlight) {
       setHighlightedElement(steps[stepIndex].highlight!);
-      setTimeout(() => {
-        const element = document.querySelector(steps[stepIndex].highlight!);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 300);
+      activateTarget(steps[stepIndex].highlight!);
     }
   }, [navigate, steps]);
 
@@ -81,12 +109,7 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
       
       if (nextStep.highlight) {
         setHighlightedElement(nextStep.highlight);
-        setTimeout(() => {
-          const element = document.querySelector(nextStep.highlight!);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 300);
+        activateTarget(nextStep.highlight!);
       } else {
         setHighlightedElement(null);
       }
@@ -108,12 +131,7 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
       
       if (prevStep.highlight) {
         setHighlightedElement(prevStep.highlight);
-        setTimeout(() => {
-          const element = document.querySelector(prevStep.highlight!);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 300);
+        activateTarget(prevStep.highlight!);
       } else {
         setHighlightedElement(null);
       }
