@@ -678,21 +678,6 @@ Cu ce te pot ajuta astăzi?`
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowTutorialMenu(true)}
-                    className="h-9 w-9"
-                    aria-label="Tutorial interactiv"
-                  >
-                    <GraduationCap className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Tutorial Interactiv</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
                     variant={showHistory ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowHistory(!showHistory)}
@@ -882,6 +867,32 @@ Cu ce te pot ajuta astăzi?`
 
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-4 py-2">
+            {/* Banner Tutorial - vizibil mereu */}
+            <Card className="bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/20 mb-2 sticky top-0 z-10">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="h-8 w-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium mb-0.5">🎓 Tutorial Interactiv</p>
+                      <p className="text-[10px] text-muted-foreground">Descoperă toate funcțiile Yana pas cu pas</p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => setShowTutorialMenu(true)}
+                    className="flex items-center gap-1 h-8 text-xs whitespace-nowrap"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Deschide</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Banner promovare Dashboard - vizibil mereu */}
             <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20 mb-4 sticky top-0 z-10">
               <CardContent className="p-3">
