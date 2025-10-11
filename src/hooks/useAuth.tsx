@@ -8,23 +8,40 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Timeout maxim de 5 secunde pentru loading state
+    const loadingTimeout = setTimeout(() => {
+      console.warn('Auth loading timeout reached - forcing loading=false');
+      setLoading(false);
+    }, 5000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        clearTimeout(loadingTimeout);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        clearTimeout(loadingTimeout);
+      })
+      .catch((error) => {
+        console.error('Error getting session:', error);
+        setLoading(false);
+        clearTimeout(loadingTimeout);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(loadingTimeout);
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

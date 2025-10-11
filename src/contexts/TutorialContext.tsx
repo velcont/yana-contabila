@@ -55,12 +55,19 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
       // Prima încercare: dacă suntem pe /app și Dashboard-ul nu e deschis, apasă butonul
       if (attempts === 0 && isApp) {
         const dashBtn = document.querySelector('[data-tour="dashboard-button"]') as HTMLElement | null;
-        dashBtn?.click();
+        if (dashBtn) {
+          console.log('Tutorial: Opening dashboard');
+          dashBtn.click();
+        } else {
+          console.warn('Tutorial: Dashboard button not found');
+        }
       }
 
-      if (attempts < 12) { // ~2.4s retry window
+      if (attempts < 15) { // ~3s retry window (mai lung pentru conexiuni lente)
         attempts++;
         setTimeout(tryActivate, 200);
+      } else {
+        console.warn(`Tutorial: Could not find element ${selector} after ${attempts} attempts`);
       }
     };
 
