@@ -31,14 +31,8 @@ export const useTutorialSteps = () => {
     {
       page: '/app',
       title: 'Chat AI - Încarcă Balanța',
-      description: 'Cel mai rapid mod: deschide Chat-ul și încarcă balanța Excel direct acolo! Vei primi o analiză completă în câteva secunde.',
+      description: 'Cel mai rapid mod: deschide Chat-ul și încarcă balanța Excel direct acolo folosind butonul cu agrafa! Vei primi o analiză completă în câteva secunde.',
       highlight: '[data-tour="chat-button"]',
-    },
-    {
-      page: '/app',
-      title: 'Upload Balanță Tradițional',
-      description: 'Sau poți încărca fișierele Excel cu balanța aici. Poți încărca mai multe balanțe odată pentru analiză comparativă.',
-      highlight: '#file-upload',
     },
     {
       page: '/app',
