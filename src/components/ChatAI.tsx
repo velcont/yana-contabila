@@ -55,8 +55,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         role: 'assistant',
         content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
-📊 **Vizualizează Dashboard-ul** pentru grafice interactive și evoluții complete!
-
 Cu ce te pot ajuta astăzi?`
       }
     ]
@@ -852,19 +850,6 @@ Cu ce te pot ajuta astăzi?`
           </SheetContent>
         </Sheet>
 
-        {/* Quick Actions - sticky când scrollezi */}
-        {messages.length === 1 && (
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-2 -mx-4 px-4">
-            <QuickReplySuggestions
-              onSelectSuggestion={(question) => {
-                setInput(question);
-                inputRef.current?.focus();
-              }}
-              contextual={true}
-              showFrequency={true}
-            />
-          </div>
-        )}
 
         {/* Voice Interface */}
         {showVoice && (
@@ -992,30 +977,6 @@ Cu ce te pot ajuta astăzi?`
         </ScrollArea>
 
         <div className="space-y-3 pt-3 border-t bg-background/95 backdrop-blur-sm">
-          {/* Stiluri răspuns - tabs vizibile */}
-          <div className="flex items-center gap-2 px-1">
-            <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-              <Zap className="h-3 w-3" />
-              Stil:
-            </span>
-            <Tabs value={summaryType} onValueChange={(value) => setSummaryType(value as SummaryType)} className="flex-1">
-              <TabsList className="grid w-full grid-cols-3 h-9">
-                <TabsTrigger value="detailed" className="text-xs gap-1.5">
-                  <FileBarChart className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Detaliat</span>
-                </TabsTrigger>
-                <TabsTrigger value="short" className="text-xs gap-1.5">
-                  <FileText className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Scurt</span>
-                </TabsTrigger>
-                <TabsTrigger value="action" className="text-xs gap-1.5">
-                  <ListChecks className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Acțiuni</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          
           <div className="relative">
             <div className="flex gap-2">
               <Input
@@ -1039,47 +1000,6 @@ Cu ce te pot ajuta astăzi?`
               </Button>
             </div>
             
-            {/* Autocomplete Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <Card className="absolute bottom-full mb-2 left-0 right-12 max-h-64 overflow-hidden shadow-xl border-primary/20 animate-in slide-in-from-bottom-2 duration-200 z-[60] bg-background/95 backdrop-blur-sm">
-                <CardContent className="p-0">
-                  <div className="px-3 py-2 border-b bg-gradient-to-r from-primary/10 to-primary/5">
-                    <p className="text-xs font-semibold flex items-center gap-1.5">
-                      <Lightbulb className="h-3.5 w-3.5 text-primary" />
-                      Sugestii populare
-                    </p>
-                  </div>
-                  <ScrollArea className="max-h-52">
-                    <div className="py-1">
-                      {suggestions.map((pattern, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => selectSuggestion(pattern.question_pattern)}
-                          className="w-full px-3 py-2.5 text-left hover:bg-primary/5 transition-all group border-l-2 border-transparent hover:border-primary"
-                        >
-                          <div className="flex items-start gap-2">
-                            <TrendingUp className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                                {pattern.question_pattern}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1.5">
-                                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                                  {pattern.question_category}
-                                </Badge>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {pattern.frequency}× întrebat
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </CardContent>
