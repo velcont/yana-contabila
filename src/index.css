@@ -50,32 +50,36 @@ All colors MUST be HSL.
 
   /* Entrepreneur Theme - Blue (Trust, Business) */
   .theme-entrepreneur {
-    --primary: 217 91% 45%;
+    --primary: 217 91% 50%;
     --primary-foreground: 0 0% 100%;
-    --accent: 210 85% 55%;
+    --accent: 200 90% 55%;
     --accent-foreground: 0 0% 100%;
-    --ring: 217 91% 45%;
-    --sidebar-ring: 217 91% 45%;
-    --chart-1: 217 91% 45%;
-    --chart-2: 210 85% 55%;
-    --chart-3: 200 80% 50%;
-    --chart-4: 195 75% 55%;
-    --chart-5: 220 70% 60%;
+    --ring: 217 91% 50%;
+    --sidebar-ring: 217 91% 50%;
+    --chart-1: 217 91% 50%;
+    --chart-2: 200 90% 55%;
+    --chart-3: 210 85% 60%;
+    --chart-4: 195 80% 50%;
+    --chart-5: 185 75% 55%;
+    --success: 142 76% 36%;
+    --success-foreground: 138 76% 97%;
   }
 
   /* Accountant Theme - Green (Growth, Financial) */
   .theme-accountant {
-    --primary: 142 76% 36%;
+    --primary: 142 76% 40%;
     --primary-foreground: 0 0% 100%;
-    --accent: 150 70% 45%;
+    --accent: 160 70% 48%;
     --accent-foreground: 0 0% 100%;
-    --ring: 142 76% 36%;
-    --sidebar-ring: 142 76% 36%;
-    --chart-1: 142 76% 36%;
-    --chart-2: 150 70% 45%;
-    --chart-3: 160 65% 50%;
-    --chart-4: 135 60% 40%;
-    --chart-5: 155 75% 42%;
+    --ring: 142 76% 40%;
+    --sidebar-ring: 142 76% 40%;
+    --chart-1: 142 76% 40%;
+    --chart-2: 160 70% 48%;
+    --chart-3: 150 65% 45%;
+    --chart-4: 135 60% 42%;
+    --chart-5: 155 75% 46%;
+    --success: 142 76% 36%;
+    --success-foreground: 138 76% 97%;
   }
 
   /* Admin Theme - Orange/Amber (Attention, Control) */
@@ -135,20 +139,27 @@ All colors MUST be HSL.
 
   /* Dark Mode - Entrepreneur */
   .dark.theme-entrepreneur {
-    --primary: 217 91% 55%;
-    --accent: 210 85% 60%;
-    --ring: 217 91% 55%;
-    --sidebar-primary: 217 91% 55%;
-    --sidebar-ring: 217 91% 55%;
+    --primary: 217 91% 58%;
+    --accent: 200 90% 62%;
+    --ring: 217 91% 58%;
+    --sidebar-primary: 217 91% 58%;
+    --sidebar-ring: 217 91% 58%;
+    --chart-1: 217 91% 58%;
+    --chart-2: 200 90% 62%;
+    --chart-3: 210 85% 65%;
+    --success: 142 71% 45%;
   }
 
   /* Dark Mode - Accountant */
   .dark.theme-accountant {
-    --primary: 142 76% 40%;
-    --accent: 150 70% 50%;
-    --ring: 142 76% 40%;
-    --sidebar-primary: 142 76% 40%;
-    --sidebar-ring: 142 76% 40%;
+    --primary: 142 76% 45%;
+    --accent: 160 70% 52%;
+    --ring: 142 76% 45%;
+    --sidebar-primary: 142 76% 45%;
+    --sidebar-ring: 142 76% 45%;
+    --chart-1: 142 76% 45%;
+    --chart-2: 160 70% 52%;
+    --success: 142 71% 45%;
   }
 
   /* Dark Mode - Admin */

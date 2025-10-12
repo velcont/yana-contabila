@@ -53,3 +53,12 @@ verify_jwt = true
 
 [functions.send-monthly-report]
 verify_jwt = true
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.send-trial-notifications]
+verify_jwt = false
+
+[functions.track-terms-acceptance]
+verify_jwt = true

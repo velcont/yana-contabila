@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 type SubscriptionType = 'entrepreneur' | 'accounting_firm';
-type SubscriptionStatus = 'active' | 'inactive' | 'loading';
+type SubscriptionStatus = 'active' | 'inactive' | 'trial_expired' | 'loading';
 
 interface SubscriptionContextType {
   subscriptionType: SubscriptionType;
@@ -11,6 +11,7 @@ interface SubscriptionContextType {
   subscriptionEnd: string | null;
   isSubscribed: boolean;
   isAccountant: boolean;
+  trialExpired: boolean;
   checkSubscription: () => Promise<void>;
   loading: boolean;
 }
@@ -22,6 +23,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [subscriptionType, setSubscriptionType] = useState<SubscriptionType>('entrepreneur');
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('loading');
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [trialExpired, setTrialExpired] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const checkSubscription = async () => {
@@ -44,6 +46,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setSubscriptionType(data.subscription_type || 'entrepreneur');
       setSubscriptionStatus(data.subscription_status || 'inactive');
       setSubscriptionEnd(data.subscription_end || null);
+      setTrialExpired(data.trial_expired || false);
     } catch (error) {
       console.error('Error checking subscription:', error);
       setSubscriptionStatus('inactive');
@@ -71,6 +74,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     subscriptionEnd,
     isSubscribed: subscriptionStatus === 'active',
     isAccountant: subscriptionType === 'accounting_firm' && subscriptionStatus === 'active',
+    trialExpired,
     checkSubscription,
     loading,
   };

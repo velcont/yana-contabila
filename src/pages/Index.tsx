@@ -64,16 +64,41 @@ const Index = () => {
       if (user && !loading) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('account_type_selected, subscription_type')
+          .select('account_type_selected, subscription_type, subscription_status, trial_ends_at')
           .eq('id', user.id)
           .single();
 
         if (!error && data) {
           if (!data.account_type_selected) {
             setShowAccountTypeSelector(true);
+            return;
+          }
+
+          // VERIFICARE STRICTĂ: Antreprenorii activi pot accesa acest modul
+          // Contabilii NU pot accesa modulul entrepreneur fără abonament separat
+          if (data.subscription_type === 'accounting_firm') {
+            console.log('User este contabil - nu are acces la modulul antreprenor');
+            toast({
+              title: "Modul incorect",
+              description: "Ești înregistrat ca 'Firmă Contabilitate'. Pentru modul antreprenor, trebuie să achiziționezi un abonament separat.",
+              variant: "destructive",
+            });
+            navigate('/accountant-dashboard');
+            return;
+          }
+
+          // Verifică expirarea perioadei de testare
+          if (data.trial_ends_at && new Date(data.trial_ends_at) <= new Date() && data.subscription_status !== 'active') {
+            toast({
+              title: "Perioada de testare expirată",
+              description: "Perioada ta gratuită de 3 luni s-a încheiat. Abonează-te pentru a continua.",
+              variant: "destructive",
+            });
+            navigate('/subscription');
+            return;
           }
           
-          // Load first company as default
+          // Load first company as default pentru antreprenori
           if (data.subscription_type === 'entrepreneur') {
             const { data: companies } = await supabase
               .from('companies')

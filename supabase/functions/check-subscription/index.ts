@@ -97,6 +97,31 @@ serve(async (req) => {
       );
     }
 
+    // Trial expired - block access
+    if (profile?.trial_ends_at && new Date(profile.trial_ends_at) <= new Date()) {
+      logStep("Trial expired, blocking access", { trialEndsAt: profile.trial_ends_at });
+
+      await supabaseClient
+        .from('profiles')
+        .update({
+          subscription_status: 'inactive',
+          subscription_ends_at: null,
+        })
+        .eq('id', user.id);
+
+      return new Response(
+        JSON.stringify({
+          subscribed: false,
+          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_status: 'inactive',
+          subscription_end: null,
+          access_type: 'trial_expired',
+          trial_expired: true
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });

@@ -3,10 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Crown, Copy } from 'lucide-react';
+import { Loader2, Crown, Copy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast as sonnerToast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Profile {
   id: string;
@@ -22,6 +32,8 @@ interface Profile {
 export const UsersList = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,6 +84,34 @@ export const UsersList = () => {
         description: "Nu s-a putut actualiza accesul gratuit.",
         variant: "destructive",
       });
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      setDeletingUserId(userId);
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Utilizator șters",
+        description: "Utilizatorul a fost șters cu succes din sistem.",
+      });
+
+      fetchUsers();
+      setUserToDelete(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Eroare",
+        description: error instanceof Error ? error.message : "Nu s-a putut șterge utilizatorul.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -141,13 +181,27 @@ export const UsersList = () => {
                   </Badge>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant={user.has_free_access ? "destructive" : "default"}
-                onClick={() => toggleFreeAccess(user.id, user.has_free_access || false)}
-              >
-                {user.has_free_access ? 'Elimină Acces Gratuit' : 'Oferă Acces Gratuit'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={user.has_free_access ? "destructive" : "default"}
+                  onClick={() => toggleFreeAccess(user.id, user.has_free_access || false)}
+                >
+                  {user.has_free_access ? 'Elimină Acces Gratuit' : 'Oferă Acces Gratuit'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setUserToDelete(user)}
+                  disabled={deletingUserId === user.id}
+                >
+                  {deletingUserId === user.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -157,6 +211,31 @@ export const UsersList = () => {
 
   return (
     <>
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmă ștergerea utilizatorului</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Ești sigur că vrei să ștergi utilizatorul:</p>
+              <p className="font-semibold">{userToDelete?.full_name || 'Fără nume'}</p>
+              <p className="text-sm">{userToDelete?.email}</p>
+              <p className="text-destructive font-semibold mt-4">
+                ⚠️ ATENȚIE: Această acțiune va șterge PERMANENT toate datele utilizatorului (analize, conversații, documente).
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Anulează</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => userToDelete && deleteUser(userToDelete.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Șterge permanent
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {loading ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin" />

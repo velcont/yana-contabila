@@ -72,14 +72,32 @@ const AccountantDashboard = () => {
         const { data } = await supabase.functions.invoke('check-subscription');
         console.log('Fresh subscription check:', data);
         
+        // VERIFICARE STRICTĂ: Doar contabili cu abonament activ pot accesa
         if (data?.subscription_type !== 'accounting_firm' || data?.subscription_status !== 'active') {
-          console.log('Not an active accountant, redirecting to subscription');
+          console.log('Nu ești contabil activ sau perioada de testare a expirat');
+          toast({
+            title: "Acces restricționat",
+            description: "Acest modul este disponibil doar pentru abonamentul 'Firmă Contabilitate'. Abonează-te pentru acces complet.",
+            variant: "destructive",
+          });
+          navigate('/subscription');
+          return;
+        }
+        
+        // Blochează dacă perioada de testare a expirat
+        if (data?.trial_expired) {
+          console.log('Perioada de testare expirată, redirecționare...');
+          toast({
+            title: "Perioada de testare expirată",
+            description: "Perioada ta gratuită de 3 luni s-a încheiat. Te rugăm să achiziționezi un abonament pentru a continua.",
+            variant: "destructive",
+          });
           navigate('/subscription');
           return;
         }
       }
       
-      console.log('Is accountant, fetching clients');
+      console.log('Este contabil activ, încărcare clienți');
       fetchClients();
     };
     
