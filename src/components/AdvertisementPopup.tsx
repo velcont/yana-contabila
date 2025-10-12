@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface AdvertisementPopupProps {
   intervalMinutes?: number; // Interval în minute pentru afișarea pop-up-ului
@@ -15,6 +16,12 @@ interface AdvertisementPopupProps {
 
 const AdvertisementPopup = ({ intervalMinutes = 10 }: AdvertisementPopupProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAccountant } = useSubscription();
+
+  // Nu afișa reclama pentru firme de contabilitate
+  if (isAccountant) {
+    return null;
+  }
 
   useEffect(() => {
     // Verifică când a fost afișat ultima dată pop-up-ul
