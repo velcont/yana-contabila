@@ -127,16 +127,8 @@ const Auth = () => {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
         
-        // Check if email is already registered with different account type
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('subscription_type, email')
-          .eq('email', email)
-          .maybeSingle();
-        
-        if (existingProfile && existingProfile.subscription_type !== accountType) {
-          throw new Error(`Acest email este deja înregistrat ca ${existingProfile.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Contabil'}. Folosește un alt email pentru ${accountType === 'entrepreneur' ? 'Antreprenor' : 'Contabil'}.`);
-        }
+        // Skip pre-check: permitem înscrierea chiar dacă există un profil vechi cu alt tip.
+        // Curățarea profilelor vechi se face la ștergere; continuăm cu sign-up fără a bloca aici.
 
         // Update profile with account type and terms acceptance
         const { data: { user } } = await supabase.auth.getUser();

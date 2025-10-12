@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Loader2, Crown, Copy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,6 +36,7 @@ export const UsersList = () => {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
   const { toast } = useToast();
+  const [emailFilter, setEmailFilter] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -135,9 +137,11 @@ export const UsersList = () => {
     }
   };
 
-  const entrepreneurs = users.filter(u => u.subscription_type === 'entrepreneur');
-  const accountants = users.filter(u => u.subscription_type === 'accounting_firm');
-  const freeAccessUsers = users.filter(u => u.has_free_access);
+  const normalizedFilter = emailFilter.trim().toLowerCase();
+  const filteredUsers = normalizedFilter ? users.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : users;
+  const entrepreneurs = filteredUsers.filter(u => u.subscription_type === 'entrepreneur');
+  const accountants = filteredUsers.filter(u => u.subscription_type === 'accounting_firm');
+  const freeAccessUsers = filteredUsers.filter(u => u.has_free_access);
 
   const renderUserCard = (user: Profile) => {
     const isInTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
@@ -245,14 +249,21 @@ export const UsersList = () => {
       <CardHeader>
         <CardTitle>Gestiune Utilizatori</CardTitle>
         <CardDescription>
-          Total: {users.length} utilizatori ({entrepreneurs.length} antreprenori, {accountants.length} contabili, {freeAccessUsers.length} cu acces gratuit)
+          Total: {filteredUsers.length} utilizatori ({entrepreneurs.length} antreprenori, {accountants.length} contabili, {freeAccessUsers.length} cu acces gratuit)
         </CardDescription>
+        <div className="mt-3">
+          <Input
+            value={emailFilter}
+            onChange={(e) => setEmailFilter(e.target.value)}
+            placeholder="Caută după email (ex: nume@domeniu.ro)"
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="all">
-              Toți ({users.length})
+              Toți ({filteredUsers.length})
             </TabsTrigger>
             <TabsTrigger value="entrepreneurs">
               Antreprenori ({entrepreneurs.length})
@@ -268,16 +279,16 @@ export const UsersList = () => {
           <TabsContent value="all" className="space-y-4">
             <div className="flex justify-end mb-4">
               <Button
-                onClick={() => copyUsersToClipboard(users)}
+                onClick={() => copyUsersToClipboard(filteredUsers)}
                 variant="outline"
                 size="sm"
                 className="gap-2"
               >
                 <Copy className="h-4 w-4" />
-                Copiază toți ({users.length})
+                Copiază toți ({filteredUsers.length})
               </Button>
             </div>
-            {users.map(renderUserCard)}
+            {filteredUsers.map(renderUserCard)}
           </TabsContent>
           
           <TabsContent value="entrepreneurs" className="space-y-4">

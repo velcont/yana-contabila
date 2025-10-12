@@ -51,10 +51,26 @@ serve(async (req) => {
 
     console.log(`Admin ${requestingUser.email} attempting to delete user ${userId}`);
 
-    // Șterge utilizatorul din auth.users (cascade va șterge și din profiles și alte tabele)
+    // Șterge utilizatorul din auth și curăță manual înregistrările dependente (profiles, user_roles)
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId);
-
     if (deleteError) throw deleteError;
+
+    // Extra cleanup în cazul în care FK-urile nu au ON DELETE CASCADE
+    const { error: profileDelError } = await supabaseClient
+      .from("profiles")
+      .delete()
+      .eq("id", userId);
+    if (profileDelError && (profileDelError as any).code !== "PGRST116") {
+      console.warn("Profile delete warning:", profileDelError);
+    }
+
+    const { error: rolesDelError } = await supabaseClient
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId);
+    if (rolesDelError && (rolesDelError as any).code !== "PGRST116") {
+      console.warn("user_roles delete warning:", rolesDelError);
+    }
 
     console.log(`User ${userId} deleted successfully by admin ${requestingUser.email}`);
 
