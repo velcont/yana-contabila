@@ -41,8 +41,14 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const root = document.documentElement;
     
-    // Remove all theme classes
+    // Remove all theme classes and any previous inline overrides
     root.classList.remove('theme-entrepreneur', 'theme-accountant', 'theme-admin');
+    root.style.removeProperty('--primary');
+    root.style.removeProperty('--primary-foreground');
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--accent-foreground');
+    root.style.removeProperty('--ring');
+    root.style.removeProperty('--sidebar-ring');
     
     // Add the appropriate theme class
     if (currentTheme === 'entrepreneur') {
