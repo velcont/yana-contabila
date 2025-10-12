@@ -30,11 +30,13 @@ import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
 import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAccountant } = useSubscription();
+  const { setThemeOverride } = useTheme();
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ const AccountantDashboard = () => {
       <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
+              <Button variant="ghost" size="sm" onClick={() => { setThemeOverride('entrepreneur'); navigate('/app'); }}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Înapoi
               </Button>
