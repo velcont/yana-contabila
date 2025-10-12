@@ -33,21 +33,21 @@ export const AdminRoleSwitcher = () => {
       name: 'Admin',
       description: 'Control sistem - Interfață portocalie',
       icon: Shield,
-      route: '/admin',
+      route: null,
     },
     {
       id: 'entrepreneur' as const,
       name: 'Modul Antreprenor',
       description: 'Analize proprii - Interfață albastră',
       icon: Crown,
-      route: '/app',
+      route: null,
     },
     {
       id: 'accountant' as const,
       name: 'Modul Contabil',
       description: 'Dashboard clienți - Interfață verde',
       icon: Building2,
-      route: '/crm',
+      route: null,
     },
   ];
 
