@@ -36,6 +36,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// IMPORTANT: Import AccountantDashboard for accountants
+import AccountantDashboard from "@/pages/AccountantDashboard";
+
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -49,6 +52,7 @@ const Index = () => {
   const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
   const [showAddCompany, setShowAddCompany] = useState(false);
+  const [userSubscriptionType, setUserSubscriptionType] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
@@ -74,19 +78,18 @@ const Index = () => {
             return;
           }
 
-          // VERIFICARE CRITICĂ: Contabilii NU pot accesa modulul antreprenor
-          // Trebuie cont separat cu email diferit pentru modul antreprenor
+          // CRITICAL: Contabilii văd modulul lor AICI în /app
+          // NU se mai face redirecționare - /app afișează modulul corect pentru fiecare tip
           if (data.subscription_type === 'accounting_firm') {
-            console.log('⛔ BLOCAT: User este contabil - redirecționare forțată la dashboard contabil');
-            toast({
-              title: "⛔ Acces Restricționat",
-              description: "Contul tău este înregistrat ca CONTABIL. Acest modul este doar pentru ANTREPRENORI. Pentru ambele module, ai nevoie de 2 abonamente cu email-uri diferite.",
-              variant: "destructive",
-              duration: 6000,
-            });
-            // Forțează redirecționarea imediată
-            setTimeout(() => navigate('/accountant-dashboard', { replace: true }), 1000);
-            return;
+            console.log('✅ User este contabil - afișare modul contabil în /app');
+            setUserSubscriptionType('accounting_firm');
+            // Setează tema contabil
+            setThemeOverride?.('accountant');
+          } else {
+            console.log('✅ User este antreprenor - afișare modul antreprenor în /app');
+            setUserSubscriptionType('entrepreneur');
+            // Setează tema antreprenor
+            setThemeOverride?.('entrepreneur');
           }
 
           // Verifică expirarea perioadei de testare
@@ -328,6 +331,15 @@ const Index = () => {
   }
 
   console.log('User is authenticated:', user.email);
+
+  // CRITICAL: Dacă utilizatorul este CONTABIL, afișează AccountantDashboard
+  if (userSubscriptionType === 'accounting_firm') {
+    console.log('🟢 Rendering AccountantDashboard for accountant in /app');
+    return <AccountantDashboard />;
+  }
+
+  // ELSE: Afișează interfața de ANTREPRENOR (cod existent mai jos)
+  console.log('🔵 Rendering Entrepreneur interface in /app');
 
   if (showDashboard && user) {
     return (

@@ -66,63 +66,15 @@ const AccountantDashboard = () => {
         return;
       }
       
-      // Force subscription check
+      // Verificare simplă - acest component este accesat DOAR din Index.tsx
+      // pentru utilizatori cu subscription_type = 'accounting_firm'
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Verificare directă din profil - mai rapidă și mai precisă
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_type, subscription_status, trial_ends_at')
-          .eq('id', user.id)
-          .single();
-        
-        console.log('Profile check:', profile);
-        
-        // VERIFICARE CRITICĂ: Antreprenorii NU pot accesa modulul contabil
-        // Trebuie cont separat cu email diferit pentru modul contabil
-        if (profile?.subscription_type === 'entrepreneur') {
-          console.log('⛔ BLOCAT: User este antreprenor - redirecționare forțată la dashboard antreprenor');
-          toast({
-            title: "⛔ Acces Restricționat",
-            description: "Contul tău este înregistrat ca ANTREPRENOR. Acest modul este doar pentru CONTABILI. Pentru ambele module, ai nevoie de 2 abonamente cu email-uri diferite.",
-            variant: "destructive",
-            duration: 6000,
-          });
-          // Forțează redirecționarea imediată
-          setTimeout(() => navigate('/app', { replace: true }), 1000);
-          return;
-        }
-        
-        // Verificare secundară prin edge function
-        const { data } = await supabase.functions.invoke('check-subscription');
-        console.log('Fresh subscription check:', data);
-        
-        // Verifică dacă este contabil activ
-        if (data?.subscription_type !== 'accounting_firm') {
-          console.log('Nu ești contabil');
-          toast({
-            title: "Acces restricționat",
-            description: "Acest modul este disponibil doar pentru abonamentul 'Firmă Contabilitate'.",
-            variant: "destructive",
-          });
-          navigate('/app');
-          return;
-        }
-        
-        // Blochează dacă perioada de testare a expirat
-        if (data?.trial_expired || (profile?.trial_ends_at && new Date(profile.trial_ends_at) <= new Date() && profile?.subscription_status !== 'active')) {
-          console.log('Perioada de testare expirată, redirecționare...');
-          toast({
-            title: "Perioada de testare expirată",
-            description: "Perioada ta gratuită de 3 luni s-a încheiat. Te rugăm să achiziționezi un abonament pentru a continua.",
-            variant: "destructive",
-          });
-          navigate('/subscription');
-          return;
-        }
+      if (!user) {
+        navigate('/auth');
+        return;
       }
       
-      console.log('Este contabil activ, încărcare clienți');
+      console.log('✅ User autentificat în AccountantDashboard, încărcare clienți');
       fetchClients();
     };
     

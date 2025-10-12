@@ -103,27 +103,14 @@ const Auth = () => {
         const { error } = await signIn(email, password);
         if (error) throw error;
         
-        // Get user profile to check subscription type
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('subscription_type')
-            .eq('id', user.id)
-            .single();
-          
-          toast({
-            title: "Autentificare reușită!",
-            description: "Bine ai revenit!",
-          });
-          
-          // Redirect based on subscription type
-          if (profile?.subscription_type === 'accounting_firm') {
-            navigate('/accountant-dashboard');
-          } else {
-            navigate('/app');
-          }
-        }
+        toast({
+          title: "Autentificare reușită!",
+          description: "Bine ai revenit!",
+        });
+        
+        // TOȚI utilizatorii merg la /app indiferent de tip
+        // Pagina /app va decide ce modul să afișeze
+        navigate('/app');
       } else {
         if (!fullName.trim()) {
           throw new Error("Te rog introdu numele complet");
@@ -186,12 +173,9 @@ const Auth = () => {
             : "Contul tău de contabil a fost configurat cu succes! Ai 3 luni gratuite!",
         });
         
-        // Redirect based on account type
-        if (accountType === 'accounting_firm') {
-          navigate('/accountant-dashboard');
-        } else {
-          navigate('/app');
-        }
+        // TOȚI utilizatorii merg la /app indiferent de tip
+        // Pagina /app va decide ce modul să afișeze
+        navigate('/app');
       }
     } catch (error: any) {
       console.error('Auth error:', error);
