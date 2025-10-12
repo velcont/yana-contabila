@@ -53,7 +53,7 @@ const Index = () => {
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
-  const { themeOverride, setThemeOverride } = useTheme();
+  const { themeType, setThemeOverride } = useTheme();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
@@ -372,18 +372,16 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
-                  {/* Determinăm modul activ: themeOverride (pentru admini) sau userSubscriptionType */}
                   {(() => {
-                    const effectiveMode = themeOverride || userSubscriptionType;
+                    const effectiveMode = themeType; // derive from ThemeRole/route and admin override
                     const isEntrepreneurMode = effectiveMode === 'entrepreneur';
-                    const isAccountantMode = effectiveMode === 'accountant' || effectiveMode === 'accounting_firm';
+                    const isAccountantMode = effectiveMode === 'accountant';
 
                     return (
                       <>
-                        {/* Doar în modul antreprenor */}
+                        {/* Antreprenor: NU afișăm nimic legat de contabil */}
                         {isEntrepreneurMode && (
                           <>
-                            <SubscriptionBadge />
                             <CompanySwitcher 
                               currentCompanyId={currentCompanyId}
                               onCompanyChange={setCurrentCompanyId}
@@ -391,7 +389,7 @@ const Index = () => {
                             />
                           </>
                         )}
-                        {/* Doar în modul contabil */}
+                        {/* Contabil: afișăm exclusiv elementele contabile */}
                         {isAccountantMode && (
                           <>
                             <SubscriptionBadge />
