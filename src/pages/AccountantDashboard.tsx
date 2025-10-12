@@ -50,13 +50,21 @@ const AccountantDashboard = () => {
   const [selectedClient, setSelectedClient] = useState<any>(null);
 
   useEffect(() => {
+    console.log('AccountantDashboard - subscriptionLoading:', subscriptionLoading, 'isAccountant:', isAccountant);
+    
     // Wait for subscription data to load before redirecting
-    if (subscriptionLoading) return;
+    if (subscriptionLoading) {
+      console.log('Still loading subscription data...');
+      return;
+    }
     
     if (!isAccountant) {
+      console.log('Not accountant, redirecting to subscription');
       navigate('/subscription');
       return;
     }
+    
+    console.log('Is accountant, fetching clients');
     fetchClients();
   }, [isAccountant, subscriptionLoading, navigate]);
 
