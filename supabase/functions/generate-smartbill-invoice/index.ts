@@ -119,8 +119,11 @@ serve(async (req) => {
     // Calculate amount in RON (Stripe stores in cents)
     const amountInRON = (session.amount_total || 0) / 100;
 
+    // Get company CIF from environment
+    const companyCIF = Deno.env.get('SMARTBILL_COMPANY_CIF') || 'RO12345678';
+
     const smartbillInvoice: SmartBillInvoice = {
-      cif: "RO12345678", // Replace with your company CIF
+      cif: companyCIF,
       client: {
         tip: "PF", // Persoană fizică, change to "PJ" for companies
         nume: customerName,
