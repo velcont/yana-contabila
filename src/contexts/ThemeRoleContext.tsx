@@ -19,18 +19,19 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
   const getCurrentTheme = (): ThemeRole => {
     const path = location.pathname;
 
-    // Landing pages always use landing theme (violet)
+    // Public pages ALWAYS use landing theme (violet) - regardless of user role
     if (path === '/' || path === '/landing' || path === '/auth' || path === '/terms' || path === '/privacy' || path === '/contact') {
       return 'landing';
     }
 
+    // For authenticated pages, apply role-based theming
     // Admin pages use admin theme (orange)
     if (isAdmin && (path.includes('/admin') || path === '/system-health' || path === '/analytics')) {
       return 'admin';
     }
 
     // Accountant pages use accountant theme (green)
-    if (isAccountant || path.includes('/accountant') || path === '/crm') {
+    if (isAccountant && (path.includes('/accountant') || path === '/crm')) {
       return 'accountant';
     }
 
