@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      accountant_invitations: {
+        Row: {
+          accepted_at: string | null
+          accountant_id: string
+          client_email: string
+          client_name: string | null
+          company_name: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          invitation_token: string | null
+          status: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accountant_id: string
+          client_email: string
+          client_name?: string | null
+          company_name: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invitation_token?: string | null
+          status?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accountant_id?: string
+          client_email?: string
+          client_name?: string | null
+          company_name?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          invitation_token?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accountant_invitations_accountant_id_fkey"
+            columns: ["accountant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_budget_limits: {
         Row: {
           alert_at_percent: number
@@ -563,12 +610,16 @@ export type Database = {
       }
       companies: {
         Row: {
+          accountant_brand_color: string | null
+          accountant_logo_url: string | null
           address: string | null
           cif: string | null
           company_name: string
           contact_person: string | null
           created_at: string
           id: string
+          is_own_company: boolean | null
+          managed_by_accountant_id: string | null
           notes: string | null
           phone: string | null
           registration_number: string | null
@@ -578,12 +629,16 @@ export type Database = {
           vat_payer: boolean | null
         }
         Insert: {
+          accountant_brand_color?: string | null
+          accountant_logo_url?: string | null
           address?: string | null
           cif?: string | null
           company_name: string
           contact_person?: string | null
           created_at?: string
           id?: string
+          is_own_company?: boolean | null
+          managed_by_accountant_id?: string | null
           notes?: string | null
           phone?: string | null
           registration_number?: string | null
@@ -593,12 +648,16 @@ export type Database = {
           vat_payer?: boolean | null
         }
         Update: {
+          accountant_brand_color?: string | null
+          accountant_logo_url?: string | null
           address?: string | null
           cif?: string | null
           company_name?: string
           contact_person?: string | null
           created_at?: string
           id?: string
+          is_own_company?: boolean | null
+          managed_by_accountant_id?: string | null
           notes?: string | null
           phone?: string | null
           registration_number?: string | null
@@ -607,7 +666,15 @@ export type Database = {
           user_id?: string
           vat_payer?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_managed_by_accountant_id_fkey"
+            columns: ["managed_by_accountant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       companies_audit_log: {
         Row: {
@@ -937,6 +1004,13 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_ends_at: string | null
+          subscription_status: string | null
+          subscription_type:
+            | Database["public"]["Enums"]["subscription_type"]
+            | null
           updated_at: string
         }
         Insert: {
@@ -944,6 +1018,13 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          subscription_type?:
+            | Database["public"]["Enums"]["subscription_type"]
+            | null
           updated_at?: string
         }
         Update: {
@@ -951,6 +1032,13 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          subscription_type?:
+            | Database["public"]["Enums"]["subscription_type"]
+            | null
           updated_at?: string
         }
         Relationships: []
@@ -994,6 +1082,42 @@ export type Database = {
           theoretical_frameworks?: Json
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          name: string
+          plan_type: Database["public"]["Enums"]["subscription_type"]
+          price_monthly_eur: number
+          stripe_price_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          name: string
+          plan_type: Database["public"]["Enums"]["subscription_type"]
+          price_monthly_eur: number
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          name?: string
+          plan_type?: Database["public"]["Enums"]["subscription_type"]
+          price_monthly_eur?: number
+          stripe_price_id?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1167,6 +1291,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      subscription_type: "entrepreneur" | "accounting_firm"
       tax_type: "profit" | "micro" | "dividend" | "norma_venit"
     }
     CompositeTypes: {
@@ -1296,6 +1421,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      subscription_type: ["entrepreneur", "accounting_firm"],
       tax_type: ["profit", "micro", "dividend", "norma_venit"],
     },
   },
