@@ -22,7 +22,8 @@ import { ResilienceAnalysis } from './ResilienceAnalysis';
 import { EmailAnalysisDialog } from './EmailAnalysisDialog';
 import { ShareAnalysisDialog } from './ShareAnalysisDialog';
 import { AnalysisComments } from './AnalysisComments';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   Select,
   SelectContent,
@@ -56,6 +57,9 @@ export const Dashboard = () => {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
+  const { themeType } = useTheme();
+  const isAccountantMode = themeType === 'accountant';
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAnalyses();
@@ -573,6 +577,18 @@ INDICATORI OPERAȚIONALI:
         </div>
       </div>
       
+      {isAccountantMode && (
+        <Card>
+          <CardContent className="py-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium">Modul Contabil</p>
+              <p className="text-sm text-muted-foreground">Pentru managementul clienților și comparații multi-firmă, mergi la Dashboard Contabil.</p>
+            </div>
+            <Button onClick={() => navigate('/accountant-dashboard')}>Deschide Dashboard Contabil</Button>
+          </CardContent>
+        </Card>
+      )}
+      
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full max-w-5xl grid-cols-7">
           <TabsTrigger value="analytics" data-tour="tab-analytics">
@@ -591,10 +607,12 @@ INDICATORI OPERAȚIONALI:
             <TrendingUp className="h-4 w-4 mr-2" />
             Reziliență
           </TabsTrigger>
-          <TabsTrigger value="multi-company" data-tour="tab-multi-company">
-            <Building2 className="h-4 w-4 mr-2" />
-            Multi-Firmă
-          </TabsTrigger>
+          {isAccountantMode && (
+            <TabsTrigger value="multi-company" data-tour="tab-multi-company">
+              <Building2 className="h-4 w-4 mr-2" />
+              Multi-Firmă
+            </TabsTrigger>
+          )}
           <TabsTrigger value="news" data-tour="tab-news">
             <Newspaper className="h-4 w-4 mr-2" />
             Știri
@@ -625,9 +643,11 @@ INDICATORI OPERAȚIONALI:
           <ResilienceAnalysis analyses={filteredAnalyses} />
         </TabsContent>
 
-        <TabsContent value="multi-company" className="space-y-6">
-          <MultiCompanyComparison />
-        </TabsContent>
+        {isAccountantMode && (
+          <TabsContent value="multi-company" className="space-y-6">
+            <MultiCompanyComparison />
+          </TabsContent>
+        )}
 
         <TabsContent value="news" className="space-y-6">
           <FiscalNews />

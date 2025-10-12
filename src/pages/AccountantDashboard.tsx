@@ -27,7 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
-import MultiCompanyComparison from '@/components/MultiCompanyComparison';
+import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
