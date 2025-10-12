@@ -7,26 +7,27 @@ All colors MUST be HSL.
 */
 
 @layer base {
+  /* Landing Theme - Violet/Indigo (Brand Identity) */
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 25% 15%;
+    --background: 250 25% 98%;
+    --foreground: 250 25% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 250 25% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
-    --primary: 217 91% 45%;
+    --popover-foreground: 250 25% 15%;
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 96%;
-    --secondary-foreground: 215 25% 15%;
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 15% 45%;
-    --accent: 142 76% 36%;
+    --secondary: 250 25% 96%;
+    --secondary-foreground: 250 25% 15%;
+    --muted: 250 25% 96%;
+    --muted-foreground: 250 15% 45%;
+    --accent: 270 75% 60%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 217 91% 45%;
+    --border: 250 20% 88%;
+    --input: 250 20% 88%;
+    --ring: 262 83% 58%;
     --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -35,55 +36,128 @@ All colors MUST be HSL.
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --chart-1: 217 91% 45%;
-    --chart-2: 142 76% 36%;
+    --sidebar-ring: 262 83% 58%;
+    --chart-1: 262 83% 58%;
+    --chart-2: 270 75% 60%;
     --chart-3: 38 92% 50%;
-    --chart-4: 262 83% 58%;
-    --chart-5: 0 84% 60%;
+    --chart-4: 217 91% 45%;
+    --chart-5: 142 76% 36%;
     --success: 142 76% 36%;
     --success-foreground: 138 76% 97%;
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 89%;
   }
 
-  .dark {
-    --background: 215 28% 8%;
-    --foreground: 210 20% 98%;
-    --card: 215 25% 12%;
-    --card-foreground: 210 20% 98%;
-    --popover: 215 25% 12%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 217 91% 55%;
+  /* Entrepreneur Theme - Blue (Trust, Business) */
+  .theme-entrepreneur {
+    --primary: 217 91% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 215 25% 16%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 25% 16%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 142 76% 40%;
+    --accent: 210 85% 55%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 217 91% 45%;
+    --sidebar-ring: 217 91% 45%;
+    --chart-1: 217 91% 45%;
+    --chart-2: 210 85% 55%;
+    --chart-3: 200 80% 50%;
+    --chart-4: 195 75% 55%;
+    --chart-5: 220 70% 60%;
+  }
+
+  /* Accountant Theme - Green (Growth, Financial) */
+  .theme-accountant {
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 150 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 142 76% 36%;
+    --sidebar-ring: 142 76% 36%;
+    --chart-1: 142 76% 36%;
+    --chart-2: 150 70% 45%;
+    --chart-3: 160 65% 50%;
+    --chart-4: 135 60% 40%;
+    --chart-5: 155 75% 42%;
+  }
+
+  /* Admin Theme - Orange/Amber (Attention, Control) */
+  .theme-admin {
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 30 85% 55%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 38 92% 50%;
+    --sidebar-ring: 38 92% 50%;
+    --chart-1: 38 92% 50%;
+    --chart-2: 30 85% 55%;
+    --chart-3: 25 80% 50%;
+    --chart-4: 35 75% 55%;
+    --chart-5: 20 90% 48%;
+  }
+
+  /* Dark Mode - Landing (Violet) */
+  .dark {
+    --background: 250 28% 8%;
+    --foreground: 250 20% 98%;
+    --card: 250 25% 12%;
+    --card-foreground: 250 20% 98%;
+    --popover: 250 25% 12%;
+    --popover-foreground: 250 20% 98%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 25% 16%;
+    --secondary-foreground: 250 20% 98%;
+    --muted: 250 25% 16%;
+    --muted-foreground: 250 15% 65%;
+    --accent: 270 75% 60%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 215 25% 20%;
-    --input: 215 25% 20%;
-    --ring: 217 91% 55%;
+    --border: 250 25% 20%;
+    --input: 250 25% 20%;
+    --ring: 262 83% 58%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    --chart-1: 217 91% 55%;
-    --chart-2: 142 76% 40%;
+    --sidebar-ring: 262 83% 58%;
+    --chart-1: 262 83% 58%;
+    --chart-2: 270 75% 60%;
     --chart-3: 38 92% 50%;
-    --chart-4: 262 83% 58%;
-    --chart-5: 0 62% 50%;
+    --chart-4: 217 91% 55%;
+    --chart-5: 142 76% 40%;
     --success: 142 71% 45%;
     --success-foreground: 144 76% 97%;
     --warning: 38 92% 50%;
     --warning-foreground: 48 96% 11%;
+  }
+
+  /* Dark Mode - Entrepreneur */
+  .dark.theme-entrepreneur {
+    --primary: 217 91% 55%;
+    --accent: 210 85% 60%;
+    --ring: 217 91% 55%;
+    --sidebar-primary: 217 91% 55%;
+    --sidebar-ring: 217 91% 55%;
+  }
+
+  /* Dark Mode - Accountant */
+  .dark.theme-accountant {
+    --primary: 142 76% 40%;
+    --accent: 150 70% 50%;
+    --ring: 142 76% 40%;
+    --sidebar-primary: 142 76% 40%;
+    --sidebar-ring: 142 76% 40%;
+  }
+
+  /* Dark Mode - Admin */
+  .dark.theme-admin {
+    --primary: 38 92% 50%;
+    --accent: 30 85% 60%;
+    --ring: 38 92% 50%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-ring: 38 92% 50%;
   }
 }
 

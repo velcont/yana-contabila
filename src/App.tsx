@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { TutorialProvider } from "@/contexts/TutorialContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ThemeProvider as AppThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeRoleProvider } from "@/contexts/ThemeRoleContext";
 import { TutorialOverlay } from "@/components/TutorialOverlay";
 import { TutorialMenu } from "@/components/TutorialMenu";
 import Index from "./pages/Index";
@@ -56,34 +57,36 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <SubscriptionProvider>
-            <AppThemeProvider>
-              <TutorialProvider>
-                <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/landing" element={<Landing />} />
-              <Route path="/demo" element={<Demo />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
-              <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
-              <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
-              <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
-              <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
-              <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
-              <Route path="/accountant-dashboard" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
-              <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
-              <Route path="/accept-invitation" element={<AcceptInvitation />} />
-              <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-                </Routes>
-                <TutorialOverlay />
-                <TutorialMenu />
-              </TutorialProvider>
-            </AppThemeProvider>
+            <ThemeRoleProvider>
+              <AppThemeProvider>
+                <TutorialProvider>
+                  <Routes>
+                    <Route path="/" element={<Landing />} />
+                    <Route path="/landing" element={<Landing />} />
+                    <Route path="/demo" element={<Demo />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
+                    <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+                    <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
+                    <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
+                    <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
+                    <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
+                    <Route path="/accountant-dashboard" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
+                    <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
+                    <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                    <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                  <TutorialOverlay />
+                  <TutorialMenu />
+                </TutorialProvider>
+              </AppThemeProvider>
+            </ThemeRoleProvider>
           </SubscriptionProvider>
         </BrowserRouter>
       </TooltipProvider>

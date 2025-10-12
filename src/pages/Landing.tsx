@@ -19,7 +19,11 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  Users,
+  Building2,
+  Check,
+  Gift
 } from 'lucide-react';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { AIPredictions } from '@/components/AIPredictions';
@@ -380,6 +384,206 @@ Perioada: 01/04/2025 - 30/04/2025`,
             </Card>
           ))}
         </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-muted/30 to-background rounded-3xl">
+        <div className="text-center mb-4">
+          <Badge className="mb-4" variant="secondary">
+            <Gift className="h-3 w-3 mr-1" />
+            Primele 3 luni GRATUIT
+          </Badge>
+        </div>
+        
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
+          Alege planul potrivit pentru afacerea ta
+        </h2>
+        <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+          Începi gratuit pentru 3 luni. Fără card necesar. Fără angajamente.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {/* Plan Antreprenor */}
+          <Card className="relative hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/50">
+            <CardHeader className="text-center pb-8 pt-8">
+              <div className="h-16 w-16 mx-auto mb-4 bg-blue-500/10 rounded-full flex items-center justify-center">
+                <Users className="h-8 w-8 text-blue-500" />
+              </div>
+              <CardTitle className="text-2xl mb-2">Plan Antreprenor</CardTitle>
+              <p className="text-muted-foreground text-sm">Perfect pentru afaceri mici și mijlocii</p>
+              <div className="mt-6">
+                <div className="flex items-baseline justify-center gap-2">
+                  <span className="text-5xl font-bold">49</span>
+                  <span className="text-2xl font-semibold">RON</span>
+                  <span className="text-muted-foreground">/lună</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  ~12 EUR/lună
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Analiză AI nelimitată a balanței</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Chat AI conversațional</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Voice Interface (10 min/lună)</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Dashboard & Analytics live</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Predicții AI & Alerte proactive</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Export PDF nelimitat</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Suport email prioritar</span>
+                </div>
+              </div>
+
+              <Button 
+                size="lg" 
+                className="w-full bg-blue-500 hover:bg-blue-600"
+                onClick={() => navigate('/auth')}
+              >
+                Începe gratuit 3 luni
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Storage inclus: 1GB • După trial: 49 RON/lună
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Plan Contabil */}
+          <Card className="relative hover:shadow-2xl transition-all duration-300 border-2 border-primary bg-gradient-to-b from-primary/5 to-background">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <Badge className="bg-primary text-primary-foreground px-6 py-1">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Popular
+              </Badge>
+            </div>
+            
+            <CardHeader className="text-center pb-8 pt-8">
+              <div className="h-16 w-16 mx-auto mb-4 bg-success/10 rounded-full flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-success" />
+              </div>
+              <CardTitle className="text-2xl mb-2">Plan Contabil</CardTitle>
+              <p className="text-muted-foreground text-sm">Pentru firme de contabilitate cu clienți</p>
+              <div className="mt-6">
+                <div className="flex items-baseline justify-center gap-2">
+                  <span className="text-5xl font-bold">199</span>
+                  <span className="text-2xl font-semibold">RON</span>
+                  <span className="text-muted-foreground">/lună</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  ~47 EUR/lună
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm font-semibold">Toate din planul Antreprenor, plus:</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">CRM complet pentru clienți</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Management documente & facturi</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Calendar termene fiscale</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Task management & colaborare</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Email marketing integrat</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Branding personalizat</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Clienți nelimitați</span>
+                </div>
+              </div>
+
+              <Button 
+                size="lg" 
+                className="w-full"
+                onClick={() => navigate('/auth')}
+              >
+                Începe gratuit 3 luni
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Storage inclus: 5GB • După trial: 199 RON/lună
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Costuri Suplimentare */}
+        <div className="mt-12 max-w-3xl mx-auto">
+          <Card className="bg-muted/50">
+            <CardContent className="p-6">
+              <h3 className="font-semibold text-center mb-4">💡 Costuri suplimentare transparente</h3>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-2">
+                  <p className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Storage extra:</span>
+                    <span className="text-muted-foreground">~0.09 RON/GB/lună</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Pentru documentele clienților (balanțe, facturi, contracte)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                    <span className="font-medium">Email-uri:</span>
+                    <span className="text-muted-foreground">3,000 gratis/lună</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Apoi ~0.40 RON/1000 email-uri (pentru rapoarte automate)
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-center text-muted-foreground mt-4">
+                Pentru majoritatea utilizatorilor, costurile suplimentare sunt <span className="font-semibold text-foreground">0-10 RON/lună</span>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <p className="text-center text-muted-foreground text-sm mt-8">
+          🎁 Fără card necesar pentru trial • Anulare oricând • Suport în limba română
+        </p>
       </section>
 
       {/* Comparison Table */}
