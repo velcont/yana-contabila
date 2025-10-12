@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { TutorialProvider } from "@/contexts/TutorialContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { ThemeProvider as AppThemeProvider } from "@/contexts/ThemeContext";
 import { TutorialOverlay } from "@/components/TutorialOverlay";
 import { TutorialMenu } from "@/components/TutorialMenu";
 import Index from "./pages/Index";
@@ -21,6 +23,8 @@ import { Demo } from "./pages/Demo";
 import SystemHealth from "./pages/SystemHealth";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Subscription from "./pages/Subscription";
+import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
@@ -48,8 +52,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <TutorialProvider>
-            <Routes>
+          <SubscriptionProvider>
+            <AppThemeProvider>
+              <TutorialProvider>
+                <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/landing" element={<Landing />} />
               <Route path="/demo" element={<Demo />} />
@@ -62,13 +68,17 @@ const App = () => (
               <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
+              <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
               <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-            <TutorialOverlay />
-            <TutorialMenu />
-          </TutorialProvider>
+                </Routes>
+                <TutorialOverlay />
+                <TutorialMenu />
+              </TutorialProvider>
+            </AppThemeProvider>
+          </SubscriptionProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
