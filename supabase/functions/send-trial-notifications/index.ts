@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { Resend } from "npm:resend@4.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,7 +130,7 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`Error sending notification ${notification.id}:`, error);
-        errors.push({ notificationId: notification.id, error: error.message });
+        errors.push({ notificationId: notification.id, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -146,7 +146,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in send-trial-notifications:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
