@@ -67,7 +67,7 @@ const AccountantDashboard = () => {
       // Fetch companies managed by this accountant with latest analysis
       const { data, error } = await supabase
         .from('companies')
-        .select('*, profiles!companies_user_id_fkey(email, full_name)')
+        .select('*')
         .eq('managed_by_accountant_id', user.id);
 
       if (error) throw error;
@@ -157,7 +157,7 @@ const AccountantDashboard = () => {
 
   const filteredClients = clients.filter((client) =>
     client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    client.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -331,10 +331,7 @@ const AccountantDashboard = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="text-sm">{client.profiles?.full_name || 'N/A'}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {client.profiles?.email}
-                          </span>
+                          <span className="text-sm">{client.contact_person || 'N/A'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -382,8 +379,8 @@ const AccountantDashboard = () => {
             onOpenChange={setEmailDialogOpen}
             companyId={selectedClient.id}
             companyName={selectedClient.company_name}
-            clientEmail={selectedClient.profiles?.email || ''}
-            clientName={selectedClient.profiles?.full_name || ''}
+            clientEmail={''}
+            clientName={selectedClient.contact_person || ''}
             latestAnalysis={selectedClient.latestAnalysis}
           />
         )}
