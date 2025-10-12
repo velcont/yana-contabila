@@ -1,251 +1,220 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { formatCurrency, formatNumber, type FinancialIndicators } from '@/utils/analysisParser';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, AlertCircle } from 'lucide-react';
 
-interface Analysis {
-  id: string;
-  company_name?: string;
-  file_name: string;
-  created_at: string;
-  metadata: FinancialIndicators;
-}
+export const MultiCompanyComparison = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [companyData, setCompanyData] = useState<any[]>([]);
+  const [aggregateStats, setAggregateStats] = useState<any>(null);
 
-interface MultiCompanyComparisonProps {
-  analyses: Analysis[];
-}
+  useEffect(() => {
+    fetchCompanyAnalytics();
+  }, []);
 
-export const MultiCompanyComparison = ({ analyses }: MultiCompanyComparisonProps) => {
-  if (!analyses || analyses.length === 0) {
-    return null;
-  }
+  const fetchCompanyAnalytics = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  // Grupează analizele pe firmă și ia cea mai recentă pentru fiecare
-  const companiesMap = new Map<string, Analysis>();
-  analyses.forEach(analysis => {
-    const companyName = analysis.company_name || 'Firma Principală';
-    const existing = companiesMap.get(companyName);
-    if (!existing || new Date(analysis.created_at) > new Date(existing.created_at)) {
-      companiesMap.set(companyName, analysis);
+      const { data: companies, error: companiesError } = await supabase
+        .from('companies')
+        .select('id, company_name')
+        .eq('managed_by_accountant_id', user.id);
+
+      if (companiesError) throw companiesError;
+
+      if (!companies || companies.length === 0) {
+        setCompanyData([]);
+        setLoading(false);
+        return;
+      }
+
+      const analyticsPromises = companies.map(async (company) => {
+        const { data: analyses } = await supabase
+          .from('analyses')
+          .select('metadata, created_at')
+          .eq('company_id', company.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (analyses && analyses.metadata) {
+          const meta = analyses.metadata as any;
+          return {
+            name: company.company_name,
+            profit: meta.profit || 0,
+            ca: meta.ca || 0,
+            dso: meta.dso || 0,
+            ebitda: meta.ebitda || 0,
+            lastUpdate: analyses.created_at
+          };
+        }
+        return null;
+      });
+
+      const results = await Promise.all(analyticsPromises);
+      const validData = results.filter(Boolean);
+      
+      setCompanyData(validData);
+
+      if (validData.length > 0) {
+        const avgProfit = validData.reduce((sum, c) => sum + c.profit, 0) / validData.length;
+        const avgCA = validData.reduce((sum, c) => sum + c.ca, 0) / validData.length;
+        const avgDSO = validData.reduce((sum, c) => sum + c.dso, 0) / validData.length;
+        const totalClients = validData.length;
+        const profitableClients = validData.filter(c => c.profit > 0).length;
+        const clientsWithHighDSO = validData.filter(c => c.dso > 60).length;
+
+        setAggregateStats({
+          avgProfit,
+          avgCA,
+          avgDSO,
+          totalClients,
+          profitableClients,
+          clientsWithHighDSO,
+          profitabilityRate: (profitableClients / totalClients) * 100
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching company analytics:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu s-au putut încărca datele comparative',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
-  const companies = Array.from(companiesMap.values());
-
-  if (companies.length < 2) {
+  if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Comparație Multi-Firmă</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Adaugă analize pentru cel puțin 2 firme diferite pentru a vedea comparația.
+        <CardContent className="py-8">
+          <p className="text-center text-muted-foreground">Se încarcă datele comparative...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!companyData.length) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center text-muted-foreground">
+            Nu există date disponibile pentru comparație
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const comparisonData = [
-    {
-      metric: 'Cifră Afaceri',
-      ...Object.fromEntries(
-        companies.map(c => [
-          c.company_name || 'Firma Principală',
-          c.metadata.revenue || 0
-        ])
-      )
-    },
-    {
-      metric: 'Profit',
-      ...Object.fromEntries(
-        companies.map(c => [
-          c.company_name || 'Firma Principală',
-          c.metadata.profit || 0
-        ])
-      )
-    },
-    {
-      metric: 'EBITDA',
-      ...Object.fromEntries(
-        companies.map(c => [
-          c.company_name || 'Firma Principală',
-          c.metadata.ebitda || 0
-        ])
-      )
-    },
-  ];
-
-  const dsoData = companies.map(c => ({
-    company: c.company_name || 'Firma Principală',
-    DSO: c.metadata.dso || 0,
-    DPO: c.metadata.dpo || 0,
-  }));
-
-  const calculatePerformanceScore = (indicators: FinancialIndicators): number => {
-    let score = 0;
-    if ((indicators.profit || 0) > 0) score += 30;
-    if ((indicators.ebitda || 0) > 0) score += 20;
-    if ((indicators.dso || 999) < 60) score += 25;
-    if ((indicators.cashConversionCycle || 999) < 60) score += 25;
-    return score;
-  };
-
-  const companiesWithScores = companies.map(c => ({
-    ...c,
-    score: calculatePerformanceScore(c.metadata)
-  })).sort((a, b) => b.score - a.score);
-
-  const bestPerformer = companiesWithScores[0];
-  const worstPerformer = companiesWithScores[companiesWithScores.length - 1];
-
   return (
     <div className="space-y-6">
-      {/* Performance Ranking */}
-      <Card>
-        <CardHeader>
-          <CardTitle>🏆 Clasament Performanță Firme</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {companiesWithScores.map((company, idx) => (
-              <div
-                key={company.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold text-muted-foreground">
-                    #{idx + 1}
-                  </span>
-                  <div>
-                    <p className="font-semibold">{company.company_name || 'Firma Principală'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Score: {company.score}/100
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {idx === 0 && (
-                    <Badge variant="default" className="bg-success">
-                      <TrendingUp className="h-3 w-3 mr-1" />
-                      Cel mai bine
-                    </Badge>
-                  )}
-                  {idx === companiesWithScores.length - 1 && companiesWithScores.length > 2 && (
-                    <Badge variant="destructive">
-                      <TrendingDown className="h-3 w-3 mr-1" />
-                      Necesită atenție
-                    </Badge>
-                  )}
-                </div>
+      {aggregateStats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Total Clienți</CardDescription>
+              <CardTitle className="text-3xl">{aggregateStats.totalClients}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 text-sm">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <span className="text-green-500 font-medium">
+                  {aggregateStats.profitableClients} profitabili
+                </span>
+                <span className="text-muted-foreground">
+                  ({aggregateStats.profitabilityRate.toFixed(0)}%)
+                </span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Revenue, Profit, EBITDA Comparison */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Profit Mediu</CardDescription>
+              <CardTitle className="text-3xl">
+                {aggregateStats.avgProfit.toLocaleString('ro-RO', { 
+                  maximumFractionDigits: 0 
+                })} RON
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                CA Mediu: {aggregateStats.avgCA.toLocaleString('ro-RO', { maximumFractionDigits: 0 })} RON
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>DSO Mediu</CardDescription>
+              <CardTitle className="text-3xl">{aggregateStats.avgDSO.toFixed(0)} zile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 text-sm">
+                {aggregateStats.clientsWithHighDSO > 0 && (
+                  <>
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                    <span className="text-orange-500 font-medium">
+                      {aggregateStats.clientsWithHighDSO} clienți cu DSO ridicat
+                    </span>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Comparație Financiară</CardTitle>
+          <CardTitle>Comparație Profit pe Client</CardTitle>
+          <CardDescription>Profitabilitatea fiecărui client</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={comparisonData}>
+            <BarChart data={companyData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="metric" />
-              <YAxis tickFormatter={(value) => formatCurrency(value)} />
-              <Tooltip formatter={(value) => formatCurrency(value as number)} />
-              <Legend />
-              {companies.map((company, idx) => (
-                <Bar
-                  key={company.id}
-                  dataKey={company.company_name || 'Firma Principală'}
-                  fill={`hsl(${idx * 360 / companies.length}, 70%, 50%)`}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* DSO/DPO Comparison */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparație DSO/DPO (Zile)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={dsoData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="company" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
               <YAxis />
-              <Tooltip />
+              <Tooltip 
+                formatter={(value: number) => value.toLocaleString('ro-RO') + ' RON'}
+              />
               <Legend />
-              <Bar dataKey="DSO" fill="#f59e0b" name="DSO (Zile Încasare)" />
-              <Bar dataKey="DPO" fill="#10b981" name="DPO (Zile Plată)" />
+              <Bar dataKey="profit" fill="#10b981" name="Profit (RON)" />
             </BarChart>
           </ResponsiveContainer>
-          <div className="mt-4 p-4 bg-muted rounded-lg">
-            <p className="text-sm">
-              <strong>Optimizare:</strong> Firma cu cel mai mic DSO încasează cel mai rapid.
-              Firma cu cel mai mare DPO are cele mai bune condiții de plată.
-            </p>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Key Insights */}
       <Card>
         <CardHeader>
-          <CardTitle>💡 Insight-uri Cheie</CardTitle>
+          <CardTitle>Comparație DSO (Zile de Încasare)</CardTitle>
+          <CardDescription>Viteza de încasare pentru fiecare client</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-start gap-2 p-3 bg-success/10 rounded-lg">
-            <TrendingUp className="h-5 w-5 text-success mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">Cea mai performantă firmă</p>
-              <p className="text-sm text-muted-foreground">
-                {bestPerformer.company_name || 'Firma Principală'} are un score de performanță de{' '}
-                {bestPerformer.score}/100
-              </p>
-            </div>
-          </div>
-
-          {worstPerformer.id !== bestPerformer.id && (
-            <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg">
-              <TrendingDown className="h-5 w-5 text-warning mt-0.5" />
-              <div>
-                <p className="font-semibold text-sm">Necesită atenție</p>
-                <p className="text-sm text-muted-foreground">
-                  {worstPerformer.company_name || 'Firma Principală'} are un score de{' '}
-                  {worstPerformer.score}/100 și ar beneficia de îmbunătățiri
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-start gap-2 p-3 bg-primary/10 rounded-lg">
-            <Minus className="h-5 w-5 text-primary mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">Recomandare</p>
-              <p className="text-sm text-muted-foreground">
-                Folosește best practices de la firma cu cel mai bun score pentru a îmbunătăți
-                performanța celorlalte entități
-              </p>
-            </div>
-          </div>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={companyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+              <YAxis />
+              <Tooltip formatter={(value: number) => value.toFixed(0) + ' zile'} />
+              <Legend />
+              <Bar dataKey="dso" fill="#3b82f6" name="DSO (zile)" />
+            </BarChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
     </div>
   );
 };
+
+export default MultiCompanyComparison;

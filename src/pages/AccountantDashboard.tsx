@@ -22,11 +22,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
+import MultiCompanyComparison from '@/components/MultiCompanyComparison';
+import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -41,6 +44,8 @@ const AccountantDashboard = () => {
     clientName: '',
     companyName: '',
   });
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
 
   useEffect(() => {
     if (!isAccountant) {
@@ -54,15 +59,36 @@ const AccountantDashboard = () => {
     try {
       setLoading(true);
       
-      // Fetch companies managed by this accountant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch companies managed by this accountant with latest analysis
       const { data, error } = await supabase
         .from('companies')
         .select('*, profiles!companies_user_id_fkey(email, full_name)')
-        .eq('managed_by_accountant_id', (await supabase.auth.getUser()).data.user?.id);
+        .eq('managed_by_accountant_id', user.id);
 
       if (error) throw error;
+
+      // For each company, get the latest analysis
+      const companiesWithAnalysis = await Promise.all(
+        (data || []).map(async (company) => {
+          const { data: latestAnalysis } = await supabase
+            .from('analyses')
+            .select('metadata, created_at')
+            .eq('company_id', company.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          return {
+            ...company,
+            latestAnalysis
+          };
+        })
+      );
       
-      setClients(data || []);
+      setClients(companiesWithAnalysis);
     } catch (error: any) {
       console.error('Error fetching clients:', error);
       toast({
@@ -142,15 +168,28 @@ const AccountantDashboard = () => {
                 <Palette className="mr-2 h-4 w-4" />
                 Branding
               </Button>
-            <div>
-              <h1 className="text-3xl font-bold">Dashboard Contabilitate</h1>
-              <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
+              <div>
+                <h1 className="text-3xl font-bold">Dashboard Contabilitate</h1>
+                <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
+              </div>
             </div>
+            <AdminRoleSwitcher />
           </div>
-          <AdminRoleSwitcher />
-        </div>
 
-        <Card>
+        <Tabs defaultValue="clients" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="clients">
+              <Building2 className="mr-2 h-4 w-4" />
+              Clienți
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart className="mr-2 h-4 w-4" />
+              Analiză Comparativă
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="clients" className="space-y-6">
+            <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -301,11 +340,21 @@ const AccountantDashboard = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => navigate(`/app?company=${client.id}`)}
+                          title="Vezi analize"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <FileText className="h-4 w-4" />
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setEmailDialogOpen(true);
+                          }}
+                          disabled={!client.latestAnalysis}
+                          title="Trimite raport email"
+                        >
+                          <Mail className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -315,6 +364,24 @@ const AccountantDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <MultiCompanyComparison />
+          </TabsContent>
+        </Tabs>
+
+        {selectedClient && (
+          <EmailAnalysisDialog
+            open={emailDialogOpen}
+            onOpenChange={setEmailDialogOpen}
+            companyId={selectedClient.id}
+            companyName={selectedClient.company_name}
+            clientEmail={selectedClient.profiles?.email || ''}
+            clientName={selectedClient.profiles?.full_name || ''}
+            latestAnalysis={selectedClient.latestAnalysis}
+          />
+        )}
       </div>
     </div>
   );

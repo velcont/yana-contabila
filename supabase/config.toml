@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.send-client-invitation]
 verify_jwt = true
+
+[functions.send-monthly-report]
+verify_jwt = true

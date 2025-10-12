@@ -1,0 +1,174 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { Resend } from "npm:resend@4.0.0";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[SEND-MONTHLY-REPORT] ${step}${detailsStr}`);
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    logStep("Function started");
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError) throw userError;
+    const user = userData.user;
+    if (!user?.email) throw new Error("User not authenticated");
+    logStep("User authenticated", { userId: user.id, email: user.email });
+
+    // Check if user is an accountant
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('subscription_type')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.subscription_type !== 'accounting_firm') {
+      throw new Error("Only accounting firm users can send monthly reports");
+    }
+
+    const { companyId, clientEmail, clientName, reportData } = await req.json();
+    logStep("Request data received", { companyId, clientEmail });
+
+    if (!companyId || !clientEmail || !reportData) {
+      throw new Error("Missing required fields");
+    }
+
+    // Get company details
+    const { data: company } = await supabaseClient
+      .from('companies')
+      .select('company_name, accountant_logo_url, accountant_brand_color')
+      .eq('id', companyId)
+      .single();
+
+    if (!company) {
+      throw new Error("Company not found");
+    }
+
+    // Initialize Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+    // Build email HTML with branding
+    const brandColor = company.accountant_brand_color || '#10b981';
+    const logoHtml = company.accountant_logo_url 
+      ? `<img src="${company.accountant_logo_url}" alt="Logo" style="height: 60px; margin-bottom: 20px;">` 
+      : '';
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { border-bottom: 3px solid ${brandColor}; padding-bottom: 20px; margin-bottom: 30px; }
+            .metric { background: #f9fafb; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid ${brandColor}; }
+            .metric-label { font-weight: bold; color: ${brandColor}; }
+            .metric-value { font-size: 1.2em; margin-top: 5px; }
+            .alert { background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 10px 0; border-radius: 8px; }
+            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.9em; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              ${logoHtml}
+              <h1 style="color: ${brandColor}; margin: 0;">Raport Lunar Financiar</h1>
+              <p style="color: #6b7280; margin: 5px 0 0 0;">${company.company_name}</p>
+              <p style="color: #9ca3af; margin: 5px 0 0 0;">${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}</p>
+            </div>
+
+            <p>Bună ${clientName || 'ziua'},</p>
+            <p>Iți transmitem raportul financiar lunar pentru compania ta. Aici găsești principalii indicatori și recomandări:</p>
+
+            <h2 style="color: ${brandColor}; margin-top: 30px;">Indicatori Cheie</h2>
+            ${reportData.metrics ? reportData.metrics.map((metric: any) => `
+              <div class="metric">
+                <div class="metric-label">${metric.label}</div>
+                <div class="metric-value">${metric.value}</div>
+              </div>
+            `).join('') : ''}
+
+            ${reportData.alerts && reportData.alerts.length > 0 ? `
+              <h2 style="color: #ef4444; margin-top: 30px;">⚠️ Alerte Importante</h2>
+              ${reportData.alerts.map((alert: string) => `
+                <div class="alert">${alert}</div>
+              `).join('')}
+            ` : ''}
+
+            ${reportData.recommendations ? `
+              <h2 style="color: ${brandColor}; margin-top: 30px;">💡 Recomandări</h2>
+              <ul>
+                ${reportData.recommendations.map((rec: string) => `<li>${rec}</li>`).join('')}
+              </ul>
+            ` : ''}
+
+            <div class="footer">
+              <p>Acest raport a fost generat automat. Pentru detalii suplimentare, te rugăm să contactezi firma de contabilitate.</p>
+              <p>© ${new Date().getFullYear()} - Toate drepturile rezervate</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: "Raport Financiar <onboarding@resend.dev>",
+      to: [clientEmail],
+      subject: `Raport Lunar Financiar - ${company.company_name} - ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}`,
+      html: emailHtml,
+    });
+
+    if (emailError) {
+      throw emailError;
+    }
+
+    logStep("Email sent successfully", { emailId: emailData?.id });
+
+    // Log the email send
+    await supabaseClient
+      .from('email_logs')
+      .insert({
+        recipient_email: clientEmail,
+        subject: `Raport Lunar Financiar - ${company.company_name}`,
+        email_type: 'monthly_report',
+        status: 'sent',
+        metadata: {
+          company_id: companyId,
+          accountant_id: user.id,
+          report_month: new Date().toISOString().slice(0, 7)
+        }
+      });
+
+    return new Response(JSON.stringify({ success: true, emailId: emailData?.id }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (error: any) {
+    logStep("ERROR", { message: error.message });
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
+});
