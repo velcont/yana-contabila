@@ -56,25 +56,38 @@ const AccountantDashboard = () => {
 
   useEffect(() => {
     const init = async () => {
-      console.log('AccountantDashboard - Initial check');
-      console.log('subscriptionLoading:', subscriptionLoading);
-      console.log('isAccountant:', isAccountant);
+      console.log('AccountantDashboard - Verificare acces');
       
       // Wait for subscription data to load
       if (subscriptionLoading) {
-        console.log('Still loading subscription data...');
         return;
       }
       
-      // Verificare simplă - acest component este accesat DOAR din Index.tsx
-      // pentru utilizatori cu subscription_type = 'accounting_firm'
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         navigate('/auth');
         return;
       }
+
+      // Verificare rapidă - acest dashboard este DOAR pentru contabili
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_type')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.subscription_type !== 'accounting_firm') {
+        console.log('⛔ Acces interzis - utilizator nu este contabil');
+        toast({
+          title: "Acces restricționat",
+          description: "Acest dashboard este disponibil doar pentru conturi de tip Contabil.",
+          variant: "destructive",
+        });
+        navigate('/app');
+        return;
+      }
       
-      console.log('✅ User autentificat în AccountantDashboard, încărcare clienți');
+      console.log('✅ Acces permis - încărcare clienți');
       fetchClients();
     };
     

@@ -36,9 +36,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// IMPORTANT: Import AccountantDashboard for accountants
-import AccountantDashboard from "@/pages/AccountantDashboard";
-
 const Index = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -78,15 +75,15 @@ const Index = () => {
             return;
           }
 
-          // CRITICAL: Contabilii văd modulul lor AICI în /app
-          // NU se mai face redirecționare - /app afișează modulul corect pentru fiecare tip
+          // IMPORTANT: /app este pentru TOȚI - interfața de analiză (upload balanță, chat AI)
+          // Nu mai redirecționăm - doar setăm tema corespunzătoare
           if (data.subscription_type === 'accounting_firm') {
-            console.log('✅ User este contabil - afișare modul contabil în /app');
+            console.log('✅ User este contabil - afișare interfață analiză cu temă contabil');
             setUserSubscriptionType('accounting_firm');
             // Setează tema contabil
             setThemeOverride?.('accountant');
           } else {
-            console.log('✅ User este antreprenor - afișare modul antreprenor în /app');
+            console.log('✅ User este antreprenor - afișare interfață analiză cu temă antreprenor');
             setUserSubscriptionType('entrepreneur');
             // Setează tema antreprenor
             setThemeOverride?.('entrepreneur');
@@ -332,14 +329,8 @@ const Index = () => {
 
   console.log('User is authenticated:', user.email);
 
-  // CRITICAL: Dacă utilizatorul este CONTABIL, afișează AccountantDashboard
-  if (userSubscriptionType === 'accounting_firm') {
-    console.log('🟢 Rendering AccountantDashboard for accountant in /app');
-    return <AccountantDashboard />;
-  }
-
-  // ELSE: Afișează interfața de ANTREPRENOR (cod existent mai jos)
-  console.log('🔵 Rendering Entrepreneur interface in /app');
+  // /app afișează interfața de ANALIZĂ pentru TOȚI utilizatorii
+  // Dashboard-ul contabil este la /accountant-dashboard (rută separată)
 
   if (showDashboard && user) {
     return (
@@ -388,6 +379,16 @@ const Index = () => {
                       onCompanyChange={setCurrentCompanyId}
                       onAddCompany={() => navigate('/crm')}
                     />
+                  )}
+                  {/* Buton pentru contabili să acceseze dashboard-ul lor */}
+                  {userSubscriptionType === 'accounting_firm' && (
+                    <Button 
+                      variant="default" 
+                      onClick={() => navigate('/accountant-dashboard')}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      📊 Dashboard Contabil
+                    </Button>
                   )}
                   <AdminRoleSwitcher />
                   <Button 
