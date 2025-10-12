@@ -618,12 +618,19 @@ export type Database = {
           contact_person: string | null
           created_at: string
           id: string
+          is_active: boolean | null
           is_own_company: boolean | null
           managed_by_accountant_id: string | null
           notes: string | null
           phone: string | null
           registration_number: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_ends_at: string | null
+          subscription_status: string | null
+          subscription_type: string | null
           tax_type: Database["public"]["Enums"]["tax_type"] | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
           vat_payer: boolean | null
@@ -637,12 +644,19 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           is_own_company?: boolean | null
           managed_by_accountant_id?: string | null
           notes?: string | null
           phone?: string | null
           registration_number?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          subscription_type?: string | null
           tax_type?: Database["public"]["Enums"]["tax_type"] | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
           vat_payer?: boolean | null
@@ -656,12 +670,19 @@ export type Database = {
           contact_person?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           is_own_company?: boolean | null
           managed_by_accountant_id?: string | null
           notes?: string | null
           phone?: string | null
           registration_number?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_ends_at?: string | null
+          subscription_status?: string | null
+          subscription_type?: string | null
           tax_type?: Database["public"]["Enums"]["tax_type"] | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
           vat_payer?: boolean | null
@@ -1000,6 +1021,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type_selected: boolean | null
           created_at: string
           email: string
           full_name: string | null
@@ -1016,6 +1038,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_type_selected?: boolean | null
           created_at?: string
           email: string
           full_name?: string | null
@@ -1032,6 +1055,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_type_selected?: boolean | null
           created_at?: string
           email?: string
           full_name?: string | null

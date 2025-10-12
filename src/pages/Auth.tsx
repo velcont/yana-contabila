@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { AccountTypeSelector } from '@/components/AccountTypeSelector';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,7 @@ const Auth = () => {
   const [newPassword, setNewPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -115,9 +117,11 @@ const Auth = () => {
         
         toast({
           title: "Cont creat cu succes!",
-          description: "Te poți autentifica acum.",
+          description: "Selectează tipul de cont pentru a continua.",
         });
-        navigate('/');
+        
+        // Show account type selector for new users
+        setShowAccountTypeSelector(true);
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -129,6 +133,11 @@ const Auth = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAccountTypeComplete = () => {
+    setShowAccountTypeSelector(false);
+    navigate('/app');
   };
 
   return (
@@ -344,6 +353,11 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
+      
+      <AccountTypeSelector 
+        open={showAccountTypeSelector} 
+        onComplete={handleAccountTypeComplete}
+      />
     </div>
   );
 };

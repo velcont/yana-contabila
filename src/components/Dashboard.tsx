@@ -577,18 +577,6 @@ INDICATORI OPERAȚIONALI:
         </div>
       </div>
       
-      {!isAccountantMode && (
-        <Card>
-          <CardContent className="py-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-medium">Modul Contabil</p>
-              <p className="text-sm text-muted-foreground">Pentru managementul clienților și comparații multi-firmă, mergi la Dashboard Contabil.</p>
-            </div>
-            <Button onClick={() => navigate('/accountant-dashboard')}>Deschide Dashboard Contabil</Button>
-          </CardContent>
-        </Card>
-      )}
-      
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full max-w-5xl grid-cols-7">
           <TabsTrigger value="analytics" data-tour="tab-analytics">

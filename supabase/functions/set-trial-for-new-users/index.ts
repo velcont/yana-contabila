@@ -33,7 +33,7 @@ serve(async (req) => {
       .from('profiles')
       .update({
         trial_ends_at: trialEndsAt.toISOString(),
-        subscription_type: 'entrepreneur',
+        // Don't set subscription_type - user must choose via AccountTypeSelector
       })
       .eq('id', userId);
 

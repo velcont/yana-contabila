@@ -17,6 +17,8 @@ import { Landing } from "@/pages/Landing";
 import { QuickStartGuide } from "@/components/QuickStartGuide";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
+import { AccountTypeSelector } from "@/components/AccountTypeSelector";
+import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Tooltip,
@@ -42,6 +44,9 @@ const Index = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showChatOnLoad, setShowChatOnLoad] = useState(false);
   const [triggerAutoChat, setTriggerAutoChat] = useState(false);
+  const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
+  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
+  const [showAddCompany, setShowAddCompany] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
@@ -53,6 +58,42 @@ const Index = () => {
       navigate('/accountant-dashboard');
     }
   }, [isAccountant, loading, navigate]);
+
+  // Check if user needs to select account type
+  useEffect(() => {
+    const checkAccountType = async () => {
+      if (user && !loading) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('account_type_selected, subscription_type')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          if (!data.account_type_selected) {
+            setShowAccountTypeSelector(true);
+          }
+          
+          // Load first company as default
+          if (data.subscription_type === 'entrepreneur') {
+            const { data: companies } = await supabase
+              .from('companies')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('is_active', true)
+              .order('created_at', { ascending: false })
+              .limit(1);
+            
+            if (companies && companies.length > 0) {
+              setCurrentCompanyId(companies[0].id);
+            }
+          }
+        }
+      }
+    };
+
+    checkAccountType();
+  }, [user, loading]);
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('yana-tour-completed');
@@ -330,6 +371,13 @@ const Index = () => {
               {user ? (
                 <>
                   <SubscriptionBadge />
+                  {!isAccountant && (
+                    <CompanySwitcher 
+                      currentCompanyId={currentCompanyId}
+                      onCompanyChange={setCurrentCompanyId}
+                      onAddCompany={() => navigate('/crm')}
+                    />
+                  )}
                   <AdminRoleSwitcher />
                   <Button 
                     variant="outline" 
@@ -418,6 +466,13 @@ const Index = () => {
       )}
       {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
       <AdvertisementPopup intervalMinutes={10} />
+      <AccountTypeSelector 
+        open={showAccountTypeSelector} 
+        onComplete={() => {
+          setShowAccountTypeSelector(false);
+          window.location.reload(); // Refresh to load correct theme and settings
+        }}
+      />
     </>
   );
 };
