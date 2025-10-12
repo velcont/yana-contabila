@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -31,6 +31,11 @@ import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ClientDocumentsManager } from '@/components/ClientDocumentsManager';
+import { FiscalDeadlinesManager } from '@/components/FiscalDeadlinesManager';
+import { AccountantTasksManager } from '@/components/AccountantTasksManager';
+import { CRMMessagingManager } from '@/components/CRMMessagingManager';
+import { EmailManager } from '@/components/EmailManager';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -218,14 +223,34 @@ const AccountantDashboard = () => {
           </div>
 
         <Tabs defaultValue="clients" className="space-y-6">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="clients">
               <Building2 className="mr-2 h-4 w-4" />
               Clienți
             </TabsTrigger>
+            <TabsTrigger value="documents">
+              <FileText className="mr-2 h-4 w-4" />
+              Documente
+            </TabsTrigger>
+            <TabsTrigger value="deadlines">
+              <Calendar className="mr-2 h-4 w-4" />
+              Termene
+            </TabsTrigger>
+            <TabsTrigger value="tasks">
+              <ListTodo className="mr-2 h-4 w-4" />
+              Sarcini
+            </TabsTrigger>
+            <TabsTrigger value="messaging">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Mesaje
+            </TabsTrigger>
+            <TabsTrigger value="email">
+              <Mail className="mr-2 h-4 w-4" />
+              Email
+            </TabsTrigger>
             <TabsTrigger value="analytics">
               <BarChart className="mr-2 h-4 w-4" />
-              Analiză Comparativă
+              Analiză
             </TabsTrigger>
           </TabsList>
 
@@ -402,6 +427,26 @@ const AccountantDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <ClientDocumentsManager />
+          </TabsContent>
+
+          <TabsContent value="deadlines">
+            <FiscalDeadlinesManager />
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <AccountantTasksManager />
+          </TabsContent>
+
+          <TabsContent value="messaging">
+            <CRMMessagingManager />
+          </TabsContent>
+
+          <TabsContent value="email">
+            <EmailManager />
           </TabsContent>
 
           <TabsContent value="analytics">
