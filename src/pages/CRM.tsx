@@ -42,15 +42,15 @@ const CRM = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Tabs defaultValue="users" className="space-y-6">
+      <Tabs defaultValue="clients" className="space-y-6">
         <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsTrigger value="clients" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Clienți Firme
+          </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Utilizatori
-          </TabsTrigger>
-          <TabsTrigger value="companies" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Firme
           </TabsTrigger>
           <TabsTrigger value="broadcast" className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
@@ -58,12 +58,12 @@ const CRM = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users">
-          <UsersList />
+        <TabsContent value="clients">
+          <CompanyManager />
         </TabsContent>
 
-        <TabsContent value="companies">
-          <CompanyManager />
+        <TabsContent value="users">
+          <UsersList />
         </TabsContent>
 
         <TabsContent value="broadcast">
