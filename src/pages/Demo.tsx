@@ -418,7 +418,7 @@ export const Demo = () => {
               </p>
             </CardContent>
           </Card>
-          <MultiCompanyComparison analyses={demoAnalyses} />
+          <MultiCompanyComparison />
         </TabsContent>
 
         <TabsContent value="news" className="space-y-6">

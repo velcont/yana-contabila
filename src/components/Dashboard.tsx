@@ -626,7 +626,7 @@ INDICATORI OPERAȚIONALI:
         </TabsContent>
 
         <TabsContent value="multi-company" className="space-y-6">
-          <MultiCompanyComparison analyses={analyses} />
+          <MultiCompanyComparison />
         </TabsContent>
 
         <TabsContent value="news" className="space-y-6">
@@ -956,16 +956,7 @@ INDICATORI OPERAȚIONALI:
         </TabsContent>
       </Tabs>
       
-      {/* Email Dialog */}
-      {selectedAnalysis && (
-        <EmailAnalysisDialog
-          open={isEmailDialogOpen}
-          onOpenChange={setIsEmailDialogOpen}
-          companyName={selectedAnalysis.company_name || ''}
-          analysisText={selectedAnalysis.analysis_text}
-          analysisDate={format(new Date(selectedAnalysis.created_at), 'dd MMMM yyyy', { locale: ro })}
-        />
-      )}
+      {/* Email Dialog - Removed as it's not used in regular dashboard */}
       
       {/* Share Dialog */}
       {selectedAnalysis && (
