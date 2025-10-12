@@ -1488,6 +1488,8 @@ export type Database = {
           subscription_type:
             | Database["public"]["Enums"]["subscription_type"]
             | null
+          terms_accepted: boolean | null
+          terms_accepted_at: string | null
           trial_ends_at: string | null
           updated_at: string
         }
@@ -1505,6 +1507,8 @@ export type Database = {
           subscription_type?:
             | Database["public"]["Enums"]["subscription_type"]
             | null
+          terms_accepted?: boolean | null
+          terms_accepted_at?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }
@@ -1522,6 +1526,8 @@ export type Database = {
           subscription_type?:
             | Database["public"]["Enums"]["subscription_type"]
             | null
+          terms_accepted?: boolean | null
+          terms_accepted_at?: string | null
           trial_ends_at?: string | null
           updated_at?: string
         }
@@ -1748,6 +1754,39 @@ export type Database = {
         }
         Relationships: []
       }
+      terms_acceptance: {
+        Row: {
+          accepted_at: string
+          created_at: string | null
+          email: string
+          id: string
+          ip_address: string | null
+          terms_version: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string | null
+          email: string
+          id?: string
+          ip_address?: string | null
+          terms_version?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          ip_address?: string | null
+          terms_version?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       time_tracking: {
         Row: {
           company_id: string | null
@@ -1798,6 +1837,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trial_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          notification_type: string
+          sent: boolean | null
+          sent_at: string | null
+          trial_ends_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notification_type: string
+          sent?: boolean | null
+          sent_at?: string | null
+          trial_ends_at: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notification_type?: string
+          sent?: boolean | null
+          sent_at?: string | null
+          trial_ends_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1872,6 +1941,10 @@ export type Database = {
       check_rate_limit: {
         Args: { p_endpoint: string; p_max_requests?: number; p_user_id: string }
         Returns: boolean
+      }
+      check_trial_expiration_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_old_data: {
         Args: Record<PropertyKey, never>

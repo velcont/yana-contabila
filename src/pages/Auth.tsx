@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Building2, Briefcase } from 'lucide-react';
@@ -19,6 +20,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [accountType, setAccountType] = useState<'entrepreneur' | 'accounting_firm' | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -114,18 +116,38 @@ const Auth = () => {
         if (!accountType) {
           throw new Error("Te rog selectează tipul de cont");
         }
+
+        if (!termsAccepted) {
+          throw new Error("Trebuie să accepți Termenii și Condițiile pentru a crea un cont");
+        }
         
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
         
-        // Update profile with account type
+        // Update profile with account type and terms acceptance
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // Track terms acceptance with IP and user agent
+          try {
+            await supabase.functions.invoke('track-terms-acceptance', {
+              body: {
+                userId: user.id,
+                email: user.email,
+                termsVersion: '1.0'
+              }
+            });
+          } catch (trackError) {
+            console.error('Error tracking terms acceptance:', trackError);
+            // Don't block registration if tracking fails
+          }
+
           await supabase
             .from('profiles')
             .update({ 
               subscription_type: accountType,
-              account_type_selected: true 
+              account_type_selected: true,
+              terms_accepted: true,
+              terms_accepted_at: new Date().toISOString()
             })
             .eq('id', user.id);
         }
@@ -133,8 +155,8 @@ const Auth = () => {
         toast({
           title: "Cont creat cu succes!",
           description: accountType === 'entrepreneur' 
-            ? "Contul tău de antreprenor a fost configurat cu succes!" 
-            : "Contul tău de contabil a fost configurat cu succes!",
+            ? "Contul tău de antreprenor a fost configurat cu succes! Ai 3 luni gratuite!" 
+            : "Contul tău de contabil a fost configurat cu succes! Ai 3 luni gratuite!",
         });
         
         navigate('/app');
@@ -403,10 +425,32 @@ const Auth = () => {
                 />
               </div>
 
+              {!isLogin && (
+                <div className="flex items-start space-x-2 p-4 bg-muted/50 rounded-md border-2 border-primary/20">
+                  <Checkbox 
+                    id="terms" 
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                    className="mt-1"
+                  />
+                  <label
+                    htmlFor="terms"
+                    className="text-sm leading-relaxed cursor-pointer"
+                  >
+                    Accept <a href="/terms" target="_blank" className="text-primary hover:underline font-semibold">Termenii și Condițiile</a> și{' '}
+                    <a href="/privacy" target="_blank" className="text-primary hover:underline font-semibold">Politica de Confidențialitate</a>.
+                    {' '}
+                    <span className="text-xs text-muted-foreground block mt-1">
+                      (Prin acceptare, se va înregistra emailul, IP-ul și data acceptării în scopuri legale)
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading}
+                disabled={isLoading || (!isLogin && !termsAccepted)}
               >
                 {isLoading ? (
                   <>
