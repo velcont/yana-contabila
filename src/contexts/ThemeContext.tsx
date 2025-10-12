@@ -35,18 +35,23 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const applyTheme = (theme: ThemeType) => {
     const root = document.documentElement;
     
+    // Remove any existing theme classes
+    root.classList.remove('theme-accountant', 'theme-entrepreneur');
+    
     if (theme === 'accountant') {
-      // Green theme for accountants
-      root.style.setProperty('--primary', '160 84% 39%');  // Green
-      root.style.setProperty('--primary-foreground', '0 0% 100%');
-      root.style.setProperty('--accent', '160 60% 45%');
-      root.style.setProperty('--accent-foreground', '0 0% 100%');
+      root.classList.add('theme-accountant');
+      // Green theme for accountants - using !important to ensure override
+      root.style.setProperty('--primary', '160 84% 39%', 'important');  // Green
+      root.style.setProperty('--primary-foreground', '0 0% 100%', 'important');
+      root.style.setProperty('--accent', '160 60% 45%', 'important');
+      root.style.setProperty('--accent-foreground', '0 0% 100%', 'important');
     } else {
+      root.classList.add('theme-entrepreneur');
       // Blue theme for entrepreneurs (default)
-      root.style.setProperty('--primary', '221.2 83.2% 53.3%'); // Blue
-      root.style.setProperty('--primary-foreground', '210 40% 98%');
-      root.style.setProperty('--accent', '210 40% 96.1%');
-      root.style.setProperty('--accent-foreground', '222.2 47.4% 11.2%');
+      root.style.setProperty('--primary', '221.2 83.2% 53.3%', 'important'); // Blue
+      root.style.setProperty('--primary-foreground', '210 40% 98%', 'important');
+      root.style.setProperty('--accent', '210 40% 96.1%', 'important');
+      root.style.setProperty('--accent-foreground', '222.2 47.4% 11.2%', 'important');
     }
   };
 
