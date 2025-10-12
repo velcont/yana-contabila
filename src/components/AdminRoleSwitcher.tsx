@@ -40,7 +40,7 @@ export const AdminRoleSwitcher = () => {
       name: 'Modul Contabil',
       description: 'Dashboard clienți - Interfață verde',
       icon: Building2,
-      route: '/accountant-dashboard',
+      route: null, // Do not navigate away; keep user on current page (/app)
     },
   ];
 
