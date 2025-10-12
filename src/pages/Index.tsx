@@ -372,39 +372,18 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
-                  {(() => {
-                    const effectiveMode = themeType; // derive from ThemeRole/route and admin override
-                    const isEntrepreneurMode = effectiveMode === 'entrepreneur';
-                    const isAccountantMode = effectiveMode === 'accountant';
-
-                    return (
-                      <>
-                        {/* Antreprenor: NU afișăm nimic legat de contabil */}
-                        {isEntrepreneurMode && (
-                          <>
-                            <CompanySwitcher 
-                              currentCompanyId={currentCompanyId}
-                              onCompanyChange={setCurrentCompanyId}
-                              onAddCompany={() => navigate('/crm')}
-                            />
-                          </>
-                        )}
-                        {/* Contabil: afișăm exclusiv elementele contabile */}
-                        {isAccountantMode && (
-                          <>
-                            <SubscriptionBadge />
-                            <Button 
-                              variant="default" 
-                              onClick={() => navigate('/accountant-dashboard')}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              📊 Dashboard Contabil
-                            </Button>
-                          </>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {/* În /app NU arătăm nimic legat de modul contabil, indiferent de rol */}
+                  {userSubscriptionType === 'entrepreneur' && (
+                    <>
+                      <SubscriptionBadge />
+                      <CompanySwitcher 
+                        currentCompanyId={currentCompanyId}
+                        onCompanyChange={setCurrentCompanyId}
+                        onAddCompany={() => navigate('/crm')}
+                      />
+                    </>
+                  )}
+                  {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}
                   <AdminRoleSwitcher />
                   <Button 
                     variant="outline" 
