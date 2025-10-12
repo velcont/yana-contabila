@@ -103,11 +103,27 @@ const Auth = () => {
         const { error } = await signIn(email, password);
         if (error) throw error;
         
-        toast({
-          title: "Autentificare reușită!",
-          description: "Bine ai revenit!",
-        });
-        navigate('/app');
+        // Get user profile to check subscription type
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('subscription_type')
+            .eq('id', user.id)
+            .single();
+          
+          toast({
+            title: "Autentificare reușită!",
+            description: "Bine ai revenit!",
+          });
+          
+          // Redirect based on subscription type
+          if (profile?.subscription_type === 'accounting_firm') {
+            navigate('/accountant-dashboard');
+          } else {
+            navigate('/app');
+          }
+        }
       } else {
         if (!fullName.trim()) {
           throw new Error("Te rog introdu numele complet");
@@ -124,6 +140,17 @@ const Auth = () => {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
         
+        // Check if email is already registered with different account type
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('subscription_type, email')
+          .eq('email', email)
+          .maybeSingle();
+        
+        if (existingProfile && existingProfile.subscription_type !== accountType) {
+          throw new Error(`Acest email este deja înregistrat ca ${existingProfile.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Contabil'}. Folosește un alt email pentru ${accountType === 'entrepreneur' ? 'Antreprenor' : 'Contabil'}.`);
+        }
+
         // Update profile with account type and terms acceptance
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -159,7 +186,12 @@ const Auth = () => {
             : "Contul tău de contabil a fost configurat cu succes! Ai 3 luni gratuite!",
         });
         
-        navigate('/app');
+        // Redirect based on account type
+        if (accountType === 'accounting_firm') {
+          navigate('/accountant-dashboard');
+        } else {
+          navigate('/app');
+        }
       }
     } catch (error: any) {
       console.error('Auth error:', error);

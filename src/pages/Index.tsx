@@ -74,16 +74,18 @@ const Index = () => {
             return;
           }
 
-          // VERIFICARE STRICTĂ: Antreprenorii activi pot accesa acest modul
-          // Contabilii NU pot accesa modulul entrepreneur fără abonament separat
+          // VERIFICARE CRITICĂ: Contabilii NU pot accesa modulul antreprenor
+          // Trebuie cont separat cu email diferit pentru modul antreprenor
           if (data.subscription_type === 'accounting_firm') {
-            console.log('User este contabil - nu are acces la modulul antreprenor');
+            console.log('⛔ BLOCAT: User este contabil - redirecționare forțată la dashboard contabil');
             toast({
-              title: "Modul incorect",
-              description: "Ești înregistrat ca 'Firmă Contabilitate'. Pentru modul antreprenor, trebuie să achiziționezi un abonament separat.",
+              title: "⛔ Acces Restricționat",
+              description: "Contul tău este înregistrat ca CONTABIL. Acest modul este doar pentru ANTREPRENORI. Pentru ambele module, ai nevoie de 2 abonamente cu email-uri diferite.",
               variant: "destructive",
+              duration: 6000,
             });
-            navigate('/accountant-dashboard');
+            // Forțează redirecționarea imediată
+            setTimeout(() => navigate('/accountant-dashboard', { replace: true }), 1000);
             return;
           }
 
