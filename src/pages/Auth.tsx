@@ -124,7 +124,7 @@ const Auth = () => {
           throw new Error("Trebuie să accepți Termenii și Condițiile pentru a crea un cont");
         }
         
-        const signUpResult = await signUp(email, password, fullName);
+        const signUpResult = await signUp(email, password, fullName, accountType || undefined);
         if (signUpResult.error) {
           const msg = (signUpResult.error.message || '').toLowerCase();
           const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;

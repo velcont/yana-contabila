@@ -52,7 +52,12 @@ export const useAuth = () => {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    accountType?: 'entrepreneur' | 'accounting_firm'
+  ) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -62,6 +67,10 @@ export const useAuth = () => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          // Setăm tipul de cont direct în metadata pentru a fi folosit de trigger-ul handle_new_user
+          subscription_type: accountType,
+          account_type_selected: !!accountType,
+          terms_accepted: true
         }
       }
     });
