@@ -21,6 +21,7 @@ import { AccountTypeSelector } from "@/components/AccountTypeSelector";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Tooltip,
   TooltipContent,
@@ -52,14 +53,15 @@ const Index = () => {
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
   const { themeOverride } = useTheme();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
   // Redirect accountants to their dashboard
   useEffect(() => {
-    if (isAccountant && !loading && themeOverride !== 'entrepreneur') {
+    if (isAccountant && !loading && !isAdmin && themeOverride !== 'entrepreneur') {
       navigate('/accountant-dashboard');
     }
-  }, [isAccountant, loading, navigate, themeOverride]);
+  }, [isAccountant, loading, navigate, themeOverride, isAdmin]);
 
   // Check if user needs to select account type
   useEffect(() => {
