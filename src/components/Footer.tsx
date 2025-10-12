@@ -84,7 +84,7 @@ export const Footer = () => {
             </a>
             {themeType === 'accountant' ? (
               <Button
-                onClick={() => navigate('/crm')}
+                onClick={() => navigate('/accountant-dashboard')}
                 className="bg-green-600 hover:bg-green-700 text-white h-8 text-sm inline-flex items-center gap-2"
               >
                 <Building2 className="h-3 w-3" />
