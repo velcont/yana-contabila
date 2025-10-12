@@ -26,16 +26,17 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
 
     // For authenticated pages, apply role-based theming
     // Admin pages use admin theme (orange)
-    if (isAdmin && (path.includes('/admin') || path === '/system-health' || path === '/analytics')) {
+    if (path.includes('/admin') || path === '/system-health' || path === '/analytics' || path === '/updates-manager') {
       return 'admin';
     }
 
     // Accountant pages use accountant theme (green)
-    if (isAccountant && (path.includes('/accountant') || path === '/crm')) {
+    if (path.includes('/accountant') || path === '/crm' || path.includes('/accountant-dashboard') || path.includes('/accountant-branding')) {
       return 'accountant';
     }
 
     // Entrepreneur pages use entrepreneur theme (blue)
+    // This includes /app, /demo, /subscription, etc.
     return 'entrepreneur';
   };
 
