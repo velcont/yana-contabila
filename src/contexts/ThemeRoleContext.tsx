@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useSubscription } from './SubscriptionContext';
-import { useUserRole } from '@/hooks/useUserRole';
 
 type ThemeRole = 'landing' | 'entrepreneur' | 'accountant' | 'admin';
 
@@ -13,8 +11,6 @@ const ThemeRoleContext = createContext<ThemeRoleContextType | undefined>(undefin
 
 export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
-  const { isAccountant } = useSubscription();
-  const { isAdmin } = useUserRole();
 
   const getCurrentTheme = (): ThemeRole => {
     const path = location.pathname;
