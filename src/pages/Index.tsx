@@ -52,16 +52,11 @@ const Index = () => {
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
-  const { themeOverride } = useTheme();
+  const { themeOverride, setThemeOverride } = useTheme();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
-  // Redirect to accountant dashboard only when explicitly in accountant theme
-  useEffect(() => {
-    if (!loading && themeOverride === 'accountant') {
-      navigate('/accountant-dashboard');
-    }
-  }, [loading, navigate, themeOverride]);
+  // Removed auto-redirect to accountant dashboard to keep users on /app after login
 
   // Check if user needs to select account type
   useEffect(() => {
@@ -292,6 +287,7 @@ const Index = () => {
 
   const handleSignOut = async () => {
     await signOut();
+    setThemeOverride(null); // Reset any mode override on logout to avoid unintended redirects
     setAnalysis("");
     setFiles([]);
     toast({
