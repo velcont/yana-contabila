@@ -56,12 +56,12 @@ const Index = () => {
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
-  // Redirect accountants to their dashboard
+  // Redirect to accountant dashboard only when explicitly in accountant theme
   useEffect(() => {
-    if (isAccountant && !loading && !isAdmin && themeOverride !== 'entrepreneur') {
+    if (!loading && themeOverride === 'accountant') {
       navigate('/accountant-dashboard');
     }
-  }, [isAccountant, loading, navigate, themeOverride, isAdmin]);
+  }, [loading, navigate, themeOverride]);
 
   // Check if user needs to select account type
   useEffect(() => {
