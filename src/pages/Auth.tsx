@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Building2, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { AccountTypeSelector } from '@/components/AccountTypeSelector';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -19,7 +18,7 @@ const Auth = () => {
   const [newPassword, setNewPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
+  const [accountType, setAccountType] = useState<'entrepreneur' | 'accounting_firm' | null>(null);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -112,16 +111,33 @@ const Auth = () => {
           throw new Error("Te rog introdu numele complet");
         }
         
+        if (!accountType) {
+          throw new Error("Te rog selectează tipul de cont");
+        }
+        
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
         
+        // Update profile with account type
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              subscription_type: accountType,
+              account_type_selected: true 
+            })
+            .eq('id', user.id);
+        }
+        
         toast({
           title: "Cont creat cu succes!",
-          description: "Selectează tipul de cont pentru a continua.",
+          description: accountType === 'entrepreneur' 
+            ? "Contul tău de antreprenor a fost configurat cu succes!" 
+            : "Contul tău de contabil a fost configurat cu succes!",
         });
         
-        // Show account type selector for new users
-        setShowAccountTypeSelector(true);
+        navigate('/app');
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -135,10 +151,6 @@ const Auth = () => {
     }
   };
 
-  const handleAccountTypeComplete = () => {
-    setShowAccountTypeSelector(false);
-    navigate('/app');
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
@@ -238,19 +250,76 @@ const Auth = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <label htmlFor="fullName" className="text-sm font-medium">
-                    Nume complet
-                  </label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Ion Popescu"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required={!isLogin}
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <label htmlFor="fullName" className="text-sm font-medium">
+                      Nume complet
+                    </label>
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Ion Popescu"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required={!isLogin}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Tip cont *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Card 
+                        className={`cursor-pointer border-2 transition-all ${
+                          accountType === 'entrepreneur' 
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
+                            : 'border-border hover:border-blue-300'
+                        }`}
+                        onClick={() => setAccountType('entrepreneur')}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex flex-col items-center text-center space-y-1">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              accountType === 'entrepreneur' ? 'bg-blue-500' : 'bg-blue-400'
+                            }`}>
+                              <Briefcase className="h-4 w-4 text-white" />
+                            </div>
+                            <span className={`text-xs font-medium ${
+                              accountType === 'entrepreneur' ? 'text-blue-600 dark:text-blue-400' : ''
+                            }`}>
+                              Antreprenor
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card 
+                        className={`cursor-pointer border-2 transition-all ${
+                          accountType === 'accounting_firm' 
+                            ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
+                            : 'border-border hover:border-green-300'
+                        }`}
+                        onClick={() => setAccountType('accounting_firm')}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex flex-col items-center text-center space-y-1">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              accountType === 'accounting_firm' ? 'bg-green-500' : 'bg-green-400'
+                            }`}>
+                              <Building2 className="h-4 w-4 text-white" />
+                            </div>
+                            <span className={`text-xs font-medium ${
+                              accountType === 'accounting_firm' ? 'text-green-600 dark:text-green-400' : ''
+                            }`}>
+                              Contabil
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+                </>
               )}
               
               <div className="space-y-2">
@@ -353,11 +422,6 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
-      
-      <AccountTypeSelector 
-        open={showAccountTypeSelector} 
-        onComplete={handleAccountTypeComplete}
-      />
     </div>
   );
 };
