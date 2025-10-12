@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FinancialIndicators, formatCurrency, formatNumber } from './analysisParser';
 import robotoRegular from '@/assets/fonts/Roboto-Regular.woff2';
+import robotoBold from '@/assets/fonts/Roboto-Bold.woff2';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -33,32 +34,48 @@ const DANGER_COLOR: [number, number, number] = [239, 68, 68]; // rgb(239, 68, 68
 const WARNING_COLOR: [number, number, number] = [245, 158, 11]; // rgb(245, 158, 11) - amber
 const SUCCESS_COLOR: [number, number, number] = [16, 185, 129]; // rgb(16, 185, 129) - green
 
-// Load and convert Roboto font to base64 for jsPDF
-const loadRobotoFont = async (): Promise<string> => {
+// Load and convert Roboto fonts to base64 for jsPDF
+const loadRobotoFonts = async (): Promise<{regular: string, bold: string}> => {
   try {
-    const response = await fetch(robotoRegular);
-    const fontBlob = await response.arrayBuffer();
-    const fontDataArray = new Uint8Array(fontBlob);
-    const base64Font = btoa(String.fromCharCode(...fontDataArray));
-    return base64Font;
+    const [regularResponse, boldResponse] = await Promise.all([
+      fetch(robotoRegular),
+      fetch(robotoBold)
+    ]);
+    
+    const regularBlob = await regularResponse.arrayBuffer();
+    const boldBlob = await boldResponse.arrayBuffer();
+    
+    const regularArray = new Uint8Array(regularBlob);
+    const boldArray = new Uint8Array(boldBlob);
+    
+    const base64Regular = btoa(String.fromCharCode(...regularArray));
+    const base64Bold = btoa(String.fromCharCode(...boldArray));
+    
+    return { regular: base64Regular, bold: base64Bold };
   } catch (error) {
-    console.error('Failed to load Roboto font:', error);
-    return '';
+    console.error('Failed to load Roboto fonts:', error);
+    return { regular: '', bold: '' };
   }
 };
 
 export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   const doc = new jsPDF();
   
-  // Load and add Roboto font with Romanian diacritics support
-  const robotoBase64 = await loadRobotoFont();
-  if (robotoBase64) {
+  // Load and add Roboto fonts with Romanian diacritics support
+  const robotoFonts = await loadRobotoFonts();
+  if (robotoFonts.regular && robotoFonts.bold) {
     try {
-      doc.addFileToVFS('Roboto-Regular.ttf', robotoBase64);
+      // Add Regular font
+      doc.addFileToVFS('Roboto-Regular.ttf', robotoFonts.regular);
       doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-      doc.setFont('Roboto');
+      
+      // Add Bold font
+      doc.addFileToVFS('Roboto-Bold.ttf', robotoFonts.bold);
+      doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+      
+      doc.setFont('Roboto', 'normal');
     } catch (error) {
-      console.error('Failed to add Roboto font to PDF:', error);
+      console.error('Failed to add Roboto fonts to PDF:', error);
       // Fallback to helvetica if font loading fails
       doc.setFont('helvetica');
     }
