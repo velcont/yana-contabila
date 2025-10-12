@@ -11,7 +11,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
-import { OnboardingTour } from "@/components/OnboardingTour";
+
 import AdvertisementPopup from "@/components/AdvertisementPopup";
 import { Landing } from "@/pages/Landing";
 import { QuickStartGuide } from "@/components/QuickStartGuide";
@@ -42,7 +42,7 @@ const Index = () => {
   const [analysis, setAnalysis] = useState<string>("");
   const [showDashboard, setShowDashboard] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
-  const [runTour, setRunTour] = useState(false);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [showChatOnLoad, setShowChatOnLoad] = useState(true);
   const [triggerAutoChat, setTriggerAutoChat] = useState(false);
@@ -95,11 +95,6 @@ const Index = () => {
   }, [user, loading]);
 
   useEffect(() => {
-    const hasSeenTour = localStorage.getItem('yana-tour-completed');
-    if (user && !hasSeenTour && !loading) {
-      setTimeout(() => setRunTour(true), 1000);
-    }
-    
     // Auto-open chat when user logs in
     if (user && !loading) {
       const hasOpenedChat = sessionStorage.getItem('chat-opened-on-login');
@@ -112,10 +107,6 @@ const Index = () => {
     }
   }, [user, loading]);
 
-  const handleTourComplete = () => {
-    setRunTour(false);
-    localStorage.setItem('yana-tour-completed', 'true');
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -445,7 +436,7 @@ const Index = () => {
           openOnLoad={showChatOnLoad}
         />
       )}
-      {user && <OnboardingTour run={runTour} onComplete={handleTourComplete} />}
+      
       <AdvertisementPopup intervalMinutes={10} />
       <AccountTypeSelector 
         open={showAccountTypeSelector} 
