@@ -50,23 +50,36 @@ const AccountantDashboard = () => {
   const [selectedClient, setSelectedClient] = useState<any>(null);
 
   useEffect(() => {
-    console.log('AccountantDashboard - subscriptionLoading:', subscriptionLoading, 'isAccountant:', isAccountant);
+    const init = async () => {
+      console.log('AccountantDashboard - Initial check');
+      console.log('subscriptionLoading:', subscriptionLoading);
+      console.log('isAccountant:', isAccountant);
+      
+      // Wait for subscription data to load
+      if (subscriptionLoading) {
+        console.log('Still loading subscription data...');
+        return;
+      }
+      
+      // Force subscription check
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.functions.invoke('check-subscription');
+        console.log('Fresh subscription check:', data);
+        
+        if (data?.subscription_type !== 'accounting_firm' || data?.subscription_status !== 'active') {
+          console.log('Not an active accountant, redirecting to subscription');
+          navigate('/subscription');
+          return;
+        }
+      }
+      
+      console.log('Is accountant, fetching clients');
+      fetchClients();
+    };
     
-    // Wait for subscription data to load before redirecting
-    if (subscriptionLoading) {
-      console.log('Still loading subscription data...');
-      return;
-    }
-    
-    if (!isAccountant) {
-      console.log('Not accountant, redirecting to subscription');
-      navigate('/subscription');
-      return;
-    }
-    
-    console.log('Is accountant, fetching clients');
-    fetchClients();
-  }, [isAccountant, subscriptionLoading, navigate]);
+    init();
+  }, [subscriptionLoading, navigate]);
 
   const fetchClients = async () => {
     try {
