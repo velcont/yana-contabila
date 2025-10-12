@@ -19,11 +19,11 @@ const AdvertisementPopup = ({ intervalMinutes = 10 }: AdvertisementPopupProps) =
   const { isAccountant } = useSubscription();
 
   // Nu afișa reclama pentru firme de contabilitate
-  if (isAccountant) {
-    return null;
-  }
+  // IMPORTANT: nu facem early return înainte de toate hook-urile
+  // pentru a nu încălca regulile React Hooks.
 
   useEffect(() => {
+    if (isAccountant) return;
     // Verifică când a fost afișat ultima dată pop-up-ul
     const lastShown = localStorage.getItem('adPopupLastShown');
     const now = Date.now();
@@ -57,13 +57,13 @@ const AdvertisementPopup = ({ intervalMinutes = 10 }: AdvertisementPopupProps) =
       clearTimeout(initialTimer);
       clearInterval(intervalId);
     };
-  }, [intervalMinutes]);
+  }, [intervalMinutes, isAccountant]);
 
   const handleClose = () => {
     setIsOpen(false);
   };
 
-  return (
+  return isAccountant ? null : (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-primary/20">
         <Button
