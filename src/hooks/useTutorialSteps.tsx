@@ -1,4 +1,5 @@
 import { useUserRole } from './useUserRole';
+import { useThemeRole } from '@/contexts/ThemeRoleContext';
 
 export interface TutorialStep {
   page: string;
@@ -10,8 +11,11 @@ export interface TutorialStep {
 
 export const useTutorialSteps = () => {
   const { isAdmin } = useUserRole();
+  const { currentTheme } = useThemeRole();
+  
+  const isAccountant = currentTheme === 'accountant';
 
-  const userSteps: TutorialStep[] = [
+  const entrepreneurSteps: TutorialStep[] = [
     {
       page: '/app',
       title: 'Bine ai venit la Yana!',
@@ -96,10 +100,72 @@ export const useTutorialSteps = () => {
     },
   ];
 
-  const adminSteps: TutorialStep[] = [...userSteps];
+  const accountantSteps: TutorialStep[] = [
+    {
+      page: '/accountant-dashboard',
+      title: 'Bine ai venit la Yana pentru Contabili!',
+      description: 'Yana te ajută să gestionezi eficient clienții și analizele lor financiare. Hai să descoperim funcțiile principale!',
+    },
+    {
+      page: '/crm',
+      title: 'CRM Clienți',
+      description: 'Gestionează toți clienții tăi dintr-un singur loc: adaugă clienți noi, trimite invitații și monitorizează activitatea acestora.',
+      highlight: '[data-tour="crm-section"]',
+    },
+    {
+      page: '/accountant-dashboard',
+      title: 'Task-uri Contabile',
+      description: 'Creează și gestionează task-uri pentru fiecare client: depuneri, raportări, întâlniri. Totul organizat și la timp!',
+      highlight: '[data-tour="tasks-manager"]',
+    },
+    {
+      page: '/accountant-dashboard',
+      title: 'Analize Clienți',
+      description: 'Vezi toate analizele generate pentru clienții tăi. Poți accesa rapid situația financiară a oricărui client.',
+      highlight: '[data-tour="client-analyses"]',
+    },
+    {
+      page: '/crm',
+      title: 'Mesagerie Clienți',
+      description: 'Comunică direct cu clienții tăi prin sistemul integrat de mesagerie. Toate conversațiile sunt salvate și organizate.',
+      highlight: '[data-tour="messaging"]',
+    },
+    {
+      page: '/accountant-dashboard',
+      title: 'Broadcast Email',
+      description: 'Trimite email-uri în masă către toți clienții sau grupuri selectate pentru notificări importante și newsletter-uri.',
+      highlight: '[data-tour="email-broadcast"]',
+    },
+    {
+      page: '/accountant-dashboard',
+      title: 'Termene Fiscale',
+      description: 'Monitorizează toate termenele fiscale importante pentru clienții tăi. Primești alerte automate înainte de deadline-uri.',
+      highlight: '[data-tour="fiscal-deadlines"]',
+    },
+    {
+      page: '/accountant-dashboard',
+      title: 'Documente Clienți',
+      description: 'Gestionează documentele fiecărui client într-un loc securizat. Upload, organizare și acces rapid la toate fișierele.',
+      highlight: '[data-tour="client-documents"]',
+    },
+    {
+      page: '/accountant-branding',
+      title: 'Branding Personal',
+      description: 'Personalizează aplicația cu logo-ul tău și culori custom pentru a oferi o experiență branded clienților tăi.',
+      highlight: '[data-tour="branding"]',
+    },
+    {
+      page: '/accountant-dashboard',
+      title: 'Rapoarte Agregare',
+      description: 'Generează rapoarte consolidate pentru toți clienții sau pe categorii specifice pentru analiza portofoliului tău.',
+      highlight: '[data-tour="reports"]',
+    },
+  ];
+
+  const adminSteps: TutorialStep[] = [...entrepreneurSteps];
 
   return {
-    steps: isAdmin ? adminSteps : userSteps,
+    steps: isAdmin ? adminSteps : (isAccountant ? accountantSteps : entrepreneurSteps),
     isAdmin,
   };
 };

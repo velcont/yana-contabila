@@ -233,18 +233,6 @@ Perioada: 01/04/2025 - 30/04/2025`,
             <Database className="mr-2 h-5 w-5" />
             Vezi Demo Interactiv
           </Button>
-          
-          <Button 
-            size="lg" 
-            variant="ghost"
-            className="text-lg px-8 py-6"
-            onClick={() => window.open('https://youtu.be/nQblxkPPtKo?si=beHEGRvful0cxgqM', '_blank')}
-          >
-            <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-            Video (14:33)
-          </Button>
 
           <Button
             size="lg"
