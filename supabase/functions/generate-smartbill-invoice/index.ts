@@ -13,10 +13,15 @@ const logStep = (step: string, details?: any) => {
 };
 
 interface SmartBillClient {
-  tip: string;
+  tip: "PF" | "PJ"; // PF = Persoană Fizică, PJ = Persoană Juridică
   nume: string;
   email: string;
-  cif?: string;
+  cif?: string; // For legal entities (PJ)
+  cnp?: string; // For individuals (PF) - CNP or "-"
+  localitate: string; // City
+  judet: string; // County/State
+  adresa: string; // Address
+  tara: string; // Country
 }
 
 interface SmartBillProduct {
@@ -76,9 +81,9 @@ serve(async (req) => {
       apiVersion: '2025-08-27.basil',
     });
 
-    // Retrieve checkout session
+    // Retrieve checkout session with customer details
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['customer', 'line_items'],
+      expand: ['customer', 'line_items', 'customer_details'],
     });
     
     logStep("Stripe session retrieved", { 
@@ -108,11 +113,39 @@ serve(async (req) => {
       );
     }
 
-    // Get customer details
-    const customer = session.customer as Stripe.Customer;
-    const customerEmail = customer.email || user.email || '';
-    const customerName = customer.name || user.user_metadata?.full_name || 'Client';
-
+    // Get customer information from session
+    const customerEmail = session.customer_details?.email || user.email;
+    const customerName = session.customer_details?.name || user.user_metadata?.full_name || 'Client';
+    
+    // Get billing address from session
+    const billingAddress = session.customer_details?.address;
+    const city = billingAddress?.city || 'Bucuresti';
+    const state = billingAddress?.state || 'Bucuresti';
+    const addressLine = billingAddress?.line1 || '-';
+    const postalCode = billingAddress?.postal_code || '';
+    const country = billingAddress?.country || 'RO';
+    
+    // Get tax ID collection (for determining if it's a company or individual)
+    const taxIds = session.customer_details?.tax_ids || [];
+    const hasTaxId = taxIds.length > 0;
+    const taxId = hasTaxId ? taxIds[0].value : null;
+    
+    // Determine if client is company (PJ) or individual (PF)
+    // Romanian companies have CIF/CUI (tax code starting with RO or just numbers)
+    const isCompany = hasTaxId && taxId && (
+      taxId.toUpperCase().startsWith('RO') || 
+      /^\d{2,10}$/.test(taxId)
+    );
+    
+    logStep('Customer type determined', { 
+      isCompany, 
+      hasTaxId, 
+      taxId,
+      name: customerName,
+      city,
+      state 
+    });
+    
     // Prepare SmartBill invoice data
     const today = new Date().toISOString().split('T')[0];
     
@@ -120,15 +153,43 @@ serve(async (req) => {
     const amountInRON = (session.amount_total || 0) / 100;
 
     // Get company CIF from environment
-    const companyCIF = Deno.env.get('SMARTBILL_COMPANY_CIF') || 'RO12345678';
+    const companyCIF = Deno.env.get('SMARTBILL_COMPANY_CIF') || 'RO48607440';
+
+    // Build client object based on type (PF = Individual, PJ = Legal Entity)
+    let clientData: SmartBillClient;
+    
+    if (isCompany) {
+      // Legal entity (Persoană Juridică) - requires CIF, company name, full address
+      const companyTaxId = taxId?.toUpperCase().startsWith('RO') ? taxId : `RO${taxId}`;
+      clientData = {
+        tip: "PJ",
+        nume: customerName,
+        cif: companyTaxId,
+        email: customerEmail,
+        localitate: city,
+        judet: state,
+        adresa: `${addressLine}${postalCode ? ', ' + postalCode : ''}`,
+        tara: country === 'RO' ? 'Romania' : country
+      };
+      logStep('Legal entity client data prepared', clientData);
+    } else {
+      // Individual (Persoană Fizică) - requires name, CNP (or "-"), city, county, address
+      clientData = {
+        tip: "PF",
+        nume: customerName,
+        cnp: "-", // For individuals without CNP, use "-" as per SmartBill API docs
+        email: customerEmail,
+        localitate: city,
+        judet: state,
+        adresa: `${addressLine}${postalCode ? ', ' + postalCode : ''}`,
+        tara: country === 'RO' ? 'Romania' : country
+      };
+      logStep('Individual client data prepared', clientData);
+    }
 
     const smartbillInvoice: SmartBillInvoice = {
       cif: companyCIF,
-      client: {
-        tip: "PF", // Persoană fizică, change to "PJ" for companies
-        nume: customerName,
-        email: customerEmail,
-      },
+      client: clientData,
       emitereFactura: today,
       scadentaFactura: today,
       serieFactura: "conta",

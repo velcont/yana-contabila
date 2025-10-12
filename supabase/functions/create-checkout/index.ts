@@ -57,7 +57,7 @@ serve(async (req) => {
       logStep("Creating new customer");
     }
 
-    // Create checkout session
+    // Create checkout session with billing address and tax ID collection
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -68,8 +68,16 @@ serve(async (req) => {
         },
       ],
       mode: 'subscription',
+      billing_address_collection: 'required',
+      tax_id_collection: {
+        enabled: true,
+      },
+      customer_update: customerId ? {
+        address: 'auto',
+        name: 'auto',
+      } : undefined,
       success_url: `${req.headers.get('origin')}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/`,
+      cancel_url: `${req.headers.get('origin')}/subscription`,
     });
 
     logStep("Checkout session created", { sessionId: session.id });
