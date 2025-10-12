@@ -9,7 +9,6 @@ import { TutorialProvider } from "@/contexts/TutorialContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ThemeProvider as AppThemeProvider } from "@/contexts/ThemeContext";
 import { ThemeRoleProvider } from "@/contexts/ThemeRoleContext";
-import { TutorialOverlay } from "@/components/TutorialOverlay";
 import { TutorialMenu } from "@/components/TutorialMenu";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -82,7 +81,6 @@ const App = () => (
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
-                  <TutorialOverlay />
                   <TutorialMenu />
                 </TutorialProvider>
               </AppThemeProvider>
