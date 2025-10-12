@@ -3,6 +3,9 @@ project_id = "ygfsuoloxzjpiulogrjz"
 [functions.analyze-balance]
 verify_jwt = false
 
+[functions.generate-smartbill-invoice]
+verify_jwt = true
+
 [functions.chat-ai]
 verify_jwt = true
 

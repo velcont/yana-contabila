@@ -1622,6 +1622,66 @@ export type Database = {
           },
         ]
       }
+      smartbill_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          customer_cif: string | null
+          customer_email: string
+          customer_name: string
+          error_message: string | null
+          id: string
+          invoice_number: string | null
+          invoice_series: string
+          invoice_url: string | null
+          smartbill_response: Json | null
+          status: string
+          stripe_customer_id: string
+          stripe_session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          customer_cif?: string | null
+          customer_email: string
+          customer_name: string
+          error_message?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoice_series?: string
+          invoice_url?: string | null
+          smartbill_response?: Json | null
+          status?: string
+          stripe_customer_id: string
+          stripe_session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          customer_cif?: string | null
+          customer_email?: string
+          customer_name?: string
+          error_message?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoice_series?: string
+          invoice_url?: string | null
+          smartbill_response?: Json | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
