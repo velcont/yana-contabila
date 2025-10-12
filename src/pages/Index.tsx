@@ -372,23 +372,29 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
-                  <SubscriptionBadge />
-                  {!isAccountant && (
-                    <CompanySwitcher 
-                      currentCompanyId={currentCompanyId}
-                      onCompanyChange={setCurrentCompanyId}
-                      onAddCompany={() => navigate('/crm')}
-                    />
+                  {/* Doar antreprenori văd badge-ul și CompanySwitcher */}
+                  {userSubscriptionType === 'entrepreneur' && (
+                    <>
+                      <SubscriptionBadge />
+                      <CompanySwitcher 
+                        currentCompanyId={currentCompanyId}
+                        onCompanyChange={setCurrentCompanyId}
+                        onAddCompany={() => navigate('/crm')}
+                      />
+                    </>
                   )}
-                  {/* Buton pentru contabili să acceseze dashboard-ul lor */}
+                  {/* Doar contabili văd butoanele lor */}
                   {userSubscriptionType === 'accounting_firm' && (
-                    <Button 
-                      variant="default" 
-                      onClick={() => navigate('/accountant-dashboard')}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      📊 Dashboard Contabil
-                    </Button>
+                    <>
+                      <SubscriptionBadge />
+                      <Button 
+                        variant="default" 
+                        onClick={() => navigate('/accountant-dashboard')}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        📊 Dashboard Contabil
+                      </Button>
+                    </>
                   )}
                   <AdminRoleSwitcher />
                   <Button 
