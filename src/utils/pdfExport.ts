@@ -28,6 +28,21 @@ interface ExportData {
   themeColor?: 'entrepreneur' | 'accountant'; // Add theme parameter
 }
 
+// Normalize Romanian text by replacing diacritics with correct equivalents
+const normalizeRomanianText = (text: string): string => {
+  return text
+    .replace(/ă/g, 'a')
+    .replace(/Ă/g, 'A')
+    .replace(/â/g, 'a')
+    .replace(/Â/g, 'A')
+    .replace(/î/g, 'i')
+    .replace(/Î/g, 'I')
+    .replace(/ș/g, 's')
+    .replace(/Ș/g, 'S')
+    .replace(/ț/g, 't')
+    .replace(/Ț/g, 'T');
+};
+
 // Color palettes based on theme
 const ENTREPRENEUR_PRIMARY: [number, number, number] = [59, 130, 246]; // Blue
 const ACCOUNTANT_PRIMARY: [number, number, number] = [16, 185, 129]; // Green
@@ -57,7 +72,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Analiză Financiară Automatizată', 15, 28);
+  doc.text(normalizeRomanianText('Analiză Financiară Automatizată'), 15, 28);
   
   // Date and filename
   doc.setFontSize(8);
@@ -70,16 +85,16 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   // Company Info Section
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Informații Firmă', 15, yPos);
+  doc.text(normalizeRomanianText('Informații Firmă'), 15, yPos);
   yPos += 10;
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Firmă: ${data.companyName || 'N/A'}`, 15, yPos);
+  doc.text(normalizeRomanianText(`Firmă: ${data.companyName || 'N/A'}`), 15, yPos);
   yPos += 6;
-  doc.text(`Fișier: ${data.fileName}`, 15, yPos);
+  doc.text(normalizeRomanianText(`Fișier: ${data.fileName}`), 15, yPos);
   yPos += 6;
-  doc.text(`Perioadă analiză: ${data.date}`, 15, yPos);
+  doc.text(normalizeRomanianText(`Perioadă analiză: ${data.date}`), 15, yPos);
   yPos += 15;
 
   // Critical Alerts Section
@@ -90,7 +105,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...DANGER_COLOR);
-    doc.text('⚠️ Alerte Critice', 15, yPos);
+    doc.text(normalizeRomanianText('⚠️ Alerte Critice'), 15, yPos);
     yPos += 10;
     
     doc.setTextColor(0, 0, 0);
@@ -106,11 +121,11 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
       doc.circle(13, yPos - 1.5, 1.5, 'F');
       
       doc.setFont('helvetica', 'bold');
-      doc.text(alert.title, 20, yPos);
+      doc.text(normalizeRomanianText(alert.title), 20, yPos);
       yPos += 5;
       
       doc.setFont('helvetica', 'normal');
-      const descLines = doc.splitTextToSize(alert.description, 170);
+      const descLines = doc.splitTextToSize(normalizeRomanianText(alert.description), 170);
       doc.text(descLines, 20, yPos);
       yPos += descLines.length * 4 + 3;
     });
@@ -120,14 +135,14 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   // Key Financial Indicators Table
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Indicatori Financiari Principali', 15, yPos);
+  doc.text(normalizeRomanianText('Indicatori Financiari Principali'), 15, yPos);
   yPos += 10;
 
   const indicatorsData = [
-    ['Indicator', 'Valoare', 'Status'],
-    ['Cifră Afaceri', formatCurrency(data.indicators.revenue || 0), '📊'],
-    ['Cheltuieli', formatCurrency(data.indicators.expenses || 0), '💰'],
-    ['Profit Net', formatCurrency(data.indicators.profit || 0), data.indicators.profit > 0 ? '✅' : '❌'],
+    [normalizeRomanianText('Indicator'), normalizeRomanianText('Valoare'), 'Status'],
+    [normalizeRomanianText('Cifră Afaceri'), formatCurrency(data.indicators.revenue || 0), '📊'],
+    [normalizeRomanianText('Cheltuieli'), formatCurrency(data.indicators.expenses || 0), '💰'],
+    [normalizeRomanianText('Profit Net'), formatCurrency(data.indicators.profit || 0), data.indicators.profit > 0 ? '✅' : '❌'],
     ['EBITDA', formatCurrency(data.indicators.ebitda || 0), data.indicators.ebitda > 0 ? '✅' : '⚠️'],
     ['DSO (zile)', formatNumber(data.indicators.dso || 0), data.indicators.dso > 60 ? '⚠️' : '✅'],
     ['DPO (zile)', formatNumber(data.indicators.dpo || 0), '📊'],
@@ -170,15 +185,15 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Evidențe Bilanț', 15, yPos);
+  doc.text(normalizeRomanianText('Evidențe Bilanț'), 15, yPos);
   yPos += 10;
 
   const balanceData = [
-    ['Categorie', 'Valoare'],
-    ['Disponibil Bancă', formatCurrency(data.indicators.soldBanca || 0)],
-    ['Disponibil Casă', formatCurrency(data.indicators.soldCasa || 0)],
-    ['Creanțe Clienți', formatCurrency(data.indicators.soldClienti || 0)],
-    ['Datorii Furnizori', formatCurrency(data.indicators.soldFurnizori || 0)],
+    [normalizeRomanianText('Categorie'), normalizeRomanianText('Valoare')],
+    [normalizeRomanianText('Disponibil Bancă'), formatCurrency(data.indicators.soldBanca || 0)],
+    [normalizeRomanianText('Disponibil Casă'), formatCurrency(data.indicators.soldCasa || 0)],
+    [normalizeRomanianText('Creanțe Clienți'), formatCurrency(data.indicators.soldClienti || 0)],
+    [normalizeRomanianText('Datorii Furnizori'), formatCurrency(data.indicators.soldFurnizori || 0)],
   ];
 
   autoTable(doc, {
@@ -215,15 +230,16 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text('📊 Analiză Completă', 15, yPos);
+  doc.text(normalizeRomanianText('📊 Analiză Completă'), 15, yPos);
   yPos += 15;
   
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
 
-  // Split the full analysis text into lines that fit the page
-  const analysisLines = doc.splitTextToSize(data.fullAnalysisText, 180);
+  // Split the full analysis text into lines that fit the page - NORMALIZE the text first!
+  const normalizedAnalysisText = normalizeRomanianText(data.fullAnalysisText);
+  const analysisLines = doc.splitTextToSize(normalizedAnalysisText, 180);
   
   analysisLines.forEach((line: string) => {
     if (yPos > 270) {
@@ -247,7 +263,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 255, 255);
-    doc.text('💡 Recomandări Acționabile', 15, yPos);
+    doc.text(normalizeRomanianText('💡 Recomandări Acționabile'), 15, yPos);
     yPos += 12;
     
     doc.setTextColor(0, 0, 0);
@@ -267,7 +283,8 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
       doc.text(`${idx + 1}.`, 20, yPos);
       
       doc.setFont('helvetica', 'normal');
-      const recLines = doc.splitTextToSize(rec, 165);
+      const normalizedRec = normalizeRomanianText(rec);
+      const recLines = doc.splitTextToSize(normalizedRec, 165);
       doc.text(recLines, 27, yPos);
       yPos += recLines.length * 4 + 2;
     });
@@ -280,7 +297,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `Pagina ${i} din ${pageCount} | Generat de Yana AI | ${new Date().toLocaleDateString('ro-RO')}`,
+      normalizeRomanianText(`Pagina ${i} din ${pageCount} | Generat de Yana AI | ${new Date().toLocaleDateString('ro-RO')}`),
       105,
       287,
       { align: 'center' }
@@ -288,6 +305,8 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   }
 
   // Save PDF
-  const pdfFileName = `Analiza_${data.companyName || 'Firma'}_${data.date.replace(/\s+/g, '_')}.pdf`;
+  const normalizedCompanyName = normalizeRomanianText(data.companyName || 'Firma');
+  const normalizedDate = normalizeRomanianText(data.date);
+  const pdfFileName = `Analiza_${normalizedCompanyName}_${normalizedDate.replace(/\s+/g, '_')}.pdf`;
   doc.save(pdfFileName);
 };
