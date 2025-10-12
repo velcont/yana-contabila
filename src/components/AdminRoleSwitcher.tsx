@@ -11,10 +11,12 @@ import {
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminRoleSwitcher = () => {
   const { themeType, setThemeOverride, themeOverride } = useTheme();
   const { isAdmin } = useUserRole();
+  const navigate = useNavigate();
 
   if (!isAdmin) return null;
 
@@ -24,20 +26,30 @@ export const AdminRoleSwitcher = () => {
       name: 'Modul Real',
       description: 'Bazat pe abonamentul actual',
       icon: UserCircle,
+      route: null,
     },
     {
       id: 'entrepreneur' as const,
       name: 'Modul Antreprenor',
-      description: 'Interfață albastră',
+      description: 'Analize proprii - Interfață albastră',
       icon: Crown,
+      route: '/app',
     },
     {
       id: 'accountant' as const,
       name: 'Modul Contabil',
-      description: 'Interfață verde',
+      description: 'Dashboard clienți - Interfață verde',
       icon: Building2,
+      route: '/accountant-dashboard',
     },
   ];
+
+  const handleModeSwitch = (mode: typeof modes[number]) => {
+    setThemeOverride(mode.id);
+    if (mode.route) {
+      navigate(mode.route);
+    }
+  };
 
   const currentMode = modes.find((m) => m.id === themeOverride) || modes[0];
   const CurrentIcon = currentMode.icon;
@@ -68,7 +80,7 @@ export const AdminRoleSwitcher = () => {
           return (
             <DropdownMenuItem
               key={mode.id || 'real'}
-              onClick={() => setThemeOverride(mode.id)}
+              onClick={() => handleModeSwitch(mode)}
               className={isActive ? 'bg-accent' : ''}
             >
               <div className="flex items-start gap-3 w-full">
