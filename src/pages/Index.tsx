@@ -15,6 +15,9 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import AdvertisementPopup from "@/components/AdvertisementPopup";
 import { Landing } from "@/pages/Landing";
 import { QuickStartGuide } from "@/components/QuickStartGuide";
+import { SubscriptionBadge } from "@/components/SubscriptionBadge";
+import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   Tooltip,
   TooltipContent,
@@ -41,7 +44,15 @@ const Index = () => {
   const [triggerAutoChat, setTriggerAutoChat] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
+  const { isAccountant } = useSubscription();
   const navigate = useNavigate();
+
+  // Redirect accountants to their dashboard
+  useEffect(() => {
+    if (isAccountant && !loading) {
+      navigate('/accountant-dashboard');
+    }
+  }, [isAccountant, loading, navigate]);
 
   useEffect(() => {
     const hasSeenTour = localStorage.getItem('yana-tour-completed');
@@ -318,6 +329,8 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
+                  <SubscriptionBadge />
+                  <AdminRoleSwitcher />
                   <Button 
                     variant="outline" 
                     onClick={() => setShowDashboard(true)}

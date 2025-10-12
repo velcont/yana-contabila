@@ -25,6 +25,9 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Subscription from "./pages/Subscription";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
+import AccountantDashboard from "./pages/AccountantDashboard";
+import AccountantBranding from "./pages/AccountantBranding";
+import AcceptInvitation from "./pages/AcceptInvitation";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
@@ -70,6 +73,9 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
               <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
+              <Route path="/accountant-dashboard" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
+              <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
+              <Route path="/accept-invitation" element={<AcceptInvitation />} />
               <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

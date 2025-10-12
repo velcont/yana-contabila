@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -80,21 +80,37 @@ const AccountantDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      const { data: invitation, error } = await supabase
         .from('accountant_invitations')
         .insert({
           accountant_id: user.id,
           client_email: inviteForm.clientEmail,
           client_name: inviteForm.clientName,
           company_name: inviteForm.companyName,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast({
-        title: 'Invitație trimisă',
-        description: `Invitația a fost trimisă către ${inviteForm.clientEmail}`,
+      // Send invitation email
+      const { error: emailError } = await supabase.functions.invoke('send-client-invitation', {
+        body: { invitationId: invitation.id },
       });
+
+      if (emailError) {
+        console.error('Email error:', emailError);
+        toast({
+          title: 'Invitație creată',
+          description: 'Invitația a fost creată dar email-ul nu a putut fi trimis. Poți trimite link-ul manual.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Invitație trimisă',
+          description: `Email-ul a fost trimis către ${inviteForm.clientEmail}`,
+        });
+      }
 
       setInviteDialogOpen(false);
       setInviteForm({ clientEmail: '', clientName: '', companyName: '' });
@@ -116,16 +132,16 @@ const AccountantDashboard = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/app')}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Înapoi
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Înapoi
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => navigate('/accountant-branding')}>
+                <Palette className="mr-2 h-4 w-4" />
+                Branding
+              </Button>
             <div>
               <h1 className="text-3xl font-bold">Dashboard Contabilitate</h1>
               <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
