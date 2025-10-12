@@ -250,17 +250,15 @@ export const CompanyManager = () => {
     return labels[type] || type;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {loading ? (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold flex items-center gap-2">
             <Building2 className="h-8 w-8" />
@@ -485,6 +483,8 @@ export const CompanyManager = () => {
             Nu există firme înregistrate sau nicio firmă nu corespunde criteriilor de filtrare.
           </CardContent>
         </Card>
+      )}
+        </>
       )}
     </div>
   );

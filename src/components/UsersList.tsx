@@ -155,16 +155,14 @@ export const UsersList = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <Card>
+    <>
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <Card>
       <CardHeader>
         <CardTitle>Gestiune Utilizatori</CardTitle>
         <CardDescription>
@@ -268,5 +266,7 @@ export const UsersList = () => {
         </Tabs>
       </CardContent>
     </Card>
+      )}
+    </>
   );
 };
