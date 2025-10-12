@@ -14,6 +14,7 @@ import { parseAnalysisText, formatCurrency, type FinancialIndicators } from '@/u
 import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useThemeRole } from '@/contexts/ThemeRoleContext';
 import { TopIssuesWidget } from './TopIssuesWidget';
 import { ProactiveAlerts } from './ProactiveAlerts';
 import { MultiCompanyComparison } from './MultiCompanyComparison';
@@ -58,6 +59,7 @@ export const Dashboard = () => {
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
   const { themeType } = useTheme();
+  const { currentTheme } = useThemeRole();
   const isAccountantMode = themeType === 'accountant';
   const navigate = useNavigate();
 
@@ -446,7 +448,8 @@ INDICATORI OPERAȚIONALI:
         indicators,
         alerts,
         recommendations: recommendations.slice(0, 8),
-        fullAnalysisText: analysis.analysis_text
+        fullAnalysisText: analysis.analysis_text,
+        themeColor: currentTheme === 'accountant' ? 'accountant' as const : 'entrepreneur' as const
       };
 
       // Dynamic import to reduce bundle size
