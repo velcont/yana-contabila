@@ -45,9 +45,20 @@ serve(async (req) => {
       .eq('id', user.id)
       .single();
 
-    // If user has free access, return active immediately
+    // If user has free access, mark profile active and return
     if (profile?.has_free_access) {
       logStep("User has free access granted");
+
+      // Persist status in profile so RLS policies allow operations
+      await supabaseClient
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_ends_at: null,
+        })
+        .eq('id', user.id);
+
       return new Response(
         JSON.stringify({
           subscribed: true,
@@ -63,6 +74,17 @@ serve(async (req) => {
     // Check if user is still in trial period
     if (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) {
       logStep("User is in trial period", { trialEndsAt: profile.trial_ends_at });
+
+      // Persist status in profile so RLS policies allow operations
+      await supabaseClient
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_ends_at: profile.trial_ends_at,
+        })
+        .eq('id', user.id);
+
       return new Response(
         JSON.stringify({
           subscribed: true,

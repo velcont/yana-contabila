@@ -106,6 +106,9 @@ const AccountantDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Ensure profile is up-to-date so RLS INSERT passes
+      await supabase.functions.invoke('check-subscription');
+
       const { data: invitation, error } = await supabase
         .from('accountant_invitations')
         .insert({
