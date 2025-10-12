@@ -61,6 +61,77 @@ export type Database = {
           },
         ]
       }
+      accountant_tasks: {
+        Row: {
+          actual_hours: number | null
+          assigned_by: string
+          assigned_to: string
+          attachments: Json | null
+          company_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          priority: string | null
+          started_at: string | null
+          status: string | null
+          tags: Json | null
+          task_type: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_by: string
+          assigned_to: string
+          attachments?: Json | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: string | null
+          started_at?: string | null
+          status?: string | null
+          tags?: Json | null
+          task_type?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_by?: string
+          assigned_to?: string
+          attachments?: Json | null
+          company_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: string | null
+          started_at?: string | null
+          status?: string | null
+          tags?: Json | null
+          task_type?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accountant_tasks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_budget_limits: {
         Row: {
           alert_at_percent: number
@@ -608,84 +679,252 @@ export type Database = {
         }
         Relationships: []
       }
+      client_contacts: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          email: string | null
+          id: string
+          is_primary: boolean | null
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_documents: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          document_name: string
+          document_type: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          notes: string | null
+          period: string | null
+          tags: Json | null
+          uploaded_by: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          document_name: string
+          document_type?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          notes?: string | null
+          period?: string | null
+          tags?: Json | null
+          uploaded_by: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          document_name?: string
+          document_type?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          notes?: string | null
+          period?: string | null
+          tags?: Json | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_access: {
+        Row: {
+          access_token: string
+          company_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          login_count: number | null
+        }
+        Insert: {
+          access_token?: string
+          company_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          login_count?: number | null
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          login_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_access_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           accountant_brand_color: string | null
           accountant_logo_url: string | null
           address: string | null
+          billing_cycle: string | null
+          caen_codes: Json | null
           cif: string | null
+          client_category: string | null
+          client_status: string | null
           company_name: string
           contact_person: string | null
           created_at: string
+          cui: string | null
+          fiscal_history: Json | null
           id: string
           is_active: boolean | null
           is_own_company: boolean | null
+          last_fiscal_update: string | null
           managed_by_accountant_id: string | null
           notes: string | null
           phone: string | null
           registration_number: string | null
+          special_regime: boolean | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_ends_at: string | null
           subscription_status: string | null
           subscription_type: string | null
+          tax_regime: string | null
           tax_type: Database["public"]["Enums"]["tax_type"] | null
           trial_ends_at: string | null
           updated_at: string
           user_id: string
           vat_payer: boolean | null
+          vat_regime: string | null
         }
         Insert: {
           accountant_brand_color?: string | null
           accountant_logo_url?: string | null
           address?: string | null
+          billing_cycle?: string | null
+          caen_codes?: Json | null
           cif?: string | null
+          client_category?: string | null
+          client_status?: string | null
           company_name: string
           contact_person?: string | null
           created_at?: string
+          cui?: string | null
+          fiscal_history?: Json | null
           id?: string
           is_active?: boolean | null
           is_own_company?: boolean | null
+          last_fiscal_update?: string | null
           managed_by_accountant_id?: string | null
           notes?: string | null
           phone?: string | null
           registration_number?: string | null
+          special_regime?: boolean | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           subscription_type?: string | null
+          tax_regime?: string | null
           tax_type?: Database["public"]["Enums"]["tax_type"] | null
           trial_ends_at?: string | null
           updated_at?: string
           user_id: string
           vat_payer?: boolean | null
+          vat_regime?: string | null
         }
         Update: {
           accountant_brand_color?: string | null
           accountant_logo_url?: string | null
           address?: string | null
+          billing_cycle?: string | null
+          caen_codes?: Json | null
           cif?: string | null
+          client_category?: string | null
+          client_status?: string | null
           company_name?: string
           contact_person?: string | null
           created_at?: string
+          cui?: string | null
+          fiscal_history?: Json | null
           id?: string
           is_active?: boolean | null
           is_own_company?: boolean | null
+          last_fiscal_update?: string | null
           managed_by_accountant_id?: string | null
           notes?: string | null
           phone?: string | null
           registration_number?: string | null
+          special_regime?: boolean | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string | null
           subscription_type?: string | null
+          tax_regime?: string | null
           tax_type?: Database["public"]["Enums"]["tax_type"] | null
           trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
           vat_payer?: boolean | null
+          vat_regime?: string | null
         }
         Relationships: [
           {
@@ -759,6 +998,66 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_messages: {
+        Row: {
+          attachments: Json | null
+          company_id: string | null
+          created_at: string | null
+          id: string
+          is_internal: boolean | null
+          is_read: boolean | null
+          message: string
+          parent_message_id: string | null
+          read_at: string | null
+          recipient_id: string | null
+          sender_id: string
+          subject: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_internal?: boolean | null
+          is_read?: boolean | null
+          message: string
+          parent_message_id?: string | null
+          read_at?: string | null
+          recipient_id?: string | null
+          sender_id: string
+          subject?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_internal?: boolean | null
+          is_read?: boolean | null
+          message?: string
+          parent_message_id?: string | null
+          read_at?: string | null
+          recipient_id?: string | null
+          sender_id?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_messages_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "crm_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_broadcasts: {
         Row: {
           created_at: string
@@ -795,6 +1094,57 @@ export type Database = {
           sent_to_count?: number | null
           status?: string | null
           subject?: string
+        }
+        Relationships: []
+      }
+      email_config: {
+        Row: {
+          accountant_id: string
+          created_at: string | null
+          email_provider: string
+          from_email: string
+          from_name: string | null
+          id: string
+          is_active: boolean | null
+          last_tested: string | null
+          smtp_host: string | null
+          smtp_password_encrypted: string | null
+          smtp_port: number | null
+          smtp_user: string | null
+          test_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string | null
+          email_provider: string
+          from_email: string
+          from_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_tested?: string | null
+          smtp_host?: string | null
+          smtp_password_encrypted?: string | null
+          smtp_port?: number | null
+          smtp_user?: string | null
+          test_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string | null
+          email_provider?: string
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_tested?: string | null
+          smtp_host?: string | null
+          smtp_password_encrypted?: string | null
+          smtp_port?: number | null
+          smtp_user?: string | null
+          test_status?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -858,6 +1208,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_templates: {
+        Row: {
+          accountant_id: string
+          body: string
+          category: string | null
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          subject: string
+          updated_at: string | null
+          usage_count: number | null
+          variables: Json | null
+        }
+        Insert: {
+          accountant_id: string
+          body: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          subject: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Update: {
+          accountant_id?: string
+          body?: string
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          subject?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       favorite_analyses: {
         Row: {
           analysis_id: string
@@ -892,6 +1284,68 @@ export type Database = {
             columns: ["analysis_id"]
             isOneToOne: false
             referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_deadlines: {
+        Row: {
+          accountant_id: string
+          company_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          declaration_name: string
+          declaration_type: string
+          due_date: string
+          id: string
+          notes: string | null
+          period: string | null
+          priority: string | null
+          reminder_days: number | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accountant_id: string
+          company_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          declaration_name: string
+          declaration_type: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          period?: string | null
+          priority?: string | null
+          reminder_days?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accountant_id?: string
+          company_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          declaration_name?: string
+          declaration_type?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          period?: string | null
+          priority?: string | null
+          reminder_days?: number | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_deadlines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1115,6 +1569,59 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_emails: {
+        Row: {
+          accountant_id: string
+          body: string
+          company_ids: string[]
+          created_at: string | null
+          failed_count: number | null
+          id: string
+          send_at: string
+          sent_at: string | null
+          sent_count: number | null
+          status: string | null
+          subject: string
+          template_id: string | null
+        }
+        Insert: {
+          accountant_id: string
+          body: string
+          company_ids: string[]
+          created_at?: string | null
+          failed_count?: number | null
+          id?: string
+          send_at: string
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+          subject: string
+          template_id?: string | null
+        }
+        Update: {
+          accountant_id?: string
+          body?: string
+          company_ids?: string[]
+          created_at?: string | null
+          failed_count?: number | null
+          id?: string
+          send_at?: string
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+          subject?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_emails_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -1180,6 +1687,57 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      time_tracking: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          date: string
+          description: string | null
+          hours: number
+          id: string
+          is_billable: boolean | null
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          hours: number
+          id?: string
+          is_billable?: boolean | null
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          date?: string
+          description?: string | null
+          hours?: number
+          id?: string
+          is_billable?: boolean | null
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_tracking_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_tracking_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "accountant_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
