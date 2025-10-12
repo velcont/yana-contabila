@@ -451,7 +451,7 @@ INDICATORI OPERAȚIONALI:
 
       // Dynamic import to reduce bundle size
       const { generateAnalysisPDF } = await import('@/utils/pdfExport');
-      generateAnalysisPDF(exportData);
+      await generateAnalysisPDF(exportData);
       
       toast({
         title: '📄 Export reușit',

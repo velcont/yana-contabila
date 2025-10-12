@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FinancialIndicators, formatCurrency, formatNumber } from './analysisParser';
+import robotoRegular from '@/assets/fonts/Roboto-Regular.woff2';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -32,8 +33,39 @@ const DANGER_COLOR: [number, number, number] = [239, 68, 68]; // rgb(239, 68, 68
 const WARNING_COLOR: [number, number, number] = [245, 158, 11]; // rgb(245, 158, 11) - amber
 const SUCCESS_COLOR: [number, number, number] = [16, 185, 129]; // rgb(16, 185, 129) - green
 
-export const generateAnalysisPDF = (data: ExportData): void => {
+// Load and convert Roboto font to base64 for jsPDF
+const loadRobotoFont = async (): Promise<string> => {
+  try {
+    const response = await fetch(robotoRegular);
+    const fontBlob = await response.arrayBuffer();
+    const fontDataArray = new Uint8Array(fontBlob);
+    const base64Font = btoa(String.fromCharCode(...fontDataArray));
+    return base64Font;
+  } catch (error) {
+    console.error('Failed to load Roboto font:', error);
+    return '';
+  }
+};
+
+export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   const doc = new jsPDF();
+  
+  // Load and add Roboto font with Romanian diacritics support
+  const robotoBase64 = await loadRobotoFont();
+  if (robotoBase64) {
+    try {
+      doc.addFileToVFS('Roboto-Regular.ttf', robotoBase64);
+      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.setFont('Roboto');
+    } catch (error) {
+      console.error('Failed to add Roboto font to PDF:', error);
+      // Fallback to helvetica if font loading fails
+      doc.setFont('helvetica');
+    }
+  } else {
+    doc.setFont('helvetica');
+  }
+  
   let yPos = 20;
 
   // Header with logo and title
@@ -134,9 +166,11 @@ export const generateAnalysisPDF = (data: ExportData): void => {
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 10,
+      font: 'Roboto',
     },
     bodyStyles: {
       fontSize: 9,
+      font: 'Roboto',
     },
     alternateRowStyles: {
       fillColor: [245, 247, 250],
@@ -178,6 +212,10 @@ export const generateAnalysisPDF = (data: ExportData): void => {
       fillColor: PRIMARY_COLOR,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
+      font: 'Roboto',
+    },
+    bodyStyles: {
+      font: 'Roboto',
     },
     columnStyles: {
       0: { cellWidth: 100, fontStyle: 'bold' },
