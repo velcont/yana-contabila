@@ -12,19 +12,22 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 const AccountantBranding = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAccountant } = useSubscription();
+  const { isAccountant, loading: subscriptionLoading } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#10b981');
 
   useEffect(() => {
+    // Wait for subscription data to load before redirecting
+    if (subscriptionLoading) return;
+    
     if (!isAccountant) {
       navigate('/subscription');
       return;
     }
     fetchBranding();
-  }, [isAccountant]);
+  }, [isAccountant, subscriptionLoading, navigate]);
 
   const fetchBranding = async () => {
     try {
@@ -154,6 +157,18 @@ const AccountantBranding = () => {
       setLoading(false);
     }
   };
+
+  // Show loading while checking subscription
+  if (subscriptionLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Se verifică accesul...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">

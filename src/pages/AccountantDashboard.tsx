@@ -35,7 +35,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 const AccountantDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAccountant } = useSubscription();
+  const { isAccountant, loading: subscriptionLoading } = useSubscription();
   const { setThemeOverride } = useTheme();
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,12 +50,15 @@ const AccountantDashboard = () => {
   const [selectedClient, setSelectedClient] = useState<any>(null);
 
   useEffect(() => {
+    // Wait for subscription data to load before redirecting
+    if (subscriptionLoading) return;
+    
     if (!isAccountant) {
       navigate('/subscription');
       return;
     }
     fetchClients();
-  }, [isAccountant]);
+  }, [isAccountant, subscriptionLoading, navigate]);
 
   const fetchClients = async () => {
     try {
@@ -159,6 +162,18 @@ const AccountantDashboard = () => {
     client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Show loading while checking subscription
+  if (subscriptionLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Se verifică accesul...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
