@@ -97,6 +97,7 @@ export const UsersList = () => {
 
   const entrepreneurs = users.filter(u => u.subscription_type === 'entrepreneur');
   const accountants = users.filter(u => u.subscription_type === 'accounting_firm');
+  const freeAccessUsers = users.filter(u => u.has_free_access);
 
   const renderUserCard = (user: Profile) => {
     const isInTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
@@ -167,12 +168,12 @@ export const UsersList = () => {
       <CardHeader>
         <CardTitle>Gestiune Utilizatori</CardTitle>
         <CardDescription>
-          Total: {users.length} utilizatori ({entrepreneurs.length} antreprenori, {accountants.length} contabili)
+          Total: {users.length} utilizatori ({entrepreneurs.length} antreprenori, {accountants.length} contabili, {freeAccessUsers.length} cu acces gratuit)
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             <TabsTrigger value="all">
               Toți ({users.length})
             </TabsTrigger>
@@ -181,6 +182,9 @@ export const UsersList = () => {
             </TabsTrigger>
             <TabsTrigger value="accountants">
               Contabili ({accountants.length})
+            </TabsTrigger>
+            <TabsTrigger value="free">
+              Acces Gratuit ({freeAccessUsers.length})
             </TabsTrigger>
           </TabsList>
           
@@ -238,6 +242,27 @@ export const UsersList = () => {
               </p>
             ) : (
               accountants.map(renderUserCard)
+            )}
+          </TabsContent>
+          
+          <TabsContent value="free" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => copyUsersToClipboard(freeAccessUsers)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copiază acces gratuit ({freeAccessUsers.length})
+              </Button>
+            </div>
+            {freeAccessUsers.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Nu există utilizatori cu acces gratuit
+              </p>
+            ) : (
+              freeAccessUsers.map(renderUserCard)
             )}
           </TabsContent>
         </Tabs>

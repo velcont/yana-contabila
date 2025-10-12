@@ -577,7 +577,7 @@ INDICATORI OPERAȚIONALI:
         </div>
       </div>
       
-      {isAccountantMode && (
+      {!isAccountantMode && (
         <Card>
           <CardContent className="py-4 flex items-center justify-between gap-4">
             <div>
