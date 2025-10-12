@@ -1,263 +1,247 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Building2, FileText, Calendar, Copy } from "lucide-react";
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Loader2, Crown, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast as sonnerToast } from 'sonner';
 
-interface UserStats {
+interface Profile {
   id: string;
   email: string;
   full_name: string | null;
+  subscription_status: string | null;
+  subscription_type: string | null;
   created_at: string;
-  companies_count: number;
-  analyses_count: number;
-  last_analysis_date: string | null;
+  has_free_access: boolean | null;
+  trial_ends_at: string | null;
 }
 
 export const UsersList = () => {
-  const [users, setUsers] = useState<UserStats[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserStats[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
-    fetchUsersWithStats();
+    fetchUsers();
   }, []);
 
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter(
-        (user) =>
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    }
-  }, [searchTerm, users]);
-
-  const fetchUsersWithStats = async () => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      // Fetch all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, email, full_name, created_at")
-        .order("created_at", { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      // Fetch all analyses with company names
-      const { data: allAnalyses } = await supabase
-        .from("analyses")
-        .select("user_id, created_at, company_name");
-
-      // Create maps for counting
-      const companiesCountMap = new Map<string, number>();
-      const analysesCountMap = new Map<string, number>();
-      const lastAnalysisMap = new Map<string, string>();
-
-      // Count unique companies and analyses per user
-      allAnalyses?.forEach((analysis) => {
-        // Count analyses
-        const analysesCount = analysesCountMap.get(analysis.user_id) || 0;
-        analysesCountMap.set(analysis.user_id, analysesCount + 1);
-
-        // Count unique companies (based on company_name)
-        if (!companiesCountMap.has(analysis.user_id)) {
-          companiesCountMap.set(analysis.user_id, new Set<string>() as any);
-        }
-        const companiesSet = companiesCountMap.get(analysis.user_id) as any;
-        if (analysis.company_name) {
-          companiesSet.add(analysis.company_name);
-        }
-
-        // Track last analysis date
-        const existingDate = lastAnalysisMap.get(analysis.user_id);
-        if (!existingDate || new Date(analysis.created_at) > new Date(existingDate)) {
-          lastAnalysisMap.set(analysis.user_id, analysis.created_at);
-        }
-      });
-
-      // Build users with stats (convert Sets to counts)
-      const usersWithStats = profiles.map((profile) => {
-        const companiesSet = companiesCountMap.get(profile.id) as any;
-        return {
-          ...profile,
-          companies_count: companiesSet ? companiesSet.size : 0,
-          analyses_count: analysesCountMap.get(profile.id) || 0,
-          last_analysis_date: lastAnalysisMap.get(profile.id) || null,
-        };
-      });
-
-      setUsers(usersWithStats);
-      setFilteredUsers(usersWithStats);
+      if (error) throw error;
+      setUsers(data || []);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca utilizatorii.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const copyUsersToClipboard = async () => {
+  const toggleFreeAccess = async (userId: string, currentStatus: boolean) => {
     try {
-      // Creează text formatat cu datele utilizatorilor
-      const usersText = filteredUsers
+      const { error } = await supabase
+        .from('profiles')
+        .update({ has_free_access: !currentStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Acces gratuit ${!currentStatus ? 'activat' : 'dezactivat'} cu succes.`,
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error('Error toggling free access:', error);
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut actualiza accesul gratuit.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const copyUsersToClipboard = async (usersList: Profile[]) => {
+    try {
+      const usersText = usersList
         .map((user) => {
           const name = user.full_name || "Fără nume";
           return `${name}\t${user.email}`;
         })
         .join("\n");
 
-      // Adaugă header
       const fullText = `Nume\tEmail\n${usersText}`;
-
       await navigator.clipboard.writeText(fullText);
-      toast.success(`${filteredUsers.length} utilizatori copiați în clipboard!`, {
+      sonnerToast.success(`${usersList.length} utilizatori copiați în clipboard!`, {
         description: "Poți lipi datele în Excel sau Google Sheets",
       });
     } catch (error) {
       console.error("Error copying to clipboard:", error);
-      toast.error("Eroare la copierea datelor");
+      sonnerToast.error("Eroare la copierea datelor");
     }
   };
 
-  const getActivityBadge = (lastAnalysisDate: string | null) => {
-    if (!lastAnalysisDate) return <Badge variant="outline">Inactiv</Badge>;
+  const entrepreneurs = users.filter(u => u.subscription_type === 'entrepreneur');
+  const accountants = users.filter(u => u.subscription_type === 'accounting_firm');
 
-    const daysSinceLastAnalysis = Math.floor(
-      (Date.now() - new Date(lastAnalysisDate).getTime()) / (1000 * 60 * 60 * 24)
+  const renderUserCard = (user: Profile) => {
+    const isInTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
+    const trialExpired = user.trial_ends_at && new Date(user.trial_ends_at) <= new Date();
+    
+    return (
+      <Card key={user.id}>
+        <CardContent className="pt-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h3 className="font-semibold">{user.full_name || 'Fără nume'}</h3>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Membru din: {new Date(user.created_at).toLocaleDateString('ro-RO')}
+              </p>
+              {isInTrial && (
+                <p className="text-xs text-orange-600 mt-1">
+                  Testare până: {new Date(user.trial_ends_at!).toLocaleDateString('ro-RO')}
+                </p>
+              )}
+              {trialExpired && !user.has_free_access && user.subscription_status !== 'active' && (
+                <p className="text-xs text-red-600 mt-1">
+                  Testare expirată: {new Date(user.trial_ends_at!).toLocaleDateString('ro-RO')}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <div className="flex gap-2 flex-wrap justify-end">
+                <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'}>
+                  {user.subscription_status === 'active' ? 'Activ' : 'Inactiv'}
+                </Badge>
+                {user.has_free_access && (
+                  <Badge variant="default" className="bg-green-600">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Gratuit
+                  </Badge>
+                )}
+                {isInTrial && !user.has_free_access && (
+                  <Badge variant="outline" className="text-orange-600 border-orange-600">
+                    Testare
+                  </Badge>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant={user.has_free_access ? "destructive" : "default"}
+                onClick={() => toggleFreeAccess(user.id, user.has_free_access || false)}
+              >
+                {user.has_free_access ? 'Elimină Acces Gratuit' : 'Oferă Acces Gratuit'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
-
-    if (daysSinceLastAnalysis <= 7) {
-      return <Badge className="bg-success text-success-foreground">Activ</Badge>;
-    } else if (daysSinceLastAnalysis <= 30) {
-      return <Badge variant="secondary">Moderat</Badge>;
-    } else {
-      return <Badge variant="outline">Inactiv</Badge>;
-    }
   };
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <Skeleton className="h-20 w-full" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Utilizatori Înregistrați</h2>
-          <p className="text-muted-foreground">
-            Total: {users.length} utilizatori
-          </p>
-        </div>
-        <Button
-          onClick={copyUsersToClipboard}
-          variant="outline"
-          className="gap-2"
-          disabled={filteredUsers.length === 0}
-        >
-          <Copy className="h-4 w-4" />
-          Copiază {filteredUsers.length > 0 ? `(${filteredUsers.length})` : ""}
-        </Button>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Caută după email sau nume..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="grid gap-4">
-        {filteredUsers.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground">
-              {searchTerm ? "Niciun utilizator găsit" : "Niciun utilizator înregistrat"}
-            </CardContent>
-          </Card>
-        ) : (
-          filteredUsers.map((user) => (
-            <Card key={user.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">
-                      {user.full_name || "Fără nume"}
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </div>
-                  {getActivityBadge(user.last_analysis_date)}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {user.companies_count} {user.companies_count === 1 ? "firmă" : "firme"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Companii</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {user.analyses_count} {user.analyses_count === 1 ? "analiză" : "analize"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Analize efectuate</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {user.last_analysis_date
-                          ? format(new Date(user.last_analysis_date), "d MMM yyyy", {
-                              locale: ro,
-                            })
-                          : "Niciodată"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {user.last_analysis_date ? "Ultima analiză" : "Nicio analiză"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
-                  Înregistrat: {format(new Date(user.created_at), "d MMMM yyyy, HH:mm", { locale: ro })}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Gestiune Utilizatori</CardTitle>
+        <CardDescription>
+          Total: {users.length} utilizatori ({entrepreneurs.length} antreprenori, {accountants.length} contabili)
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="all" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="all">
+              Toți ({users.length})
+            </TabsTrigger>
+            <TabsTrigger value="entrepreneurs">
+              Antreprenori ({entrepreneurs.length})
+            </TabsTrigger>
+            <TabsTrigger value="accountants">
+              Contabili ({accountants.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => copyUsersToClipboard(users)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copiază toți ({users.length})
+              </Button>
+            </div>
+            {users.map(renderUserCard)}
+          </TabsContent>
+          
+          <TabsContent value="entrepreneurs" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => copyUsersToClipboard(entrepreneurs)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copiază antreprenori ({entrepreneurs.length})
+              </Button>
+            </div>
+            {entrepreneurs.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Nu există antreprenori înregistrați
+              </p>
+            ) : (
+              entrepreneurs.map(renderUserCard)
+            )}
+          </TabsContent>
+          
+          <TabsContent value="accountants" className="space-y-4">
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => copyUsersToClipboard(accountants)}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copiază contabili ({accountants.length})
+              </Button>
+            </div>
+            {accountants.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Nu există contabili înregistrați
+              </p>
+            ) : (
+              accountants.map(renderUserCard)
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 };

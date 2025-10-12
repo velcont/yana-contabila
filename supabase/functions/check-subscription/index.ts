@@ -38,6 +38,43 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check profile for free access and trial period
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('has_free_access, trial_ends_at, subscription_type')
+      .eq('id', user.id)
+      .single();
+
+    // If user has free access, return active immediately
+    if (profile?.has_free_access) {
+      logStep("User has free access granted");
+      return new Response(
+        JSON.stringify({
+          subscribed: true,
+          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_status: 'active',
+          subscription_end: null,
+          access_type: 'free_access'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Check if user is still in trial period
+    if (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) {
+      logStep("User is in trial period", { trialEndsAt: profile.trial_ends_at });
+      return new Response(
+        JSON.stringify({
+          subscribed: true,
+          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_status: 'active',
+          subscription_end: profile.trial_ends_at,
+          access_type: 'trial'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });

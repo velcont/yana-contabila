@@ -1003,6 +1003,7 @@ export type Database = {
           created_at: string
           email: string
           full_name: string | null
+          has_free_access: boolean | null
           id: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -1011,12 +1012,14 @@ export type Database = {
           subscription_type:
             | Database["public"]["Enums"]["subscription_type"]
             | null
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           email: string
           full_name?: string | null
+          has_free_access?: boolean | null
           id: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1025,12 +1028,14 @@ export type Database = {
           subscription_type?:
             | Database["public"]["Enums"]["subscription_type"]
             | null
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string
           full_name?: string | null
+          has_free_access?: boolean | null
           id?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1039,6 +1044,7 @@ export type Database = {
           subscription_type?:
             | Database["public"]["Enums"]["subscription_type"]
             | null
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: []
