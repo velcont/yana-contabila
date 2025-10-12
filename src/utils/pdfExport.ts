@@ -1,8 +1,8 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FinancialIndicators, formatCurrency, formatNumber } from './analysisParser';
-import robotoRegular from '@/assets/fonts/Roboto-Regular.woff2';
-import robotoBold from '@/assets/fonts/Roboto-Bold.woff2';
+import notoSansRegular from '@/assets/fonts/NotoSans-Regular.ttf';
+import notoSansBold from '@/assets/fonts/NotoSans-Bold.ttf';
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -34,12 +34,12 @@ const DANGER_COLOR: [number, number, number] = [239, 68, 68]; // rgb(239, 68, 68
 const WARNING_COLOR: [number, number, number] = [245, 158, 11]; // rgb(245, 158, 11) - amber
 const SUCCESS_COLOR: [number, number, number] = [16, 185, 129]; // rgb(16, 185, 129) - green
 
-// Load and convert Roboto fonts to base64 for jsPDF
-const loadRobotoFonts = async (): Promise<{regular: string, bold: string}> => {
+// Load and convert NotoSans fonts (TTF) to base64 for jsPDF
+const loadNotoFonts = async (): Promise<{regular: string, bold: string}> => {
   try {
     const [regularResponse, boldResponse] = await Promise.all([
-      fetch(robotoRegular),
-      fetch(robotoBold)
+      fetch(notoSansRegular),
+      fetch(notoSansBold)
     ]);
     
     const regularBlob = await regularResponse.arrayBuffer();
@@ -53,7 +53,7 @@ const loadRobotoFonts = async (): Promise<{regular: string, bold: string}> => {
     
     return { regular: base64Regular, bold: base64Bold };
   } catch (error) {
-    console.error('Failed to load Roboto fonts:', error);
+    console.error('Failed to load NotoSans fonts:', error);
     return { regular: '', bold: '' };
   }
 };
@@ -61,21 +61,21 @@ const loadRobotoFonts = async (): Promise<{regular: string, bold: string}> => {
 export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   const doc = new jsPDF();
   
-  // Load and add Roboto fonts with Romanian diacritics support
-  const robotoFonts = await loadRobotoFonts();
-  if (robotoFonts.regular && robotoFonts.bold) {
+  // Load and add NotoSans fonts with Romanian diacritics support
+  const notoFonts = await loadNotoFonts();
+  if (notoFonts.regular && notoFonts.bold) {
     try {
       // Add Regular font
-      doc.addFileToVFS('Roboto-Regular.ttf', robotoFonts.regular);
-      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.addFileToVFS('NotoSans-Regular.ttf', notoFonts.regular);
+      doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
       
       // Add Bold font
-      doc.addFileToVFS('Roboto-Bold.ttf', robotoFonts.bold);
-      doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+      doc.addFileToVFS('NotoSans-Bold.ttf', notoFonts.bold);
+      doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
       
-      doc.setFont('Roboto', 'normal');
+      doc.setFont('NotoSans', 'normal');
     } catch (error) {
-      console.error('Failed to add Roboto fonts to PDF:', error);
+      console.error('Failed to add NotoSans fonts to PDF:', error);
       // Fallback to helvetica if font loading fails
       doc.setFont('helvetica');
     }
@@ -91,11 +91,11 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.text('YANA', 15, 20);
   
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   doc.text('Analiză Financiară Automatizată', 15, 28);
   
   // Date and filename
@@ -108,12 +108,12 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
 
   // Company Info Section
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.text('Informații Firmă', 15, yPos);
   yPos += 10;
 
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
   doc.text(`Firmă: ${data.companyName || 'N/A'}`, 15, yPos);
   yPos += 6;
   doc.text(`Fișier: ${data.fileName}`, 15, yPos);
@@ -127,14 +127,14 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
     doc.rect(10, yPos - 5, 190, 10, 'F');
     
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(...DANGER_COLOR);
     doc.text('⚠️ Alerte Critice', 15, yPos);
     yPos += 10;
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     
     data.alerts.slice(0, 5).forEach((alert) => {
       const severityColor = 
@@ -144,11 +144,11 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
       doc.setFillColor(...severityColor);
       doc.circle(13, yPos - 1.5, 1.5, 'F');
       
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'bold');
       doc.text(alert.title, 20, yPos);
       yPos += 5;
       
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       const descLines = doc.splitTextToSize(alert.description, 170);
       doc.text(descLines, 20, yPos);
       yPos += descLines.length * 4 + 3;
@@ -158,7 +158,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
 
   // Key Financial Indicators Table
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.text('Indicatori Financiari Principali', 15, yPos);
   yPos += 10;
 
@@ -183,11 +183,11 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 10,
-      font: 'Roboto',
+      font: 'NotoSans',
     },
     bodyStyles: {
       fontSize: 9,
-      font: 'Roboto',
+      font: 'NotoSans',
     },
     alternateRowStyles: {
       fillColor: [245, 247, 250],
@@ -208,7 +208,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   }
 
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.text('Evidențe Bilanț', 15, yPos);
   yPos += 10;
 
@@ -229,10 +229,10 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
       fillColor: PRIMARY_COLOR,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      font: 'Roboto',
+      font: 'NotoSans',
     },
     bodyStyles: {
-      font: 'Roboto',
+      font: 'NotoSans',
     },
     columnStyles: {
       0: { cellWidth: 100, fontStyle: 'bold' },
@@ -252,14 +252,14 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
   doc.rect(10, yPos - 5, 190, 10, 'F');
   
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('NotoSans', 'bold');
   doc.setTextColor(255, 255, 255);
   doc.text('📊 Analiză Completă', 15, yPos);
   yPos += 15;
   
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('NotoSans', 'normal');
 
   // Split the full analysis text into lines that fit the page
   const analysisLines = doc.splitTextToSize(data.fullAnalysisText, 180);
@@ -284,14 +284,14 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
     doc.rect(10, yPos - 5, 190, 10, 'F');
     
     doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('NotoSans', 'bold');
     doc.setTextColor(255, 255, 255);
     doc.text('💡 Recomandări Acționabile', 15, yPos);
     yPos += 12;
     
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
 
     data.recommendations.slice(0, 8).forEach((rec, idx) => {
       if (yPos > 270) {
@@ -302,10 +302,10 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
       doc.setFillColor(...SUCCESS_COLOR);
       doc.circle(13, yPos - 1.5, 1.5, 'F');
       
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'bold');
       doc.text(`${idx + 1}.`, 20, yPos);
       
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       const recLines = doc.splitTextToSize(rec, 165);
       doc.text(recLines, 27, yPos);
       yPos += recLines.length * 4 + 2;
