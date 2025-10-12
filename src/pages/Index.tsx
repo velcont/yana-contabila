@@ -372,30 +372,41 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
-                  {/* Doar antreprenori văd badge-ul și CompanySwitcher */}
-                  {userSubscriptionType === 'entrepreneur' && (
-                    <>
-                      <SubscriptionBadge />
-                      <CompanySwitcher 
-                        currentCompanyId={currentCompanyId}
-                        onCompanyChange={setCurrentCompanyId}
-                        onAddCompany={() => navigate('/crm')}
-                      />
-                    </>
-                  )}
-                  {/* Doar contabili văd butoanele lor */}
-                  {userSubscriptionType === 'accounting_firm' && (
-                    <>
-                      <SubscriptionBadge />
-                      <Button 
-                        variant="default" 
-                        onClick={() => navigate('/accountant-dashboard')}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        📊 Dashboard Contabil
-                      </Button>
-                    </>
-                  )}
+                  {/* Determinăm modul activ: themeOverride (pentru admini) sau userSubscriptionType */}
+                  {(() => {
+                    const effectiveMode = themeOverride || userSubscriptionType;
+                    const isEntrepreneurMode = effectiveMode === 'entrepreneur';
+                    const isAccountantMode = effectiveMode === 'accountant' || effectiveMode === 'accounting_firm';
+
+                    return (
+                      <>
+                        {/* Doar în modul antreprenor */}
+                        {isEntrepreneurMode && (
+                          <>
+                            <SubscriptionBadge />
+                            <CompanySwitcher 
+                              currentCompanyId={currentCompanyId}
+                              onCompanyChange={setCurrentCompanyId}
+                              onAddCompany={() => navigate('/crm')}
+                            />
+                          </>
+                        )}
+                        {/* Doar în modul contabil */}
+                        {isAccountantMode && (
+                          <>
+                            <SubscriptionBadge />
+                            <Button 
+                              variant="default" 
+                              onClick={() => navigate('/accountant-dashboard')}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              📊 Dashboard Contabil
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    );
+                  })()}
                   <AdminRoleSwitcher />
                   <Button 
                     variant="outline" 
