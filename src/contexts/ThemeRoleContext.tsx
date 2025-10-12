@@ -1,16 +1,19 @@
-import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, ReactNode, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 type ThemeRole = 'landing' | 'entrepreneur' | 'accountant' | 'admin';
 
 interface ThemeRoleContextType {
   currentTheme: ThemeRole;
+  setThemeOverride: (theme: ThemeRole | null) => void;
+  themeOverride: ThemeRole | null;
 }
 
 const ThemeRoleContext = createContext<ThemeRoleContextType | undefined>(undefined);
 
 export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
+  const [themeOverride, setThemeOverride] = useState<ThemeRole | null>(null);
 
   const getCurrentTheme = (): ThemeRole => {
     const path = location.pathname;
@@ -36,7 +39,7 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
     return 'entrepreneur';
   };
 
-  const currentTheme = getCurrentTheme();
+  const currentTheme = themeOverride || getCurrentTheme();
 
   useEffect(() => {
     const root = document.documentElement;
@@ -62,7 +65,7 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
   }, [currentTheme]);
 
   return (
-    <ThemeRoleContext.Provider value={{ currentTheme }}>
+    <ThemeRoleContext.Provider value={{ currentTheme, setThemeOverride, themeOverride }}>
       {children}
     </ThemeRoleContext.Provider>
   );

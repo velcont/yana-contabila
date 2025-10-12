@@ -8,13 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeRole } from '@/contexts/ThemeRoleContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminRoleSwitcher = () => {
-  const { themeType, setThemeOverride, themeOverride } = useTheme();
+  const { currentTheme, setThemeOverride, themeOverride } = useThemeRole();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
@@ -24,9 +24,16 @@ export const AdminRoleSwitcher = () => {
     {
       id: null,
       name: 'Modul Real',
-      description: 'Bazat pe abonamentul actual',
+      description: 'Bazat pe pagina curentă',
       icon: UserCircle,
       route: null,
+    },
+    {
+      id: 'admin' as const,
+      name: 'Admin',
+      description: 'Control sistem - Interfață portocalie',
+      icon: Shield,
+      route: '/admin',
     },
     {
       id: 'entrepreneur' as const,
@@ -40,7 +47,7 @@ export const AdminRoleSwitcher = () => {
       name: 'Modul Contabil',
       description: 'Dashboard clienți - Interfață verde',
       icon: Building2,
-      route: null, // Do not navigate away; keep user on current page (/app)
+      route: '/crm',
     },
   ];
 
@@ -105,7 +112,12 @@ export const AdminRoleSwitcher = () => {
 
         <DropdownMenuSeparator />
         <div className="p-2 text-xs text-muted-foreground">
-          <p className="font-medium mb-1">Mod curent real: {themeType === 'accountant' ? 'Contabil' : 'Antreprenor'}</p>
+          <p className="font-medium mb-1">Temă actuală: {
+            currentTheme === 'admin' ? 'Admin (Portocaliu)' :
+            currentTheme === 'accountant' ? 'Contabil (Verde)' :
+            currentTheme === 'entrepreneur' ? 'Antreprenor (Albastru)' :
+            'Landing (Violet)'
+          }</p>
           <p>Schimbă între moduri pentru a testa interfața</p>
         </div>
       </DropdownMenuContent>
