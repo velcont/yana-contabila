@@ -124,12 +124,78 @@ const Auth = () => {
           throw new Error("Trebuie să accepți Termenii și Condițiile pentru a crea un cont");
         }
         
-        const { error } = await signUp(email, password, fullName);
-        if (error) throw error;
-        
-        // Skip pre-check: permitem înscrierea chiar dacă există un profil vechi cu alt tip.
-        // Curățarea profilelor vechi se face la ștergere; continuăm cu sign-up fără a bloca aici.
+        const signUpResult = await signUp(email, password, fullName);
+        if (signUpResult.error) {
+          const msg = (signUpResult.error.message || '').toLowerCase();
+          const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;
 
+          if (isAlreadyReg) {
+            // 1) Încearcă autentificarea cu parola introdusă
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+
+            if (!signInError && signInData?.user) {
+              // 2) Am autentificat – aplicăm aceleași update-uri de profil și tracking termeni
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                try {
+                  await supabase.functions.invoke('track-terms-acceptance', {
+                    body: {
+                      userId: user.id,
+                      email: user.email,
+                      termsVersion: '1.0'
+                    }
+                  });
+                } catch (trackError) {
+                  console.error('Error tracking terms acceptance:', trackError);
+                }
+
+                await supabase
+                  .from('profiles')
+                  .update({
+                    subscription_type: accountType,
+                    account_type_selected: true,
+                    terms_accepted: true,
+                    terms_accepted_at: new Date().toISOString()
+                  })
+                  .eq('id', user.id);
+              }
+
+              toast({
+                title: 'Cont existent – autentificat',
+                description: accountType === 'entrepreneur'
+                  ? 'Te-am autentificat și ți-am păstrat tipul de cont.'
+                  : 'Te-am autentificat și ți-am setat contul ca „Contabil”.',
+              });
+
+              navigate('/app');
+              return;
+            } else {
+              // 3) Parola nu e corectă – trimitem automat email de resetare
+              try {
+                await supabase.functions.invoke('send-reset-password', { body: { email } });
+              } catch (e) {
+                console.error('Auto reset email error:', e);
+              }
+
+              toast({
+                title: 'Email deja înregistrat',
+                description: 'Ți-am trimis un link de resetare a parolei. După autentificare, vom seta contul conform selecției tale.',
+              });
+
+              // Comută la login după reset
+              setIsForgotPassword(false);
+              setIsLogin(true);
+              return;
+            }
+          }
+
+          // Alte erori – propagă
+          throw signUpResult.error;
+        }
+        
         // Update profile with account type and terms acceptance
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
