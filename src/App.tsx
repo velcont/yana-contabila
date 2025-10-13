@@ -74,7 +74,7 @@ const App = () => (
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                     <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
-                    <Route path="/accountant-dashboard" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
+                    <Route path="/yanacrm" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
                     <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
                     <Route path="/accept-invitation" element={<AcceptInvitation />} />
                     <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />

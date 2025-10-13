@@ -30,7 +30,7 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
     }
 
     // Accountant pages use accountant theme (green)
-    if (path.includes('/accountant') || path === '/crm' || path.includes('/accountant-dashboard') || path.includes('/accountant-branding')) {
+    if (path.includes('/accountant') || path === '/crm' || path.includes('/yanacrm') || path.includes('/accountant-branding')) {
       return 'accountant';
     }
 

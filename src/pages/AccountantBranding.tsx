@@ -175,7 +175,7 @@ const AccountantBranding = () => {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/accountant-dashboard')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/yanacrm')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Înapoi
             </Button>
@@ -280,7 +280,7 @@ const AccountantBranding = () => {
         </Card>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => navigate('/accountant-dashboard')}>
+          <Button variant="outline" onClick={() => navigate('/yanacrm')}>
             Anulează
           </Button>
           <Button onClick={handleSaveBranding} disabled={loading}>

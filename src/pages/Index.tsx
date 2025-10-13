@@ -330,7 +330,7 @@ const Index = () => {
   console.log('User is authenticated:', user.email);
 
   // /app afișează interfața de ANALIZĂ pentru TOȚI utilizatorii
-  // Dashboard-ul contabil este la /accountant-dashboard (rută separată)
+  // Dashboard-ul contabil este la /yanacrm (rută separată)
 
   if (showDashboard && user) {
     return (
