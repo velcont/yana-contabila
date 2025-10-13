@@ -477,7 +477,7 @@ const Index = () => {
         open={showAccountTypeSelector} 
         onComplete={() => {
           setShowAccountTypeSelector(false);
-          window.location.reload(); // Refresh to load correct theme and settings
+          // Theme is updated immediately without full reload
         }}
       />
     </>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Building2, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface AccountTypeSelectorProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface AccountTypeSelectorProps {
 export const AccountTypeSelector = ({ open, onComplete }: AccountTypeSelectorProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { setThemeOverride } = useTheme();
 
   const selectAccountType = async (type: 'entrepreneur' | 'accounting_firm') => {
     setIsLoading(true);
@@ -31,6 +33,8 @@ export const AccountTypeSelector = ({ open, onComplete }: AccountTypeSelectorPro
         .eq('id', user.id);
 
       if (error) throw error;
+
+      setThemeOverride?.(type === 'accounting_firm' ? 'accountant' : 'entrepreneur');
 
       toast({
         title: "Tip cont selectat",
