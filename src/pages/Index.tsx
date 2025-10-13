@@ -369,11 +369,11 @@ const Index = () => {
                 <Phone className="mr-2 h-4 w-4" />
                 Contact
               </Button>
-              {userSubscriptionType === 'accounting_firm' && (
+              {themeType === 'accountant' && (
                 <Button 
                   variant="default" 
                   onClick={() => navigate('/crm')} 
-                  className="text-sm bg-primary hover:bg-primary/90"
+                  className="text-sm"
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   CRM Clienți
