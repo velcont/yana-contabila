@@ -171,9 +171,12 @@ serve(async (req) => {
       });
     }
 
+    // Get the verified domain from environment (default to resend test domain)
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Raport Financiar <onboarding@resend.dev>";
+    
     // Send email to all recipients
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Raport Financiar <onboarding@resend.dev>",
+      from: fromEmail,
       to: emailList,
       subject: `Raport Financiar - ${companyName} - ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}`,
       html: emailHtml,
