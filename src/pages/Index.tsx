@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,12 @@ import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import AdvertisementPopup from "@/components/AdvertisementPopup";
 import { Landing } from "@/pages/Landing";
@@ -260,6 +266,23 @@ const Index = () => {
     }
   };
 
+  const handleExportCopyrightPDF = () => {
+    import('@/utils/copyrightPdfExport').then(({ generateCopyrightPDF }) => {
+      generateCopyrightPDF();
+      toast({
+        title: "Document generat",
+        description: "PDF-ul pentru drepturile de autor a fost descărcat cu succes",
+      });
+    }).catch(error => {
+      console.error('Error generating copyright PDF:', error);
+      toast({
+        title: "Eroare",
+        description: "Nu s-a putut genera documentul PDF",
+        variant: "destructive",
+      });
+    });
+  };
+
   const handleExportPDF = async () => {
     if (!analysis) return;
     
@@ -385,8 +408,29 @@ const Index = () => {
                     </>
                   )}
                   {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}
+                  {isAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Settings className="h-4 w-4 mr-2" />
+                          Admin
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate('/admin')}>
+                          Dashboard Admin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/system-health')}>
+                          System Health
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleExportCopyrightPDF}>
+                          Generează PDF Drepturi Autor
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   <AdminRoleSwitcher />
-                  <Button 
+                  <Button
                     variant="outline" 
                     onClick={() => setShowDashboard(true)}
                     data-tour="dashboard-button"
