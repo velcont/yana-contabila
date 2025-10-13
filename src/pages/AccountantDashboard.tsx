@@ -36,6 +36,7 @@ import { AccountantTasksManager } from '@/components/AccountantTasksManager';
 import { CRMMessagingManager } from '@/components/CRMMessagingManager';
 import { EmailManager } from '@/components/EmailManager';
 import { ClientFiscalParamsDialog } from '@/components/ClientFiscalParamsDialog';
+import { BulkEmailDialog } from '@/components/BulkEmailDialog';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -53,8 +54,17 @@ const AccountantDashboard = () => {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [fiscalParamsDialogOpen, setFiscalParamsDialogOpen] = useState(false);
+  const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  
+  // Fiscal filters
+  const [vatRegimeFilter, setVatRegimeFilter] = useState<string[]>([]);
+  const [cashVatFilter, setCashVatFilter] = useState<string[]>([]);
+  const [taxTypeFilter, setTaxTypeFilter] = useState<string[]>([]);
 
   useEffect(() => {
+    let mounted = true;
+    
     const init = async () => {
       console.log('AccountantDashboard - Verificare acces');
       
@@ -88,11 +98,17 @@ const AccountantDashboard = () => {
       }
       
       console.log('✅ Acces permis - încărcare clienți');
-      fetchClients();
+      if (mounted) {
+        fetchClients();
+      }
     };
     
     init();
-  }, [subscriptionLoading, navigate]);
+    
+    return () => {
+      mounted = false;
+    };
+  }, [subscriptionLoading]);
 
   const fetchClients = async () => {
     try {
@@ -192,10 +208,34 @@ const AccountantDashboard = () => {
     }
   };
 
-  const filteredClients = clients.filter((client) =>
-    client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.contact_person?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClients = clients.filter((client) => {
+    // Search filter
+    const matchesSearch = 
+      client.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.contact_person?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    // VAT regime filter
+    if (vatRegimeFilter.length > 0) {
+      const clientVatRegime = client.vat_regime || 'none';
+      if (!vatRegimeFilter.includes(clientVatRegime)) return false;
+    }
+    
+    // Cash VAT filter
+    if (cashVatFilter.length > 0) {
+      const clientCashVat = client.cash_accounting_vat ? 'yes' : 'no';
+      if (!cashVatFilter.includes(clientCashVat)) return false;
+    }
+    
+    // Tax type filter
+    if (taxTypeFilter.length > 0) {
+      const clientTaxType = client.tax_type || 'none';
+      if (!taxTypeFilter.includes(clientTaxType)) return false;
+    }
+    
+    return true;
+  });
 
   // Show loading while checking subscription
   if (subscriptionLoading) {
@@ -350,7 +390,7 @@ const AccountantDashboard = () => {
           </CardHeader>
 
           <CardContent>
-            <div className="mb-4">
+            <div className="mb-6 space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -359,6 +399,143 @@ const AccountantDashboard = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
+              </div>
+              
+              {/* Fiscal Filters */}
+              <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">Filtre Parametri Fiscali</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setVatRegimeFilter([]);
+                      setCashVatFilter([]);
+                      setTaxTypeFilter([]);
+                      setSelectedClients([]);
+                    }}
+                  >
+                    Resetează filtre
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* VAT Regime Filter */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Plătitor TVA</Label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'none', label: 'Neplătitor TVA' },
+                        { value: 'quarterly', label: 'Trimestrial' },
+                        { value: 'monthly', label: 'Lunar' }
+                      ].map((option) => (
+                        <div key={option.value} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`vat-${option.value}`}
+                            checked={vatRegimeFilter.includes(option.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setVatRegimeFilter([...vatRegimeFilter, option.value]);
+                              } else {
+                                setVatRegimeFilter(vatRegimeFilter.filter(v => v !== option.value));
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <label htmlFor={`vat-${option.value}`} className="text-sm">
+                            {option.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Cash VAT Filter */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">TVA la încasare</Label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'yes', label: 'Da' },
+                        { value: 'no', label: 'Nu' }
+                      ].map((option) => (
+                        <div key={option.value} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`cash-${option.value}`}
+                            checked={cashVatFilter.includes(option.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCashVatFilter([...cashVatFilter, option.value]);
+                              } else {
+                                setCashVatFilter(cashVatFilter.filter(v => v !== option.value));
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <label htmlFor={`cash-${option.value}`} className="text-sm">
+                            {option.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tax Type Filter */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Tip impozit</Label>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'micro', label: 'Impozit micro' },
+                        { value: 'profit', label: 'Impozit profit' }
+                      ].map((option) => (
+                        <div key={option.value} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`tax-${option.value}`}
+                            checked={taxTypeFilter.includes(option.value)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setTaxTypeFilter([...taxTypeFilter, option.value]);
+                              } else {
+                                setTaxTypeFilter(taxTypeFilter.filter(v => v !== option.value));
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <label htmlFor={`tax-${option.value}`} className="text-sm">
+                            {option.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bulk Email Button */}
+                {filteredClients.length > 0 && (
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <p className="text-sm text-muted-foreground">
+                      {selectedClients.length > 0 
+                        ? `${selectedClients.length} clienți selectați`
+                        : `${filteredClients.length} clienți filtrați`}
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (selectedClients.length === 0) {
+                          // Select all filtered clients
+                          setSelectedClients(filteredClients.map(c => c.id));
+                        }
+                        setBulkEmailDialogOpen(true);
+                      }}
+                      disabled={filteredClients.length === 0}
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      Trimite Email în Masă
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -386,6 +563,20 @@ const AccountantDashboard = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        checked={selectedClients.length === filteredClients.length && filteredClients.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedClients(filteredClients.map(c => c.id));
+                          } else {
+                            setSelectedClients([]);
+                          }
+                        }}
+                        className="rounded"
+                      />
+                    </TableHead>
                     <TableHead>Firmă</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Status</TableHead>
@@ -395,6 +586,20 @@ const AccountantDashboard = () => {
                 <TableBody>
                   {filteredClients.map((client) => (
                     <TableRow key={client.id}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedClients.includes(client.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedClients([...selectedClients, client.id]);
+                            } else {
+                              setSelectedClients(selectedClients.filter(id => id !== client.id));
+                            }
+                          }}
+                          className="rounded"
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <button
                           onClick={() => {
@@ -426,14 +631,27 @@ const AccountantDashboard = () => {
                         <Badge variant="secondary">Activ</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/app?company=${client.id}`)}
-                          title="Vezi analize"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedClient(client);
+                              setEmailDialogOpen(true);
+                            }}
+                            title="Trimite email"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/app?company=${client.id}`)}
+                            title="Vezi analize"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -489,6 +707,15 @@ const AccountantDashboard = () => {
             />
           </>
         )}
+
+        <BulkEmailDialog
+          open={bulkEmailDialogOpen}
+          onOpenChange={setBulkEmailDialogOpen}
+          clients={selectedClients.length > 0 
+            ? clients.filter(c => selectedClients.includes(c.id))
+            : filteredClients
+          }
+        />
       </div>
     </div>
   );
