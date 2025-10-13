@@ -466,7 +466,7 @@ const AccountantDashboard = () => {
             onOpenChange={setEmailDialogOpen}
             companyId={selectedClient.id}
             companyName={selectedClient.company_name}
-            clientEmail={''}
+            clientEmail={selectedClient.contact_email || ''}
             clientName={selectedClient.contact_person || ''}
             latestAnalysis={selectedClient.latestAnalysis}
           />

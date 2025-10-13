@@ -828,6 +828,7 @@ export type Database = {
           client_category: string | null
           client_status: string | null
           company_name: string
+          contact_email: string | null
           contact_person: string | null
           created_at: string
           cui: string | null
@@ -864,6 +865,7 @@ export type Database = {
           client_category?: string | null
           client_status?: string | null
           company_name: string
+          contact_email?: string | null
           contact_person?: string | null
           created_at?: string
           cui?: string | null
@@ -900,6 +902,7 @@ export type Database = {
           client_category?: string | null
           client_status?: string | null
           company_name?: string
+          contact_email?: string | null
           contact_person?: string | null
           created_at?: string
           cui?: string | null

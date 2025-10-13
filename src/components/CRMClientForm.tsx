@@ -36,6 +36,7 @@ interface FormData {
   address?: string;
   phone?: string;
   contact_person?: string;
+  contact_email?: string;
   notes?: string;
   vat_payer: string;
   vat_regime?: string;
@@ -55,6 +56,7 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
       address: "",
       phone: "",
       contact_person: "",
+      contact_email: "",
       notes: "",
       vat_payer: "nu",
       vat_regime: "nu",
@@ -78,6 +80,7 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
         address: data.address,
         phone: data.phone,
         contact_person: data.contact_person,
+        contact_email: data.contact_email,
         notes: data.notes,
         vat_payer: data.vat_payer === "da",
         vat_regime: data.vat_regime,
@@ -131,6 +134,20 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
                 <FormLabel>Denumire firmă *</FormLabel>
                 <FormControl>
                   <Input placeholder="SC Exemplu SRL" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="contact_email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Contact *</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="contact@firma.ro" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
