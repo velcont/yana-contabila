@@ -364,10 +364,22 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="flex justify-between items-center mb-8">
-            <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
-              <Phone className="mr-2 h-4 w-4" />
-              Contact
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
+                <Phone className="mr-2 h-4 w-4" />
+                Contact
+              </Button>
+              {userSubscriptionType === 'accounting_firm' && (
+                <Button 
+                  variant="default" 
+                  onClick={() => navigate('/crm')} 
+                  className="text-sm bg-primary hover:bg-primary/90"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  CRM Clienți
+                </Button>
+              )}
+            </div>
             <div className="flex gap-2">
               <ThemeToggle />
               {user ? (
