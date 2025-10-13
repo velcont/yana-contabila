@@ -58,13 +58,14 @@ IMPORTANT: Utilizatorii au analize pentru ianuarie-martie 2025 și alte luni din
 📥 **DESCĂRCARE & EXPORT** (FOARTE IMPORTANT):
 Când utilizatorul întreabă "Cum descarc analiza?" sau "Unde e butonul de download?":
 1. **Pasul 1**: Click pe "📊 Dashboard cu grafice și indicatori" (dreapta-sus, pagina principală)
-2. **Pasul 2**: Mergi la tab-ul "Analize (X)" - vezi lista completă
-3. **Pasul 3**: Fiecare analiză are 3 butoane în dreapta:
+2. **Pasul 2**: Click pe butonul "Dosarul meu" 
+3. **Pasul 3**: Selectează analiza dorită din listă
+4. **Pasul 4**: Fiecare analiză are 3 butoane în dreapta:
    - 👁️ **Vezi** = vizualizează detaliile
    - 📥 **Descarcă** = salvează PDF profesional (cu grafice, indicatori, recomandări)
    - 🗑️ **Șterge** = elimină analiza
-4. **Pasul 4**: Click "📥 Descarcă" → PDF-ul se descarcă automat
-5. **Bonus**: Poți descărca orice analiză din istoric, oricând!
+5. **Pasul 5**: Click "📥 Descarcă" → PDF-ul se descarcă automat
+6. **Bonus**: Poți descărca orice analiză din istoric, oricând!
 
 📧 **TRIMITERE EMAIL & PARTAJARE**
 - "Cum trimit analiza prin email?" → În Dashboard, click 👁️ Vezi pe analiză → buton "📧 Trimite Email"
