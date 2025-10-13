@@ -68,8 +68,8 @@ serve(async (req) => {
     let logoUrl = null;
     let brandColor = '#10b981';
 
-    // For accountants, get company details from database
-    if (isAccountant && companyId) {
+    // Try to get company details from database if companyId is provided
+    if (companyId) {
       const { data: companyData } = await supabaseClient
         .from('companies')
         .select('company_name, accountant_logo_url, accountant_brand_color')
@@ -78,10 +78,13 @@ serve(async (req) => {
 
       if (companyData) {
         company = companyData;
-        companyName = companyData.company_name;
+        companyName = companyData.company_name || directCompanyName || 'Firmă';
         logoUrl = companyData.accountant_logo_url;
         brandColor = companyData.accountant_brand_color || '#10b981';
+        logStep("Company data retrieved from database", { companyName, companyId });
       }
+    } else {
+      logStep("Using provided company name", { companyName: directCompanyName });
     }
 
     // Initialize Resend
