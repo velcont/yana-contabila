@@ -38,12 +38,39 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Check profile for free access and trial period
+    // Check profile for free access and trial period (+ ensure profile exists and sync from user_metadata)
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('has_free_access, trial_ends_at, subscription_type')
+      .select('has_free_access, trial_ends_at, subscription_type, account_type_selected')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
+
+    // Read intent from auth user metadata (set at signup)
+    const meta = (user as any)?.user_metadata || {};
+    const metaType = meta.subscription_type === 'accounting_firm' ? 'accounting_firm' : 'entrepreneur';
+    const metaSelected = !!meta.account_type_selected;
+    const metaTerms = !!meta.terms_accepted;
+
+    // Ensure a profile row exists and reflect chosen account type when first seen
+    if (!profile) {
+      logStep('No profile found - creating one from user_metadata', { metaType, metaSelected });
+      await supabaseClient.from('profiles').insert({
+        id: user.id,
+        email: user.email,
+        subscription_type: metaType,
+        account_type_selected: metaSelected,
+        terms_accepted: metaTerms,
+        subscription_status: 'inactive',
+      });
+    } else if (metaSelected && metaType === 'accounting_firm' && profile.subscription_type !== 'accounting_firm') {
+      logStep('Syncing subscription_type from metadata to profile', { from: profile.subscription_type, to: metaType });
+      await supabaseClient.from('profiles').update({
+        subscription_type: metaType,
+        account_type_selected: true,
+      }).eq('id', user.id);
+    }
+
+    const effectiveType = (profile?.subscription_type as string) || metaType;
 
     // If user has free access, mark profile active and return
     if (profile?.has_free_access) {
@@ -54,7 +81,7 @@ serve(async (req) => {
         .from('profiles')
         .update({
           subscription_status: 'active',
-          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_type: effectiveType,
           subscription_ends_at: null,
         })
         .eq('id', user.id);
@@ -62,7 +89,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           subscribed: true,
-          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_type: effectiveType,
           subscription_status: 'active',
           subscription_end: null,
           access_type: 'free_access'
@@ -80,7 +107,7 @@ serve(async (req) => {
         .from('profiles')
         .update({
           subscription_status: 'active',
-          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_type: effectiveType,
           subscription_ends_at: profile.trial_ends_at,
         })
         .eq('id', user.id);
@@ -88,7 +115,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           subscribed: true,
-          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_type: effectiveType,
           subscription_status: 'active',
           subscription_end: profile.trial_ends_at,
           access_type: 'trial'
@@ -112,7 +139,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           subscribed: false,
-          subscription_type: profile.subscription_type || 'entrepreneur',
+          subscription_type: effectiveType,
           subscription_status: 'inactive',
           subscription_end: null,
           access_type: 'trial_expired',
@@ -137,7 +164,7 @@ serve(async (req) => {
         .from('profiles')
         .update({
           subscription_status: 'inactive',
-          subscription_type: 'entrepreneur',
+          subscription_type: effectiveType,
           stripe_customer_id: null,
           stripe_subscription_id: null,
           subscription_ends_at: null,
@@ -147,7 +174,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           subscribed: false,
-          subscription_type: 'entrepreneur',
+          subscription_type: effectiveType,
           subscription_status: 'inactive',
         }),
         {
@@ -168,7 +195,7 @@ serve(async (req) => {
     });
 
     const hasActiveSub = subscriptions.data.length > 0;
-    let subscriptionType = 'entrepreneur';
+    let subscriptionType = effectiveType;
     let subscriptionEnd = null;
     let stripeSubscriptionId = null;
 
