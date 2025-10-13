@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,10 +40,15 @@ export const EmailAnalysisDialog = ({
   const [customNote, setCustomNote] = useState('');
   const [includeAlerts, setIncludeAlerts] = useState(true);
   const [includeRecommendations, setIncludeRecommendations] = useState(true);
+  const [email, setEmail] = useState(clientEmail || '');
 
   const handleSendReport = async () => {
     try {
       setLoading(true);
+
+      if (!email || !email.trim()) {
+        throw new Error('Email-ul este obligatoriu');
+      }
 
       if (!latestAnalysis || !latestAnalysis.metadata) {
         throw new Error('Nu există date de analiză disponibile');
@@ -100,7 +106,7 @@ export const EmailAnalysisDialog = ({
       const { error } = await supabase.functions.invoke('send-monthly-report', {
         body: {
           companyId,
-          clientEmail,
+          clientEmail: email,
           clientName,
           reportData,
         },
@@ -110,11 +116,12 @@ export const EmailAnalysisDialog = ({
 
       toast({
         title: 'Raport trimis cu succes',
-        description: `Email-ul a fost trimis către ${clientEmail}`,
+        description: `Email-ul a fost trimis către ${email}`,
       });
 
       onOpenChange(false);
       setCustomNote('');
+      setEmail('');
     } catch (error: any) {
       console.error('Error sending report:', error);
       toast({
@@ -139,10 +146,18 @@ export const EmailAnalysisDialog = ({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Destinatar</Label>
-            <div className="text-sm text-muted-foreground">
-              {clientEmail} ({clientName || 'Contact principal'})
-            </div>
+            <Label htmlFor="email">Email Destinatar *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="contact@firma.ro"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              {clientName && `Trimite către ${clientName}`}
+            </p>
           </div>
 
           <div className="space-y-3">
