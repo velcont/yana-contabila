@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown } from "lucide-react";
+import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
+import { toast } from "sonner";
 import AcademicThesisAssistant from "@/components/AcademicThesisAssistant";
 import { AuditLogs } from "@/components/AuditLogs";
 import { StorageManager } from "@/components/StorageManager";
@@ -141,6 +143,16 @@ const Admin = () => {
     return acc;
   }, {} as Record<string, Conversation[]>);
 
+  const handleExportCopyrightPDF = () => {
+    try {
+      generateCopyrightPDF();
+      toast.success("PDF pentru drepturile de autor a fost generat cu succes!");
+    } catch (error) {
+      console.error("Error generating copyright PDF:", error);
+      toast.error("Eroare la generarea PDF-ului");
+    }
+  };
+
   console.log("Grouped conversations:", Object.keys(groupedConversations).length);
   console.log("Total conversations loaded:", conversations.length);
   console.log("Filtered conversations:", filteredConversations.length);
@@ -167,10 +179,16 @@ const Admin = () => {
               Vizualizare date utilizatori și conversații
             </p>
           </div>
-          <Button onClick={() => navigate("/updates")} size="lg">
-            <Package className="h-4 w-4 mr-2" />
-            Management Versiuni
-          </Button>
+          <div className="flex gap-3">
+            <Button onClick={handleExportCopyrightPDF} size="lg" variant="outline">
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF Drepturi Autor
+            </Button>
+            <Button onClick={() => navigate("/updates")} size="lg">
+              <Package className="h-4 w-4 mr-2" />
+              Management Versiuni
+            </Button>
+          </div>
         </div>
 
         <Alert className="mb-6">
