@@ -1,7 +1,7 @@
 import { Mail, MessageCircle, FileText, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -70,18 +70,18 @@ export const Footer = () => {
 
           <div className="flex items-center gap-4">
             <h4 className="font-semibold text-sm">Link-uri:</h4>
-            <a href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Analiză Balanță
-            </a>
-            <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Contact
-            </a>
-            <a href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Termeni
-            </a>
-            <a href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            </Link>
+            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Confidențialitate
-            </a>
+            </Link>
             {themeType === 'accountant' ? (
               <Button
                 onClick={() => navigate('/yanacrm')}

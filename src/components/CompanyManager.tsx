@@ -47,6 +47,12 @@ const companySchema = z.object({
     .max(255, { message: "Numele persoanei de contact nu poate depăși 255 caractere" })
     .optional()
     .or(z.literal("")),
+  contact_email: z.string()
+    .trim()
+    .email({ message: "Email invalid" })
+    .max(255, { message: "Email-ul nu poate depăși 255 caractere" })
+    .optional()
+    .or(z.literal("")),
   notes: z.string()
     .trim()
     .max(2000, { message: "Notițele nu pot depăși 2000 caractere" })
@@ -88,6 +94,7 @@ export const CompanyManager = () => {
     address: "",
     phone: "",
     contact_person: "",
+    contact_email: "",
     notes: "",
   });
 
@@ -138,6 +145,7 @@ export const CompanyManager = () => {
             address: validatedData.address || null,
             phone: validatedData.phone || null,
             contact_person: validatedData.contact_person || null,
+            contact_email: validatedData.contact_email || null,
             notes: validatedData.notes || null,
           })
           .eq("id", editingCompany.id);
@@ -156,6 +164,7 @@ export const CompanyManager = () => {
             address: validatedData.address || null,
             phone: validatedData.phone || null,
             contact_person: validatedData.contact_person || null,
+            contact_email: validatedData.contact_email || null,
             notes: validatedData.notes || null,
             user_id: user.id 
           }]);
@@ -213,6 +222,7 @@ export const CompanyManager = () => {
       address: "",
       phone: "",
       contact_person: "",
+      contact_email: "",
       notes: "",
     });
     setEditingCompany(null);
@@ -229,6 +239,7 @@ export const CompanyManager = () => {
       address: company.address,
       phone: company.phone,
       contact_person: company.contact_person,
+      contact_email: (company as any).contact_email || "",
       notes: company.notes,
     });
     setIsDialogOpen(true);
@@ -371,6 +382,17 @@ export const CompanyManager = () => {
                     onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contact_email">Email Contact</Label>
+                <Input
+                  id="contact_email"
+                  type="email"
+                  placeholder="contact@firma.ro"
+                  value={formData.contact_email}
+                  onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
