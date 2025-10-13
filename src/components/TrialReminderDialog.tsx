@@ -21,7 +21,7 @@ export const TrialReminderDialog = () => {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('trial_ends_at, subscription_status')
+        .select('trial_ends_at, subscription_status, has_free_access')
         .eq('id', user.id)
         .single();
 
@@ -30,7 +30,8 @@ export const TrialReminderDialog = () => {
       // Only show if:
       // 1. User is not on active subscription
       // 2. User has a trial_ends_at date
-      if (profile.subscription_status === 'active' || !profile.trial_ends_at) {
+      // 3. User does NOT have free access granted
+      if (profile.subscription_status === 'active' || !profile.trial_ends_at || profile.has_free_access) {
         return;
       }
 
