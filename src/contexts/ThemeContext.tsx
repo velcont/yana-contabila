@@ -14,10 +14,20 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const { isAdmin } = useUserRole();
-  const { currentTheme } = useThemeRole();
+  const { currentTheme, setThemeOverride: setRoleThemeOverride } = useThemeRole();
   const [themeOverride, setThemeOverride] = useState<ThemeType | null>(null);
   const [themeType, setThemeType] = useState<ThemeType>('entrepreneur');
 
+  // Keep ThemeRoleContext (route classes) in sync with ThemeContext overrides
+  const setThemeOverrideSynced = (theme: ThemeType | null) => {
+    setThemeOverride(theme);
+    if (theme === null) {
+      setRoleThemeOverride(null);
+    } else {
+      setRoleThemeOverride(theme);
+    }
+    console.log('🎨 [THEME SYNC] Synced override to role context:', theme);
+  };
   useEffect(() => {
     // Determine theme based on route-driven theme, allow explicit override (used to switch modules)
     let next: ThemeType = currentTheme === 'accountant' ? 'accountant' : 'entrepreneur';
@@ -31,7 +41,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [currentTheme, themeOverride, isAdmin]);
 
   return (
-    <ThemeContext.Provider value={{ themeType, setThemeOverride, themeOverride }}>
+    <ThemeContext.Provider value={{ themeType, setThemeOverride: setThemeOverrideSynced, themeOverride }}>
       {children}
     </ThemeContext.Provider>
   );
