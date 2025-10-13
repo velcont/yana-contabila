@@ -19,9 +19,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [themeType, setThemeType] = useState<ThemeType>('entrepreneur');
 
   useEffect(() => {
-    // Determine theme based on route-driven theme, with optional admin override
+    // Determine theme based on route-driven theme, allow explicit override (used to switch modules)
     let next: ThemeType = currentTheme === 'accountant' ? 'accountant' : 'entrepreneur';
-    if (themeOverride && isAdmin) {
+    if (themeOverride) {
       next = themeOverride;
     }
     setThemeType(next);
