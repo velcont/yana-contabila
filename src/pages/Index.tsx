@@ -57,9 +57,7 @@ const Index = () => {
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
-  // Removed auto-redirect to accountant dashboard to keep users on /app after login
-
-  // Check if user needs to select account type
+  // Check if user needs to select account type and redirect accountants to YanaCRM
   useEffect(() => {
     const checkAccountType = async () => {
       if (user && !loading) {
@@ -75,17 +73,17 @@ const Index = () => {
             return;
           }
 
-          // IMPORTANT: /app este pentru TOȚI - interfața de analiză (upload balanță, chat AI)
-          // Nu mai redirecționăm - doar setăm tema corespunzătoare
+          // IMPORTANT: Contabilii merg automat la /yanacrm (YanaCRM)
+          // Antreprenorii rămân pe /app (interfața de analiză)
           if (data.subscription_type === 'accounting_firm') {
-            console.log('✅ User este contabil - afișare interfață analiză cu temă contabil');
+            console.log('✅ User este contabil - redirecționare către YanaCRM');
             setUserSubscriptionType('accounting_firm');
-            // Setează tema contabil
             setThemeOverride?.('accountant');
+            navigate('/yanacrm');
+            return;
           } else {
-            console.log('✅ User este antreprenor - afișare interfață analiză cu temă antreprenor');
+            console.log('✅ User este antreprenor - afișare interfață analiză');
             setUserSubscriptionType('entrepreneur');
-            // Setează tema antreprenor
             setThemeOverride?.('entrepreneur');
           }
 
