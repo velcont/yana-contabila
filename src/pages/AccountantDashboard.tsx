@@ -397,8 +397,19 @@ const AccountantDashboard = () => {
                         {client.company_name}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm">{client.contact_person || 'N/A'}</span>
+                        <div className="flex flex-col gap-1">
+                          {client.contact_email ? (
+                            <>
+                              <span className="text-sm font-medium">{client.contact_email}</span>
+                              {client.contact_person && (
+                                <span className="text-xs text-muted-foreground">{client.contact_person}</span>
+                              )}
+                            </>
+                          ) : client.contact_person ? (
+                            <span className="text-sm">{client.contact_person}</span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">N/A</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
