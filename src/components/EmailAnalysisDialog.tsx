@@ -19,10 +19,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 interface EmailAnalysisDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  companyId: string;
+  companyId?: string;
   companyName: string;
-  clientEmail: string;
-  clientName: string;
+  clientEmail?: string;
+  clientName?: string;
   latestAnalysis: any;
 }
 
@@ -108,6 +108,7 @@ export const EmailAnalysisDialog = ({
           companyId,
           clientEmail: email,
           clientName,
+          companyName,
           reportData,
         },
       });

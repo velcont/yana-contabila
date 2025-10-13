@@ -36,43 +36,54 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Check if user is an accountant
+    // Get user profile to determine context
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('subscription_type')
+      .select('subscription_type, full_name')
       .eq('id', user.id)
       .single();
 
-    if (profile?.subscription_type !== 'accounting_firm') {
-      throw new Error("Only accounting firm users can send monthly reports");
+    const isAccountant = profile?.subscription_type === 'accounting_firm';
+
+    const { companyId, clientEmail, clientName, reportData, companyName: directCompanyName } = await req.json();
+    logStep("Request data received", { companyId, clientEmail, isAccountant });
+
+    if (!clientEmail || !reportData) {
+      throw new Error("Missing required fields: clientEmail and reportData");
     }
 
-    const { companyId, clientEmail, clientName, reportData } = await req.json();
-    logStep("Request data received", { companyId, clientEmail });
+    let company = null;
+    let companyName = directCompanyName || 'Firmă';
+    let logoUrl = null;
+    let brandColor = '#10b981';
 
-    if (!companyId || !clientEmail || !reportData) {
-      throw new Error("Missing required fields");
-    }
+    // For accountants, get company details from database
+    if (isAccountant && companyId) {
+      const { data: companyData } = await supabaseClient
+        .from('companies')
+        .select('company_name, accountant_logo_url, accountant_brand_color')
+        .eq('id', companyId)
+        .single();
 
-    // Get company details
-    const { data: company } = await supabaseClient
-      .from('companies')
-      .select('company_name, accountant_logo_url, accountant_brand_color')
-      .eq('id', companyId)
-      .single();
-
-    if (!company) {
-      throw new Error("Company not found");
+      if (companyData) {
+        company = companyData;
+        companyName = companyData.company_name;
+        logoUrl = companyData.accountant_logo_url;
+        brandColor = companyData.accountant_brand_color || '#10b981';
+      }
     }
 
     // Initialize Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
     // Build email HTML with branding
-    const brandColor = company.accountant_brand_color || '#10b981';
-    const logoHtml = company.accountant_logo_url 
-      ? `<img src="${company.accountant_logo_url}" alt="Logo" style="height: 60px; margin-bottom: 20px;">` 
+    const logoHtml = logoUrl 
+      ? `<img src="${logoUrl}" alt="Logo" style="height: 60px; margin-bottom: 20px;">` 
       : '';
+
+    const senderInfo = isAccountant 
+      ? 'Acest raport a fost generat automat. Pentru detalii suplimentare, te rugăm să contactezi firma de contabilitate.'
+      : `Acest raport a fost generat automat de ${profile?.full_name || user.email} folosind platforma Yana.`;
 
     const emailHtml = `
       <!DOCTYPE html>
@@ -93,13 +104,13 @@ serve(async (req) => {
           <div class="container">
             <div class="header">
               ${logoHtml}
-              <h1 style="color: ${brandColor}; margin: 0;">Raport Lunar Financiar</h1>
-              <p style="color: #6b7280; margin: 5px 0 0 0;">${company.company_name}</p>
+              <h1 style="color: ${brandColor}; margin: 0;">Raport Financiar</h1>
+              <p style="color: #6b7280; margin: 5px 0 0 0;">${companyName}</p>
               <p style="color: #9ca3af; margin: 5px 0 0 0;">${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}</p>
             </div>
 
             <p>Bună ${clientName || 'ziua'},</p>
-            <p>Iți transmitem raportul financiar lunar pentru compania ta. Aici găsești principalii indicatori și recomandări:</p>
+            <p>${isAccountant ? 'Iți transmitem raportul financiar lunar pentru compania ta.' : 'Iată raportul tău financiar generat automat.'} Aici găsești principalii indicatori și recomandări:</p>
 
             <h2 style="color: ${brandColor}; margin-top: 30px;">Indicatori Cheie</h2>
             ${reportData.metrics ? reportData.metrics.map((metric: any) => `
@@ -124,7 +135,7 @@ serve(async (req) => {
             ` : ''}
 
             <div class="footer">
-              <p>Acest raport a fost generat automat. Pentru detalii suplimentare, te rugăm să contactezi firma de contabilitate.</p>
+              <p>${senderInfo}</p>
               <p>© ${new Date().getFullYear()} - Toate drepturile rezervate</p>
             </div>
           </div>
@@ -135,7 +146,7 @@ serve(async (req) => {
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: "Raport Financiar <onboarding@resend.dev>",
       to: [clientEmail],
-      subject: `Raport Lunar Financiar - ${company.company_name} - ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}`,
+      subject: `Raport Financiar - ${companyName} - ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}`,
       html: emailHtml,
     });
 
@@ -150,12 +161,13 @@ serve(async (req) => {
       .from('email_logs')
       .insert({
         recipient_email: clientEmail,
-        subject: `Raport Lunar Financiar - ${company.company_name}`,
+        subject: `Raport Financiar - ${companyName}`,
         email_type: 'monthly_report',
         status: 'sent',
         metadata: {
           company_id: companyId,
-          accountant_id: user.id,
+          sender_id: user.id,
+          sender_type: profile?.subscription_type,
           report_month: new Date().toISOString().slice(0, 7)
         }
       });

@@ -967,7 +967,18 @@ INDICATORI OPERAȚIONALI:
         </TabsContent>
       </Tabs>
       
-      {/* Email Dialog - Removed as it's not used in regular dashboard */}
+      {/* Email Dialog */}
+      {selectedAnalysis && (
+        <EmailAnalysisDialog
+          open={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          companyId={undefined}
+          companyName={selectedAnalysis.company_name || 'Firmă'}
+          clientEmail=""
+          clientName=""
+          latestAnalysis={selectedAnalysis}
+        />
+      )}
       
       {/* Share Dialog */}
       {selectedAnalysis && (
