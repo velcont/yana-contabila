@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mail, Settings, Send, FileText } from "lucide-react";
-import { EmailConfigManager } from "./EmailConfigManager";
+import { Mail, Send, FileText } from "lucide-react";
 import { EmailBroadcast } from "./EmailBroadcast";
 import { EmailTemplatesManager } from "./EmailTemplatesManager";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Check } from "lucide-react";
 
 export const EmailManager = () => {
   return (
@@ -13,16 +14,20 @@ export const EmailManager = () => {
           Sistem Email
         </h2>
         <p className="text-muted-foreground mt-1">
-          Configurare, template-uri și trimitere email-uri către clienți
+          Template-uri și trimitere email-uri către clienți
         </p>
       </div>
 
-      <Tabs defaultValue="config" className="space-y-6">
+      <Alert className="bg-success/10 border-success text-success-foreground">
+        <Check className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Email simplificat!</strong> Nu mai trebuie să configurați SMTP. 
+          Sistemul trimite automat email-uri prin serviciul nostru securizat.
+        </AlertDescription>
+      </Alert>
+
+      <Tabs defaultValue="templates" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="config">
-            <Settings className="mr-2 h-4 w-4" />
-            Configurare SMTP
-          </TabsTrigger>
           <TabsTrigger value="templates">
             <FileText className="mr-2 h-4 w-4" />
             Template-uri
@@ -32,10 +37,6 @@ export const EmailManager = () => {
             Trimite Email
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="config">
-          <EmailConfigManager />
-        </TabsContent>
 
         <TabsContent value="templates">
           <EmailTemplatesManager />
