@@ -1,6 +1,7 @@
-import { Mail, MessageCircle, FileText } from 'lucide-react';
+import { Mail, MessageCircle, FileText, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -10,9 +11,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export const Footer = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { themeType } = useTheme();
+  const navigate = useNavigate();
   const email = "offiice@velcont.com";
   const whatsapp = "+40731377793";
   const whatsappMessage = "Bună! Sunt interesat de serviciile Yana.";
@@ -78,13 +82,22 @@ export const Footer = () => {
             <a href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Confidențialitate
             </a>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <button className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-                  <FileText className="h-3 w-3" />
-                  Tutorial ANAF
-                </button>
-              </DialogTrigger>
+            {themeType === 'accountant' ? (
+              <Button
+                onClick={() => navigate('/accountant-dashboard')}
+                className="bg-green-600 hover:bg-green-700 text-white h-8 text-sm inline-flex items-center gap-2"
+              >
+                <Building2 className="h-3 w-3" />
+                CRM Clienți
+              </Button>
+            ) : (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <button className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    Tutorial ANAF
+                  </button>
+                </DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[80vh]">
                   <DialogHeader>
                     <DialogTitle>🧾 Tutorial: Cum depui declarațiile fiscale la ANAF</DialogTitle>
@@ -181,6 +194,7 @@ export const Footer = () => {
                   </ScrollArea>
                 </DialogContent>
               </Dialog>
+            )}
           </div>
         </div>
 
