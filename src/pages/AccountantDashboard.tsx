@@ -415,7 +415,7 @@ const AccountantDashboard = () => {
                       <TableCell>
                         <Badge variant="secondary">Activ</Badge>
                       </TableCell>
-                      <TableCell className="text-right space-x-2">
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -423,18 +423,6 @@ const AccountantDashboard = () => {
                           title="Vezi analize"
                         >
                           <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedClient(client);
-                            setEmailDialogOpen(true);
-                          }}
-                          disabled={!client.latestAnalysis}
-                          title="Trimite raport email"
-                        >
-                          <Mail className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
