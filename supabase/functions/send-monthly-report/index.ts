@@ -181,7 +181,14 @@ serve(async (req) => {
     });
 
     if (emailError) {
-      throw emailError;
+      logStep("ERROR", { message: emailError.message });
+      
+      // Provide user-friendly error messages in Romanian
+      if (emailError.message && emailError.message.includes('verify a domain at resend.com/domains')) {
+        throw new Error('⚠️ Funcția de email este în modul de test. Pentru a trimite emailuri către orice destinatar, trebuie să verifici un domeniu la resend.com/domains și să schimbi adresa "from" cu un email de pe acel domeniu. În modul de test, poți trimite doar către adresa ta verificată.');
+      }
+      
+      throw new Error(`Eroare trimitere email: ${emailError.message}`);
     }
 
     logStep("Email sent successfully", { emailId: emailData?.id, recipients: emailList.length });

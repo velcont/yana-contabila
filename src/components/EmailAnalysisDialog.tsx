@@ -268,7 +268,11 @@ export const EmailAnalysisDialog = ({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Extract user-friendly error message
+        const errorMessage = error.message || 'Nu s-a putut trimite raportul';
+        throw new Error(errorMessage);
+      }
 
       toast({
         title: 'Raport trimis cu succes',
@@ -280,10 +284,15 @@ export const EmailAnalysisDialog = ({
       setEmails('');
     } catch (error: any) {
       console.error('Error sending report:', error);
+      
+      // Display detailed error message
+      const errorMessage = error.message || 'Nu s-a putut trimite raportul';
+      
       toast({
-        title: 'Eroare',
-        description: error.message || 'Nu s-a putut trimite raportul',
+        title: 'Eroare trimitere email',
+        description: errorMessage,
         variant: 'destructive',
+        duration: 10000, // Show for 10 seconds for important messages
       });
     } finally {
       setLoading(false);
