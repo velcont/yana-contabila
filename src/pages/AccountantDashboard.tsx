@@ -30,7 +30,6 @@ import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
 import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTheme } from '@/contexts/ThemeContext';
 import { ClientDocumentsManager } from '@/components/ClientDocumentsManager';
 import { FiscalDeadlinesManager } from '@/components/FiscalDeadlinesManager';
 import { AccountantTasksManager } from '@/components/AccountantTasksManager';
@@ -41,7 +40,6 @@ const AccountantDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAccountant, loading: subscriptionLoading } = useSubscription();
-  const { setThemeOverride } = useTheme();
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
