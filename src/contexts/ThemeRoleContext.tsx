@@ -44,6 +44,8 @@ export const ThemeRoleProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const root = document.documentElement;
     
+    console.log('🎨 [THEME] Applying theme:', currentTheme);
+    
     // Remove all theme classes and any previous inline overrides
     root.classList.remove('theme-entrepreneur', 'theme-accountant', 'theme-admin');
     root.style.removeProperty('--primary');

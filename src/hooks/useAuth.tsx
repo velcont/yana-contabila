@@ -60,6 +60,8 @@ export const useAuth = () => {
   ) => {
     const redirectUrl = `${window.location.origin}/`;
     
+    console.log('🔵 [SIGN UP] Starting signup with accountType:', accountType);
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -74,6 +76,13 @@ export const useAuth = () => {
         }
       }
     });
+    
+    console.log('🔵 [SIGN UP] Metadata sent:', {
+      subscription_type: accountType,
+      account_type_selected: !!accountType,
+      terms_accepted: true
+    });
+    
     return { error };
   };
 

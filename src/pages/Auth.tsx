@@ -124,6 +124,8 @@ const Auth = () => {
           throw new Error("Trebuie să accepți Termenii și Condițiile pentru a crea un cont");
         }
         
+        console.log('🟡 [AUTH] Attempting signup with accountType:', accountType);
+        
         const signUpResult = await signUp(email, password, fullName, accountType || undefined);
         if (signUpResult.error) {
           const msg = (signUpResult.error.message || '').toLowerCase();
@@ -199,6 +201,8 @@ const Auth = () => {
         // Update profile with account type and terms acceptance
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          console.log('🟡 [AUTH] User created, verifying profile update for accountType:', accountType);
+          
           // Track terms acceptance with IP and user agent
           try {
             await supabase.functions.invoke('track-terms-acceptance', {
@@ -213,7 +217,7 @@ const Auth = () => {
             // Don't block registration if tracking fails
           }
 
-          await supabase
+          const { data: profileUpdate, error: updateError } = await supabase
             .from('profiles')
             .update({ 
               subscription_type: accountType,
@@ -221,7 +225,19 @@ const Auth = () => {
               terms_accepted: true,
               terms_accepted_at: new Date().toISOString()
             })
-            .eq('id', user.id);
+            .eq('id', user.id)
+            .select();
+            
+          console.log('🟡 [AUTH] Profile update result:', profileUpdate, 'Error:', updateError);
+          
+          // Verify the profile was updated correctly
+          const { data: verifyProfile } = await supabase
+            .from('profiles')
+            .select('subscription_type, account_type_selected')
+            .eq('id', user.id)
+            .single();
+            
+          console.log('🟡 [AUTH] Profile verification after update:', verifyProfile);
         }
         
         toast({

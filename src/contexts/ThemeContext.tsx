@@ -24,6 +24,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (themeOverride) {
       next = themeOverride;
     }
+    
+    console.log('🎨 [THEME CONTEXT] Setting themeType:', next, 'from currentTheme:', currentTheme, 'override:', themeOverride);
+    
     setThemeType(next);
   }, [currentTheme, themeOverride, isAdmin]);
 

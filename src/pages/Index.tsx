@@ -61,11 +61,15 @@ const Index = () => {
   useEffect(() => {
     const checkAccountType = async () => {
       if (user && !loading) {
+        console.log('🟢 [INDEX] Checking account type for user:', user.id);
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('account_type_selected, subscription_type, subscription_status, trial_ends_at')
           .eq('id', user.id)
           .single();
+
+        console.log('🟢 [INDEX] Profile data:', data, 'Error:', error);
 
         if (!error && data) {
           if (!data.account_type_selected) {
