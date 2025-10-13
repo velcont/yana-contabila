@@ -45,11 +45,22 @@ serve(async (req) => {
 
     const isAccountant = profile?.subscription_type === 'accounting_firm';
 
-    const { companyId, clientEmail, clientName, reportData, companyName: directCompanyName } = await req.json();
-    logStep("Request data received", { companyId, clientEmail, isAccountant });
+    const { 
+      companyId, 
+      clientEmails, 
+      clientEmail, 
+      clientName, 
+      reportData, 
+      companyName: directCompanyName,
+      pdfAttachment 
+    } = await req.json();
+    
+    // Support both single email (legacy) and multiple emails
+    const emailList = clientEmails || (clientEmail ? [clientEmail] : []);
+    logStep("Request data received", { companyId, emailList, isAccountant });
 
-    if (!clientEmail || !reportData) {
-      throw new Error("Missing required fields: clientEmail and reportData");
+    if (!emailList || emailList.length === 0 || !reportData) {
+      throw new Error("Missing required fields: clientEmails and reportData");
     }
 
     let company = null;
@@ -98,6 +109,7 @@ serve(async (req) => {
             .metric-value { font-size: 1.2em; margin-top: 5px; }
             .alert { background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 10px 0; border-radius: 8px; }
             .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.9em; }
+            .attachment-note { background: #eff6ff; border-left: 4px solid ${brandColor}; padding: 15px; margin: 20px 0; border-radius: 8px; }
           </style>
         </head>
         <body>
@@ -111,6 +123,13 @@ serve(async (req) => {
 
             <p>Bună ${clientName || 'ziua'},</p>
             <p>${isAccountant ? 'Iți transmitem raportul financiar lunar pentru compania ta.' : 'Iată raportul tău financiar generat automat.'} Aici găsești principalii indicatori și recomandări:</p>
+
+            ${pdfAttachment ? `
+              <div class="attachment-note">
+                <strong>📎 Analiza completă este atașată în format PDF</strong>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Deschide fișierul atașat pentru a vizualiza raportul detaliat.</p>
+              </div>
+            ` : ''}
 
             <h2 style="color: ${brandColor}; margin-top: 30px;">Indicatori Cheie</h2>
             ${reportData.metrics ? reportData.metrics.map((metric: any) => `
@@ -143,34 +162,49 @@ serve(async (req) => {
       </html>
     `;
 
+    // Prepare attachments
+    const attachments = [];
+    if (pdfAttachment) {
+      attachments.push({
+        filename: pdfAttachment.filename,
+        content: pdfAttachment.content,
+      });
+    }
+
+    // Send email to all recipients
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: "Raport Financiar <onboarding@resend.dev>",
-      to: [clientEmail],
+      to: emailList,
       subject: `Raport Financiar - ${companyName} - ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}`,
       html: emailHtml,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     if (emailError) {
       throw emailError;
     }
 
-    logStep("Email sent successfully", { emailId: emailData?.id });
+    logStep("Email sent successfully", { emailId: emailData?.id, recipients: emailList.length });
 
-    // Log the email send
+    // Log the email send for each recipient
+    const emailLogs = emailList.map((email: string) => ({
+      recipient_email: email,
+      subject: `Raport Financiar - ${companyName}`,
+      email_type: 'monthly_report',
+      status: 'sent',
+      metadata: {
+        company_id: companyId,
+        sender_id: user.id,
+        sender_type: profile?.subscription_type,
+        report_month: new Date().toISOString().slice(0, 7),
+        has_pdf_attachment: !!pdfAttachment,
+        recipient_count: emailList.length
+      }
+    }));
+
     await supabaseClient
       .from('email_logs')
-      .insert({
-        recipient_email: clientEmail,
-        subject: `Raport Financiar - ${companyName}`,
-        email_type: 'monthly_report',
-        status: 'sent',
-        metadata: {
-          company_id: companyId,
-          sender_id: user.id,
-          sender_type: profile?.subscription_type,
-          report_month: new Date().toISOString().slice(0, 7)
-        }
-      });
+      .insert(emailLogs);
 
     return new Response(JSON.stringify({ success: true, emailId: emailData?.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
