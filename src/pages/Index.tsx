@@ -369,16 +369,6 @@ const Index = () => {
                 <Phone className="mr-2 h-4 w-4" />
                 Contact
               </Button>
-              {themeType === 'accountant' && userSubscriptionType === 'accounting_firm' && (
-                <Button 
-                  variant="default" 
-                  onClick={() => navigate('/crm')} 
-                  className="text-sm"
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  CRM Clienți
-                </Button>
-              )}
             </div>
             <div className="flex gap-2">
               <ThemeToggle />
