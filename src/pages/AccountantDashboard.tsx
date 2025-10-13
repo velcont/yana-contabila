@@ -221,7 +221,7 @@ const AccountantDashboard = () => {
                 Branding
               </Button>
               <div>
-                <h1 className="text-3xl font-bold">Dashboard Contabilitate</h1>
+                <h1 className="text-3xl font-bold">YanaCRM</h1>
                 <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
               </div>
             </div>
