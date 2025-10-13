@@ -35,6 +35,7 @@ import { FiscalDeadlinesManager } from '@/components/FiscalDeadlinesManager';
 import { AccountantTasksManager } from '@/components/AccountantTasksManager';
 import { CRMMessagingManager } from '@/components/CRMMessagingManager';
 import { EmailManager } from '@/components/EmailManager';
+import { ClientFiscalParamsDialog } from '@/components/ClientFiscalParamsDialog';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const AccountantDashboard = () => {
   });
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [fiscalParamsDialogOpen, setFiscalParamsDialogOpen] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -394,7 +396,15 @@ const AccountantDashboard = () => {
                   {filteredClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-medium">
-                        {client.company_name}
+                        <button
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setFiscalParamsDialogOpen(true);
+                          }}
+                          className="text-primary hover:underline cursor-pointer"
+                        >
+                          {client.company_name}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -460,15 +470,24 @@ const AccountantDashboard = () => {
         </Tabs>
 
         {selectedClient && (
-          <EmailAnalysisDialog
-            open={emailDialogOpen}
-            onOpenChange={setEmailDialogOpen}
-            companyId={selectedClient.id}
-            companyName={selectedClient.company_name}
-            clientEmail={selectedClient.contact_email || ''}
-            clientName={selectedClient.contact_person || ''}
-            latestAnalysis={selectedClient.latestAnalysis}
-          />
+          <>
+            <EmailAnalysisDialog
+              open={emailDialogOpen}
+              onOpenChange={setEmailDialogOpen}
+              companyId={selectedClient.id}
+              companyName={selectedClient.company_name}
+              clientEmail={selectedClient.contact_email || ''}
+              clientName={selectedClient.contact_person || ''}
+              latestAnalysis={selectedClient.latestAnalysis}
+            />
+            <ClientFiscalParamsDialog
+              open={fiscalParamsDialogOpen}
+              onOpenChange={setFiscalParamsDialogOpen}
+              companyId={selectedClient.id}
+              companyName={selectedClient.company_name}
+              onUpdate={fetchClients}
+            />
+          </>
         )}
       </div>
     </div>

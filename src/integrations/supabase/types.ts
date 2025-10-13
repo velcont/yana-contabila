@@ -824,6 +824,7 @@ export type Database = {
           address: string | null
           billing_cycle: string | null
           caen_codes: Json | null
+          cash_accounting_vat: boolean | null
           cif: string | null
           client_category: string | null
           client_status: string | null
@@ -861,6 +862,7 @@ export type Database = {
           address?: string | null
           billing_cycle?: string | null
           caen_codes?: Json | null
+          cash_accounting_vat?: boolean | null
           cif?: string | null
           client_category?: string | null
           client_status?: string | null
@@ -898,6 +900,7 @@ export type Database = {
           address?: string | null
           billing_cycle?: string | null
           caen_codes?: Json | null
+          cash_accounting_vat?: boolean | null
           cif?: string | null
           client_category?: string | null
           client_status?: string | null
