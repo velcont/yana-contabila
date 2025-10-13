@@ -39,6 +39,11 @@ export const ClientFiscalParamsDialog = ({
   useEffect(() => {
     if (open && companyId) {
       fetchFiscalParams();
+    } else if (!open) {
+      // Reset to defaults when closing to ensure fresh load on next open
+      setVatRegime('none');
+      setCashAccountingVat('false');
+      setTaxType('micro');
     }
   }, [open, companyId]);
 
