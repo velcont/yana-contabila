@@ -30,6 +30,7 @@ import AccountantBranding from "./pages/AccountantBranding";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { TrialReminderDialog } from "@/components/TrialReminderDialog";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <TrialReminderDialog />
         <BrowserRouter>
           <SubscriptionProvider>
             <ThemeRoleProvider>
