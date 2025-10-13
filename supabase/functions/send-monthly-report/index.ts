@@ -171,8 +171,13 @@ serve(async (req) => {
       });
     }
 
-    // Get the verified domain from environment (default to resend test domain)
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "Raport Financiar <onboarding@resend.dev>";
+    // Determine From email: prefer secret, else fallback to verified brand domain
+    const envFrom = Deno.env.get("RESEND_FROM_EMAIL");
+    const fromEmail = envFrom && envFrom.trim().length > 0
+      ? envFrom
+      : "Yana AI <noreply@yana-contabila.velcont.com>"; // fallback to known verified domain
+
+    logStep("About to send email", { from: fromEmail, recipients: emailList });
     
     // Send email to all recipients
     const { data: emailData, error: emailError } = await resend.emails.send({
