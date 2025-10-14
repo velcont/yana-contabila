@@ -56,8 +56,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         role: 'assistant',
         content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
-Cu ce te pot ajuta astăzi?
-
 📊 **Pentru analiză balanță:**
 - Încarcă fișier Excel (.xls sau .xlsx)
 - Numele fișierului trebuie să conțină luna și anul
@@ -507,7 +505,9 @@ Cu ce te pot ajuta astăzi?
           const aiMessage: Message = {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: data.analysis || "Am analizat balanța. Cum te pot ajuta mai departe?"
+            content: data.analysis ? 
+              `${data.analysis}\n\n✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?` :
+              "✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?"
           };
           setMessages(prev => [...prev, aiMessage]);
           scrollToBottom();
