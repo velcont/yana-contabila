@@ -191,7 +191,7 @@ export default function StrategicAdvisor() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/accountant-dashboard')}
+              onClick={() => navigate('/yanacrm')}
               className="shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
