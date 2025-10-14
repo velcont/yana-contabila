@@ -28,6 +28,7 @@ import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import AccountantDashboard from "./pages/AccountantDashboard";
 import AccountantBranding from "./pages/AccountantBranding";
 import AcceptInvitation from "./pages/AcceptInvitation";
+import StrategicAdvisor from "./pages/StrategicAdvisor";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { TrialReminderDialog } from "@/components/TrialReminderDialog";
@@ -79,6 +80,7 @@ const App = () => (
                     <Route path="/yanacrm" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
                     <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
                     <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                    <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
                     <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
