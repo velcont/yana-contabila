@@ -1188,7 +1188,12 @@ Cu ce te pot ajuta astăzi?`
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Încarcă balanță Excel pentru analiză</p>
+                      <div className="space-y-1">
+                        <p className="font-semibold">Încarcă balanță Excel pentru analiză</p>
+                        <p className="text-xs">📋 Format: .xls sau .xlsx</p>
+                        <p className="text-xs">📅 Nume recomandat: Balanta_Luna_An.xls</p>
+                        <p className="text-xs opacity-80">Exemplu: Balanta_Ianuarie_2025.xls</p>
+                      </div>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
