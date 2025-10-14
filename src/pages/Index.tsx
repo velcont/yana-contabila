@@ -441,6 +441,10 @@ const Index = () => {
                         <DropdownMenuItem onClick={() => navigate('/system-health')}>
                           System Health
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/strategic-advisor')}>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Yana Strategica
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleExportCopyrightPDF}>
                           Generează PDF Drepturi Autor
                         </DropdownMenuItem>
