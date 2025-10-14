@@ -148,6 +148,13 @@ serve(async (req) => {
             <p>Bună ${clientName || 'ziua'},</p>
             <p>${isAccountant ? 'Iți transmitem raportul financiar lunar pentru compania ta.' : 'Iată raportul tău financiar generat automat.'} Aici găsești principalii indicatori și recomandări:</p>
 
+            ${reportData.personalNote ? `
+              <div style="background: #fef9c3; border-left: 4px solid ${brandColor}; padding: 15px; margin: 20px 0; border-radius: 8px;">
+                <strong style="color: ${brandColor}; font-size: 1.1em;">📝 Notă personală</strong>
+                <p style="margin: 10px 0 0 0; font-size: 1em; line-height: 1.5;">${reportData.personalNote}</p>
+              </div>
+            ` : ''}
+
             ${pdfAttachment ? `
               <div class="attachment-note">
                 <strong>📎 Analiza completă este atașată în format PDF</strong>
