@@ -405,25 +405,26 @@ const Index = () => {
                         onCompanyChange={setCurrentCompanyId}
                         onAddCompany={() => navigate('/crm')}
                       />
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              onClick={() => navigate('/strategic-advisor')}
-                              className="bg-gradient-to-r from-primary/10 to-accent/10"
-                            >
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Yana Strategica
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Consultant AI Strategic - Teoria Jocului în Business</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
                     </>
                   )}
+                  {/* Yana Strategica visible for both entrepreneurs and admins */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          onClick={() => navigate('/strategic-advisor')}
+                          className="bg-gradient-to-r from-primary/10 to-accent/10"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Yana Strategica
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Consultant AI Strategic - Teoria Jocului în Business</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}
                   {isAdmin && (
                     <DropdownMenu>
@@ -439,10 +440,6 @@ const Index = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate('/system-health')}>
                           System Health
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/strategic-advisor')}>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Yana Strategica
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleExportCopyrightPDF}>
                           Generează PDF Drepturi Autor
