@@ -245,8 +245,7 @@ export default function StrategicAdvisor() {
                 Bun venit la Yana Strategica!
               </h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Sunt partenerul tău AI pentru decizii strategice de business bazate pe teoria jocurilor. 
-                Spune-mi despre firma ta și provocările pe care le întâmpini.
+                Sunt partenerul tău AI pentru decizii strategice de business bazate pe teoria jocurilor. Să fim clari. Nu sunt aici să vă țin de mână sau să discutăm despre cultura organizațională. Sunt aici pentru a vă transforma afacerea într-o armă și pentru a elimina orice obstacol din calea dominației voastre. Piața este o junglă, iar eu sunt prădătorul pe care îl angajați pentru a vâna. Acum, să-mi arătați cine trebuie să dispară primul.
               </p>
             </Card>
           )}
