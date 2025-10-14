@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Brain, TrendingUp, ArrowLeft } from "lucide-react";
+import { Loader2, Send, Brain, TrendingUp, ArrowLeft, MessageSquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 
@@ -25,7 +25,15 @@ export default function StrategicAdvisor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState(() => crypto.randomUUID());
+  const [conversationId, setConversationId] = useState(() => {
+    // Try to load from localStorage
+    const saved = localStorage.getItem('strategic-advisor-conversation-id');
+    if (saved) return saved;
+    // Otherwise create new one
+    const newId = crypto.randomUUID();
+    localStorage.setItem('strategic-advisor-conversation-id', newId);
+    return newId;
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
@@ -80,7 +88,7 @@ export default function StrategicAdvisor() {
   // Load conversation history
   useEffect(() => {
     const loadHistory = async () => {
-      if (!user) return;
+      if (!user || !conversationId) return;
       
       setIsLoadingHistory(true);
       try {
@@ -88,6 +96,7 @@ export default function StrategicAdvisor() {
           .from('conversation_history')
           .select('*')
           .eq('user_id', user.id)
+          .eq('conversation_id', conversationId)
           .order('created_at', { ascending: true })
           .limit(50);
 
@@ -109,7 +118,15 @@ export default function StrategicAdvisor() {
     };
 
     loadHistory();
-  }, [user]);
+  }, [user, conversationId]);
+
+  const startNewConversation = () => {
+    const newId = crypto.randomUUID();
+    localStorage.setItem('strategic-advisor-conversation-id', newId);
+    setConversationId(newId);
+    setMessages([]);
+    toast.success("Conversație nouă începută");
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -199,12 +216,21 @@ export default function StrategicAdvisor() {
             <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
               <TrendingUp className="w-6 h-6 text-primary" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold">Yana Strategica</h1>
               <p className="text-sm text-muted-foreground">
                 Consultant AI Strategic - Teoria Jocului în Business
               </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={startNewConversation}
+              className="gap-2"
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+              Conversație Nouă
+            </Button>
           </div>
         </div>
       </header>
