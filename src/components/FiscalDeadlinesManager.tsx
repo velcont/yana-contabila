@@ -220,12 +220,12 @@ export const FiscalDeadlinesManager = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Client (opțional)</Label>
-                <Select value={formData.company_id} onValueChange={(value) => setFormData({ ...formData, company_id: value })}>
+                <Select value={formData.company_id || "all"} onValueChange={(value) => setFormData({ ...formData, company_id: value === "all" ? "" : value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Toți clienții" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Toți clienții</SelectItem>
+                    <SelectItem value="all">Toți clienții</SelectItem>
                     {companies.map((company) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.company_name}

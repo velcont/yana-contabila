@@ -238,12 +238,12 @@ export const AccountantTasksManager = () => {
 
               <div className="space-y-2">
                 <Label>Client</Label>
-                <Select value={formData.company_id} onValueChange={(value) => setFormData({ ...formData, company_id: value })}>
+                <Select value={formData.company_id || "general"} onValueChange={(value) => setFormData({ ...formData, company_id: value === "general" ? "" : value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selectează client (opțional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">General</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
                     {companies.map((company) => (
                       <SelectItem key={company.id} value={company.id}>
                         {company.company_name}
