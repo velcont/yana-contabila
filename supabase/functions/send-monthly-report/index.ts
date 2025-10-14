@@ -52,19 +52,21 @@ serve(async (req) => {
       clientName, 
       reportData, 
       companyName: directCompanyName,
-      pdfAttachment 
+      pdfAttachment,
+      reportMonth, // Expected format: "2025-09" or similar
+      reportYear
     } = await req.json();
     
     // Support both single email (legacy) and multiple emails
     const emailList = clientEmails || (clientEmail ? [clientEmail] : []);
-    logStep("Request data received", { companyId, emailList, isAccountant });
+    logStep("Request data received", { companyId, emailList, isAccountant, reportMonth, reportYear });
 
     if (!emailList || emailList.length === 0 || !reportData) {
       throw new Error("Missing required fields: clientEmails and reportData");
     }
 
     let company = null;
-    let companyName = directCompanyName || 'Firmă';
+    let companyName = 'Firmă';
     let logoUrl = null;
     let brandColor = '#10b981';
 
@@ -78,14 +80,33 @@ serve(async (req) => {
 
       if (companyData) {
         company = companyData;
-        companyName = companyData.company_name || directCompanyName || 'Firmă';
+        companyName = companyData.company_name;
         logoUrl = companyData.accountant_logo_url;
         brandColor = companyData.accountant_brand_color || '#10b981';
         logStep("Company data retrieved from database", { companyName, companyId });
       }
-    } else {
+    }
+    
+    // Override with directly provided company name if available
+    if (directCompanyName) {
+      companyName = directCompanyName;
       logStep("Using provided company name", { companyName: directCompanyName });
     }
+
+    // Generate report date string
+    let reportDateString = '';
+    if (reportMonth) {
+      // Parse reportMonth (expected format: "2025-09")
+      const [year, month] = reportMonth.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+      reportDateString = date.toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' });
+    } else if (reportYear) {
+      reportDateString = `Anul ${reportYear}`;
+    } else {
+      // Fallback to current date
+      reportDateString = new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' });
+    }
+    logStep("Report date determined", { reportDateString, reportMonth, reportYear });
 
     // Initialize Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -121,7 +142,7 @@ serve(async (req) => {
               ${logoHtml}
               <h1 style="color: ${brandColor}; margin: 0;">Raport Financiar</h1>
               <p style="color: #6b7280; margin: 5px 0 0 0;">${companyName}</p>
-              <p style="color: #9ca3af; margin: 5px 0 0 0;">${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}</p>
+              <p style="color: #9ca3af; margin: 5px 0 0 0;">${reportDateString}</p>
             </div>
 
             <p>Bună ${clientName || 'ziua'},</p>
@@ -186,7 +207,7 @@ serve(async (req) => {
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: fromEmail,
       to: emailList,
-      subject: `Raport Financiar - ${companyName} - ${new Date().toLocaleDateString('ro-RO', { year: 'numeric', month: 'long' })}`,
+      subject: `Raport Financiar - ${companyName} - ${reportDateString}`,
       html: emailHtml,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
@@ -214,7 +235,7 @@ serve(async (req) => {
         company_id: companyId,
         sender_id: user.id,
         sender_type: profile?.subscription_type,
-        report_month: new Date().toISOString().slice(0, 7),
+        report_month: reportMonth || new Date().toISOString().slice(0, 7),
         has_pdf_attachment: !!pdfAttachment,
         recipient_count: emailList.length
       }

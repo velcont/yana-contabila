@@ -101,7 +101,11 @@ export const BulkEmailDialog = ({
               companyId: client.id,
               clientEmail: client.contact_email,
               clientName: client.contact_person || client.company_name,
+              companyName: client.company_name,
               reportData,
+              reportMonth: client.latestAnalysis?.created_at 
+                ? new Date(client.latestAnalysis.created_at).toISOString().slice(0, 7) 
+                : undefined,
             },
           });
 

@@ -265,6 +265,9 @@ export const EmailAnalysisDialog = ({
           companyName,
           reportData,
           pdfAttachment,
+          reportMonth: latestAnalysis?.created_at 
+            ? new Date(latestAnalysis.created_at).toISOString().slice(0, 7) 
+            : undefined,
         },
       });
 
