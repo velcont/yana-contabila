@@ -56,7 +56,12 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         role: 'assistant',
         content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
-Cu ce te pot ajuta astăzi?`
+Cu ce te pot ajuta astăzi?
+
+📊 **Pentru analiză balanță:**
+- Încarcă fișier Excel (.xls sau .xlsx)
+- Numele fișierului trebuie să conțină luna și anul
+- Exemplu: Balanta_Ianuarie_2025.xls`
       }
     ]
   );
