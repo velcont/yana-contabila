@@ -12,7 +12,7 @@ interface SubscriptionContextType {
   isSubscribed: boolean;
   isAccountant: boolean;
   trialExpired: boolean;
-  checkSubscription: () => Promise<void>;
+  checkSubscription: (showLoading?: boolean) => Promise<void>;
   loading: boolean;
 }
 
@@ -26,7 +26,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [trialExpired, setTrialExpired] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkSubscription = async () => {
+  const checkSubscription = async (showLoading = true) => {
     if (!user) {
       setSubscriptionStatus('inactive');
       setLoading(false);
@@ -34,7 +34,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       console.log('Checking subscription status...');
       
       const { data, error } = await supabase.functions.invoke('check-subscription');
@@ -51,16 +53,18 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       console.error('Error checking subscription:', error);
       setSubscriptionStatus('inactive');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     if (user) {
-      checkSubscription();
+      checkSubscription(true);
       
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(checkSubscription, 30000);
+      // Auto-refresh every 5 minutes without showing loading state
+      const interval = setInterval(() => checkSubscription(false), 300000);
       return () => clearInterval(interval);
     } else {
       setSubscriptionStatus('inactive');

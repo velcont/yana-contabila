@@ -148,7 +148,7 @@ const Subscription = () => {
               </Button>
               <Button
                 variant="outline"
-                onClick={checkSubscription}
+                onClick={() => checkSubscription(true)}
                 className="border-primary/50 hover:bg-primary/10"
               >
                 Verifică Status

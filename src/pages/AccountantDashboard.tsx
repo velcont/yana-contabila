@@ -108,7 +108,7 @@ const AccountantDashboard = () => {
     return () => {
       mounted = false;
     };
-  }, [subscriptionLoading]);
+  }, [subscriptionLoading, navigate, toast]);
 
   const fetchClients = async () => {
     try {
