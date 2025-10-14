@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Brain, TrendingUp } from "lucide-react";
+import { Loader2, Send, Brain, TrendingUp, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 
@@ -19,12 +20,14 @@ interface Message {
 
 export default function StrategicAdvisor() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId] = useState(() => crypto.randomUUID());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   // Check access
   const [hasAccess, setHasAccess] = useState(false);
@@ -73,6 +76,40 @@ export default function StrategicAdvisor() {
 
     checkAccess();
   }, [user, profile]);
+
+  // Load conversation history
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user) return;
+      
+      setIsLoadingHistory(true);
+      try {
+        const { data, error } = await supabase
+          .from('conversation_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(50);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const loadedMessages: Message[] = data.map(msg => ({
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            timestamp: new Date(msg.created_at!)
+          }));
+          setMessages(loadedMessages);
+        }
+      } catch (error) {
+        console.error("Error loading history:", error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+  }, [user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -123,7 +160,7 @@ export default function StrategicAdvisor() {
     }
   };
 
-  if (isCheckingAccess) {
+  if (isCheckingAccess || isLoadingHistory) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -151,6 +188,14 @@ export default function StrategicAdvisor() {
       <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/accountant-dashboard')}
+              className="shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
               <TrendingUp className="w-6 h-6 text-primary" />
             </div>
