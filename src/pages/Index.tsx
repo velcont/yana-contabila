@@ -59,7 +59,7 @@ const Index = () => {
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
-  const { themeType, setThemeOverride } = useTheme();
+  const { themeType, setThemeOverride, themeOverride } = useTheme();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
 
@@ -89,11 +89,11 @@ const Index = () => {
           if (data.subscription_type === 'accounting_firm') {
             console.log('✅ User este contabil - afișare /app cu temă contabil');
             setUserSubscriptionType('accounting_firm');
-            setThemeOverride?.('accountant');
+            if (!themeOverride) setThemeOverride?.('accountant');
           } else {
             console.log('✅ User este antreprenor - afișare /app cu temă antreprenor');
             setUserSubscriptionType('entrepreneur');
-            setThemeOverride?.('entrepreneur');
+            if (!themeOverride) setThemeOverride?.('entrepreneur');
           }
 
           // Verifică expirarea perioadei de testare
