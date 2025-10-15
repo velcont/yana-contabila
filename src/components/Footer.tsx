@@ -12,10 +12,12 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 export const Footer = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { themeType } = useTheme();
+  const { isAccountant } = useSubscription();
   const navigate = useNavigate();
   const email = "offiice@velcont.com";
   const whatsapp = "+40731377793";
@@ -82,7 +84,7 @@ export const Footer = () => {
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Confidențialitate
             </Link>
-            {themeType === 'accountant' ? (
+            {isAccountant ? (
               <Button
                 onClick={() => navigate('/yanacrm')}
                 className="bg-green-600 hover:bg-green-700 text-white h-8 text-sm inline-flex items-center gap-2"
