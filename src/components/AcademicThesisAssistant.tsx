@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles } from "lucide-react";
+import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink } from "lucide-react";
 import { ResearchDataImport } from "./ResearchDataImport";
 
 interface ResearchData {
@@ -283,6 +283,61 @@ Nu trimiteți acest document fără editare substanțială!
           </div>
         </CardContent>
       </Card>
+
+      {/* Resurse Video YouTube */}
+      {researchData.length > 0 && researchData.some(rd => rd.metrics_collected?.video_resources?.length > 0) && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Youtube className="h-5 w-5 text-red-500" />
+              <CardTitle>Resurse Video YouTube</CardTitle>
+            </div>
+            <CardDescription>
+              Videoclipuri educaționale relevante pentru cercetarea ta
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {researchData
+                .flatMap(rd => rd.metrics_collected?.video_resources || [])
+                .slice(0, 9)
+                .map((video: any, idx: number) => (
+                  <Card key={idx} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    {video.thumbnail && (
+                      <div className="relative aspect-video bg-muted">
+                        <img 
+                          src={video.thumbnail} 
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Youtube className="h-12 w-12 text-white" />
+                        </div>
+                      </div>
+                    )}
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold text-sm mb-2 line-clamp-2">
+                        {video.title}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {video.channel}
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full"
+                        onClick={() => window.open(video.url, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-2" />
+                        Vezi pe YouTube
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {thesisSections.length > 0 && (
         <Card>

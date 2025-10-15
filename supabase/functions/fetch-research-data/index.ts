@@ -28,7 +28,10 @@ serve(async (req) => {
       throw new Error('Utilizator neautentificat');
     }
 
-    console.log('🔍 Căutare literatură științifică din reviste de top și cărți fundamentale...');
+    console.log('🔍 Căutare literatură științifică din reviste de top, cărți fundamentale și conținut YouTube...');
+
+    // YouTube API Key
+    const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY');
 
     // Reviste țintă pentru căutare
     const targetJournals = [
@@ -119,7 +122,59 @@ serve(async (req) => {
       await new Promise(resolve => setTimeout(resolve, 800));
     }
 
-    console.log(`📚 Găsite ${allPapers.length} articole`);
+    console.log(`📚 Găsite ${allPapers.length} articole științifice`);
+
+    // Căutare pe YouTube pentru conținut video educațional
+    const youtubeVideos: any[] = [];
+    
+    if (youtubeApiKey) {
+      console.log('🎥 Căutare conținut YouTube...');
+      
+      const youtubeQueries = [
+        'digital innovation business models',
+        'organizational resilience strategy',
+        'digital transformation SME',
+        'sustainable business practices',
+        'business model innovation'
+      ];
+
+      for (const query of youtubeQueries) {
+        try {
+          const youtubeResponse = await fetch(
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=5&order=relevance&videoDuration=medium&key=${youtubeApiKey}`,
+            {
+              headers: {
+                'Accept': 'application/json',
+              },
+            }
+          );
+
+          if (youtubeResponse.ok) {
+            const data = await youtubeResponse.json();
+            if (data.items) {
+              youtubeVideos.push(...data.items.map((item: any) => ({
+                title: item.snippet.title,
+                description: item.snippet.description,
+                channel: item.snippet.channelTitle,
+                videoId: item.id.videoId,
+                url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+                publishedAt: item.snippet.publishedAt,
+                thumbnail: item.snippet.thumbnails?.medium?.url
+              })));
+            }
+          }
+
+          // Delay pentru a nu depăși rate limit YouTube
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error('Eroare căutare YouTube:', error);
+        }
+      }
+
+      console.log(`🎬 Găsite ${youtubeVideos.length} videoclipuri YouTube relevante`);
+    }
+
+    console.log(`📚 Total resurse găsite: ${allPapers.length} articole + ${youtubeVideos.length} videoclipuri`);
 
     if (allPapers.length === 0) {
       return new Response(
@@ -144,28 +199,33 @@ serve(async (req) => {
 
     console.log(`🎯 Selectate ${topPapers.length} lucrări unice (articole + cărți fundamentale) pentru procesare AI`);
 
+    // Selectează top videoclipuri (max 5 cele mai relevante)
+    const topVideos = youtubeVideos.slice(0, 5);
+
     // Procesează cu Lovable AI pentru a extrage informații relevante
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     const systemPrompt = `Ești expert în inovație digitală și modele de afaceri sustenabile. 
-Analizează articolele științifice și cărțile fundamentale și extrage DOAR informații despre:
+Analizează articolele științifice, cărțile fundamentale și videoclipurile YouTube și extrage DOAR informații despre:
 1. Studii de caz concrete despre transformare digitală
 2. Framework-uri teoretice pentru reziliență organizațională (ex: Dynamic Capabilities, Business Model Canvas, Triple Bottom Line)
 3. Concepte cheie din cărțile fundamentale (ex: inovație disruptivă, antifragilitate, capabilități dinamice)
 4. Metrici specifice (scoruri, rate, indicatori)
 5. Factori de succes și provocări comune
+6. Resurse video educaționale relevante
 
 Returnează DOAR JSON valid în acest format:
 {
-  "case_studies": [{"company": "", "industry": "", "transformation": "", "results": ""}],
-  "theoretical_frameworks": [{"name": "", "description": "", "application": "", "source": ""}],
+  "case_studies": [{"company": "", "industry": "", "transformation": "", "results": "", "source_type": "paper|video"}],
+  "theoretical_frameworks": [{"name": "", "description": "", "application": "", "source": "", "source_type": "paper|video"}],
   "metrics_collected": {
     "avg_digital_maturity_score": "",
     "avg_resilience_score": "",
     "common_challenges": [],
     "success_factors": [],
     "key_concepts": []
-  }
+  },
+  "video_resources": [{"title": "", "channel": "", "url": "", "key_topics": []}]
 }`;
 
     const papersText = topPapers.map((p, i) => 
@@ -177,6 +237,17 @@ Returnează DOAR JSON valid în acest format:
       `Abstract: ${p.abstract}\n` +
       `URL: ${p.url || 'N/A'}\n\n`
     ).join('---\n');
+
+    const videosText = topVideos.length > 0 
+      ? topVideos.map((v, i) => 
+          `Video ${i+1}: ${v.title}\n` +
+          `Canal: ${v.channel}\n` +
+          `Descriere: ${v.description}\n` +
+          `URL: ${v.url}\n\n`
+        ).join('---\n')
+      : '';
+
+    const combinedContent = `${papersText}\n${videosText ? `\n=== RESURSE VIDEO ===\n${videosText}` : ''}`;
 
     console.log('🤖 Procesare cu AI...');
 
@@ -190,7 +261,7 @@ Returnează DOAR JSON valid în acest format:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Analizează aceste articole despre inovație digitală și reziliență:\n\n${papersText}` }
+          { role: 'user', content: `Analizează aceste articole științifice și resurse video despre inovație digitală și reziliență:\n\n${combinedContent}` }
         ],
         temperature: 0.3,
       }),
@@ -216,17 +287,35 @@ Returnează DOAR JSON valid în acest format:
     console.log('✅ Date extrase cu succes');
 
     // Salvează în baza de date
+    const researchNotes = `Date extrase automat din ${topPapers.length} lucrări științifice (articole + cărți fundamentale) și ${topVideos.length} videoclipuri YouTube. 
+
+📚 Reviste țintă: Technological Forecasting, Journal of Business Research, Sustainability, Small Business Economics. 
+📖 Cărți fundamentale: Osterwalder, Teece, Porter, Christensen, Taleb, etc. 
+🎥 Videoclipuri YouTube: Conținut educațional despre inovație digitală, transformare organizațională și reziliență.
+
+Surse articole: ${topPapers.map(p => `${p.title} (${p.venue || 'carte fundamentală'})`).join('; ')}
+
+Surse video: ${topVideos.map(v => `${v.title} - ${v.channel}`).join('; ') || 'N/A'}`;
+
     const { error: insertError } = await supabaseClient
       .from('research_data')
       .insert({
         user_id: user.id,
         data_collection_date: new Date().toISOString().split('T')[0],
-        course_name: 'Căutare Automată Literatură Științifică',
+        course_name: 'Căutare Automată Literatură Științifică + Resurse Video',
         research_theme: 'Inovație Digitală și Modele de Afaceri Sustenabile: Transformarea Rezilienței în Avantaj Competitiv',
         case_studies: extractedData.case_studies || [],
         theoretical_frameworks: extractedData.theoretical_frameworks || [],
-        metrics_collected: extractedData.metrics_collected || {},
-        research_notes: `Date extrase automat din ${topPapers.length} lucrări științifice (articole + cărți fundamentale). Reviste țintă: Technological Forecasting, Journal of Business Research, Sustainability, Small Business Economics. Cărți fundamentale: Osterwalder, Teece, Porter, Christensen, Taleb, etc. Surse: ${topPapers.map(p => `${p.title} (${p.venue || 'carte fundamentală'})`).join('; ')}`
+        metrics_collected: {
+          ...(extractedData.metrics_collected || {}),
+          video_resources: extractedData.video_resources || topVideos.map(v => ({
+            title: v.title,
+            channel: v.channel,
+            url: v.url,
+            thumbnail: v.thumbnail
+          }))
+        },
+        research_notes: researchNotes
       });
 
     if (insertError) {
@@ -240,6 +329,8 @@ Returnează DOAR JSON valid în acest format:
       JSON.stringify({ 
         success: true,
         papers_analyzed: topPapers.length,
+        videos_analyzed: topVideos.length,
+        total_resources: topPapers.length + topVideos.length,
         data: extractedData
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
