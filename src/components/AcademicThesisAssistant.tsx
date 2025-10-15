@@ -24,7 +24,7 @@ interface ThesisSection {
   chapter: string;
   title: string;
   content: string;
-  sources: string[];
+  sources: Array<{text: string, links: Array<{title: string, url: string}>}>;
 }
 
 export default function AcademicThesisAssistant() {
@@ -154,10 +154,33 @@ IMPORTANT: Marchează clar cu [DRAFT - NECESITĂ EDITARE] secțiunile care neces
     return lines.slice(startIdx + 1, endIdx).join('\n').trim();
   };
 
-  const extractSources = (data: ResearchData[], start: number, count: number): string[] => {
-    return data.slice(start, start + count).map(rd => 
-      `${rd.research_theme} - ${rd.course_name} (${rd.data_collection_date})`
-    );
+  const extractSources = (data: ResearchData[], start: number, count: number): Array<{text: string, links: Array<{title: string, url: string}>}> => {
+    return data.slice(start, start + count).map(rd => {
+      const links: Array<{title: string, url: string}> = [];
+      
+      // Extrage linkuri din theoretical_frameworks
+      if (Array.isArray(rd.theoretical_frameworks)) {
+        rd.theoretical_frameworks.forEach((framework: any) => {
+          if (framework.source_url) {
+            links.push({ title: framework.title || 'Articol științific', url: framework.source_url });
+          }
+        });
+      }
+      
+      // Extrage linkuri din video_resources
+      if (rd.metrics_collected?.video_resources) {
+        rd.metrics_collected.video_resources.forEach((video: any) => {
+          if (video.url) {
+            links.push({ title: video.title || 'Video YouTube', url: video.url });
+          }
+        });
+      }
+      
+      return {
+        text: `${rd.research_theme} - ${rd.course_name} (${rd.data_collection_date})`,
+        links
+      };
+    });
   };
 
   const exportThesisDraft = () => {
@@ -177,8 +200,8 @@ ${'='.repeat(section.title.length)}
 
 ${section.content}
 
-SURSE UTILIZATE:
-${section.sources.map((s, i) => `[${i + 1}] ${s}`).join('\n')}
+SURSE UTILIZATE (Citește aceste resurse):
+${section.sources.map((s, i) => `[${i + 1}] ${s.text}\n   Linkuri: ${s.links.map(l => `\n   - ${l.title}: ${l.url}`).join('')}`).join('\n\n')}
 
 ---
 `).join('\n')}
@@ -391,17 +414,35 @@ Nu trimiteți acest document fără editare substanțială!
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[400px]">
-                        <div className="prose prose-sm max-w-none">
+                          <div className="prose prose-sm max-w-none">
                           <pre className="whitespace-pre-wrap text-sm font-sans">
                             {section.content}
                           </pre>
                           <div className="mt-6 pt-4 border-t">
-                            <h4 className="font-semibold mb-2">Surse Utilizate:</h4>
-                            <ul className="text-xs text-muted-foreground space-y-1">
+                            <h4 className="font-semibold mb-3">Surse Utilizate (Citește aici):</h4>
+                            <div className="space-y-4">
                               {section.sources.map((source, idx) => (
-                                <li key={idx}>[{idx + 1}] {source}</li>
+                                <div key={idx} className="bg-muted/50 p-3 rounded-lg">
+                                  <p className="text-sm font-medium mb-2">[{idx + 1}] {source.text}</p>
+                                  {source.links.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {source.links.map((link, linkIdx) => (
+                                        <Button
+                                          key={linkIdx}
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => window.open(link.url, '_blank')}
+                                          className="text-xs"
+                                        >
+                                          <ExternalLink className="h-3 w-3 mr-1" />
+                                          {link.title.substring(0, 50)}{link.title.length > 50 ? '...' : ''}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         </div>
                       </ScrollArea>
