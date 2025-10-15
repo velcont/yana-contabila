@@ -396,10 +396,12 @@ const Index = () => {
               <ThemeToggle />
               {user ? (
                 <>
+                  {/* Badge-ul de subscription apare pentru TOȚI utilizatorii */}
+                  <SubscriptionBadge />
+                  
                   {/* În /app NU arătăm nimic legat de modul contabil, indiferent de rol */}
                   {userSubscriptionType === 'entrepreneur' && (
                     <>
-                      <SubscriptionBadge />
                       <CompanySwitcher 
                         currentCompanyId={currentCompanyId}
                         onCompanyChange={setCurrentCompanyId}
