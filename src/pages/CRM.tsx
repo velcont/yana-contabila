@@ -7,6 +7,7 @@ import { CompanyManager } from "@/components/CompanyManager";
 import { EmailBroadcast } from "@/components/EmailBroadcast";
 import { UsersList } from "@/components/UsersList";
 import { Loader2, Building2, Mail, Users } from "lucide-react";
+import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 
 const CRM = () => {
   const { user, loading: authLoading } = useAuth();
@@ -44,6 +45,9 @@ const CRM = () => {
 
     return (
       <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-end mb-4">
+          <SubscriptionBadge />
+        </div>
         <Tabs defaultValue="clients" className="space-y-6">
           <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="clients" className="flex items-center gap-2">
