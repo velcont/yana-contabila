@@ -118,9 +118,32 @@ export function ResearchDataImport({ onImportSuccess }: { onImportSuccess?: () =
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import Date de Cercetare Doctorat</DialogTitle>
-          <DialogDescription>
-            Lipește aici JSON-ul generat de ChatGPT personalizat din cursurile tale de doctorat. 
-            Folosește comanda "Exportă date reziliență" în ChatGPT pentru a obține formatul corect.
+          <DialogDescription className="space-y-2">
+            <p>Lipește aici JSON-ul generat de ChatGPT personalizat din cursurile tale de doctorat.</p>
+            <p className="text-xs text-muted-foreground">Folosește comanda "Exportă date reziliență" în ChatGPT pentru a obține formatul corect.</p>
+            <details className="text-xs">
+              <summary className="cursor-pointer font-medium">📋 Vezi exemplu format JSON valid</summary>
+              <pre className="mt-2 p-2 bg-muted rounded text-[10px] overflow-x-auto">
+{`{
+  "data_collection_date": "2025-10-15",
+  "course_name": "Inovație Digitală și Modele Sustenabile",
+  "research_theme": "Transformarea rezilienței în avantaj competitiv",
+  "case_studies": [
+    {"company": "Tesla", "industry": "Automotive", "focus": "Digital innovation"}
+  ],
+  "theoretical_frameworks": [
+    {"name": "Porter's Competitive Advantage", "application": "Sustainability"}
+  ],
+  "metrics_collected": {
+    "avg_digital_maturity_score": "7.5",
+    "avg_resilience_score": "8.2",
+    "common_challenges": ["Digitalizare", "Sustenabilitate"],
+    "success_factors": ["Leadership etic", "Parteneriate universități"]
+  },
+  "research_notes": "Analiza contribuțiilor relevante..."
+}`}
+              </pre>
+            </details>
           </DialogDescription>
         </DialogHeader>
         
