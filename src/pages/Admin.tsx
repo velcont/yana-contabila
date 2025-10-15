@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import AcademicThesisAssistant from "@/components/AcademicThesisAssistant";
 import { AuditLogs } from "@/components/AuditLogs";
 import { StorageManager } from "@/components/StorageManager";
+import { StrategicConversationsViewer } from "@/components/StrategicConversationsViewer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -199,7 +200,7 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
@@ -211,6 +212,10 @@ const Admin = () => {
             <TabsTrigger value="conversations">
               <MessageSquare className="h-4 w-4 mr-2" />
               Conversații ({Object.keys(groupedConversations).length})
+            </TabsTrigger>
+            <TabsTrigger value="strategic">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Strategic Advisor
             </TabsTrigger>
             <TabsTrigger value="storage">
               <HardDrive className="h-4 w-4 mr-2" />
@@ -493,6 +498,10 @@ const Admin = () => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="strategic">
+            <StrategicConversationsViewer />
           </TabsContent>
 
           <TabsContent value="storage">
