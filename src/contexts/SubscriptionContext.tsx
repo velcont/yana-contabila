@@ -14,6 +14,7 @@ interface SubscriptionContextType {
   isAccountant: boolean;
   trialExpired: boolean;
   trialDaysRemaining: number | null;
+  accessType: 'free_access' | 'trial' | 'subscription' | 'trial_expired' | null;
   checkSubscription: (showLoading?: boolean) => Promise<void>;
   loading: boolean;
 }
@@ -28,6 +29,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
   const [trialExpired, setTrialExpired] = useState(false);
   const [trialDaysRemaining, setTrialDaysRemaining] = useState<number | null>(null);
+  const [accessType, setAccessType] = useState<'free_access' | 'trial' | 'subscription' | 'trial_expired' | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasShownToast, setHasShownToast] = useState(false);
 
@@ -65,9 +67,10 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setSubscriptionStatus(data.subscription_status || 'inactive');
       setSubscriptionEnd(data.subscription_end || null);
       setTrialExpired(data.trial_expired || false);
+      setAccessType(data.access_type || null);
 
-      // Calculate trial days remaining
-      if (profile?.trial_ends_at && data.subscription_status !== 'active' && !profile.has_free_access) {
+      // Calculate trial days remaining ONLY for 'trial' access type
+      if (data.access_type === 'trial' && profile?.trial_ends_at) {
         const trialEndDate = new Date(profile.trial_ends_at);
         const now = new Date();
         const diffTime = trialEndDate.getTime() - now.getTime();
@@ -123,6 +126,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     isAccountant: subscriptionType === 'accounting_firm' && subscriptionStatus === 'active',
     trialExpired,
     trialDaysRemaining,
+    accessType,
     checkSubscription,
     loading,
   };

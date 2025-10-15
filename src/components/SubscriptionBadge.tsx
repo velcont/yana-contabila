@@ -12,7 +12,7 @@ import {
 
 export const SubscriptionBadge = () => {
   const navigate = useNavigate();
-  const { subscriptionType, subscriptionStatus, loading, subscriptionEnd, trialDaysRemaining } = useSubscription();
+  const { subscriptionType, subscriptionStatus, loading, subscriptionEnd, trialDaysRemaining, accessType } = useSubscription();
 
   if (loading) {
     return (
@@ -22,41 +22,44 @@ export const SubscriptionBadge = () => {
     );
   }
 
-  if (subscriptionStatus === 'inactive') {
-    if (trialDaysRemaining !== null && trialDaysRemaining > 0) {
-      const variant = trialDaysRemaining <= 7 ? 'destructive' : 'default';
-      
-      return (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={variant}
-                size="sm"
-                onClick={() => navigate('/subscription')}
-                className="gap-2 font-semibold"
-              >
-                <Crown className="h-4 w-4" />
-                {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'} gratuite
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className="text-sm">
-                <p className="font-medium">Perioada de gratuitate</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Mai ai {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'} din cele 3 luni gratuite
+  // Show trial days ONLY when access_type is 'trial'
+  if (accessType === 'trial' && trialDaysRemaining !== null && trialDaysRemaining > 0) {
+    const variant = trialDaysRemaining <= 7 ? 'destructive' : 'default';
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={variant}
+              size="sm"
+              onClick={() => navigate('/subscription')}
+              className="gap-2 font-semibold"
+            >
+              <Crown className="h-4 w-4" />
+              {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'} gratuite
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <p className="font-medium">Perioada de gratuitate</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Mai ai {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'} din cele 3 luni gratuite
+              </p>
+              {trialDaysRemaining <= 7 && (
+                <p className="text-xs text-amber-500 font-medium mt-1">
+                  ⚠️ Se apropie de sfârșit!
                 </p>
-                {trialDaysRemaining <= 7 && (
-                  <p className="text-xs text-amber-500 font-medium mt-1">
-                    ⚠️ Se apropie de sfârșit!
-                  </p>
-                )}
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // If no subscription and no trial, show subscribe button
+  if (subscriptionStatus === 'inactive' && accessType !== 'free_access') {
 
     return (
       <Button
