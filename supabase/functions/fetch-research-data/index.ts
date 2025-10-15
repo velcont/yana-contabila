@@ -109,13 +109,15 @@ serve(async (req) => {
       'Antifragile Taleb'
     ];
 
-    // Query-uri pentru tema de doctorat
+    // Query-uri focalizate pe: "Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv"
     const searchQueries = [
-      'digital innovation sustainable business models',
-      'organizational resilience competitive advantage',
-      'digital transformation sustainability SME',
-      'business model innovation digital economy',
-      'resilient organizations crisis management',
+      'digital innovation sustainable business models resilience',
+      'organizational resilience digital transformation competitive advantage',
+      'business model innovation sustainability digital technology',
+      'sustainable business models competitive advantage digital',
+      'resilience competitive strategy digital innovation',
+      'digital transformation resilient organizations',
+      'sustainable innovation competitive advantage',
       // Adaugă și cărțile fundamentale
       ...fundamentalBooks
     ];
@@ -179,11 +181,11 @@ serve(async (req) => {
       console.log('🎥 Căutare conținut YouTube...');
       
       const youtubeQueries = [
-        'digital innovation business models lecture',
-        'organizational resilience strategy tutorial',
-        'digital transformation SME case study',
-        'sustainable business practices webinar',
-        'business model innovation presentation'
+        'digital innovation sustainable business models',
+        'organizational resilience competitive advantage strategy',
+        'business model innovation sustainability',
+        'digital transformation resilience competitive strategy',
+        'sustainable business models digital innovation Romania'
       ];
 
       for (const query of youtubeQueries) {
@@ -282,14 +284,16 @@ serve(async (req) => {
     // Procesează cu Lovable AI pentru a extrage informații relevante
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
-    const systemPrompt = `Ești expert în inovație digitală și modele de afaceri sustenabile. 
+    const systemPrompt = `Ești expert în cercetarea temei: "Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv".
+
 Analizează articolele științifice, cărțile fundamentale și TRANSCRIPTURILE videoclipurilor YouTube și extrage DOAR informații despre:
-1. Studii de caz concrete despre transformare digitală (din articole SAU din transcripturi video)
-2. Framework-uri teoretice pentru reziliență organizațională (ex: Dynamic Capabilities, Business Model Canvas, Triple Bottom Line)
-3. Concepte cheie din cărțile fundamentale și din prezentările video (ex: inovație disruptivă, antifragilitate, capabilități dinamice)
-4. Metrici specifice (scoruri, rate, indicatori) menționate în orice sursă
-5. Factori de succes și provocări comune discutate în videoclipuri și articole
-6. Citate și idei cheie din transcripturile video
+1. CUM inovația digitală transformă modelele de afaceri sustenabile
+2. LEGĂTURA dintre digitalizare, sustenabilitate și reziliență organizațională
+3. CUM reziliența devine avantaj competitiv prin transformare digitală
+4. Studii de caz concrete despre transformare digitală sustenabilă (din articole SAU transcripturi)
+5. Framework-uri teoretice pentru reziliență + sustenabilitate (Dynamic Capabilities, Triple Bottom Line, Business Model Canvas)
+6. Metrici și KPI-uri pentru măsurarea rezilienței și competitivității digitale
+7. Factori critici de succes în combinarea inovației digitale cu sustenabilitatea
 
 IMPORTANT: Transcripturile video sunt la fel de valoroase ca și articolele științifice. Extrage informații concrete din ele.
 
@@ -341,7 +345,7 @@ Returnează DOAR JSON valid în acest format:
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Analizează aceste articole științifice și resurse video despre inovație digitală și reziliență:\n\n${combinedContent}` }
+          { role: 'user', content: `Analizează pentru tema "Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv":\n\n${combinedContent}` }
         ],
         temperature: 0.3,
       }),

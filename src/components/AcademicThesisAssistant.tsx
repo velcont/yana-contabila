@@ -66,7 +66,13 @@ export default function AcademicThesisAssistant() {
       const { data, error } = await supabase.functions.invoke("chat-ai", {
         body: {
           stream: false,
-          message: `Analizează următoarele date de cercetare și generează o structură preliminară pentru o teză de doctorat despre inovare digitală și modele de business sustenabile în România:
+          message: `Analizează următoarele date de cercetare și generează o structură preliminară pentru o teză de doctorat despre:
+
+"Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv"
+
+FOCUS pe: digitalizare, sustenabilitate, reziliență organizațională, avantaj competitiv.
+
+Date disponibile:
 
 Date disponibile:
 ${researchData.map(rd => `
