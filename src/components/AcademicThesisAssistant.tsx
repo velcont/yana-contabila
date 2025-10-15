@@ -66,15 +66,47 @@ export default function AcademicThesisAssistant() {
       const { data, error } = await supabase.functions.invoke("chat-ai", {
         body: {
           stream: false,
-          message: `Analizează următoarele date de cercetare și generează o structură preliminară pentru o teză de doctorat despre:
+          message: `Generează o structură detaliată pentru o TEZĂ DE DOCTORAT de 80.000-100.000 cuvinte pe tema:
 
 "Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv"
 
-FOCUS pe: digitalizare, sustenabilitate, reziliență organizațională, avantaj competitiv.
+CERINȚE ACADEMICE STRICTE:
 
-Date disponibile:
+📚 CADRU TEORETIC (20.000-25.000 cuvinte):
+- Definește: inovație digitală (AI, blockchain, IoT), modele de afaceri sustenabile (economie circulară, platforme), reziliență organizațională
+- Teorii: Avantaj competitiv Porter, Resource-Based View (RBV), Triple Bottom Line (TBL)
+- Analiză comparativă: impact inovație digitală pe sustenabilitate și reziliență
 
-Date disponibile:
+📖 EXEMPLU FICȚIONAL:
+- Integrează o companie fictivă inspirată dintr-un univers SF (ex: Dune, Neuromancer)
+- Descrie: context, provocări, soluții digitale implementate, impact pe sustenabilitate și avantaj competitiv
+- Asigură coerentă narativă între exemple fictive și reale
+
+🔬 METODOLOGIE MIXTĂ (10.000-15.000 cuvinte):
+- Review literatură pentru ipoteze
+- Studii de caz reale (Tesla, Patagonia, Airbnb) + studiul de caz ficțional
+- Model conceptual: relația inovație digitală - sustenabilitate - avantaj competitiv
+- Metode colectare date: interviuri, chestionare, analiză econometrică
+
+📊 ANALIZĂ ȘI REZULTATE (30.000-35.000 cuvinte):
+- Cum contribuie inovația digitală la modele de afaceri sustenabile
+- Evaluează transformarea rezilienței în avantaj competitiv prin tehnologii digitale
+- Exemple practice și ipotetice (compania fictivă)
+- KPI-uri pentru măsurarea succesului modelelor sustenabile
+
+💡 ABORDARE INOVATOARE:
+- Perspectivă futuristă: AI, quantum computing în modele sustenabile
+- Provocări etice și sociale: echitate, acces la tehnologie, impact forță de muncă
+
+STRUCTURĂ TEZEI:
+1. Introducere (5.000-7.000 cuvinte): Context, relevanță, obiective, întrebări cercetare
+2. Cadru Teoretic (20.000-25.000 cuvinte): Definiții, teorii, review literatură, model conceptual
+3. Metodologie (10.000-15.000 cuvinte): Design cercetare, metode, studii de caz (reale + fictive)
+4. Analiză și Rezultate (30.000-35.000 cuvinte): Prezentare date, interpretare, integrare companie fictivă
+5. Discuții (15.000-20.000 cuvinte): Implicații, comparații teorie-practică, limitări
+6. Concluzii și Recomandări (5.000-10.000 cuvinte): Sinteză, recomandări practice, direcții viitoare
+
+DATE DISPONIBILE PENTRU ANALIZĂ:
 ${researchData.map(rd => `
 - Temă: ${rd.research_theme}
 - Cadre teoretice: ${Array.isArray(rd.theoretical_frameworks) ? rd.theoretical_frameworks.length : 0}
@@ -82,14 +114,16 @@ ${researchData.map(rd => `
 - Metrici: ${JSON.stringify(rd.metrics_collected)}
 `).join('\n')}
 
-Generează:
-1. Capitolul 1: Introducere (scop, importanță, întrebări de cercetare)
-2. Capitolul 2: Fundamentare teoretică (sinteza cadrelor teoretice identificate)
-3. Capitolul 3: Metodologie (bazată pe metrici și studii de caz existente)
-4. Capitolul 4: Analiză și rezultate (gap-uri de completat de către doctorand)
-5. Capitolul 5: Concluzii și contribuții (schița contribuției originale)
+FORMAT:
+- Limbaj academic, citări APA
+- Abstract, bibliografie extensivă, anexe
+- Coerentă narativă între exemple fictive și reale
 
-IMPORTANT: Marchează clar cu [DRAFT - NECESITĂ EDITARE] secțiunile care necesită input original de la doctorand. Nu inventa date, folosește doar ce este disponibil.`,
+IMPORTANT: 
+- Marchează cu [DRAFT - NECESITĂ EDITARE + CERCETARE PROPRIE] secțiunile care necesită input original
+- Integrează linkuri către sursele științifice disponibile
+- Propune exemple concrete pentru compania fictivă (nume, context, soluții, rezultate)
+- NU inventa date, folosește doar ce este disponibil din cercetare`,
         },
       });
 
