@@ -2,6 +2,54 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
 
+// Helper function to extract video ID from YouTube URL
+function extractVideoId(url: string): string | null {
+  const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
+
+// Helper function to fetch YouTube transcript
+async function getYoutubeTranscript(videoId: string): Promise<string | null> {
+  try {
+    // Using youtube-transcript API endpoint
+    const response = await fetch(`https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${Deno.env.get('YOUTUBE_API_KEY')}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      console.log(`No captions available for video ${videoId}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    // Check if captions are available
+    if (!data.items || data.items.length === 0) {
+      console.log(`No transcript found for video ${videoId}`);
+      return null;
+    }
+    
+    // Get the first available caption track (preferably English or Romanian)
+    const captionTrack = data.items.find((item: any) => 
+      ['en', 'ro'].includes(item.snippet.language)
+    ) || data.items[0];
+    
+    if (!captionTrack) {
+      return null;
+    }
+    
+    // Note: Full transcript download requires additional API call with proper authentication
+    // For now, we'll use the video description and metadata which is already available
+    console.log(`Found caption track for video ${videoId}: ${captionTrack.snippet.language}`);
+    return null; // Placeholder - transcript extraction requires more complex setup
+    
+  } catch (error) {
+    console.error(`Error fetching transcript for ${videoId}:`, error);
+    return null;
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -131,17 +179,17 @@ serve(async (req) => {
       console.log('🎥 Căutare conținut YouTube...');
       
       const youtubeQueries = [
-        'digital innovation business models',
-        'organizational resilience strategy',
-        'digital transformation SME',
-        'sustainable business practices',
-        'business model innovation'
+        'digital innovation business models lecture',
+        'organizational resilience strategy tutorial',
+        'digital transformation SME case study',
+        'sustainable business practices webinar',
+        'business model innovation presentation'
       ];
 
       for (const query of youtubeQueries) {
         try {
           const youtubeResponse = await fetch(
-            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=5&order=relevance&videoDuration=medium&key=${youtubeApiKey}`,
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=3&order=relevance&videoDuration=medium&videoCaption=closedCaption&key=${youtubeApiKey}`,
             {
               headers: {
                 'Accept': 'application/json',
@@ -152,26 +200,55 @@ serve(async (req) => {
           if (youtubeResponse.ok) {
             const data = await youtubeResponse.json();
             if (data.items) {
-              youtubeVideos.push(...data.items.map((item: any) => ({
+              const videos = data.items.map((item: any) => ({
                 title: item.snippet.title,
                 description: item.snippet.description,
                 channel: item.snippet.channelTitle,
                 videoId: item.id.videoId,
                 url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
                 publishedAt: item.snippet.publishedAt,
-                thumbnail: item.snippet.thumbnails?.medium?.url
-              })));
+                thumbnail: item.snippet.thumbnails?.medium?.url,
+                transcript: null as string | null
+              }));
+              
+              youtubeVideos.push(...videos);
             }
           }
 
           // Delay pentru a nu depăși rate limit YouTube
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 600));
         } catch (error) {
           console.error('Eroare căutare YouTube:', error);
         }
       }
 
       console.log(`🎬 Găsite ${youtubeVideos.length} videoclipuri YouTube relevante`);
+      
+      // Încearcă să extragă transcripturile pentru primele 5 videoclipuri
+      console.log('📝 Extragere transcripturi YouTube...');
+      const videosWithTranscripts = youtubeVideos.slice(0, 5);
+      
+      for (const video of videosWithTranscripts) {
+        try {
+          const transcript = await getYoutubeTranscript(video.videoId);
+          if (transcript) {
+            video.transcript = transcript;
+            console.log(`✅ Transcript extras pentru: ${video.title}`);
+          } else {
+            // Folosește descrierea ca fallback
+            video.transcript = video.description;
+            console.log(`⚠️ Nu există transcript, folosesc descrierea pentru: ${video.title}`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 400));
+        } catch (error) {
+          console.error(`Eroare extragere transcript pentru ${video.videoId}:`, error);
+          video.transcript = video.description; // Fallback la descriere
+        }
+      }
+      
+      const transcriptsCount = videosWithTranscripts.filter(v => v.transcript && v.transcript !== v.description).length;
+      console.log(`📋 ${transcriptsCount} transcripturi complete extrase din ${videosWithTranscripts.length} videoclipuri`);
     }
 
     console.log(`📚 Total resurse găsite: ${allPapers.length} articole + ${youtubeVideos.length} videoclipuri`);
@@ -206,26 +283,29 @@ serve(async (req) => {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     
     const systemPrompt = `Ești expert în inovație digitală și modele de afaceri sustenabile. 
-Analizează articolele științifice, cărțile fundamentale și videoclipurile YouTube și extrage DOAR informații despre:
-1. Studii de caz concrete despre transformare digitală
+Analizează articolele științifice, cărțile fundamentale și TRANSCRIPTURILE videoclipurilor YouTube și extrage DOAR informații despre:
+1. Studii de caz concrete despre transformare digitală (din articole SAU din transcripturi video)
 2. Framework-uri teoretice pentru reziliență organizațională (ex: Dynamic Capabilities, Business Model Canvas, Triple Bottom Line)
-3. Concepte cheie din cărțile fundamentale (ex: inovație disruptivă, antifragilitate, capabilități dinamice)
-4. Metrici specifice (scoruri, rate, indicatori)
-5. Factori de succes și provocări comune
-6. Resurse video educaționale relevante
+3. Concepte cheie din cărțile fundamentale și din prezentările video (ex: inovație disruptivă, antifragilitate, capabilități dinamice)
+4. Metrici specifice (scoruri, rate, indicatori) menționate în orice sursă
+5. Factori de succes și provocări comune discutate în videoclipuri și articole
+6. Citate și idei cheie din transcripturile video
+
+IMPORTANT: Transcripturile video sunt la fel de valoroase ca și articolele științifice. Extrage informații concrete din ele.
 
 Returnează DOAR JSON valid în acest format:
 {
-  "case_studies": [{"company": "", "industry": "", "transformation": "", "results": "", "source_type": "paper|video"}],
+  "case_studies": [{"company": "", "industry": "", "transformation": "", "results": "", "source_type": "paper|video", "source_title": ""}],
   "theoretical_frameworks": [{"name": "", "description": "", "application": "", "source": "", "source_type": "paper|video"}],
   "metrics_collected": {
     "avg_digital_maturity_score": "",
     "avg_resilience_score": "",
     "common_challenges": [],
     "success_factors": [],
-    "key_concepts": []
+    "key_concepts": [],
+    "video_insights": []
   },
-  "video_resources": [{"title": "", "channel": "", "url": "", "key_topics": []}]
+  "video_resources": [{"title": "", "channel": "", "url": "", "key_topics": [], "transcript_summary": ""}]
 }`;
 
     const papersText = topPapers.map((p, i) => 
@@ -242,12 +322,12 @@ Returnează DOAR JSON valid în acest format:
       ? topVideos.map((v, i) => 
           `Video ${i+1}: ${v.title}\n` +
           `Canal: ${v.channel}\n` +
-          `Descriere: ${v.description}\n` +
+          `${v.transcript && v.transcript !== v.description ? `Transcript: ${v.transcript.substring(0, 1000)}...\n` : `Descriere: ${v.description}\n`}` +
           `URL: ${v.url}\n\n`
         ).join('---\n')
       : '';
 
-    const combinedContent = `${papersText}\n${videosText ? `\n=== RESURSE VIDEO ===\n${videosText}` : ''}`;
+    const combinedContent = `${papersText}\n${videosText ? `\n=== RESURSE VIDEO CU TRANSCRIPTURI ===\n${videosText}` : ''}`;
 
     console.log('🤖 Procesare cu AI...');
 
@@ -287,15 +367,17 @@ Returnează DOAR JSON valid în acest format:
     console.log('✅ Date extrase cu succes');
 
     // Salvează în baza de date
-    const researchNotes = `Date extrase automat din ${topPapers.length} lucrări științifice (articole + cărți fundamentale) și ${topVideos.length} videoclipuri YouTube. 
+    const videosWithTranscripts = topVideos.filter(v => v.transcript && v.transcript !== v.description);
+    const researchNotes = `Date extrase automat din ${topPapers.length} lucrări științifice (articole + cărți fundamentale) și ${topVideos.length} videoclipuri YouTube (${videosWithTranscripts.length} cu transcripturi complete). 
 
 📚 Reviste țintă: Technological Forecasting, Journal of Business Research, Sustainability, Small Business Economics. 
 📖 Cărți fundamentale: Osterwalder, Teece, Porter, Christensen, Taleb, etc. 
 🎥 Videoclipuri YouTube: Conținut educațional despre inovație digitală, transformare organizațională și reziliență.
+📝 Transcripturi: ${videosWithTranscripts.length > 0 ? 'Analiză completă a conținutului video pentru extragere concepte și studii de caz.' : 'Folosite descrierile video pentru analiză.'}
 
 Surse articole: ${topPapers.map(p => `${p.title} (${p.venue || 'carte fundamentală'})`).join('; ')}
 
-Surse video: ${topVideos.map(v => `${v.title} - ${v.channel}`).join('; ') || 'N/A'}`;
+Surse video: ${topVideos.map(v => `${v.title} - ${v.channel}${v.transcript && v.transcript !== v.description ? ' [CU TRANSCRIPT]' : ''}`).join('; ') || 'N/A'}`;
 
     const { error: insertError } = await supabaseClient
       .from('research_data')

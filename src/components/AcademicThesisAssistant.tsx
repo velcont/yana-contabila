@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink } from "lucide-react";
+import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon } from "lucide-react";
 import { ResearchDataImport } from "./ResearchDataImport";
 
 interface ResearchData {
@@ -313,15 +313,35 @@ Nu trimiteți acest document fără editare substanțială!
                         <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                           <Youtube className="h-12 w-12 text-white" />
                         </div>
+                        {video.transcript_summary && (
+                          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <TranscriptIcon className="h-3 w-3" />
+                            Transcript
+                          </div>
+                        )}
                       </div>
                     )}
                     <CardContent className="p-4">
                       <h4 className="font-semibold text-sm mb-2 line-clamp-2">
                         {video.title}
                       </h4>
-                      <p className="text-xs text-muted-foreground mb-3">
+                      <p className="text-xs text-muted-foreground mb-2">
                         {video.channel}
                       </p>
+                      {video.transcript_summary && (
+                        <p className="text-xs text-muted-foreground mb-3 line-clamp-2 italic">
+                          "{video.transcript_summary}"
+                        </p>
+                      )}
+                      {video.key_topics && video.key_topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {video.key_topics.slice(0, 3).map((topic: string, i: number) => (
+                            <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                              {topic}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm" 
