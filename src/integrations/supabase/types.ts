@@ -1775,6 +1775,87 @@ export type Database = {
         }
         Relationships: []
       }
+      strategic_council_members: {
+        Row: {
+          created_at: string
+          entrepreneur_id: string
+          id: string
+          invited_at: string
+          joined_at: string | null
+          last_active_at: string | null
+          member_email: string
+          member_name: string | null
+          role: Database["public"]["Enums"]["council_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entrepreneur_id: string
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          last_active_at?: string | null
+          member_email: string
+          member_name?: string | null
+          role?: Database["public"]["Enums"]["council_role"]
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entrepreneur_id?: string
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          last_active_at?: string | null
+          member_email?: string
+          member_name?: string | null
+          role?: Database["public"]["Enums"]["council_role"]
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      strategic_invitations: {
+        Row: {
+          created_at: string
+          entrepreneur_id: string
+          expires_at: string
+          id: string
+          invitation_token: string
+          member_email: string
+          member_name: string | null
+          message: string | null
+          role: Database["public"]["Enums"]["council_role"]
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          entrepreneur_id: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          member_email: string
+          member_name?: string | null
+          message?: string | null
+          role?: Database["public"]["Enums"]["council_role"]
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          entrepreneur_id?: string
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          member_email?: string
+          member_name?: string | null
+          message?: string | null
+          role?: Database["public"]["Enums"]["council_role"]
+          status?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -2099,6 +2180,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      council_role: "advisor" | "partner" | "accountant" | "observer"
       subscription_type: "entrepreneur" | "accounting_firm"
       tax_type: "profit" | "micro" | "dividend" | "norma_venit"
     }
@@ -2229,6 +2311,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      council_role: ["advisor", "partner", "accountant", "observer"],
       subscription_type: ["entrepreneur", "accounting_firm"],
       tax_type: ["profit", "micro", "dividend", "norma_venit"],
     },
