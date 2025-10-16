@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions."create-credits-checkout"]
 verify_jwt = true
+
+[functions.text-to-speech]
+verify_jwt = false
