@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
 
 const corsHeaders = {
@@ -95,16 +94,30 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    const emailResponse = await resend.emails.send({
-      from: `Yana Strategic <${RESEND_FROM_EMAIL}>`,
-      to: [to_email],
-      subject: `🎯 Invitație în Consiliul Strategic - ${roleLabels[role]}`,
-      html: emailHtml,
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `Yana Strategic <${RESEND_FROM_EMAIL}>`,
+        to: [to_email],
+        subject: `🎯 Invitație în Consiliul Strategic - ${roleLabels[role]}`,
+        html: emailHtml,
+      }),
     });
 
-    console.log("Council invitation email sent:", emailResponse);
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      console.error("Resend API error:", errorText);
+      throw new Error(`Failed to send email: ${errorText}`);
+    }
 
-    return new Response(JSON.stringify(emailResponse), {
+    const result = await emailResponse.json();
+    console.log("Council invitation email sent:", result);
+
+    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
