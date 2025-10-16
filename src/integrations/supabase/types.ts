@@ -1004,6 +1004,42 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_summaries: {
+        Row: {
+          action_items: Json | null
+          conversation_id: string
+          created_at: string
+          id: string
+          key_points: Json | null
+          strategies_discussed: Json | null
+          summary: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          key_points?: Json | null
+          strategies_discussed?: Json | null
+          summary: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          key_points?: Json | null
+          strategies_discussed?: Json | null
+          summary?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       crm_messages: {
         Row: {
           attachments: Json | null
@@ -1576,6 +1612,51 @@ export type Database = {
           research_notes?: string | null
           research_theme?: string
           theoretical_frameworks?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_strategies: {
+        Row: {
+          action_items: Json | null
+          category: string
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_favorite: boolean | null
+          related_strategies: Json | null
+          tags: Json | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_items?: Json | null
+          category: string
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          related_strategies?: Json | null
+          tags?: Json | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_items?: Json | null
+          category?: string
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          related_strategies?: Json | null
+          tags?: Json | null
+          title?: string
           updated_at?: string
           user_id?: string
         }
