@@ -510,6 +510,44 @@ serve(async (req) => {
       );
     }
 
+    // Rate limiting: max 5 analize/minut per user
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) {
+      const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
+        p_user_id: user.id,
+        p_endpoint: "analyze-balance",
+        p_max_requests: 5
+      });
+
+      if (!canProceed) {
+        return new Response(
+          JSON.stringify({ error: "Prea multe cereri de analiză. Te rog așteaptă un minut." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Check cache pentru balanțe identice (hash pe primele 1000 caractere)
+    const textHash = balanceText.slice(0, 1000);
+    const cacheKey = `balance_${textHash.length}_${textHash.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)}`;
+    
+    if (user) {
+      const { data: cachedAnalysis } = await supabaseClient
+        .from("chat_cache")
+        .select("response_data")
+        .eq("cache_key", cacheKey)
+        .gt("expires_at", new Date().toISOString())
+        .single();
+
+      if (cachedAnalysis?.response_data) {
+        console.log("Folosesc analiză din cache");
+        return new Response(
+          JSON.stringify({ analysis: cachedAnalysis.response_data }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     console.log("Trimit cerere către Lovable AI...");
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -523,6 +561,7 @@ serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Analizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
         ],
+        max_tokens: 2048,
       }),
     });
 
@@ -562,6 +601,16 @@ serve(async (req) => {
     }
 
     console.log("Analiză generată cu succes!");
+    
+    // Cache analiza pentru 6 ore
+    if (user && analysis && analysis.length > 100) {
+      await supabaseClient.from("chat_cache").insert({
+        cache_key: cacheKey,
+        user_id: user.id,
+        response_data: analysis,
+        expires_at: new Date(Date.now() + 21600000).toISOString() // 6 ore
+      });
+    }
     
     // Extrage indicatori pentru validare post-procesare
     const indicatorsMatch = analysis.match(/=== INDICATORI FINANCIARI ===([\s\S]*?)(?=\n\n|$)/);

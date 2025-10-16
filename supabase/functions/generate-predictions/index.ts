@@ -50,6 +50,42 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    // Get user from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      try {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.38.4');
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        userId = user?.id || null;
+
+        // Rate limiting: max 3 predicții/minut
+        if (userId) {
+          const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
+            p_user_id: userId,
+            p_endpoint: "generate-predictions",
+            p_max_requests: 3
+          });
+
+          if (!canProceed) {
+            return new Response(
+              JSON.stringify({ error: "Prea multe cereri de predicții. Te rog așteaptă un minut." }),
+              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      } catch (authError) {
+        console.error('Auth error:', authError);
+      }
+    }
+
     // Construiește prompt pentru AI
     const historicalData = analyses.map((a: AnalysisInput, idx: number) => 
       `Lună ${idx + 1} (${new Date(a.date).toLocaleDateString('ro-RO')}):

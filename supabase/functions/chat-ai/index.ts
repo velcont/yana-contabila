@@ -698,6 +698,20 @@ serve(async (req) => {
 
     console.log("Trimit cerere către Lovable AI cu tool calling...");
     
+    // Rate limiting: max 30 mesaje/minut per user
+    const { data: canProceed } = await supabase.rpc("check_rate_limit", {
+      p_user_id: user.id,
+      p_endpoint: "chat-ai",
+      p_max_requests: 30
+    });
+
+    if (!canProceed) {
+      return new Response(
+        JSON.stringify({ error: "Prea multe mesaje trimise. Te rog așteaptă un minut." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Prima cerere cu tool calling
     let aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -710,7 +724,8 @@ serve(async (req) => {
         messages: messages,
         tools: TOOLS,
         tool_choice: "auto",
-        stream: streamResponse
+        stream: streamResponse,
+        max_tokens: 1024
       }),
     });
 
