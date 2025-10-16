@@ -13,6 +13,7 @@ import AcademicThesisAssistant from "@/components/AcademicThesisAssistant";
 import { AuditLogs } from "@/components/AuditLogs";
 import { StorageManager } from "@/components/StorageManager";
 import { StrategicConversationsViewer } from "@/components/StrategicConversationsViewer";
+import { IntellectualPropertyCertificate } from "@/components/IntellectualPropertyCertificate";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -180,16 +181,10 @@ const Admin = () => {
               Vizualizare date utilizatori și conversații
             </p>
           </div>
-          <div className="flex gap-3">
-            <Button onClick={handleExportCopyrightPDF} size="lg" variant="outline">
-              <FileDown className="h-4 w-4 mr-2" />
-              PDF Drepturi Autor
-            </Button>
-            <Button onClick={() => navigate("/updates")} size="lg">
-              <Package className="h-4 w-4 mr-2" />
-              Management Versiuni
-            </Button>
-          </div>
+          <Button onClick={() => navigate("/updates")} size="lg">
+            <Package className="h-4 w-4 mr-2" />
+            Management Versiuni
+          </Button>
         </div>
 
         <Alert className="mb-6">
@@ -200,7 +195,7 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
@@ -224,6 +219,10 @@ const Admin = () => {
             <TabsTrigger value="audit">
               <Shield className="h-4 w-4 mr-2" />
               Audit Logs
+            </TabsTrigger>
+            <TabsTrigger value="copyright">
+              <FileDown className="h-4 w-4 mr-2" />
+              Copyright
             </TabsTrigger>
             <TabsTrigger value="research">
               <GraduationCap className="h-4 w-4 mr-2" />
@@ -510,6 +509,10 @@ const Admin = () => {
 
           <TabsContent value="audit">
             <AuditLogs />
+          </TabsContent>
+
+          <TabsContent value="copyright">
+            <IntellectualPropertyCertificate />
           </TabsContent>
 
           <TabsContent value="research">
