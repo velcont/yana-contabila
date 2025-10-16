@@ -18,6 +18,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface Profile {
   id: string;
@@ -57,6 +59,8 @@ const Admin = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -162,7 +166,11 @@ const Admin = () => {
     try {
       setSendingEmail(true);
       const { data, error } = await supabase.functions.invoke('send-strategic-advisor-announcement', {
-        body: { targetAudience }
+        body: { 
+          targetAudience,
+          customSubject: emailSubject || undefined,
+          customBody: emailBody || undefined
+        }
       });
 
       if (error) throw error;
@@ -189,7 +197,12 @@ const Admin = () => {
     try {
       setSendingEmail(true);
       const { data, error } = await supabase.functions.invoke('send-strategic-advisor-announcement', {
-        body: { testEmail }
+        body: { 
+          testEmail,
+          targetAudience: 'entrepreneur',
+          customSubject: emailSubject || undefined,
+          customBody: emailBody || undefined
+        }
       });
 
       if (error) throw error;
@@ -575,6 +588,39 @@ const Admin = () => {
                     Emailurile vor fi trimise automat către toți utilizatorii cu abonament activ din categoria selectată.
                   </AlertDescription>
                 </Alert>
+
+                <Card className="bg-muted/50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Personalizare Conținut Email</CardTitle>
+                    <CardDescription>
+                      Lasă câmpurile goale pentru a folosi template-ul implicit
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="emailSubject">Subiect Email</Label>
+                      <Input
+                        id="emailSubject"
+                        value={emailSubject}
+                        onChange={(e) => setEmailSubject(e.target.value)}
+                        placeholder="Lasă gol pentru subiect implicit..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emailBody">Conținut Email (HTML acceptat)</Label>
+                      <Textarea
+                        id="emailBody"
+                        value={emailBody}
+                        onChange={(e) => setEmailBody(e.target.value)}
+                        placeholder="Lasă gol pentru template implicit sau scrie conținutul emailului aici... Poți folosi HTML pentru formatare."
+                        className="min-h-[200px] font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        💡 Variabile disponibile: <code className="bg-muted px-1 py-0.5 rounded">{'{userName}'}</code>, <code className="bg-muted px-1 py-0.5 rounded">{'{loginUrl}'}</code>
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <Card className="border-2">

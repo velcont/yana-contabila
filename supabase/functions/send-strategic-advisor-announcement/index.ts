@@ -208,6 +208,13 @@ const getEmailHtml = (userName: string, loginUrl: string, isEntrepreneur: boolea
   }
 };
 
+interface RequestBody {
+  targetAudience?: 'entrepreneur' | 'accounting_firm';
+  testEmail?: string;
+  customSubject?: string;
+  customBody?: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -248,7 +255,7 @@ serve(async (req) => {
       );
     }
 
-    const { testEmail, targetAudience } = await req.json();
+    const { testEmail, targetAudience, customSubject, customBody }: RequestBody = await req.json();
 
     let recipients = [];
 
@@ -296,20 +303,32 @@ serve(async (req) => {
 
     // Determine email subject and content based on target audience
     const isEntrepreneur = targetAudience === 'entrepreneur';
-    const emailSubject = isEntrepreneur 
+    
+    // Use custom subject if provided, otherwise use default
+    const emailSubject = customSubject || (isEntrepreneur 
       ? "🚀 Yana Strategică - Consultantul tău de business ultra-agresiv"
-      : "🚀 Yana Strategică - Noua funcționalitate pentru clienții tăi antreprenori";
+      : "🚀 Yana Strategică - Noua funcționalitate pentru clienții tăi antreprenori");
 
     let successCount = 0;
     let errorCount = 0;
 
     for (const recipient of recipients) {
       try {
-        const html = getEmailHtml(
-          recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener"),
-          appUrl || "https://your-app.com",
-          isEntrepreneur
-        );
+        // Use custom body if provided, otherwise use template
+        let html: string;
+        if (customBody) {
+          // Replace variables in custom body
+          html = customBody
+            .replace(/\{userName\}/g, recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener"))
+            .replace(/\{loginUrl\}/g, appUrl || "https://your-app.com");
+        } else {
+          // Use default template
+          html = getEmailHtml(
+            recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener"),
+            appUrl || "https://your-app.com",
+            isEntrepreneur
+          );
+        }
 
         const response = await fetch("https://api.resend.com/emails", {
           method: "POST",
