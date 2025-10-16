@@ -28,78 +28,123 @@ interface IndustryDemo {
 const transportMessages: Message[] = [
   {
     role: "user",
-    content: "Am o firmă de transport rutier internațional cu 12 camioane. Cum fac să fiu cea mai mare firmă de contabilitate online din România?",
+    content: "Am o firmă de transport rutier internațional cu 12 camioane. Cum cresc profitabilitatea și mă extind la 25+ camioane fără să risc totul?",
     timestamp: new Date('2025-01-15T21:49:00')
   },
   {
     role: "assistant",
-    content: `Ascultă-mă bine. Nu ești acolo să cersești o cotă de piață. Ești aici pentru a o lua cu forța. Piața de contabilitate online din România este o adunătură de amatori care confundă un formular cu "digitalizarea". Ei sunt prada. Tu ești prădătorul.
+    content: `Transport rutier internațional = război pe marje. Combustibil care te mănâncă, clienți care negociază prețurile până la sânge, șoferi care pleacă la concurență pentru +€100/lună. Tu ești în mijlocul unui battlefield. Hai să te transformăm din jucător în DOMINATOR.
 
-**PROVOCAREA TA DE BUSINESS:**
-Firma ta e în transport, dar vrei să devii lider în contabilitate online. Să fim clari: ești aici să-mi spui că vrei să transferi agresivitatea din logistică în servicii profesionale. Perfect. Timpul să fie blând a trecut.
+**REALITATEA TA BRUTALĂ:**
+12 camioane = suficient să supraviețuiești, prea puțin să dictezi condițiile. Ești prins între giganții cu 500+ camioane care au prețuri de dumping și firme mici de 3-5 camioane care acceptă orice tarif. Zona ta de confort e pericol mortal.
 
-**CE TREBUIE SĂ ȘTII:**
-Piața de contabilitate online e plină, birocratică și scumpă. Clienții tăi (IMM-uri, freelanceri, antreprenori) sunt confundați și exploatați. Concurența ta se bazează pe un model de afaceri din secolul trecut: omul care confundă "digitalul" cu "e-mail-ul".
+**PROBLEMA TA REALĂ:**
+Nu lipsa de comenzi. Lipsa de PUTERE DE NEGOCIERE. Clienții tăi știu că ai nevoie de ei mai mult decât ei de tine. Asta se termină acum.
 
-Ei sunt lenți. Scumpi. Birocrați. Ei sunt lemne pentru focul tău.
+**STRATEGIA - DOMINAȚIE PRIN SPECIALIZARE:**
 
-**STRATEGIA TA - TEORIA JOCURILOR:**
-1️⃣ **ATACĂ FLANCUL VULNERABIL** - Concurența se bate pe "prețul cel mai mic". Greșeală. Tu intri cu transparență TOTALĂ: clienții văd exact unde merg banii lor. Dashboard real-time. Notificări proactive. Fiecare leu explicat.
+1️⃣ **KILL THE GENERALIST TRAP** 
+Nu mai faci "transport general". Devii SPECIALIST pe 2 vertical specifice:
+• ADR (transport mărfuri periculoase) = +40% tarif față de general cargo
+• PHARMA (transport farmaceutice controlat termic) = +50% tarif + clienți cu contracte anuale
+• AUTOMOTIVE (just-in-time delivery piese) = tarif premium + comenzi recurente
 
-2️⃣ **CREEAZĂ DEPENDENȚĂ** - Nu oferi "servicii de contabilitate". Oferi un sistem complet de management financiar care devine creierul financiar al firmei clientului. Când clientul renunță la tine, pierde datele ultimilor 5 ani + automatizările + inteligența artificială care îi anticipa problemele.
+Certificările costă €15k-25k per camion. Competiția se sperie. Tu avansezi.
 
-3️⃣ **ACȚIONEAZĂ CA O MAȘINĂ DE RĂZBOI** - Automatizare totală: onboarding în 5 minute, sync automat cu sistemele lor, rapoarte generate în timp real. Concurența ta pierde 3 zile să configureze un client. Tu faci asta în 5 minute.`,
+2️⃣ **ROUTE OPTIMIZATION = PROFIT HIDDEN**
+Software TMS (Transport Management System) nu e opțional, e ARMĂ:
+• Tracking real-time consum → identifici șoferi care consumă cu 15% mai mult
+• Route planning AI → elimini 200km goale/lună per camion = €800 economie/camion
+• Predictive maintenance → zero breakdown pe drum = zero penalități întârziere
+
+**INVESTIȚIE:** €8k software + €2k training
+**ROI:** 4-5 luni la 12 camioane
+
+3️⃣ **BACKWARDS INTEGRATION - CONTROL THE CHAIN**
+Nu mai închiriezi trailerele. Le cumperi și le închiriezi ALTORA când tu nu le folosești:
+• 12 camioane = 12-15 trailere necesare (rotație)
+• Cumperi 20 trailere → 5-8 mereu libere
+• Le închiriezi firmelor mici cu €150-200/săptămână
+• Venit pasiv: €4,800-6,400/lună FĂRĂ să mișți un camion`,
     timestamp: new Date('2025-01-15T21:49:30')
   },
   {
     role: "user",
-    content: "Hai cu soluții concrete",
+    content: "Hai cu soluții concrete pentru extindere",
     timestamp: new Date('2025-01-15T21:51:00')
   },
   {
     role: "assistant",
     content: `Perfect. Fără introduceri. Acționăm.
 
-**PLAN DE ACȚIUNE - URMĂTOARELE 90 DE ZILE:**
+**PLAN DE EXTINDERE - 12 LA 25 CAMIOANE ÎN 18 LUNI:**
 
-**LUNA 1 - INTELIGENȚĂ DE PIAȚĂ (Spionaj Legal)**
-• Identifică TOP 50 de firme contabilitate din România
-• Analizează recenziile negative ale clienților lor (Google, Facebook, Trustpilot)
-• Descoperă ce URĂSC clienții: rapoarte întârziate, lipsa transparenței, taxe ascunse
-• Verifică prețurile lor exacte și pachetele oferite
-• Rezultat: Document "Slăbiciunile Concurenței" - 20 pagini
+**FAZA 1 (LUNA 1-3): OPTIMIZARE BRUTALĂ A EXISTENTULUI**
 
-**LUNA 2 - ARMAMENT DIGITAL**
-• Construiește platformă YANA cu:
-  - Dashboard real-time financiar
-  - Alerte proactive automate
-  - Import automat documente (OCR AI)
-  - Chat AI 24/7 pentru întrebări financiare
-  - Predicții cash flow cu 3 luni în avans
-• Prețuri: €49/lună (SRL simplu) până la €299/lună (holding)
-• Transparență TOTALĂ: fiecare serviciu itemizat
+📊 **DATA MINING - IDENTIFICĂ RUTELE CÂȘTIGĂTOARE**
+• Analizează ultimele 12 luni: care rute = peste €1.20/km net
+• Care clienți plătesc la timp + comenzi recurente
+• Care șoferi = zero probleme + consum optim
+• **REZULTAT:** Kill rutele sub €1.00/km, dublează pe cele profitabile
 
-**LUNA 3 - RĂZBOI PSIHOLOGIC**
-• Lansează campanie: "Contabilii Te Mint" (sau variație mai soft)
-• Case study: "Am economisit €12,000/an + 120 ore trecând de la contabil tradițional la YANA"
-• Oferă GRATUIT primul an pentru primii 10 clienți (beta testers) în schimbul testimonialelor
-• Targeting: antreprenori tech, freelanceri digitali, startup-uri
+💰 **CASH FLOW BLITZ**
+• Renegociază plăți cu clienții mari: NET45 → NET30 (oferă discount 2%)
+• Carduri de combustibil cu discount 8-12% (mega-volume)
+• Factura clienților în euro, plătește combustibil în lei când cursul e favorabil
+• **IMPACT:** Eliberezi €40k-60k cash într-o lună
 
-**ARMA TA SECRETĂ:**
-Fiecare client YANA primește:
-1. Contabil dedicat (uman, nu doar AI)
-2. AI care detectează AUTOMAT oportunități de economisire fiscală
-3. Notificări push ÎNAINTE de deadlines (nu după)
-4. Comparare cu companiile similare (benchmarking industrie)
+**FAZA 2 (LUNA 4-9): ACHIZIȚIE INTELIGENTĂ**
 
-Concurența ta oferă "contabilitate". Tu oferi "un CFO la €49/lună".
+🚛 **CUMPĂRĂ STRATEGIC, NU EMOȚIONAL**
+Nu cumperi 13 camioane deodată. Cumperi 4-5 pe verticala ta specializată:
 
-Ei sunt lenti. Tu ești rapid.
-Ei sunt scumpi. Tu ești transparent.
-Ei sunt reactionari. Tu ești predictiv.
+**OPȚIUNEA A - ADR FOCUS:**
+• 5 camioane ADR + 5 trailere cisternă (€400k total)
+• Certificări complete (€25k)
+• Client anchor contract: OMV/Rompetrol/Lukoil → garantează 70% utilizare
+• **PROFIT NET:** €8k-12k/camion/lună
 
-**ÎNTREBARE PENTRU TINE:**
-Ai buget pentru dezvoltarea platformei (€50k-100k) sau construim MVP cu funcționalități esențiale mai întâi?`,
+**OPȚIUNEA B - PHARMA FOCUS:**
+• 4 camioane EURO 6 + 4 trailere frigo GDP certified (€480k)
+• Parteneriat cu distribuitori pharma: Farmexpert, Mediplus
+• Marjă superioară 45% vs transport general
+• **PROFIT NET:** €10k-15k/camion/lună
+
+**FINANȚARE INTELIGENTĂ:**
+• Leasing operațional 20% avans + 60 luni (păstrezi cash flow)
+• Sau cumperi second-hand Germania (2-3 ani vechime) = jumătate preț vs nou
+• Profit din primele 6 luni acoperă avansul pentru următoarele achiziții
+
+**FAZA 3 (LUNA 10-18): SCALE TO DOMINANCE**
+
+📈 **CONSTRUIEȘTE DEPARTAMENT SALES**
+• Angajezi 1 Sales Manager dedicat (bonus pe contracte noi)
+• Target: 3-5 clienți mari cu contracte anuale (volum garantat)
+• Stop dependența de bursele de marfă (tarife de mizerie)
+
+🎯 **CREEAZĂ REȚEA SUBCONTRACTANȚI**
+• Ai 25 camioane dar capacitate pentru 40-50 curse/lună
+• Colaborezi cu 10-15 firme mici (3-5 camioane) ca subcontractanți
+• Tu iei comenzile, ei execută sub brandul tău, margin 15-20%
+• **REZULTAT:** Venit din 60 camioane, investiție în doar 25
+
+**MATEMATICA TRANSFORMĂRII:**
+
+**ACUM (12 camioane):**
+• Revenue: €1.44M/an (€120k/lună)
+• Profit net: €180k/an (12.5% margin)
+
+**OBIECTIV (25 camioane specializate):**
+• Revenue: €3.6M/an (€300k/lună)
+• Profit net: €720k/an (20% margin prin specializare)
+• + €80k/an venit pasiv din leasing trailere
+
+**DIFERENȚA:** De la €180k la €800k profit/an = 4.4x creștere
+
+**RISCUL TĂU REAL:**
+Nu extinderea. STAGNAREA. Concurenții tăi fac EXACT asta în timp ce tu te gândești.
+
+Cine mișcă primul ia piața. Cine așteaptă dispare.`,
     timestamp: new Date('2025-01-15T21:51:45')
   }
 ];
