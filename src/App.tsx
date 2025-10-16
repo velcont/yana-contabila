@@ -20,6 +20,7 @@ import CRM from "./pages/CRM";
 import NotFound from "./pages/NotFound";
 import { Landing } from "./pages/Landing";
 import { Demo } from "./pages/Demo";
+import { IndustryDemos } from "./pages/IndustryDemos";
 import SystemHealth from "./pages/SystemHealth";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -66,6 +67,7 @@ const App = () => (
                     <Route path="/" element={<Landing />} />
                     <Route path="/landing" element={<Landing />} />
                     <Route path="/demo" element={<Demo />} />
+                    <Route path="/industry-demos" element={<PrivateRoute><IndustryDemos /></PrivateRoute>} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
