@@ -480,6 +480,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           });
 
           if (error) throw error;
+          if (data?.error) throw new Error(data.error);
 
           // Save analysis to database
           const { data: { user } } = await supabase.auth.getUser();
@@ -537,9 +538,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           });
         } catch (error) {
           console.error('Error analyzing balance:', error);
+          const errorMessage = error instanceof Error ? error.message : "Nu am putut analiza balanța. Te rog încearcă din nou.";
           toast({
             title: "Eroare",
-            description: "Nu am putut analiza balanța. Te rog încearcă din nou.",
+            description: errorMessage,
             variant: "destructive"
           });
         } finally {

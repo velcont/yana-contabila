@@ -237,6 +237,12 @@ const Index = () => {
           successCount++;
         } catch (fileError) {
           console.error(`Error analyzing ${file.name}:`, fileError);
+          const errorMsg = fileError instanceof Error ? fileError.message : "Eroare necunoscută";
+          toast({
+            title: "Eroare la analiză",
+            description: errorMsg,
+            variant: "destructive"
+          });
           failCount++;
         }
       }
