@@ -8,6 +8,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useNavigate } from 'react-router-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   role: "user" | "assistant";
@@ -560,9 +561,14 @@ export const IndustryDemos = () => {
     }
   }, [selectedIndustry]);
 
-  const handleTTS = () => {
+  const handleTTS = async () => {
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
+      // Stop current audio
+      const audioElements = document.querySelectorAll('audio.tts-audio');
+      audioElements.forEach(el => {
+        (el as HTMLAudioElement).pause();
+        el.remove();
+      });
       setIsSpeaking(false);
       return;
     }
@@ -571,23 +577,47 @@ export const IndustryDemos = () => {
       .map(msg => `${msg.role === 'user' ? 'Utilizator: ' : 'Yana: '}${msg.content}`)
       .join('\n\n');
 
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.lang = 'ro-RO';
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => {
+    try {
+      setIsSpeaking(true);
+      
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { 
+          text: textToRead,
+          voice: 'nova' // Romanian sounds better with nova
+        }
+      });
+
+      if (error) throw error;
+
+      // Create audio element and play
+      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      audio.className = 'tts-audio';
+      
+      audio.onended = () => {
+        setIsSpeaking(false);
+        audio.remove();
+      };
+      
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        audio.remove();
+        toast({
+          title: "Eroare TTS",
+          description: "Nu s-a putut reda audio",
+          variant: "destructive"
+        });
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('TTS error:', error);
       setIsSpeaking(false);
       toast({
         title: "Eroare TTS",
-        description: "Nu s-a putut citi textul",
+        description: "Nu s-a putut genera vocea",
         variant: "destructive"
       });
-    };
-
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
+    }
   };
 
   // Redirect non-admins
