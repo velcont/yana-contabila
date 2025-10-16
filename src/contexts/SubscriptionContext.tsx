@@ -123,7 +123,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     subscriptionStatus,
     subscriptionEnd,
     isSubscribed: subscriptionStatus === 'active',
-    isAccountant: subscriptionType === 'accounting_firm' && subscriptionStatus === 'active',
+    isAccountant: subscriptionType === 'accounting_firm',
     trialExpired,
     trialDaysRemaining,
     accessType,
