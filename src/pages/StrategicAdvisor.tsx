@@ -100,8 +100,12 @@ export default function StrategicAdvisor() {
           _role: "admin"
         });
 
+        // Strategic Advisor este blocat pentru TOȚI utilizatorii cu acces gratuit
+        // Doar abonați plătitori (fără has_free_access) sau admini au acces
         const access = isAdmin || 
-          (profile?.subscription_type === "entrepreneur" && profile?.subscription_status === "active");
+          (profile?.subscription_type === "entrepreneur" && 
+           profile?.subscription_status === "active" && 
+           profile?.has_free_access !== true);
         
         setHasAccess(access);
       } catch (error) {
@@ -285,8 +289,11 @@ export default function StrategicAdvisor() {
         <Card className="p-8 max-w-md text-center">
           <Brain className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h1 className="text-2xl font-bold mb-2">Acces restricționat</h1>
-          <p className="text-muted-foreground">
-            Yana Strategica este disponibilă doar pentru antreprenorii cu abonament activ.
+          <p className="text-muted-foreground mb-4">
+            Yana Strategica este o funcționalitate premium disponibilă DOAR pentru antreprenorii cu abonament plătit activ.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Chiar dacă ai acces gratuit la analiza financiară și chat-ul normal, Consilierul Strategic necesită abonament plătit pentru a putea fi accesat.
           </p>
         </Card>
       </div>

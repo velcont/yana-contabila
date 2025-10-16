@@ -109,10 +109,10 @@ serve(async (req) => {
 
     console.log("[STRATEGIC-ADVISOR] User authenticated:", user.id);
 
-    // Verify access: admin or active entrepreneur
+    // Verify access: admin or active entrepreneur (BLOCAT pentru has_free_access)
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("subscription_type, subscription_status")
+      .select("subscription_type, subscription_status, has_free_access")
       .eq("id", user.id)
       .single();
 
@@ -121,13 +121,17 @@ serve(async (req) => {
       _role: "admin"
     });
 
+    // Strategic Advisor BLOCAT pentru TOȚI utilizatorii cu acces gratuit
+    // Doar abonați plătitori (fără has_free_access) sau admini au acces
     const hasAccess = isAdmin || 
-      (profile?.subscription_type === "entrepreneur" && profile?.subscription_status === "active");
+      (profile?.subscription_type === "entrepreneur" && 
+       profile?.subscription_status === "active" && 
+       profile?.has_free_access !== true);
 
     if (!hasAccess) {
       return new Response(
         JSON.stringify({ 
-          error: "Acces interzis. Doar antreprenorii cu abonament activ au acces la Yana Strategica." 
+          error: "Acces interzis. Yana Strategica este disponibilă DOAR pentru abonamentele plătite active. Accesul gratuit nu include această funcționalitate premium." 
         }),
         { 
           status: 403, 
