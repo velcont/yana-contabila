@@ -9,12 +9,12 @@ const getEmailHtml = (userName: string, loginUrl: string, isEntrepreneur: boolea
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yana Strategică - Anunț</title>
+  <title>Două Instrumente Esențiale pentru Afacerea Ta</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; background-color: #f6f9fc;">
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px 0 48px;">
     <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 40px 20px 20px; line-height: 1.3;">
-      🎯 Noutate MAJORĂ: Yana Strategică
+      🎯 Două Instrumente Esențiale pentru Afacerea Ta
     </h1>
     
     <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
@@ -22,14 +22,34 @@ const getEmailHtml = (userName: string, loginUrl: string, isEntrepreneur: boolea
     </p>
 
     <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
-      Ți-am pregătit ceva <strong>revoluționar</strong> - un consultant strategic AI care 
-      nu se joacă cu vorbe goale. Este timpul să treci de la planuri vagi la strategii concrete.
+      În platformă ai acces la <strong>DOUĂ funcționalități distincte</strong>, fiecare esențială pentru succesul afacerii tale:
     </p>
 
+    <!-- SECTION 1: Analiza Balanței (10%) -->
     <div style="background-color: #f0f7ff; border: 2px solid #3b82f6; border-radius: 8px; margin: 24px 20px; padding: 20px;">
-      <h2 style="color: #1a1a1a; font-size: 20px; font-weight: bold; margin: 0 0 15px;">
-        💥 Ce face Yana Strategică diferit?
+      <h2 style="color: #1a1a1a; font-size: 18px; font-weight: bold; margin: 0 0 12px;">
+        📊 1. Analiza Balanței - AI Chatbot pentru Analiza Financiară
       </h2>
+      <p style="color: #404040; font-size: 14px; line-height: 22px; margin: 8px 0;">
+        <strong>Ce face:</strong> Analizează balanțele tale contabile și oferă insights financiare instantanee.
+      </p>
+      <p style="color: #404040; font-size: 14px; line-height: 22px; margin: 8px 0;">
+        <strong>Când să folosești:</strong> Pentru analize lunare/trimestriale, întrebări despre situația financiară actuală.
+      </p>
+    </div>
+
+    <!-- SECTION 2: Yana Strategică (90%) -->
+    <div style="background-color: #fef3c7; border: 3px solid #f59e0b; border-radius: 8px; margin: 24px 20px; padding: 24px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);">
+      <h2 style="color: #1a1a1a; font-size: 22px; font-weight: bold; margin: 0 0 15px; text-transform: uppercase;">
+        🚀 2. YANA STRATEGICĂ - Consultant Strategic Ultra-Agresiv
+      </h2>
+      <p style="color: #dc2626; font-size: 16px; line-height: 24px; margin: 8px 0; font-weight: 600;">
+        ATENȚIE: Acesta este un instrument COMPLET DIFERIT de analiza balanței!
+      </p>
+      
+      <h3 style="color: #1a1a1a; font-size: 18px; font-weight: bold; margin: 20px 0 12px;">
+        💥 Ce face Yana Strategică diferit?
+      </h3>
       <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 0;">
         <strong>✅ ZERO bullshit</strong> - Cere date financiare concrete de la prima întrebare
       </p>
@@ -44,10 +64,10 @@ const getEmailHtml = (userName: string, loginUrl: string, isEntrepreneur: boolea
       </p>
     </div>
 
-    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
+    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 30px 20px 20px;">
 
-    <h2 style="color: #1a1a1a; font-size: 20px; font-weight: bold; margin: 30px 20px 15px;">
-      📊 Ce îți cere Yana?
+    <h2 style="color: #1a1a1a; font-size: 20px; font-weight: bold; margin: 20px 20px 15px;">
+      📊 Ce îți cere Yana Strategică?
     </h2>
     <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
       Pentru a-ți da strategii reale (nu sfaturi generice), are nevoie de:
@@ -73,27 +93,27 @@ const getEmailHtml = (userName: string, loginUrl: string, isEntrepreneur: boolea
     <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 40px;">⚠️ <strong>Gestionare riscuri</strong> cu soluții concrete</p>
 
     <div style="text-align: center; margin: 32px 20px;">
-      <a href="${loginUrl}" style="background-color: #3b82f6; border-radius: 6px; color: #fff; font-size: 16px; font-weight: bold; text-decoration: none; display: inline-block; padding: 16px 32px;">
-        🚀 Încearcă Yana Strategică ACUM
+      <a href="${loginUrl}" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); border-radius: 8px; color: #fff; font-size: 18px; font-weight: bold; text-decoration: none; display: inline-block; padding: 18px 40px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+        🚀 ACCESEAZĂ YANA STRATEGICĂ ACUM
       </a>
     </div>
 
-    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
+    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 30px 20px 20px;">
 
     <div style="color: #dc2626; font-size: 15px; line-height: 24px; margin: 16px 20px; padding: 16px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
-      ⚠️ <strong>ATENȚIE:</strong> Yana nu este pentru toată lumea. Dacă vrei sfaturi generice și 
+      ⚠️ <strong>ATENȚIE:</strong> Yana Strategică nu este pentru toată lumea. Dacă vrei sfaturi generice și 
       motivaționale, nu este instrumentul potrivit. Dacă vrei strategii brutale care funcționează 
       - intră și dă-i cifrele tale.
     </div>
 
     <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
-      Concurența ta deja știe cifrele despre business-ul tău.<br>
+      <strong>Concurența ta deja știe cifrele despre business-ul tău.</strong><br>
       Tu le știi despre ei?
     </p>
 
     <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 24px 20px;">
       Succes în război,<br>
-      <strong>Echipa Ta</strong>
+      <strong>Echipa Yana</strong>
     </p>
 
     <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
@@ -313,7 +333,7 @@ serve(async (req) => {
     
     // Use custom subject if provided, otherwise use default
     const emailSubject = customSubject || (isEntrepreneur 
-      ? "🚀 Yana Strategică - Consultantul tău de business ultra-agresiv"
+      ? "🎯 Două Instrumente Esențiale: Analiza Balanței + YANA STRATEGICĂ"
       : "🚀 Yana Strategică - Noua funcționalitate pentru clienții tăi antreprenori");
     
     console.log(`Email subject: ${emailSubject}`);

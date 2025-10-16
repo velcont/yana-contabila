@@ -425,12 +425,11 @@ const Index = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            variant="outline"
                             onClick={() => navigate('/strategic-advisor')}
-                            className="bg-gradient-to-r from-primary/10 to-accent/10"
+                            className="yana-strategic-button"
                           >
                             <Sparkles className="h-4 w-4 mr-2" />
-                            Yana Strategica
+                            Yana Strategică
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
