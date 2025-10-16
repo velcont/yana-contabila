@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
-const getEmailHtml = (userName: string, loginUrl: string) => `
+const getEmailHtml = (userName: string, loginUrl: string, isEntrepreneur: boolean = true) => {
+  if (isEntrepreneur) {
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -104,6 +106,107 @@ const getEmailHtml = (userName: string, loginUrl: string) => `
 </body>
 </html>
 `;
+  } else {
+    // Email for accountants
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yana Strategică - Noua funcționalitate</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, sans-serif; background-color: #f6f9fc;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px 0 48px;">
+    <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 40px 20px 20px; line-height: 1.3;">
+      🎯 Noutate: Yana Strategică pentru Clienții Tăi
+    </h1>
+    
+    <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
+      Bună ${userName},
+    </p>
+
+    <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
+      Am adăugat o funcționalitate <strong>revoluționară</strong> în platformă - Yana Strategică, 
+      un consultant strategic AI care ajută antreprenorii să dezvolte strategii concrete de business.
+    </p>
+
+    <div style="background-color: #f0f7ff; border: 2px solid #3b82f6; border-radius: 8px; margin: 24px 20px; padding: 20px;">
+      <h2 style="color: #1a1a1a; font-size: 20px; font-weight: bold; margin: 0 0 15px;">
+        💼 De ce e relevant pentru tine?
+      </h2>
+      <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 0;">
+        <strong>✅ Valoare adăugată pentru clienți</strong> - Oferi mai mult decât contabilitate
+      </p>
+      <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 0;">
+        <strong>✅ Clienți mai educați</strong> - Înțeleg mai bine deciziile financiare
+      </p>
+      <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 0;">
+        <strong>✅ Retenție îmbunătățită</strong> - Clienții văd platforma ca instrument strategic
+      </p>
+      <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 0;">
+        <strong>✅ Diferențiere</strong> - Te poziționezi ca partener strategic, nu doar furnizor
+      </p>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
+
+    <h2 style="color: #1a1a1a; font-size: 20px; font-weight: bold; margin: 30px 20px 15px;">
+      🎯 Ce face Yana Strategică?
+    </h2>
+    <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
+      Ajută antreprenorii să creeze strategii bazate pe date financiare concrete:
+    </p>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 40px;">📋 Strategii de război de preț</p>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 40px;">💰 Optimizare fiscală agresivă</p>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 40px;">📊 Planuri cu bugete și KPIs exacte</p>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 40px;">⚠️ Analiză riscuri și oportunități</p>
+
+    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
+
+    <h2 style="color: #1a1a1a; font-size: 20px; font-weight: bold; margin: 30px 20px 15px;">
+      💡 Cum să o promovezi clienților?
+    </h2>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 20px;">
+      <strong>1. Menționează-o în consultări:</strong> "Pe lângă serviciile noastre de contabilitate, 
+      ai acces la Yana Strategică pentru dezvoltarea business-ului."
+    </p>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 20px;">
+      <strong>2. Include în onboarding:</strong> Prezintă funcționalitatea când clienții noi intră în platformă.
+    </p>
+    <p style="color: #404040; font-size: 15px; line-height: 24px; margin: 8px 20px;">
+      <strong>3. Newsletter lunar:</strong> Trimite studii de caz despre strategii create cu Yana.
+    </p>
+
+    <div style="text-align: center; margin: 32px 20px;">
+      <a href="${loginUrl}" style="background-color: #3b82f6; border-radius: 6px; color: #fff; font-size: 16px; font-weight: bold; text-decoration: none; display: inline-block; padding: 16px 32px;">
+        🚀 Explorează Yana Strategică
+      </a>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
+
+    <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 16px 20px;">
+      Această funcționalitate te poziționează ca partener strategic pentru clienții tăi, 
+      nu doar ca furnizor de servicii contabile.
+    </p>
+
+    <p style="color: #404040; font-size: 16px; line-height: 26px; margin: 24px 20px;">
+      Succes,<br>
+      <strong>Echipa Yana</strong>
+    </p>
+
+    <hr style="border: none; border-top: 1px solid #e6ebf1; margin: 20px 0;">
+
+    <p style="color: #8898aa; font-size: 12px; line-height: 16px; margin: 16px 20px;">
+      Acest email a fost trimis către ${userName} ca partener contabil activ.
+    </p>
+  </div>
+</body>
+</html>
+`;
+  }
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,28 +248,40 @@ serve(async (req) => {
       );
     }
 
-    const { testEmail } = await req.json();
+    const { testEmail, targetAudience } = await req.json();
 
     let recipients = [];
 
     if (testEmail) {
       // Send test email
       recipients = [{ email: testEmail, full_name: "Test User" }];
+    } else if (!targetAudience) {
+      return new Response(
+        JSON.stringify({ error: "Trebuie să specifici targetAudience: 'entrepreneur' sau 'accounting_firm'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else {
-      // Get all active entrepreneur subscribers
-      const { data: profiles } = await supabaseClient
+      // Get recipients based on target audience
+      const { data: profiles, error } = await supabaseClient
         .from("profiles")
         .select("email, full_name")
-        .eq("subscription_type", "entrepreneur")
+        .eq("subscription_type", targetAudience)
         .eq("subscription_status", "active")
         .not("email", "is", null);
 
+      if (error) {
+        throw new Error(`Failed to fetch recipients: ${error.message}`);
+      }
+
       recipients = profiles || [];
+      console.log(`Found ${recipients.length} ${targetAudience} recipients`);
     }
 
     if (recipients.length === 0) {
       return new Response(
-        JSON.stringify({ message: "Nu există destinatari activi." }),
+        JSON.stringify({ 
+          message: `Nu există ${targetAudience === 'entrepreneur' ? 'antreprenori' : 'contabili'} cu abonament activ.` 
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -179,14 +294,21 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY not configured");
     }
 
+    // Determine email subject and content based on target audience
+    const isEntrepreneur = targetAudience === 'entrepreneur';
+    const emailSubject = isEntrepreneur 
+      ? "🚀 Yana Strategică - Consultantul tău de business ultra-agresiv"
+      : "🚀 Yana Strategică - Noua funcționalitate pentru clienții tăi antreprenori";
+
     let successCount = 0;
     let errorCount = 0;
 
     for (const recipient of recipients) {
       try {
         const html = getEmailHtml(
-          recipient.full_name || "Antreprenor",
-          appUrl || "https://your-app.com"
+          recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener"),
+          appUrl || "https://your-app.com",
+          isEntrepreneur
         );
 
         const response = await fetch("https://api.resend.com/emails", {
@@ -198,7 +320,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: `Yana Platform <${fromEmail}>`,
             to: [recipient.email],
-            subject: "🚀 Yana Strategică - Consultantul tău de business ultra-agresiv",
+            subject: emailSubject,
             html: html,
           }),
         });
@@ -222,10 +344,11 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        message: `Emails trimise: ${successCount} succes, ${errorCount} erori`,
+        message: `Emails trimise către ${targetAudience === 'entrepreneur' ? 'antreprenori' : 'contabili'}: ${successCount} succes, ${errorCount} erori`,
         success: successCount,
         errors: errorCount,
         total: recipients.length,
+        targetAudience: targetAudience || 'test',
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
