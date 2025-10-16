@@ -59,7 +59,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 📊 **Pentru analiză balanță:**
 - Încarcă fișier Excel (.xls sau .xlsx)
 - Numele fișierului trebuie să conțină luna și anul
-- Exemplu: Balanta_Ianuarie_2025.xls`
+- Exemplu: Balanta_Ianuarie_2025.xls
+
+💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
+
+🎯 Pentru **consultanță strategică** despre creștere, profit și dezvoltare business → folosește **Yana Strategică** (feature premium).`
       }
     ]
   );
