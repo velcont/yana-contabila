@@ -1,396 +1,518 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useRef } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Truck, UtensilsCrossed, Code, Factory, ShoppingBag, Building2, Crown, BarChart3, AlertTriangle, Sparkles } from 'lucide-react';
-import { format } from 'date-fns';
-import { ro } from 'date-fns/locale';
-import AnalyticsCharts from '@/components/AnalyticsCharts';
-import CompareAnalyses from '@/components/CompareAnalyses';
-import { AIPredictions } from '@/components/AIPredictions';
-import { ResilienceAnalysis } from '@/components/ResilienceAnalysis';
+import { Truck, UtensilsCrossed, Code, Factory, ShoppingBag, ArrowLeft, TrendingUp, Brain, Crown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useNavigate } from 'react-router-dom';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// Demo data pentru industrie: TRANSPORT
-const transportDemos = [
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
+interface IndustryDemo {
+  id: string;
+  name: string;
+  icon: any;
+  color: string;
+  companyName: string;
+  messages: Message[];
+}
+
+// Demo conversations pentru TRANSPORT
+const transportMessages: Message[] = [
   {
-    id: 'transport-1',
-    company_name: 'SC RAPID TRANS SRL',
-    file_name: 'Balanta_Ianuarie_2025.xlsx',
-    created_at: new Date('2025-01-31').toISOString(),
-    analysis_text: `Analiză Financiară - SC RAPID TRANS SRL (Transport Rutier Internațional)
-Perioada: 01/01/2025 - 31/01/2025
-
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 680,000 RON
-- Cheltuieli totale: 595,000 RON (87.5%)
-- Profit net: 85,000 RON
-- EBITDA: 115,000 RON
-- Marja profitului: 12.5%
-
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 245,000 RON
-- Sold casă: 5,200 RON
-- Creanțe clienți: 420,000 RON
-- Datorii furnizori: 180,000 RON (diesel, piese)
-
-INDICATORI OPERAȚIONALI:
-- DSO: 62 zile (specific transport - contracte pe termen lung)
-- DPO: 35 zile
-- Flotă: 12 camioane active
-- Cost diesel/lună: 185,000 RON (31% din cheltuieli)
-- Cost șoferi: 145,000 RON (24% din cheltuieli)
-
-OBSERVAȚII SPECIFICE TRANSPORT:
-✅ Marje sănătoase pentru industrie (10-15% normal)
-✅ Flotă complet utilizată - 98% timp activ
-⚠️ Dependență mare pe prețul diesel-ului
-💡 Consideră contracte cu clauză de ajustare preț diesel`,
-    metadata: {
-      ca: 680000,
-      cheltuieli: 595000,
-      profit: 85000,
-      ebitda: 115000,
-      profit_margin: 12.5,
-      soldBanca: 245000,
-      soldCasa: 5200,
-      clienti: 420000,
-      furnizori: 180000,
-      dso: 62,
-      dpo: 35
-    }
+    role: "user",
+    content: "Am o firmă de transport rutier internațional cu 12 camioane. Cum fac să fiu cea mai mare firmă de contabilitate online din România?",
+    timestamp: new Date('2025-01-15T21:49:00')
   },
   {
-    id: 'transport-2',
-    company_name: 'SC RAPID TRANS SRL',
-    file_name: 'Balanta_Februarie_2025.xlsx',
-    created_at: new Date('2025-02-28').toISOString(),
-    analysis_text: `Analiză Financiară - SC RAPID TRANS SRL
-Perioada: 01/02/2025 - 28/02/2025
+    role: "assistant",
+    content: `Ascultă-mă bine. Nu ești acolo să cersești o cotă de piață. Ești aici pentru a o lua cu forța. Piața de contabilitate online din România este o adunătură de amatori care confundă un formular cu "digitalizarea". Ei sunt prada. Tu ești prădătorul.
 
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 550,000 RON (↓19%)
-- Cheltuieli totale: 520,000 RON
-- Profit net: 30,000 RON (↓65% 🔴)
-- EBITDA: 52,000 RON
-- Marja profitului: 5.45%
+**PROVOCAREA TA DE BUSINESS:**
+Firma ta e în transport, dar vrei să devii lider în contabilitate online. Să fim clari: ești aici să-mi spui că vrei să transferi agresivitatea din logistică în servicii profesionale. Perfect. Timpul să fie blând a trecut.
 
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 195,000 RON (↓50k)
-- Sold casă: 4,800 RON
-- Creanțe clienți: 485,000 RON (↑65k)
-- Datorii furnizori: 210,000 RON
+**CE TREBUIE SĂ ȘTII:**
+Piața de contabilitate online e plină, birocratică și scumpă. Clienții tăi (IMM-uri, freelanceri, antreprenori) sunt confundați și exploatați. Concurența ta se bazează pe un model de afaceri din secolul trecut: omul care confundă "digitalul" cu "e-mail-ul".
 
-INDICATORI OPERAȚIONALI:
-- DSO: 78 zile (↑16 zile 🔴)
-- DPO: 38 zile
-- Cost diesel/lună: 195,000 RON (↑5.4% prețul/litru)
-- Rute internaționale în scădere (30% vs 45% în ianuarie)
+Ei sunt lenți. Scumpi. Birocrați. Ei sunt lemne pentru focul tău.
 
-PROBLEME IDENTIFICATE:
-🔴 Scădere semnificativă profit din cauza:
-   • Creștere preț diesel fără ajustare tarife
-   • Scădere comenzi internaționale (marje mai mari)
-   • Creștere DSO - clienți întârzie
+**STRATEGIA TA - TEORIA JOCURILOR:**
+1️⃣ **ATACĂ FLANCUL VULNERABIL** - Concurența se bate pe "prețul cel mai mic". Greșeală. Tu intri cu transparență TOTALĂ: clienții văd exact unde merg banii lor. Dashboard real-time. Notificări proactive. Fiecare leu explicat.
 
-RECOMANDĂRI URGENTE:
-1. Renegociază tarifele pentru creșterea diesel
-2. Caută contracte noi pe rute internaționale
-3. Accelerează recuperarea creanțelor`,
-    metadata: {
-      ca: 550000,
-      cheltuieli: 520000,
-      profit: 30000,
-      ebitda: 52000,
-      profit_margin: 5.45,
-      soldBanca: 195000,
-      soldCasa: 4800,
-      clienti: 485000,
-      furnizori: 210000,
-      dso: 78,
-      dpo: 38
-    }
-  }
-];
+2️⃣ **CREEAZĂ DEPENDENȚĂ** - Nu oferi "servicii de contabilitate". Oferi un sistem complet de management financiar care devine creierul financiar al firmei clientului. Când clientul renunță la tine, pierde datele ultimilor 5 ani + automatizările + inteligența artificială care îi anticipa problemele.
 
-// Demo data pentru industrie: ALIMENTARĂ (Restaurant)
-const alimentaraDemos = [
-  {
-    id: 'restaurant-1',
-    company_name: 'SC GUSTURI URBANE SRL',
-    file_name: 'Balanta_Ianuarie_2025.xlsx',
-    created_at: new Date('2025-01-31').toISOString(),
-    analysis_text: `Analiză Financiară - SC GUSTURI URBANE SRL (Restaurant Fine Dining)
-Perioada: 01/01/2025 - 31/01/2025
-
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 185,000 RON
-- Cheltuieli totale: 158,000 RON (85.4%)
-- Profit net: 27,000 RON
-- EBITDA: 35,000 RON
-- Marja profitului: 14.59%
-
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 45,000 RON
-- Sold casă: 28,000 RON (↑ mulți clienți plătesc cash)
-- Creanțe clienți: 12,000 RON (evenimente corporate)
-- Datorii furnizori: 48,000 RON (produse proaspete)
-
-INDICATORI OPERAȚIONALI:
-- DSO: 5 zile (majoritatea vânzări cash/card)
-- DPO: 22 zile (furnizori alimentari plătiți prompt)
-- Cost materii prime: 52,000 RON (28% din CA - target industry 25-30%)
-- Cost personal: 75,000 RON (40.5% din CA)
-- Chirii: 18,000 RON/lună
-
-OBSERVAȚII SPECIFICE HORECA:
-✅ Marje excelente pentru fine dining (10-15% normal)
-✅ Cash flow bun - majoritatea încasări imediate
-✅ Cost materii prime sub control
-⚠️ Cost personal ridicat dar justificat de calitate
-💡 Sezonul favorabil - ianuarie activ după sărbători`,
-    metadata: {
-      ca: 185000,
-      cheltuieli: 158000,
-      profit: 27000,
-      ebitda: 35000,
-      profit_margin: 14.59,
-      soldBanca: 45000,
-      soldCasa: 28000,
-      clienti: 12000,
-      furnizori: 48000,
-      dso: 5,
-      dpo: 22
-    }
+3️⃣ **ACȚIONEAZĂ CA O MAȘINĂ DE RĂZBOI** - Automatizare totală: onboarding în 5 minute, sync automat cu sistemele lor, rapoarte generate în timp real. Concurența ta pierde 3 zile să configureze un client. Tu faci asta în 5 minute.`,
+    timestamp: new Date('2025-01-15T21:49:30')
   },
   {
-    id: 'restaurant-2',
-    company_name: 'SC GUSTURI URBANE SRL',
-    file_name: 'Balanta_Februarie_2025.xlsx',
-    created_at: new Date('2025-02-28').toISOString(),
-    analysis_text: `Analiză Financiară - SC GUSTURI URBANE SRL
-Perioada: 01/02/2025 - 28/02/2025
-
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 165,000 RON (↓11% sezon slab)
-- Cheltuieli totale: 154,000 RON
-- Profit net: 11,000 RON (↓59% 🔴)
-- EBITDA: 18,000 RON
-- Marja profitului: 6.67%
-
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 38,000 RON
-- Sold casă: 25,000 RON
-- Creanțe clienți: 8,000 RON
-- Datorii furnizori: 52,000 RON
-
-PROBLEME FEBRUARIE:
-🔴 Scădere trafic client (februarie lună slabă după sărbători)
-⚠️ Cheltuieli fixe (chirie, salarii) rămân constante
-⚠️ Marja profitului comprimată la 6.67%
-
-OBSERVAȚII:
-- Februarie lună tradițional slabă în HORECA România
-- Cheltuielile fixe (93k) consumă 56% din venit
-- Cost materii prime optimizat: 46k (27.9%)
-
-RECOMANDĂRI:
-1. Promovează eveniment Dragobete/Valentine
-2. Lansează meniu lunar special pt fidelizare
-3. Construiește rezervă cash pt lunile slabe (martie-aprilie)`,
-    metadata: {
-      ca: 165000,
-      cheltuieli: 154000,
-      profit: 11000,
-      ebitda: 18000,
-      profit_margin: 6.67,
-      soldBanca: 38000,
-      soldCasa: 25000,
-      clienti: 8000,
-      furnizori: 52000,
-      dso: 5,
-      dpo: 22
-    }
-  }
-];
-
-// Demo data pentru industrie: SERVICII IT
-const itDemos = [
+    role: "user",
+    content: "Hai cu soluții concrete",
+    timestamp: new Date('2025-01-15T21:51:00')
+  },
   {
-    id: 'it-1',
-    company_name: 'SC DIGITAL SOLUTIONS SRL',
-    file_name: 'Balanta_Ianuarie_2025.xlsx',
-    created_at: new Date('2025-01-31').toISOString(),
-    analysis_text: `Analiză Financiară - SC DIGITAL SOLUTIONS SRL (Dezvoltare Software)
-Perioada: 01/01/2025 - 31/01/2025
+    role: "assistant",
+    content: `Perfect. Fără introduceri. Acționăm.
 
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 420,000 RON
-- Cheltuieli totale: 298,000 RON (71%)
-- Profit net: 122,000 RON
-- EBITDA: 135,000 RON
-- Marja profitului: 29.05% 🌟
+**PLAN DE ACȚIUNE - URMĂTOARELE 90 DE ZILE:**
 
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 385,000 RON (↑ rezerve solide)
-- Sold casă: 1,500 RON
-- Creanțe clienți: 280,000 RON (contracte în derulare)
-- Datorii furnizori: 25,000 RON (licențe software, AWS)
+**LUNA 1 - INTELIGENȚĂ DE PIAȚĂ (Spionaj Legal)**
+• Identifică TOP 50 de firme contabilitate din România
+• Analizează recenziile negative ale clienților lor (Google, Facebook, Trustpilot)
+• Descoperă ce URĂSC clienții: rapoarte întârziate, lipsa transparenței, taxe ascunse
+• Verifică prețurile lor exacte și pachetele oferite
+• Rezultat: Document "Slăbiciunile Concurenței" - 20 pagini
 
-INDICATORI OPERAȚIONALI:
-- DSO: 65 zile (specific IT - plăți milestone-uri)
-- DPO: 18 zile (subscripții cloud, salarii)
-- Echipă: 8 developeri + 2 manageri
-- Cost salarii: 245,000 RON (58% din CA - normal IT)
-- Proiecte active: 5 clienți (3 România, 2 extern)
+**LUNA 2 - ARMAMENT DIGITAL**
+• Construiește platformă YANA cu:
+  - Dashboard real-time financiar
+  - Alerte proactive automate
+  - Import automat documente (OCR AI)
+  - Chat AI 24/7 pentru întrebări financiare
+  - Predicții cash flow cu 3 luni în avans
+• Prețuri: €49/lună (SRL simplu) până la €299/lună (holding)
+• Transparență TOTALĂ: fiecare serviciu itemizat
 
-OBSERVAȚII SPECIFICE IT:
-✅ Marje excelente 29% (industria: 20-35%)
-✅ Model scalabil - creștere fără investiții mari
-✅ Clienți internaționali (50% din venit)
-✅ Rezerve cash solide pentru oportunități
-💡 Moment favorabil pentru angajări strategice`,
-    metadata: {
-      ca: 420000,
-      cheltuieli: 298000,
-      profit: 122000,
-      ebitda: 135000,
-      profit_margin: 29.05,
-      soldBanca: 385000,
-      soldCasa: 1500,
-      clienti: 280000,
-      furnizori: 25000,
-      dso: 65,
-      dpo: 18
-    }
+**LUNA 3 - RĂZBOI PSIHOLOGIC**
+• Lansează campanie: "Contabilii Te Mint" (sau variație mai soft)
+• Case study: "Am economisit €12,000/an + 120 ore trecând de la contabil tradițional la YANA"
+• Oferă GRATUIT primul an pentru primii 10 clienți (beta testers) în schimbul testimonialelor
+• Targeting: antreprenori tech, freelanceri digitali, startup-uri
+
+**ARMA TA SECRETĂ:**
+Fiecare client YANA primește:
+1. Contabil dedicat (uman, nu doar AI)
+2. AI care detectează AUTOMAT oportunități de economisire fiscală
+3. Notificări push ÎNAINTE de deadlines (nu după)
+4. Comparare cu companiile similare (benchmarking industrie)
+
+Concurența ta oferă "contabilitate". Tu oferi "un CFO la €49/lună".
+
+Ei sunt lenti. Tu ești rapid.
+Ei sunt scumpi. Tu ești transparent.
+Ei sunt reactionari. Tu ești predictiv.
+
+**ÎNTREBARE PENTRU TINE:**
+Ai buget pentru dezvoltarea platformei (€50k-100k) sau construim MVP cu funcționalități esențiale mai întâi?`,
+    timestamp: new Date('2025-01-15T21:51:45')
   }
 ];
 
-// Demo data pentru industrie: PRODUCȚIE
-const productieDemos = [
+// Demo conversations pentru RESTAURANT
+const restaurantMessages: Message[] = [
   {
-    id: 'productie-1',
-    company_name: 'SC MOBILIER ELEGANT SRL',
-    file_name: 'Balanta_Ianuarie_2025.xlsx',
-    created_at: new Date('2025-01-31').toISOString(),
-    analysis_text: `Analiză Financiară - SC MOBILIER ELEGANT SRL (Fabrică Mobilă)
-Perioada: 01/01/2025 - 31/01/2025
-
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 325,000 RON
-- Cheltuieli totale: 285,000 RON (87.7%)
-- Profit net: 40,000 RON
-- EBITDA: 58,000 RON
-- Marja profitului: 12.31%
-
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 95,000 RON
-- Sold casă: 3,500 RON
-- Stocuri materii prime: 145,000 RON (↑ lemn, PAL, accesorii)
-- Stocuri produse finite: 68,000 RON
-- Creanțe clienți: 185,000 RON (mobilier la comandă)
-- Datorii furnizori: 125,000 RON
-
-INDICATORI OPERAȚIONALI:
-- DSO: 58 zile (comenzi la comandă cu avans)
-- DPO: 42 zile
-- DIO: 38 zile (ciclu producție 3-5 săptămâni)
-- Cost materii prime: 125,000 RON (38.5% din CA)
-- Cost forță muncă: 98,000 RON (30% din CA)
-
-OBSERVAȚII SPECIFICE PRODUCȚIE:
-✅ Marje acceptabile pentru mobilier la comandă
-✅ Stocuri bine gestionate
-⚠️ Capital de lucru legat în stocuri și creanțe
-💡 Ianuarie bun - comenzi de după sărbători`,
-    metadata: {
-      ca: 325000,
-      cheltuieli: 285000,
-      profit: 40000,
-      ebitda: 58000,
-      profit_margin: 12.31,
-      soldBanca: 95000,
-      soldCasa: 3500,
-      clienti: 185000,
-      furnizori: 125000,
-      dso: 58,
-      dpo: 42,
-      dio: 38
-    }
-  }
-];
-
-// Demo data pentru industrie: COMERȚ
-const comertDemos = [
+    role: "user",
+    content: "Am un restaurant fine dining în București. Profit scade după sezon. Cum mă extind fără să risc totul?",
+    timestamp: new Date('2025-02-10T14:20:00')
+  },
   {
-    id: 'comert-1',
-    company_name: 'SC FASHION BOUTIQUE SRL',
-    file_name: 'Balanta_Ianuarie_2025.xlsx',
-    created_at: new Date('2025-01-31').toISOString(),
-    analysis_text: `Analiză Financiară - SC FASHION BOUTIQUE SRL (Retail Îmbrăcăminte)
-Perioada: 01/01/2025 - 31/01/2025
+    role: "assistant",
+    content: `Un restaurant nu este despre mâncare. Este despre power positioning. Clientul tău nu plătește pentru friptură - plătește pentru senzația de superioritate pe care i-o oferi când stă la masa ta în loc de masa concurenței. Acum să-ți arăt cum să transformi un restaurant într-un imperiu.
 
-INDICATORI CHEIE:
-- Cifra de afaceri (CA): 158,000 RON
-- Cheltuieli totale: 132,000 RON (83.5%)
-- Profit net: 26,000 RON
-- EBITDA: 34,000 RON
-- Marja profitului: 16.46%
+**REALITATEA TA:**
+Fine dining în București = 50+ competitori care se luptă pentru aceeași nișă mică de clienți cu bani. Tu ești unul dintre ei. Asta se termină acum.
 
-SITUAȚIA TREZORERIEI:
-- Sold bancă: 48,000 RON
-- Sold casă: 12,500 RON (mulți clienți cash)
-- Stocuri mărfuri: 185,000 RON (colecție iarnă + primăvară)
-- Creanțe clienți: 8,000 RON (foarte puține - retail)
-- Datorii furnizori: 95,000 RON (furnizori textile)
+**PROBLEMA TA REALĂ:**
+"Extindere fără risc" este contradictoriu. Vrei să cucerești fără să lupți? Imposibil. DAR poți să minimizezi riscul atacând unde concurența e oarbă.
 
-INDICATORI OPERAȚIONALI:
-- DSO: 3 zile (majoritatea vânzări imediate)
-- DPO: 48 zile (credit furnizori textile)
-- DIO: 92 zile (stocuri 3 luni - normal fashion)
-- Rotație stoc: 4x/an
-- Markup mediu: 2.8x (180% adaos comercial)
+**STRATEGIA - DARK KITCHEN EMPIRE:**
 
-OBSERVAȚII SPECIFICE RETAIL:
-✅ Ianuarie excelent - lichidări + sold-uri după sărbători
-✅ Marje foarte bune 16.5% (industria: 8-15%)
-✅ Cash flow solid din vânzări directe
-⚠️ Capital mare blocat în stocuri (185k)
-💡 Atenție la stocuri vechi - depreciază rapid în fashion`,
-    metadata: {
-      ca: 158000,
-      cheltuieli: 132000,
-      profit: 26000,
-      ebitda: 34000,
-      profit_margin: 16.46,
-      soldBanca: 48000,
-      soldCasa: 12500,
-      clienti: 8000,
-      furnizori: 95000,
-      dso: 3,
-      dpo: 48,
-      dio: 92
-    }
+1️⃣ **BRANDED DELIVERY CONCEPTS** 
+Nu deschizi al doilea restaurant. Deschizi 5 branduri de delivery care operează din ACEEAȘI bucătărie:
+• "Pasta Boss" - paste premium delivery
+• "Burgeria Select" - burgeri gourmet
+• "Sushi District" - sushi proaspăt
+• "Vegan Lab" - fine dining vegan
+• "Steakhouse Express" - friptură la cutie
+
+Clienții nu știu că toate vin din aceeași bucătărie. Ei văd 5 branduri diferite = dominație pe aplicațiile de food delivery.
+
+2️⃣ **DATA WARFARE**
+Monitorizează exact ce comandă fiecare client. Ce vrea bucureșteanul la 2 AM? La 1 PM? În weekend? 
+Creează meniuri PREDICTIVE: "Știm că vinerea la 20:00 vrei friptură cu vin roșu" → gata pregătită în 12 minute.
+
+3️⃣ **CAPTURE TERRITORY**
+Identifică 3 zone în București unde nu ajung restaurantele premium în mai puțin de 45 minute. Deschizi dark kitchen acolo. Delivery în 15 minute. Game over pentru concurență.`,
+    timestamp: new Date('2025-02-10T14:21:15')
+  },
+  {
+    role: "user",
+    content: "Dar reputația restaurantului fine dining? Nu se dilueaza cu delivery?",
+    timestamp: new Date('2025-02-10T14:23:00')
+  },
+  {
+    role: "assistant",
+    content: `Întrebare bună. Răspuns simplu: SEPARI brandurile.
+
+**STRATEGIA DE BRANDING - MULTI PERSONA:**
+
+🎩 **"RESTAURANT MAMA" = Fine Dining Experience**
+• Păstrezi exclusivitatea totală
+• Zero delivery, zero compromis
+• Prețuri premium, experiență premium
+• Acesta rămâne "sanctuarul" unde vin clienții pentru ocazii speciale
+
+🍕 **BRANDURI DARK KITCHEN = Volume Play**
+• Nume complet diferite, identitate vizuală separată
+• NIMENI nu știe că sunt conectate cu restaurantul tău
+• Target: millennials, GenZ, familii, corporate
+• Prețuri accesibile, volume mari, marje OK (35-40%)
+
+**DE CE FUNCȚIONEAZĂ:**
+Tesla vinde mașini electrice de lux. Elon Musk nu a făcut "Tesla Delivery Services" - a creat SpaceX, Starlink, Boring Company. 
+
+Tu faci același lucru: brand premium păstrează exclusivitatea, branduri satelit generează cash flow stabil și cuprind piața.
+
+**PLAN EXECUȚIE - 6 LUNI:**
+
+**LUNI 1-2: LABORATOR**
+• Testezi 3 concepte de delivery cu meniu limitat
+• Faci focus group pe 100 clienți
+• Identifici care concept = cea mai mare conversie
+
+**LUNI 3-4: LANSARE STEALTH**
+• Lansezi pe Glovo/Tazz sub nume nou
+• Marketing zero la început
+• Tracking metrics: repeat rate, AOV, review score
+
+**LUNI 5-6: SCALE**
+• Conceptul câștigător → deschizi dark kitchen în 2 zone noi
+• Automatizezi complet: sistem de comenzi integrat, prep times optimized
+• Cash flow pozitiv începe să acopere investiția inițială
+
+**MATEMATICA:**
+• Investiție dark kitchen: €30k (echipamente + setup)
+• Breakeven: 60-90 zile la 150 comenzi/zi
+• Profit net după 6 luni: €8k-12k/lună PER locație
+
+3 locații = €24k-36k profit lunar EXTRA față de restaurantul tău principal.
+
+**RISCUL TĂU REAL:**
+Nu extinderea. Stagnarea. Concurența ta pregătește EXACT această strategie chiar acum.
+
+Cine mișcă primul = câștigă piața.`,
+    timestamp: new Date('2025-02-10T14:24:30')
   }
 ];
 
-const industries = [
-  { id: 'transport', name: 'Transport Rutier', icon: Truck, data: transportDemos, color: 'blue' },
-  { id: 'alimentara', name: 'Restaurant / HORECA', icon: UtensilsCrossed, data: alimentaraDemos, color: 'orange' },
-  { id: 'it', name: 'Servicii IT / Software', icon: Code, data: itDemos, color: 'purple' },
-  { id: 'productie', name: 'Producție / Fabricație', icon: Factory, data: productieDemos, color: 'green' },
-  { id: 'comert', name: 'Comerț / Retail', icon: ShoppingBag, data: comertDemos, color: 'pink' },
+// Demo conversations pentru IT
+const itMessages: Message[] = [
+  {
+    role: "user",
+    content: "Am firmă software development, 8 developeri. Clienții întârzie plățile. Cum îmi cresc cash flow și mă scal la 20+ oameni?",
+    timestamp: new Date('2025-01-20T10:15:00')
+  },
+  {
+    role: "assistant",
+    content: `Cash flow probleme + scaling = moarte sigură dacă nu acționezi ACUM. Software development e o industrie unde 70% dintre firme mor nu din cauza lipsei de clienți, ci din cauza lipsei de cash când trebuie să plătești salarii.
+
+Ești vulnerabil. Hai să te facem invulnerabil.
+
+**PROBLEMA TA:**
+Tu vinzi timp × expertiză. Model defect. Clienții tăi plătesc DUPĂ ce tu ai investit deja sute de ore de muncă. Când ei întârzie, tu intri în criză de lichiditate. Când vrei să scaling la 20 developeri, problema se AMPLIFICA 2.5x.
+
+**SOLUȚIA - INVERSAREA FLUXULUI DE BANI:**
+
+**NIVEL 1 - FIXES IMEDIATE (0-30 zile)**
+
+💰 **PAYMENT TERMS RESTRUCTURE**
+Nu mai accepti NET30 sau NET60. Noul standard:
+• 50% upfront la semnarea contractului
+• 25% la middle milestone
+• 25% la final
+• Clienți existenti: renegociază cu "discount 10% pentru plată în avans"
+
+📊 **CLIENȚI TIERING**
+Clasifică clienții în:
+• TIER A: Plătesc la timp, proiecte mari → prioritate maximă
+• TIER B: Plătesc cu întârziere 7-15 zile → fee +15%
+• TIER C: Plătesc după 30+ zile → REJECTED sau prepayment obligatoriu
+
+**NIVEL 2 - TRANSFORMARE STRUCTURALĂ (30-90 zile)**
+
+🔄 **RETAINER ECONOMY**
+Nu mai vinzi proiecte. Vinzi "development capacity" lunar:
+• Pachet S: 80h/lună = €6,400 (2 developeri part-time)
+• Pachet M: 160h/lună = €12,000 (2 developeri full-time)
+• Pachet L: 320h/lună = €22,000 (4 developeri)
+
+Clienții plătesc pe 1 ale fiecărei luni. TU ai cash flow predictibil ÎNAINTE să începi munca.
+
+**NIVEL 3 - DOMINAȚIE (90-180 zile)**
+
+🚀 **PRODUCTIZATION**
+Stop cu "custom development" pentru toată lumea. Construiește 2-3 produse SaaS white-label:
+• "E-commerce Accelerator" - platformă ready-made cu customizare
+• "FinTech Starter Kit" - sistem banking/payment gata făcut
+• "Dashboard Pro" - analytics dashboard universal
+
+Vinzi licența + customizare. Cost dezvoltare: ZERO (deja făcută). Profit margin: 80-90%.
+
+**SCALING LA 20 OAMENI - MATEMATICA:**
+
+8 developeri acum × €3,000 salarii = €24,000/lună costuri
+20 developeri × €3,000 = €60,000/lună costuri
+
+Trebuie să crești venitul cu €36,000/lună MINIM.
+
+**CUM?**
+• 5 clienți retainer Pachet L = €110,000/lună recurent
+• 2 proiecte white-label/lună = €30,000/lună
+• Total: €140,000/lună venit
+
+Profit net: €140k - €60k salarii - €15k overhead = €65,000/lună
+
+Acum ai PUTERE DE FATĂ.`,
+    timestamp: new Date('2025-01-20T10:17:00')
+  }
+];
+
+// Demo conversations pentru PRODUCȚIE
+const productieMessages: Message[] = [
+  {
+    role: "user",
+    content: "Fabrica de mobilier la comandă. Comenzile fluctuează, capital blocat în stocuri. Cum stabilizez business-ul?",
+    timestamp: new Date('2025-02-01T16:30:00')
+  },
+  {
+    role: "assistant",
+    content: `Producție la comandă cu stocuri mari = contradicție care îți mănâncă profitul. Hai să rezolvăm asta strategic, nu prin "optimizări" cosmetice.
+
+**DIAGNOSTICUL TĂU:**
+• Comenzile fluctuează → te temi să refuzi clienti → produci "în avans" → bani blocați în lemn care nu se vinde
+• Model de business REACTIV: aștepți comenzi → apoi produci → apoi încasezi
+• Vulnerabil la: sezonalitate, clienți indecisi, întârzieri plăți
+
+**STRATEGIA - JIT PRODUCTION + PREDICTIVE INVENTORY:**
+
+**FAZA 1 - KILL THE BLOAT (Lună 1-2)**
+
+📊 **INVENTORY AUDIT BRUTAL**
+• Clasifică tot stocul:
+  - A: Produse/materiale folosite în 80% din comenzi → PĂSTREAZĂ
+  - B: Folosite în 15% din comenzi → REDUCE la jumătate
+  - C: Sub 5% utilizare → LIQUIDEAZĂ cu discount 40%
+
+• Rezultat: Eliberezi €40k-80k cash blocat în C items
+• Folosești banii să plătești furnizori cu discount pentru plată rapidă (-5-8%)
+
+**FAZA 2 - DEMAND SHAPING (Lună 2-4)**
+
+🎯 **STANDARDIZARE SILENȚIOASĂ**
+Nu mai oferi "orice design dorește clientul". Oferi:
+• 15 modele de bază STANDARD (90% din componente identice)
+• 30+ opțiuni de customizare (finisaje, culori, dimensiuni minore)
+• Clientul simte că e custom, TU produci semi-standardizat
+
+**IMPACT:**
+• Reduced SKU complexity cu 60%
+• Inventory turnover crește de la 38 zile → 18 zile
+• Costuri producție scad 25% (economii de scală pe componente)
+
+**FAZA 3 - PREDICTIVE ORDERS (Lună 4-6)**
+
+🔮 **PREORDER SYSTEM + DEPOSIT MANDATORY**
+• Site web + Facebook: "Colecția Primăvară 2025 - Precomandă cu 30% discount"
+• Clienții plătesc 50% avans → TU știi exact ce să produci
+• Materiale cumpărate DUPĂ ce ai cash de la clienți → zero risc stocuri
+
+📈 **DEMAND FORECASTING**
+• Tracking istoric comenzi: martie = camere copii, septembrie = birouri home office
+• Produci "în lot" pentru luna viitoare bazat pe date
+• Oferi discount 10% pentru "comenzi flexibile" = clientul acceptă +7 zile delivery pentru preț mai mic
+
+**MATEMATICA TRANSFORMĂRII:**
+
+**ÎNAINTE:**
+• Stocuri: €145,000 (capital mort)
+• Cash conversion cycle: 58 zile
+• Profit margin: 12%
+
+**DUPĂ:**
+• Stocuri: €65,000 (55% reducere)
+• Capital eliberat: €80,000 → investiți în marketing + echipamente CNC
+• Cash conversion cycle: 22 zile
+• Profit margin: 18% (economii producție + preț premium pentru "semi-custom")
+
+**NEXT LEVEL - FURNITURE AS A SERVICE:**
+
+💡 Modelul viitor: Nu vinzi mobilier. Vinzi "office furniture subscription":
+• €299/lună pentru pachet complet birou
+• După 36 luni = clientul devine proprietar SAU upgrade la mobilier nou
+• TU ai cash flow lunar recurent + asset depreciation controlat
+
+Asta e cum transformi o fabrică în SaaS.`,
+    timestamp: new Date('2025-02-01T16:32:30')
+  }
+];
+
+// Demo conversations pentru COMERȚ
+const comertMessages: Message[] = [
+  {
+    role: "user",
+    content: "Boutique fashion retail. Stocuri vechi nu se vând, chiria mă omoară. E-commerce mic. Cum supraviețuiesc?",
+    timestamp: new Date('2025-02-05T11:00:00')
+  },
+  {
+    role: "assistant",
+    content: `"Supraviețuire" e cuvânt pentru victime. Tu nu vrei să supraviețuiești, vrei să DOMINEZI. Dar mai întâi trebuie să oprim hemoragia de cash și să transformăm stocurile vechi din pasiv în activ.
+
+**CRIZA TA ACTUALĂ:**
+• Stocuri vechi = capital mort + spațiu de depozitare ocupat
+• Chirie retail fizic = €1,500-3,000/lună pentru trafic în scădere
+• E-commerce "mic" = nu generează suficient să acopere fixul
+
+Ai 2 opțiuni: restructurare agresivă SAU faliment în 12-18 luni. Aleg restructurarea.
+
+**OPERAȚIUNEA SALVARE - 90 ZILE:**
+
+**SĂPTĂMÂNA 1-2: STOP THE BLEEDING**
+
+💸 **LIQUIDARE STOCURI VECHI - WIPE THE SLATE**
+• Identifică TOT ce are 6+ luni în stoc
+• Flash sale BRUTAL: -60-70% discount
+• Obiectiv: cash imediat, nu profit
+• Canale: Instagram flash sale 48h, site, grup Facebook privat "VIP early access"
+
+**DE CE?**
+Stoc de €10,000 care nu se vinde în 6 luni = PIERDERE. 
+Același stoc vândut la -70% = €3,000 cash azi > €0 peste 6 luni.
+
+**SĂPTĂMÂNA 3-4: RENEGOCIERE CHIRIE**
+
+🏢 **LANDLORD NEGOTIATION - HARD TALK**
+Opțiuni pentru proprietar:
+1. Reduci chiria cu 30% + % din vânzări
+2. Mă mut și găsești alt chiriaș în 6 luni (piață slabă = șansă mică)
+3. Transformăm magazinul în "showroom" mini (50% din spațiu) + returnez restul
+
+Proprietarii urăsc spații goale. Negociază DUR.
+
+**LUNA 2-3: E-COMMERCE BLITZ**
+
+🚀 **TRANSFORMARE DIGITALĂ AGRESIVĂ**
+
+**STOP "site de prezentare". START "mașină de vânzări":**
+
+1️⃣ **INSTAGRAM/TIKTOK FIRST**
+• 3 postări/zi: reels cu styling tips
+• Colaborări cu 10 micro-influenceri (3k-15k followers) - barter, nu cash
+• Live shopping sessions 2x/săptămână
+• Target: Gen Z + millennials care cumpără IMPULSIV online
+
+2️⃣ **RETENTION > ACQUISITION**
+• Email marketing agresiv: 3 mailuri/săptămână
+• SMS pentru clienți vechi: "Stii că te iubim, 25% pentru tine azi"
+• Program loialitate: Buy 3 items → 4th GRATUIT
+
+3️⃣ **CONTENT = PRODUCT**
+Nu vinzi "haine". Vinzi "personal styling service":
+• Fiecare client primește "style guide PDF" personalizat
+• Virtual styling session 15 min (Zoom/WhatsApp) = client se simte VIP
+• "Capsule wardrobe curation" = 5 piese care merg împreună → AOV creștere 40%
+
+**LUNA 3: PIVOTARE MODEL BUSINESS**
+
+🔄 **DE LA RETAIL LA STYLING SERVICE**
+
+Noul pitch:
+"Nu mai vindem doar haine. Suntem styling consultancy care SE ÎNTÂMPLĂ să vândă și produse."
+
+**PACHETE NOI:**
+• BASIC: €49 - Style consultation + 3 outfit recommendations
+• PREMIUM: €149 - Consultation + 5 outfits + video styling tips
+• VIP: €299/lună subscription - Full wardrobe refresh quarterly + styling continuu
+
+Produsele pe care le vinzi = commission, nu stoc propriu. Devii CURATOR, nu retailer.
+
+**MAGAZIN FIZIC → MICRO SHOWROOM + ATELIER STYLING**
+
+**TRANSFORMAREA FINALĂ:**
+
+**ERA VECHE:**
+• 100m² magazin cu stocuri
+• Chirie €2,500/lună
+• Vânzări €15k/lună
+• Profit: €800/lună (5%)
+
+**ERA NOUĂ:**
+• 30m² showroom + styling studio
+• Chirie €900/lună (renegociată)
+• E-commerce: €25k/lună
+• Styling services: €8k/lună
+• Total revenue: €33k/lună
+• Profit: €8,500/lună (26%)
+
+Fashion retail nu moare. Retail PROST moare.
+Tu nu ești prost. Tu doar nu aveai strategia potrivită.
+
+Acum ai.`,
+    timestamp: new Date('2025-02-05T11:03:00')
+  }
+];
+
+const industries: IndustryDemo[] = [
+  { 
+    id: 'transport', 
+    name: 'Transport Rutier', 
+    icon: Truck, 
+    color: 'blue',
+    companyName: 'SC RAPID TRANS SRL',
+    messages: transportMessages
+  },
+  { 
+    id: 'alimentara', 
+    name: 'Restaurant / HORECA', 
+    icon: UtensilsCrossed, 
+    color: 'orange',
+    companyName: 'SC GUSTURI URBANE SRL',
+    messages: restaurantMessages
+  },
+  { 
+    id: 'it', 
+    name: 'Servicii IT / Software', 
+    icon: Code, 
+    color: 'purple',
+    companyName: 'SC DIGITAL SOLUTIONS SRL',
+    messages: itMessages
+  },
+  { 
+    id: 'productie', 
+    name: 'Producție / Fabricație', 
+    icon: Factory, 
+    color: 'green',
+    companyName: 'SC MOBILIER ELEGANT SRL',
+    messages: productieMessages
+  },
+  { 
+    id: 'comert', 
+    name: 'Comerț / Retail', 
+    icon: ShoppingBag, 
+    color: 'pink',
+    companyName: 'SC FASHION BOUTIQUE SRL',
+    messages: comertMessages
+  },
 ];
 
 export const IndustryDemos = () => {
   const [selectedIndustry, setSelectedIndustry] = useState(industries[0]);
-  const [selectedAnalysis, setSelectedAnalysis] = useState(selectedIndustry.data[0]);
   const { toast } = useToast();
   const { isAdmin, isLoading } = useUserRole();
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [selectedIndustry]);
 
   // Redirect non-admins
   if (isLoading) {
@@ -406,172 +528,135 @@ export const IndustryDemos = () => {
     return null;
   }
 
-  const handleIndustryChange = (industry: typeof industries[0]) => {
-    setSelectedIndustry(industry);
-    setSelectedAnalysis(industry.data[0]);
-  };
-
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Admin-Only Banner */}
-      <div className="mb-6 p-4 bg-orange-500/10 border-2 border-orange-500/30 rounded-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="text-sm bg-orange-500/20">
-              <Crown className="h-3 w-3 mr-1" />
-              ADMIN ONLY - DEMO INDUSTRIES
-            </Badge>
-            <p className="text-sm">
-              <strong>Pagină demonstrații pentru prezentări clienți.</strong> Selectează industria pentru a vedea scenarii specifice.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => navigate('/app')}>
-            Înapoi la Dashboard
-          </Button>
-        </div>
-      </div>
-
-      {/* Industry Selector */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Selectează Industria pentru Demo:</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {industries.map((industry) => {
-            const Icon = industry.icon;
-            return (
-              <Card
-                key={industry.id}
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  selectedIndustry.id === industry.id
-                    ? 'ring-2 ring-primary bg-primary/5'
-                    : 'hover:bg-muted/50'
-                }`}
-                onClick={() => handleIndustryChange(industry)}
-              >
-                <CardContent className="p-6 text-center">
-                  <Icon className={`h-12 w-12 mx-auto mb-3 text-${industry.color}-500`} />
-                  <h3 className="font-semibold text-sm">{industry.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {industry.data.length} analize
+    <div className="flex h-screen bg-background">
+      {/* Main chat area */}
+      <div className="flex flex-col flex-1">
+        {/* Header */}
+        <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+          <div className="container mx-auto px-4 py-3">
+            {/* Admin Banner */}
+            <div className="mb-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs bg-orange-500/20">
+                    <Crown className="h-3 w-3 mr-1" />
+                    DEMO MODE - ADMIN ONLY
+                  </Badge>
+                  <p className="text-xs text-muted-foreground">
+                    Conversații demo pentru prezentări clienți pe industrii diferite
                   </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => navigate('/app')}>
+                  Înapoi
+                </Button>
+              </div>
+            </div>
 
-      {/* Current Industry Display */}
-      <div className="mb-6">
-        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              {(() => {
-                const Icon = selectedIndustry.icon;
-                return <Icon className="h-6 w-6" />;
-              })()}
-              {selectedAnalysis.company_name}
-              <Badge variant="outline">{selectedIndustry.name}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Date demo pentru prezentări cu clienți din industria: <strong>{selectedIndustry.name}</strong>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/app')}
+                className="shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
+                <TrendingUp className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold">Yana Strategica - Demo Industrii</h1>
+                <p className="text-sm text-muted-foreground">
+                  Consultant AI Strategic - Conversații Demo
+                </p>
+              </div>
+              <div className="w-64">
+                <Select 
+                  value={selectedIndustry.id} 
+                  onValueChange={(value) => {
+                    const industry = industries.find(i => i.id === value);
+                    if (industry) setSelectedIndustry(industry);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {industries.map((industry) => {
+                      const Icon = industry.icon;
+                      return (
+                        <SelectItem key={industry.id} value={industry.id}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4" />
+                            {industry.name}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </header>
 
-      {/* Analysis Tabs */}
-      <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
-          <TabsTrigger value="analytics">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Grafice
-          </TabsTrigger>
-          <TabsTrigger value="alerts">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Alerte
-          </TabsTrigger>
-          <TabsTrigger value="predictions">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Predicții
-          </TabsTrigger>
-          <TabsTrigger value="analysis">
-            <Building2 className="h-4 w-4 mr-2" />
-            Analiză Detaliată
-          </TabsTrigger>
-        </TabsList>
+        {/* Chat Area */}
+        <ScrollArea ref={scrollRef} className="flex-1 p-4">
+          <div className="container mx-auto max-w-4xl space-y-4">
+            {/* Welcome Card */}
+            <Card className="p-6 text-center bg-gradient-to-br from-primary/5 to-accent/5">
+              <Brain className="w-12 h-12 mx-auto mb-3 text-primary" />
+              <h2 className="text-xl font-semibold mb-2">
+                Demo: {selectedIndustry.companyName}
+              </h2>
+              <Badge variant="outline" className="mb-2">
+                {selectedIndustry.name}
+              </Badge>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Conversație strategică demo pentru prezentări către clienți din industria selectată
+              </p>
+            </Card>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <AnalyticsCharts analyses={selectedIndustry.data} />
-          <CompareAnalyses analyses={selectedIndustry.data} />
-        </TabsContent>
-
-        <TabsContent value="alerts" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Alerte Proactive - {selectedAnalysis.company_name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap text-sm">
-                  {selectedAnalysis.analysis_text}
+            {/* Messages */}
+            {selectedIndustry.messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div className="max-w-[80%]">
+                  <Card
+                    className={`p-4 ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card"
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                    <div className={`text-xs mt-2 ${
+                      msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                    }`}>
+                      {msg.timestamp.toLocaleTimeString("ro-RO", { 
+                        hour: "2-digit", 
+                        minute: "2-digit" 
+                      })}
+                    </div>
+                  </Card>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="predictions" className="space-y-6">
-          <AIPredictions analyses={selectedIndustry.data} />
-        </TabsContent>
-
-        <TabsContent value="analysis" className="space-y-6">
-          <div className="grid md:grid-cols-4 gap-6">
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-sm">Istoric Analize</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {selectedIndustry.data.map((analysis) => (
-                  <div
-                    key={analysis.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedAnalysis?.id === analysis.id
-                        ? 'bg-primary/10 border-primary'
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => setSelectedAnalysis(analysis)}
-                  >
-                    <p className="text-xs font-semibold">
-                      {format(new Date(analysis.created_at), 'MMMM yyyy', { locale: ro })}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {analysis.file_name}
-                    </p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="md:col-span-3">
-              <CardHeader>
-                <CardTitle>Analiză Detaliată</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(selectedAnalysis.created_at), "d MMMM yyyy", { locale: ro })}
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap text-sm">
-                    {selectedAnalysis.analysis_text}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            ))}
           </div>
-        </TabsContent>
-      </Tabs>
+        </ScrollArea>
+
+        {/* Footer info */}
+        <div className="border-t bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 p-4">
+          <div className="container mx-auto max-w-4xl text-center">
+            <p className="text-xs text-muted-foreground">
+              🎭 Acesta este un demo read-only. Conversațiile sunt pre-generate pentru demonstrații către clienți.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
