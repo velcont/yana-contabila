@@ -4,10 +4,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DollarSign, TrendingUp, AlertTriangle, Activity } from "lucide-react";
+import { DollarSign, TrendingUp, AlertTriangle, Activity, ShoppingCart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AICreditsPurchase } from "@/components/AICreditsPurchase";
 
 interface MonthlyUsage {
   user_id: string;
@@ -23,6 +24,24 @@ export const AIUsageDashboard = () => {
   const [usage, setUsage] = useState<MonthlyUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [newBudget, setNewBudget] = useState("");
+  const [showPurchase, setShowPurchase] = useState(false);
+
+  // Check for success/cancel params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("credits_success") === "true") {
+      toast.success("✅ Credite adăugate cu succes!", {
+        description: "Creditele tale AI au fost actualizate.",
+      });
+      fetchUsage();
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("credits_cancel") === "true") {
+      toast.info("Achiziție anulată", {
+        description: "Poți cumpăra credite oricând.",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const fetchUsage = async () => {
     try {
@@ -135,10 +154,24 @@ export const AIUsageDashboard = () => {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center p-6">
-          <div className="text-muted-foreground">Se încarcă...</div>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2">Se încarcă...</span>
+          </div>
         </CardContent>
       </Card>
+    );
+  }
+
+  if (showPurchase) {
+    return (
+      <div className="space-y-4">
+        <Button variant="outline" onClick={() => setShowPurchase(false)}>
+          ← Înapoi la Dashboard
+        </Button>
+        <AICreditsPurchase />
+      </div>
     );
   }
 
@@ -208,11 +241,29 @@ export const AIUsageDashboard = () => {
         </Card>
       </div>
 
+      {/* Quick Purchase Button */}
+      <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-1">Ai nevoie de mai multe credite?</h3>
+              <p className="text-sm text-muted-foreground">
+                Cumpără credite instant cu plată securizată prin Stripe
+              </p>
+            </div>
+            <Button size="lg" onClick={() => setShowPurchase(true)}>
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Cumpără Credite
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
-          <CardTitle>Gestionare Buget</CardTitle>
+          <CardTitle>Gestionare Buget (Manual)</CardTitle>
           <CardDescription>
-            Setează limita lunară de cheltuieli pentru serviciile AI
+            Sau setează manual bugetul lunar pentru serviciile AI
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
