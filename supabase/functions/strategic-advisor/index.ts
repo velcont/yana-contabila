@@ -157,6 +157,37 @@ serve(async (req) => {
 
     console.log("[STRATEGIC-ADVISOR] Calling Lovable AI with", messages.length, "messages");
 
+    // Check cache first
+    const cacheKey = `strategic_${conversationId}_${messages.length}`;
+    const { data: cachedResponse } = await supabaseClient
+      .from("chat_cache")
+      .select("response_data")
+      .eq("cache_key", cacheKey)
+      .gt("expires_at", new Date().toISOString())
+      .single();
+
+    if (cachedResponse) {
+      console.log("[STRATEGIC-ADVISOR] Using cached response");
+      return new Response(
+        JSON.stringify({ response: cachedResponse.response_data }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Rate limiting: max 10 requests per minute
+    const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
+      p_user_id: user.id,
+      p_endpoint: "strategic-advisor",
+      p_max_requests: 10
+    });
+
+    if (!canProceed) {
+      return new Response(
+        JSON.stringify({ error: "Prea multe cereri. Te rog așteaptă un minut." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -164,10 +195,10 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages,
         temperature: 0.8,
-        max_tokens: 2048,
+        max_tokens: 1024,
       }),
     });
 
@@ -216,6 +247,14 @@ serve(async (req) => {
       role: "assistant",
       content: aiResponse,
       metadata: { module: "strategic" }
+    });
+
+    // Cache the response for 1 hour
+    await supabaseClient.from("chat_cache").insert({
+      cache_key: cacheKey,
+      user_id: user.id,
+      response_data: aiResponse,
+      expires_at: new Date(Date.now() + 3600000).toISOString()
     });
 
     return new Response(
