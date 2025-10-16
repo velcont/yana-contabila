@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Truck, UtensilsCrossed, Code, Factory, ShoppingBag, ArrowLeft, TrendingUp, Brain, Crown } from 'lucide-react';
+import { Truck, UtensilsCrossed, Code, Factory, ShoppingBag, ArrowLeft, TrendingUp, Brain, Crown, Volume2, VolumeX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useNavigate } from 'react-router-dom';
@@ -547,6 +547,7 @@ const industries: IndustryDemo[] = [
 
 export const IndustryDemos = () => {
   const [selectedIndustry, setSelectedIndustry] = useState(industries[0]);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const { toast } = useToast();
   const { isAdmin, isLoading } = useUserRole();
   const navigate = useNavigate();
@@ -558,6 +559,36 @@ export const IndustryDemos = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [selectedIndustry]);
+
+  const handleTTS = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const textToRead = selectedIndustry.messages
+      .map(msg => `${msg.role === 'user' ? 'Utilizator: ' : 'Yana: '}${msg.content}`)
+      .join('\n\n');
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'ro-RO';
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      toast({
+        title: "Eroare TTS",
+        description: "Nu s-a putut citi textul",
+        variant: "destructive"
+      });
+    };
+
+    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  };
 
   // Redirect non-admins
   if (isLoading) {
@@ -616,31 +647,41 @@ export const IndustryDemos = () => {
                   Consultant AI Strategic - Conversații Demo
                 </p>
               </div>
-              <div className="w-64">
-                <Select 
-                  value={selectedIndustry.id} 
-                  onValueChange={(value) => {
-                    const industry = industries.find(i => i.id === value);
-                    if (industry) setSelectedIndustry(industry);
-                  }}
+              <div className="flex items-center gap-2">
+                <div className="w-64">
+                  <Select 
+                    value={selectedIndustry.id} 
+                    onValueChange={(value) => {
+                      const industry = industries.find(i => i.id === value);
+                      if (industry) setSelectedIndustry(industry);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {industries.map((industry) => {
+                        const Icon = industry.icon;
+                        return (
+                          <SelectItem key={industry.id} value={industry.id}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="w-4 h-4" />
+                              {industry.name}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={handleTTS}
+                  variant={isSpeaking ? "destructive" : "outline"}
+                  size="icon"
+                  title={isSpeaking ? "Oprește" : "Citește conversația"}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {industries.map((industry) => {
-                      const Icon = industry.icon;
-                      return (
-                        <SelectItem key={industry.id} value={industry.id}>
-                          <div className="flex items-center gap-2">
-                            <Icon className="w-4 h-4" />
-                            {industry.name}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
               </div>
             </div>
           </div>
