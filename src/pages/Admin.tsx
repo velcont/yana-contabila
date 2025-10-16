@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import AcademicThesisAssistant from "@/components/AcademicThesisAssistant";
@@ -17,6 +17,7 @@ import { IntellectualPropertyCertificate } from "@/components/IntellectualProper
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
+import { Input } from "@/components/ui/input";
 
 interface Profile {
   id: string;
@@ -54,6 +55,8 @@ const Admin = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -155,6 +158,53 @@ const Admin = () => {
     }
   };
 
+  const handleSendEmail = async (targetAudience: 'entrepreneur' | 'accounting_firm') => {
+    try {
+      setSendingEmail(true);
+      const { data, error } = await supabase.functions.invoke('send-strategic-advisor-announcement', {
+        body: { targetAudience }
+      });
+
+      if (error) throw error;
+
+      toast.success(`Email trimis cu succes către ${targetAudience === 'entrepreneur' ? 'antreprenori' : 'contabili'}!`, {
+        description: `${data.success} emailuri trimise, ${data.errors} erori`
+      });
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast.error("Eroare la trimiterea emailurilor", {
+        description: error.message
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmail) {
+      toast.error("Introdu o adresă de email pentru test");
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+      const { data, error } = await supabase.functions.invoke('send-strategic-advisor-announcement', {
+        body: { testEmail }
+      });
+
+      if (error) throw error;
+
+      toast.success("Email de test trimis cu succes!");
+    } catch (error: any) {
+      console.error("Error sending test email:", error);
+      toast.error("Eroare la trimiterea emailului de test", {
+        description: error.message
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   console.log("Grouped conversations:", Object.keys(groupedConversations).length);
   console.log("Total conversations loaded:", conversations.length);
   console.log("Filtered conversations:", filteredConversations.length);
@@ -195,7 +245,7 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
@@ -211,6 +261,10 @@ const Admin = () => {
             <TabsTrigger value="strategic">
               <MessageSquare className="h-4 w-4 mr-2" />
               Strategic Advisor
+            </TabsTrigger>
+            <TabsTrigger value="email">
+              <Mail className="h-4 w-4 mr-2" />
+              Email Anunț
             </TabsTrigger>
             <TabsTrigger value="storage">
               <HardDrive className="h-4 w-4 mr-2" />
@@ -501,6 +555,123 @@ const Admin = () => {
 
           <TabsContent value="strategic">
             <StrategicConversationsViewer />
+          </TabsContent>
+
+          <TabsContent value="email">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Trimitere Email Anunț Yana Strategică
+                </CardTitle>
+                <CardDescription>
+                  Trimite anunțul despre noua funcționalitate Yana Strategică către utilizatori
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Emailurile vor fi trimise automat către toți utilizatorii cu abonament activ din categoria selectată.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card className="border-2">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Antreprenori</CardTitle>
+                      <CardDescription>
+                        Email agresiv orientat pe strategii de business concrete
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        onClick={() => handleSendEmail('entrepreneur')}
+                        disabled={sendingEmail}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {sendingEmail ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Se trimite...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Trimite către Antreprenori
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-2">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Contabili</CardTitle>
+                      <CardDescription>
+                        Email despre promovarea funcționalității către clienți
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        onClick={() => handleSendEmail('accounting_firm')}
+                        disabled={sendingEmail}
+                        className="w-full"
+                        size="lg"
+                        variant="secondary"
+                      >
+                        {sendingEmail ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Se trimite...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Trimite către Contabili
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Email de Test</CardTitle>
+                    <CardDescription>
+                      Trimite un email de test pentru a verifica conținutul
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        type="email"
+                        placeholder="adresa@test.com"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
+                        disabled={sendingEmail}
+                      />
+                      <Button 
+                        onClick={handleSendTestEmail}
+                        disabled={sendingEmail || !testEmail}
+                        variant="outline"
+                      >
+                        {sendingEmail ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Trimite Test
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="storage">
