@@ -12,6 +12,7 @@ import { Database } from "@/integrations/supabase/types";
 import { StrategicQuickReplies } from "@/components/StrategicQuickReplies";
 import { SavedStrategies } from "@/components/SavedStrategies";
 import { StrategicCouncil } from "@/components/StrategicCouncil";
+import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import {
   Dialog,
   DialogContent,

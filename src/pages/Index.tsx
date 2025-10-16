@@ -394,6 +394,9 @@ const Index = () => {
     <>
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="mb-4">
+            <CreditAndTrialIndicator />
+          </div>
           <div className="flex justify-between items-center mb-8">
             <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
               <Phone className="mr-2 h-4 w-4" />
