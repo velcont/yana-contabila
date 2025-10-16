@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.track-terms-acceptance]
 verify_jwt = true
+
+[functions.send-strategic-advisor-announcement]
+verify_jwt = true
+
+[functions.send-council-invitation]
+verify_jwt = true
