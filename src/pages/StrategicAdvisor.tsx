@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Brain, TrendingUp, ArrowLeft, MessageSquarePlus, BookmarkIcon, Save } from "lucide-react";
+import { Loader2, Send, Brain, TrendingUp, ArrowLeft, MessageSquarePlus, BookmarkIcon, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 import { StrategicQuickReplies } from "@/components/StrategicQuickReplies";
 import { SavedStrategies } from "@/components/SavedStrategies";
+import { StrategicCouncil } from "@/components/StrategicCouncil";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ export default function StrategicAdvisor() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showSavedStrategies, setShowSavedStrategies] = useState(false);
+  const [showCouncil, setShowCouncil] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [selectedMessageToSave, setSelectedMessageToSave] = useState<Message | null>(null);
   const [saveForm, setSaveForm] = useState({
@@ -293,6 +295,28 @@ export default function StrategicAdvisor() {
 
   return (
     <div className="flex h-screen bg-background">
+      {/* Sidebar for council */}
+      {showCouncil && (
+        <div className="w-96 border-r bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              Consiliul Strategic
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCouncil(false)}
+            >
+              Ascunde
+            </Button>
+          </div>
+          <div className="p-4 overflow-y-auto h-[calc(100vh-73px)]">
+            <StrategicCouncil />
+          </div>
+        </div>
+      )}
+
       {/* Sidebar for saved strategies */}
       {showSavedStrategies && (
         <div className="w-96 border-r bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 overflow-hidden">
@@ -338,6 +362,15 @@ export default function StrategicAdvisor() {
                   Consultant AI Strategic - Teoria Jocului în Business
                 </p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCouncil(!showCouncil)}
+                className="gap-2"
+              >
+                <Users className="w-4 h-4" />
+                Consiliu
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
