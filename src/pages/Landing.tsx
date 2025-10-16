@@ -591,30 +591,264 @@ Perioada: 01/04/2025 - 30/04/2025`,
             </p>
           </div>
 
-          {/* What's Included in Subscription */}
+          {/* Detailed Feature Explanations - NEW */}
+          <Card className="mb-8 border-2 border-success/30 bg-success/5">
+            <CardHeader>
+              <CardTitle className="text-center text-xl">
+                🔍 Ce înseamnă exact fiecare funcție?
+              </CardTitle>
+              <p className="text-center text-sm text-muted-foreground">
+                Explicații clare pentru fiecare feature AI din platformă
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Analiza Balantei */}
+                <div className="p-5 bg-success/10 rounded-lg border-2 border-success/20">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="h-5 w-5 text-success" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                        Analiză Balanță
+                        <Badge variant="outline" className="bg-success text-success-foreground">NELIMITAT</Badge>
+                      </h4>
+                      <p className="text-sm text-muted-foreground font-semibold mb-2">
+                        Ce face: Procesează fișierul Excel al balanței tale și extrage automat toți indicatorii financiari
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Calculează automat: DSO, DPO, DIO, marja profit, EBITDA, etc.</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Identifică probleme evidente (ex: "Cheltuieli &gt; Venituri")</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Afișează dashboard-ul cu grafice și KPI-uri</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Exportă PDF cu analiza completă</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-background/50 rounded border">
+                    <p className="text-xs font-semibold text-success">✅ INCLUS ÎN ABONAMENT - Poți analiza 1000 de balanțe/lună fără cost suplimentar!</p>
+                  </div>
+                </div>
+
+                {/* Chat AI */}
+                <div className="p-5 bg-success/10 rounded-lg border-2 border-success/20">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                      <MessageSquare className="h-5 w-5 text-success" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                        Chat AI Conversațional
+                        <Badge variant="outline" className="bg-success text-success-foreground">NELIMITAT</Badge>
+                      </h4>
+                      <p className="text-sm text-muted-foreground font-semibold mb-2">
+                        Ce face: Răspunde la întrebări simple despre balanța pe care ai uploadat-o
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Ex: "Cât este DSO-ul meu în martie?" → Răspuns instant din datele tale</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Ex: "Am profit sau pierdere?" → Analiza datelor existente</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                          <span>Ex: "Cum a evoluat profitul meu în ultimele 3 luni?" → Comparație simplă</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-background/50 rounded border">
+                    <p className="text-xs font-semibold text-success">✅ INCLUS ÎN ABONAMENT - Întrebări nelimitate despre balanțele tale uploadate!</p>
+                  </div>
+                </div>
+
+                {/* Predictii AI */}
+                <div className="p-5 bg-orange-50 dark:bg-orange-950/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-orange-200 dark:bg-orange-800 flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                        Predicții AI Avansate
+                        <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">~100 credite</Badge>
+                      </h4>
+                      <p className="text-sm text-muted-foreground font-semibold mb-2">
+                        Ce face: AI-ul analizează ISTORIC (min. 3 luni) și generează previziuni automate pe viitor (3-6 luni)
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                          <span>Prevede profitul probabil pentru lunile următoare</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                          <span>Identifică tendințe ascunse (ex: "DSO-ul crește cu 5 zile/lună")</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                          <span>Alertează asupra riscurilor viitoare (ex: "Cash flow negativ în 2 luni")</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                          <span>Machine learning pe datele tale istorice</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-orange-100 dark:bg-orange-900/30 rounded border border-orange-300 dark:border-orange-700">
+                    <p className="text-xs font-semibold text-orange-800 dark:text-orange-200">
+                      ⚡ NECESITĂ CREDITE AI - Procesare complexă cu modele AI avansate (~100 credite = 1 leu/predicție)
+                    </p>
+                  </div>
+                  <div className="mt-2 p-3 bg-background rounded border">
+                    <p className="text-xs">
+                      <span className="font-semibold">Diferența față de analiza simplă:</span> Analiza balanței = "Cum arată acum?". Predicțiile = "Cum va arăta în viitor?"
+                    </p>
+                  </div>
+                </div>
+
+                {/* Consilier Strategic */}
+                <div className="p-5 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                        Consilier Strategic AI
+                        <Badge variant="outline" className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">~150 credite</Badge>
+                      </h4>
+                      <p className="text-sm text-muted-foreground font-semibold mb-2">
+                        Ce face: Consultant AI virtual care analizează în profunzime situația ta și oferă strategii personalizate
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>Analiză complexă cross-factorială (combinații între toți indicatorii)</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>Recomandări acționabile concrete (ex: "Renegociază termenele cu furnizorii X, Y, Z")</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>Strategii de optimizare cash-flow personalizate pe contextul tău</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>Scenarii "what-if" (ex: "Ce se întâmplă dacă reduc DSO cu 20 zile?")</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>Plan de acțiune detaliat pe 30-60-90 zile</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded border border-purple-300 dark:border-purple-700">
+                    <p className="text-xs font-semibold text-purple-800 dark:text-purple-200">
+                      ⚡ NECESITĂ CREDITE AI - Analiză aprofundată cu modele GPT-4 avansate (~150 credite = 1.5 lei/sesiune)
+                    </p>
+                  </div>
+                  <div className="mt-2 p-3 bg-background rounded border">
+                    <p className="text-xs">
+                      <span className="font-semibold">Diferența față de chat-ul simplu:</span> Chat AI = "Întrebări rapide despre ce vezi". Consilier Strategic = "Consultant AI care îți face plan complet de optimizare"
+                    </p>
+                  </div>
+                </div>
+
+                {/* Comparatii Multi-Companie */}
+                <div className="p-5 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
+                        Comparații Multi-Companie
+                        <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">~80 credite</Badge>
+                      </h4>
+                      <p className="text-sm text-muted-foreground font-semibold mb-2">
+                        Ce face: Benchmarking automat - compară mai multe companii între ele și generează raport comparativ
+                      </p>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <span>Identifică care companie performează cel mai bine la fiecare indicator</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <span>Analiză competitivă pentru firme de contabilitate cu 10+ clienți</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <span>Rapoarte executive pentru prezentări către parteneri</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-900/30 rounded border border-blue-300 dark:border-blue-700">
+                    <p className="text-xs font-semibold text-blue-800 dark:text-blue-200">
+                      ⚡ NECESITĂ CREDITE AI - Procesare paralelă a mai multor companii (~80 credite = 0.8 lei/comparație)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* What's Included in Subscription - Simplified */}
           <Card className="mb-8 border-2 border-primary/20 bg-primary/5">
             <CardHeader>
               <CardTitle className="text-center flex items-center justify-center gap-2">
                 <Check className="h-6 w-6 text-success" />
-                Ce ESTE inclus în abonament (NELIMITAT)
+                Rezumat: Ce plătești în abonament vs. Credite AI
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-background rounded-lg">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-2 text-success" />
-                  <p className="font-semibold mb-1">Analize Balanță</p>
-                  <p className="text-sm text-muted-foreground">Upload nelimitat</p>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="p-4 bg-success/10 rounded-lg border-2 border-success/20">
+                  <h4 className="font-bold mb-3 flex items-center gap-2">
+                    <Check className="h-5 w-5 text-success" />
+                    INCLUS în abonament (NELIMITAT)
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <p>✅ Analiză completă balanță (upload + indicatori)</p>
+                    <p>✅ Chat AI cu întrebări simple</p>
+                    <p>✅ Dashboard & grafice</p>
+                    <p>✅ Export PDF</p>
+                    <p>✅ Alerte automate (probleme evidente)</p>
+                  </div>
                 </div>
-                <div className="text-center p-4 bg-background rounded-lg">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 text-success" />
-                  <p className="font-semibold mb-1">Chat AI</p>
-                  <p className="text-sm text-muted-foreground">Întrebări nelimitate</p>
-                </div>
-                <div className="text-center p-4 bg-background rounded-lg">
-                  <Database className="h-8 w-8 mx-auto mb-2 text-success" />
-                  <p className="font-semibold mb-1">Dashboard & Export</p>
-                  <p className="text-sm text-muted-foreground">Rapoarte nelimitate</p>
+                <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
+                  <h4 className="font-bold mb-3 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    Cu credite AI suplimentare
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <p>⚡ Predicții AI pe 3-6 luni (~100 credite)</p>
+                    <p>⚡ Consilier Strategic AI (~150 credite)</p>
+                    <p>⚡ Comparații multi-companie (~80 credite)</p>
+                    <p className="text-xs text-muted-foreground pt-2">
+                      1000 credite = 10 lei (nu expiră)
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
