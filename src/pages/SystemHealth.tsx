@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 import HealthStatus from '@/components/HealthStatus';
 import { AIUsageDashboard } from '@/components/AIUsageDashboard';
+import { AdminCostsDashboard } from '@/components/AdminCostsDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle } from 'lucide-react';
@@ -54,9 +55,10 @@ const SystemHealth = () => {
       </div>
 
       <Tabs defaultValue="health" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="health">Status Servicii</TabsTrigger>
           <TabsTrigger value="ai-costs">Costuri AI</TabsTrigger>
+          <TabsTrigger value="total-costs">Costuri Totale</TabsTrigger>
         </TabsList>
 
         <TabsContent value="health" className="space-y-6">
@@ -98,6 +100,10 @@ const SystemHealth = () => {
 
         <TabsContent value="ai-costs">
           <AIUsageDashboard />
+        </TabsContent>
+
+        <TabsContent value="total-costs">
+          <AdminCostsDashboard />
         </TabsContent>
       </Tabs>
     </div>
