@@ -574,6 +574,207 @@ Perioada: 01/04/2025 - 30/04/2025`,
         </p>
       </section>
 
+      {/* AI Credits Pricing Section - NEW */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <Badge className="mb-4" variant="secondary">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Politică de Tarife AI - 100% Transparent
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Cum funcționează creditele AI?
+            </h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
+              Abonamentul include <span className="font-semibold text-foreground">analiză AI nelimitată</span>. 
+              Creditele suplimentare sunt doar pentru funcții avansate AI (predicții, consilier strategic).
+            </p>
+          </div>
+
+          {/* What's Included in Subscription */}
+          <Card className="mb-8 border-2 border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-center flex items-center justify-center gap-2">
+                <Check className="h-6 w-6 text-success" />
+                Ce ESTE inclus în abonament (NELIMITAT)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-background rounded-lg">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-2 text-success" />
+                  <p className="font-semibold mb-1">Analize Balanță</p>
+                  <p className="text-sm text-muted-foreground">Upload nelimitat</p>
+                </div>
+                <div className="text-center p-4 bg-background rounded-lg">
+                  <MessageSquare className="h-8 w-8 mx-auto mb-2 text-success" />
+                  <p className="font-semibold mb-1">Chat AI</p>
+                  <p className="text-sm text-muted-foreground">Întrebări nelimitate</p>
+                </div>
+                <div className="text-center p-4 bg-background rounded-lg">
+                  <Database className="h-8 w-8 mx-auto mb-2 text-success" />
+                  <p className="font-semibold mb-1">Dashboard & Export</p>
+                  <p className="text-sm text-muted-foreground">Rapoarte nelimitate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Credits Explanation */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Când ai nevoie de credite AI?
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex items-start gap-3">
+                  <Badge variant="outline" className="mt-0.5">1</Badge>
+                  <div>
+                    <p className="font-semibold">Predicții AI avansate</p>
+                    <p className="text-muted-foreground">Previziuni automate pe 3-6 luni (~100 credite/predicție)</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Badge variant="outline" className="mt-0.5">2</Badge>
+                  <div>
+                    <p className="font-semibold">Consilier Strategic AI</p>
+                    <p className="text-muted-foreground">Analiză aprofundată cu recomandări personalizate (~150 credite/sesiune)</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Badge variant="outline" className="mt-0.5">3</Badge>
+                  <div>
+                    <p className="font-semibold">Comparații multi-companie</p>
+                    <p className="text-muted-foreground">Benchmarking automat cu competitori (~80 credite/comparație)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  Exemple practice de cost
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="font-semibold mb-1">Utilizare ușoară (10-20 clienți)</p>
+                  <p className="text-muted-foreground">~5-10 predicții/lună = 1000 credite = <span className="font-semibold text-foreground">10 lei/lună</span></p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="font-semibold mb-1">Utilizare medie (30-50 clienți)</p>
+                  <p className="text-muted-foreground">~15-25 analize avansate = 2500 credite = <span className="font-semibold text-foreground">20 lei/lună</span></p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="font-semibold mb-1">Utilizare intensă (100+ clienți)</p>
+                  <p className="text-muted-foreground">~50+ sesiuni consilier = 5000-10000 credite = <span className="font-semibold text-foreground">40-70 lei/lună</span></p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* AI Credits Packages */}
+          <h3 className="text-2xl font-bold text-center mb-6">Pachete Credite AI Suplimentare</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Card className="text-center hover:shadow-lg transition-all hover:border-primary">
+              <CardContent className="pt-6">
+                <Sparkles className="h-8 w-8 mx-auto mb-2 text-blue-500" />
+                <p className="text-2xl font-bold mb-1">10 lei</p>
+                <p className="text-sm text-muted-foreground mb-3">1,000 credite</p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>~10 predicții AI</p>
+                  <p>sau ~6 sesiuni consilier</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-all hover:border-primary border-2 border-primary bg-primary/5">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                <Badge className="bg-primary">Popular</Badge>
+              </div>
+              <CardContent className="pt-6">
+                <Zap className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="text-2xl font-bold mb-1">20 lei</p>
+                <p className="text-sm text-muted-foreground mb-3">2,500 credite</p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>~25 predicții AI</p>
+                  <p>sau ~16 sesiuni consilier</p>
+                  <p className="text-success font-semibold">Economie: 20%</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-all hover:border-primary">
+              <CardContent className="pt-6">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2 text-orange-500" />
+                <p className="text-2xl font-bold mb-1">40 lei</p>
+                <p className="text-sm text-muted-foreground mb-3">5,000 credite</p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>~50 predicții AI</p>
+                  <p>sau ~33 sesiuni consilier</p>
+                  <p className="text-success font-semibold">Economie: 25%</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center hover:shadow-lg transition-all hover:border-primary">
+              <CardContent className="pt-6">
+                <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+                <p className="text-2xl font-bold mb-1">70 lei</p>
+                <p className="text-sm text-muted-foreground mb-3">10,000 credite</p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>~100 predicții AI</p>
+                  <p>sau ~66 sesiuni consilier</p>
+                  <p className="text-success font-semibold">Economie: 30%</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Transparency Guarantees */}
+          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold text-center mb-6 flex items-center justify-center gap-2">
+                <Shield className="h-6 w-6" />
+                Garanții de Transparență
+              </h3>
+              <div className="grid md:grid-cols-3 gap-6 text-sm">
+                <div className="text-center">
+                  <Check className="h-8 w-8 mx-auto mb-2 text-success" />
+                  <p className="font-semibold mb-1">Fără surprize</p>
+                  <p className="text-muted-foreground">Vezi consumul exact în timp real în dashboard</p>
+                </div>
+                <div className="text-center">
+                  <Check className="h-8 w-8 mx-auto mb-2 text-success" />
+                  <p className="font-semibold mb-1">Control total</p>
+                  <p className="text-muted-foreground">Setezi limite de buget și primești alerte la 80%</p>
+                </div>
+                <div className="text-center">
+                  <Check className="h-8 w-8 mx-auto mb-2 text-success" />
+                  <p className="font-semibold mb-1">Fără expirare</p>
+                  <p className="text-muted-foreground">Creditele rămân valabile până le folosești</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="mt-8 text-center space-y-4">
+            <p className="text-muted-foreground">
+              <span className="font-semibold text-foreground">💡 Sfat:</span> Majoritatea utilizatorilor cheltuie <span className="font-semibold text-foreground">0-20 lei/lună</span> pe credite AI suplimentare
+            </p>
+            <Button size="lg" onClick={() => navigate('/auth')}>
+              Începe cu 3 luni gratuit
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Comparison Table */}
       <section className="container mx-auto px-4 py-20 bg-muted/30 rounded-3xl">
         <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
