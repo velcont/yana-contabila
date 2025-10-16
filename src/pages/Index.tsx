@@ -25,6 +25,7 @@ import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
 import { AccountTypeSelector } from "@/components/AccountTypeSelector";
 import { CompanySwitcher } from "@/components/CompanySwitcher";
+import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";

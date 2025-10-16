@@ -243,8 +243,8 @@ const Auth = () => {
         toast({
           title: "Cont creat cu succes!",
           description: accountType === 'entrepreneur' 
-            ? "Contul tău de antreprenor a fost configurat cu succes! Ai 3 luni gratuite!" 
-            : "Contul tău de contabil a fost configurat cu succes! Ai 3 luni gratuite!",
+            ? "Contul tău de antreprenor a fost configurat cu succes! Ai 30 de zile gratuite!" 
+            : "Contul tău de contabil a fost configurat cu succes! Ai 30 de zile gratuite!",
         });
         
         // TOȚI utilizatorii merg la /app indiferent de tip
@@ -580,15 +580,22 @@ const Auth = () => {
                 )}
               </div>
               
-              <div className="text-center text-xs text-muted-foreground">
-                Prin {isLogin ? 'autentificare' : 'înregistrare'}, ești de acord cu{' '}
-                <a href="/terms" className="text-primary hover:underline">
-                  Termenii și Condițiile
-                </a>
-                {' '}și{' '}
-                <a href="/privacy" className="text-primary hover:underline">
-                  Politica de Confidențialitate
-                </a>
+              <div className="text-center text-xs text-muted-foreground space-y-2">
+                <div>
+                  Prin {isLogin ? 'autentificare' : 'înregistrare'}, ești de acord cu{' '}
+                  <a href="/terms" target="_blank" className="text-primary hover:underline">
+                    Termenii și Condițiile
+                  </a>
+                  {' '}și{' '}
+                  <a href="/privacy" target="_blank" className="text-primary hover:underline">
+                    Politica de Confidențialitate
+                  </a>
+                </div>
+                <div>
+                  <a href="/pricing" target="_blank" className="text-primary hover:underline font-medium">
+                    📋 Vezi Politica de Tarife și Costuri
+                  </a>
+                </div>
               </div>
             </div>
           )}

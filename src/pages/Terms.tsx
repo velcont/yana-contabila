@@ -68,15 +68,85 @@ const Terms = () => {
             <p><strong>Nu puteți crea un cont fără a accepta în mod explicit acești termeni și condiții.</strong></p>
 
             <h2>5. Perioadă de Probă Gratuită</h2>
-            <p>Noii utilizatori primesc o perioadă de probă gratuită de <strong>3 luni</strong> de la data înregistrării. După expirarea perioadei gratuite:</p>
+            <p>Noii utilizatori primesc o perioadă de probă gratuită de <strong>30 de zile</strong> de la data înregistrării. După expirarea perioadei gratuite:</p>
             <ul>
-              <li>Veți primi notificări cu <strong>30 de zile</strong> înainte de expirare</li>
-              <li>Veți primi o notificare suplimentară cu <strong>15 zile</strong> înainte de expirare</li>
+              <li>Veți primi notificări cu <strong>7 zile</strong> înainte de expirare</li>
+              <li>Veți primi notificări automate când vă apropiatide sfârșitul perioadei</li>
               <li>La expirare, accesul la platformă va fi restricționat până la efectuarea plății</li>
               <li>Datele dumneavoastră vor fi păstrate în siguranță și vor fi accesibile după reactivarea abonamentului</li>
             </ul>
 
-            <h2>6. Utilizare Permisă</h2>
+            <h2>6. Planuri de Abonament și Tarife</h2>
+            <p>YANA oferă următoarele planuri de abonament lunare:</p>
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 my-4">
+              <h3 className="font-semibold mb-2">6.1. Plan Antreprenor</h3>
+              <ul>
+                <li><strong>Preț:</strong> 99 lei/lună (TVA inclus)</li>
+                <li><strong>Include:</strong> Analiză financiară nelimitată, Chat AI, Dashboard interactiv, Export rapoarte</li>
+                <li><strong>Pentru:</strong> Afaceri individuale și IMM-uri</li>
+              </ul>
+            </div>
+            <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800 my-4">
+              <h3 className="font-semibold mb-2">6.2. Plan Contabil</h3>
+              <ul>
+                <li><strong>Preț:</strong> 199 lei/lună (TVA inclus)</li>
+                <li><strong>Include:</strong> Toate funcțiile Plan Antreprenor + Gestionare clienți nelimitați, CRM integrat, Managementul documentelor, Branding personalizat</li>
+                <li><strong>Pentru:</strong> Cabinete de contabilitate</li>
+              </ul>
+            </div>
+            
+            <h3 className="font-semibold mt-4">6.3. Credite AI pentru Funcționalități Premium</h3>
+            <p>Unele funcționalități avansate necesită credite AI suplimentare (se plătesc separat, doar dacă le folosești):</p>
+            <ul>
+              <li><strong>Consilier Strategic Yana</strong> - Consultanță strategică avansată (necesită abonament plătit activ)</li>
+              <li><strong>Analiză Vocală</strong> - Interacțiune prin voce</li>
+              <li><strong>Predicții financiare avansate</strong></li>
+            </ul>
+            <div className="bg-yellow-50 dark:bg-yellow-950/20 p-3 rounded-md border border-yellow-200 dark:border-yellow-800 my-4">
+              <p className="text-sm m-0">
+                <strong>IMPORTANT:</strong> Consilierul Strategic este BLOCAT pentru utilizatorii cu acces gratuit sau în perioada de probă. 
+                Este disponibil DOAR pentru abonați plătitori activi.
+              </p>
+            </div>
+
+            <h4 className="font-semibold mt-3">Pachete Credite AI:</h4>
+            <ul>
+              <li><strong>Starter:</strong> 19 lei - 100 credite (~50 conversații)</li>
+              <li><strong>Professional:</strong> 49 lei - 300 credite (~150 conversații)</li>
+              <li><strong>Enterprise:</strong> 129 lei - 1000 credite (~500 conversații)</li>
+            </ul>
+            <p className="text-sm">
+              <strong>Control complet:</strong> Setezi tu bugetul lunar pentru AI, primești alerte la 80% din buget, 
+              și poți opri automat consumul. Vezi în timp real cheltuielile exacte. Zero costuri ascunse.
+            </p>
+
+            <h3 className="font-semibold mt-4">6.4. Metode de Plată</h3>
+            <p>Plățile sunt procesate sigur prin <strong>Stripe</strong>, conform standardelor PCI-DSS. Acceptăm:</p>
+            <ul>
+              <li>Carduri de credit/debit (Visa, Mastercard, American Express)</li>
+              <li>Plăți prin Google Pay și Apple Pay</li>
+            </ul>
+
+            <h3 className="font-semibold mt-4">6.5. Facturare și TVA</h3>
+            <p>
+              Toate prețurile afișate includ TVA conform legislației românești. 
+              Veți primi factură fiscală automată pentru fiecare plată efectuată.
+            </p>
+
+            <h3 className="font-semibold mt-4">6.6. Transparență Totală</h3>
+            <p>Ne angajăm să oferim:</p>
+            <ul>
+              <li>✓ Toate costurile afișate clar înainte de orice tranzacție</li>
+              <li>✓ Control complet - tu decizi bugetul și când să cumperi credite</li>
+              <li>✓ Zero taxe surpriză sau comisioane nedeclarate</li>
+              <li>✓ Vizibilitate permanentă a costurilor în interfață</li>
+              <li>✓ Alerte automate la apropierea de limita bugetului</li>
+            </ul>
+            <p>
+              Pentru informații complete despre tarife, consultați <a href="/pricing" target="_blank" className="text-primary hover:underline font-semibold">Politica de Tarife</a>.
+            </p>
+
+            <h2>7. Utilizare Permisă</h2>
             <p>Vă este permis să:</p>
             <ul>
               <li>Încărcați balanțe contabile pentru analiza proprie sau a clienților dumneavoastră</li>

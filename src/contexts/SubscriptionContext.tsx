@@ -87,7 +87,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
           
           toast({
             title: `${emoji} Perioada ta de gratuitate`,
-            description: `Mai ai ${diffDays} ${diffDays === 1 ? 'zi' : 'zile'} din cele 3 luni gratuite.`,
+            description: `Mai ai ${diffDays} ${diffDays === 1 ? 'zi' : 'zile'} din cele 30 de zile gratuite.`,
             variant: variant,
             duration: 8000,
           });

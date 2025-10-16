@@ -23,6 +23,7 @@ import { Demo } from "./pages/Demo";
 import SystemHealth from "./pages/SystemHealth";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Pricing from "./pages/Pricing";
 import Subscription from "./pages/Subscription";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import AccountantDashboard from "./pages/AccountantDashboard";
@@ -73,6 +74,7 @@ const App = () => (
                     <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/pricing" element={<Pricing />} />
                     <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                     <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
                     <Route path="/yanacrm" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />

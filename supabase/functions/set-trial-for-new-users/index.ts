@@ -19,7 +19,7 @@ serve(async (req) => {
     );
 
     // This function is called by a trigger when a new user is created
-    // It sets the trial period to 3 months from now
+    // It sets the trial period to 30 days from now
     const { userId } = await req.json();
 
     if (!userId) {
@@ -27,7 +27,7 @@ serve(async (req) => {
     }
 
     const trialEndsAt = new Date();
-    trialEndsAt.setMonth(trialEndsAt.getMonth() + 3);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
     const { error } = await supabaseClient
       .from('profiles')

@@ -350,7 +350,8 @@ export default function StrategicAdvisor() {
       <div className="flex flex-col flex-1">
         {/* Header */}
         <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
-          <div className="container mx-auto px-4 py-4">
+          <div className="container mx-auto px-4 py-3">
+            <CreditAndTrialIndicator />
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
