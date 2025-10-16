@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import AcademicThesisAssistant from "@/components/AcademicThesisAssistant";
@@ -14,6 +14,7 @@ import { AuditLogs } from "@/components/AuditLogs";
 import { StorageManager } from "@/components/StorageManager";
 import { StrategicConversationsViewer } from "@/components/StrategicConversationsViewer";
 import { IntellectualPropertyCertificate } from "@/components/IntellectualPropertyCertificate";
+import { AdminCostsDashboard } from "@/components/AdminCostsDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -258,7 +259,7 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
@@ -294,6 +295,10 @@ const Admin = () => {
             <TabsTrigger value="research">
               <GraduationCap className="h-4 w-4 mr-2" />
               Asistent Doctorat
+            </TabsTrigger>
+            <TabsTrigger value="costs">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Costuri Totale
             </TabsTrigger>
           </TabsList>
 
@@ -756,6 +761,10 @@ const Admin = () => {
 
           <TabsContent value="research">
             <AcademicThesisAssistant />
+          </TabsContent>
+
+          <TabsContent value="costs">
+            <AdminCostsDashboard />
           </TabsContent>
         </Tabs>
       </div>
