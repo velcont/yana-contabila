@@ -257,16 +257,22 @@ serve(async (req) => {
 
     const { testEmail, targetAudience, customSubject, customBody }: RequestBody = await req.json();
 
-    let recipients = [];
-
-    if (testEmail) {
-      // Send test email
-      recipients = [{ email: testEmail, full_name: "Test User" }];
-    } else if (!targetAudience) {
+    // Validate targetAudience is always provided
+    if (!targetAudience || !['entrepreneur', 'accounting_firm'].includes(targetAudience)) {
       return new Response(
         JSON.stringify({ error: "Trebuie să specifici targetAudience: 'entrepreneur' sau 'accounting_firm'" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    console.log(`Target audience: ${targetAudience}, Test email: ${testEmail || 'none'}`);
+
+    let recipients = [];
+
+    if (testEmail) {
+      // Send test email with specified targetAudience
+      recipients = [{ email: testEmail, full_name: "Test User" }];
+      console.log(`Sending test email to ${testEmail} as ${targetAudience}`);
     } else {
       // Get recipients based on target audience
       const { data: profiles, error } = await supabaseClient
@@ -303,11 +309,14 @@ serve(async (req) => {
 
     // Determine email subject and content based on target audience
     const isEntrepreneur = targetAudience === 'entrepreneur';
+    console.log(`Is entrepreneur: ${isEntrepreneur} (targetAudience: ${targetAudience})`);
     
     // Use custom subject if provided, otherwise use default
     const emailSubject = customSubject || (isEntrepreneur 
       ? "🚀 Yana Strategică - Consultantul tău de business ultra-agresiv"
       : "🚀 Yana Strategică - Noua funcționalitate pentru clienții tăi antreprenori");
+    
+    console.log(`Email subject: ${emailSubject}`);
 
     let successCount = 0;
     let errorCount = 0;
@@ -321,10 +330,13 @@ serve(async (req) => {
           html = customBody
             .replace(/\{userName\}/g, recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener"))
             .replace(/\{loginUrl\}/g, appUrl || "https://your-app.com");
+          console.log(`Using custom body for ${recipient.email}`);
         } else {
           // Use default template
+          const userName = recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener");
+          console.log(`Generating ${isEntrepreneur ? 'entrepreneur' : 'accountant'} template for ${recipient.email} (${userName})`);
           html = getEmailHtml(
-            recipient.full_name || (isEntrepreneur ? "Antreprenor" : "Partener"),
+            userName,
             appUrl || "https://your-app.com",
             isEntrepreneur
           );

@@ -188,7 +188,7 @@ const Admin = () => {
     }
   };
 
-  const handleSendTestEmail = async () => {
+  const handleSendTestEmail = async (targetAudience: 'entrepreneur' | 'accounting_firm') => {
     if (!testEmail) {
       toast.error("Introdu o adresă de email pentru test");
       return;
@@ -199,7 +199,7 @@ const Admin = () => {
       const { data, error } = await supabase.functions.invoke('send-strategic-advisor-announcement', {
         body: { 
           testEmail,
-          targetAudience: 'entrepreneur',
+          targetAudience,
           customSubject: emailSubject || undefined,
           customBody: emailBody || undefined
         }
@@ -207,7 +207,7 @@ const Admin = () => {
 
       if (error) throw error;
 
-      toast.success("Email de test trimis cu succes!");
+      toast.success(`Email de test trimis cu succes ca ${targetAudience === 'entrepreneur' ? 'Antreprenor' : 'Contabil'}!`);
     } catch (error: any) {
       console.error("Error sending test email:", error);
       toast.error("Eroare la trimiterea emailului de test", {
@@ -687,29 +687,51 @@ const Admin = () => {
                   <CardHeader>
                     <CardTitle className="text-lg">Email de Test</CardTitle>
                     <CardDescription>
-                      Trimite un email de test pentru a verifica conținutul
+                      Trimite un email de test către o adresă specificată. Alege categoria pentru a vedea conținutul potrivit.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input
-                        type="email"
-                        placeholder="adresa@test.com"
-                        value={testEmail}
-                        onChange={(e) => setTestEmail(e.target.value)}
-                        disabled={sendingEmail}
-                      />
+                    <Input 
+                      type="email"
+                      placeholder="adresa@test.com"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      disabled={sendingEmail}
+                    />
+                    <div className="grid grid-cols-2 gap-4">
                       <Button 
-                        onClick={handleSendTestEmail}
+                        onClick={() => handleSendTestEmail('entrepreneur')}
                         disabled={sendingEmail || !testEmail}
+                        className="w-full"
                         variant="outline"
                       >
                         {sendingEmail ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Se trimite...
+                          </>
                         ) : (
                           <>
                             <Send className="mr-2 h-4 w-4" />
-                            Trimite Test
+                            Test Antreprenor
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={() => handleSendTestEmail('accounting_firm')}
+                        disabled={sendingEmail || !testEmail}
+                        className="w-full"
+                        variant="outline"
+                      >
+                        {sendingEmail ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Se trimite...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Test Contabil
                           </>
                         )}
                       </Button>
