@@ -90,7 +90,7 @@ export const CreditAndTrialIndicator = () => {
         )}
 
         <Link 
-          to="/system-health" 
+          to="/my-ai-costs" 
           className="text-xs text-primary hover:underline text-center mt-1"
         >
           Vezi detalii complete →
