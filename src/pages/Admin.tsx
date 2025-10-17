@@ -16,6 +16,7 @@ import { StrategicConversationsViewer } from "@/components/StrategicConversation
 import { IntellectualPropertyCertificate } from "@/components/IntellectualPropertyCertificate";
 import { AdminCostsDashboard } from "@/components/AdminCostsDashboard";
 import AdminCreditsMonitor from "@/components/AdminCreditsMonitor";
+import { TestCheckout } from "@/components/TestCheckout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -260,7 +261,7 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-11">
+          <TabsList className="grid w-full grid-cols-12">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
@@ -268,6 +269,10 @@ const Admin = () => {
             <TabsTrigger value="credits">
               <DollarSign className="h-4 w-4 mr-2" />
               Monitor Credite
+            </TabsTrigger>
+            <TabsTrigger value="test">
+              <Package className="h-4 w-4 mr-2" />
+              Test Checkout
             </TabsTrigger>
             <TabsTrigger value="analyses">
               <FileText className="h-4 w-4 mr-2" />
@@ -774,6 +779,10 @@ const Admin = () => {
 
           <TabsContent value="costs">
             <AdminCostsDashboard />
+          </TabsContent>
+
+          <TabsContent value="test">
+            <TestCheckout />
           </TabsContent>
         </Tabs>
       </div>
