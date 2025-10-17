@@ -573,20 +573,33 @@ export const IndustryDemos = () => {
       return;
     }
 
-    const textToRead = selectedIndustry.messages
-      .map(msg => `${msg.role === 'user' ? 'Utilizator: ' : 'Yana: '}${msg.content}`)
+    // Preferăm un text scurt pentru demo (bun pentru Shorts)
+    const assistantText = selectedIndustry.messages
+      .filter(m => m.role === 'assistant')
+      .map(m => `Yana: ${m.content}`)
       .join('\n\n');
 
-    // OpenAI TTS has a limit of 4096 characters
+    // Curățăm markdown-ul pentru TTS
+    const cleaned = assistantText
+      .replace(/\*\*/g, '')
+      .replace(/^[#>\-]+\s*/gm, '')
+      .replace(/`/g, '')
+      .trim();
+
+    // 1) Țintim un text scurt pentru redare (≈ 60-90 sec)
+    const TARGET_LEN = 1500; // aproximativ 60-90 secunde
+    let textToSpeak = cleaned.slice(0, TARGET_LEN);
+
+    // 2) Siguranță pentru limita maximă OpenAI TTS (4096)
     const MAX_TTS_LENGTH = 4096;
-    let textToSpeak = textToRead;
-    
-    if (textToRead.length > MAX_TTS_LENGTH) {
-      // Truncate and add message
-      textToSpeak = textToRead.substring(0, MAX_TTS_LENGTH - 100) + "... Conversația a fost prescurtată pentru redare audio.";
+    if (textToSpeak.length > MAX_TTS_LENGTH) {
+      textToSpeak = textToSpeak.substring(0, MAX_TTS_LENGTH - 100);
+    }
+
+    if (cleaned.length > TARGET_LEN) {
       toast({
-        title: "Conversație lungă",
-        description: "Doar o parte a conversației va fi redată audio",
+        title: "Conversație condensată",
+        description: "Am scurtat textul pentru o redare clară și rapidă.",
         duration: 3000
       });
     }
@@ -594,32 +607,33 @@ export const IndustryDemos = () => {
     try {
       setIsSpeaking(true);
       
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { 
-          text: textToSpeak,
-          voice: 'nova' // Romanian sounds better with nova
-        }
-      });
+      const tryVoice = async (voice: string) => {
+        const { data, error } = await supabase.functions.invoke('text-to-speech', {
+          body: { 
+            text: textToSpeak,
+            voice
+          }
+        });
+        if (error) return null;
+        return data?.audioContent as string | null;
+      };
 
-      if (error) throw error;
+      // Încercăm cu "nova", apoi fallback pe "alloy"
+      let audioB64 = await tryVoice('nova');
+      if (!audioB64) audioB64 = await tryVoice('alloy');
 
-      // Create audio element and play
-      const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      if (!audioB64) throw new Error('TTS failed for both voices');
+
+      const audio = new Audio(`data:audio/mp3;base64,${audioB64}`);
       audio.className = 'tts-audio';
-      
       audio.onended = () => {
         setIsSpeaking(false);
         audio.remove();
       };
-      
       audio.onerror = () => {
         setIsSpeaking(false);
         audio.remove();
-        toast({
-          title: "Eroare TTS",
-          description: "Nu s-a putut reda audio",
-          variant: "destructive"
-        });
+        toast({ title: 'Eroare TTS', description: 'Nu s-a putut reda audio', variant: 'destructive' });
       };
 
       await audio.play();

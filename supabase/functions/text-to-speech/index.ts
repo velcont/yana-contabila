@@ -53,9 +53,13 @@ serve(async (req) => {
       throw new Error('Failed to generate speech');
     }
 
-    // Convert audio buffer to base64 using std encoding (avoids stack overflows)
     const arrayBuffer = await response.arrayBuffer();
-    const base64Audio = base64Encode(arrayBuffer);
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64Audio = btoa(binary);
 
     console.log('Speech generated successfully');
 
