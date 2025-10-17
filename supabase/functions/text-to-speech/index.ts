@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,12 @@ serve(async (req) => {
 
     console.log('Generating speech for text length:', text.length);
 
+    // Ensure we respect TTS input limits
+    const MAX_LEN = 4096;
+    const safeText = typeof text === 'string' && text.length > MAX_LEN
+      ? text.slice(0, MAX_LEN - 100) + '... [text trunchiat pentru TTS]'
+      : text;
+
     // Generate speech from text using OpenAI
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -34,7 +41,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'tts-1',
-        input: text,
+        input: safeText,
         voice: voice, // alloy, echo, fable, onyx, nova, shimmer
         response_format: 'mp3',
       }),
@@ -46,11 +53,9 @@ serve(async (req) => {
       throw new Error('Failed to generate speech');
     }
 
-    // Convert audio buffer to base64
+    // Convert audio buffer to base64 using std encoding (avoids stack overflows)
     const arrayBuffer = await response.arrayBuffer();
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
+    const base64Audio = base64Encode(arrayBuffer);
 
     console.log('Speech generated successfully');
 
