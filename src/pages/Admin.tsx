@@ -15,6 +15,7 @@ import { StorageManager } from "@/components/StorageManager";
 import { StrategicConversationsViewer } from "@/components/StrategicConversationsViewer";
 import { IntellectualPropertyCertificate } from "@/components/IntellectualPropertyCertificate";
 import { AdminCostsDashboard } from "@/components/AdminCostsDashboard";
+import AdminCreditsMonitor from "@/components/AdminCreditsMonitor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -259,10 +260,14 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-10">
+          <TabsList className="grid w-full grid-cols-11">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
+            </TabsTrigger>
+            <TabsTrigger value="credits">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Monitor Credite
             </TabsTrigger>
             <TabsTrigger value="analyses">
               <FileText className="h-4 w-4 mr-2" />
@@ -301,6 +306,10 @@ const Admin = () => {
               Costuri Totale
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="credits">
+            <AdminCreditsMonitor />
+          </TabsContent>
 
           <TabsContent value="users">
             <Card>

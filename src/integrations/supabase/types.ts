@@ -1040,6 +1040,45 @@ export type Database = {
         }
         Relationships: []
       }
+      credits_purchases: {
+        Row: {
+          amount_paid_cents: number
+          created_at: string | null
+          credits_added: number
+          id: string
+          metadata: Json | null
+          package_name: string | null
+          purchase_date: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid_cents: number
+          created_at?: string | null
+          credits_added: number
+          id?: string
+          metadata?: Json | null
+          package_name?: string | null
+          purchase_date?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid_cents?: number
+          created_at?: string | null
+          credits_added?: number
+          id?: string
+          metadata?: Json | null
+          package_name?: string | null
+          purchase_date?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       crm_messages: {
         Row: {
           attachments: Json | null
@@ -2135,6 +2174,21 @@ export type Database = {
           total_tokens: number
           usage_percent: number
           user_id: string
+        }[]
+      }
+      get_user_credits_report: {
+        Args: { p_user_id: string }
+        Returns: {
+          current_budget_cents: number
+          last_purchase_date: string
+          purchase_count: number
+          remaining_budget_cents: number
+          total_credits_added: number
+          total_purchased_cents: number
+          total_spent_cents: number
+          usage_count: number
+          usage_percent: number
+          user_email: string
         }[]
       }
       get_voice_usage_for_month: {

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { ChatAI } from "@/components/ChatAI";
 import { Dashboard } from "@/components/Dashboard";
+import UserCreditsAlert from "@/components/UserCreditsAlert";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
@@ -397,6 +398,7 @@ const Index = () => {
           <div className="mb-4">
             <CreditAndTrialIndicator />
           </div>
+          <UserCreditsAlert />
           <div className="flex justify-between items-center mb-8">
             <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
               <Phone className="mr-2 h-4 w-4" />

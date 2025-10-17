@@ -68,9 +68,23 @@ serve(async (req) => {
         "price_1SIsUQBu3m83VcDAykzaXTeT": 10000,  // 70 lei = 10000 credits
       };
 
-      const creditsToAdd = creditPackages[priceId || ""] || 1000;
+      const amountPaid = session.amount_total || 0;
+      
+      // Determine credits to add based on amount
+      let creditsToAdd = 0;
+      let packageName = '';
+      if (amountPaid >= 12900) {
+        creditsToAdd = 1000; // Enterprise: 129 RON
+        packageName = 'Enterprise (129 RON)';
+      } else if (amountPaid >= 4900) {
+        creditsToAdd = 300; // Professional: 49 RON
+        packageName = 'Professional (49 RON)';
+      } else if (amountPaid >= 1900) {
+        creditsToAdd = 100; // Starter: 19 RON
+        packageName = 'Starter (19 RON)';
+      }
 
-      // Update or insert budget limit
+      // Update or insert budget limit - check existing first
       const { data: existingBudget } = await supabaseClient
         .from("ai_budget_limits")
         .select("*")
@@ -78,12 +92,14 @@ serve(async (req) => {
         .eq("is_active", true)
         .single();
 
+      const newBudget = (existingBudget?.monthly_budget_cents || 0) + creditsToAdd;
+
       if (existingBudget) {
         // Add to existing budget
         await supabaseClient
           .from("ai_budget_limits")
           .update({
-            monthly_budget_cents: existingBudget.monthly_budget_cents + creditsToAdd,
+            monthly_budget_cents: newBudget,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingBudget.id);
@@ -99,6 +115,21 @@ serve(async (req) => {
           });
       }
 
+      // Record purchase in credits_purchases table
+      await supabaseClient.from('credits_purchases').insert({
+        user_id: user.id,
+        stripe_payment_intent_id: session.payment_intent as string,
+        stripe_checkout_session_id: session.id,
+        amount_paid_cents: amountPaid,
+        credits_added: creditsToAdd,
+        package_name: packageName,
+        purchase_date: new Date().toISOString(),
+        metadata: {
+          customer_email: customerEmail,
+          session_mode: session.mode
+        }
+      });
+
       // Log the purchase
       await supabaseClient.from("audit_logs").insert({
         user_id: user.id,
@@ -108,7 +139,9 @@ serve(async (req) => {
         metadata: {
           stripe_session_id: session.id,
           credits_added: creditsToAdd,
-          amount_paid: session.amount_total,
+          amount_paid: amountPaid,
+          new_budget: newBudget,
+          package_name: packageName,
           currency: session.currency,
         },
       });
