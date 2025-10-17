@@ -577,12 +577,26 @@ export const IndustryDemos = () => {
       .map(msg => `${msg.role === 'user' ? 'Utilizator: ' : 'Yana: '}${msg.content}`)
       .join('\n\n');
 
+    // OpenAI TTS has a limit of 4096 characters
+    const MAX_TTS_LENGTH = 4096;
+    let textToSpeak = textToRead;
+    
+    if (textToRead.length > MAX_TTS_LENGTH) {
+      // Truncate and add message
+      textToSpeak = textToRead.substring(0, MAX_TTS_LENGTH - 100) + "... Conversația a fost prescurtată pentru redare audio.";
+      toast({
+        title: "Conversație lungă",
+        description: "Doar o parte a conversației va fi redată audio",
+        duration: 3000
+      });
+    }
+
     try {
       setIsSpeaking(true);
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
-          text: textToRead,
+          text: textToSpeak,
           voice: 'nova' // Romanian sounds better with nova
         }
       });
