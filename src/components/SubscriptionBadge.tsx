@@ -44,7 +44,7 @@ export const SubscriptionBadge = () => {
             <div className="text-sm">
               <p className="font-medium">Perioada de gratuitate</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Mai ai {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'} din cele 3 luni gratuite
+                Mai ai {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'} din cele 30 zile gratuite
               </p>
               {trialDaysRemaining <= 7 && (
                 <p className="text-xs text-amber-500 font-medium mt-1">

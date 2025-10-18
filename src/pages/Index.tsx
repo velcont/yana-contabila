@@ -102,7 +102,7 @@ const Index = () => {
           if (data.trial_ends_at && new Date(data.trial_ends_at) <= new Date() && data.subscription_status !== 'active') {
             toast({
               title: "Perioada de testare expirată",
-              description: "Perioada ta gratuită de 3 luni s-a încheiat. Abonează-te pentru a continua.",
+              description: "Perioada ta gratuită de 30 zile s-a încheiat. Abonează-te pentru a continua.",
               variant: "destructive",
             });
             navigate('/subscription');

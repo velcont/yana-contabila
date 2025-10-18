@@ -467,7 +467,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
         <div className="text-center mb-4">
           <Badge className="mb-4" variant="secondary">
             <Gift className="h-3 w-3 mr-1" />
-            Primele 3 luni GRATUIT
+            Primele 30 zile GRATUIT
           </Badge>
         </div>
         
@@ -475,7 +475,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
           Alege planul potrivit pentru afacerea ta
         </h2>
         <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-          Începi gratuit pentru 3 luni. Fără card necesar. Fără angajamente.
+          Începi gratuit pentru 30 zile. Fără card necesar. Fără angajamente.
         </p>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -1090,7 +1090,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
               <span className="font-semibold text-foreground">💡 Sfat:</span> Majoritatea utilizatorilor cheltuie <span className="font-semibold text-foreground">0-20 lei/lună</span> pe credite AI suplimentare
             </p>
             <Button size="lg" onClick={() => navigate('/auth')}>
-              Începe cu 3 luni gratuit
+              Începe cu 30 zile gratuit
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>

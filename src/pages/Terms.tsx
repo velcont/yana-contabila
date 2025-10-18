@@ -277,7 +277,7 @@ const Terms = () => {
 
             <h2>12. Abonamente și Plăți</h2>
             <p>
-              Pentru a continua utilizarea serviciului după perioada gratuită de 3 luni, trebuie să 
+              Pentru a continua utilizarea serviciului după perioada gratuită de 30 zile, trebuie să 
               achiziționați un abonament prin intermediul platformei noastre de plată Stripe.
             </p>
             <ul>

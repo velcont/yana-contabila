@@ -348,7 +348,7 @@ export const generateCopyrightPDF = () => {
   yPosition += 10;
 
   const plans = [
-    { name: 'Gratuit (Trial)', features: '3 luni gratuite, functionalitati de baza' },
+    { name: 'Gratuit (Trial)', features: '30 zile gratuite, functionalitati de baza' },
     { name: 'Antreprenor Basic', features: '1 companie, analize nelimitate, chat AI' },
     { name: 'Antreprenor Pro', features: 'Multiple companii, predictii AI, suport prioritar' },
     { name: 'Contabil Professional', features: 'Clienti nelimitati, CRM, white-label, API access' }
