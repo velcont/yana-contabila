@@ -358,7 +358,7 @@ export const UsersList = () => {
             </TabsTrigger>
             <TabsTrigger 
               value="deleted" 
-              onClick={() => !deletedUsers.length && fetchDeletedUsers()}
+              onClick={() => fetchDeletedUsers()}
               className="text-destructive"
             >
               Șterși ({filteredDeletedUsers.length})
@@ -444,6 +444,21 @@ export const UsersList = () => {
           </TabsContent>
 
           <TabsContent value="deleted" className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex-1 mr-2">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Audit GDPR:</strong> Utilizatorii șterși sunt păstrați pentru conformitate legală
+                </p>
+              </div>
+              <Button
+                onClick={() => fetchDeletedUsers()}
+                variant="outline"
+                size="sm"
+                disabled={loadingDeleted}
+              >
+                {loadingDeleted ? <Loader2 className="h-4 w-4 animate-spin" /> : "↻ Reîmprospătează"}
+              </Button>
+            </div>
             {loadingDeleted ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -459,12 +474,6 @@ export const UsersList = () => {
               </div>
             ) : (
               <>
-                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Audit și conformitate GDPR:</strong> Utilizatorii șterși sunt păstrați pentru 
-                    conformitate legală. Datele personale au fost anonimizate conform GDPR.
-                  </p>
-                </div>
                 {filteredDeletedUsers.map(renderDeletedUserCard)}
               </>
             )}
