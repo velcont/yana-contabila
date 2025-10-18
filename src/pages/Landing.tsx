@@ -23,7 +23,8 @@ import {
   Users,
   Building2,
   Check,
-  Gift
+  Gift,
+  Brain
 } from 'lucide-react';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { AIPredictions } from '@/components/AIPredictions';
@@ -206,11 +207,11 @@ Perioada: 01/04/2025 - 30/04/2025`,
         </Badge>
         
         <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-in fade-in slide-in-from-bottom-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          YANA - Analiza Balanței
+          YANA - Platforma Ta Financiară AI
         </h1>
         
         <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-          AI-ul care înțelege balanța ta mai bine decât contabilul.<br />
+          Analiză balanță AI + Consultant strategic pentru afacerea ta.<br />
           <span className="font-semibold text-foreground">Vorbești</span>, nu citești PDF-uri.
         </p>
 
@@ -371,6 +372,90 @@ Perioada: 01/04/2025 - 30/04/2025`,
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Două Module - Clarificare */}
+      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-background to-muted/30 rounded-3xl mb-20">
+        <div className="text-center mb-12">
+          <Badge className="mb-4" variant="secondary">
+            <Sparkles className="h-3 w-3 mr-1" />
+            Două instrumente puternice într-o singură platformă
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Cum funcționează YANA?
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            YANA îți oferă două module complementare pentru afacerea ta. Alege ce ai nevoie acum.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          {/* Modul 1: Analiză Balanță */}
+          <Card className="hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-500">
+            <CardHeader className="text-center pb-6">
+              <div className="h-16 w-16 mx-auto mb-4 bg-blue-500/10 rounded-full flex items-center justify-center">
+                <BarChart3 className="h-8 w-8 text-blue-500" />
+              </div>
+              <CardTitle className="text-2xl mb-2">📊 Modul 1: Analiză Balanță</CardTitle>
+              <p className="text-muted-foreground text-sm">
+                Pentru înțelegerea zilnică a situației financiare
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <p className="font-semibold mb-2">📁 Ce faci aici:</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>✅ Încarci balanța de verificare (.xlsx)</li>
+                  <li>✅ Primești analiză AI instant (&lt;2 secunde)</li>
+                  <li>✅ Vezi dashboard interactiv cu grafice</li>
+                  <li>✅ Întrebi AI despre orice din balanță (chat)</li>
+                  <li>✅ Obții alerte proactive (DSO ridicat, profit negativ, etc.)</li>
+                </ul>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-semibold">
+                  💡 Perfect pentru: Monitorizare zilnică, rapoarte lunare, decizii rapide
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Modul 2: Yana Strategică */}
+          <Card className="hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary bg-gradient-to-b from-primary/5 to-background">
+            <CardHeader className="text-center pb-6">
+              <div className="h-16 w-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                <Brain className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl mb-2">🧠 Modul 2: Yana Strategică</CardTitle>
+              <p className="text-muted-foreground text-sm">
+                Consultant AI strategic pentru decizii de business
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-primary/5 rounded-lg">
+                <p className="font-semibold mb-2">🎯 Ce faci aici:</p>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>✅ Discuți strategii de business (fără upload)</li>
+                  <li>✅ Primești sfaturi bazate pe Teoria Jocului</li>
+                  <li>✅ Analizezi competiția și piața</li>
+                  <li>✅ Planifici expansiuni sau reduceri de costuri</li>
+                  <li>✅ Primești scenarii "Ce ar fi dacă...?"</li>
+                </ul>
+              </div>
+              <div className="text-center p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm font-semibold">
+                  💡 Perfect pentru: Strategii pe termen lung, decizii majore, planificare
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-12 text-center p-6 bg-muted/50 rounded-xl">
+          <p className="text-sm text-muted-foreground">
+            <strong>Notă:</strong> Ambele module sunt incluse în abonament. Poți trece de la unul la altul oricând cu un click.
+          </p>
         </div>
       </section>
 

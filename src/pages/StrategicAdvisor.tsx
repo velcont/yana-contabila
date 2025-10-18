@@ -446,6 +446,27 @@ export default function StrategicAdvisor() {
         <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="container mx-auto px-4 py-3">
             <CreditAndTrialIndicator />
+            
+            {/* Banner explicativ pentru Modul 2: Yana Strategică */}
+            <div className="mb-3 p-3 bg-primary/5 border-l-4 border-primary rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-foreground mb-1">🧠 Modul 2: Yana Strategică</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Consultant AI strategic pentru decizii de business bazate pe Teoria Jocului
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/app')}
+                  className="ml-4"
+                >
+                  ← Modul 1: Analiză Balanță
+                </Button>
+              </div>
+            </div>
+
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"

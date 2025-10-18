@@ -395,6 +395,29 @@ const Index = () => {
     <>
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
+          {/* Banner explicativ pentru Modul 1: Analiză Balanță */}
+          <div className="mb-4 p-4 bg-primary/5 border-l-4 border-primary rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-foreground mb-1">📊 Modul 1: Analiză Balanță</h2>
+                <p className="text-sm text-muted-foreground">
+                  Aici încarci balanța și obții analiză AI instant + dashboard interactiv + chat financiar
+                </p>
+              </div>
+              {themeType === 'entrepreneur' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/strategic-advisor')}
+                  className="ml-4"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Modul 2: Yana Strategică →
+                </Button>
+              )}
+            </div>
+          </div>
+
           <div className="mb-4">
             <CreditAndTrialIndicator />
           </div>
