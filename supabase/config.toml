@@ -72,6 +72,9 @@ verify_jwt = true
 [functions.send-council-invitation]
 verify_jwt = true
 
+[functions.send-account-deletion-email]
+verify_jwt = false
+
 [functions."stripe-webhook"]
 verify_jwt = false
 
