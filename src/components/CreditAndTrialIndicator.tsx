@@ -16,12 +16,22 @@ export const CreditAndTrialIndicator = () => {
   const { trialDaysRemaining, accessType, loading } = useSubscription();
   const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
   const [loadingUsage, setLoadingUsage] = useState(true);
+  const [hasFreeAccess, setHasFreeAccess] = useState(false);
 
   useEffect(() => {
     const fetchAIUsage = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Check if user has free access
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('has_free_access')
+          .eq('id', user.id)
+          .single();
+        
+        setHasFreeAccess(profile?.has_free_access === true);
 
         const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -53,7 +63,8 @@ export const CreditAndTrialIndicator = () => {
   const budgetInLei = aiUsage ? (aiUsage.budget_cents / 100).toFixed(2) : '0.00';
   const remainingCredits = aiUsage ? (aiUsage.budget_cents - aiUsage.total_cost_cents) / 100 : 0;
   const usagePercent = aiUsage?.usage_percent || 0;
-  const hasCredits = remainingCredits > 0;
+  // Utilizatorii cu acces gratuit NU au credite AI disponibile pentru funcții premium
+  const hasCredits = !hasFreeAccess && remainingCredits > 0;
 
   return (
     <Card className={`p-3 ${!hasCredits ? 'bg-destructive/10 border-destructive/30' : 'bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20'}`}>
@@ -75,13 +86,15 @@ export const CreditAndTrialIndicator = () => {
         {!hasCredits ? (
           <div className="space-y-2">
             <div className="text-sm text-destructive font-semibold">
-              Nu ai credite AI! Funcțiile premium (Yana Strategica) sunt blocate.
+              {hasFreeAccess 
+                ? 'Ai acces gratuit - funcțiile AI premium (Yana Strategica) necesită abonament plătit și credite AI.'
+                : 'Nu ai credite AI! Funcțiile premium (Yana Strategica) sunt blocate.'}
             </div>
             <Link 
-              to="/subscription" 
+              to="/my-ai-costs" 
               className="block w-full bg-primary text-primary-foreground hover:bg-primary/90 text-center py-2 px-4 rounded-md text-sm font-medium transition-colors"
             >
-              Cumpără Credite AI →
+              {hasFreeAccess ? 'Vezi Planuri de Abonament →' : 'Cumpără Credite AI →'}
             </Link>
           </div>
         ) : (
