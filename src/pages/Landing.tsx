@@ -535,7 +535,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 className="w-full bg-blue-500 hover:bg-blue-600"
                 onClick={() => navigate('/auth')}
               >
-                Începe gratuit 3 luni
+                Începe gratuit 30 zile
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
@@ -612,7 +612,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 className="w-full"
                 onClick={() => navigate('/auth')}
               >
-                Începe gratuit 3 luni
+                Începe gratuit 30 zile
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
