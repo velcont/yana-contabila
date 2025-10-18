@@ -50,35 +50,62 @@ export const CreditAndTrialIndicator = () => {
   }
 
   const costInLei = aiUsage ? (aiUsage.total_cost_cents / 100).toFixed(2) : '0.00';
-  const budgetInLei = aiUsage ? (aiUsage.budget_cents / 100).toFixed(2) : '10.00';
+  const budgetInLei = aiUsage ? (aiUsage.budget_cents / 100).toFixed(2) : '0.00';
+  const remainingCredits = aiUsage ? (aiUsage.budget_cents - aiUsage.total_cost_cents) / 100 : 0;
   const usagePercent = aiUsage?.usage_percent || 0;
+  const hasCredits = remainingCredits > 0;
 
   return (
-    <Card className="p-3 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
+    <Card className={`p-3 ${!hasCredits ? 'bg-destructive/10 border-destructive/30' : 'bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20'}`}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Costuri AI Luna Curentă</span>
+            <Sparkles className={`h-4 w-4 ${!hasCredits ? 'text-destructive' : 'text-primary'}`} />
+            <span className="text-sm font-medium">
+              {!hasCredits ? '⚠️ Fără Credite AI' : 'Credite AI Disponibile'}
+            </span>
           </div>
-          <Badge variant={usagePercent > 80 ? "destructive" : "secondary"} className="text-xs">
-            {usagePercent.toFixed(0)}%
-          </Badge>
+          {hasCredits && (
+            <Badge variant={usagePercent > 80 ? "destructive" : "secondary"} className="text-xs">
+              {usagePercent.toFixed(0)}%
+            </Badge>
+          )}
         </div>
 
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1">
-            <CreditCard className="h-3 w-3 text-muted-foreground" />
-            <span className="text-muted-foreground">Cheltuieli:</span>
+        {!hasCredits ? (
+          <div className="space-y-2">
+            <div className="text-sm text-destructive font-semibold">
+              Nu ai credite AI! Funcțiile premium (Yana Strategica) sunt blocate.
+            </div>
+            <Link 
+              to="/subscription" 
+              className="block w-full bg-primary text-primary-foreground hover:bg-primary/90 text-center py-2 px-4 rounded-md text-sm font-medium transition-colors"
+            >
+              Cumpără Credite AI →
+            </Link>
           </div>
-          <span className="font-semibold">{costInLei} / {budgetInLei} lei</span>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-1">
+                <CreditCard className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Credite rămase:</span>
+              </div>
+              <span className="font-semibold text-green-600">{remainingCredits.toFixed(2)} lei</span>
+            </div>
+
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Consumat acest an:</span>
+              <span>{costInLei} lei</span>
+            </div>
+          </>
+        )}
 
         {accessType === 'trial' && trialDaysRemaining !== null && (
           <div className="flex items-center justify-between text-sm pt-2 border-t border-primary/10">
             <div className="flex items-center gap-1">
               <Calendar className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">Perioada gratuită:</span>
+              <span className="text-muted-foreground">Perioadă gratuită:</span>
             </div>
             <Badge 
               variant={trialDaysRemaining <= 7 ? "destructive" : "default"}
@@ -89,12 +116,14 @@ export const CreditAndTrialIndicator = () => {
           </div>
         )}
 
-        <Link 
-          to="/my-ai-costs" 
-          className="text-xs text-primary hover:underline text-center mt-1"
-        >
-          Vezi detalii complete →
-        </Link>
+        {hasCredits && (
+          <Link 
+            to="/my-ai-costs" 
+            className="text-xs text-primary hover:underline text-center mt-1"
+          >
+            Vezi detalii complete →
+          </Link>
+        )}
       </div>
     </Card>
   );

@@ -334,11 +334,11 @@ export default function StrategicAdvisor() {
 
             <div className="flex flex-col gap-3 pt-4">
               <Button 
-                onClick={() => navigate('/subscription')}
+                onClick={() => navigate('/my-ai-costs')}
                 size="lg"
-                className="w-full"
+                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
               >
-                Cumpără Credite AI & Activează Accesul
+                💳 Cumpără Credite AI & Activează Accesul
               </Button>
               <Button 
                 variant="outline"
