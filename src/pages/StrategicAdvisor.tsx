@@ -12,6 +12,7 @@ import { Database } from "@/integrations/supabase/types";
 import { StrategicQuickReplies } from "@/components/StrategicQuickReplies";
 import { SavedStrategies } from "@/components/SavedStrategies";
 import { StrategicCouncil } from "@/components/StrategicCouncil";
+import { YanaStrategicaTutorial } from "@/components/YanaStrategicaTutorial";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import {
   Dialog,
@@ -296,6 +297,26 @@ export default function StrategicAdvisor() {
             </p>
           </div>
 
+          {/* DISCLAIMER IMPORTANT */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg p-4 mb-6">
+            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+              ⚠️ Disclaimer Important - Citește Înainte!
+            </h3>
+            <div className="text-sm space-y-2">
+              <p>
+                <strong>Yana Strategica e un asistent AI pentru brainstorming, NU un consultant garantat.</strong>
+              </p>
+              <ul className="list-disc ml-5 space-y-1">
+                <li><strong>Șanse reale:</strong> ~30-45% sfaturi valoroase, ~15-25% soluții concrete</li>
+                <li><strong>NU are:</strong> Date reale de piață, context specific industriei tale, experiență practică</li>
+                <li><strong>Depinde de tine:</strong> Calitatea răspunsurilor = calitatea datelor pe care le dai</li>
+              </ul>
+              <p className="font-semibold text-yellow-800 dark:text-yellow-200 mt-2">
+                💡 Folosește ca punct de plecare pentru idei, dar consultă profesioniști înainte de decizii importante!
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-6 text-left">
             <div className="bg-muted/50 rounded-lg p-4">
               <h3 className="font-semibold mb-2 flex items-center gap-2">
@@ -318,17 +339,27 @@ export default function StrategicAdvisor() {
                   <strong className="text-foreground">Pas 1:</strong> Ai nevoie de un abonament activ (Antreprenor 99 lei/lună sau Contabil 149 lei/lună)
                 </p>
                 <p>
-                  <strong className="text-foreground">Pas 2:</strong> Cumperi credite AI pentru a accesa Yana Strategica:
+                  <strong className="text-foreground">Pas 2:</strong> Primești GRATUIT 50 RON (5000 cents) credite de testare! 🎁
+                </p>
+                <p className="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-300 dark:border-green-700">
+                  <strong className="text-green-800 dark:text-green-200">🎁 BONUS:</strong> Toți utilizatorii premium primesc automat <strong>50 RON credite gratuite</strong> (~25-50 conversații strategice) pentru a testa Yana Strategica fără risc!
+                </p>
+                <p>
+                  <strong className="text-foreground">Pas 3 (opțional):</strong> După testare, poți cumpăra credite suplimentare:
                 </p>
                 <ul className="ml-4 space-y-1">
-                  <li>• Starter: 19 lei = 100 credite (~50 conversații strategice)</li>
+                  <li>• Starter: 19 lei = 100 credite (~50 conversații)</li>
                   <li>• Professional: 49 lei = 300 credite (~150 conversații) - cel mai popular!</li>
                   <li>• Enterprise: 129 lei = 1000 credite (~500 conversații)</li>
                 </ul>
-                <p className="pt-2">
-                  <strong className="text-foreground">De ce credite separate?</strong> Yana Strategica folosește AI avansat pentru analiză strategică complexă, 
-                  care consumă resurse semnificative. Creditele te ajută să controlezi costurile și să folosești AI doar când ai nevoie.
-                </p>
+                <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded border border-red-300 dark:border-red-700 mt-3">
+                  <p className="font-bold text-red-800 dark:text-red-200 mb-1">⚠️ Politica de Rambursare:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>✅ Credite <strong>neutilizate</strong> = rambursabile în 14 zile</li>
+                    <li>❌ Credite <strong>consumate</strong> = NU sunt rambursabile (costurile AI reale deja plătite)</li>
+                    <li>💡 De aceea îți oferim 50 RON GRATUIT să testezi înainte!</li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -336,9 +367,9 @@ export default function StrategicAdvisor() {
               <Button 
                 onClick={() => navigate('/my-ai-costs')}
                 size="lg"
-                className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                className="w-full"
               >
-                💳 Cumpără Credite AI & Activează Accesul
+                Activează Abonamentul & Primește 50 RON Gratuit! 🎁
               </Button>
               <Button 
                 variant="outline"
@@ -460,6 +491,13 @@ export default function StrategicAdvisor() {
             </div>
           </div>
         </header>
+
+        {/* Tutorial educativ */}
+        <div className="border-b bg-background p-4">
+          <div className="container mx-auto max-w-4xl">
+            <YanaStrategicaTutorial />
+          </div>
+        </div>
 
         {/* Chat Area */}
         <ScrollArea ref={scrollRef} className="flex-1 p-4">

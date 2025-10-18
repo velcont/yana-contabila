@@ -139,6 +139,9 @@ export type Database = {
           id: string
           is_active: boolean
           monthly_budget_cents: number
+          trial_credits_cents: number | null
+          trial_credits_granted_at: string | null
+          trial_credits_used_cents: number | null
           updated_at: string
           user_id: string
         }
@@ -148,6 +151,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           monthly_budget_cents?: number
+          trial_credits_cents?: number | null
+          trial_credits_granted_at?: string | null
+          trial_credits_used_cents?: number | null
           updated_at?: string
           user_id: string
         }
@@ -157,6 +163,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           monthly_budget_cents?: number
+          trial_credits_cents?: number | null
+          trial_credits_granted_at?: string | null
+          trial_credits_used_cents?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -2197,6 +2206,14 @@ export type Database = {
           minutes_remaining: number
           minutes_used: number
           month_year: string
+        }[]
+      }
+      grant_trial_credits_if_eligible: {
+        Args: { p_user_id: string }
+        Returns: {
+          granted: boolean
+          message: string
+          trial_credits_cents: number
         }[]
       }
       has_role: {

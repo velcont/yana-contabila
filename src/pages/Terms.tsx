@@ -120,20 +120,52 @@ const Terms = () => {
               și poți opri automat consumul. Vezi în timp real cheltuielile exacte. Zero costuri ascunse.
             </p>
 
-            <h3 className="font-semibold mt-4">6.4. Metode de Plată</h3>
+            <h2>6.4. Politica de Rambursare pentru Credite AI</h2>
+            <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-md border-2 border-red-300 dark:border-red-800 my-4">
+              <p className="font-bold text-lg mb-2">🔴 IMPORTANT - Citește cu Atenție</p>
+              <p className="mb-2"><strong>Creditele AI achiziționate NU sunt rambursabile după utilizare.</strong></p>
+              
+              <h4 className="font-semibold mt-3 mb-2">Ce înseamnă asta:</h4>
+              <ul className="space-y-2">
+                <li>✅ <strong>Credite neutilizate:</strong> Pot fi rambursate în primele 14 zile de la achiziție</li>
+                <li>❌ <strong>Credite consumate:</strong> NU pot fi rambursate (costurile noastre reale cu AI au fost deja suportate)</li>
+                <li>💡 <strong>Credite de probă GRATUITE:</strong> Utilizatorii premium primesc automat 50 RON (5000 cents) credite de testare înainte de a cumpăra pachete</li>
+              </ul>
+
+              <h4 className="font-semibold mt-3 mb-2">De ce această politică?</h4>
+              <p className="text-sm">
+                Când folosești Yana Strategica, fiecare conversație consumă resurse AI reale de la furnizori externi (Lovable AI Gateway + Google Gemini/OpenAI). 
+                Aceste costuri sunt plătite de noi imediat, indiferent dacă ești sau nu mulțumit de răspuns.
+              </p>
+
+              <h4 className="font-semibold mt-3 mb-2">Protecția ta ca utilizator:</h4>
+              <ul className="text-sm space-y-1">
+                <li>🎁 <strong>50 RON credite gratuite de testare</strong> pentru toți utilizatorii premium (~25-50 conversații strategice)</li>
+                <li>📊 <strong>Transparență totală:</strong> Vezi în timp real câte credite consumi</li>
+                <li>🛡️ <strong>Control buget:</strong> Setezi limite și primești alerte înainte să depășești</li>
+                <li>⏸️ <strong>Oprire automată:</strong> Când se termină bugetul, sistemul te oprește automat</li>
+                <li>📚 <strong>Tutorial educativ:</strong> Învață cum să obții rezultate maxime din Yana</li>
+              </ul>
+
+              <p className="mt-3 font-bold text-base">
+                📢 Recomandare: Testează întotdeauna cu creditele GRATUITE înainte de a cumpăra pachete mari!
+              </p>
+            </div>
+
+            <h3 className="font-semibold mt-4">6.5. Metode de Plată</h3>
             <p>Plățile sunt procesate sigur prin <strong>Stripe</strong>, conform standardelor PCI-DSS. Acceptăm:</p>
             <ul>
               <li>Carduri de credit/debit (Visa, Mastercard, American Express)</li>
               <li>Plăți prin Google Pay și Apple Pay</li>
             </ul>
 
-            <h3 className="font-semibold mt-4">6.5. Facturare și TVA</h3>
+            <h3 className="font-semibold mt-4">6.6. Facturare și TVA</h3>
             <p>
               Toate prețurile afișate includ TVA conform legislației românești. 
               Veți primi factură fiscală automată pentru fiecare plată efectuată.
             </p>
 
-            <h3 className="font-semibold mt-4">6.6. Transparență Totală</h3>
+            <h3 className="font-semibold mt-4">6.7. Transparență Totală</h3>
             <p>Ne angajăm să oferim:</p>
             <ul>
               <li>✓ Toate costurile afișate clar înainte de orice tranzacție</li>
@@ -192,17 +224,41 @@ const Terms = () => {
 
             <h2>11. LIMITARE DE RĂSPUNDERE ȘI EXCLUDERI DE GARANȚIE</h2>
             <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-md border-2 border-red-300 dark:border-red-800">
-              <p className="font-bold text-lg mb-2">⚠️ DISCLAIMER IMPORTANT</p>
+              <p className="font-bold text-lg mb-2">⚠️ DISCLAIMER IMPORTANT - YANA STRATEGICA</p>
               <p><strong>Proprietarul platformei YANA, Suciu Gyorfi Nicolae, NU OFERĂ NICIO GARANȚIE</strong> cu privire la:</p>
               <ul className="my-2">
                 <li>Acuratețea, completitudinea sau corectitudinea analizelor generate de platformă</li>
                 <li>Funcționarea neîntreruptă sau fără erori a aplicației</li>
                 <li>Adecvarea serviciului pentru anumite scopuri specifice</li>
+                <li><strong>Calitatea sau succesul strategiilor generate de Yana Strategica</strong></li>
               </ul>
               <p className="mt-3">
                 <strong>Analizele financiare generate de YANA sunt informative și NU constituie consultanță financiară, 
                 juridică sau fiscală profesională.</strong> Aceste analize sunt destinate exclusiv pentru informare 
                 și nu trebuie utilizate ca unic suport pentru luarea deciziilor importante de afaceri.
+              </p>
+
+              <h4 className="font-bold mt-4 mb-2">Despre Yana Strategica (Consilier Strategic AI):</h4>
+              <p className="mb-2">
+                Yana Strategica este un <strong>asistent AI pentru brainstorming strategic</strong>, NU un consultant uman certificat. 
+                Oferă sugestii și framework-uri de gândire bazate pe date generale, dar:
+              </p>
+              <ul className="space-y-1 text-sm">
+                <li>❌ NU are acces la date reale de piață actualizate în timp real</li>
+                <li>❌ NU cunoaște situația concretă a industriei tale locale</li>
+                <li>❌ NU poate garanta succesul implementării strategiilor sugerate</li>
+                <li>❌ NU înlocuiește experiența unui consultant uman cu experiență practică</li>
+                <li>⚠️ Calitatea răspunsurilor depinde 100% de <strong>completitudinea datelor pe care le furnizezi</strong></li>
+              </ul>
+
+              <p className="mt-3 font-bold text-red-600 dark:text-red-400">
+                Șanse realiste de succes: ~30-45% pentru sfaturi valoroase, ~15-25% pentru soluții concrete care rezolvă problema.
+              </p>
+
+              <p className="mt-3">
+                <strong>Recomandare obligatorie:</strong> Folosește Yana Strategica ca punct de plecare pentru idei, 
+                dar consultă întotdeauna profesioniști umani (consultanți de business, contabili, avocați) înainte de 
+                a implementa decizii importante.
               </p>
               <p className="mt-3"><strong>Utilizați serviciul PE PROPRIUL RISC.</strong> Suciu Gyorfi Nicolae nu poate fi tras la răspundere pentru:</p>
               <ul className="my-2">
