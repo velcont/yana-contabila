@@ -261,7 +261,7 @@ const Admin = () => {
         </Alert>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-12">
+          <TabsList className="flex flex-wrap w-full gap-2">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
