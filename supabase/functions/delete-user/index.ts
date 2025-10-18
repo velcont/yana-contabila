@@ -27,29 +27,31 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    // Verifică rolul de admin
-    const { data: roles, error: roleError } = await supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", requestingUser.id)
-      .eq("role", "admin");
-
-    if (roleError || !roles || roles.length === 0) {
-      throw new Error("Only admins can delete users");
-    }
-
-    const { userId } = await req.json();
+    const { userId, deletionReason } = await req.json();
 
     if (!userId) {
       throw new Error("User ID is required");
     }
 
-    // Nu permite ștergerea propriului cont
-    if (userId === requestingUser.id) {
-      throw new Error("Cannot delete your own account");
+    // Verifică permisiuni:
+    // - Utilizatorul poate să-și șteargă propriul cont
+    // - Adminii pot șterge orice cont (altul decât al lor)
+    const isSelfDeletion = userId === requestingUser.id;
+    
+    if (!isSelfDeletion) {
+      // Dacă nu e self-deletion, verifică dacă e admin
+      const { data: roles, error: roleError } = await supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", requestingUser.id)
+        .eq("role", "admin");
+
+      if (roleError || !roles || roles.length === 0) {
+        throw new Error("Only admins can delete other users' accounts");
+      }
     }
 
-    console.log(`Admin ${requestingUser.email} attempting to delete user ${userId}`);
+    console.log(`${isSelfDeletion ? 'User' : 'Admin'} ${requestingUser.email} attempting to delete user ${userId}`);
 
     // Obține informații despre utilizatorul ÎNAINTE de ștergere
     const { data: deletedUserInfo, error: getUserError } = await supabaseClient.auth.admin.getUserById(userId);
@@ -75,7 +77,7 @@ serve(async (req) => {
         full_name: deletedUserName || profileData?.full_name,
         subscription_type: profileData?.subscription_type,
         subscription_status: profileData?.subscription_status,
-        deletion_reason: "Admin deletion via dashboard",
+        deletion_reason: deletionReason || (isSelfDeletion ? "User requested account deletion" : "Admin deletion via dashboard"),
         deleted_by: requestingUser.id,
         deleted_by_email: requestingUser.email,
         user_metadata: deletedUserInfo?.user?.user_metadata || {},

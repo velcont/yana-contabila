@@ -32,6 +32,7 @@ import AccountantDashboard from "./pages/AccountantDashboard";
 import AccountantBranding from "./pages/AccountantBranding";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import StrategicAdvisor from "./pages/StrategicAdvisor";
+import { Settings } from "./pages/Settings";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
@@ -85,6 +86,7 @@ const App = () => (
                     <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
                     <Route path="/accept-invitation" element={<AcceptInvitation />} />
                     <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
+                    <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                     <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />

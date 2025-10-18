@@ -467,25 +467,33 @@ const Index = () => {
                     </DropdownMenu>
                   )}
                   <AdminRoleSwitcher />
-                  <Button
-                    variant="outline" 
-                    onClick={() => setShowDashboard(true)}
-                    data-tour="dashboard-button"
-                    className="relative animate-glow-pulse border-2 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 bg-[length:200%_200%] animate-gradient-shift font-semibold shadow-lg hover:shadow-xl"
-                  >
-                    <History className="mr-2 h-4 w-4 animate-bounce" />
-                    <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient-shift bg-[length:200%_200%]">
-                      📊 Dashboard cu grafice și indicatori
-                    </span>
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                    </span>
-                  </Button>
-                  <Button variant="outline" onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Deconectare
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <User className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setShowDashboard(true)}>
+                        <History className="mr-2 h-4 w-4" />
+                        Dashboard Financiar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/settings')}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Setări Cont
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/subscription')}>
+                        Abonament
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
+                        Credite AI
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Deconectare
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               ) : (
                 <Button variant="outline" onClick={() => navigate('/auth')}>
