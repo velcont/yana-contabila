@@ -196,15 +196,15 @@ serve(async (req) => {
     const cacheKey = `strategic_${conversationId}_${messages.length}`;
     const { data: cachedResponse } = await supabaseClient
       .from("chat_cache")
-      .select("response_data")
-      .eq("cache_key", cacheKey)
+      .select("answer_text")
+      .eq("question_hash", cacheKey)
       .gt("expires_at", new Date().toISOString())
       .single();
 
     if (cachedResponse) {
       console.log("[STRATEGIC-ADVISOR] Using cached response");
       return new Response(
-        JSON.stringify({ response: cachedResponse.response_data }),
+        JSON.stringify({ response: cachedResponse.answer_text }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
@@ -286,9 +286,9 @@ serve(async (req) => {
 
     // Cache the response for 1 hour
     await supabaseClient.from("chat_cache").insert({
-      cache_key: cacheKey,
-      user_id: user.id,
-      response_data: aiResponse,
+      question_hash: cacheKey,
+      question_text: message,
+      answer_text: aiResponse,
       expires_at: new Date(Date.now() + 3600000).toISOString()
     });
 

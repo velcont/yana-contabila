@@ -534,15 +534,15 @@ serve(async (req) => {
     if (user) {
       const { data: cachedAnalysis } = await supabaseClient
         .from("chat_cache")
-        .select("response_data")
-        .eq("cache_key", cacheKey)
+        .select("answer_text")
+        .eq("question_hash", cacheKey)
         .gt("expires_at", new Date().toISOString())
         .single();
 
-      if (cachedAnalysis?.response_data) {
+      if (cachedAnalysis?.answer_text) {
         console.log("Folosesc analiză din cache");
         return new Response(
-          JSON.stringify({ analysis: cachedAnalysis.response_data }),
+          JSON.stringify({ analysis: cachedAnalysis.answer_text }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -605,9 +605,9 @@ serve(async (req) => {
     // Cache analiza pentru 6 ore
     if (user && analysis && analysis.length > 100) {
       await supabaseClient.from("chat_cache").insert({
-        cache_key: cacheKey,
-        user_id: user.id,
-        response_data: analysis,
+        question_hash: cacheKey,
+        question_text: balanceText.slice(0, 500),
+        answer_text: analysis,
         expires_at: new Date(Date.now() + 21600000).toISOString() // 6 ore
       });
     }
