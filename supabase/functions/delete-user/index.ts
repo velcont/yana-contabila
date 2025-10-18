@@ -59,6 +59,36 @@ serve(async (req) => {
     const deletedUserEmail = deletedUserInfo?.user?.email || "Unknown";
     const deletedUserName = deletedUserInfo?.user?.user_metadata?.full_name || "";
 
+    // Obține detalii profil
+    const { data: profileData } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    // Salvează în deleted_users pentru audit și conformitate GDPR
+    const { error: auditError } = await supabaseClient
+      .from("deleted_users")
+      .insert({
+        original_user_id: userId,
+        email: deletedUserEmail,
+        full_name: deletedUserName || profileData?.full_name,
+        subscription_type: profileData?.subscription_type,
+        subscription_status: profileData?.subscription_status,
+        deletion_reason: "Admin deletion via dashboard",
+        deleted_by: requestingUser.id,
+        deleted_by_email: requestingUser.email,
+        user_metadata: deletedUserInfo?.user?.user_metadata || {},
+        created_at: profileData?.created_at || new Date().toISOString()
+      });
+
+    if (auditError) {
+      console.warn("Nu s-a putut salva în deleted_users:", auditError);
+      // Continuăm ștergerea chiar dacă audit-ul eșuează
+    } else {
+      console.log("✅ Utilizator salvat în deleted_users pentru audit");
+    }
+
     // Șterge utilizatorul din auth și curăță manual înregistrările dependente (profiles, user_roles)
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(userId);
     if (deleteError) throw deleteError;

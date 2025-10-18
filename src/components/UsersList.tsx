@@ -30,9 +30,24 @@ interface Profile {
   trial_ends_at: string | null;
 }
 
+interface DeletedUser {
+  id: string;
+  original_user_id: string;
+  email: string;
+  full_name: string | null;
+  subscription_type: string | null;
+  subscription_status: string | null;
+  deletion_reason: string | null;
+  deleted_by_email: string | null;
+  deleted_at: string;
+  created_at: string;
+}
+
 export const UsersList = () => {
   const [users, setUsers] = useState<Profile[]>([]);
+  const [deletedUsers, setDeletedUsers] = useState<DeletedUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
   const { toast } = useToast();
@@ -61,6 +76,28 @@ export const UsersList = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDeletedUsers = async () => {
+    try {
+      setLoadingDeleted(true);
+      const { data, error } = await supabase
+        .from('deleted_users')
+        .select('*')
+        .order('deleted_at', { ascending: false });
+
+      if (error) throw error;
+      setDeletedUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching deleted users:', error);
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca utilizatorii șterși.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingDeleted(false);
     }
   };
 
@@ -139,9 +176,54 @@ export const UsersList = () => {
 
   const normalizedFilter = emailFilter.trim().toLowerCase();
   const filteredUsers = normalizedFilter ? users.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : users;
+  const filteredDeletedUsers = normalizedFilter ? deletedUsers.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : deletedUsers;
   const entrepreneurs = filteredUsers.filter(u => u.subscription_type === 'entrepreneur');
   const accountants = filteredUsers.filter(u => u.subscription_type === 'accounting_firm');
   const freeAccessUsers = filteredUsers.filter(u => u.has_free_access);
+
+  const renderDeletedUserCard = (deletedUser: DeletedUser) => {
+    return (
+      <Card key={deletedUser.id} className="border-destructive/50 bg-destructive/5">
+        <CardContent className="pt-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="destructive" className="text-xs">Șters</Badge>
+              </div>
+              <h3 className="font-semibold text-muted-foreground line-through">
+                {deletedUser.full_name || 'Fără nume'}
+              </h3>
+              <p className="text-sm text-muted-foreground">{deletedUser.email}</p>
+              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                <p>Membru din: {new Date(deletedUser.created_at).toLocaleDateString('ro-RO')}</p>
+                <p className="text-destructive font-semibold">
+                  Șters: {new Date(deletedUser.deleted_at).toLocaleDateString('ro-RO', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+                {deletedUser.deleted_by_email && (
+                  <p>Șters de: {deletedUser.deleted_by_email}</p>
+                )}
+                {deletedUser.deletion_reason && (
+                  <p>Motiv: {deletedUser.deletion_reason}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              <Badge variant="outline" className="text-xs">
+                {deletedUser.subscription_type === 'entrepreneur' ? 'Antreprenor' : 
+                 deletedUser.subscription_type === 'accounting_firm' ? 'Contabil' : 'Necunoscut'}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderUserCard = (user: Profile) => {
     const isInTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
@@ -261,7 +343,7 @@ export const UsersList = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsList className="grid w-full grid-cols-5 mb-4">
             <TabsTrigger value="all">
               Toți ({filteredUsers.length})
             </TabsTrigger>
@@ -273,6 +355,13 @@ export const UsersList = () => {
             </TabsTrigger>
             <TabsTrigger value="free">
               Acces Gratuit ({freeAccessUsers.length})
+            </TabsTrigger>
+            <TabsTrigger 
+              value="deleted" 
+              onClick={() => !deletedUsers.length && fetchDeletedUsers()}
+              className="text-destructive"
+            >
+              Șterși ({filteredDeletedUsers.length})
             </TabsTrigger>
           </TabsList>
           
@@ -351,6 +440,33 @@ export const UsersList = () => {
               </p>
             ) : (
               freeAccessUsers.map(renderUserCard)
+            )}
+          </TabsContent>
+
+          <TabsContent value="deleted" className="space-y-4">
+            {loadingDeleted ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : filteredDeletedUsers.length === 0 ? (
+              <div className="text-center py-8 space-y-2">
+                <p className="text-muted-foreground">
+                  Nu există utilizatori șterși
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Utilizatorii șterși sunt păstrați pentru audit și conformitate GDPR
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Audit și conformitate GDPR:</strong> Utilizatorii șterși sunt păstrați pentru 
+                    conformitate legală. Datele personale au fost anonimizate conform GDPR.
+                  </p>
+                </div>
+                {filteredDeletedUsers.map(renderDeletedUserCard)}
+              </>
             )}
           </TabsContent>
         </Tabs>

@@ -1148,6 +1148,51 @@ export type Database = {
           },
         ]
       }
+      deleted_users: {
+        Row: {
+          created_at: string
+          deleted_at: string
+          deleted_by: string | null
+          deleted_by_email: string | null
+          deletion_reason: string | null
+          email: string
+          full_name: string | null
+          id: string
+          original_user_id: string
+          subscription_status: string | null
+          subscription_type: string | null
+          user_metadata: Json | null
+        }
+        Insert: {
+          created_at: string
+          deleted_at?: string
+          deleted_by?: string | null
+          deleted_by_email?: string | null
+          deletion_reason?: string | null
+          email: string
+          full_name?: string | null
+          id?: string
+          original_user_id: string
+          subscription_status?: string | null
+          subscription_type?: string | null
+          user_metadata?: Json | null
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string
+          deleted_by?: string | null
+          deleted_by_email?: string | null
+          deletion_reason?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          original_user_id?: string
+          subscription_status?: string | null
+          subscription_type?: string | null
+          user_metadata?: Json | null
+        }
+        Relationships: []
+      }
       email_broadcasts: {
         Row: {
           created_at: string
