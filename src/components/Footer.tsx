@@ -37,7 +37,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Header cu descriere */}
         <div className="mb-6">
-          <h3 className="font-bold text-lg mb-2">YANA - Platforma Ta Financiară AI</h3>
+          <h3 className="font-bold text-lg mb-2">YANA – AI-ul care analizează balanțe și dezvoltă afaceri</h3>
           <p className="text-sm text-muted-foreground max-w-2xl">
             Două module puternice pentru afacerea ta: <strong>Analiză Balanță</strong> (dashboard live + chat financiar) și <strong>Yana Strategică</strong> (consultant AI strategic).
           </p>
