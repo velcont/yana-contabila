@@ -287,15 +287,74 @@ export default function StrategicAdvisor() {
   if (!hasAccess) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="p-8 max-w-md text-center">
-          <Brain className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <h1 className="text-2xl font-bold mb-2">Acces restricționat</h1>
-          <p className="text-muted-foreground mb-4">
-            Yana Strategica este o funcționalitate premium disponibilă DOAR pentru antreprenorii cu abonament plătit activ.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Chiar dacă ai acces gratuit la analiza financiară și chat-ul normal, Consilierul Strategic necesită abonament plătit pentru a putea fi accesat.
-          </p>
+        <Card className="p-8 max-w-2xl">
+          <div className="text-center mb-6">
+            <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
+            <h1 className="text-2xl font-bold mb-2">Bine ai venit la Yana Strategica! 🎯</h1>
+            <p className="text-muted-foreground">
+              Consilierul tău strategic AI pentru decizii de business agresive și competitive
+            </p>
+          </div>
+
+          <div className="space-y-6 text-left">
+            <div className="bg-muted/50 rounded-lg p-4">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                Ce primești cu Yana Strategica?
+              </h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>✅ Strategii competitive bazate pe teoria jocului</li>
+                <li>✅ Analiză război de preț și eliminare concurență</li>
+                <li>✅ Optimizare fiscală și managementul cash-flow</li>
+                <li>✅ Planuri de acțiune cu KPIs măsurabili</li>
+                <li>✅ Consilieri strategici virtuali dedicați</li>
+              </ul>
+            </div>
+
+            <div className="border-l-4 border-primary pl-4">
+              <h3 className="font-semibold mb-2">Cum funcționează accesul?</h3>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  <strong className="text-foreground">Pas 1:</strong> Ai nevoie de un abonament activ (Antreprenor 99 lei/lună sau Contabil 149 lei/lună)
+                </p>
+                <p>
+                  <strong className="text-foreground">Pas 2:</strong> Cumperi credite AI pentru a accesa Yana Strategica:
+                </p>
+                <ul className="ml-4 space-y-1">
+                  <li>• Starter: 19 lei = 100 credite (~50 conversații strategice)</li>
+                  <li>• Professional: 49 lei = 300 credite (~150 conversații) - cel mai popular!</li>
+                  <li>• Enterprise: 129 lei = 1000 credite (~500 conversații)</li>
+                </ul>
+                <p className="pt-2">
+                  <strong className="text-foreground">De ce credite separate?</strong> Yana Strategica folosește AI avansat pentru analiză strategică complexă, 
+                  care consumă resurse semnificative. Creditele te ajută să controlezi costurile și să folosești AI doar când ai nevoie.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-4">
+              <Button 
+                onClick={() => navigate('/subscription')}
+                size="lg"
+                className="w-full"
+              >
+                Cumpără Credite AI & Activează Accesul
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/app')}
+                size="lg"
+                className="w-full"
+              >
+                Înapoi la Dashboard
+              </Button>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground pt-2">
+              💡 Abonamentul tău de bază include analiza financiară nelimitată și chat-ul normal. 
+              Yana Strategica este funcționalitatea premium dedicată strategiei de business.
+            </p>
+          </div>
         </Card>
       </div>
     );
