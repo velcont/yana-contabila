@@ -152,12 +152,11 @@ serve(async (req) => {
       _role: "admin"
     });
 
-    // Strategic Advisor BLOCAT pentru TOȚI utilizatorii cu acces gratuit
-    // Doar abonați plătitori (fără has_free_access) sau admini au acces
+    // Strategic Advisor: acces pentru admini, abonați plătitori SAU utilizatori cu acces gratuit
     const hasAccess = isAdmin || 
       (profile?.subscription_type === "entrepreneur" && 
-       profile?.subscription_status === "active" && 
-       profile?.has_free_access !== true);
+       profile?.subscription_status === "active") ||
+      profile?.has_free_access === true;
 
     if (!hasAccess) {
       return new Response(
