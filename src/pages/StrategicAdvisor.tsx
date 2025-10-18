@@ -14,6 +14,7 @@ import { SavedStrategies } from "@/components/SavedStrategies";
 import { StrategicCouncil } from "@/components/StrategicCouncil";
 import { YanaStrategicaTutorial } from "@/components/YanaStrategicaTutorial";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
+import { StrategicFeedback } from "@/components/StrategicFeedback";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  showFeedback?: boolean;
 }
 
 export default function StrategicAdvisor() {
@@ -202,7 +204,8 @@ export default function StrategicAdvisor() {
       const aiMessage: Message = {
         role: "assistant",
         content: data.response,
-        timestamp: new Date()
+        timestamp: new Date(),
+        showFeedback: true
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -544,15 +547,30 @@ export default function StrategicAdvisor() {
                         })}
                       </span>
                       {msg.role === "assistant" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openSaveDialog(msg)}
-                          className="h-6 px-2 gap-1"
-                        >
-                          <Save className="w-3 h-3" />
-                          Salvează
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openSaveDialog(msg)}
+                            className="h-6 px-2 gap-1"
+                          >
+                            <Save className="w-3 h-3" />
+                            Salvează
+                          </Button>
+                          {msg.showFeedback && (
+                            <StrategicFeedback
+                              conversationId={conversationId}
+                              messageContent={msg.content}
+                              onFeedbackSent={() => {
+                                setMessages(prev =>
+                                  prev.map(m =>
+                                    m === msg ? { ...m, showFeedback: false } : m
+                                  )
+                                );
+                              }}
+                            />
+                          )}
+                        </div>
                       )}
                     </div>
                   </Card>
