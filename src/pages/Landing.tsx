@@ -428,6 +428,9 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 <Brain className="h-8 w-8 text-primary" />
               </div>
               <CardTitle className="text-2xl mb-2">🧠 Modul 2: Yana Strategică</CardTitle>
+              <Badge variant="secondary" className="mb-2">
+                👔 Exclusiv pentru modul Antreprenor
+              </Badge>
               <p className="text-muted-foreground text-sm">
                 Consultant AI strategic pentru decizii de business
               </p>
@@ -454,7 +457,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
 
         <div className="mt-12 text-center p-6 bg-muted/50 rounded-xl">
           <p className="text-sm text-muted-foreground">
-            <strong>Notă:</strong> Ambele module sunt incluse în abonament. Poți trece de la unul la altul oricând cu un click.
+            <strong>Notă:</strong> Modulul 1 este disponibil pentru toate tipurile de conturi. Modulul 2 (Yana Strategică) este disponibil exclusiv pentru conturile de tip Antreprenor.
           </p>
         </div>
       </section>
