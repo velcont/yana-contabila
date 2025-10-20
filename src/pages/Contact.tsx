@@ -1,8 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, MessageCircle, Building2, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Contact = () => {
+  const navigate = useNavigate();
   const email = "offiice@velcont.com";
   const whatsapp = "+40731377793";
   const whatsappMessage = "Bună! Sunt interesat de serviciile Yana pentru analiză balanță contabilă.";
@@ -139,7 +141,7 @@ const Contact = () => {
               <p className="text-muted-foreground mb-6">
                 Încearcă Yana gratuit și vezi cum analiza ta financiară devine instant clară!
               </p>
-              <Button size="lg" onClick={() => window.location.href = '/'} className="mx-auto">
+              <Button size="lg" onClick={() => navigate('/')} className="mx-auto">
                 Începe o Analiză Acum
               </Button>
             </CardContent>
