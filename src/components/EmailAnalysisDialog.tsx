@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,13 +10,14 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Mail, Loader2, Paperclip } from 'lucide-react';
+import { Mail, Loader2, Paperclip, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatNumber } from '@/utils/analysisParser';
+import { Input } from '@/components/ui/input';
 
 interface EmailAnalysisDialogProps {
   open: boolean;
@@ -38,12 +39,14 @@ export const EmailAnalysisDialog = ({
   latestAnalysis,
 }: EmailAnalysisDialogProps) => {
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [customNote, setCustomNote] = useState('');
-  const [includeAlerts, setIncludeAlerts] = useState(true);
-  const [includeRecommendations, setIncludeRecommendations] = useState(true);
+  const [includeAlerts, setIncludeAlerts] = useState(false);
+  const [includeRecommendations, setIncludeRecommendations] = useState(false);
   const [includePDF, setIncludePDF] = useState(true);
   const [emails, setEmails] = useState(clientEmail || '');
+  const [attachments, setAttachments] = useState<Array<{filename: string, content: string}>>([]);
 
   const normalizeRomanianText = (text: string): string => {
     return text
@@ -173,6 +176,49 @@ export const EmailAnalysisDialog = ({
     return doc.output('datauristring').split(',')[1];
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newAttachments: Array<{filename: string, content: string}> = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      // Max 10MB per file
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'Fișier prea mare',
+          description: `${file.name} depășește 10MB`,
+          variant: 'destructive',
+        });
+        continue;
+      }
+
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      newAttachments.push({
+        filename: file.name,
+        content: base64,
+      });
+    }
+
+    setAttachments([...attachments, ...newAttachments]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
   const handleSendReport = async () => {
     try {
       setLoading(true);
@@ -199,14 +245,6 @@ export const EmailAnalysisDialog = ({
       }
 
       const metadata = latestAnalysis.metadata;
-      
-      const metrics = [
-        { label: 'Cifră de Afaceri', value: `${(metadata.ca || 0).toLocaleString('ro-RO')} RON` },
-        { label: 'Profit', value: `${(metadata.profit || 0).toLocaleString('ro-RO')} RON` },
-        { label: 'EBITDA', value: `${(metadata.ebitda || 0).toLocaleString('ro-RO')} RON` },
-        { label: 'DSO (Zile Încasare)', value: `${(metadata.dso || 0).toFixed(0)} zile` },
-        { label: 'Marjă Profit', value: `${(metadata.profit_margin || 0).toFixed(1)}%` },
-      ];
 
       const alerts = [];
       if (includeAlerts) {
@@ -237,12 +275,8 @@ export const EmailAnalysisDialog = ({
         }
       }
 
-      if (customNote) {
-        recommendations.push(`📝 Notă personală: ${customNote}`);
-      }
-
       const reportData = {
-        metrics,
+        personalNote: customNote || undefined,
         alerts: alerts.length > 0 ? alerts : undefined,
         recommendations: recommendations.length > 0 ? recommendations : undefined,
       };
@@ -265,6 +299,7 @@ export const EmailAnalysisDialog = ({
           companyName,
           reportData,
           pdfAttachment,
+          additionalAttachments: attachments.length > 0 ? attachments : undefined,
           reportMonth: latestAnalysis?.created_at 
             ? new Date(latestAnalysis.created_at).toISOString().slice(0, 7) 
             : undefined,
@@ -285,6 +320,7 @@ export const EmailAnalysisDialog = ({
       onOpenChange(false);
       setCustomNote('');
       setEmails('');
+      setAttachments([]);
     } catch (error: any) {
       console.error('Error sending report:', error);
       
@@ -328,8 +364,23 @@ export const EmailAnalysisDialog = ({
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="note">Mesaj Personalizat *</Label>
+            <Textarea
+              id="note"
+              value={customNote}
+              onChange={(e) => setCustomNote(e.target.value)}
+              placeholder="Scrie mesajul tău personalizat pentru client..."
+              rows={6}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Acest mesaj va fi afișat în email în loc de indicatorii financiari
+            </p>
+          </div>
+
           <div className="space-y-3">
-            <Label>Conținut Raport</Label>
+            <Label>Opțiuni Suplimentare</Label>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="pdf"
@@ -341,7 +392,7 @@ export const EmailAnalysisDialog = ({
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
               >
                 <Paperclip className="h-4 w-4" />
-                Atașează PDF cu analiza completă (obligatoriu)
+                Atașează PDF cu analiza completă
               </label>
             </div>
             <div className="flex items-center space-x-2">
@@ -354,7 +405,7 @@ export const EmailAnalysisDialog = ({
                 htmlFor="alerts"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Include alertele automate în email
+                Include alertele automate
               </label>
             </div>
             <div className="flex items-center space-x-2">
@@ -367,45 +418,53 @@ export const EmailAnalysisDialog = ({
                 htmlFor="recommendations"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Include recomandările automate în email
+                Include recomandările automate
               </label>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="note">Notă Personalizată (Opțional)</Label>
-            <Textarea
-              id="note"
-              value={customNote}
-              onChange={(e) => setCustomNote(e.target.value)}
-              placeholder="Adaugă o notă personalizată pentru client..."
-              rows={4}
-            />
-          </div>
-
-          {latestAnalysis && latestAnalysis.metadata && (
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <p className="text-sm font-medium">Previzualizare Date Raport:</p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">CA:</span>{' '}
-                  {(latestAnalysis.metadata.ca || 0).toLocaleString('ro-RO')} RON
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Profit:</span>{' '}
-                  {(latestAnalysis.metadata.profit || 0).toLocaleString('ro-RO')} RON
-                </div>
-                <div>
-                  <span className="text-muted-foreground">DSO:</span>{' '}
-                  {(latestAnalysis.metadata.dso || 0).toFixed(0)} zile
-                </div>
-                <div>
-                  <span className="text-muted-foreground">EBITDA:</span>{' '}
-                  {(latestAnalysis.metadata.ebitda || 0).toLocaleString('ro-RO')} RON
-                </div>
-              </div>
+            <Label>Atașamente Suplimentare</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-upload"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+              >
+                <Paperclip className="h-4 w-4 mr-2" />
+                Adaugă Fișiere
+              </Button>
+              <p className="text-xs text-muted-foreground">Max 10MB per fișier</p>
             </div>
-          )}
+            {attachments.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {attachments.map((att, index) => (
+                  <div key={index} className="flex items-center justify-between bg-muted p-2 rounded text-sm">
+                    <span className="truncate flex-1">{att.filename}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeAttachment(index)}
+                      disabled={loading}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <DialogFooter>

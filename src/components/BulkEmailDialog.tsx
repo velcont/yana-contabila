@@ -48,14 +48,6 @@ export const BulkEmailDialog = ({
       for (const client of clientsWithEmail) {
         try {
           const metadata = client.latestAnalysis.metadata;
-          
-          const metrics = [
-            { label: 'Cifră de Afaceri', value: `${(metadata.ca || 0).toLocaleString('ro-RO')} RON` },
-            { label: 'Profit', value: `${(metadata.profit || 0).toLocaleString('ro-RO')} RON` },
-            { label: 'EBITDA', value: `${(metadata.ebitda || 0).toLocaleString('ro-RO')} RON` },
-            { label: 'DSO (Zile Încasare)', value: `${(metadata.dso || 0).toFixed(0)} zile` },
-            { label: 'Marjă Profit', value: `${(metadata.profit_margin || 0).toFixed(1)}%` },
-          ];
 
           const alerts = [];
           if (includeAlerts) {
@@ -86,12 +78,8 @@ export const BulkEmailDialog = ({
             }
           }
 
-          if (customNote) {
-            recommendations.push(`📝 Notă personală: ${customNote}`);
-          }
-
           const reportData = {
-            metrics,
+            personalNote: customNote || undefined,
             alerts: alerts.length > 0 ? alerts : undefined,
             recommendations: recommendations.length > 0 ? recommendations : undefined,
           };

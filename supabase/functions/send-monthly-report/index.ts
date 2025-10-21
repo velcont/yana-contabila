@@ -53,6 +53,7 @@ serve(async (req) => {
       reportData, 
       companyName: directCompanyName,
       pdfAttachment,
+      additionalAttachments, // Array of additional file attachments
       reportMonth, // Expected format: "2025-09" or similar
       reportYear
     } = await req.json();
@@ -155,20 +156,12 @@ serve(async (req) => {
               </div>
             ` : ''}
 
-            ${pdfAttachment ? `
+            ${pdfAttachment || (additionalAttachments && additionalAttachments.length > 0) ? `
               <div class="attachment-note">
-                <strong>📎 Analiza completă este atașată în format PDF</strong>
-                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Deschide fișierul atașat pentru a vizualiza raportul detaliat.</p>
+                <strong>📎 Fișiere atașate</strong>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Deschide fișierele atașate pentru detalii.</p>
               </div>
             ` : ''}
-
-            <h2 style="color: ${brandColor}; margin-top: 30px;">Indicatori Cheie</h2>
-            ${reportData.metrics ? reportData.metrics.map((metric: any) => `
-              <div class="metric">
-                <div class="metric-label">${metric.label}</div>
-                <div class="metric-value">${metric.value}</div>
-              </div>
-            `).join('') : ''}
 
             ${reportData.alerts && reportData.alerts.length > 0 ? `
               <h2 style="color: #ef4444; margin-top: 30px;">⚠️ Alerte Importante</h2>
@@ -199,6 +192,17 @@ serve(async (req) => {
       attachments.push({
         filename: pdfAttachment.filename,
         content: pdfAttachment.content,
+      });
+    }
+    // Add additional attachments
+    if (additionalAttachments && Array.isArray(additionalAttachments)) {
+      additionalAttachments.forEach((attachment: any) => {
+        if (attachment.filename && attachment.content) {
+          attachments.push({
+            filename: attachment.filename,
+            content: attachment.content,
+          });
+        }
       });
     }
 
