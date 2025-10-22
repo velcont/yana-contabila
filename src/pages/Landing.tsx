@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Zap, 
   MessageSquare, 
@@ -34,6 +35,25 @@ export const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
   const [demoAnalyses, setDemoAnalyses] = useState<any[]>([]);
+  const [isAccountant, setIsAccountant] = useState(false);
+
+  useEffect(() => {
+    // Check if user is an accountant
+    const checkAccountant = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_type')
+          .eq('id', user.id)
+          .single();
+        
+        setIsAccountant(profile?.subscription_type === 'accounting_firm');
+      }
+    };
+    
+    checkAccountant();
+  }, []);
 
   const features = [
     {
@@ -243,6 +263,17 @@ Perioada: 01/04/2025 - 30/04/2025`,
           >
             Autentificare
           </Button>
+
+          {isAccountant && (
+            <Button
+              size="lg"
+              className="text-lg px-8 py-6 bg-green-600 hover:bg-green-700"
+              onClick={() => navigate('/yanacrm')}
+            >
+              <Building2 className="mr-2 h-5 w-5" />
+              YanaCRM
+            </Button>
+          )}
         </div>
       </section>
 

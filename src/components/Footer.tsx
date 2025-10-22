@@ -83,22 +83,13 @@ export const Footer = () => {
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Confidențialitate
             </Link>
-            {isAccountant ? (
-              <Button
-                onClick={() => navigate('/yanacrm')}
-                className="bg-green-600 hover:bg-green-700 text-white h-8 text-sm inline-flex items-center gap-2"
-              >
-                <Building2 className="h-3 w-3" />
-                YanaCRM
-              </Button>
-            ) : (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <button className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-                    <FileText className="h-3 w-3" />
-                    Tutorial ANAF
-                  </button>
-                </DialogTrigger>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  Tutorial ANAF
+                </button>
+              </DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[80vh]">
                   <DialogHeader>
                     <DialogTitle>🧾 Tutorial: Cum depui declarațiile fiscale la ANAF</DialogTitle>
@@ -193,9 +184,8 @@ export const Footer = () => {
                       </section>
                     </div>
                   </ScrollArea>
-                </DialogContent>
-              </Dialog>
-            )}
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
