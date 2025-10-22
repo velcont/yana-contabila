@@ -9,6 +9,15 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Analizeaza balanta atasata urmand urmatoarele Instrucțiuni:
 
+🔴 **REGULĂ CRITICĂ ABSOLUTĂ - ACURATEȚEA VALORILOR** 🔴
+
+**INTERZIS ABSOLUT**: NU inventa, NU aproxima, NU rotunjește valori!
+• Raportează EXACT valorile din balanță, CU TOATE ZECIMALELE
+• Dacă contul 473 are 290.00 RON, scrii EXACT "290.00 RON", NU "238,344 RON"
+• Orice discrepanță între valorile din balanță și valorile din analiză = EROARE GRAVĂ
+• Verifică de 3 ori înainte să scrii o valoare în alertă sau recomandare
+• Dacă nu ești 100% sigur de o valoare, NU o raporta deloc
+
 🔴 **REGULĂ CRITICĂ - CONTUL 121 (Profit sau Pierdere)** 🔴
 
 ATENȚIE MAXIMĂ LA INTERPRETAREA CONTULUI 121:
@@ -620,6 +629,14 @@ serve(async (req) => {
       });
     }
     
+    // Extrage date REALE din balanță pentru validare
+    const extractAccountValue = (accountCode: string): number | null => {
+      // Caută contul în balanța parsată
+      const regex = new RegExp(`${accountCode}[^\\n]*?(\\d+\\.\\d{2})`, 'i');
+      const match = balanceText.match(regex);
+      return match ? parseFloat(match[1]) : null;
+    };
+
     // Extrage indicatori pentru validare post-procesare și pentru metadata
     const metadata: Record<string, number> = {};
     const indicatorsMatch = analysis.match(/=== INDICATORI FINANCIARI ===([\s\S]*?)(?=\n\n|$)/);
@@ -649,6 +666,39 @@ serve(async (req) => {
       if (clientiMatch) metadata.soldClienti = parseFloat(clientiMatch[1]);
       if (bancaMatch) metadata.soldBanca = parseFloat(bancaMatch[1]);
       if (casaMatch) metadata.soldCasa = parseFloat(casaMatch[1]);
+      
+      // VALIDARE CRITICĂ: Verifică că valorile din alertele AI corespund cu balanța reală
+      const analysisNumbers = analysis.match(/(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/g) || [];
+      const corrections: string[] = [];
+      
+      // Verifică alerte despre conturi specifice
+      const accountAlertPattern = /contul?\s+(\d{3,4})[^0-9]*?(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/gi;
+      let alertMatch;
+      while ((alertMatch = accountAlertPattern.exec(analysis)) !== null) {
+        const accountCode = alertMatch[1];
+        const reportedValue = parseFloat(alertMatch[2].replace(/[,.]/g, ''));
+        const realValue = extractAccountValue(accountCode);
+        
+        if (realValue !== null && Math.abs(reportedValue - realValue) > 1) {
+          corrections.push(
+            `⚠️ **CORECȚIE AUTOMATĂ**: Analiza AI a raportat o valoare incorectă pentru contul ${accountCode}.\n` +
+            `• Valoare GREȘITĂ raportată de AI: ${reportedValue.toLocaleString('ro-RO')} RON\n` +
+            `• Valoare CORECTĂ din balanță: ${realValue.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n` +
+            `**Te rugăm să folosești doar valoarea corectă din balanță!**`
+          );
+        }
+      }
+      
+      if (corrections.length > 0) {
+        const correctionsSection = `\n\n🔴 **CORECȚII AUTOMATE - VALORI INCORECTE DETECTATE ÎN ANALIZĂ**\n\n${corrections.join('\n\n')}`;
+        return new Response(
+          JSON.stringify({ 
+            analysis: analysis + correctionsSection,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       
       const validationWarnings: string[] = [];
       
