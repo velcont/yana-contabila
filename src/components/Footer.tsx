@@ -67,6 +67,19 @@ export const Footer = () => {
             </Button>
           </div>
 
+          {isAccountant && (
+            <>
+              <div className="h-6 w-px bg-border" />
+              <Button
+                onClick={() => navigate('/yanacrm')}
+                className="bg-green-600 hover:bg-green-700 text-white h-9 text-sm font-semibold inline-flex items-center gap-2 px-6"
+              >
+                <Building2 className="h-4 w-4" />
+                YanaCRM
+              </Button>
+            </>
+          )}
+
           <div className="h-6 w-px bg-border" />
 
           <div className="flex items-center gap-4">
