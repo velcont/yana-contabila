@@ -187,19 +187,23 @@ IMPORTANT:
     if (!text) return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
     
     const lines = text.split('\n');
-    // Caută după "CAPITOL", "CAPITOLUL", "Capitolul" (case insensitive)
-    const chapterRegex = new RegExp(chapterMarker.replace(/\d/, '\\d'), 'i');
-    const startIdx = lines.findIndex(line => chapterRegex.test(line));
+
+    // Determină numărul capitolului din marker (ex. "CAPITOL 4")
+    const numMatch = chapterMarker.match(/\d+/);
+    const chapNum = numMatch ? numMatch[0] : '1';
+
+    // Găsește începutul: acceptă "CAPITOL 1", "CAPITOLUL 1", "Capitolul 1", cu/ fără ":"
+    const startRegex = new RegExp(`^\\s*CAPITOL(UL)?\\s+${chapNum}\\b`, 'i');
+    const startIdx = lines.findIndex(line => startRegex.test(line));
     
     if (startIdx === -1) {
       console.log(`Nu am găsit capitol: ${chapterMarker}`);
       return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
     }
     
-    // Caută următorul capitol (CAPITOL 2, CAPITOL 3, etc.)
-    const nextChapterIdx = lines.findIndex((line, idx) => 
-      idx > startIdx + 1 && /CAPITOL(UL)?\s+\d/i.test(line)
-    );
+    // Următorul capitol (orice număr)
+    const nextRegex = /^(.*)?CAPITOL(UL)?\s+\d\b/i;
+    const nextChapterIdx = lines.findIndex((line, idx) => idx > startIdx + 1 && nextRegex.test(line));
     
     const endIdx = nextChapterIdx === -1 ? lines.length : nextChapterIdx;
     const content = lines.slice(startIdx + 1, endIdx).join('\n').trim();
@@ -239,6 +243,12 @@ IMPORTANT:
   const exportThesisDraft = () => {
     if (thesisSections.length === 0) {
       toast.error("Generați mai întâi structura tezei");
+      return;
+    }
+
+    const hasRealContent = thesisSections.some(s => s.content && !s.content.startsWith("[DRAFT"));
+    if (!hasRealContent) {
+      toast.error("Draftul nu conține conținut generat. Apasă ‘Generează Draft Doctorat (Admin)’ și așteaptă confirmarea, apoi exportă.");
       return;
     }
 
