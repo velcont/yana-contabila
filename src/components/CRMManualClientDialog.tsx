@@ -67,77 +67,35 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       // Validate form data
       const validatedData = manualClientSchema.parse(formData);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Nu ești autentificat");
-
-      // Check if email already exists
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", validatedData.email)
-        .maybeSingle();
-
-      let clientUserId: string;
-
-      if (existingProfile) {
-        // User already exists, just create company
-        clientUserId = existingProfile.id;
-        toast({
-          title: "Utilizator existent",
-          description: "Un cont cu acest email există deja. S-a creat doar firma.",
-          variant: "default",
-        });
-      } else {
-        // Create new user account WITHOUT password (admin-created)
-        const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
+      // Call edge function to create client on server side
+      const { data, error } = await supabase.functions.invoke('create-manual-client', {
+        body: {
           email: validatedData.email,
-          email_confirm: true,
-          user_metadata: {
-            full_name: validatedData.full_name || validatedData.company_name,
-            subscription_type: "entrepreneur",
-            created_by_accountant: true,
-            accountant_id: user.id,
-          },
-        });
+          password: Math.random().toString(36).slice(-10), // Generate random password
+          fullName: validatedData.full_name || validatedData.company_name,
+          companyName: validatedData.company_name,
+          cui: validatedData.cif || null,
+          contactPerson: validatedData.full_name || null,
+          phone: validatedData.phone || null,
+          address: validatedData.address || null,
+          taxType: validatedData.tax_type,
+          notes: validatedData.notes || null,
+          vatPayer: validatedData.vat_payer
+        }
+      });
 
-        if (signUpError) throw signUpError;
-        if (!newUser.user) throw new Error("Eroare la crearea contului");
-
-        clientUserId = newUser.user.id;
-
-        // Profile is created automatically via trigger, but update it with additional info
-        await supabase
-          .from("profiles")
-          .update({
-            full_name: validatedData.full_name || validatedData.company_name,
-            phone: validatedData.phone || null,
-          })
-          .eq("id", clientUserId);
+      if (error) {
+        console.error('Error calling edge function:', error);
+        throw new Error(error.message || 'Failed to create client');
       }
 
-      // Create company
-      const { error: companyError } = await supabase
-        .from("companies")
-        .insert({
-          company_name: validatedData.company_name,
-          cif: validatedData.cif || null,
-          vat_payer: validatedData.vat_payer,
-          tax_type: validatedData.tax_type,
-          address: validatedData.address || null,
-          phone: validatedData.phone || null,
-          contact_person: validatedData.full_name || null,
-          contact_email: validatedData.email,
-          notes: validatedData.notes || null,
-          user_id: clientUserId,
-        });
-
-      if (companyError) throw companyError;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to create client');
+      }
 
       toast({
         title: "Client adăugat cu succes!",
-        description: existingProfile 
-          ? "Firma a fost asociată contului existent."
-          : "Un cont nou a fost creat pentru client. Clientul va primi un email pentru a-și seta parola.",
+        description: `${validatedData.company_name} a fost adăugat în sistem`,
       });
 
       resetForm();
