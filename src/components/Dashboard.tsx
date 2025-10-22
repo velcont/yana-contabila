@@ -83,11 +83,14 @@ export const Dashboard = () => {
 
       if (error) throw error;
       
-      // Parse metadata pentru fiecare analiză
-      const analysesWithMetadata = (data || []).map(analysis => ({
-        ...analysis,
-        metadata: parseAnalysisText(analysis.analysis_text)
-      }));
+      // Preferă metadata din bază; dacă lipsește, parsează din text
+      const analysesWithMetadata = (data || []).map((analysis: any) => {
+        const hasDbMetadata = analysis?.metadata && Object.keys(analysis.metadata || {}).length > 0;
+        return {
+          ...analysis,
+          metadata: hasDbMetadata ? analysis.metadata : parseAnalysisText(analysis.analysis_text)
+        } as Analysis;
+      });
       
       setAnalyses(analysesWithMetadata);
     } catch (error) {
