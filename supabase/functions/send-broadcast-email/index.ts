@@ -126,7 +126,7 @@ const handler = async (req: Request): Promise<Response> => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: "Analiza Financiară <onboarding@resend.dev>",
+            from: Deno.env.get("RESEND_FROM_EMAIL") || "YANA Contabilă <onboarding@resend.dev>",
             to: [profile.email],
             subject: subject,
             html: emailHtml,

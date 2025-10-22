@@ -106,7 +106,7 @@ serve(async (req) => {
 
         // Send email via Resend
         const emailResponse = await resend.emails.send({
-          from: "YANA <onboarding@resend.dev>",
+          from: Deno.env.get("RESEND_FROM_EMAIL") || "YANA <onboarding@resend.dev>",
           to: [profile.email],
           subject: subject,
           html: message,

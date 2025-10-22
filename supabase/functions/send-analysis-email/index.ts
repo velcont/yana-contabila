@@ -158,7 +158,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: "Yana AI <noreply@yana-contabila.velcont.com>",
+            from: Deno.env.get("RESEND_FROM_EMAIL") || "Yana AI <onboarding@resend.dev>",
             to: [email],
             subject: `📊 Analiză Financiară - ${companyName} (${analysisDate})`,
             html,

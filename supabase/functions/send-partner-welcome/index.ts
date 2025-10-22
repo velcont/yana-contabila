@@ -35,7 +35,7 @@ const handler = async (req: Request): Promise<Response> => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: "Yana <onboarding@resend.dev>",
+        from: Deno.env.get("RESEND_FROM_EMAIL") || "Yana <onboarding@resend.dev>",
         to: [recipientEmail],
         subject: "Bine ai venit în Yana - Ai fost invitat!",
         html: `

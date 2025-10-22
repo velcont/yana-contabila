@@ -45,7 +45,7 @@ serve(async (req) => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: 'YANA Contabilă <noreply@yana-contabila.ro>',
+      from: Deno.env.get("RESEND_FROM_EMAIL") || 'YANA Contabilă <onboarding@resend.dev>',
       to: [invitation.client_email],
       subject: `Invitație de la ${invitation.profiles.full_name || 'Contabilul tău'}`,
       html: `
