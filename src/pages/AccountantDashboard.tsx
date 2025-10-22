@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -37,6 +37,7 @@ import { CRMMessagingManager } from '@/components/CRMMessagingManager';
 import { EmailManager } from '@/components/EmailManager';
 import { ClientFiscalParamsDialog } from '@/components/ClientFiscalParamsDialog';
 import { BulkEmailDialog } from '@/components/BulkEmailDialog';
+import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ const AccountantDashboard = () => {
   const [fiscalParamsDialogOpen, setFiscalParamsDialogOpen] = useState(false);
   const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
+  const [manualClientDialogOpen, setManualClientDialogOpen] = useState(false);
   
   // Fiscal filters
   const [vatRegimeFilter, setVatRegimeFilter] = useState<string[]>([]);
@@ -315,13 +317,22 @@ const AccountantDashboard = () => {
                   Toți clienții gestionați de firma ta
                 </CardDescription>
               </div>
-              <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Invită Client
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setManualClientDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Adaugă Client Manual
+                </Button>
+                <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Invită Client
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Invită Client Nou</DialogTitle>
@@ -386,6 +397,7 @@ const AccountantDashboard = () => {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              </div>
             </div>
           </CardHeader>
 
@@ -715,6 +727,15 @@ const AccountantDashboard = () => {
             ? clients.filter(c => selectedClients.includes(c.id))
             : filteredClients
           }
+        />
+        
+        <CRMManualClientDialog
+          open={manualClientDialogOpen}
+          onOpenChange={setManualClientDialogOpen}
+          onSuccess={() => {
+            fetchClients();
+            setManualClientDialogOpen(false);
+          }}
         />
       </div>
     </div>
