@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar, Search, Loader2 } from "lucide-react";
+import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar, Search, Loader2, Database, GraduationCap, AlertCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -436,7 +437,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       </Card>
 
       <Tabs defaultValue="adaptability" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
           <TabsTrigger value="adaptability">Adaptabilitate</TabsTrigger>
           <TabsTrigger value="radar">Analiză Vizuală</TabsTrigger>
           <TabsTrigger value="scenarios">Scenarii de Criză</TabsTrigger>
@@ -853,7 +854,226 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
             </div>
           )}
         </TabsContent>
+
+        {/* Tab Statistici Globale - DOAR pentru Admin */}
+        {isAdmin && (
+          <TabsContent value="global-stats" className="space-y-4">
+            <GlobalStatsTab analyses={analyses} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
+  );
+};
+
+// Componenta GlobalStatsTab pentru statistici agregate (admin only)
+const GlobalStatsTab = ({ analyses }: { analyses: Analysis[] }) => {
+  const [globalData, setGlobalData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    calculateGlobalStats();
+  }, [analyses]);
+
+  const calculateGlobalStats = async () => {
+    setLoading(true);
+    
+    // Calculează statistici globale din toate analizele
+    const scores = analyses.map(a => {
+      const profits = [a.metadata.profit || 0];
+      const revenues = [a.metadata.ca || 1];
+      const profitMargin = (profits[0] / revenues[0]) * 100;
+      
+      return {
+        profit: profits[0],
+        profitMargin,
+        ebitda: a.metadata.ebitda || 0,
+        company: a.company_name || 'Unknown'
+      };
+    }).filter(s => s.profit !== 0);
+
+    const avgProfit = scores.reduce((sum, s) => sum + s.profit, 0) / scores.length;
+    const avgMargin = scores.reduce((sum, s) => sum + s.profitMargin, 0) / scores.length;
+    const avgEbitda = scores.reduce((sum, s) => sum + s.ebitda, 0) / scores.length;
+
+    const profitsArray = scores.map(s => s.profit);
+    const minProfit = Math.min(...profitsArray);
+    const maxProfit = Math.max(...profitsArray);
+    const medianProfit = profitsArray.sort((a, b) => a - b)[Math.floor(profitsArray.length / 2)];
+
+    // Clasificare companii după performanță
+    const highPerformers = scores.filter(s => s.profitMargin > 15).length;
+    const mediumPerformers = scores.filter(s => s.profitMargin >= 10 && s.profitMargin <= 15).length;
+    const lowPerformers = scores.filter(s => s.profitMargin < 10).length;
+
+    setGlobalData({
+      totalAnalyses: analyses.length,
+      avgProfit: avgProfit.toFixed(2),
+      avgMargin: avgMargin.toFixed(2),
+      avgEbitda: avgEbitda.toFixed(2),
+      minProfit: minProfit.toFixed(2),
+      maxProfit: maxProfit.toFixed(2),
+      medianProfit: medianProfit.toFixed(2),
+      highPerformers,
+      mediumPerformers,
+      lowPerformers,
+      highPercent: ((highPerformers / scores.length) * 100).toFixed(1),
+      mediumPercent: ((mediumPerformers / scores.length) * 100).toFixed(1),
+      lowPercent: ((lowPerformers / scores.length) * 100).toFixed(1),
+    });
+    
+    setLoading(false);
+  };
+
+  if (loading || !globalData) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Statistici Globale - Cercetare Doctorală
+            </CardTitle>
+            <CardDescription>
+              Date agregate de la toți utilizatorii pentru cercetare academică
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            {globalData.totalAnalyses} analize totale
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Anonimizare:</strong> Toate datele sunt agregate și anonimizate. 
+            Nu includeți nume de companii în publicații fără consimțământ explicit.
+          </AlertDescription>
+        </Alert>
+
+        {/* Statistici Descriptive */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Profit Mediu
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{parseFloat(globalData.avgProfit).toLocaleString('ro-RO')} RON</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Min: {parseFloat(globalData.minProfit).toLocaleString('ro-RO')} RON | 
+                Max: {parseFloat(globalData.maxProfit).toLocaleString('ro-RO')} RON
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Marjă Medie Profit
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{globalData.avgMargin}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Mediană: {parseFloat(globalData.medianProfit).toLocaleString('ro-RO')} RON
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                EBITDA Mediu
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{parseFloat(globalData.avgEbitda).toLocaleString('ro-RO')} RON</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Indicator profitabilitate operațională
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Distribuție Performanță */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Distribuție Performanță Companii</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-green-500" />
+                  <span className="text-sm">Performanță Ridicată (marjă &gt;15%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{globalData.highPerformers} companii</span>
+                  <Badge variant="outline">{globalData.highPercent}%</Badge>
+                </div>
+              </div>
+              <Progress value={parseFloat(globalData.highPercent)} className="h-2 bg-green-100" />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-yellow-500" />
+                  <span className="text-sm">Performanță Medie (marjă 10-15%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{globalData.mediumPerformers} companii</span>
+                  <Badge variant="outline">{globalData.mediumPercent}%</Badge>
+                </div>
+              </div>
+              <Progress value={parseFloat(globalData.mediumPercent)} className="h-2 bg-yellow-100" />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-red-500" />
+                  <span className="text-sm">Performanță Scăzută (marjă &lt;10%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{globalData.lowPerformers} companii</span>
+                  <Badge variant="outline">{globalData.lowPercent}%</Badge>
+                </div>
+              </div>
+              <Progress value={parseFloat(globalData.lowPercent)} className="h-2 bg-red-100" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recomandări pentru Doctorat */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Recomandări pentru Teză Doctorală
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>📊 <strong>Sample size:</strong> {globalData.totalAnalyses} analize lunare de la companii românești</p>
+            <p>📈 <strong>Tendințe observate:</strong> {globalData.highPercent}% companii au performanță ridicată (marjă profitabilitate &gt;15%)</p>
+            <p>💡 <strong>Insight cheie:</strong> Marja medie de profit ({globalData.avgMargin}%) sugerează oportunități de optimizare în {globalData.lowPercent}% din companii</p>
+            <p>🎯 <strong>Contribuție originală:</strong> Analiza comparativă a rezilienței financiare în context post-pandemic poate constitui un aport științific semnificativ</p>
+          </CardContent>
+        </Card>
+      </CardContent>
+    </Card>
   );
 };

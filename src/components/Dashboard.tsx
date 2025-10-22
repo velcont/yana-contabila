@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -520,12 +521,28 @@ INDICATORI OPERAȚIONALI:
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
           {isAdmin && (
-            <Link to="/landing">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Rocket className="h-4 w-4" />
-                Landing
-              </Button>
-            </Link>
+            <>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Admin Mode
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Vizualizezi date de la toți utilizatorii</p>
+                    <p className="text-xs text-muted-foreground">{analyses.length} analize totale în sistem</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Link to="/landing">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Rocket className="h-4 w-4" />
+                  Landing
+                </Button>
+              </Link>
+            </>
           )}
         </div>
         

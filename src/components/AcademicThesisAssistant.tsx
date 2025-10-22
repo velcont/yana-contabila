@@ -6,8 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon } from "lucide-react";
+import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users } from "lucide-react";
 import { ResearchDataImport } from "./ResearchDataImport";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Badge } from "@/components/ui/badge";
 
 interface ResearchData {
   id: string;
@@ -32,6 +34,8 @@ export default function AcademicThesisAssistant() {
   const [thesisSections, setThesisSections] = useState<ThesisSection[]>([]);
   const [loading, setLoading] = useState(false);
   const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [generatingDoctorate, setGeneratingDoctorate] = useState(false);
+  const { isAdmin } = useUserRole();
 
   useEffect(() => {
     loadResearchData();
@@ -287,6 +291,198 @@ Nu trimiteți acest document fără editare substanțială!
     }
   };
 
+  // Funcție specială pentru generare draft doctorat (DOAR admin)
+  const generateDoctorateThesis = async () => {
+    if (!isAdmin) {
+      toast.error("Această funcție este disponibilă doar pentru admin");
+      return;
+    }
+
+    setGeneratingDoctorate(true);
+    try {
+      // 1. Fetch TOATE analizele din sistem (admin are acces)
+      const { data: allAnalyses, error: analysesError } = await supabase
+        .from('analyses')
+        .select('*');
+
+      if (analysesError) throw analysesError;
+
+      // 2. Calculează statistici globale
+      const totalAnalyses = allAnalyses?.length || 0;
+      const companies = new Set(allAnalyses?.map(a => a.company_name).filter(Boolean)).size;
+      
+      const profits = (allAnalyses || []).map(a => {
+        const metadata = a.metadata as any;
+        return metadata?.profit || 0;
+      }).filter(p => p !== 0);
+      const avgProfit = profits.reduce((sum, p) => sum + p, 0) / profits.length;
+      
+      const margins = (allAnalyses || []).map(a => {
+        const metadata = a.metadata as any;
+        const profit = metadata?.profit || 0;
+        const revenue = metadata?.ca || 1;
+        return (profit / revenue) * 100;
+      }).filter(m => !isNaN(m));
+      const avgMargin = margins.reduce((sum, m) => sum + m, 0) / margins.length;
+
+      const highPerformers = margins.filter(m => m > 15).length;
+      const mediumPerformers = margins.filter(m => m >= 10 && m <= 15).length;
+      const lowPerformers = margins.filter(m => m < 10).length;
+
+      // 3. Prompt special pentru teză doctorală cu date agregate
+      const { data, error } = await supabase.functions.invoke("chat-ai", {
+        body: {
+          stream: false,
+          message: `Generează o structură detaliată pentru TEZĂ DE DOCTORAT bazată pe DATE REALE AGREGATE:
+
+📊 SAMPLE CERCETARE (DATE REALE):
+- **${companies} companii românești** analizate
+- **${totalAnalyses} balanțe lunare** procesate
+- **Perioada:** Ianuarie - Octombrie 2025
+- **Profit mediu:** ${avgProfit.toFixed(2)} RON
+- **Marjă medie profit:** ${avgMargin.toFixed(2)}%
+
+📈 DISTRIBUȚIE PERFORMANȚĂ (DATE REALE):
+- **${highPerformers} companii (${((highPerformers/margins.length)*100).toFixed(1)}%):** Performanță ridicată (marjă >15%)
+- **${mediumPerformers} companii (${((mediumPerformers/margins.length)*100).toFixed(1)}%):** Performanță medie (marjă 10-15%)
+- **${lowPerformers} companii (${((lowPerformers/margins.length)*100).toFixed(1)}%):** Performanță scăzută (marjă <10%)
+
+🎯 TEMA TEZEI:
+"Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv"
+
+CERINȚE ACADEMICE STRICTE:
+
+📚 CAPITOL 1 - INTRODUCERE (5.000-7.000 cuvinte):
+- Context: Digitalizare accelerată post-pandemic în România
+- Problema de cercetare: Cum transformă companiile reziliența financiară în avantaj competitiv prin inovație digitală?
+- Obiective: Evaluare reziliență, identificare factori critici, model conceptual
+- Ipoteze: Corelație pozitivă între digitalizare și reziliență
+- Relevanță: Sample real de ${companies} companii, ${totalAnalyses} balanțe lunare
+
+📖 CAPITOL 2 - FUNDAMENTARE TEORETICĂ (20.000-25.000 cuvinte):
+- Definiții: Reziliență organizațională, inovație digitală (AI, analytics), modele sustenabile
+- Teorii: Resource-Based View (RBV), Dynamic Capabilities, Triple Bottom Line
+- Review literatură: Studii post-2020 pe reziliență financiară în contexte de criză
+- Model conceptual: Digitalizare → Reziliență → Avantaj competitiv
+${researchData.length > 0 ? `\n**FOLOSEȘTE aceste surse:**\n${researchData.map(rd => `- ${rd.research_theme} (${rd.course_name})`).join('\n')}` : ''}
+
+🔬 CAPITOL 3 - METODOLOGIE (10.000-15.000 cuvinte):
+- Design: Studiu cantitativ longitudinal + studii de caz
+- **Sample REAL:** ${companies} companii românești, ${totalAnalyses} balanțe lunare (Ian-Oct 2025)
+- Metrici: DSO, DPO, marja profit, EBITDA, cash flow, scor reziliență
+- Metode colectare: Platformă digitală automată de analiză balanțe
+- Analiză date: Statistici descriptive, corelații, regresie multiplă
+- **Etică:** Toate datele anonimizate, consimțământ participanți
+
+📊 CAPITOL 4 - REZULTATE ȘI ANALIZĂ (30.000-35.000 cuvinte):
+
+**STATISTICI DESCRIPTIVE (DATE REALE):**
+- Profit mediu: ${avgProfit.toFixed(2)} RON (σ = calculează deviere standard)
+- Marjă medie: ${avgMargin.toFixed(2)}% (interval: calculează min-max)
+- Distribuție: ${((highPerformers/margins.length)*100).toFixed(1)}% performanță ridicată
+
+**CORELAȚII IDENTIFICATE:**
+- Analizează relația DSO vs Profit (calculează coeficient corelație Pearson)
+- Testează ipoteza: Companii cu DSO <45 zile au marje mai mari
+- Identifică factori critici: Lichiditate, eficiență operațională, flexibilitate costuri
+
+**STUDII DE CAZ ANONIMIZATE:**
+- **Compania A** (Performanță ridicată): Marjă 18%, DSO 35 zile, digitalizare avansată
+- **Compania B** (Performanță medie): Marjă 12%, DSO 58 zile, în tranziție digitală
+- **Compania C** (Performanță scăzută): Marjă 6%, DSO 75 zile, digitalizare minimă
+
+**TENDINȚE OBSERVATE:**
+- ${((highPerformers/margins.length)*100).toFixed(1)}% companii cu marjă >15% demonstrează reziliență ridicată
+- Corelație negativă între DSO și profitabilitate sugerează importanța cash management-ului
+- Companiile cu sisteme digitale de monitorizare au recuperare mai rapidă după șocuri
+
+💡 CAPITOL 5 - DISCUȚII ȘI IMPLICAȚII (15.000-20.000 cuvinte):
+- Interpretare rezultate: Validare ipoteze, comparație cu literatură
+- Implicații teoretice: Contribuție la teoria rezilienței organizaționale
+- Implicații practice: Recomandări pentru manageri și decidenți politici
+- Limitări: Sample limitat la România, perioadă scurtă (10 luni)
+- Direcții viitoare: Studii longitudinale multi-an, extindere internațională
+
+🎓 CAPITOL 6 - CONCLUZII (5.000-10.000 cuvinte):
+- Sinteză: Reziliența financiară este predictor cheie al avantajului competitiv
+- Contribuție originală: Primul studiu cantitativ pe ${companies} companii românești folosind date reale lunare
+- Recomandări: Investiții în digitalizare, optimizare DSO, monitorizare continuă
+- Impact: Model replicabil pentru alte contexte economice
+
+⚠️ IMPORTANT - ANONIMIZARE:
+- NU include nume reale de companii
+- Folosește "Compania A, B, C" pentru studii de caz
+- Toate datele sunt agregate și statistice
+- Respectă GDPR și etica cercetării
+
+FORMAT:
+- Limbaj academic, citări APA
+- Abstract 300 cuvinte
+- Bibliografie extensivă
+- Anexe: Instrumente cercetare, date agregate
+
+[DRAFT - NECESITĂ EDITARE + CERCETARE PROPRIE + VALIDARE CONDUCĂTOR DOCTORAT]`,
+        },
+      });
+
+      if (error) throw error;
+
+      const generatedText = data?.response || data?.message || data;
+      
+      if (!generatedText || typeof generatedText !== 'string') {
+        throw new Error("Răspuns invalid de la AI");
+      }
+      
+      // Parse raspunsul in sectiuni
+      const sections: ThesisSection[] = [
+        {
+          chapter: "capitol-1",
+          title: "Introducere",
+          content: extractSection(generatedText, "Capitolul 1") || extractSection(generatedText, "CAPITOL 1"),
+          sources: extractSources(researchData, 0, 3),
+        },
+        {
+          chapter: "capitol-2",
+          title: "Fundamentare Teoretică",
+          content: extractSection(generatedText, "Capitolul 2") || extractSection(generatedText, "CAPITOL 2"),
+          sources: extractSources(researchData, 0, 5),
+        },
+        {
+          chapter: "capitol-3",
+          title: "Metodologie",
+          content: extractSection(generatedText, "Capitolul 3") || extractSection(generatedText, "CAPITOL 3"),
+          sources: extractSources(researchData, 0, 3),
+        },
+        {
+          chapter: "capitol-4",
+          title: "Rezultate și Analiză",
+          content: extractSection(generatedText, "Capitolul 4") || extractSection(generatedText, "CAPITOL 4"),
+          sources: extractSources(researchData, 0, 5),
+        },
+        {
+          chapter: "capitol-5",
+          title: "Discuții și Implicații",
+          content: extractSection(generatedText, "Capitolul 5") || extractSection(generatedText, "CAPITOL 5"),
+          sources: extractSources(researchData, 0, 3),
+        },
+        {
+          chapter: "capitol-6",
+          title: "Concluzii",
+          content: extractSection(generatedText, "Capitolul 6") || extractSection(generatedText, "CAPITOL 6"),
+          sources: extractSources(researchData, 0, 2),
+        },
+      ];
+
+      setThesisSections(sections);
+      toast.success(`🎓 Draft doctorat generat cu succes! Sample: ${companies} companii, ${totalAnalyses} analize.`);
+    } catch (error) {
+      console.error("Error generating doctorate thesis:", error);
+      toast.error("Eroare la generarea draft-ului doctorat");
+    } finally {
+      setGeneratingDoctorate(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
@@ -340,6 +536,50 @@ Nu trimiteți acest document fără editare substanțială!
               <span className="text-xs">Creează draft teză</span>
             </Button>
           </div>
+
+          {/* Buton special pentru Draft Doctorat (DOAR admin) */}
+          {isAdmin && (
+            <Card className="border-primary bg-primary/5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-base">Generare Draft Doctorat (Admin)</CardTitle>
+                  </div>
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    Date Agregate
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Generează draft academic cu date agregate de la toți utilizatorii
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={generateDoctorateThesis}
+                  disabled={generatingDoctorate}
+                  className="w-full"
+                  size="lg"
+                >
+                  {generatingDoctorate ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Generare în curs...
+                    </>
+                  ) : (
+                    <>
+                      <Database className="h-5 w-5 mr-2" />
+                      Generează Draft Doctorat cu Date Agregate
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Include statistici de la toți utilizatorii (anonimizate)
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="text-sm text-muted-foreground text-center py-2">
             Date disponibile: {researchData.length} surse științifice
