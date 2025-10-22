@@ -603,12 +603,20 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                 </CardHeader>
                 <CardContent>
                   {researchData
-                    .filter(data => data.metrics_collected?.avg_resilience_score)
+                    .filter(data => data.metrics_collected?.avg_resilience_score && typeof data.metrics_collected.avg_resilience_score === 'number')
                     .map((data) => {
-                      const academicScore = data.metrics_collected.avg_resilience_score;
+                      const academicScore = Number(data.metrics_collected.avg_resilience_score) || 0;
                       const userScore = resilienceScore?.overall || 0;
+                      
+                      // Verifică dacă avem date valide
+                      if (academicScore === 0 && userScore === 0) {
+                        return null; // Skip dacă nu avem niciun scor
+                      }
+                      
                       const difference = userScore - academicScore;
-                      const percentageDiff = academicScore !== 0 ? ((difference / academicScore) * 100).toFixed(1) : '0';
+                      const percentageDiff = academicScore > 0 
+                        ? ((difference / academicScore) * 100).toFixed(1) 
+                        : (userScore > 0 ? '+100.0' : '0.0');
                       
                       return (
                         <div key={data.id} className="space-y-4 mb-6">
@@ -625,26 +633,28 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                           <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
                               <p className="text-xs text-muted-foreground mb-1">Scorul Tău</p>
-                              <p className="text-3xl font-bold text-blue-600">{userScore}</p>
+                              <p className="text-3xl font-bold text-blue-600">{userScore}/100</p>
                             </div>
                             <div className="p-4 bg-muted rounded-lg">
                               <p className="text-xs text-muted-foreground mb-1">Benchmark Academic</p>
-                              <p className="text-3xl font-bold">{academicScore}</p>
+                              <p className="text-3xl font-bold">{academicScore > 0 ? `${academicScore}/100` : 'N/A'}</p>
                             </div>
                           </div>
                           
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span>Diferență relativă:</span>
-                              <span className={`font-bold ${difference >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                                {difference >= 0 ? '+' : ''}{percentageDiff}%
-                              </span>
+                          {academicScore > 0 && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span>Diferență relativă:</span>
+                                <span className={`font-bold ${difference >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                                  {difference >= 0 ? '+' : ''}{percentageDiff}%
+                                </span>
+                              </div>
+                              <Progress 
+                                value={Math.min(100, Math.max(0, (userScore / academicScore) * 100))} 
+                                className="h-2"
+                              />
                             </div>
-                            <Progress 
-                              value={Math.min(100, Math.max(0, ((userScore / (academicScore || 1)) * 100)))} 
-                              className="h-2"
-                            />
-                          </div>
+                          )}
                           
                           <div className="p-3 bg-muted/50 rounded-lg">
                             <p className="text-sm">
@@ -660,17 +670,21 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                             </p>
                           </div>
 
-                          {data.metrics_collected.avg_digital_maturity_score && (
+                          {data.metrics_collected.avg_digital_maturity_score && 
+                           typeof data.metrics_collected.avg_digital_maturity_score === 'number' && 
+                           data.metrics_collected.avg_digital_maturity_score > 0 && (
                             <div className="border-t pt-4">
                               <h5 className="text-sm font-semibold mb-2">Maturitate Digitală (Benchmark)</h5>
                               <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                  <Progress value={data.metrics_collected.avg_digital_maturity_score * 10} />
+                                  <Progress value={Math.min(100, data.metrics_collected.avg_digital_maturity_score * 10)} />
                                 </div>
-                                <span className="text-2xl font-bold">{data.metrics_collected.avg_digital_maturity_score}/10</span>
+                                <span className="text-2xl font-bold">
+                                  {Number(data.metrics_collected.avg_digital_maturity_score).toFixed(1)}/10
+                                </span>
                               </div>
                               <p className="text-xs text-muted-foreground mt-2">
-                                Companiile din studiu au un grad mediu de maturitate digitală de {data.metrics_collected.avg_digital_maturity_score}. 
+                                Companiile din studiu au un grad mediu de maturitate digitală de {Number(data.metrics_collected.avg_digital_maturity_score).toFixed(1)}/10. 
                                 Instrumentele digitale pot îmbunătăți reziliența cu până la 30%.
                               </p>
                             </div>
@@ -880,46 +894,62 @@ const GlobalStatsTab = ({ analyses }: { analyses: Analysis[] }) => {
     
     // Calculează statistici globale din toate analizele
     const scores = analyses.map(a => {
-      const profits = [a.metadata.profit || 0];
-      const revenues = [a.metadata.ca || 1];
-      const profitMargin = (profits[0] / revenues[0]) * 100;
+      const profit = a.metadata.profit || 0;
+      const revenue = a.metadata.ca || 0;
+      
+      // Validare: evită împărțirea la 0 și calculează marja corect
+      const profitMargin = revenue > 0 ? (profit / revenue) * 100 : 0;
       
       return {
-        profit: profits[0],
-        profitMargin,
+        profit,
+        profitMargin: isFinite(profitMargin) ? profitMargin : 0,
         ebitda: a.metadata.ebitda || 0,
-        company: a.company_name || 'Unknown'
+        company: a.company_name || 'Unknown',
+        revenue
       };
-    }).filter(s => s.profit !== 0);
+    }).filter(s => s.profit !== 0 || s.revenue !== 0); // Include și analize cu venituri dar fără profit
 
-    const avgProfit = scores.reduce((sum, s) => sum + s.profit, 0) / scores.length;
-    const avgMargin = scores.reduce((sum, s) => sum + s.profitMargin, 0) / scores.length;
-    const avgEbitda = scores.reduce((sum, s) => sum + s.ebitda, 0) / scores.length;
+    // Validare: evită NaN dacă nu avem date
+    const avgProfit = scores.length > 0 
+      ? scores.reduce((sum, s) => sum + s.profit, 0) / scores.length 
+      : 0;
+    const avgMargin = scores.length > 0 
+      ? scores.reduce((sum, s) => sum + s.profitMargin, 0) / scores.length 
+      : 0;
+    const avgEbitda = scores.length > 0 
+      ? scores.reduce((sum, s) => sum + s.ebitda, 0) / scores.length 
+      : 0;
 
-    const profitsArray = scores.map(s => s.profit);
-    const minProfit = Math.min(...profitsArray);
-    const maxProfit = Math.max(...profitsArray);
-    const medianProfit = profitsArray.sort((a, b) => a - b)[Math.floor(profitsArray.length / 2)];
+    const profitsArray = scores.map(s => s.profit).filter(p => isFinite(p));
+    const minProfit = profitsArray.length > 0 ? Math.min(...profitsArray) : 0;
+    const maxProfit = profitsArray.length > 0 ? Math.max(...profitsArray) : 0;
+    const sortedProfits = [...profitsArray].sort((a, b) => a - b);
+    const medianProfit = sortedProfits.length > 0 
+      ? sortedProfits[Math.floor(sortedProfits.length / 2)] 
+      : 0;
 
-    // Clasificare companii după performanță
-    const highPerformers = scores.filter(s => s.profitMargin > 15).length;
-    const mediumPerformers = scores.filter(s => s.profitMargin >= 10 && s.profitMargin <= 15).length;
-    const lowPerformers = scores.filter(s => s.profitMargin < 10).length;
+    // Clasificare companii după performanță (doar cele cu marjă validă)
+    const validMargins = scores.filter(s => isFinite(s.profitMargin) && s.profitMargin !== 0);
+    const highPerformers = validMargins.filter(s => s.profitMargin > 15).length;
+    const mediumPerformers = validMargins.filter(s => s.profitMargin >= 10 && s.profitMargin <= 15).length;
+    const lowPerformers = validMargins.filter(s => s.profitMargin < 10).length;
 
+    const totalClassified = highPerformers + mediumPerformers + lowPerformers;
+    
     setGlobalData({
       totalAnalyses: analyses.length,
-      avgProfit: avgProfit.toFixed(2),
-      avgMargin: avgMargin.toFixed(2),
-      avgEbitda: avgEbitda.toFixed(2),
-      minProfit: minProfit.toFixed(2),
-      maxProfit: maxProfit.toFixed(2),
-      medianProfit: medianProfit.toFixed(2),
+      avgProfit: isFinite(avgProfit) ? avgProfit.toFixed(2) : '0.00',
+      avgMargin: isFinite(avgMargin) ? avgMargin.toFixed(2) : '0.00',
+      avgEbitda: isFinite(avgEbitda) ? avgEbitda.toFixed(2) : '0.00',
+      minProfit: isFinite(minProfit) ? minProfit.toFixed(2) : '0.00',
+      maxProfit: isFinite(maxProfit) ? maxProfit.toFixed(2) : '0.00',
+      medianProfit: isFinite(medianProfit) ? medianProfit.toFixed(2) : '0.00',
       highPerformers,
       mediumPerformers,
       lowPerformers,
-      highPercent: ((highPerformers / scores.length) * 100).toFixed(1),
-      mediumPercent: ((mediumPerformers / scores.length) * 100).toFixed(1),
-      lowPercent: ((lowPerformers / scores.length) * 100).toFixed(1),
+      highPercent: totalClassified > 0 ? ((highPerformers / totalClassified) * 100).toFixed(1) : '0.0',
+      mediumPercent: totalClassified > 0 ? ((mediumPerformers / totalClassified) * 100).toFixed(1) : '0.0',
+      lowPercent: totalClassified > 0 ? ((lowPerformers / totalClassified) * 100).toFixed(1) : '0.0',
     });
     
     setLoading(false);
