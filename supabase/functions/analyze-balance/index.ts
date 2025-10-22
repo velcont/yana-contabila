@@ -18,6 +18,16 @@ const SYSTEM_PROMPT = `Analizeaza balanta atasata urmand urmatoarele Instrucțiu
 • Verifică de 3 ori înainte să scrii o valoare în alertă sau recomandare
 • Dacă nu ești 100% sigur de o valoare, NU o raporta deloc
 
+🔴 **REGULĂ CRITICĂ - NU INVENTA CONTURI INEXISTENTE** 🔴
+
+**ATENȚIE MAXIMĂ**: Raportează DOAR conturile care au SOLD FINAL semnificativ!
+• NU menționa un cont dacă SOLD FINAL este 0.00 sau lipsește
+• NU confunda "Solduri inițiale" sau "Rulaje" cu "Solduri finale"  
+• Dacă un cont are sold inițial sau rulaje dar SOLD FINAL = 0, atunci contul NU EXISTĂ în perioada curentă
+• Exemplu: Cont 419 cu sold inițial 100 RON dar sold final 0.00 → NU îl raporta în analiză!
+• Analizează EXCLUSIV coloana "Solduri finale" pentru conturile din clasele 1-5
+• Dacă un cont nu apare deloc în balanță → NU îl inventa!
+
 🔴 **REGULĂ CRITICĂ - CONTUL 121 (Profit sau Pierdere)** 🔴
 
 ATENȚIE MAXIMĂ LA INTERPRETAREA CONTULUI 121:
@@ -630,11 +640,34 @@ serve(async (req) => {
     }
     
     // Extrage date REALE din balanță pentru validare
-    const extractAccountValue = (accountCode: string): number | null => {
-      // Caută contul în balanța parsată
-      const regex = new RegExp(`${accountCode}[^\\n]*?(\\d+\\.\\d{2})`, 'i');
-      const match = balanceText.match(regex);
-      return match ? parseFloat(match[1]) : null;
+    const extractAccountValue = (accountCode: string): { finalBalance: number | null, exists: boolean } => {
+      // Caută contul în balanța parsată - trebuie să fie pe o singură linie
+      const lineRegex = new RegExp(`^.*${accountCode}[^\\n]*$`, 'gim');
+      const lines = balanceText.match(lineRegex);
+      
+      if (!lines || lines.length === 0) {
+        return { finalBalance: null, exists: false };
+      }
+      
+      // Ia ultima linie găsită (cea mai relevantă)
+      const accountLine = lines[lines.length - 1];
+      
+      // Extrage toate valorile numerice din linia contului
+      const numbers = accountLine.match(/\d+\.\d{2}/g);
+      
+      if (!numbers || numbers.length === 0) {
+        return { finalBalance: null, exists: false };
+      }
+      
+      // Pentru conturile din clasa 1-5, soldurile finale sunt ultimele 2 valori (debitor și creditor)
+      // Ia valoarea mai mare (sold final poate fi debitor SAU creditor, nu ambele)
+      const lastTwo = numbers.slice(-2).map(n => parseFloat(n));
+      const finalBalance = Math.max(...lastTwo);
+      
+      // Consideră contul inexistent dacă soldul final este 0 sau foarte mic (< 0.10 RON)
+      const exists = finalBalance > 0.10;
+      
+      return { finalBalance: exists ? finalBalance : null, exists };
     };
 
     // Extrage indicatori pentru validare post-procesare și pentru metadata
@@ -677,13 +710,22 @@ serve(async (req) => {
       while ((alertMatch = accountAlertPattern.exec(analysis)) !== null) {
         const accountCode = alertMatch[1];
         const reportedValue = parseFloat(alertMatch[2].replace(/[,.]/g, ''));
-        const realValue = extractAccountValue(accountCode);
+        const accountData = extractAccountValue(accountCode);
         
-        if (realValue !== null && Math.abs(reportedValue - realValue) > 1) {
+        // Verifică dacă AI-ul menționează un cont care nu există sau are sold 0
+        if (!accountData.exists) {
+          corrections.push(
+            `🔴 **EROARE CRITICĂ**: Analiza AI menționează contul ${accountCode} cu ${reportedValue.toLocaleString('ro-RO')} RON, ` +
+            `dar acest cont **NU APARE** în balanța pentru perioada curentă sau are sold final 0.00 RON!\n\n` +
+            `**CONCLUZIE**: Contul ${accountCode} este INEXISTENT sau ÎNCHIS în această perioadă. ` +
+            `AI-ul a inventat această informație! Ignoră orice alertă sau analiză legată de acest cont.`
+          );
+        } else if (accountData.finalBalance !== null && Math.abs(reportedValue - accountData.finalBalance) > 1) {
+          // Verifică dacă valoarea raportată este greșită
           corrections.push(
             `⚠️ **CORECȚIE AUTOMATĂ**: Analiza AI a raportat o valoare incorectă pentru contul ${accountCode}.\n` +
             `• Valoare GREȘITĂ raportată de AI: ${reportedValue.toLocaleString('ro-RO')} RON\n` +
-            `• Valoare CORECTĂ din balanță: ${realValue.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n` +
+            `• Valoare CORECTĂ din balanță (sold final): ${accountData.finalBalance.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n` +
             `**Te rugăm să folosești doar valoarea corectă din balanță!**`
           );
         }
