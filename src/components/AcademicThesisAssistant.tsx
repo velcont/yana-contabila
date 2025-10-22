@@ -184,31 +184,51 @@ IMPORTANT:
   };
 
   const extractSection = (text: string | undefined, chapterMarker: string): string => {
-    if (!text) return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
-    
+    const placeholder = "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
+    if (!text) return placeholder;
+
     const lines = text.split('\n');
 
     // Determină numărul capitolului din marker (ex. "CAPITOL 4")
     const numMatch = chapterMarker.match(/\d+/);
     const chapNum = numMatch ? numMatch[0] : '1';
 
-    // Găsește începutul: acceptă "CAPITOL 1", "CAPITOLUL 1", "Capitolul 1", cu/ fără ":"
+    // 1) Primul criteriu: capete de capitol tip "CAPITOL 1" / "CAPITOLUL 1" (cu/ fără ":")
     const startRegex = new RegExp(`^\\s*CAPITOL(UL)?\\s+${chapNum}\\b`, 'i');
-    const startIdx = lines.findIndex(line => startRegex.test(line));
-    
+    let startIdx = lines.findIndex(line => startRegex.test(line));
+
+    // 2) Fallback: dacă nu găsim "CAPITOL N", încearcă titluri uzuale RO per capitol
     if (startIdx === -1) {
-      console.log(`Nu am găsit capitol: ${chapterMarker}`);
-      return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
+      const altHeadersByChapter: Record<string, RegExp[]> = {
+        '1': [/^\s*INTRODUCERE\b/i],
+        '2': [/^\s*(FUNDAMENTARE|CADRU\s+TEORETIC)\b/i],
+        '3': [/^\s*METODOLOGIE\b/i],
+        '4': [/^\s*(REZULTATE|ANALIZ[ĂA])\b/i],
+        '5': [/^\s*(DISCU[TȚ]II|IMPLICA[TȚ]II)\b/i],
+        '6': [/^\s*CONCLUZII\b/i],
+      };
+
+      const candidates = altHeadersByChapter[chapNum] || [];
+      startIdx = lines.findIndex(line => candidates.some(rx => rx.test(line)));
+
+      if (startIdx === -1) {
+        console.log(`Nu am găsit capitol: ${chapterMarker} (nici fallback)`);
+        return placeholder;
+      } else {
+        console.log(`✳️ Folosesc fallback header pentru capitolul ${chapNum} la linia ${startIdx}`);
+      }
     }
-    
-    // Următorul capitol (orice număr)
-    const nextRegex = /^(.*)?CAPITOL(UL)?\s+\d\b/i;
-    const nextChapterIdx = lines.findIndex((line, idx) => idx > startIdx + 1 && nextRegex.test(line));
-    
+
+    // 3) Determină următorul capăt de capitol (poate fi "CAPITOL M" sau un alt header alternativ)
+    const nextCapRegex = /^(.*)?CAPITOL(UL)?\s+\d\b/i;
+    const altAnyHeaderRegex = /^\s*(INTRODUCERE|FUNDAMENTARE|CADRU\s+TEORETIC|METODOLOGIE|REZULTATE|ANALIZ[ĂA]|DISCU[TȚ]II|IMPLICA[TȚ]II|CONCLUZII)\b/i;
+
+    const nextChapterIdx = lines.findIndex((line, idx) => idx > startIdx + 1 && (nextCapRegex.test(line) || altAnyHeaderRegex.test(line)));
+
     const endIdx = nextChapterIdx === -1 ? lines.length : nextChapterIdx;
     const content = lines.slice(startIdx + 1, endIdx).join('\n').trim();
-    
-    return content || "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
+
+    return content || placeholder;
   };
 
   const extractSources = (data: ResearchData[], start: number, count: number): Array<{text: string, links: Array<{title: string, url: string}>}> => {
@@ -355,6 +375,16 @@ Nu trimiteți acest document fără editare substanțială!
       const poorCount = margins.filter(m => m < 5).length;
 
       // 3. Apel edge function dedicat pentru draft doctorat
+      console.log("📊 Statistici pentru draft:", {
+        totalAnalyses,
+        companies,
+        avgProfit,
+        avgMargin,
+        highPerformers,
+        lowPerformers,
+        margins: { excellent: excellentCount, good: goodCount, average: averageCount, poor: poorCount }
+      });
+
       const { data, error } = await supabase.functions.invoke("generate-doctorate-draft", {
         body: {
           totalAnalyses,
