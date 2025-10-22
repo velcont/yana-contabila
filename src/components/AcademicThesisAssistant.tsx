@@ -348,78 +348,33 @@ Nu trimiteți acest document fără editare substanțială!
       const mediumPerformers = margins.filter(m => m >= 10 && m <= 15).length;
       const lowPerformers = margins.filter(m => m < 10).length;
 
-      // 3. Prompt concis și eficient pentru teză doctorală
-      const { data, error } = await supabase.functions.invoke("chat-ai", {
+      // Calculează statistici suplimentare pentru marje
+      const excellentCount = margins.filter(m => m > 15).length;
+      const goodCount = margins.filter(m => m >= 10 && m <= 15).length;
+      const averageCount = margins.filter(m => m >= 5 && m < 10).length;
+      const poorCount = margins.filter(m => m < 5).length;
+
+      // 3. Apel edge function dedicat pentru draft doctorat
+      const { data, error } = await supabase.functions.invoke("generate-doctorate-draft", {
         body: {
-          stream: false,
-          message: `Generează conținut detaliat pentru TEZĂ DOCTORAT (6 capitole) cu DATE REALE:
-
-📊 SAMPLE: ${companies} companii, ${totalAnalyses} balanțe lunare (Ian-Oct 2025)
-💰 STATISTICI: Profit mediu ${avgProfit.toFixed(0)} RON, Marjă ${avgMargin.toFixed(1)}%
-📈 DISTRIBUȚIE: ${highPerformers} (${((highPerformers/margins.length)*100).toFixed(0)}%) performanță ridicată, ${lowPerformers} (${((lowPerformers/margins.length)*100).toFixed(0)}%) scăzută
-
-TEMA: "Inovație digitală și reziliență financiară - transformarea rezilienței în avantaj competitiv"
-
-Generează TEXT COMPLET pentru fiecare capitol:
-
-CAPITOL 1: INTRODUCERE (2000 cuvinte)
-Context: Post-pandemie, digitalizare România
-Problemă: Cum digitalizarea îmbunătățește reziliența?
-Obiective: Măsurare reziliență, factori critici, model conceptual
-Ipoteze: H1 (digitalizare → reziliență), H2 (DSO <45 → profit mare)
-Relevanță: Sample real ${companies} companii românești
-
-CAPITOL 2: FUNDAMENTARE TEORETICĂ (3000 cuvinte)
-Definiții: Reziliență organizațională, inovație digitală, AI/analytics
-Teorii: Resource-Based View, Dynamic Capabilities
-Review: Studii 2020-2025 pe reziliență în criză
-Model: Digitalizare → Resilință → Avantaj competitiv
-
-CAPITOL 3: METODOLOGIE (2000 cuvinte)
-Design: Studiu cantitativ + studii caz
-Sample REAL: ${companies} companii, ${totalAnalyses} balanțe
-Metrici: DSO, DPO, profit, EBITDA, cash flow
-Colectare: Platformă automată
-Analiză: Corelații, regresie
-Etică: Anonimizare, GDPR
-
-CAPITOL 4: REZULTATE (4000 cuvinte)
-STATISTICI REALE:
-- Profit: ${avgProfit.toFixed(0)} RON (calculează σ)
-- Marjă: ${avgMargin.toFixed(1)}%
-- ${((highPerformers/margins.length)*100).toFixed(0)}% performanță ridicată (>15%)
-
-CORELAȚII:
-- DSO vs Profit (negativă)
-- Digitalizare vs Reziliență (pozitivă)
-- Managementul cash → profitabilitate
-
-STUDII CAZ ANONIMIZATE:
-Compania A: Marjă 18%, DSO 35, digitalizare avansată
-Compania B: Marjă 12%, DSO 58, tranziție digitală
-Compania C: Marjă 6%, DSO 75, digitalizare minimă
-
-CAPITOL 5: DISCUȚII (2000 cuvinte)
-Interpretare: Validare ipoteze vs literatură
-Implicații teoretice: Contribuție teorie reziliență
-Implicații practice: Recomandări manageri
-Limitări: Sample România, 10 luni
-Viitor: Studii multi-an, extindere
-
-CAPITOL 6: CONCLUZII (1500 cuvinte)
-Sinteză: Reziliența = predictor avantaj competitiv
-Contribuție: Primul studiu ${companies} companii românești cu date lunare reale
-Recomandări: Digitalizare, optimizare DSO, monitorizare
-Impact: Model replicabil
-
-FORMAT: Limbaj academic, paragraf detaliate, fără bullet points. 
-ANONIMIZARE: Fără nume companii reale.`,
+          totalAnalyses,
+          companies,
+          avgProfit,
+          avgMargin,
+          highPerformers,
+          lowPerformers,
+          margins: {
+            excellent: excellentCount,
+            good: goodCount,
+            average: averageCount,
+            poor: poorCount
+          }
         },
       });
 
       if (error) throw error;
 
-      const generatedText = data?.response || data?.message || data;
+      const generatedText = data?.fullText;
       
       if (!generatedText || typeof generatedText !== 'string') {
         throw new Error("Răspuns invalid de la AI");
