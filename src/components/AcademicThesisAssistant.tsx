@@ -187,15 +187,24 @@ IMPORTANT:
     if (!text) return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
     
     const lines = text.split('\n');
-    const startIdx = lines.findIndex(line => line.includes(chapterMarker));
-    if (startIdx === -1) return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
+    // Caută după "CAPITOL", "CAPITOLUL", "Capitolul" (case insensitive)
+    const chapterRegex = new RegExp(chapterMarker.replace(/\d/, '\\d'), 'i');
+    const startIdx = lines.findIndex(line => chapterRegex.test(line));
     
+    if (startIdx === -1) {
+      console.log(`Nu am găsit capitol: ${chapterMarker}`);
+      return "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
+    }
+    
+    // Caută următorul capitol (CAPITOL 2, CAPITOL 3, etc.)
     const nextChapterIdx = lines.findIndex((line, idx) => 
-      idx > startIdx + 1 && line.match(/Capitolul \d/)
+      idx > startIdx + 1 && /CAPITOL(UL)?\s+\d/i.test(line)
     );
     
     const endIdx = nextChapterIdx === -1 ? lines.length : nextChapterIdx;
-    return lines.slice(startIdx + 1, endIdx).join('\n').trim();
+    const content = lines.slice(startIdx + 1, endIdx).join('\n').trim();
+    
+    return content || "[DRAFT - NECESITĂ EDITARE]\n\nSecțiune incompletă. Adăugați conținut bazat pe cercetarea dvs.";
   };
 
   const extractSources = (data: ResearchData[], start: number, count: number): Array<{text: string, links: Array<{title: string, url: string}>}> => {
@@ -329,99 +338,72 @@ Nu trimiteți acest document fără editare substanțială!
       const mediumPerformers = margins.filter(m => m >= 10 && m <= 15).length;
       const lowPerformers = margins.filter(m => m < 10).length;
 
-      // 3. Prompt special pentru teză doctorală cu date agregate
+      // 3. Prompt concis și eficient pentru teză doctorală
       const { data, error } = await supabase.functions.invoke("chat-ai", {
         body: {
           stream: false,
-          message: `Generează o structură detaliată pentru TEZĂ DE DOCTORAT bazată pe DATE REALE AGREGATE:
+          message: `Generează conținut detaliat pentru TEZĂ DOCTORAT (6 capitole) cu DATE REALE:
 
-📊 SAMPLE CERCETARE (DATE REALE):
-- **${companies} companii românești** analizate
-- **${totalAnalyses} balanțe lunare** procesate
-- **Perioada:** Ianuarie - Octombrie 2025
-- **Profit mediu:** ${avgProfit.toFixed(2)} RON
-- **Marjă medie profit:** ${avgMargin.toFixed(2)}%
+📊 SAMPLE: ${companies} companii, ${totalAnalyses} balanțe lunare (Ian-Oct 2025)
+💰 STATISTICI: Profit mediu ${avgProfit.toFixed(0)} RON, Marjă ${avgMargin.toFixed(1)}%
+📈 DISTRIBUȚIE: ${highPerformers} (${((highPerformers/margins.length)*100).toFixed(0)}%) performanță ridicată, ${lowPerformers} (${((lowPerformers/margins.length)*100).toFixed(0)}%) scăzută
 
-📈 DISTRIBUȚIE PERFORMANȚĂ (DATE REALE):
-- **${highPerformers} companii (${((highPerformers/margins.length)*100).toFixed(1)}%):** Performanță ridicată (marjă >15%)
-- **${mediumPerformers} companii (${((mediumPerformers/margins.length)*100).toFixed(1)}%):** Performanță medie (marjă 10-15%)
-- **${lowPerformers} companii (${((lowPerformers/margins.length)*100).toFixed(1)}%):** Performanță scăzută (marjă <10%)
+TEMA: "Inovație digitală și reziliență financiară - transformarea rezilienței în avantaj competitiv"
 
-🎯 TEMA TEZEI:
-"Inovație digitală și modele de afaceri sustenabile – transformarea rezilienței în avantaj competitiv"
+Generează TEXT COMPLET pentru fiecare capitol:
 
-CERINȚE ACADEMICE STRICTE:
+CAPITOL 1: INTRODUCERE (2000 cuvinte)
+Context: Post-pandemie, digitalizare România
+Problemă: Cum digitalizarea îmbunătățește reziliența?
+Obiective: Măsurare reziliență, factori critici, model conceptual
+Ipoteze: H1 (digitalizare → reziliență), H2 (DSO <45 → profit mare)
+Relevanță: Sample real ${companies} companii românești
 
-📚 CAPITOL 1 - INTRODUCERE (5.000-7.000 cuvinte):
-- Context: Digitalizare accelerată post-pandemic în România
-- Problema de cercetare: Cum transformă companiile reziliența financiară în avantaj competitiv prin inovație digitală?
-- Obiective: Evaluare reziliență, identificare factori critici, model conceptual
-- Ipoteze: Corelație pozitivă între digitalizare și reziliență
-- Relevanță: Sample real de ${companies} companii, ${totalAnalyses} balanțe lunare
+CAPITOL 2: FUNDAMENTARE TEORETICĂ (3000 cuvinte)
+Definiții: Reziliență organizațională, inovație digitală, AI/analytics
+Teorii: Resource-Based View, Dynamic Capabilities
+Review: Studii 2020-2025 pe reziliență în criză
+Model: Digitalizare → Resilință → Avantaj competitiv
 
-📖 CAPITOL 2 - FUNDAMENTARE TEORETICĂ (20.000-25.000 cuvinte):
-- Definiții: Reziliență organizațională, inovație digitală (AI, analytics), modele sustenabile
-- Teorii: Resource-Based View (RBV), Dynamic Capabilities, Triple Bottom Line
-- Review literatură: Studii post-2020 pe reziliență financiară în contexte de criză
-- Model conceptual: Digitalizare → Reziliență → Avantaj competitiv
-${researchData.length > 0 ? `\n**FOLOSEȘTE aceste surse:**\n${researchData.map(rd => `- ${rd.research_theme} (${rd.course_name})`).join('\n')}` : ''}
+CAPITOL 3: METODOLOGIE (2000 cuvinte)
+Design: Studiu cantitativ + studii caz
+Sample REAL: ${companies} companii, ${totalAnalyses} balanțe
+Metrici: DSO, DPO, profit, EBITDA, cash flow
+Colectare: Platformă automată
+Analiză: Corelații, regresie
+Etică: Anonimizare, GDPR
 
-🔬 CAPITOL 3 - METODOLOGIE (10.000-15.000 cuvinte):
-- Design: Studiu cantitativ longitudinal + studii de caz
-- **Sample REAL:** ${companies} companii românești, ${totalAnalyses} balanțe lunare (Ian-Oct 2025)
-- Metrici: DSO, DPO, marja profit, EBITDA, cash flow, scor reziliență
-- Metode colectare: Platformă digitală automată de analiză balanțe
-- Analiză date: Statistici descriptive, corelații, regresie multiplă
-- **Etică:** Toate datele anonimizate, consimțământ participanți
+CAPITOL 4: REZULTATE (4000 cuvinte)
+STATISTICI REALE:
+- Profit: ${avgProfit.toFixed(0)} RON (calculează σ)
+- Marjă: ${avgMargin.toFixed(1)}%
+- ${((highPerformers/margins.length)*100).toFixed(0)}% performanță ridicată (>15%)
 
-📊 CAPITOL 4 - REZULTATE ȘI ANALIZĂ (30.000-35.000 cuvinte):
+CORELAȚII:
+- DSO vs Profit (negativă)
+- Digitalizare vs Reziliență (pozitivă)
+- Managementul cash → profitabilitate
 
-**STATISTICI DESCRIPTIVE (DATE REALE):**
-- Profit mediu: ${avgProfit.toFixed(2)} RON (σ = calculează deviere standard)
-- Marjă medie: ${avgMargin.toFixed(2)}% (interval: calculează min-max)
-- Distribuție: ${((highPerformers/margins.length)*100).toFixed(1)}% performanță ridicată
+STUDII CAZ ANONIMIZATE:
+Compania A: Marjă 18%, DSO 35, digitalizare avansată
+Compania B: Marjă 12%, DSO 58, tranziție digitală
+Compania C: Marjă 6%, DSO 75, digitalizare minimă
 
-**CORELAȚII IDENTIFICATE:**
-- Analizează relația DSO vs Profit (calculează coeficient corelație Pearson)
-- Testează ipoteza: Companii cu DSO <45 zile au marje mai mari
-- Identifică factori critici: Lichiditate, eficiență operațională, flexibilitate costuri
+CAPITOL 5: DISCUȚII (2000 cuvinte)
+Interpretare: Validare ipoteze vs literatură
+Implicații teoretice: Contribuție teorie reziliență
+Implicații practice: Recomandări manageri
+Limitări: Sample România, 10 luni
+Viitor: Studii multi-an, extindere
 
-**STUDII DE CAZ ANONIMIZATE:**
-- **Compania A** (Performanță ridicată): Marjă 18%, DSO 35 zile, digitalizare avansată
-- **Compania B** (Performanță medie): Marjă 12%, DSO 58 zile, în tranziție digitală
-- **Compania C** (Performanță scăzută): Marjă 6%, DSO 75 zile, digitalizare minimă
+CAPITOL 6: CONCLUZII (1500 cuvinte)
+Sinteză: Reziliența = predictor avantaj competitiv
+Contribuție: Primul studiu ${companies} companii românești cu date lunare reale
+Recomandări: Digitalizare, optimizare DSO, monitorizare
+Impact: Model replicabil
 
-**TENDINȚE OBSERVATE:**
-- ${((highPerformers/margins.length)*100).toFixed(1)}% companii cu marjă >15% demonstrează reziliență ridicată
-- Corelație negativă între DSO și profitabilitate sugerează importanța cash management-ului
-- Companiile cu sisteme digitale de monitorizare au recuperare mai rapidă după șocuri
-
-💡 CAPITOL 5 - DISCUȚII ȘI IMPLICAȚII (15.000-20.000 cuvinte):
-- Interpretare rezultate: Validare ipoteze, comparație cu literatură
-- Implicații teoretice: Contribuție la teoria rezilienței organizaționale
-- Implicații practice: Recomandări pentru manageri și decidenți politici
-- Limitări: Sample limitat la România, perioadă scurtă (10 luni)
-- Direcții viitoare: Studii longitudinale multi-an, extindere internațională
-
-🎓 CAPITOL 6 - CONCLUZII (5.000-10.000 cuvinte):
-- Sinteză: Reziliența financiară este predictor cheie al avantajului competitiv
-- Contribuție originală: Primul studiu cantitativ pe ${companies} companii românești folosind date reale lunare
-- Recomandări: Investiții în digitalizare, optimizare DSO, monitorizare continuă
-- Impact: Model replicabil pentru alte contexte economice
-
-⚠️ IMPORTANT - ANONIMIZARE:
-- NU include nume reale de companii
-- Folosește "Compania A, B, C" pentru studii de caz
-- Toate datele sunt agregate și statistice
-- Respectă GDPR și etica cercetării
-
-FORMAT:
-- Limbaj academic, citări APA
-- Abstract 300 cuvinte
-- Bibliografie extensivă
-- Anexe: Instrumente cercetare, date agregate
-
-[DRAFT - NECESITĂ EDITARE + CERCETARE PROPRIE + VALIDARE CONDUCĂTOR DOCTORAT]`,
+FORMAT: Limbaj academic, paragraf detaliate, fără bullet points. 
+ANONIMIZARE: Fără nume companii reale.`,
         },
       });
 
@@ -433,42 +415,45 @@ FORMAT:
         throw new Error("Răspuns invalid de la AI");
       }
       
+      // Log pentru debug
+      console.log("📄 Răspuns AI (primele 500 caractere):", generatedText.substring(0, 500));
+      
       // Parse raspunsul in sectiuni
       const sections: ThesisSection[] = [
         {
           chapter: "capitol-1",
           title: "Introducere",
-          content: extractSection(generatedText, "Capitolul 1") || extractSection(generatedText, "CAPITOL 1"),
+          content: extractSection(generatedText, "CAPITOL 1"),
           sources: extractSources(researchData, 0, 3),
         },
         {
           chapter: "capitol-2",
           title: "Fundamentare Teoretică",
-          content: extractSection(generatedText, "Capitolul 2") || extractSection(generatedText, "CAPITOL 2"),
+          content: extractSection(generatedText, "CAPITOL 2"),
           sources: extractSources(researchData, 0, 5),
         },
         {
           chapter: "capitol-3",
           title: "Metodologie",
-          content: extractSection(generatedText, "Capitolul 3") || extractSection(generatedText, "CAPITOL 3"),
+          content: extractSection(generatedText, "CAPITOL 3"),
           sources: extractSources(researchData, 0, 3),
         },
         {
           chapter: "capitol-4",
           title: "Rezultate și Analiză",
-          content: extractSection(generatedText, "Capitolul 4") || extractSection(generatedText, "CAPITOL 4"),
+          content: extractSection(generatedText, "CAPITOL 4"),
           sources: extractSources(researchData, 0, 5),
         },
         {
           chapter: "capitol-5",
           title: "Discuții și Implicații",
-          content: extractSection(generatedText, "Capitolul 5") || extractSection(generatedText, "CAPITOL 5"),
+          content: extractSection(generatedText, "CAPITOL 5"),
           sources: extractSources(researchData, 0, 3),
         },
         {
           chapter: "capitol-6",
           title: "Concluzii",
-          content: extractSection(generatedText, "Capitolul 6") || extractSection(generatedText, "CAPITOL 6"),
+          content: extractSection(generatedText, "CAPITOL 6"),
           sources: extractSources(researchData, 0, 2),
         },
       ];
