@@ -277,8 +277,14 @@ Verifică dacă: \`diferenta == sold_cont121\`.
 Dacă textul Excel-ului este insuficient sau ilizibil, răspunde explicit: "Se acceptă DOAR fișiere Excel lizibile ale balanței de verificare. Reîncarcă un Excel exportat clar din programul de contabilitate."
 
 5) INDICATORI FINANCIARI STRUCTURAȚI (OBLIGATORIU LA SFÂRȘIT):
-LA SFÂRȘITUL ANALIZEI, ADAUGĂ O SECȚIUNE CU TITLUL "=== INDICATORI FINANCIARI ===" și include următorii indicatori în format structurat (exact așa cum sunt specificați mai jos):
 
+🔴 ABSOLUT OBLIGATORIU 🔴
+
+LA SFÂRȘITUL ANALIZEI, ADAUGĂ O SECȚIUNE CU TITLUL "=== INDICATORI FINANCIARI ===" și include următorii indicatori în format structurat (exact așa cum sunt specificați mai jos).
+
+ATENȚIE: ACEASTA NU ESTE OPȚIONALĂ! Fără această secțiune, analiza este incompletă și va genera erori în sistem!
+
+=== INDICATORI FINANCIARI ===
 DSO: [valoare_numerică]
 DPO: [valoare_numerică]
 CCC: [valoare_numerică]
@@ -296,11 +302,11 @@ Unde:
 - DPO (Days Payable Outstanding) = (Furnizori / Cheltuieli) × 365
 - CCC (Cash Conversion Cycle) = DSO - DPO
 - EBITDA = calculat din date disponibile
-- CA = Cifra de afaceri totală
-- Cheltuieli = Total cheltuieli (clasa 6)
-- Profit = sold cont 121
+- CA = Cifra de afaceri totală (total clasa 7)
+- Cheltuieli = Total cheltuieli (total clasa 6)
+- Profit = sold cont 121 (creditor = profit, debitor = pierdere cu semnul minus)
 
-IMPORTANT: Această secțiune trebuie să apară obligatoriu la sfârșitul fiecărei analize, cu valorile numerice clare (fără separatori de mii, doar punct pentru zecimale).
+IMPORTANT: Această secțiune trebuie să apară OBLIGATORIU la sfârșitul fiecărei analize, cu valorile numerice clare (fără separatori de mii, doar punct pentru zecimale, fără RON).
 
 Exemplu de format corect:
 === INDICATORI FINANCIARI ===
@@ -314,7 +320,9 @@ Profit: 261909.27
 Sold Furnizori: 150000.00
 Sold Clienti: 200000.00
 Sold Banca: 50000.00
-Sold Casa: 5000.00`;
+Sold Casa: 5000.00
+
+REPETĂM: ACEASTĂ SECȚIUNE ESTE OBLIGATORIE! NU UITA SĂ O ADAUGI LA SFÂRȘIT!`;
 
 // Parse Excel file with proper number formatting
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
@@ -612,17 +620,35 @@ serve(async (req) => {
       });
     }
     
-    // Extrage indicatori pentru validare post-procesare
+    // Extrage indicatori pentru validare post-procesare și pentru metadata
+    const metadata: Record<string, number> = {};
     const indicatorsMatch = analysis.match(/=== INDICATORI FINANCIARI ===([\s\S]*?)(?=\n\n|$)/);
     if (indicatorsMatch) {
       const indicators = indicatorsMatch[1];
       const dsoMatch = indicators.match(/DSO:\s*(\d+\.?\d*)/);
       const dpoMatch = indicators.match(/DPO:\s*(\d+\.?\d*)/);
+      const cccMatch = indicators.match(/CCC:\s*(-?\d+\.?\d*)/);
       const ebitdaMatch = indicators.match(/EBITDA:\s*(-?\d+\.?\d*)/);
       const caMatch = indicators.match(/CA:\s*(\d+\.?\d*)/);
       const cheltuieliMatch = indicators.match(/Cheltuieli:\s*(\d+\.?\d*)/);
       const profitMatch = indicators.match(/Profit:\s*(-?\d+\.?\d*)/);
+      const furnizoriMatch = indicators.match(/Sold Furnizori:\s*(\d+\.?\d*)/);
+      const clientiMatch = indicators.match(/Sold Clienti:\s*(\d+\.?\d*)/);
+      const bancaMatch = indicators.match(/Sold Banca:\s*(\d+\.?\d*)/);
       const casaMatch = indicators.match(/Sold Casa:\s*(\d+\.?\d*)/);
+      
+      // Populează metadata
+      if (dsoMatch) metadata.dso = parseFloat(dsoMatch[1]);
+      if (dpoMatch) metadata.dpo = parseFloat(dpoMatch[1]);
+      if (cccMatch) metadata.cashConversionCycle = parseFloat(cccMatch[1]);
+      if (ebitdaMatch) metadata.ebitda = parseFloat(ebitdaMatch[1]);
+      if (caMatch) metadata.revenue = parseFloat(caMatch[1]);
+      if (cheltuieliMatch) metadata.expenses = parseFloat(cheltuieliMatch[1]);
+      if (profitMatch) metadata.profit = parseFloat(profitMatch[1]);
+      if (furnizoriMatch) metadata.soldFurnizori = parseFloat(furnizoriMatch[1]);
+      if (clientiMatch) metadata.soldClienti = parseFloat(clientiMatch[1]);
+      if (bancaMatch) metadata.soldBanca = parseFloat(bancaMatch[1]);
+      if (casaMatch) metadata.soldCasa = parseFloat(casaMatch[1]);
       
       const validationWarnings: string[] = [];
       
@@ -678,14 +704,20 @@ serve(async (req) => {
       if (validationWarnings.length > 0) {
         const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
         return new Response(
-          JSON.stringify({ analysis: analysis + warningsSection }),
+          JSON.stringify({ 
+            analysis: analysis + warningsSection,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
     
     return new Response(
-      JSON.stringify({ analysis }),
+      JSON.stringify({ 
+        analysis,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

@@ -215,9 +215,14 @@ const Index = () => {
           
           if (user) {
             try {
-              // Parse financial indicators from analysis text
-              const { parseAnalysisText } = await import('@/utils/analysisParser');
-              const indicators = parseAnalysisText(data.analysis);
+              // Use metadata from edge function response, or fallback to parsing
+              let indicators = data.metadata || {};
+              
+              // If metadata is missing from response, parse from analysis text
+              if (!data.metadata || Object.keys(data.metadata).length === 0) {
+                const { parseAnalysisText } = await import('@/utils/analysisParser');
+                indicators = parseAnalysisText(data.analysis);
+              }
               
               const { error: saveError } = await supabase
                 .from('analyses')
