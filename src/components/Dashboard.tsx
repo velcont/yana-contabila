@@ -93,6 +93,30 @@ export const Dashboard = () => {
         } as Analysis;
       });
       
+      // Logging pentru observabilitate
+      const withMetadata = analysesWithMetadata.filter(a => Object.keys(a.metadata || {}).length >= 3).length;
+      const withoutMetadata = analysesWithMetadata.length - withMetadata;
+      console.log(`📊 Analize încărcate: ${analysesWithMetadata.length} total, ${withMetadata} cu metadata completă, ${withoutMetadata} fără metadata`);
+      
+      if (withoutMetadata > 0 && analysesWithMetadata.length > 0) {
+        // Toast doar dacă sunt analize recente fără metadata
+        const recentWithoutMetadata = analysesWithMetadata
+          .filter(a => Object.keys(a.metadata || {}).length < 3)
+          .filter(a => {
+            const daysSinceCreation = (Date.now() - new Date(a.created_at).getTime()) / (1000 * 60 * 60 * 24);
+            return daysSinceCreation < 7; // Ultimele 7 zile
+          });
+        
+        if (recentWithoutMetadata.length > 0) {
+          toast({
+            title: '⚠️ Date numerice incomplete',
+            description: `${recentWithoutMetadata.length} ${recentWithoutMetadata.length === 1 ? 'analiză recentă nu are' : 'analize recente nu au'} indicatori financiari completi. Reîncarcă balanțele pentru date complete.`,
+            variant: 'default',
+            duration: 8000
+          });
+        }
+      }
+      
       setAnalyses(analysesWithMetadata);
     } catch (error) {
       console.error('Error loading analyses:', error);

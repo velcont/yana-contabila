@@ -489,20 +489,29 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           // Save analysis to database
           const { data: { user } } = await supabase.auth.getUser();
           if (user && data) {
+            const metadataToSave = data.metadata || {};
+            console.log(`💾 Salvare analiză în DB - metadata cu ${Object.keys(metadataToSave).length} chei:`, Object.keys(metadataToSave));
+            
             const { error: saveError } = await supabase
               .from('analyses')
               .insert({
                 user_id: user.id,
                 analysis_text: data.analysis || '',
-                metadata: data.metadata || {},
+                metadata: metadataToSave,
                 file_name: file.name,
                 company_name: data.company_name || null
               });
 
             if (saveError) {
-              console.error('Error saving analysis to database:', saveError);
+              console.error('❌ Eroare salvare analiză:', saveError);
             } else {
+              console.log('✅ Analiză salvată cu succes în baza de date');
               window.dispatchEvent(new CustomEvent('analysis:created'));
+              
+              // Verifică dacă metadata a fost salvată corect
+              if (Object.keys(metadataToSave).length === 0) {
+                console.warn('⚠️ ATENȚIE: Metadata salvată este GOALĂ! Acest lucru va cauza probleme la comparații.');
+              }
             }
           }
 

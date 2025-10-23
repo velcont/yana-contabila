@@ -488,6 +488,144 @@ serve(async (req) => {
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
 
+    // CALCUL DETERMINIST AL INDICATORILOR DIN EXCEL
+    console.log("📊 Calcul determinist indicatori financiari din Excel...");
+    const deterministic_metadata: Record<string, number> = {};
+    
+    try {
+      // Parse Excel pentru a extrage date structurate
+      const excelBytes = Uint8Array.from(atob(excelBase64), c => c.charCodeAt(0));
+      const workbook = XLSX.read(excelBytes, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][];
+      
+      // Găsește indexurile coloanelor importante
+      let headerRowIndex = -1;
+      let soldFinalDebitCol = -1;
+      let soldFinalCreditCol = -1;
+      let totalSumeDebitCol = -1;
+      let totalSumeCreditCol = -1;
+      let contCol = -1;
+      
+      for (let i = 0; i < Math.min(10, data.length); i++) {
+        const row = data[i];
+        if (!row || row.length === 0) continue;
+        
+        const rowStr = row.join('|').toLowerCase();
+        if (rowStr.includes('sold') && (rowStr.includes('final') || rowStr.includes('finale'))) {
+          headerRowIndex = i;
+          
+          for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j]).toLowerCase();
+            if (cell.includes('cont') || cell.includes('simbol')) contCol = j;
+            if (cell.includes('sold') && cell.includes('final') && cell.includes('debit')) soldFinalDebitCol = j;
+            if (cell.includes('sold') && cell.includes('final') && cell.includes('credit')) soldFinalCreditCol = j;
+            if ((cell.includes('total') && cell.includes('sume') && cell.includes('debit')) || 
+                (cell.includes('rulaj') && cell.includes('debit'))) totalSumeDebitCol = j;
+            if ((cell.includes('total') && cell.includes('sume') && cell.includes('credit')) || 
+                (cell.includes('rulaj') && cell.includes('credit'))) totalSumeCreditCol = j;
+          }
+          break;
+        }
+      }
+      
+      console.log(`📍 Header row: ${headerRowIndex}, Cont col: ${contCol}, Sold Final D/C: ${soldFinalDebitCol}/${soldFinalCreditCol}, Total D/C: ${totalSumeDebitCol}/${totalSumeCreditCol}`);
+      
+      if (headerRowIndex === -1 || contCol === -1) {
+        console.warn("⚠️ Nu s-au găsit coloanele necesare pentru calcul determinist");
+      } else {
+        // Funcție helper pentru a extrage valoare numerică
+        const getNumValue = (row: any[], colIndex: number): number => {
+          if (colIndex === -1) return 0;
+          const val = row[colIndex];
+          if (val === null || val === undefined || val === '') return 0;
+          const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^\d.-]/g, ''));
+          return isNaN(num) ? 0 : num;
+        };
+        
+        // Extrage valori pentru calcule
+        let soldClienti = 0; // 4111
+        let soldFurnizori = 0; // 401
+        let soldBanca = 0; // 5121, 5124, 5125
+        let soldCasa = 0; // 5311
+        let totalVenituri = 0; // clasa 7 (Total sume Credit)
+        let totalCheltuieli = 0; // clasa 6 (Total sume Debit)
+        let reduceriComerciale = 0; // 709
+        
+        // Parcurge toate rândurile de date
+        for (let i = headerRowIndex + 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length === 0) continue;
+          
+          const cont = String(row[contCol] || '').trim();
+          if (!cont || !/^\d{3,4}/.test(cont)) continue; // Skip dacă nu e cont valid
+          
+          const contCode = cont.match(/^(\d{3,4})/)?.[1] || '';
+          
+          // Sold Final Debitor/Creditor (pentru conturi clasa 1-5)
+          const soldFinalDebit = getNumValue(row, soldFinalDebitCol);
+          const soldFinalCredit = getNumValue(row, soldFinalCreditCol);
+          
+          // Total sume Debit/Credit (pentru conturi clasa 6-7)
+          const totalSumeDebit = getNumValue(row, totalSumeDebitCol);
+          const totalSumeCredit = getNumValue(row, totalSumeCreditCol);
+          
+          // Extrage solduri specifice
+          if (contCode === '4111') soldClienti = soldFinalDebit;
+          if (contCode === '401') soldFurnizori = soldFinalCredit;
+          if (contCode === '5121' || contCode === '5124' || contCode === '5125') soldBanca += soldFinalDebit;
+          if (contCode === '5311') soldCasa = soldFinalDebit;
+          
+          // Venituri (clasa 7) - Total sume Credit
+          if (contCode.startsWith('7') && contCode !== '709') {
+            totalVenituri += totalSumeCredit;
+          }
+          // Reduceri comerciale (709) - scădem din venituri
+          if (contCode === '709') {
+            reduceriComerciale = totalSumeCredit;
+          }
+          // Cheltuieli (clasa 6) - Total sume Debit
+          if (contCode.startsWith('6')) {
+            totalCheltuieli += totalSumeDebit;
+          }
+        }
+        
+        // Calculează CA net
+        const revenue = Math.max(0, totalVenituri - reduceriComerciale);
+        const expenses = totalCheltuieli;
+        const profit = revenue - expenses;
+        
+        // Calculează indicatori
+        deterministic_metadata.revenue = revenue;
+        deterministic_metadata.expenses = expenses;
+        deterministic_metadata.profit = profit;
+        deterministic_metadata.soldClienti = soldClienti;
+        deterministic_metadata.soldFurnizori = soldFurnizori;
+        deterministic_metadata.soldBanca = soldBanca;
+        deterministic_metadata.soldCasa = soldCasa;
+        
+        // DSO: (Sold Clienți / CA perioadă) * 365
+        if (revenue > 0) {
+          deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
+        }
+        
+        // DPO: (Sold Furnizori / Cheltuieli) * 365
+        if (expenses > 0) {
+          deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
+        }
+        
+        // Cash Conversion Cycle: DSO + DIO - DPO (DIO = 0 dacă nu avem CMV)
+        if (deterministic_metadata.dso && deterministic_metadata.dpo) {
+          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso - deterministic_metadata.dpo;
+        }
+        
+        console.log("✅ Metadata calculate determinist:", deterministic_metadata);
+      }
+    } catch (calcError) {
+      console.error("❌ Eroare calcul determinist:", calcError);
+      console.log("⚠️ Continuăm cu extragerea din text AI");
+    }
+
     if (!balanceText || balanceText.length < 100) {
       return new Response(
         JSON.stringify({
@@ -670,8 +808,8 @@ serve(async (req) => {
       return { finalBalance: exists ? finalBalance : null, exists };
     };
 
-    // Extrage indicatori pentru validare post-procesare și pentru metadata
-    const metadata: Record<string, number> = {};
+    // Pornește cu metadata deterministă calculată din Excel
+    const metadata: Record<string, number> = { ...deterministic_metadata };
     
     console.log("🔍 Cautare sectiune INDICATORI FINANCIARI in analiza...");
     
@@ -762,7 +900,12 @@ serve(async (req) => {
       console.log("📊 Metadata fallback extrase:", Object.keys(metadata).length, "indicatori");
     }
     
-    console.log("✅ Metadata final:", metadata);
+    // Prioritizează metadata deterministă peste cea extrasă din text
+    // (păstrează doar valorile AI dacă nu există în deterministic)
+    const finalMetadata = { ...metadata, ...deterministic_metadata };
+    console.log("✅ Metadata final (prioritate determinist):", finalMetadata);
+    console.log(`   - Calculat determinist: ${Object.keys(deterministic_metadata).length} indicatori`);
+    console.log(`   - Extras din AI: ${Object.keys(metadata).length - Object.keys(deterministic_metadata).length} indicatori`);
     
     // VALIDARE CRITICĂ: Verifică că valorile din alertele AI corespund cu balanța reală
     const analysisNumbers = analysis.match(/(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/g) || [];
@@ -800,7 +943,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           analysis: analysis + correctionsSection,
-          metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+          metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -808,26 +951,26 @@ serve(async (req) => {
     
     const validationWarnings: string[] = [];
     
-    // Validare DSO folosind metadata
-    if (metadata.dso && metadata.dso > 90) {
-      validationWarnings.push(`⚠️ ALERTĂ CRITICĂ: DSO extrem de ridicat (${metadata.dso} zile) - Banii sunt blocați în creanțe prea mult timp`);
+    // Validare DSO folosind finalMetadata
+    if (finalMetadata.dso && finalMetadata.dso > 90) {
+      validationWarnings.push(`⚠️ ALERTĂ CRITICĂ: DSO extrem de ridicat (${finalMetadata.dso} zile) - Banii sunt blocați în creanțe prea mult timp`);
     }
     
     // Validare Cash flow negativ
-    if (metadata.revenue && metadata.expenses) {
-      if (metadata.expenses > metadata.revenue) {
-        validationWarnings.push(`🔴 PIERDERE GARANTATĂ: Cheltuielile (${metadata.expenses.toLocaleString('ro-RO')}) depășesc veniturile (${metadata.revenue.toLocaleString('ro-RO')})`);
+    if (finalMetadata.revenue && finalMetadata.expenses) {
+      if (finalMetadata.expenses > finalMetadata.revenue) {
+        validationWarnings.push(`🔴 PIERDERE GARANTATĂ: Cheltuielile (${finalMetadata.expenses.toLocaleString('ro-RO')}) depășesc veniturile (${finalMetadata.revenue.toLocaleString('ro-RO')})`);
       }
     }
     
-    // Validare plafon casă
-    if (metadata.soldCasa && metadata.soldCasa > 50000) {
-      validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit - ${metadata.soldCasa.toLocaleString('ro-RO')} RON (max legal: 50.000 RON)`);
+    // Validare plafon casă folosind finalMetadata
+    if (finalMetadata.soldCasa && finalMetadata.soldCasa > 50000) {
+      validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit! Aveți ${finalMetadata.soldCasa.toLocaleString('ro-RO')} RON în casă. Maximum legal: 50.000 RON`);
     }
     
     // Validare CRITICĂ: Verifică dacă interpretarea profitului/pierderii este corectă
-    if (metadata.profit !== undefined) {
-      const profitValue = metadata.profit;
+    if (finalMetadata.profit !== undefined) {
+      const profitValue = finalMetadata.profit;
       const analysisLower = analysis.toLowerCase();
       
       // Detectează contradicții în interpretarea profitului
@@ -860,7 +1003,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           analysis: analysis + warningsSection,
-          metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+          metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -869,7 +1012,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         analysis,
-        metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+        metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

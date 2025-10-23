@@ -26,11 +26,13 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
   const analysis2 = analyses.find(a => a.id === period2);
 
   const calculateDiff = (val1: number, val2: number) => {
-    if (!val1 || !val2) return 0;
+    // Handle zero or missing values - return null to display N/A
+    if (!val1 || !val2 || val1 === 0) return null;
     return ((val2 - val1) / val1) * 100;
   };
 
-  const renderDiffBadge = (diff: number) => {
+  const renderDiffBadge = (diff: number | null) => {
+    if (diff === null) return <Badge variant="outline" className="gap-1 text-muted-foreground">N/A</Badge>;
     if (Math.abs(diff) < 1) return <Badge variant="outline" className="gap-1"><Minus className="h-3 w-3" />{diff.toFixed(1)}%</Badge>;
     if (diff > 0) return <Badge variant="default" className="gap-1 bg-success text-success-foreground"><TrendingUp className="h-3 w-3" />+{diff.toFixed(1)}%</Badge>;
     return <Badge variant="destructive" className="gap-1"><TrendingDown className="h-3 w-3" />{diff.toFixed(1)}%</Badge>;
@@ -91,7 +93,20 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
         </div>
 
         {analysis1 && analysis2 && (
-          <div className="space-y-3">
+          <>
+            {/* Warning if metadata is incomplete */}
+            {(Object.keys(analysis1.metadata).length < 3 || Object.keys(analysis2.metadata).length < 3) && (
+              <div className="bg-warning/10 border border-warning rounded-lg p-4 mb-4">
+                <p className="text-sm font-medium text-warning">
+                  ⚠️ Atenție: Una sau ambele analize nu conțin date numerice complete.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Reîncarcă balanțele după actualizarea sistemului pentru a avea toate indicatorii disponibili.
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-3">
             <div className="grid grid-cols-4 gap-4 pb-2 border-b font-medium text-sm">
               <div>Indicator</div>
               <div className="text-right">Perioada 1</div>
@@ -107,13 +122,18 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
               return (
                 <div key={metric.key} className="grid grid-cols-4 gap-4 items-center py-2 hover:bg-muted/50 rounded px-2">
                   <div className="font-medium text-sm">{metric.label}</div>
-                  <div className="text-right text-sm text-muted-foreground">{metric.formatter(val1)}</div>
-                  <div className="text-right text-sm font-medium">{metric.formatter(val2)}</div>
+                  <div className="text-right text-sm text-muted-foreground">
+                    {val1 ? metric.formatter(val1) : 'N/A'}
+                  </div>
+                  <div className="text-right text-sm font-medium">
+                    {val2 ? metric.formatter(val2) : 'N/A'}
+                  </div>
                   <div className="text-right">{renderDiffBadge(diff)}</div>
                 </div>
               );
             })}
           </div>
+          </>
         )}
 
         {(!analysis1 || !analysis2) && (
