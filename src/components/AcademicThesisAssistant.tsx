@@ -24,6 +24,7 @@ interface ResearchData {
   metrics_collected: any;
   data_collection_date: string;
   research_notes: string | null;
+  content: string | null;
 }
 
 interface ThesisSection {
@@ -607,12 +608,74 @@ IMPORTANT:
   const fetchScientificLiterature = async () => {
     setLoading(true);
     try {
+      const { batchFetchTranscripts, isYouTubeUrl } = await import('@/lib/youtubeTranscript');
+      
+      toast.info("🔍 Căutare literatură științifică...");
+      
+      // 1. Apelează edge function-ul pentru căutare
       const { data, error } = await supabase.functions.invoke("fetch-research-data");
       
       if (error) throw error;
       
-      toast.success("Date științifice actualizate!");
+      toast.success(`✓ Găsite ${data.papers_analyzed || 0} articole și ${data.videos_analyzed || 0} video-uri!`);
+      
+      // 2. Reload data pentru a obține înregistrările noi
       await loadResearchData();
+      
+      // 3. Obține toate resursele recent adăugate care conțin link-uri YouTube
+      const { data: recentResources } = await supabase
+        .from('research_data')
+        .select('id, research_notes, content')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (!recentResources || recentResources.length === 0) {
+        return;
+      }
+      
+      // 4. Identifică resursele cu link-uri YouTube care nu au transcript
+      const youtubeResources = recentResources.filter(r => 
+        r.research_notes && 
+        isYouTubeUrl(r.research_notes) && 
+        (!r.content || r.content.length < 100)
+      );
+      
+      if (youtubeResources.length === 0) {
+        console.log("✓ Nu există video-uri YouTube noi fără transcript");
+        return;
+      }
+      
+      console.log(`📝 Găsite ${youtubeResources.length} video-uri YouTube pentru extragere transcript...`);
+      toast.info(`📝 Extragere transcripturi pentru ${youtubeResources.length} video-uri...`);
+      
+      // 5. Extrage transcripturile în batch
+      const urls = youtubeResources.map(r => r.research_notes!);
+      const transcripts = await batchFetchTranscripts(urls);
+      
+      // 6. Actualizează resursele cu transcripturile extrase
+      let successCount = 0;
+      for (const resource of youtubeResources) {
+        const transcript = transcripts.get(resource.research_notes!);
+        if (transcript) {
+          const { error: updateError } = await supabase
+            .from('research_data')
+            .update({ content: transcript })
+            .eq('id', resource.id);
+          
+          if (!updateError) {
+            successCount++;
+            console.log(`✓ Transcript actualizat pentru resursa ${resource.id}`);
+          }
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`🎉 ${successCount}/${youtubeResources.length} transcripturi extrase cu succes!`);
+        await loadResearchData();
+      } else {
+        toast.warning("⚠️ Nu s-au putut extrage transcripturi (video-uri fără subtitle sau private)");
+      }
+      
     } catch (error) {
       console.error("Error fetching research:", error);
       toast.error("Eroare la căutarea literaturii științifice");
@@ -944,6 +1007,153 @@ IMPORTANT:
           <div className="text-sm text-muted-foreground text-center py-2">
             Date disponibile: {researchData.length} surse științifice
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Secțiune pentru adăugare manuală resurse individuale */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Plus className="h-5 w-5 text-primary" />
+            <CardTitle>Adaugă Resursă Individual</CardTitle>
+          </div>
+          <CardDescription>
+            Adaugă articole sau video-uri cu conținut detaliat pentru draft-ul tezei
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+            <div>
+              <Label htmlFor="resource-title">Titlu Resursă *</Label>
+              <Input
+                id="resource-title"
+                placeholder="Ex: Dispelling Five Myths on Business Resilience"
+                value={newResourceTitle}
+                onChange={(e) => setNewResourceTitle(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="resource-link">Link YouTube sau Articol (opțional)</Label>
+              <Input
+                id="resource-link"
+                placeholder="https://www.youtube.com/watch?v=... sau link articol"
+                value={newResourceLink}
+                onChange={(e) => setNewResourceLink(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Pentru YouTube: transcriptul se va extrage automat dacă e disponibil
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="resource-content">
+                Rezumat și Note Despre Resursă *
+                <span className="text-sm text-muted-foreground ml-2">
+                  (Scrie ideile cheie, concluziile, citatele importante)
+                </span>
+              </Label>
+              <Textarea
+                id="resource-content"
+                placeholder="Exemplu:
+
+Video-ul/articolul discută 5 mituri despre reziliență organizațională:
+
+1. Mitul rezistenței: Reziliența ≠ rigiditate. Nu înseamnă să rezişti neschimbat, ci să te adaptezi rapid.
+
+2. Mitul costurilor: Investiția în reziliență nu e o cheltuială inutilă - previne pierderi mult mai mari în criză.
+
+3. Mitul planificării totale: Nu poți anticipa totul. Reziliența = flexibilitate + capacitate de improvizație.
+
+Concluzie cheie: Companiile resiliente investesc în capabilități dinamice, nu doar în procese rigide."
+                value={newResourceContent}
+                onChange={(e) => setNewResourceContent(e.target.value)}
+                rows={12}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Minimum 50 caractere. Cu cât mai detaliat, cu atât mai bun draft-ul generat.
+              </p>
+            </div>
+
+            <Button onClick={handleAddResource} className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              Adaugă Resursă
+            </Button>
+          </div>
+
+          {/* Lista resurselor adăugate manual */}
+          {researchData.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <h3 className="font-semibold text-sm mb-3">Resurse Adăugate ({researchData.length}):</h3>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-3">
+                  {researchData.map((resource) => (
+                    <div 
+                      key={resource.id} 
+                      className="border rounded-lg p-4 space-y-2 bg-card hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm line-clamp-2">
+                            {resource.course_name || resource.research_theme}
+                          </h4>
+                          
+                          {resource.research_notes && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <a 
+                                href={resource.research_notes} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:text-blue-700 text-xs flex items-center gap-1 truncate"
+                              >
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{resource.research_notes}</span>
+                              </a>
+                              
+                              {/* Indicator transcript extras pentru YouTube */}
+                              {resource.content && 
+                               resource.research_notes.includes('youtube') && 
+                               resource.content.length > 200 && (
+                                <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs flex-shrink-0">
+                                  <TranscriptIcon className="h-3 w-3 mr-1" />
+                                  Transcript {Math.round(resource.content.length / 1000)}k
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Preview conținut */}
+                          {resource.content && (
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                                📄 Vezi conținut/transcript ({resource.content.length} caractere)
+                              </summary>
+                              <div className="mt-2 bg-muted/50 p-3 rounded text-xs max-h-40 overflow-y-auto">
+                                <p className="whitespace-pre-wrap font-mono">
+                                  {resource.content.substring(0, 500)}
+                                  {resource.content.length > 500 && '...'}
+                                </p>
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                        
+                        <Button 
+                          onClick={() => deleteResource(resource.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
         </CardContent>
       </Card>
 
