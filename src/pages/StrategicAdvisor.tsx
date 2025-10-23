@@ -197,7 +197,7 @@ export default function StrategicAdvisor() {
   }, [messages]);
 
   const sendMessage = async (messageText?: string) => {
-    const textToSend = messageText || input.trim();
+    const textToSend = messageText ?? input.trim();
     if (!textToSend || isLoading) return;
 
     const userMessage: Message = {
@@ -209,8 +209,15 @@ export default function StrategicAdvisor() {
     console.info("[StrategicAdvisor] ▶️ sendMessage start", { conversationId, textLength: textToSend.length });
 
     setMessages(prev => [...prev, userMessage]);
-    setInput("");
+    // Nu goli inputul înainte de răspuns – evităm senzația că "dispare" textul
     setIsLoading(true);
+
+    // Watchdog: nu lăsăm interfața blocată dacă backend-ul întârzie
+    const watchdog = setTimeout(() => {
+      console.warn("[StrategicAdvisor] ⏱️ Timeout – reset isLoading");
+      setIsLoading(false);
+      toast.error("Răspunsul întârzie. Te rugăm încearcă din nou.");
+    }, 15000);
 
     try {
       const { data, error } = await supabase.functions.invoke("strategic-advisor", {
@@ -224,7 +231,6 @@ export default function StrategicAdvisor() {
 
       let aiContent = "";
       if (data?.error) {
-        // Backend returned an application error
         toast.error(data.error);
         aiContent = `⚠️ Eroare: ${data.error}`;
       } else if (typeof data === "string") {
@@ -246,6 +252,9 @@ export default function StrategicAdvisor() {
 
       setMessages(prev => [...prev, aiMessage]);
       console.info("[StrategicAdvisor] ✅ Response appended", { hasContent: !!aiContent, length: aiContent.length });
+
+      // Golește inputul doar după răspuns
+      setInput("");
     } catch (error: any) {
       console.error("[StrategicAdvisor] ❌ Error invoking function:", error);
       const friendly =
@@ -256,7 +265,7 @@ export default function StrategicAdvisor() {
           : "A apărut o eroare. Te rog încearcă din nou.";
       toast.error(friendly);
 
-      // Păstrăm mesajul utilizatorului și adăugăm un mesaj de eroare ca asistent
+      // Adăugăm un mesaj de eroare pentru claritate; păstrăm textul în input
       setMessages(prev => [
         ...prev,
         {
@@ -267,7 +276,7 @@ export default function StrategicAdvisor() {
         },
       ]);
     } finally {
-      // CRITIC: Întotdeauna resetează isLoading, chiar și în caz de eroare
+      clearTimeout(watchdog);
       setIsLoading(false);
     }
   };
@@ -717,11 +726,12 @@ export default function StrategicAdvisor() {
                 }}
                 placeholder="Descrie provocarea ta de business aici..."
                 className="min-h-[60px] resize-none"
-                disabled={isLoading}
+                // Menținem editarea activă și în timpul încărcării
+                disabled={false}
               />
               <Button
                 onClick={() => sendMessage()}
-                disabled={!input.trim() || isLoading}
+                disabled={isLoading}
                 size="lg"
                 className="shrink-0"
               >
