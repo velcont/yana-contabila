@@ -724,20 +724,34 @@ export default function StrategicAdvisor() {
               </>
             )}
 
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div className={`max-w-[80%] ${msg.role === "assistant" ? "space-y-2" : ""}`}>
-                  <Card
-                    className={`p-4 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card"
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+            {messages.map((msg, idx) => {
+              console.log(`🎨 [RENDER-DEBUG] Rendering message ${idx}:`, msg.role, msg.content.substring(0, 50));
+              
+              return (
+                <div
+                  key={`${msg.timestamp.getTime()}-${idx}`}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  style={{ 
+                    minHeight: "60px",
+                    border: "2px solid red",
+                    marginBottom: "8px"
+                  }}
+                >
+                  <div className={`max-w-[80%] ${msg.role === "assistant" ? "space-y-2" : ""}`}>
+                    <Card
+                      className={`p-4 ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-card"
+                      }`}
+                      style={{ 
+                        border: "3px solid blue",
+                        minHeight: "40px"
+                      }}
+                    >
+                      <div className="whitespace-pre-wrap" style={{ color: "inherit" }}>
+                        {msg.content}
+                      </div>
                     <div className={`text-xs mt-2 flex items-center justify-between ${
                       msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
                     }`}>
@@ -777,7 +791,8 @@ export default function StrategicAdvisor() {
                   </Card>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {isLoading && (
               <div className="flex justify-start">
