@@ -234,9 +234,12 @@ export default function StrategicAdvisor() {
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("[StrategicAdvisor] Error:", error);
       toast.error("A apărut o eroare. Te rog încearcă din nou.");
+      // Asigură-te că eliminăm mesajul user în caz de eroare pentru a nu rămâne în loading infinit
+      setMessages(prev => prev.filter(m => m !== userMessage));
     } finally {
+      // CRITIC: Întotdeauna resetează isLoading, chiar și în caz de eroare
       setIsLoading(false);
     }
   };

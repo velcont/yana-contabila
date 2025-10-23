@@ -575,7 +575,6 @@ serve(async (req) => {
       
       // FALLBACK: Dacă NU am găsit header-uri, încearcă extragere FĂRĂ header
       if (headerRowIndex === -1 || contCol === -1) {
-        console.warn("⚠️ [METADATA-EXTRACT] NU s-au găsit coloanele necesare - ACTIVARE FALLBACK FĂRĂ HEADER");
         
         // Strategie alternativă: caută conturi cunoscute (4111, 401, 5121, 7xx, 6xx) direct în celule
         let soldClienti = 0, soldFurnizori = 0, soldBanca = 0, soldCasa = 0;
@@ -596,7 +595,7 @@ serve(async (req) => {
             const contCode = contMatch[1];
             console.log(`🔍 [METADATA-EXTRACT-FALLBACK] Găsit cont ${contCode} la rândul ${i}`);
             
-            // Extrage valori din celulele următoare (asumă structură: Cont, ..., Sold Deb, Sold Cred, Total Deb, Total Cred)
+            // Extrage valori din TOATE coloanele cu valori numerice
             const extractNum = (colIdx: number): number => {
               if (colIdx >= row.length) return 0;
               const val = row[colIdx];
@@ -605,32 +604,64 @@ serve(async (req) => {
               return isNaN(num) ? 0 : num;
             };
             
-            // Încearcă să extragă solduri din ultimele coloane (probabil SF Deb la row.length-4, SF Cred la row.length-3, etc.)
-            const lastCols = Math.min(6, row.length - 1);
-            const possibleSFDebit = extractNum(row.length - lastCols);
-            const possibleSFCredit = extractNum(row.length - lastCols + 1);
-            const possibleTotalDebit = extractNum(row.length - lastCols + 2);
-            const possibleTotalCredit = extractNum(row.length - lastCols + 3);
+            // Pentru fiecare cont, extragem TOATE valorile numerice din rând
+            const allNumbers = row.slice(1).map((cell, idx) => ({
+              value: extractNum(idx + 1),
+              colIndex: idx + 1
+            })).filter(n => n.value > 0);
             
-            console.log(`  [FALLBACK] Cont ${contCode}: SF Deb=${possibleSFDebit}, SF Cred=${possibleSFCredit}, Total D=${possibleTotalDebit}, Total C=${possibleTotalCredit}`);
+            console.log(`  [FALLBACK] Cont ${contCode} - valori găsite:`, allNumbers.map(n => `[${n.colIndex}]=${n.value}`).join(', '));
             
-            // Mapare conturi cunoscute
-            if (contCode === '4111' && possibleSFDebit > 0) soldClienti = possibleSFDebit;
-            if (contCode === '401' && possibleSFCredit > 0) soldFurnizori = possibleSFCredit;
-            if ((contCode === '5121' || contCode === '5124' || contCode === '5125') && possibleSFDebit > 0) soldBanca += possibleSFDebit;
-            if (contCode === '5311' && possibleSFDebit > 0) soldCasa = possibleSFDebit;
+            // Pentru conturi clasa 1-5: ia soldurile finale (ultimele 2 valori non-zero)
+            // Pentru conturi clasa 6-7: ia total sume (ultimele 2 valori non-zero)
+            const lastTwo = allNumbers.slice(-2);
+            const possibleSFDebit = lastTwo[0]?.value || 0;
+            const possibleSFCredit = lastTwo[1]?.value || 0;
+            const possibleTotalDebit = lastTwo[0]?.value || 0;
+            const possibleTotalCredit = lastTwo[1]?.value || 0;
             
-            // Venituri (clasa 7)
-            if (contCode.startsWith('7') && contCode !== '709' && possibleTotalCredit > 0) {
-              totalVenituri += possibleTotalCredit;
-              console.log(`  [FALLBACK] Venituri cont ${contCode}: +${possibleTotalCredit} (Total: ${totalVenituri})`);
+            // Mapare conturi cunoscute (clasa 1-5: folosim Sold Final)
+            if (contCode === '4111' && possibleSFDebit > 0) {
+              soldClienti = possibleSFDebit;
+              console.log(`  ✅ [FALLBACK] CLIENTI (4111): ${soldClienti}`);
             }
-            if (contCode === '709' && possibleTotalCredit > 0) reduceriComerciale = possibleTotalCredit;
+            if (contCode === '401' && possibleSFCredit > 0) {
+              soldFurnizori = possibleSFCredit;
+              console.log(`  ✅ [FALLBACK] FURNIZORI (401): ${soldFurnizori}`);
+            }
+            if ((contCode === '5121' || contCode === '5124' || contCode === '5125') && possibleSFDebit > 0) {
+              soldBanca += possibleSFDebit;
+              console.log(`  ✅ [FALLBACK] BANCA (${contCode}): ${possibleSFDebit} (Total bănci: ${soldBanca})`);
+            }
+            if (contCode === '5311' && possibleSFDebit > 0) {
+              soldCasa = possibleSFDebit;
+              console.log(`  ✅ [FALLBACK] CASA (5311): ${soldCasa}`);
+            }
             
-            // Cheltuieli (clasa 6)
-            if (contCode.startsWith('6') && possibleTotalDebit > 0) {
-              totalCheltuieli += possibleTotalDebit;
-              console.log(`  [FALLBACK] Cheltuieli cont ${contCode}: +${possibleTotalDebit} (Total: ${totalCheltuieli})`);
+            // Venituri (clasa 7): folosim Total Credit (ultima valoare credit)
+            if (contCode.startsWith('7') && contCode !== '709') {
+              // Ia valoarea cea mai mare din rând (probabil e Total Credit)
+              const maxVal = Math.max(...allNumbers.map(n => n.value));
+              if (maxVal > 0) {
+                totalVenituri += maxVal;
+                console.log(`  ✅ [FALLBACK] VENIT cont ${contCode}: +${maxVal} → Total venituri: ${totalVenituri}`);
+              }
+            }
+            if (contCode === '709') {
+              const maxVal = Math.max(...allNumbers.map(n => n.value));
+              if (maxVal > 0) {
+                reduceriComerciale = maxVal;
+                console.log(`  ✅ [FALLBACK] REDUCERI (709): ${reduceriComerciale}`);
+              }
+            }
+            
+            // Cheltuieli (clasa 6): folosim Total Debit (ultima valoare debit)
+            if (contCode.startsWith('6')) {
+              const maxVal = Math.max(...allNumbers.map(n => n.value));
+              if (maxVal > 0) {
+                totalCheltuieli += maxVal;
+                console.log(`  ✅ [FALLBACK] CHELTUIALĂ cont ${contCode}: +${maxVal} → Total cheltuieli: ${totalCheltuieli}`);
+              }
             }
           }
         }
@@ -654,7 +685,7 @@ serve(async (req) => {
           deterministic_metadata.cashConversionCycle = deterministic_metadata.dso - deterministic_metadata.dpo;
         }
         
-        console.log("✅ [METADATA-EXTRACT-FALLBACK] METADATA EXTRASĂ (fără header):", deterministic_metadata);
+        console.log("✅ [METADATA-EXTRACT-FALLBACK] METADATA FINALĂ (fără header):", deterministic_metadata);
         
       } else {
         // Proceeding with header-based extraction
