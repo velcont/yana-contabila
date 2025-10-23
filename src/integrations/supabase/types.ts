@@ -1671,6 +1671,7 @@ export type Database = {
       research_data: {
         Row: {
           case_studies: Json
+          content: string | null
           course_name: string
           created_at: string
           data_collection_date: string
@@ -1684,6 +1685,7 @@ export type Database = {
         }
         Insert: {
           case_studies?: Json
+          content?: string | null
           course_name: string
           created_at?: string
           data_collection_date: string
@@ -1697,6 +1699,7 @@ export type Database = {
         }
         Update: {
           case_studies?: Json
+          content?: string | null
           course_name?: string
           created_at?: string
           data_collection_date?: string
@@ -2185,10 +2188,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_admin_access_rate: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      check_admin_access_rate: { Args: never; Returns: boolean }
       check_ai_budget: {
         Args: { p_user_id: string }
         Returns: {
@@ -2203,14 +2203,8 @@ export type Database = {
         Args: { p_endpoint: string; p_max_requests?: number; p_user_id: string }
         Returns: boolean
       }
-      check_trial_expiration_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      check_trial_expiration_notifications: { Args: never; Returns: undefined }
+      cleanup_old_data: { Args: never; Returns: undefined }
       extract_question_pattern: {
         Args: { question_text: string }
         Returns: {
@@ -2246,7 +2240,7 @@ export type Database = {
         }[]
       }
       get_voice_usage_for_month: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           minutes_remaining: number
           minutes_used: number

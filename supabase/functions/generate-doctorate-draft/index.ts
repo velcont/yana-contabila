@@ -23,7 +23,8 @@ serve(async (req) => {
       avgResilienceScore,
       resilienceDistribution,
       period,
-      sectors
+      sectors,
+      researchResources
     } = await req.json();
 
     // Debug input
@@ -35,6 +36,7 @@ serve(async (req) => {
     console.log("Scor reziliență mediu:", avgResilienceScore);
     console.log("Distribuție reziliență:", resilienceDistribution);
     console.log("Perioadă:", period, "| Sectoare:", sectors);
+    console.log("Resurse cercetare:", researchResources?.length || 0, "resurse cu conținut");
     console.log("====================================");
 
     // Validare minimă de date
@@ -60,18 +62,39 @@ serve(async (req) => {
     const distHigh = resilienceDistribution?.high ?? 0;
     const totalScores = resilienceDistribution?.totalScores ?? 0;
 
+    // Format research resources for prompt
+    const resourcesSection = researchResources && researchResources.length > 0
+      ? `
+## SURSE DE CERCETARE DISPONIBILE (INTEGREAZĂ ÎN TEXT):
+
+Ai acces la ${researchResources.length} resurse detaliate de cercetare. FOLOSEȘTE conținutul lor în capitole pentru a fundamenta argumentele teoretice:
+
+${researchResources.map((r: any) => `
+[${r.index}] ${r.title}
+${r.link ? `Link: ${r.link}` : ''}
+
+CONȚINUT DETALIAT:
+${r.content}
+
+---
+`).join('\n')}
+`
+      : '';
+
     // Generăm DOAR capitolele 4-6 pentru a evita tăieri de context
     const prompt = `Ești un asistent academic expert în scrierea tezelor de doctorat în economie și management. 
 Generează TEXT COMPLET, fără placeholder-e, pentru CAPITOLELE 4, 5 și 6 ale tezei "Inovație Digitală și Reziliență în IMM-uri".
 
 FOLOSEȘTE OBLIGATORIU datele reale din cercetare în paragrafele analitice, nu doar enumerate.
 
-DATE REALE DISPONIBILE:
+${resourcesSection}
+
+DATE EMPIRICE DIN APLICAȚIE:
 - Companii analizate: ${companies}
 - Balanțe lunare procesate: ${totalAnalyses}
 - Perioadă: ${period || '2020-2025'}
 - Sectoare: ${sectors || 'tehnologie, servicii, retail'}
-- Profit mediu: ${Number(avgProfit).toFixed(0)}
+- Profit mediu: ${Number(avgProfit).toFixed(0)}€
 - Marjă medie: ${Number(avgMargin).toFixed(1)}%
 - Repartiție marje: performeri ridicați (>15%): ${highPerformers} (${highPerformersPercent}%), performeri scăzuți (<10%): ${lowPerformers} (${lowPerformersPercent}%)
 - Scor mediu de reziliență: ${avgResilienceScore || 0}/100 pe ${totalScores} companii cu serii valide
@@ -108,10 +131,10 @@ CAPITOL 5: DISCUȚII ȘI IMPLICAȚII
 Leagă rezultatele (marje, profit, scor de reziliență ${avgResilienceScore}) de ipoteze. Oferă narațiune coerentă.
 
 5.2 Implicații teoretice
-Contribuții la reziliență organizațională și dynamic capabilities.
+Contribuții la reziliență organizațională și dynamic capabilities. ${researchResources && researchResources.length > 0 ? `Citează și discută conceptele din resursele [1]-[${researchResources.length}].` : ''}
 
 5.3 Implicații manageriale și pentru politici publice
-Recomandări concrete pentru IMM-uri și decidenți, fundamentate în date: ${companies} companii, ${totalAnalyses} analize.
+Recomandări concrete pentru IMM-uri și decidenți, fundamentate în date: ${companies} companii, ${totalAnalyses} analize. ${researchResources && researchResources.length > 0 ? `Leagă recomandările de ideile prezentate în sursele de cercetare.` : ''}
 
 5.4 Limitări și direcții viitoare
 Discută limitele eșantionului (România, ${period}) și pașii următori.

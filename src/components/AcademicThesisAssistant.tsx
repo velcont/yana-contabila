@@ -6,7 +6,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users, Plus, Trash2 } from "lucide-react";
 import { ResearchDataImport } from "./ResearchDataImport";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +40,11 @@ export default function AcademicThesisAssistant() {
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [generatingDoctorate, setGeneratingDoctorate] = useState(false);
   const { isAdmin } = useUserRole();
+  
+  // State for adding individual research resources
+  const [newResourceTitle, setNewResourceTitle] = useState("");
+  const [newResourceLink, setNewResourceLink] = useState("");
+  const [newResourceContent, setNewResourceContent] = useState("");
 
   useEffect(() => {
     loadResearchData();
@@ -57,6 +65,66 @@ export default function AcademicThesisAssistant() {
       toast.error("Eroare la încărcarea datelor de cercetare");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddResource = async () => {
+    if (!newResourceTitle.trim()) {
+      toast.error("Adaugă un titlu pentru resursă!");
+      return;
+    }
+
+    if (!newResourceContent.trim() || newResourceContent.length < 50) {
+      toast.error("Adaugă un rezumat mai detaliat (minim 50 caractere)!");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nu ești autentificat');
+
+      const { error } = await supabase
+        .from('research_data')
+        .insert({
+          user_id: user.id,
+          data_collection_date: new Date().toISOString().split('T')[0],
+          course_name: newResourceTitle,
+          research_theme: 'Inovație Digitală și Reziliență',
+          content: newResourceContent,
+          case_studies: [],
+          theoretical_frameworks: [],
+          metrics_collected: {},
+          research_notes: newResourceLink || null,
+        });
+
+      if (error) throw error;
+
+      toast.success("✅ Resursă adăugată cu succes!");
+
+      setNewResourceTitle("");
+      setNewResourceLink("");
+      setNewResourceContent("");
+      loadResearchData();
+    } catch (error) {
+      console.error('Error adding resource:', error);
+      toast.error(error instanceof Error ? error.message : "Nu s-a putut adăuga resursa");
+    }
+  };
+
+  const deleteResource = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('research_data')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Resursă ștearsă cu succes");
+      loadResearchData();
+    } catch (error) {
+      console.error('Error deleting resource:', error);
+      toast.error("Nu s-a putut șterge resursa");
     }
   };
 
@@ -661,6 +729,22 @@ IMPORTANT:
       const period = `${minYear}-${maxYear}`;
       const sectors = "tehnologie, servicii, retail"; // fallback până avem clasificare sectorială
 
+      // 2.3. Încarcă resursele de cercetare cu conținut
+      const { data: researchDataWithContent, error: researchError } = await supabase
+        .from('research_data')
+        .select('*')
+        .not('content', 'is', null) // Doar resurse cu conținut
+        .order('created_at', { ascending: false });
+
+      const researchResources = (researchDataWithContent || []).map((r, index) => ({
+        index: index + 1,
+        title: r.course_name || r.research_theme || 'Untitled',
+        link: r.research_notes || '',
+        content: r.content || '[Fără conținut]'
+      }));
+
+      console.log("📚 Resurse cercetare încărcate:", researchResources.length);
+
       // 3. Apel edge function dedicat pentru draft doctorat
       console.log("📊 Statistici pentru draft:", {
         totalAnalyses,
@@ -694,6 +778,7 @@ IMPORTANT:
           resilienceDistribution: { low: distLow, medium: distMed, high: distHigh, totalScores },
           period,
           sectors,
+          researchResources, // Include research resources with content
         },
       });
 
