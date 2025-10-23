@@ -192,43 +192,6 @@ export default function StrategicAdvisor() {
       setIsLoading(false);
     };
   }, [user, conversationId]);
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true })
-          .limit(50);
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          const loadedMessages: Message[] = data.map(msg => ({
-            role: msg.role as "user" | "assistant",
-            content: msg.content,
-            timestamp: new Date(msg.created_at!)
-          }));
-          setMessages(loadedMessages);
-        }
-        
-        // Load user analyses for compare
-        const { data: analyses, error: analysesError } = await supabase
-          .from('analyses')
-          .select('id, company_name, file_name, created_at, analysis_text, metadata')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (!analysesError && analyses) {
-          setUserAnalyses(analyses);
-        }
-      } catch (error) {
-        console.error("Error loading history:", error);
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    };
-
-    loadHistory();
-  }, [user, conversationId]);
 
   const startNewConversation = () => {
     const newId = crypto.randomUUID();
@@ -342,56 +305,6 @@ export default function StrategicAdvisor() {
     } finally {
       clearTimeout(watchdog);
       console.log("🏁 [CHATBOT-DEBUG] setIsLoading(false)");
-      setIsLoading(false);
-    }
-  };
-      if (data?.error) {
-        toast.error(data.error);
-        aiContent = `⚠️ Eroare: ${data.error}`;
-      } else if (typeof data === "string") {
-        aiContent = data;
-      } else if (typeof data?.response === "string") {
-        aiContent = data.response;
-      } else if (data) {
-        aiContent = JSON.stringify(data);
-      } else {
-        aiContent = "Nu am primit răspuns de la asistent. Încearcă din nou.";
-      }
-
-      const aiMessage: Message = {
-        role: "assistant",
-        content: aiContent,
-        timestamp: new Date(),
-        showFeedback: true
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-      console.info("[StrategicAdvisor] ✅ Response appended", { hasContent: !!aiContent, length: aiContent.length });
-
-      // Golește inputul doar după răspuns
-      setInput("");
-    } catch (error: any) {
-      console.error("[StrategicAdvisor] ❌ Error invoking function:", error);
-      const friendly =
-        error?.message?.includes("429")
-          ? "Limita de cereri a fost depășită. Încearcă peste câteva secunde."
-          : error?.message?.includes("402")
-          ? "Nu mai sunt credite AI. Te rugăm să alimentezi pentru a continua."
-          : "A apărut o eroare. Te rog încearcă din nou.";
-      toast.error(friendly);
-
-      // Adăugăm un mesaj de eroare pentru claritate; păstrăm textul în input
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content: friendly,
-          timestamp: new Date(),
-          showFeedback: false,
-        },
-      ]);
-    } finally {
-      clearTimeout(watchdog);
       setIsLoading(false);
     }
   };
