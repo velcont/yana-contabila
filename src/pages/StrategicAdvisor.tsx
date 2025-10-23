@@ -288,8 +288,8 @@ export default function StrategicAdvisor() {
       console.log("✅ [CHATBOT-DEBUG] AI răspuns primit:", aiMessage);
       setMessages(prev => [...prev, aiMessage]);
 
-      // Golește inputul doar după răspuns
-      setInput("");
+      // NU mai golim inputul automat; păstrăm textul utilizatorului după trimitere
+      // setInput("");
     } catch (error) {
       console.error("❌ [CHATBOT-DEBUG] Catch error:", error);
       const friendly =
