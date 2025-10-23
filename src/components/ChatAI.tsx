@@ -260,7 +260,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           } else {
             console.log('[Chat] Nu am găsit date pentru', detectedMonth);
           }
-          }
         }
       }
 
