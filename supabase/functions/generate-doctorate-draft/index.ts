@@ -88,11 +88,11 @@ ${r.content}
 `
       : '';
 
-    // Generăm DOAR capitolele 4-6 pentru a evita tăieri de context
+    // Generăm TOATE capitolele 1-6 pentru un draft complet
     const prompt = `Ești un asistent academic expert în scrierea tezelor de doctorat în economie și management. 
-Generează TEXT COMPLET, fără placeholder-e, pentru CAPITOLELE 4, 5 și 6 ale tezei "Inovație Digitală și Reziliență în IMM-uri".
+Generează TEXT COMPLET și DETALIAT pentru TOATE cele 6 CAPITOLE ale tezei de doctorat "Inovație Digitală și Reziliență Financiară în IMM-uri din România".
 
-FOLOSEȘTE OBLIGATORIU datele reale din cercetare în paragrafele analitice, nu doar enumerate.
+FOLOSEȘTE OBLIGATORIU conținutul din sursele de cercetare pentru fundamentare teoretică.
 
 ${resourcesSection}
 
@@ -101,66 +101,139 @@ DATE EMPIRICE DIN APLICAȚIE:
 - Balanțe lunare procesate: ${totalAnalyses}
 - Perioadă: ${period || '2020-2025'}
 - Sectoare: ${sectors || 'tehnologie, servicii, retail'}
-- Profit mediu: ${Number(avgProfit).toFixed(0)}€
+- Profit mediu: ${Number(avgProfit).toFixed(0)} RON
 - Marjă medie: ${Number(avgMargin).toFixed(1)}%
-- Repartiție marje: performeri ridicați (>15%): ${highPerformers} (${highPerformersPercent}%), performeri scăzuți (<10%): ${lowPerformers} (${lowPerformersPercent}%)
-- Scor mediu de reziliență: ${avgResilienceScore || 0}/100 pe ${totalScores} companii cu serii valide
-- Distribuție reziliență: risc scăzut ${distLow}%, risc mediu ${distMed}%, risc ridicat ${distHigh}%
+- Performeri ridicați (marjă >15%): ${highPerformers} (${highPerformersPercent}%)
+- Performeri scăzuți (marjă <10%): ${lowPerformers} (${lowPerformersPercent}%)
+- Scor mediu de reziliență: ${avgResilienceScore || 0}/100 
+- Distribuție reziliență: risc scăzut ${distLow}%, mediu ${distMed}%, ridicat ${distHigh}%
 
-CERINȚE STRICTE:
-1) Scrie conținut academic extins, coerent și argumentat. NU insera șabloane sau text de tip "[DRAFT - NECESITĂ EDITARE]".
-2) Integrează cifrele de mai sus în interpretări și comparații.
-3) Fiecare capitol să aibă minimum 2000 de cuvinte, structurat cu subsecțiuni (4.1, 4.2, etc.).
-4) Începe fiecare capitol exact cu antetul: CAPITOL X: Titlu.
+CERINȚE ACADEMICE STRICTE:
+1) Fiecare capitol: minimum 1500-2000 cuvinte
+2) Limbaj academic formal, paragraf bine structurate
+3) NU include placeholder-uri "[DRAFT - NECESITĂ EDITARE]"
+4) Începe fiecare capitol cu "CAPITOL X: TITLU" pe o linie separată
+5) Include subsecțiuni (1.1, 1.2, etc.)
+6) ${researchResources && researchResources.length > 0 ? `Citează conceptele din sursele [1]-[${researchResources.length}] în capitolele teoretice` : ''}
 
 ---
+
+CAPITOL 1: INTRODUCERE
+
+1.1 Context și Motivație
+Explică criza economică și impactul pandemiei COVID-19 asupra IMM-urilor. Prezintă relevanța rezilienței financiare și inovației digitale pentru supraviețuirea și creșterea afacerilor mici.
+
+1.2 Problema de Cercetare
+Formulează problema: cum contribuie inovația digitală la îmbunătățirea rezilienței financiare în IMM-uri românești? Care sunt mecanismele prin care tehnologiile digitale transformă modelele de afaceri?
+
+1.3 Obiective și Întrebări de Cercetare
+- Obiectiv principal: evaluarea relației dintre gradul de digitalizare și reziliența financiară
+- Obiective secundare: identificarea best practices, analiza barierelor
+- Întrebări: Care indicatori financiari sunt cel mai influențați? Ce rol joacă dimensiunea companiei?
+
+1.4 Delimitări și Structura Tezei
+Eșantion: ${companies} IMM-uri românești, perioada ${period}, ${totalAnalyses} observații lunare. Prezintă structura celor 6 capitole.
+
+---
+
+CAPITOL 2: FUNDAMENTARE TEORETICĂ
+
+2.1 Inovația Digitală în Afaceri
+${researchResources && researchResources.length > 0 ? `Folosește conceptele din sursele de cercetare pentru a defini inovația digitală (AI, cloud computing, platforme digitale).` : 'Definește inovația digitală: AI, cloud computing, IoT, blockchain.'}
+
+2.2 Reziliența Organizațională - Cadru Conceptual
+${researchResources && researchResources.length > 0 ? `Explică reziliența organizațională folosind teoriile din resurse: capacitatea de absorbție, adaptare, transformare.` : 'Definește reziliența: capacitatea de absorbție a șocurilor, adaptare rapidă, transformare strategică.'}
+
+2.3 Modele de Afaceri Sustenabile
+Discută Triple Bottom Line (economic, social, ambiental), economie circulară, platformizare.
+
+2.4 Legătura Inovație Digitală - Reziliență
+${researchResources && researchResources.length > 0 ? `Sintetizează literatura din surse despre cum tehnologiile digitale îmbunătățesc reziliența financiară.` : 'Argumentează cum digitalizarea îmbunătățește eficiența operațională, vizibilitatea în timp real, flexibilitatea modelului de afaceri.'}
+
+2.5 Model Conceptual Propus
+Prezintă modelul propriu: Digitalizare → Eficiență operațională + Agilitate strategică → Reziliență financiară → Avantaj competitiv
+
+---
+
+CAPITOL 3: METODOLOGIE
+
+3.1 Design de Cercetare
+Metodologie mixtă: analiză cantitativă (${totalAnalyses} balanțe contabile) + studii de caz calitative (3 companii). Abordare longitudinală (${period}).
+
+3.2 Eșantion și Colectare Date
+${companies} IMM-uri din sectoarele: ${sectors}. Date lunare din balanțe contabile: venituri, cheltuieli, DSO, DPO, indicatori de lichiditate.
+
+3.3 Variabile și Indicatori
+- Variabilă dependentă: Scor de reziliență financiară (0-100) calculat din: stabilitate profit, lichiditate, eficiență, flexibilitate costuri
+- Variabile independente: grad digitalizare (automat prin prezența platformelor digitale de gestiune)
+- Variabile control: dimensiune, sector, vechime
+
+3.4 Metode de Analiză
+Statistici descriptive, analiză comparativă marje/profituri, calcul scor reziliență multi-dimensional, studii de caz.
+
+3.5 Validitate și Limitări
+Discută validitatea internă/externă, limitările datelor secundare, bias-uri potențiale.
+
+---
+
 CAPITOL 4: REZULTATE ȘI ANALIZĂ
 
-4.1 Analiza setului de date și contextul empiric
-Descrie riguros eșantionul: ${companies} companii, ${totalAnalyses} observații lunare, perioada ${period}. Menționează sectoarele (${sectors}) și relevanța pentru IMM-uri românești. Explică curățarea datelor.
+4.1 Caracterizarea Eșantionului
+Eșantionul cuprinde ${companies} IMM-uri românești, cu un total de ${totalAnalyses} observații lunare colectate în perioada ${period}. Sectoarele reprezentate includ ${sectors}, reflectând diversitatea economiei locale.
 
-4.2 Statistici descriptive și repere comparative
-Integrează: profit mediu ${Number(avgProfit).toFixed(0)}, marjă medie ${Number(avgMargin).toFixed(1)}%. Interpretează distribuția marjelor (${highPerformers} performeri ridicați, ${lowPerformers} performeri scăzuți). Explică implicații.
+4.2 Performanța Financiară Agregată
+Profitul mediu lunar este de ${Number(avgProfit).toFixed(0)} RON, iar marja de profit medie este de ${Number(avgMargin).toFixed(1)}%. Distribuția marjelor arată că ${highPerformers} companii (${highPerformersPercent}%) sunt performeri de top (>15%), în timp ce ${lowPerformers} (${lowPerformersPercent}%) au marje scăzute (<10%).
 
-4.3 Reziliență financiară – rezultate agregate
-Prezintă scorul mediu ${avgResilienceScore || 0}/100 și distribuția (risc scăzut ${distLow}%, mediu ${distMed}%, ridicat ${distHigh}%). Oferă interpretări și pattern-uri identificate.
+4.3 Scorul de Reziliență Financiară
+Scorul mediu de reziliență este ${avgResilienceScore}/100. Distribuția: ${distLow}% risc scăzut (scor ≥75), ${distMed}% risc mediu (50-74), ${distHigh}% risc ridicat (<50). Interpretează ce înseamnă aceste valori pentru stabilitatea IMM-urilor.
 
-4.4 Studii de caz anonimizate (3 companii)
-Construiește 3 mini-studii de caz realiste pe baza distribuțiilor: una cu risc scăzut (~85/100), una cu risc mediu (~62/100), una cu risc ridicat (~38/100). Discută marje, DSO/DPO ipotetice și practicile de digitalizare.
+4.4 Studii de Caz Comparative
+- Compania A (risc scăzut, scor ~85): marjă stabilă ~18%, DSO <30 zile, lichiditate excelentă, folosește ERP cloud
+- Compania B (risc mediu, scor ~62): marjă variabilă 8-12%, DSO 45 zile, lichiditate medie, digitalizare parțială
+- Compania C (risc ridicat, scor ~38): marjă sub 5%, DSO >60 zile, probleme cash flow, sisteme manuale
 
-4.5 Validarea rezultatelor și robusteză
-Discută limitări, verificări de robustețe și comparații cu literatura.
+4.5 Factori Asociați cu Reziliența Ridicată
+Identifică pattern-uri: companiile cu scor de reziliență >75 au în comun: marje stabile, lichiditate peste medie, eficiență crescută (costuri controlate), flexibilitate strategică.
 
 ---
+
 CAPITOL 5: DISCUȚII ȘI IMPLICAȚII
 
-5.1 Sinteză interpretativă
-Leagă rezultatele (marje, profit, scor de reziliență ${avgResilienceScore}) de ipoteze. Oferă narațiune coerentă.
+5.1 Interpretarea Rezultatelor
+Rezultatele confirmă că reziliența financiară variază semnificativ între IMM-uri. Scorurile scăzute (<50) sunt asociate cu instabilitate profit și lichiditate redusă. ${researchResources && researchResources.length > 0 ? `Aceste constatări sunt în linie cu literatura din surse despre importanța agilității și eficienței.` : ''}
 
-5.2 Implicații teoretice
-Contribuții la reziliență organizațională și dynamic capabilities. ${researchResources && researchResources.length > 0 ? `Citează și discută conceptele din resursele [1]-[${researchResources.length}].` : ''}
+5.2 Contribuții Teoretice
+Teza propune un model multi-dimensional de măsurare a rezilienței (profit, lichiditate, eficiență, flexibilitate). ${researchResources && researchResources.length > 0 ? `Extinde cadrul teoretic din surse adăugând dimensiunea longitudinală.` : ''}
 
-5.3 Implicații manageriale și pentru politici publice
-Recomandări concrete pentru IMM-uri și decidenți, fundamentate în date: ${companies} companii, ${totalAnalyses} analize. ${researchResources && researchResources.length > 0 ? `Leagă recomandările de ideile prezentate în sursele de cercetare.` : ''}
+5.3 Implicații Practice
+Pentru IMM-uri: monitorizați indicatorii de reziliență lunar, investiți în digitalizare (ERP, CRM), îmbunătățiți DSO/DPO.
+Pentru decidenți: programe de sprijin pentru digitalizare, training antreprenorial în management financiar.
 
-5.4 Limitări și direcții viitoare
-Discută limitele eșantionului (România, ${period}) și pașii următori.
+5.4 Limitări
+Eșantion limitat la România, perioada ${period} include criza COVID (context atipic), lipsa datelor despre adoptarea specifică a tehnologiilor.
+
+5.5 Direcții Viitoare
+Extindere studiu la alte țări CEE, includem variabile digitalizare explicite (nr. sisteme IT, buget IT%), analiză econometrică avansată.
 
 ---
+
 CAPITOL 6: CONCLUZII
 
-6.1 Concluzii principale
-Recapitulează cifrele-cheie și ce înseamnă pentru reziliență și avantaj competitiv.
+6.1 Sinteza Principalelor Constatări
+Studiul demonstrează variabilitatea mare a rezilienței financiare în rândul IMM-urilor românești: scor mediu ${avgResilienceScore}/100, cu ${distHigh}% în zona de risc ridicat. Performanța financiară (marjă medie ${Number(avgMargin).toFixed(1)}%) este strâns legată de stabilitatea operațională și lichiditate.
 
-6.2 Contribuții și originalitate
-Enumeră clar contribuțiile științifice și practice.
+6.2 Contribuții Originale
+- Model de măsurare reziliență financiară multi-dimensional pentru IMM-uri
+- Evidențierea rolului eficienței operaționale și flexibilității costuri
+- Studii de caz comparative care ilustrează best practices și greșeli comune
 
-6.3 Recomandări viitoare
-Propune extinderi (alte țări, perioade, indicatori).`;
+6.3 Recomandări Finale
+IMM-urile trebuie să adopte o abordare proactivă: monitorizare continuă indicatori financiari, digitalizare incrementală, diversificare venituri, rezerve de lichiditate.
 
-    console.log("🚀 Apel Lovable AI pentru draft doctorat (cap. 4-6)...");
+6.4 Încheierea Cercetării
+Reziliența financiară nu este o caracteristică statică, ci un proces dinamic care necesită adaptare constantă. Digitalizarea oferă instrumentele, dar succesul depinde de leadership și cultură organizațională.`;
 
-    console.log("🚀 Apel Lovable AI pentru draft doctorat...");
+    console.log("🚀 Apel Lovable AI pentru draft doctorat complet (6 capitole)...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -173,7 +246,7 @@ Propune extinderi (alte țări, perioade, indicatori).`;
         messages: [
           { 
             role: "system", 
-            content: "Ești un profesor universitar expert în managementul financiar și metodologie cercetare doctorală. Generezi conținut academic riguros, detaliat, cu minimum 2000 cuvinte per capitol. Folosești limbaj academic formal, paragraf bine structurate, și integrezi date reale în argumentație. Fiecare capitol trebuie să înceapă cu 'CAPITOL X: Titlu' pe o linie separată."
+            content: "Ești un profesor universitar expert în managementul financiar și metodologie cercetare doctorală. Generezi conținut academic riguros, detaliat, cu minimum 1500 cuvinte per capitol. Folosești limbaj academic formal, paragraf bine structurate, și integrezi date reale în argumentație. Fiecare capitol trebuie să înceapă cu 'CAPITOL X: Titlu' pe o linie separată. NU folosești placeholder-uri de tip '[DRAFT - NECESITĂ EDITARE]'."
           },
           { 
             role: "user", 
