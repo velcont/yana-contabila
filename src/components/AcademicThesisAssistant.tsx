@@ -10,6 +10,7 @@ import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, 
 import { ResearchDataImport } from "./ResearchDataImport";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 
 interface ResearchData {
   id: string;
@@ -260,7 +261,54 @@ IMPORTANT:
     });
   };
 
-  const exportThesisDraft = () => {
+  // Funcție helper pentru convertirea textului în paragrafe formatate
+  const convertTextToParagraphs = (text: string): Paragraph[] => {
+    if (!text) return [];
+
+    // Împarte textul în paragrafe (la \n\n sau \n)
+    const paragraphs = text
+      .split(/\n\n+/)
+      .map(p => p.trim())
+      .filter(p => p.length > 0);
+
+    return paragraphs.flatMap(paraText => {
+      // Detectează dacă e subtitlu (începe cu cifră urmat de punct: "4.1", "4.2")
+      const isSubheading = /^\d+\.\d+/.test(paraText);
+
+      if (isSubheading) {
+        return new Paragraph({
+          text: paraText,
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 240, after: 120 },
+        });
+      }
+
+      // Split paragraf cu \n (linii separate în același paragraf logic)
+      const lines = paraText.split('\n').filter(l => l.trim());
+      
+      return lines.map(line => 
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: line,
+              font: "Times New Roman",
+              size: 24, // 12pt
+            }),
+          ],
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: {
+            line: 360, // 1.5 line spacing
+            after: 120,
+          },
+          indent: {
+            firstLine: 720, // 1.27cm
+          },
+        })
+      );
+    });
+  };
+
+  const exportThesisToWord = async () => {
     if (thesisSections.length === 0) {
       toast.error("Generați mai întâi structura tezei");
       return;
@@ -268,50 +316,225 @@ IMPORTANT:
 
     const hasRealContent = thesisSections.some(s => s.content && !s.content.startsWith("[DRAFT"));
     if (!hasRealContent) {
-      toast.error("Draftul nu conține conținut generat. Apasă ‘Generează Draft Doctorat (Admin)’ și așteaptă confirmarea, apoi exportă.");
+      toast.error("Draftul nu conține conținut generat. Apasă 'Generează Draft Doctorat (Admin)' și așteaptă confirmarea, apoi exportă.");
       return;
     }
 
-    const fullText = `
-TEZĂ DE DOCTORAT - DRAFT PRELIMINAR
-=====================================
-[IMPORTANT: Acest document este un DRAFT generat automat care necesită EDITARE MASIVĂ și VALIDARE ACADEMICĂ]
+    try {
+      // Creează documentul Word
+      const children: Paragraph[] = [
+        // Titlu principal
+        new Paragraph({
+          text: "TEZĂ DE DOCTORAT - DRAFT PRELIMINAR",
+          heading: HeadingLevel.TITLE,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+        }),
 
-${thesisSections.map(section => `
-${section.title.toUpperCase()}
-${'='.repeat(section.title.length)}
+        // Warning
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "[IMPORTANT: Acest document este un DRAFT generat automat care necesită EDITARE MASIVĂ și VALIDARE ACADEMICĂ]",
+              italics: true,
+              size: 20, // 10pt
+              font: "Times New Roman",
+            }),
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 },
+        }),
+      ];
 
-${section.content}
+      // Adaugă fiecare secțiune
+      thesisSections.forEach((section) => {
+        // Titlu capitol
+        children.push(
+          new Paragraph({
+            text: section.title.toUpperCase(),
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400, after: 240 },
+          })
+        );
 
-SURSE UTILIZATE (Citește aceste resurse):
-${section.sources.map((s, i) => `[${i + 1}] ${s.text}\n   Linkuri: ${s.links.map(l => `\n   - ${l.title}: ${l.url}`).join('')}`).join('\n\n')}
+        // Conținut capitol
+        children.push(...convertTextToParagraphs(section.content));
 
----
-`).join('\n')}
+        // Surse
+        if (section.sources.length > 0) {
+          children.push(
+            new Paragraph({
+              text: "SURSE UTILIZATE:",
+              spacing: { before: 240, after: 120 },
+              children: [
+                new TextRun({
+                  text: "SURSE UTILIZATE:",
+                  bold: true,
+                  font: "Times New Roman",
+                  size: 24,
+                }),
+              ],
+            })
+          );
 
-NOTĂ IMPORTANTĂ:
-================
-Acest draft a fost generat automat pe baza datelor colectate din literatură științifică.
-Necesită:
-1. Validare academică de la conducător de doctorat
-2. Adăugare contribuție originală (cercetare proprie, chestionare, analize)
-3. Editare pentru stil academic și coerentă
-4. Verificare anti-plagiat
-5. Conformitate cu cerințele universității
+          section.sources.forEach((source, idx) => {
+            children.push(
+              new Paragraph({
+                text: `[${idx + 1}] ${source.text}`,
+                spacing: { after: 60 },
+                indent: { left: 360 },
+              })
+            );
 
-Nu trimiteți acest document fără editare substanțială!
-`;
+            source.links.forEach(link => {
+              children.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `   - ${link.title}: `,
+                      font: "Times New Roman",
+                      size: 20,
+                    }),
+                    new TextRun({
+                      text: link.url,
+                      font: "Times New Roman",
+                      size: 20,
+                      color: "0000FF",
+                      underline: {},
+                    }),
+                  ],
+                  spacing: { after: 60 },
+                  indent: { left: 720 },
+                })
+              );
+            });
+          });
+        }
+      });
 
-    const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `teza-draft-${new Date().toISOString().split('T')[0]}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
+      // Notă finală
+      children.push(
+        new Paragraph({
+          text: "",
+          spacing: { before: 400 },
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "NOTĂ IMPORTANTĂ:",
+              bold: true,
+              font: "Times New Roman",
+              size: 24,
+            }),
+          ],
+          spacing: { after: 120 },
+        }),
+        new Paragraph({
+          text: "Acest draft a fost generat automat pe baza datelor colectate din literatura științifică și din aplicația Yana Contabila. Necesită validare academică de la conducător de doctorat, adăugare contribuție originală, editare pentru stil academic și verificare anti-plagiat. Nu trimiteți acest document fără editare substanțială!",
+          spacing: { after: 200 },
+        })
+      );
 
-    toast.success("Draft exportat! Revizuiți și editați înainte de utilizare.");
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1417,    // 2.5cm în twips (1cm = 567 twips)
+                right: 1417,
+                bottom: 1417,
+                left: 1417,
+              },
+            },
+          },
+          children,
+        }],
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: "Times New Roman",
+                size: 24, // 12pt (size e în half-points, deci 24 = 12pt)
+              },
+              paragraph: {
+                spacing: {
+                  line: 360, // 1.5 line spacing (240 = single, 360 = 1.5, 480 = double)
+                  after: 120,
+                },
+                alignment: AlignmentType.JUSTIFIED,
+                indent: {
+                  firstLine: 720, // 1.27cm indent (720 twips)
+                },
+              },
+            },
+          },
+          paragraphStyles: [
+            {
+              id: "Title",
+              name: "Title",
+              basedOn: "Normal",
+              run: {
+                font: "Times New Roman",
+                size: 32, // 16pt
+                bold: true,
+              },
+              paragraph: {
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 240 },
+              },
+            },
+            {
+              id: "Heading1",
+              name: "Heading 1",
+              basedOn: "Normal",
+              run: {
+                font: "Times New Roman",
+                size: 28, // 14pt
+                bold: true,
+              },
+              paragraph: {
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 240, after: 120 },
+              },
+            },
+            {
+              id: "Heading2",
+              name: "Heading 2",
+              basedOn: "Normal",
+              run: {
+                font: "Times New Roman",
+                size: 24, // 12pt
+                bold: true,
+              },
+              paragraph: {
+                spacing: { before: 120, after: 120 },
+              },
+            },
+          ],
+        },
+      });
+
+      // Generează blob-ul Word
+      const blob = await Packer.toBlob(doc);
+
+      // Descarcă fișierul
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `teza-draft-${new Date().toISOString().split('T')[0]}.docx`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("Draft exportat cu succes în format Word!");
+    } catch (error) {
+      console.error("Eroare export Word:", error);
+      toast.error("Eroare la exportul în Word. Verifică consola.");
+    }
   };
+
+  const exportThesisDraft = exportThesisToWord; // Alias pentru compatibilitate
+
 
   const fetchScientificLiterature = async () => {
     setLoading(true);
@@ -719,9 +942,9 @@ Nu trimiteți acest document fără editare substanțială!
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Draft Teză Generată</CardTitle>
-              <Button onClick={exportThesisDraft} variant="outline">
+              <Button onClick={exportThesisToWord} variant="outline">
                 <Download className="h-4 w-4 mr-2" />
-                Exportă Draft (TXT)
+                Exportă Draft (.DOCX - Format Academic)
               </Button>
             </div>
             <CardDescription>
