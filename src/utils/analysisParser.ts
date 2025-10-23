@@ -27,17 +27,44 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
 
   const toNumberRo = (raw?: string): number | undefined => {
     if (!raw) return undefined;
-    let s = String(raw)
-      .replace(/\s+/g, '')
-      .replace(/[^0-9,.-]/g, ''); // păstrează cifre, virgulă, punct, minus
-    if (!s) return undefined;
-    if (s.includes(',') && s.includes('.')) {
-      // format românesc: . mii, , zecimale
-      s = s.replace(/\./g, '').replace(/,/g, '.');
-    } else if (s.includes(',') && !s.includes('.')) {
-      s = s.replace(/,/g, '.');
+    
+    // Dacă e deja număr, returnează direct
+    if (typeof raw === 'number') return raw;
+    
+    // Convertește în string și curăță
+    let str = String(raw).trim();
+    
+    // Găsește ultimul separator (punct sau virgulă)
+    const lastDotIndex = str.lastIndexOf('.');
+    const lastCommaIndex = str.lastIndexOf(',');
+    
+    // Determină care e ultimul separator
+    const lastSeparatorIndex = Math.max(lastDotIndex, lastCommaIndex);
+    
+    if (lastSeparatorIndex === -1) {
+      // NU are separator → număr întreg
+      str = str.replace(/[^0-9-]/g, '');
+      if (!str) return undefined;
+      const n = parseFloat(str);
+      return Number.isFinite(n) ? n : undefined;
     }
-    const n = parseFloat(s);
+    
+    // ARE separator → împarte în parte întreagă + zecimale
+    let integerPart = str.substring(0, lastSeparatorIndex);
+    let decimalPart = str.substring(lastSeparatorIndex + 1);
+    
+    // Curăță partea întreagă: șterge TOȚI separatorii
+    integerPart = integerPart.replace(/[.,]/g, '');
+    integerPart = integerPart.replace(/[^0-9-]/g, '');
+    
+    // Curăță zecimalele
+    decimalPart = decimalPart.replace(/[^0-9]/g, '');
+    
+    // Construiește numărul în format standard
+    const standardFormat = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+    if (!standardFormat) return undefined;
+    
+    const n = parseFloat(standardFormat);
     return Number.isFinite(n) ? n : undefined;
   };
 

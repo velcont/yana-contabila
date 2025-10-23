@@ -595,13 +595,45 @@ serve(async (req) => {
             const contCode = contMatch[1];
             console.log(`🔍 [METADATA-EXTRACT-FALLBACK] Găsit cont ${contCode} la rândul ${i}`);
             
+            // ✅ PARSER UNIVERSAL pentru fallback
+            const parseUniversalNumber = (val: any): number => {
+              if (typeof val === 'number') return val;
+              if (val === null || val === undefined || val === '') return 0;
+              
+              let str = String(val).trim();
+              const lastDotIndex = str.lastIndexOf('.');
+              const lastCommaIndex = str.lastIndexOf(',');
+              const lastSeparatorIndex = Math.max(lastDotIndex, lastCommaIndex);
+              
+              if (lastSeparatorIndex === -1) {
+                str = str.replace(/[^\d-]/g, '');
+                const num = parseFloat(str);
+                return isNaN(num) ? 0 : num;
+              }
+              
+              let integerPart = str.substring(0, lastSeparatorIndex);
+              let decimalPart = str.substring(lastSeparatorIndex + 1);
+              integerPart = integerPart.replace(/[.,]/g, '');
+              integerPart = integerPart.replace(/[^\d-]/g, '');
+              decimalPart = decimalPart.replace(/[^\d]/g, '');
+              const standardFormat = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+              const num = parseFloat(standardFormat);
+              
+              if (isNaN(num)) return 0;
+              if (Math.abs(num) > 100 && str !== String(num)) {
+                console.log(`🔄 [PARSE-UNIVERSAL-FALLBACK] "${val}" → ${num}`);
+              }
+              return num;
+            };
+            
             // Extrage valori din TOATE coloanele cu valori numerice
             const extractNum = (colIdx: number): number => {
               if (colIdx >= row.length) return 0;
               const val = row[colIdx];
               if (val === null || val === undefined || val === '') return 0;
-              const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^\d.-]/g, ''));
-              return isNaN(num) ? 0 : num;
+              
+              // ✅ Folosește parserul universal
+              return parseUniversalNumber(val);
             };
             
             // Pentru fiecare cont, extragem TOATE valorile numerice din rând
@@ -691,13 +723,88 @@ serve(async (req) => {
         // Proceeding with header-based extraction
         console.log("✅ [METADATA-EXTRACT] Header-uri GĂSITE - Extragere cu header...");
 
-        // Funcție helper pentru a extrage valoare numerică
+        /**
+         * ✅ PARSER UNIVERSAL PENTRU NUMERE
+         * 
+         * LOGICA: Ultimul separator (punct sau virgulă) = separator zecimal
+         * 
+         * Exemple:
+         *   "1.234,56"     → 1234.56  (ultimul separator = virgulă)
+         *   "1,234.56"     → 1234.56  (ultimul separator = punct)
+         *   "1.234.567,89" → 1234567.89
+         *   "1234,56"      → 1234.56
+         *   "1234.56"      → 1234.56
+         *   "1234"         → 1234
+         */
+        const parseUniversalNumber = (val: any): number => {
+          // Dacă e deja număr, returnează direct
+          if (typeof val === 'number') return val;
+          
+          // Validare input
+          if (val === null || val === undefined || val === '') return 0;
+          
+          // Convertește în string și curăță spații
+          let str = String(val).trim();
+          
+          // Găsește ultimul separator (punct sau virgulă)
+          const lastDotIndex = str.lastIndexOf('.');
+          const lastCommaIndex = str.lastIndexOf(',');
+          
+          // Determină care e ultimul separator
+          const lastSeparatorIndex = Math.max(lastDotIndex, lastCommaIndex);
+          
+          if (lastSeparatorIndex === -1) {
+            // ✅ NU are separator → număr întreg sau deja în format corect
+            // Șterge orice caracter non-numeric (ex: spații, simboluri valută)
+            str = str.replace(/[^\d-]/g, '');
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+          }
+          
+          // ✅ ARE separator → împarte în parte întreagă + zecimale
+          
+          // Partea întreagă: tot ce e înainte de ultimul separator
+          let integerPart = str.substring(0, lastSeparatorIndex);
+          
+          // Zecimale: tot ce e după ultimul separator
+          let decimalPart = str.substring(lastSeparatorIndex + 1);
+          
+          // Curăță partea întreagă: șterge TOȚI separatorii (puncte și virgule)
+          integerPart = integerPart.replace(/[.,]/g, '');
+          
+          // Curăță partea întreagă: șterge orice caracter non-numeric
+          integerPart = integerPart.replace(/[^\d-]/g, '');
+          
+          // Curăță zecimalele: șterge orice caracter non-numeric
+          decimalPart = decimalPart.replace(/[^\d]/g, '');
+          
+          // Construiește numărul în format standard: "partea_intreaga.zecimale"
+          const standardFormat = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+          
+          // Parse final
+          const num = parseFloat(standardFormat);
+          
+          if (isNaN(num)) {
+            console.warn(`⚠️ [PARSE-UNIVERSAL] Nu s-a putut parsa: "${val}" → NaN`);
+            return 0;
+          }
+          
+          // ✅ Logging pentru debugging (doar pentru valori > 100 ca să nu spam-eze logs)
+          if (Math.abs(num) > 100 && str !== String(num)) {
+            console.log(`🔄 [PARSE-UNIVERSAL] "${val}" → ${num}`);
+          }
+          
+          return num;
+        };
+
+        // ✅ Funcție helper pentru a extrage valoare numerică
         const getNumValue = (row: any[], colIndex: number): number => {
           if (colIndex === -1) return 0;
           const val = row[colIndex];
           if (val === null || val === undefined || val === '') return 0;
-          const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^\d.-]/g, ''));
-          return isNaN(num) ? 0 : num;
+          
+          // ✅ Folosește parserul universal
+          return parseUniversalNumber(val);
         };
         
         // Extrage valori pentru calcule
