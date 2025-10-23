@@ -934,7 +934,7 @@ IMPORTANT:
             </AlertDescription>
           </Alert>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button 
               onClick={fetchScientificLiterature} 
               disabled={loading}
@@ -948,6 +948,16 @@ IMPORTANT:
               )}
               <span className="font-semibold">Caută Literatură</span>
               <span className="text-xs text-muted-foreground">Actualizează baza de date</span>
+            </Button>
+
+            <Button 
+              onClick={() => window.open("https://www.springer.com/gp/computer-science", "_blank")}
+              variant="outline"
+              className="h-auto py-4 flex-col items-start"
+            >
+              <ExternalLink className="h-5 w-5 mb-2" />
+              <span className="font-semibold">Springer Database</span>
+              <span className="text-xs text-muted-foreground">Acces direct la articole</span>
             </Button>
 
             <ResearchDataImport onImportSuccess={loadResearchData} />
