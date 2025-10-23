@@ -21,18 +21,6 @@ interface CompareAnalysesProps {
 const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
   const [period1, setPeriod1] = useState<string>('');
   const [period2, setPeriod2] = useState<string>('');
-
-  // Build a list of analyses that actually have usable numbers (metadata or parsed)
-  const validAnalyses = analyses.filter((a) => {
-    const keysToCheck = ['revenue','expenses','profit','ebitda','dso','dpo','cashConversionCycle','soldBanca','soldClienti','soldFurnizori'];
-    return keysToCheck.some(k => {
-      const v = getValueForAnalysis(a as any, k);
-      return v !== null && !Number.isNaN(v) && Math.abs(v) > 0;
-    });
-  });
-
-  const analysis1 = validAnalyses.find(a => a.id === period1);
-  const analysis2 = validAnalyses.find(a => a.id === period2);
   const calculateDiff = (val1: number, val2: number) => {
     // Return null ONLY if values are missing (undefined/null), NOT if they're 0
     if (val1 === undefined || val1 === null || val2 === undefined || val2 === null) return null;
@@ -111,6 +99,18 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
     { label: 'Creanțe Clienți', key: 'soldClienti', formatter: formatCurrency, goodDirection: 'down' },
     { label: 'Datorii Furnizori', key: 'soldFurnizori', formatter: formatCurrency, goodDirection: 'down' },
   ];
+
+  // Build a list of analyses that actually have usable numbers (metadata or parsed)
+  const keysToCheck = ['revenue','expenses','profit','ebitda','dso','dpo','cashConversionCycle','soldBanca','soldClienti','soldFurnizori'];
+  const validAnalyses = analyses.filter((a) =>
+    keysToCheck.some(k => {
+      const v = getValueForAnalysis(a as any, k);
+      return v !== null && !Number.isNaN(v) && Math.abs(v) > 0;
+    })
+  );
+
+  const analysis1 = validAnalyses.find(a => a.id === period1);
+  const analysis2 = validAnalyses.find(a => a.id === period2);
 
   return (
     <Card>
