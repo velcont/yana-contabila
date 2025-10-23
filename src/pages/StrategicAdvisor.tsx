@@ -724,34 +724,37 @@ export default function StrategicAdvisor() {
               </>
             )}
 
-            {messages.map((msg, idx) => {
-              console.log(`🎨 [RENDER-DEBUG] Rendering message ${idx}:`, msg.role, msg.content.substring(0, 50));
-              
-              return (
-                <div
-                  key={`msg-${idx}`}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div className={`max-w-[80%] ${msg.role === "assistant" ? "space-y-2" : ""}`}>
-                    <Card
-                      className={`p-4 ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card text-card-foreground"
-                      }`}
-                    >
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
-                      <div className={`text-xs mt-2 flex items-center justify-between ${
-                        msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
-                      }`}>
-                        <span>
-                          {msg.timestamp.toLocaleTimeString("ro-RO", { 
-                            hour: "2-digit", 
-                            minute: "2-digit" 
-                          })}
-                        </span>
-                        {msg.role === "assistant" && (
-                          <div className="flex gap-1">
+            {/* ✅ Always render list wrapper to avoid conditional remounts */}
+            <div key={`list-${messages.length}`} className="space-y-4">
+              <div className="text-xs text-muted-foreground">Debug: messages to render {messages.length}</div>
+              {messages.map((msg, idx) => {
+                console.log(`🎨 [RENDER-DEBUG] Rendering message ${idx}:`, msg.role, msg.content.substring(0, 50));
+                
+                return (
+                  <div
+                    key={`msg-${idx}`}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div className={`max-w-[80%] ${msg.role === "assistant" ? "space-y-2" : ""}`}>
+                      <Card
+                        className={`p-4 ring-1 ring-primary/20 ${
+                          msg.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card text-foreground"
+                        }`}
+                      >
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        <div className={`text-xs mt-2 flex items-center justify-between ${
+                          msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                        }`}>
+                          <span>
+                            {msg.timestamp.toLocaleTimeString("ro-RO", { 
+                              hour: "2-digit", 
+                              minute: "2-digit" 
+                            })}
+                          </span>
+                          {msg.role === "assistant" && (
+                            <div className="flex gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -797,6 +800,7 @@ export default function StrategicAdvisor() {
                 conversationId={conversationId}
               />
             )}
+            </div>
           </div>
         </ScrollArea>
 
