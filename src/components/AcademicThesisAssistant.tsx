@@ -186,6 +186,12 @@ ${researchData.map(rd => `
 - Cadre teoretice: ${Array.isArray(rd.theoretical_frameworks) ? rd.theoretical_frameworks.length : 0}
 - Studii de caz: ${Array.isArray(rd.case_studies) ? rd.case_studies.length : 0}
 - Metrici: ${JSON.stringify(rd.metrics_collected)}
+
+${rd.content && rd.content.length > 500 ? `
+📹 TRANSCRIPTURI VIDEO (${Math.round(rd.content.length / 1000)}k caractere):
+${rd.content.substring(0, 2000)}...
+[FOLOSEȘTE aceste transcripturi pentru studii de caz concrete și exemple practice]
+` : ''}
 `).join('\n')}
 
 FORMAT:

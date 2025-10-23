@@ -176,6 +176,7 @@ serve(async (req) => {
 
     // Căutare pe YouTube pentru conținut video educațional
     const youtubeVideos: any[] = [];
+    const transcriptsMap = new Map<string, string>(); // Declare here for later use
     
     if (youtubeApiKey) {
       console.log('🎥 Căutare conținut YouTube...');
@@ -235,6 +236,7 @@ serve(async (req) => {
           const transcript = await getYoutubeTranscript(video.videoId);
           if (transcript) {
             video.transcript = transcript;
+            transcriptsMap.set(video.url, transcript);
             console.log(`✅ Transcript extras pentru: ${video.title}`);
           } else {
             // Folosește descrierea ca fallback
@@ -383,6 +385,18 @@ Surse articole: ${topPapers.map(p => `${p.title} (${p.venue || 'carte fundamenta
 
 Surse video: ${topVideos.map(v => `${v.title} - ${v.channel}${v.transcript && v.transcript !== v.description ? ' [CU TRANSCRIPT]' : ''}`).join('; ') || 'N/A'}`;
 
+    // Combină transcripturile pentru a le salva în câmpul content
+    const combinedTranscripts = topVideos
+      .map(v => {
+        const transcript = transcriptsMap.get(v.url);
+        if (transcript && transcript !== v.description && transcript.length > 200) {
+          return `[VIDEO: ${v.title}]\n${transcript}\n\n---\n\n`;
+        }
+        return '';
+      })
+      .filter(t => t.length > 0)
+      .join('');
+
     const { error: insertError } = await supabaseClient
       .from('research_data')
       .insert({
@@ -401,7 +415,8 @@ Surse video: ${topVideos.map(v => `${v.title} - ${v.channel}${v.transcript && v.
             thumbnail: v.thumbnail
           }))
         },
-        research_notes: researchNotes
+        research_notes: researchNotes,
+        content: combinedTranscripts || null
       });
 
     if (insertError) {
