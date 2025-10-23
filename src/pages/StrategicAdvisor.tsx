@@ -289,8 +289,8 @@ export default function StrategicAdvisor() {
       console.log("✅ [CHATBOT-DEBUG] AI răspuns primit:", aiMessage);
       setMessages(prev => [...prev, aiMessage]);
 
-      // NU mai golim inputul automat; păstrăm textul utilizatorului după trimitere
-      // setInput("");
+      // Golește inputul după răspuns pentru claritate UX
+      setInput("");
     } catch (error) {
       console.error("❌ [CHATBOT-DEBUG] Catch error:", error);
       const friendly =
@@ -778,8 +778,27 @@ export default function StrategicAdvisor() {
                 disabled={false}
               />
               <Button
-                onClick={() => sendMessage()}
-                disabled={false}
+                onClick={() => {
+                  console.log("🖱️ [SEND-DEBUG] ========== BUTON SEND APĂSAT ==========");
+                  console.log("🖱️ [SEND-DEBUG] input:", input);
+                  console.log("🖱️ [SEND-DEBUG] input.trim():", input.trim());
+                  console.log("🖱️ [SEND-DEBUG] isLoading:", isLoading);
+                  console.log("🖱️ [SEND-DEBUG] disabled:", !input.trim() || isLoading);
+
+                  if (!input.trim()) {
+                    console.error("❌ [SEND-DEBUG] BLOCAT: input este gol după trim!");
+                    return;
+                  }
+                  if (isLoading) {
+                    console.error("❌ [SEND-DEBUG] BLOCAT: isLoading = true");
+                    return;
+                  }
+
+                  console.log("✅ [SEND-DEBUG] Apelez sendMessage()...");
+                  sendMessage();
+                  console.log("✅ [SEND-DEBUG] sendMessage() apelat cu succes");
+                }}
+                disabled={!input.trim() || isLoading}
                 size="lg"
                 className="shrink-0"
               >
