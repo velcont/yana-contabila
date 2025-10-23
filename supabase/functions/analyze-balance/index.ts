@@ -512,18 +512,46 @@ serve(async (req) => {
         if (!row || row.length === 0) continue;
         
         const rowStr = row.join('|').toLowerCase();
-        if (rowStr.includes('sold') && (rowStr.includes('final') || rowStr.includes('finale'))) {
+        // Detectare flexibilă: sold/finale/SF/sfd/rulaj
+        if (rowStr.includes('sold') || rowStr.includes('sf ') || rowStr.includes('sfd') || 
+            rowStr.includes('sfc') || rowStr.includes('rulaj') || rowStr.includes('finale')) {
           headerRowIndex = i;
           
           for (let j = 0; j < row.length; j++) {
-            const cell = String(row[j]).toLowerCase();
+            const cell = String(row[j]).toLowerCase().trim();
+            
+            // Cont/Simbol
             if (cell.includes('cont') || cell.includes('simbol')) contCol = j;
-            if (cell.includes('sold') && cell.includes('final') && cell.includes('debit')) soldFinalDebitCol = j;
-            if (cell.includes('sold') && cell.includes('final') && cell.includes('credit')) soldFinalCreditCol = j;
-            if ((cell.includes('total') && cell.includes('sume') && cell.includes('debit')) || 
-                (cell.includes('rulaj') && cell.includes('debit'))) totalSumeDebitCol = j;
-            if ((cell.includes('total') && cell.includes('sume') && cell.includes('credit')) || 
-                (cell.includes('rulaj') && cell.includes('credit'))) totalSumeCreditCol = j;
+            
+            // Sold Final Debitor - variații: "sold final debitor", "SF deb", "SFD", "sold deb"
+            if ((cell.includes('sold') && cell.includes('final') && cell.includes('debit')) ||
+                (cell.includes('sf') && cell.includes('deb')) ||
+                cell === 'sfd' ||
+                (cell.includes('sold') && cell.includes('deb') && !cell.includes('credit'))) {
+              soldFinalDebitCol = j;
+            }
+            
+            // Sold Final Creditor - variații: "sold final creditor", "SF cred", "SFC", "sold cred"
+            if ((cell.includes('sold') && cell.includes('final') && cell.includes('credit')) ||
+                (cell.includes('sf') && cell.includes('cred')) ||
+                cell === 'sfc' ||
+                (cell.includes('sold') && cell.includes('cred') && !cell.includes('debit'))) {
+              soldFinalCreditCol = j;
+            }
+            
+            // Rulaj/Total Debitor - variații: "total sume debit", "rulaj debitor", "rulaj D", "debit"
+            if ((cell.includes('total') && cell.includes('sume') && cell.includes('debit')) ||
+                (cell.includes('rulaj') && (cell.includes('debit') || cell.includes(' d'))) ||
+                (cell === 'debit' || cell === 'd')) {
+              totalSumeDebitCol = j;
+            }
+            
+            // Rulaj/Total Creditor - variații: "total sume credit", "rulaj creditor", "rulaj C", "credit"
+            if ((cell.includes('total') && cell.includes('sume') && cell.includes('credit')) ||
+                (cell.includes('rulaj') && (cell.includes('credit') || cell.includes(' c'))) ||
+                (cell === 'credit' || cell === 'c')) {
+              totalSumeCreditCol = j;
+            }
           }
           break;
         }
