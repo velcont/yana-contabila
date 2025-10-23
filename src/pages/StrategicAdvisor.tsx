@@ -327,15 +327,49 @@ export default function StrategicAdvisor() {
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startNewConversation}
-              className="gap-2"
-            >
-              <MessageSquarePlus className="w-4 h-4" />
-              Conversație Nouă
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              {/* Credit indicator - visible pentru toți */}
+              <div className={`px-4 py-2 rounded-lg border-2 ${
+                isTrialUser 
+                  ? creditRemaining <= 2 
+                    ? 'border-destructive bg-destructive/10' 
+                    : creditRemaining <= 5 
+                    ? 'border-yellow-500 bg-yellow-500/10'
+                    : 'border-primary bg-primary/10'
+                  : 'border-green-500 bg-green-500/10'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isTrialUser 
+                      ? creditRemaining <= 2 
+                        ? 'bg-destructive animate-pulse' 
+                        : creditRemaining <= 5
+                        ? 'bg-yellow-500 animate-pulse'
+                        : 'bg-primary'
+                      : 'bg-green-500'
+                  }`} />
+                  <div className="text-right">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {isTrialUser ? "Credit Test" : "Nelimitat"}
+                    </p>
+                    <p className="text-lg font-bold">
+                      {isTrialUser ? `${creditRemaining.toFixed(2)} lei` : "∞"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={startNewConversation}
+                className="gap-2"
+              >
+                <MessageSquarePlus className="w-4 h-4" />
+                Conversație Nouă
+              </Button>
+            </div>
           </div>
 
           {/* Trial credit banner */}
