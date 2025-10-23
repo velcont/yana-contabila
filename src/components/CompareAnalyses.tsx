@@ -26,8 +26,9 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
   const analysis2 = analyses.find(a => a.id === period2);
 
   const calculateDiff = (val1: number, val2: number) => {
-    // Handle zero or missing values - return null to display N/A
-    if (!val1 || !val2 || val1 === 0) return null;
+    // Return null ONLY if values are missing (undefined/null), NOT if they're 0
+    if (val1 === undefined || val1 === null || val2 === undefined || val2 === null) return null;
+    if (val1 === 0) return null; // Can't calculate % change from 0
     return ((val2 - val1) / val1) * 100;
   };
 
@@ -115,18 +116,18 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
             </div>
 
             {metrics.map(metric => {
-              const val1 = analysis1.metadata[metric.key as keyof FinancialIndicators] as number || 0;
-              const val2 = analysis2.metadata[metric.key as keyof FinancialIndicators] as number || 0;
+              const val1 = analysis1.metadata[metric.key as keyof FinancialIndicators] as number;
+              const val2 = analysis2.metadata[metric.key as keyof FinancialIndicators] as number;
               const diff = calculateDiff(val1, val2);
 
               return (
                 <div key={metric.key} className="grid grid-cols-4 gap-4 items-center py-2 hover:bg-muted/50 rounded px-2">
                   <div className="font-medium text-sm">{metric.label}</div>
                   <div className="text-right text-sm text-muted-foreground">
-                    {val1 ? metric.formatter(val1) : 'N/A'}
+                    {val1 !== undefined && val1 !== null ? metric.formatter(val1) : 'N/A'}
                   </div>
                   <div className="text-right text-sm font-medium">
-                    {val2 ? metric.formatter(val2) : 'N/A'}
+                    {val2 !== undefined && val2 !== null ? metric.formatter(val2) : 'N/A'}
                   </div>
                   <div className="text-right">{renderDiffBadge(diff)}</div>
                 </div>
