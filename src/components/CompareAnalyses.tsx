@@ -105,7 +105,7 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
   const validAnalyses = analyses.filter((a) =>
     keysToCheck.some(k => {
       const v = getValueForAnalysis(a as any, k);
-      return v !== null && !Number.isNaN(v) && Math.abs(v) > 0;
+      return v !== null && typeof v === 'number' && Number.isFinite(v);
     })
   );
 
