@@ -218,6 +218,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       const detectedMonth = Object.keys(months).find(m => msgLower.includes(m)) || null;
 
       if (detectedMonth) {
+        console.log('[Chat] Detected month:', detectedMonth, '- checking DB...');
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: found, error: findErr } = await supabase
@@ -228,26 +229,43 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             .order('created_at', { ascending: false })
             .limit(1);
 
+          console.log('[Chat] DB query result:', { 
+            found: found?.length || 0,
+            hasMetadata: found?.[0]?.metadata ? 'YES' : 'NO',
+            fileName: found?.[0]?.file_name
+          });
+
           if (!findErr && found && found.length > 0 && found[0]?.metadata) {
             const md = found[0].metadata as any;
             let answer: string | null = null;
             if (/(cifra|venit|ca)/i.test(userMessage)) {
-              answer = `Cifra de afaceri pentru ${detectedMonth} este ${Number(md?.revenue || 0).toLocaleString('ro-RO')} RON.`;
+              const revenue = Number(md?.revenue || 0);
+              console.log('[Chat] Răspund cu revenue:', revenue);
+              answer = `Cifra de afaceri pentru ${detectedMonth} este ${revenue.toLocaleString('ro-RO')} RON.`;
             } else if (/profit/i.test(userMessage)) {
-              answer = `Profitul pentru ${detectedMonth} este ${Number(md?.profit || 0).toLocaleString('ro-RO')} RON.`;
+              const profit = Number(md?.profit || 0);
+              console.log('[Chat] Răspund cu profit:', profit);
+              answer = `Profitul pentru ${detectedMonth} este ${profit.toLocaleString('ro-RO')} RON.`;
             } else if (/(cheltuieli)/i.test(userMessage)) {
-              answer = `Cheltuielile pentru ${detectedMonth} sunt ${Number(md?.expenses || 0).toLocaleString('ro-RO')} RON.`;
+              const expenses = Number(md?.expenses || 0);
+              console.log('[Chat] Răspund cu expenses:', expenses);
+              answer = `Cheltuielile pentru ${detectedMonth} sunt ${expenses.toLocaleString('ro-RO')} RON.`;
             }
             if (answer) {
+              console.log('[Chat] ✅ Răspuns direct din DB:', answer.substring(0, 100));
               setMessages(prev => [...prev, { role: 'assistant', content: answer }]);
               setIsLoading(false);
               return;
             }
+          } else {
+            console.log('[Chat] Nu am găsit date pentru', detectedMonth);
+          }
           }
         }
       }
 
       // 2) Fallback: apel funcție backend chat-ai
+      console.log('[Chat] Apel AI generic pentru răspuns...');
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(

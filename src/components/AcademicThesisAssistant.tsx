@@ -714,6 +714,7 @@ IMPORTANT:
       if (analysesError) throw analysesError;
 
       // 2. Calculează statistici globale
+      console.log('[Draft] Calculating statistics from', allAnalyses?.length || 0, 'analyses');
       const totalAnalyses = allAnalyses?.length || 0;
       const companies = (allAnalyses && allAnalyses.length > 0)
         ? new Set(allAnalyses.map(a => a.company_name || a.file_name || a.id)).size
