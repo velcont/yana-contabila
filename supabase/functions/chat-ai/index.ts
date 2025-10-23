@@ -572,6 +572,8 @@ async function executeTools(toolCalls: any[], authHeader: string) {
                 : new Date(fallbackAnalysis.created_at).toLocaleDateString('ro-RO');
               
               console.log(`[CHAT-AI] FALLBACK: Folosesc ultima analiză (${periodStr})`);
+              console.log(`[CHAT-AI] Metadata disponibilă:`, fallbackAnalysis.metadata ? Object.keys(fallbackAnalysis.metadata) : 'LIPSĂ');
+              
               result = {
                 analysis: fallbackAnalysis,
                 message: `Nu am găsit analiza exactă pentru "${rawPeriod}". Folosesc ultima analiză disponibilă (${periodStr}).`
@@ -586,6 +588,9 @@ async function executeTools(toolCalls: any[], authHeader: string) {
               };
             }
           } else {
+            console.log(`[CHAT-AI] ✅ Am găsit analiza pentru ${rawPeriod}`);
+            console.log(`[CHAT-AI] Metadata disponibilă:`, found.metadata ? Object.keys(found.metadata) : 'LIPSĂ');
+            
             result = {
               analysis: found,
               message: `Am găsit analiza pentru ${rawPeriod}`

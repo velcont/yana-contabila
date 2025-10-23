@@ -215,13 +215,23 @@ const Index = () => {
           
           if (user) {
             try {
-              // Use metadata from edge function response, or fallback to parsing
+              // PRIORITATE 1: Metadata din edge function (calculată determinist din Excel)
               let indicators = data.metadata || {};
               
-              // If metadata is missing from response, parse from analysis text
+              console.log('📊 [FRONTEND] Metadata primită de la edge function:', indicators);
+              console.log('📊 [FRONTEND] Număr indicatori:', Object.keys(indicators).length);
+              
+              // PRIORITATE 2: Dacă metadata lipsește complet, parsează din text AI (fallback)
               if (!data.metadata || Object.keys(data.metadata).length === 0) {
+                console.warn('⚠️ [FRONTEND] Metadata lipsește - folosesc fallback parsing din text');
                 const { parseAnalysisText } = await import('@/utils/analysisParser');
                 indicators = parseAnalysisText(data.analysis);
+                console.log('📊 [FRONTEND] Metadata din fallback:', indicators);
+              }
+              
+              // VALIDARE CRITICĂ: Verifică că metadata are minim 3 indicatori
+              if (Object.keys(indicators).length < 3) {
+                console.error('❌ [FRONTEND] METADATA INCOMPLETĂ! Doar', Object.keys(indicators).length, 'indicatori');
               }
               
               const { error: saveError } = await supabase
@@ -233,9 +243,12 @@ const Index = () => {
                   company_name: companyName.trim() || 'Firmă nouă',
                   metadata: indicators as any
                 });
+              
               if (saveError) throw saveError;
+              
+              console.log('✅ [FRONTEND] Analiză salvată cu', Object.keys(indicators).length, 'indicatori');
             } catch (saveError) {
-              console.error('Error saving analysis:', saveError);
+              console.error('❌ [FRONTEND] Eroare salvare:', saveError);
               failCount++;
               continue;
             }
