@@ -731,7 +731,7 @@ export default function StrategicAdvisor() {
               />
               <Button
                 onClick={() => sendMessage()}
-                disabled={isLoading}
+                disabled={false}
                 size="lg"
                 className="shrink-0"
               >
