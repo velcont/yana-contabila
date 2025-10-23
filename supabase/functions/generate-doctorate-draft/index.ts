@@ -37,6 +37,13 @@ serve(async (req) => {
     console.log("Distribuție reziliență:", resilienceDistribution);
     console.log("Perioadă:", period, "| Sectoare:", sectors);
     console.log("Resurse cercetare:", researchResources?.length || 0, "resurse cu conținut");
+    if (Array.isArray(researchResources)) {
+      console.log("Resurse primite:", researchResources.map((r: any) => ({
+        title: r.title,
+        hasContent: !!r.content,
+        contentLength: r.content?.length
+      })));
+    }
     console.log("====================================");
 
     // Validare minimă de date
