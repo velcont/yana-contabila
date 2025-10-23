@@ -729,68 +729,57 @@ export default function StrategicAdvisor() {
               
               return (
                 <div
-                  key={`${msg.timestamp.getTime()}-${idx}`}
+                  key={`msg-${idx}`}
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  style={{ 
-                    minHeight: "60px",
-                    border: "2px solid red",
-                    marginBottom: "8px"
-                  }}
                 >
                   <div className={`max-w-[80%] ${msg.role === "assistant" ? "space-y-2" : ""}`}>
                     <Card
                       className={`p-4 ${
                         msg.role === "user"
                           ? "bg-primary text-primary-foreground"
-                          : "bg-card"
+                          : "bg-card text-card-foreground"
                       }`}
-                      style={{ 
-                        border: "3px solid blue",
-                        minHeight: "40px"
-                      }}
                     >
-                      <div className="whitespace-pre-wrap" style={{ color: "inherit" }}>
-                        {msg.content}
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      <div className={`text-xs mt-2 flex items-center justify-between ${
+                        msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                      }`}>
+                        <span>
+                          {msg.timestamp.toLocaleTimeString("ro-RO", { 
+                            hour: "2-digit", 
+                            minute: "2-digit" 
+                          })}
+                        </span>
+                        {msg.role === "assistant" && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openSaveDialog(msg)}
+                              className="h-6 px-2 gap-1"
+                            >
+                              <Save className="w-3 h-3" />
+                              Salvează
+                            </Button>
+                            {msg.showFeedback && (
+                              <StrategicFeedback
+                                conversationId={conversationId}
+                                messageContent={msg.content}
+                                onFeedbackSent={() => {
+                                  setMessages(prev =>
+                                    prev.map(m =>
+                                      m === msg ? { ...m, showFeedback: false } : m
+                                    )
+                                  );
+                                }}
+                              />
+                            )}
+                          </div>
+                        )}
                       </div>
-                    <div className={`text-xs mt-2 flex items-center justify-between ${
-                      msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
-                    }`}>
-                      <span>
-                        {msg.timestamp.toLocaleTimeString("ro-RO", { 
-                          hour: "2-digit", 
-                          minute: "2-digit" 
-                        })}
-                      </span>
-                      {msg.role === "assistant" && (
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openSaveDialog(msg)}
-                            className="h-6 px-2 gap-1"
-                          >
-                            <Save className="w-3 h-3" />
-                            Salvează
-                          </Button>
-                          {msg.showFeedback && (
-                            <StrategicFeedback
-                              conversationId={conversationId}
-                              messageContent={msg.content}
-                              onFeedbackSent={() => {
-                                setMessages(prev =>
-                                  prev.map(m =>
-                                    m === msg ? { ...m, showFeedback: false } : m
-                                  )
-                                );
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </Card>
+                    </Card>
+                  </div>
                 </div>
-              </div>
               );
             })}
 
