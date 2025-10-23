@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,47 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
     if (Math.abs(diff) < 1) return <Badge variant="outline" className="gap-1"><Minus className="h-3 w-3" />{diff.toFixed(1)}%</Badge>;
     if (diff > 0) return <Badge variant="default" className="gap-1 bg-success text-success-foreground"><TrendingUp className="h-3 w-3" />+{diff.toFixed(1)}%</Badge>;
     return <Badge variant="destructive" className="gap-1"><TrendingDown className="h-3 w-3" />{diff.toFixed(1)}%</Badge>;
+  };
+
+  // Helpers to robustly read values from metadata regardless of key naming/format
+  const parseNumeric = (val: any): number | null => {
+    if (val === undefined || val === null) return null;
+    if (typeof val === 'number' && !isNaN(val)) return val;
+    if (typeof val === 'string') {
+      let s = val.trim().replace(/[^0-9.,-]/g, ''); // keep digits, dot, comma, minus
+      if (!s) return null;
+      if (s.includes(',') && s.includes('.')) {
+        // Romanian style: . thousands, , decimals
+        s = s.replace(/\./g, '').replace(/,/g, '.');
+      } else if (s.includes(',') && !s.includes('.')) {
+        s = s.replace(/,/g, '.');
+      }
+      const n = parseFloat(s);
+      return isNaN(n) ? null : n;
+    }
+    return null;
+  };
+
+  const keyMap: Record<string, string[]> = {
+    revenue: ['revenue', 'ca', 'cifraAfaceri', 'cifra_afaceri'],
+    expenses: ['expenses', 'cheltuieli'],
+    profit: ['profit', 'profitNet', 'profit_net', 'rezultat'],
+    ebitda: ['ebitda'],
+    dso: ['dso', 'daysSalesOutstanding'],
+    dpo: ['dpo', 'daysPayableOutstanding'],
+    cashConversionCycle: ['cashConversionCycle', 'ccc', 'cash_conversion_cycle'],
+    soldBanca: ['soldBanca', 'banca', 'sold_banca', '5121', '5124', '5125'],
+    soldClienti: ['soldClienti', 'clienti', 'sold_clienti', '4111'],
+    soldFurnizori: ['soldFurnizori', 'furnizori', 'sold_furnizori', '401'],
+  };
+
+  const getMetricValue = (meta: any, primaryKey: string): number | null => {
+    const keys = keyMap[primaryKey] || [primaryKey];
+    for (const k of keys) {
+      const num = parseNumeric(meta?.[k]);
+      if (num !== null) return num;
+    }
+    return null;
   };
 
   const metrics = [
@@ -116,9 +157,9 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
             </div>
 
             {metrics.map(metric => {
-              const val1 = analysis1.metadata[metric.key as keyof FinancialIndicators] as number;
-              const val2 = analysis2.metadata[metric.key as keyof FinancialIndicators] as number;
-              const diff = calculateDiff(val1, val2);
+              const val1 = getMetricValue(analysis1.metadata as any, metric.key);
+              const val2 = getMetricValue(analysis2.metadata as any, metric.key);
+              const diff = val1 !== null && val2 !== null ? calculateDiff(val1, val2) : null;
 
               return (
                 <div key={metric.key} className="grid grid-cols-4 gap-4 items-center py-2 hover:bg-muted/50 rounded px-2">
