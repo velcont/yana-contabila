@@ -206,6 +206,8 @@ export default function StrategicAdvisor() {
       timestamp: new Date()
     };
 
+    console.info("[StrategicAdvisor] ▶️ sendMessage start", { conversationId, textLength: textToSend.length });
+
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
@@ -220,24 +222,50 @@ export default function StrategicAdvisor() {
 
       if (error) throw error;
 
+      let aiContent = "";
       if (data?.error) {
+        // Backend returned an application error
         toast.error(data.error);
-        return;
+        aiContent = `⚠️ Eroare: ${data.error}`;
+      } else if (typeof data === "string") {
+        aiContent = data;
+      } else if (typeof data?.response === "string") {
+        aiContent = data.response;
+      } else if (data) {
+        aiContent = JSON.stringify(data);
+      } else {
+        aiContent = "Nu am primit răspuns de la asistent. Încearcă din nou.";
       }
 
       const aiMessage: Message = {
         role: "assistant",
-        content: data.response,
+        content: aiContent,
         timestamp: new Date(),
         showFeedback: true
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error("[StrategicAdvisor] Error:", error);
-      toast.error("A apărut o eroare. Te rog încearcă din nou.");
-      // Asigură-te că eliminăm mesajul user în caz de eroare pentru a nu rămâne în loading infinit
-      setMessages(prev => prev.filter(m => m !== userMessage));
+      console.info("[StrategicAdvisor] ✅ Response appended", { hasContent: !!aiContent, length: aiContent.length });
+    } catch (error: any) {
+      console.error("[StrategicAdvisor] ❌ Error invoking function:", error);
+      const friendly =
+        error?.message?.includes("429")
+          ? "Limita de cereri a fost depășită. Încearcă peste câteva secunde."
+          : error?.message?.includes("402")
+          ? "Nu mai sunt credite AI. Te rugăm să alimentezi pentru a continua."
+          : "A apărut o eroare. Te rog încearcă din nou.";
+      toast.error(friendly);
+
+      // Păstrăm mesajul utilizatorului și adăugăm un mesaj de eroare ca asistent
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: friendly,
+          timestamp: new Date(),
+          showFeedback: false,
+        },
+      ]);
     } finally {
       // CRITIC: Întotdeauna resetează isLoading, chiar și în caz de eroare
       setIsLoading(false);
