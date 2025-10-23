@@ -416,10 +416,10 @@ serve(async (req) => {
 
     console.log("[STRATEGIC-ADVISOR] User authenticated:", user.id);
 
-    // Verify access: admin or active entrepreneur (BLOCAT pentru has_free_access)
+    // Verify subscription status and trial credit
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("subscription_type, subscription_status, has_free_access")
+      .select("subscription_type, subscription_status, has_free_access, trial_credit_remaining")
       .eq("id", user.id)
       .single();
 
@@ -428,26 +428,34 @@ serve(async (req) => {
       _role: "admin"
     });
 
-    // Permite acces pentru utilizatori cu abonament activ
-    // Verificarea creditelor se face mai jos
-    const hasAccess = isAdmin ||
-      ((profile?.subscription_type === "entrepreneur" || 
-        profile?.subscription_type === "accounting_firm") && 
-       profile?.subscription_status === "active");
+    const hasActiveSubscription = 
+      profile?.subscription_status === "active" || 
+      profile?.subscription_status === "trialing";
+    
+    const creditRemaining = profile?.trial_credit_remaining || 0;
+
+    // Allow access for:
+    // 1. Admins
+    // 2. Users with active paid subscription
+    // 3. Users with trial credit remaining
+    const hasAccess = isAdmin || 
+                     hasActiveSubscription || 
+                     creditRemaining > 0;
 
     console.log("[STRATEGIC-ADVISOR] Access check:", {
       userId: user.id,
       isAdmin,
       subscriptionType: profile?.subscription_type,
       subscriptionStatus: profile?.subscription_status,
-      hasFreeAccess: profile?.has_free_access,
+      creditRemaining,
+      hasActiveSubscription,
       finalAccess: hasAccess
     });
 
     if (!hasAccess) {
       return new Response(
         JSON.stringify({ 
-          error: "Acces interzis. Yana Strategica este disponibilă DOAR pentru abonamentele plătite active. Accesul gratuit nu include această funcționalitate premium." 
+          error: "Credit de test epuizat. Te rog activează un abonament plătit pentru a continua." 
         }),
         { 
           status: 403, 

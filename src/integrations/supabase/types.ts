@@ -1625,6 +1625,7 @@ export type Database = {
             | null
           terms_accepted: boolean | null
           terms_accepted_at: string | null
+          trial_credit_remaining: number | null
           trial_ends_at: string | null
           updated_at: string
         }
@@ -1644,6 +1645,7 @@ export type Database = {
             | null
           terms_accepted?: boolean | null
           terms_accepted_at?: string | null
+          trial_credit_remaining?: number | null
           trial_ends_at?: string | null
           updated_at?: string
         }
@@ -1663,6 +1665,7 @@ export type Database = {
             | null
           terms_accepted?: boolean | null
           terms_accepted_at?: string | null
+          trial_credit_remaining?: number | null
           trial_ends_at?: string | null
           updated_at?: string
         }
