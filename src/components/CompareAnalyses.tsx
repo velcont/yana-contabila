@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { formatCurrency, formatNumber, type FinancialIndicators } from '@/utils/analysisParser';
+import { parseAnalysisText, formatCurrency, formatNumber, type FinancialIndicators } from '@/utils/analysisParser';
 
 interface Analysis {
   id: string;
@@ -22,9 +22,17 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
   const [period1, setPeriod1] = useState<string>('');
   const [period2, setPeriod2] = useState<string>('');
 
-  const analysis1 = analyses.find(a => a.id === period1);
-  const analysis2 = analyses.find(a => a.id === period2);
+  // Build a list of analyses that actually have usable numbers (metadata or parsed)
+  const validAnalyses = analyses.filter((a) => {
+    const keysToCheck = ['revenue','expenses','profit','ebitda','dso','dpo','cashConversionCycle','soldBanca','soldClienti','soldFurnizori'];
+    return keysToCheck.some(k => {
+      const v = getValueForAnalysis(a as any, k);
+      return v !== null && !Number.isNaN(v) && Math.abs(v) > 0;
+    });
+  });
 
+  const analysis1 = validAnalyses.find(a => a.id === period1);
+  const analysis2 = validAnalyses.find(a => a.id === period2);
   const calculateDiff = (val1: number, val2: number) => {
     // Return null ONLY if values are missing (undefined/null), NOT if they're 0
     if (val1 === undefined || val1 === null || val2 === undefined || val2 === null) return null;
@@ -80,6 +88,17 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
     return null;
   };
 
+  const getValueForAnalysis = (analysis: Analysis, primaryKey: string): number | null => {
+    const metaVal = getMetricValue(analysis.metadata as any, primaryKey);
+    if (metaVal !== null && metaVal !== 0) return metaVal;
+    // Fallback: parse from analysis text
+    const parsed = parseAnalysisText(analysis.analysis_text || '');
+    const parsedVal = getMetricValue(parsed as any, primaryKey);
+    if (parsedVal !== null && parsedVal !== 0) return parsedVal;
+    // If parsed gives >0 but meta is 0, prefer parsed
+    if ((metaVal === 0 || metaVal === null) && parsedVal !== null) return parsedVal;
+    return metaVal;
+  };
   const metrics = [
     { label: 'Cifră Afaceri', key: 'revenue', formatter: formatCurrency, goodDirection: 'up' },
     { label: 'Cheltuieli', key: 'expenses', formatter: formatCurrency, goodDirection: 'down' },
@@ -108,7 +127,7 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
                 <SelectValue placeholder="Selectează perioada" />
               </SelectTrigger>
               <SelectContent>
-                {analyses.map(a => (
+                {validAnalyses.map(a => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.file_name} ({new Date(a.created_at).toLocaleDateString('ro-RO')})
                   </SelectItem>
@@ -124,7 +143,7 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
                 <SelectValue placeholder="Selectează perioada" />
               </SelectTrigger>
               <SelectContent>
-                {analyses.map(a => (
+                {validAnalyses.map(a => (
                   <SelectItem key={a.id} value={a.id} disabled={a.id === period1}>
                     {a.file_name} ({new Date(a.created_at).toLocaleDateString('ro-RO')})
                   </SelectItem>
@@ -157,8 +176,8 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
             </div>
 
             {metrics.map(metric => {
-              const val1 = getMetricValue(analysis1.metadata as any, metric.key);
-              const val2 = getMetricValue(analysis2.metadata as any, metric.key);
+              const val1 = getValueForAnalysis(analysis1, metric.key);
+              const val2 = getValueForAnalysis(analysis2, metric.key);
               const diff = val1 !== null && val2 !== null ? calculateDiff(val1, val2) : null;
 
               return (
