@@ -137,13 +137,61 @@ export default function StrategicAdvisor() {
   // Load conversation history & user analyses
   useEffect(() => {
     const loadHistory = async () => {
-      if (!user || !conversationId) return;
+      if (!user || !conversationId) {
+        setIsLoadingHistory(false);
+        return;
+      }
       
+      console.info("[StrategicAdvisor] 📜 Loading history", { conversationId, userId: user.id });
       setIsLoadingHistory(true);
       try {
         // Load conversation history
         const { data, error } = await supabase
           .from('conversation_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true })
+          .limit(50);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const loadedMessages: Message[] = data.map(msg => ({
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+            timestamp: new Date(msg.created_at!)
+          }));
+          setMessages(loadedMessages);
+        }
+        
+        // Load user analyses for compare
+        const { data: analyses, error: analysesError } = await supabase
+          .from('analyses')
+          .select('id, company_name, file_name, created_at, analysis_text, metadata')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (!analysesError && analyses) {
+          setUserAnalyses(analyses);
+        }
+      } catch (error) {
+        console.error("Error loading history:", error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+
+    // Cleanup: never leave loading flags stuck
+    return () => {
+      console.warn("[StrategicAdvisor] 🧹 Cleanup – resetting loading flags");
+      setIsLoadingHistory(false);
+      setIsLoading(false);
+    };
+  }, [user, conversationId]);
           .select('*')
           .eq('user_id', user.id)
           .eq('conversation_id', conversationId)
@@ -196,23 +244,32 @@ export default function StrategicAdvisor() {
     }
   }, [messages]);
 
-  const sendMessage = async (messageText?: string) => {
-    const textToSend = messageText ?? input.trim();
-    if (!textToSend || isLoading) return;
+  const sendMessage = async (textToSend?: string) => {
+    const messageText = textToSend ?? input.trim();
+
+    console.log("🔍 [CHATBOT-DEBUG] sendMessage called");
+    console.log("🔍 [CHATBOT-DEBUG] messageText:", messageText);
+    console.log("🔍 [CHATBOT-DEBUG] isLoading:", isLoading);
+    console.log("🔍 [CHATBOT-DEBUG] input state:", input);
+
+    if (!messageText || isLoading) {
+      console.warn("⚠️ [CHATBOT-DEBUG] Mesaj blocat - messageText:", messageText, "isLoading:", isLoading);
+      return;
+    }
 
     const userMessage: Message = {
       role: "user",
-      content: textToSend,
+      content: messageText,
       timestamp: new Date()
     };
 
-    console.info("[StrategicAdvisor] ▶️ sendMessage start", { conversationId, textLength: textToSend.length });
+    console.log("✅ [CHATBOT-DEBUG] Trimit mesaj:", userMessage);
 
     setMessages(prev => [...prev, userMessage]);
     // Nu goli inputul înainte de răspuns – evităm senzația că "dispare" textul
     setIsLoading(true);
 
-    // Watchdog: nu lăsăm interfața blocată dacă backend-ul întârzie
+    // Watchdog suplimentar ca să nu rămână blocat UI-ul
     const watchdog = setTimeout(() => {
       console.warn("[StrategicAdvisor] ⏱️ Timeout – reset isLoading");
       setIsLoading(false);
@@ -220,16 +277,74 @@ export default function StrategicAdvisor() {
     }, 15000);
 
     try {
-      const { data, error } = await supabase.functions.invoke("strategic-advisor", {
+      console.log("📡 [CHATBOT-DEBUG] Invoking edge function...");
+
+      // Timeout hard de 30s pentru invoke
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout: Edge function nu a răspuns în 30 secunde")), 30000)
+      );
+
+      const invokePromise = supabase.functions.invoke("strategic-advisor", {
         body: {
           message: userMessage.content,
           conversationId
         }
       });
 
-      if (error) throw error;
+      const { data, error } = (await Promise.race([invokePromise, timeoutPromise])) as any;
 
-      let aiContent = "";
+      console.log("📡 [CHATBOT-DEBUG] Edge function response:", { data, error });
+      if (error) {
+        console.error("❌ [CHATBOT-DEBUG] Edge function error:", error);
+        // Forțează deblocare
+        setIsLoading(false);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error("❌ [CHATBOT-DEBUG] Data error:", data.error);
+        toast.error(data.error);
+        setIsLoading(false);
+        // adăugăm un mic mesaj în conversatie pentru claritate
+        setMessages(prev => [
+          ...prev,
+          { role: "assistant", content: `⚠️ ${data.error}`, timestamp: new Date(), showFeedback: false }
+        ]);
+        return;
+      }
+
+      let aiContent = typeof data === "string" ? data : data?.response ?? JSON.stringify(data ?? {});
+
+      const aiMessage: Message = {
+        role: "assistant",
+        content: aiContent,
+        timestamp: new Date(),
+        showFeedback: true
+      };
+
+      console.log("✅ [CHATBOT-DEBUG] AI răspuns primit:", aiMessage);
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Golește inputul doar după răspuns
+      setInput("");
+    } catch (error) {
+      console.error("❌ [CHATBOT-DEBUG] Catch error:", error);
+      const friendly =
+        (error as any)?.message?.includes("429")
+          ? "Limita de cereri a fost depășită. Încearcă peste câteva secunde."
+          : (error as any)?.message?.includes("402")
+          ? "Nu mai sunt credite AI. Te rugăm să alimentezi pentru a continua."
+          : (error as any)?.message?.includes("Timeout")
+          ? "Timeout: serverul nu a răspuns în timp util. Încearcă din nou."
+          : "A apărut o eroare. Te rog încearcă din nou.";
+      toast.error(friendly);
+      setMessages(prev => [...prev, { role: "assistant", content: friendly, timestamp: new Date(), showFeedback: false }]);
+    } finally {
+      clearTimeout(watchdog);
+      console.log("🏁 [CHATBOT-DEBUG] setIsLoading(false)");
+      setIsLoading(false);
+    }
+  };
       if (data?.error) {
         toast.error(data.error);
         aiContent = `⚠️ Eroare: ${data.error}`;
@@ -607,6 +722,21 @@ export default function StrategicAdvisor() {
                 <MessageSquarePlus className="w-4 h-4" />
                 Conversație Nouă
               </Button>
+              {isLoading && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    console.log("🚨 [CHATBOT-DEBUG] FORȚARE DEBLOCARE");
+                    setIsLoading(false);
+                    toast.success("Chatbot deblocat manual");
+                  }}
+                  className="gap-2 animate-pulse"
+                >
+                  <Loader2 className="w-4 h-4" />
+                  Deblochează Chatbot
+                </Button>
+              )}
             </div>
           </div>
         </header>
@@ -717,16 +847,20 @@ export default function StrategicAdvisor() {
             <div className="flex gap-2">
               <Textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  console.log("⌨️ [CHATBOT-DEBUG] Input onChange:", e.target.value);
+                  setInput(e.target.value);
+                }}
                 onKeyDown={(e) => {
+                  console.log("⌨️ [CHATBOT-DEBUG] Key pressed:", e.key, "shiftKey:", e.shiftKey);
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
+                    console.log("⌨️ [CHATBOT-DEBUG] Enter pressed - calling sendMessage");
                     sendMessage();
                   }
                 }}
                 placeholder="Descrie provocarea ta de business aici..."
                 className="min-h-[60px] resize-none"
-                // Menținem editarea activă și în timpul încărcării
                 disabled={false}
               />
               <Button
