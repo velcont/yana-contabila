@@ -428,12 +428,21 @@ serve(async (req) => {
       _role: "admin"
     });
 
-    // Strategic Advisor BLOCAT pentru TOȚI utilizatorii cu acces gratuit
-    // Doar abonați plătitori (fără has_free_access) sau admini au acces
-    const hasAccess = isAdmin || 
-      (profile?.subscription_type === "entrepreneur" && 
-       profile?.subscription_status === "active" && 
-       profile?.has_free_access !== true);
+    // Permite acces pentru utilizatori cu abonament activ
+    // Verificarea creditelor se face mai jos
+    const hasAccess = isAdmin ||
+      ((profile?.subscription_type === "entrepreneur" || 
+        profile?.subscription_type === "accounting_firm") && 
+       profile?.subscription_status === "active");
+
+    console.log("[STRATEGIC-ADVISOR] Access check:", {
+      userId: user.id,
+      isAdmin,
+      subscriptionType: profile?.subscription_type,
+      subscriptionStatus: profile?.subscription_status,
+      hasFreeAccess: profile?.has_free_access,
+      finalAccess: hasAccess
+    });
 
     if (!hasAccess) {
       return new Response(

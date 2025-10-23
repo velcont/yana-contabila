@@ -104,12 +104,20 @@ export default function StrategicAdvisor() {
           _role: "admin"
         });
 
-        // Strategic Advisor este blocat pentru TOȚI utilizatorii cu acces gratuit
-        // Doar abonați plătitori (fără has_free_access) sau admini au acces
+        // Permite acces pentru utilizatori cu abonament activ
+        // Verificarea creditelor se face în backend
         const access = isAdmin || 
-          (profile?.subscription_type === "entrepreneur" && 
-           profile?.subscription_status === "active" && 
-           profile?.has_free_access !== true);
+          ((profile?.subscription_type === "entrepreneur" || 
+            profile?.subscription_type === "accounting_firm") && 
+           profile?.subscription_status === "active");
+        
+        console.log("[STRATEGIC-ADVISOR-UI] Access check:", {
+          isAdmin,
+          subscriptionType: profile?.subscription_type,
+          subscriptionStatus: profile?.subscription_status,
+          hasFreeAccess: profile?.has_free_access,
+          finalAccess: access
+        });
         
         setHasAccess(access);
       } catch (error) {
