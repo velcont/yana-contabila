@@ -352,17 +352,21 @@ Nu trimiteți acest document fără editare substanțială!
       
       const profits = (allAnalyses || []).map(a => {
         const metadata = a.metadata as any;
-        return metadata?.profit || 0;
+        return Number(metadata?.profit) || 0;
       }).filter(p => p !== 0);
-      const avgProfit = profits.reduce((sum, p) => sum + p, 0) / profits.length;
+      const avgProfit = profits.length > 0
+        ? Math.round(profits.reduce((sum, p) => sum + p, 0) / profits.length)
+        : 0;
       
       const margins = (allAnalyses || []).map(a => {
-        const metadata = a.metadata as any;
-        const profit = metadata?.profit || 0;
-        const revenue = metadata?.ca || 1;
-        return (profit / revenue) * 100;
-      }).filter(m => !isNaN(m));
-      const avgMargin = margins.reduce((sum, m) => sum + m, 0) / margins.length;
+        const md = a.metadata as any;
+        const profit = Number(md?.profit) || 0;
+        const revenue = Number(md?.ca) || 0;
+        return revenue > 0 ? (profit / revenue) * 100 : 0;
+      }).filter(m => !isNaN(m) && isFinite(m));
+      const avgMargin = margins.length > 0
+        ? Math.round((margins.reduce((sum, m) => sum + m, 0) / margins.length) * 10) / 10
+        : 0;
 
       const highPerformers = margins.filter(m => m > 15).length;
       const mediumPerformers = margins.filter(m => m >= 10 && m <= 15).length;
@@ -374,6 +378,66 @@ Nu trimiteți acest document fără editare substanțială!
       const averageCount = margins.filter(m => m >= 5 && m < 10).length;
       const poorCount = margins.filter(m => m < 5).length;
 
+      // 2.1. Calculează scorul de reziliență pe companie și distribuția
+      type Analysis = { created_at: string; metadata: any; company_name?: string };
+      const byCompany = new Map<string, Analysis[]>();
+      (allAnalyses as Analysis[] | null | undefined)?.forEach(a => {
+        const key = a.company_name || 'N/A';
+        if (!byCompany.has(key)) byCompany.set(key, []);
+        byCompany.get(key)!.push(a);
+      });
+
+      const computeResilienceScore = (arr: Analysis[]) => {
+        if (!arr || arr.length < 2) return null;
+        const sorted = [...arr].sort((a,b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        // 1) Profit stability
+        const profs = sorted.map(a => Number(a.metadata?.profit) || 0);
+        const avgP = profs.reduce((s, p) => s + p, 0) / profs.length;
+        const varP = profs.reduce((s, p) => s + Math.pow(p - avgP, 2), 0) / profs.length;
+        const profitStability = avgP !== 0 ? Math.max(0, 100 - (Math.sqrt(varP) / Math.abs(avgP)) * 50) : 0;
+        // 2) Liquidity
+        const latest = sorted[sorted.length - 1];
+        const liquid = (Number(latest.metadata?.casa) || 0) + (Number(latest.metadata?.banca) || 0);
+        const obligations = Number(latest.metadata?.furnizori) || 1;
+        const liquidityScore = Math.min(100, (liquid / obligations) * 100);
+        // 3) Efficiency (EBITDA margin)
+        const ebitda = Number(latest.metadata?.ebitda) || 0;
+        const revenue = Number(latest.metadata?.ca) || 1;
+        const efficiencyScore = Math.max(0, Math.min(100, 50 + ((ebitda / revenue) * 100) * 2));
+        // 4) Cost flexibility
+        const expenseRatios = sorted.map(a => {
+          const expenses = Number(a.metadata?.cheltuieli) || 0;
+          const rev = Number(a.metadata?.ca) || 1;
+          return (expenses / rev) * 100;
+        });
+        const avgExp = expenseRatios.reduce((s, r) => s + r, 0) / expenseRatios.length;
+        const varExp = expenseRatios.reduce((s, r) => s + Math.pow(r - avgExp, 2), 0) / expenseRatios.length;
+        const costFlexibility = Math.max(0, 100 - Math.sqrt(varExp) * 10);
+        const overall = profitStability * 0.3 + liquidityScore * 0.3 + efficiencyScore * 0.2 + costFlexibility * 0.2;
+        return Math.round(overall);
+      };
+
+      const scores: number[] = [];
+      for (const [, arr] of byCompany) {
+        const s = computeResilienceScore(arr);
+        if (s !== null) scores.push(s);
+      }
+      const totalScores = scores.length || 0;
+      const avgResilienceScore = totalScores > 0 ? Math.round(scores.reduce((s, v) => s + v, 0) / totalScores) : 0;
+      const lowRisk = scores.filter(s => s >= 75).length;
+      const mediumRisk = scores.filter(s => s >= 50 && s < 75).length;
+      const highRisk = scores.filter(s => s < 50).length;
+      const distLow = totalScores ? Math.round((lowRisk / totalScores) * 100) : 0;
+      const distMed = totalScores ? Math.round((mediumRisk / totalScores) * 100) : 0;
+      const distHigh = totalScores ? Math.round((highRisk / totalScores) * 100) : 0;
+
+      // 2.2. Perioadă și sectoare
+      const dates = (allAnalyses || []).map(a => new Date(a.created_at));
+      const minYear = dates.length ? Math.min(...dates.map(d => d.getFullYear())) : 2020;
+      const maxYear = dates.length ? Math.max(...dates.map(d => d.getFullYear())) : new Date().getFullYear();
+      const period = `${minYear}-${maxYear}`;
+      const sectors = "tehnologie, servicii, retail"; // fallback până avem clasificare sectorială
+
       // 3. Apel edge function dedicat pentru draft doctorat
       console.log("📊 Statistici pentru draft:", {
         totalAnalyses,
@@ -382,7 +446,11 @@ Nu trimiteți acest document fără editare substanțială!
         avgMargin,
         highPerformers,
         lowPerformers,
-        margins: { excellent: excellentCount, good: goodCount, average: averageCount, poor: poorCount }
+        margins: { excellent: excellentCount, good: goodCount, average: averageCount, poor: poorCount },
+        avgResilienceScore,
+        resilienceDistribution: { low: distLow, medium: distMed, high: distHigh, totalScores },
+        period,
+        sectors,
       });
 
       const { data, error } = await supabase.functions.invoke("generate-doctorate-draft", {
@@ -398,7 +466,11 @@ Nu trimiteți acest document fără editare substanțială!
             good: goodCount,
             average: averageCount,
             poor: poorCount
-          }
+          },
+          avgResilienceScore,
+          resilienceDistribution: { low: distLow, medium: distMed, high: distHigh, totalScores },
+          period,
+          sectors,
         },
       });
 
