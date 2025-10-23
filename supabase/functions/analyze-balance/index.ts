@@ -672,137 +672,198 @@ serve(async (req) => {
 
     // Extrage indicatori pentru validare post-procesare și pentru metadata
     const metadata: Record<string, number> = {};
-    const indicatorsMatch = analysis.match(/=== INDICATORI FINANCIARI ===([\s\S]*?)(?=\n\n|$)/);
+    
+    console.log("🔍 Cautare sectiune INDICATORI FINANCIARI in analiza...");
+    
+    // Încearcă mai multe variante de formatare pentru secțiunea indicatorilor
+    let indicatorsMatch = analysis.match(/===\s*INDICATORI\s+FINANCIARI\s*===([\s\S]*?)(?=\n\n|===|$)/i);
+    
+    if (!indicatorsMatch) {
+      // Încearcă varianta fără spații extra
+      indicatorsMatch = analysis.match(/===INDICATORI FINANCIARI===([\s\S]*?)(?=\n\n|===|$)/i);
+    }
+    
+    if (!indicatorsMatch) {
+      // Încearcă varianta cu asterisc
+      indicatorsMatch = analysis.match(/\*\*\*\s*INDICATORI\s+FINANCIARI\s*\*\*\*([\s\S]*?)(?=\n\n|\*\*\*|$)/i);
+    }
+    
     if (indicatorsMatch) {
+      console.log("✅ Sectiune INDICATORI FINANCIARI gasita!");
       const indicators = indicatorsMatch[1];
-      const dsoMatch = indicators.match(/DSO:\s*(\d+\.?\d*)/);
-      const dpoMatch = indicators.match(/DPO:\s*(\d+\.?\d*)/);
-      const cccMatch = indicators.match(/CCC:\s*(-?\d+\.?\d*)/);
-      const ebitdaMatch = indicators.match(/EBITDA:\s*(-?\d+\.?\d*)/);
-      const caMatch = indicators.match(/CA:\s*(\d+\.?\d*)/);
-      const cheltuieliMatch = indicators.match(/Cheltuieli:\s*(\d+\.?\d*)/);
-      const profitMatch = indicators.match(/Profit:\s*(-?\d+\.?\d*)/);
-      const furnizoriMatch = indicators.match(/Sold Furnizori:\s*(\d+\.?\d*)/);
-      const clientiMatch = indicators.match(/Sold Clienti:\s*(\d+\.?\d*)/);
-      const bancaMatch = indicators.match(/Sold Banca:\s*(\d+\.?\d*)/);
-      const casaMatch = indicators.match(/Sold Casa:\s*(\d+\.?\d*)/);
+      console.log("📊 Continut sectiune:", indicators.substring(0, 200));
       
-      // Populează metadata
-      if (dsoMatch) metadata.dso = parseFloat(dsoMatch[1]);
-      if (dpoMatch) metadata.dpo = parseFloat(dpoMatch[1]);
-      if (cccMatch) metadata.cashConversionCycle = parseFloat(cccMatch[1]);
-      if (ebitdaMatch) metadata.ebitda = parseFloat(ebitdaMatch[1]);
-      if (caMatch) metadata.revenue = parseFloat(caMatch[1]);
-      if (cheltuieliMatch) metadata.expenses = parseFloat(cheltuieliMatch[1]);
-      if (profitMatch) metadata.profit = parseFloat(profitMatch[1]);
-      if (furnizoriMatch) metadata.soldFurnizori = parseFloat(furnizoriMatch[1]);
-      if (clientiMatch) metadata.soldClienti = parseFloat(clientiMatch[1]);
-      if (bancaMatch) metadata.soldBanca = parseFloat(bancaMatch[1]);
-      if (casaMatch) metadata.soldCasa = parseFloat(casaMatch[1]);
+      // Regex mai flexibile pentru extragerea valorilor (acceptă separatori de mii și spații)
+      const dsoMatch = indicators.match(/DSO[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const dpoMatch = indicators.match(/DPO[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const cccMatch = indicators.match(/CCC[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+      const ebitdaMatch = indicators.match(/EBITDA[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+      const caMatch = indicators.match(/CA[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const cheltuieliMatch = indicators.match(/Cheltuieli[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const profitMatch = indicators.match(/Profit[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+      const furnizoriMatch = indicators.match(/Sold\s+Furnizori[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const clientiMatch = indicators.match(/Sold\s+Clienti[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const bancaMatch = indicators.match(/Sold\s+Banca[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const casaMatch = indicators.match(/Sold\s+Casa[:\s]+(\d+(?:[.,]\d+)?)/i);
       
-      // VALIDARE CRITICĂ: Verifică că valorile din alertele AI corespund cu balanța reală
-      const analysisNumbers = analysis.match(/(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/g) || [];
-      const corrections: string[] = [];
+      // Populează metadata (elimină separatorii de mii)
+      const parseValue = (val: string) => parseFloat(val.replace(/,/g, ''));
       
-      // Verifică alerte despre conturi specifice
-      const accountAlertPattern = /contul?\s+(\d{3,4})[^0-9]*?(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/gi;
-      let alertMatch;
-      while ((alertMatch = accountAlertPattern.exec(analysis)) !== null) {
-        const accountCode = alertMatch[1];
-        const reportedValue = parseFloat(alertMatch[2].replace(/[,.]/g, ''));
-        const accountData = extractAccountValue(accountCode);
-        
-        // Verifică dacă AI-ul menționează un cont care nu există sau are sold 0
-        if (!accountData.exists) {
-          corrections.push(
-            `🔴 **EROARE CRITICĂ**: Analiza AI menționează contul ${accountCode} cu ${reportedValue.toLocaleString('ro-RO')} RON, ` +
-            `dar acest cont **NU APARE** în balanța pentru perioada curentă sau are sold final 0.00 RON!\n\n` +
-            `**CONCLUZIE**: Contul ${accountCode} este INEXISTENT sau ÎNCHIS în această perioadă. ` +
-            `AI-ul a inventat această informație! Ignoră orice alertă sau analiză legată de acest cont.`
-          );
-        } else if (accountData.finalBalance !== null && Math.abs(reportedValue - accountData.finalBalance) > 1) {
-          // Verifică dacă valoarea raportată este greșită
-          corrections.push(
-            `⚠️ **CORECȚIE AUTOMATĂ**: Analiza AI a raportat o valoare incorectă pentru contul ${accountCode}.\n` +
-            `• Valoare GREȘITĂ raportată de AI: ${reportedValue.toLocaleString('ro-RO')} RON\n` +
-            `• Valoare CORECTĂ din balanță (sold final): ${accountData.finalBalance.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n` +
-            `**Te rugăm să folosești doar valoarea corectă din balanță!**`
-          );
-        }
-      }
+      if (dsoMatch) metadata.dso = parseValue(dsoMatch[1]);
+      if (dpoMatch) metadata.dpo = parseValue(dpoMatch[1]);
+      if (cccMatch) metadata.cashConversionCycle = parseValue(cccMatch[1]);
+      if (ebitdaMatch) metadata.ebitda = parseValue(ebitdaMatch[1]);
+      if (caMatch) metadata.revenue = parseValue(caMatch[1]);
+      if (cheltuieliMatch) metadata.expenses = parseValue(cheltuieliMatch[1]);
+      if (profitMatch) metadata.profit = parseValue(profitMatch[1]);
+      if (furnizoriMatch) metadata.soldFurnizori = parseValue(furnizoriMatch[1]);
+      if (clientiMatch) metadata.soldClienti = parseValue(clientiMatch[1]);
+      if (bancaMatch) metadata.soldBanca = parseValue(bancaMatch[1]);
+      if (casaMatch) metadata.soldCasa = parseValue(casaMatch[1]);
       
-      if (corrections.length > 0) {
-        const correctionsSection = `\n\n🔴 **CORECȚII AUTOMATE - VALORI INCORECTE DETECTATE ÎN ANALIZĂ**\n\n${corrections.join('\n\n')}`;
-        return new Response(
-          JSON.stringify({ 
-            analysis: analysis + correctionsSection,
-            metadata: Object.keys(metadata).length > 0 ? metadata : undefined
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      console.log("📈 Metadata extrase:", Object.keys(metadata).length, "indicatori");
+    } else {
+      console.warn("⚠️ Sectiune INDICATORI FINANCIARI NU a fost gasita in analiza!");
+      console.log("🔍 Ultimele 500 caractere din analiza:", analysis.slice(-500));
+      
+      // FALLBACK: Încearcă să extragi valorile din întregul text al analizei
+      console.log("🔄 Incerc extragere fallback din text complet...");
+      
+      const parseFromText = (regex: RegExp) => {
+        const match = analysis.match(regex);
+        return match ? parseFloat(match[1].replace(/[,\s]/g, '')) : undefined;
+      };
+      
+      const dso = parseFromText(/DSO[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const dpo = parseFromText(/DPO[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const ccc = parseFromText(/CCC[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+      const ebitda = parseFromText(/EBITDA[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+      const revenue = parseFromText(/(?:CA|Cifra de afaceri)[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const expenses = parseFromText(/Cheltuieli[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const profit = parseFromText(/Profit[:\s]+(-?\d+(?:[.,]\d+)?)/i);
+      const soldFurnizori = parseFromText(/Sold\s+Furnizori[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const soldClienti = parseFromText(/Sold\s+(?:Clienti|Clienți)[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const soldBanca = parseFromText(/Sold\s+Banca[:\s]+(\d+(?:[.,]\d+)?)/i);
+      const soldCasa = parseFromText(/Sold\s+Casa[:\s]+(\d+(?:[.,]\d+)?)/i);
+      
+      // Atribuie doar valorile non-undefined
+      if (dso !== undefined) metadata.dso = dso;
+      if (dpo !== undefined) metadata.dpo = dpo;
+      if (ccc !== undefined) metadata.cashConversionCycle = ccc;
+      if (ebitda !== undefined) metadata.ebitda = ebitda;
+      if (revenue !== undefined) metadata.revenue = revenue;
+      if (expenses !== undefined) metadata.expenses = expenses;
+      if (profit !== undefined) metadata.profit = profit;
+      if (soldFurnizori !== undefined) metadata.soldFurnizori = soldFurnizori;
+      if (soldClienti !== undefined) metadata.soldClienti = soldClienti;
+      if (soldBanca !== undefined) metadata.soldBanca = soldBanca;
+      if (soldCasa !== undefined) metadata.soldCasa = soldCasa;
+      
+      console.log("📊 Metadata fallback extrase:", Object.keys(metadata).length, "indicatori");
+    }
+    
+    console.log("✅ Metadata final:", metadata);
+    
+    // VALIDARE CRITICĂ: Verifică că valorile din alertele AI corespund cu balanța reală
+    const analysisNumbers = analysis.match(/(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/g) || [];
+    const corrections: string[] = [];
+    
+    // Verifică alerte despre conturi specifice
+    const accountAlertPattern = /contul?\s+(\d{3,4})[^0-9]*?(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/gi;
+    let alertMatch;
+    while ((alertMatch = accountAlertPattern.exec(analysis)) !== null) {
+      const accountCode = alertMatch[1];
+      const reportedValue = parseFloat(alertMatch[2].replace(/[,.]/g, ''));
+      const accountData = extractAccountValue(accountCode);
+      
+      // Verifică dacă AI-ul menționează un cont care nu există sau are sold 0
+      if (!accountData.exists) {
+        corrections.push(
+          `🔴 **EROARE CRITICĂ**: Analiza AI menționează contul ${accountCode} cu ${reportedValue.toLocaleString('ro-RO')} RON, ` +
+          `dar acest cont **NU APARE** în balanța pentru perioada curentă sau are sold final 0.00 RON!\n\n` +
+          `**CONCLUZIE**: Contul ${accountCode} este INEXISTENT sau ÎNCHIS în această perioadă. ` +
+          `AI-ul a inventat această informație! Ignoră orice alertă sau analiză legată de acest cont.`
+        );
+      } else if (accountData.finalBalance !== null && Math.abs(reportedValue - accountData.finalBalance) > 1) {
+        // Verifică dacă valoarea raportată este greșită
+        corrections.push(
+          `⚠️ **CORECȚIE AUTOMATĂ**: Analiza AI a raportat o valoare incorectă pentru contul ${accountCode}.\n` +
+          `• Valoare GREȘITĂ raportată de AI: ${reportedValue.toLocaleString('ro-RO')} RON\n` +
+          `• Valoare CORECTĂ din balanță (sold final): ${accountData.finalBalance.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON\n` +
+          `**Te rugăm să folosești doar valoarea corectă din balanță!**`
         );
       }
-      
-      const validationWarnings: string[] = [];
-      
-      // Validare DSO
-      if (dsoMatch && parseFloat(dsoMatch[1]) > 90) {
-        validationWarnings.push(`⚠️ ALERTĂ CRITICĂ: DSO extrem de ridicat (${dsoMatch[1]} zile) - Banii sunt blocați în creanțe prea mult timp`);
+    }
+    
+    if (corrections.length > 0) {
+      const correctionsSection = `\n\n🔴 **CORECȚII AUTOMATE - VALORI INCORECTE DETECTATE ÎN ANALIZĂ**\n\n${corrections.join('\n\n')}`;
+      return new Response(
+        JSON.stringify({ 
+          analysis: analysis + correctionsSection,
+          metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const validationWarnings: string[] = [];
+    
+    // Validare DSO folosind metadata
+    if (metadata.dso && metadata.dso > 90) {
+      validationWarnings.push(`⚠️ ALERTĂ CRITICĂ: DSO extrem de ridicat (${metadata.dso} zile) - Banii sunt blocați în creanțe prea mult timp`);
+    }
+    
+    // Validare Cash flow negativ
+    if (metadata.revenue && metadata.expenses) {
+      if (metadata.expenses > metadata.revenue) {
+        validationWarnings.push(`🔴 PIERDERE GARANTATĂ: Cheltuielile (${metadata.expenses.toLocaleString('ro-RO')}) depășesc veniturile (${metadata.revenue.toLocaleString('ro-RO')})`);
       }
+    }
+    
+    // Validare plafon casă
+    if (metadata.soldCasa && metadata.soldCasa > 50000) {
+      validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit - ${metadata.soldCasa.toLocaleString('ro-RO')} RON (max legal: 50.000 RON)`);
+    }
+    
+    // Validare CRITICĂ: Verifică dacă interpretarea profitului/pierderii este corectă
+    if (metadata.profit !== undefined) {
+      const profitValue = metadata.profit;
+      const analysisLower = analysis.toLowerCase();
       
-      // Validare Cash flow negativ
-      if (caMatch && cheltuieliMatch) {
-        const ca = parseFloat(caMatch[1]);
-        const cheltuieli = parseFloat(cheltuieliMatch[1]);
-        if (cheltuieli > ca) {
-          validationWarnings.push(`🔴 PIERDERE GARANTATĂ: Cheltuielile (${cheltuieli.toLocaleString('ro-RO')}) depășesc veniturile (${ca.toLocaleString('ro-RO')})`);
-        }
-      }
-      
-      // Validare plafon casă
-      if (casaMatch && parseFloat(casaMatch[1]) > 50000) {
-        validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit - ${parseFloat(casaMatch[1]).toLocaleString('ro-RO')} RON (max legal: 50.000 RON)`);
-      }
-      
-      // Validare CRITICĂ: Verifică dacă interpretarea profitului/pierderii este corectă
-      if (profitMatch) {
-        const profitValue = parseFloat(profitMatch[1]);
-        const analysisLower = analysis.toLowerCase();
-        
-        // Detectează contradicții în interpretarea profitului
-        if (profitValue < 0 && 
-            (analysisLower.includes('profit de') || analysisLower.includes('profitul de')) && 
-            !analysisLower.includes('pierdere')) {
-          validationWarnings.push(
-            `🔴 **CORECȚIE CRITICĂ**: Analiza menționează "profit" dar contul 121 are sold DEBITOR (${Math.abs(profitValue).toLocaleString('ro-RO')} RON), ` +
-            `ceea ce înseamnă de fapt **PIERDERE**! În contabilitate:\n` +
-            `• Sold DEBITOR pe contul 121 = PIERDERE ❌\n` +
-            `• Sold CREDITOR pe contul 121 = PROFIT ✅\n\n` +
-            `**Concluzie corectă**: Compania a înregistrat o **PIERDERE de ${Math.abs(profitValue).toLocaleString('ro-RO')} RON**, NU profit!`
-          );
-        } else if (profitValue > 0 && 
-                   (analysisLower.includes('pierdere de') || analysisLower.includes('pierderea de')) && 
-                   !analysisLower.includes('profit')) {
-          validationWarnings.push(
-            `🔴 **CORECȚIE CRITICĂ**: Analiza menționează "pierdere" dar contul 121 are sold CREDITOR (${profitValue.toLocaleString('ro-RO')} RON), ` +
-            `ceea ce înseamnă de fapt **PROFIT**! În contabilitate:\n` +
-            `• Sold CREDITOR pe contul 121 = PROFIT ✅\n` +
-            `• Sold DEBITOR pe contul 121 = PIERDERE ❌\n\n` +
-            `**Concluzie corectă**: Compania a înregistrat un **PROFIT de ${profitValue.toLocaleString('ro-RO')} RON**, NU pierdere!`
-          );
-        }
-      }
-      
-      // Adaugă warnings la sfârșitul analizei dacă există
-      if (validationWarnings.length > 0) {
-        const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
-        return new Response(
-          JSON.stringify({ 
-            analysis: analysis + warningsSection,
-            metadata: Object.keys(metadata).length > 0 ? metadata : undefined
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      // Detectează contradicții în interpretarea profitului
+      if (profitValue < 0 && 
+          (analysisLower.includes('profit de') || analysisLower.includes('profitul de')) && 
+          !analysisLower.includes('pierdere')) {
+        validationWarnings.push(
+          `🔴 **CORECȚIE CRITICĂ**: Analiza menționează "profit" dar contul 121 are sold DEBITOR (${Math.abs(profitValue).toLocaleString('ro-RO')} RON), ` +
+          `ceea ce înseamnă de fapt **PIERDERE**! În contabilitate:\n` +
+          `• Sold DEBITOR pe contul 121 = PIERDERE ❌\n` +
+          `• Sold CREDITOR pe contul 121 = PROFIT ✅\n\n` +
+          `**Concluzie corectă**: Compania a înregistrat o **PIERDERE de ${Math.abs(profitValue).toLocaleString('ro-RO')} RON**, NU profit!`
+        );
+      } else if (profitValue > 0 && 
+                 (analysisLower.includes('pierdere de') || analysisLower.includes('pierderea de')) && 
+                 !analysisLower.includes('profit')) {
+        validationWarnings.push(
+          `🔴 **CORECȚIE CRITICĂ**: Analiza menționează "pierdere" dar contul 121 are sold CREDITOR (${profitValue.toLocaleString('ro-RO')} RON), ` +
+          `ceea ce înseamnă de fapt **PROFIT**! În contabilitate:\n` +
+          `• Sold CREDITOR pe contul 121 = PROFIT ✅\n` +
+          `• Sold DEBITOR pe contul 121 = PIERDERE ❌\n\n` +
+          `**Concluzie corectă**: Compania a înregistrat un **PROFIT de ${profitValue.toLocaleString('ro-RO')} RON**, NU pierdere!`
         );
       }
+    }
+    
+    // Adaugă warnings la sfârșitul analizei dacă există
+    if (validationWarnings.length > 0) {
+      const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
+      return new Response(
+        JSON.stringify({ 
+          analysis: analysis + warningsSection,
+          metadata: Object.keys(metadata).length > 0 ? metadata : undefined
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
     return new Response(
