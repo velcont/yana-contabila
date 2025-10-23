@@ -208,9 +208,17 @@ serve(async (req) => {
       logStep("Active subscription found", { subscriptionId: subscription.id, priceId });
 
       // Determine subscription type based on price
-      if (priceId === 'price_1SHJt7Bu3m83VcDAJryrpFfB') {
+      if (priceId === 'price_1SLWzFBu3m83VcDAgP1veppc') {
+        // Plan Contabil 199 RON
+        subscriptionType = 'accounting_firm';
+      } else if (priceId === 'price_1SLWzEBu3m83VcDAfHVcQupt') {
+        // Plan Antreprenor 49 RON
+        subscriptionType = 'entrepreneur';
+      } else if (priceId === 'price_1SHJt7Bu3m83VcDAJryrpFfB') {
+        // Old Plan Contabil (EUR)
         subscriptionType = 'accounting_firm';
       } else {
+        // Default to entrepreneur
         subscriptionType = 'entrepreneur';
       }
       
