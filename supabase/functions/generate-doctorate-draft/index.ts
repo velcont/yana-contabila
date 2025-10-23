@@ -12,6 +12,28 @@ serve(async (req) => {
   }
 
   try {
+    // Verifică dacă există body și parsează-l safe
+    let requestBody;
+    try {
+      const text = await req.text();
+      console.log("📥 Request body primit (primele 200 caractere):", text.substring(0, 200));
+      
+      if (!text || text.trim() === '') {
+        throw new Error("Request body este gol");
+      }
+      
+      requestBody = JSON.parse(text);
+    } catch (parseError) {
+      console.error("❌ Eroare la parsare JSON:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Request invalid - body lipsește sau JSON malformat",
+          details: parseError instanceof Error ? parseError.message : "Unknown error"
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { 
       totalAnalyses, 
       companies, 
@@ -25,7 +47,7 @@ serve(async (req) => {
       period,
       sectors,
       researchResources
-    } = await req.json();
+    } = requestBody;
 
     // Debug input
     console.log("=== EDGE FUNCTION - Date primite ===");
