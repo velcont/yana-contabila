@@ -489,7 +489,7 @@ serve(async (req) => {
     console.log("Lungime totală text extras:", balanceText.length);
 
     // CALCUL DETERMINIST AL INDICATORILOR DIN EXCEL
-    console.log("📊 Calcul determinist indicatori financiari din Excel...");
+    console.log("📊 [METADATA-EXTRACT] START: Calcul determinist indicatori financiari din Excel...");
     const deterministic_metadata: Record<string, number> = {};
     
     try {
@@ -499,6 +499,8 @@ serve(async (req) => {
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][];
       
+      console.log(`📊 [METADATA-EXTRACT] Excel has ${data.length} rows`);
+      
       // Găsește indexurile coloanelor importante
       let headerRowIndex = -1;
       let soldFinalDebitCol = -1;
@@ -507,61 +509,157 @@ serve(async (req) => {
       let totalSumeCreditCol = -1;
       let contCol = -1;
       
+      console.log("🔍 [METADATA-EXTRACT] Căutare header în primele 10 rânduri...");
+      
       for (let i = 0; i < Math.min(10, data.length); i++) {
         const row = data[i];
         if (!row || row.length === 0) continue;
         
         const rowStr = row.join('|').toLowerCase();
+        console.log(`🔍 [METADATA-EXTRACT] Rândul ${i}: ${rowStr.substring(0, 100)}...`);
+        
         // Detectare flexibilă: sold/finale/SF/sfd/rulaj
         if (rowStr.includes('sold') || rowStr.includes('sf ') || rowStr.includes('sfd') || 
             rowStr.includes('sfc') || rowStr.includes('rulaj') || rowStr.includes('finale')) {
           headerRowIndex = i;
+          console.log(`✅ [METADATA-EXTRACT] GĂSIT header la rândul ${i}`);
           
           for (let j = 0; j < row.length; j++) {
             const cell = String(row[j]).toLowerCase().trim();
             
             // Cont/Simbol
-            if (cell.includes('cont') || cell.includes('simbol')) contCol = j;
+            if (cell.includes('cont') || cell.includes('simbol')) {
+              contCol = j;
+              console.log(`✅ [METADATA-EXTRACT] Coloana CONT găsită la index ${j}: "${row[j]}"`);
+            }
             
-            // Sold Final Debitor - variații: "sold final debitor", "SF deb", "SFD", "sold deb"
+            // Sold Final Debitor
             if ((cell.includes('sold') && cell.includes('final') && cell.includes('debit')) ||
                 (cell.includes('sf') && cell.includes('deb')) ||
                 cell === 'sfd' ||
                 (cell.includes('sold') && cell.includes('deb') && !cell.includes('credit'))) {
               soldFinalDebitCol = j;
+              console.log(`✅ [METADATA-EXTRACT] Coloana SF DEBIT găsită la index ${j}: "${row[j]}"`);
             }
             
-            // Sold Final Creditor - variații: "sold final creditor", "SF cred", "SFC", "sold cred"
+            // Sold Final Creditor
             if ((cell.includes('sold') && cell.includes('final') && cell.includes('credit')) ||
                 (cell.includes('sf') && cell.includes('cred')) ||
                 cell === 'sfc' ||
                 (cell.includes('sold') && cell.includes('cred') && !cell.includes('debit'))) {
               soldFinalCreditCol = j;
+              console.log(`✅ [METADATA-EXTRACT] Coloana SF CREDIT găsită la index ${j}: "${row[j]}"`);
             }
             
-            // Rulaj/Total Debitor - variații: "total sume debit", "rulaj debitor", "rulaj D", "debit"
+            // Rulaj/Total Debitor
             if ((cell.includes('total') && cell.includes('sume') && cell.includes('debit')) ||
                 (cell.includes('rulaj') && (cell.includes('debit') || cell.includes(' d'))) ||
                 (cell === 'debit' || cell === 'd')) {
               totalSumeDebitCol = j;
+              console.log(`✅ [METADATA-EXTRACT] Coloana TOTAL DEBIT găsită la index ${j}: "${row[j]}"`);
             }
             
-            // Rulaj/Total Creditor - variații: "total sume credit", "rulaj creditor", "rulaj C", "credit"
+            // Rulaj/Total Creditor
             if ((cell.includes('total') && cell.includes('sume') && cell.includes('credit')) ||
                 (cell.includes('rulaj') && (cell.includes('credit') || cell.includes(' c'))) ||
                 (cell === 'credit' || cell === 'c')) {
               totalSumeCreditCol = j;
+              console.log(`✅ [METADATA-EXTRACT] Coloana TOTAL CREDIT găsită la index ${j}: "${row[j]}"`);
             }
           }
           break;
         }
       }
       
-      console.log(`📍 Header row: ${headerRowIndex}, Cont col: ${contCol}, Sold Final D/C: ${soldFinalDebitCol}/${soldFinalCreditCol}, Total D/C: ${totalSumeDebitCol}/${totalSumeCreditCol}`);
+      console.log(`📍 [METADATA-EXTRACT] REZUMAT: Header=${headerRowIndex}, Cont=${contCol}, SF D/C=${soldFinalDebitCol}/${soldFinalCreditCol}, Total D/C=${totalSumeDebitCol}/${totalSumeCreditCol}`);
       
+      // FALLBACK: Dacă NU am găsit header-uri, încearcă extragere FĂRĂ header
       if (headerRowIndex === -1 || contCol === -1) {
-        console.warn("⚠️ Nu s-au găsit coloanele necesare pentru calcul determinist");
+        console.warn("⚠️ [METADATA-EXTRACT] NU s-au găsit coloanele necesare - ACTIVARE FALLBACK FĂRĂ HEADER");
+        
+        // Strategie alternativă: caută conturi cunoscute (4111, 401, 5121, 7xx, 6xx) direct în celule
+        let soldClienti = 0, soldFurnizori = 0, soldBanca = 0, soldCasa = 0;
+        let totalVenituri = 0, totalCheltuieli = 0, reduceriComerciale = 0;
+        
+        console.log("🔧 [METADATA-EXTRACT-FALLBACK] Căutare conturi DIRECTE fără header...");
+        
+        for (let i = 0; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length === 0) continue;
+          
+          // Caută cont în prima coloană (cel mai probabil index 0 sau 1)
+          for (let contIdx = 0; contIdx <= 1; contIdx++) {
+            const cell = String(row[contIdx] || '').trim();
+            const contMatch = cell.match(/^(\d{3,4})/);
+            if (!contMatch) continue;
+            
+            const contCode = contMatch[1];
+            console.log(`🔍 [METADATA-EXTRACT-FALLBACK] Găsit cont ${contCode} la rândul ${i}`);
+            
+            // Extrage valori din celulele următoare (asumă structură: Cont, ..., Sold Deb, Sold Cred, Total Deb, Total Cred)
+            const extractNum = (colIdx: number): number => {
+              if (colIdx >= row.length) return 0;
+              const val = row[colIdx];
+              if (val === null || val === undefined || val === '') return 0;
+              const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^\d.-]/g, ''));
+              return isNaN(num) ? 0 : num;
+            };
+            
+            // Încearcă să extragă solduri din ultimele coloane (probabil SF Deb la row.length-4, SF Cred la row.length-3, etc.)
+            const lastCols = Math.min(6, row.length - 1);
+            const possibleSFDebit = extractNum(row.length - lastCols);
+            const possibleSFCredit = extractNum(row.length - lastCols + 1);
+            const possibleTotalDebit = extractNum(row.length - lastCols + 2);
+            const possibleTotalCredit = extractNum(row.length - lastCols + 3);
+            
+            console.log(`  [FALLBACK] Cont ${contCode}: SF Deb=${possibleSFDebit}, SF Cred=${possibleSFCredit}, Total D=${possibleTotalDebit}, Total C=${possibleTotalCredit}`);
+            
+            // Mapare conturi cunoscute
+            if (contCode === '4111' && possibleSFDebit > 0) soldClienti = possibleSFDebit;
+            if (contCode === '401' && possibleSFCredit > 0) soldFurnizori = possibleSFCredit;
+            if ((contCode === '5121' || contCode === '5124' || contCode === '5125') && possibleSFDebit > 0) soldBanca += possibleSFDebit;
+            if (contCode === '5311' && possibleSFDebit > 0) soldCasa = possibleSFDebit;
+            
+            // Venituri (clasa 7)
+            if (contCode.startsWith('7') && contCode !== '709' && possibleTotalCredit > 0) {
+              totalVenituri += possibleTotalCredit;
+              console.log(`  [FALLBACK] Venituri cont ${contCode}: +${possibleTotalCredit} (Total: ${totalVenituri})`);
+            }
+            if (contCode === '709' && possibleTotalCredit > 0) reduceriComerciale = possibleTotalCredit;
+            
+            // Cheltuieli (clasa 6)
+            if (contCode.startsWith('6') && possibleTotalDebit > 0) {
+              totalCheltuieli += possibleTotalDebit;
+              console.log(`  [FALLBACK] Cheltuieli cont ${contCode}: +${possibleTotalDebit} (Total: ${totalCheltuieli})`);
+            }
+          }
+        }
+        
+        // Calculează indicatori din fallback
+        const revenue = Math.max(0, totalVenituri - reduceriComerciale);
+        const expenses = totalCheltuieli;
+        const profit = revenue - expenses;
+        
+        deterministic_metadata.revenue = revenue;
+        deterministic_metadata.expenses = expenses;
+        deterministic_metadata.profit = profit;
+        deterministic_metadata.soldClienti = soldClienti;
+        deterministic_metadata.soldFurnizori = soldFurnizori;
+        deterministic_metadata.soldBanca = soldBanca;
+        deterministic_metadata.soldCasa = soldCasa;
+        
+        if (revenue > 0) deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
+        if (expenses > 0) deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
+        if (deterministic_metadata.dso && deterministic_metadata.dpo) {
+          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso - deterministic_metadata.dpo;
+        }
+        
+        console.log("✅ [METADATA-EXTRACT-FALLBACK] METADATA EXTRASĂ (fără header):", deterministic_metadata);
+        
       } else {
+        // Proceeding with header-based extraction
+        console.log("✅ [METADATA-EXTRACT] Header-uri GĂSITE - Extragere cu header...");
+
         // Funcție helper pentru a extrage valoare numerică
         const getNumValue = (row: any[], colIndex: number): number => {
           if (colIndex === -1) return 0;
@@ -647,7 +745,7 @@ serve(async (req) => {
           deterministic_metadata.cashConversionCycle = deterministic_metadata.dso - deterministic_metadata.dpo;
         }
         
-        console.log("✅ Metadata calculate determinist:", deterministic_metadata);
+        console.log("✅ [METADATA-EXTRACT] METADATA FINALĂ (cu header):", deterministic_metadata);
       }
     } catch (calcError) {
       console.error("❌ Eroare calcul determinist:", calcError);

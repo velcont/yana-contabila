@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Send, Brain, TrendingUp, ArrowLeft, MessageSquarePlus, BookmarkIcon, Save, Users } from "lucide-react";
+import { Loader2, Send, Brain, TrendingUp, ArrowLeft, MessageSquarePlus, BookmarkIcon, Save, Users, GitCompareArrows } from "lucide-react";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
 import { StrategicQuickReplies } from "@/components/StrategicQuickReplies";
@@ -15,6 +15,7 @@ import { StrategicCouncil } from "@/components/StrategicCouncil";
 import { YanaStrategicaTutorial } from "@/components/YanaStrategicaTutorial";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { StrategicFeedback } from "@/components/StrategicFeedback";
+import CompareAnalyses from "@/components/CompareAnalyses";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,9 @@ export default function StrategicAdvisor() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showSavedStrategies, setShowSavedStrategies] = useState(false);
   const [showCouncil, setShowCouncil] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [userAnalyses, setUserAnalyses] = useState<any[]>([]);
   const [selectedMessageToSave, setSelectedMessageToSave] = useState<Message | null>(null);
   const [saveForm, setSaveForm] = useState({
     title: "",
@@ -131,13 +134,14 @@ export default function StrategicAdvisor() {
     checkAccess();
   }, [user, profile]);
 
-  // Load conversation history
+  // Load conversation history & user analyses
   useEffect(() => {
     const loadHistory = async () => {
       if (!user || !conversationId) return;
       
       setIsLoadingHistory(true);
       try {
+        // Load conversation history
         const { data, error } = await supabase
           .from('conversation_history')
           .select('*')
@@ -155,6 +159,18 @@ export default function StrategicAdvisor() {
             timestamp: new Date(msg.created_at!)
           }));
           setMessages(loadedMessages);
+        }
+        
+        // Load user analyses for compare
+        const { data: analyses, error: analysesError } = await supabase
+          .from('analyses')
+          .select('id, company_name, file_name, created_at, analysis_text, metadata')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        
+        if (!analysesError && analyses) {
+          setUserAnalyses(analyses);
         }
       } catch (error) {
         console.error("Error loading history:", error);
@@ -447,6 +463,28 @@ export default function StrategicAdvisor() {
           </div>
         </div>
       )}
+      
+      {/* Sidebar for compare analyses */}
+      {showCompare && (
+        <div className="w-[600px] border-r bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 overflow-hidden">
+          <div className="p-4 border-b flex items-center justify-between">
+            <h2 className="font-semibold flex items-center gap-2">
+              <GitCompareArrows className="w-5 h-5 text-primary" />
+              Comparare Perioade
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCompare(false)}
+            >
+              Ascunde
+            </Button>
+          </div>
+          <div className="p-4 overflow-y-auto h-[calc(100vh-73px)]">
+            <CompareAnalyses analyses={userAnalyses} />
+          </div>
+        </div>
+      )}
 
       {/* Main chat area */}
       <div className="flex flex-col flex-1">
@@ -510,6 +548,15 @@ export default function StrategicAdvisor() {
               >
                 <BookmarkIcon className="w-4 h-4" />
                 Strategii
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCompare(!showCompare)}
+                className="gap-2"
+              >
+                <GitCompareArrows className="w-4 h-4" />
+                Comparare
               </Button>
               <Button
                 variant="outline"

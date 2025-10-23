@@ -560,13 +560,31 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           const found = candidates.sort((a, b) => new Date(b.row.created_at).getTime() - new Date(a.row.created_at).getTime())[0]?.row || null;
 
           if (!found) {
-            const available = annotated
-              .map(a => a.year && a.month ? `${('0'+a.month).slice(-2)}/${a.year}` : null)
-              .filter(Boolean)
-              .slice(0, 12);
-            result = {
-              error: `Nu am găsit analiza pentru perioada "${rawPeriod}". Perioade disponibile: ${available.join(', ')}`
-            };
+            console.warn(`[CHAT-AI] Nu am găsit analiza exactă pentru "${rawPeriod}" - ACTIVARE FALLBACK`);
+            
+            // FALLBACK: Returnează ultima analiză disponibilă dacă nu găsim exact
+            const fallbackAnalysis = annotated.sort((a, b) => new Date(b.row.created_at).getTime() - new Date(a.row.created_at).getTime())[0]?.row;
+            
+            if (fallbackAnalysis) {
+              const fallbackPeriod = annotated.find(a => a.row.id === fallbackAnalysis.id);
+              const periodStr = fallbackPeriod?.month && fallbackPeriod?.year 
+                ? `${('0'+fallbackPeriod.month).slice(-2)}/${fallbackPeriod.year}` 
+                : new Date(fallbackAnalysis.created_at).toLocaleDateString('ro-RO');
+              
+              console.log(`[CHAT-AI] FALLBACK: Folosesc ultima analiză (${periodStr})`);
+              result = {
+                analysis: fallbackAnalysis,
+                message: `Nu am găsit analiza exactă pentru "${rawPeriod}". Folosesc ultima analiză disponibilă (${periodStr}).`
+              };
+            } else {
+              const available = annotated
+                .map(a => a.year && a.month ? `${('0'+a.month).slice(-2)}/${a.year}` : null)
+                .filter(Boolean)
+                .slice(0, 12);
+              result = {
+                error: `Nu am găsit nicio analiză pentru "${rawPeriod}". Perioade disponibile: ${available.join(', ')}`
+              };
+            }
           } else {
             result = {
               analysis: found,
