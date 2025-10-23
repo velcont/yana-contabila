@@ -162,7 +162,8 @@ export default function StrategicAdvisor() {
             content: msg.content,
             timestamp: new Date(msg.created_at!)
           }));
-          setMessages(loadedMessages);
+          // Nu suprascrie mesajele trimise deja în sesiunea curentă
+          setMessages(prev => (prev.length > 0 ? prev : loadedMessages));
         }
         
         // Load user analyses for compare
