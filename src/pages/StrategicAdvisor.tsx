@@ -162,8 +162,7 @@ export default function StrategicAdvisor() {
             content: msg.content,
             timestamp: new Date(msg.created_at!)
           }));
-          // Nu suprascrie mesajele trimise deja în sesiunea curentă
-          setMessages(prev => (prev.length > 0 ? prev : loadedMessages));
+          setMessages(loadedMessages);
         }
         
         // Load user analyses for compare
@@ -192,7 +191,7 @@ export default function StrategicAdvisor() {
       setIsLoadingHistory(false);
       setIsLoading(false);
     };
-  }, [user, conversationId]);
+  }, [user]); // ✅ NU mai depinde de conversationId - încarcă doar la mount
 
   const startNewConversation = () => {
     const newId = crypto.randomUUID();
@@ -200,6 +199,8 @@ export default function StrategicAdvisor() {
     setConversationId(newId);
     setMessages([]);
     toast.success("Conversație nouă începută");
+    // Re-încarcă istoricul pentru noua conversație
+    window.location.reload();
   };
 
   useEffect(() => {
