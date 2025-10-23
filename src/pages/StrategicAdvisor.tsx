@@ -48,6 +48,22 @@ export default function StrategicAdvisor() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  
+  // ✅ LOGGING pentru messages changes + auto-scroll
+  useEffect(() => {
+    console.log("💬 [MESSAGES-DEBUG] messages state CHANGED:");
+    console.log("💬 [MESSAGES-DEBUG] Total messages:", messages.length);
+    messages.forEach((msg, idx) => {
+      console.log(`💬 [MESSAGES-DEBUG] [${idx}] ${msg.role}: ${msg.content.substring(0, 50)}...`);
+    });
+    
+    // Auto-scroll la ultimul mesaj
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }, 100);
+    }
+  }, [messages]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(() => {
@@ -162,7 +178,31 @@ export default function StrategicAdvisor() {
             content: msg.content,
             timestamp: new Date(msg.created_at!)
           }));
-          setMessages(loadedMessages);
+          
+          console.log("💬 [HISTORY-DEBUG] Loaded", loadedMessages.length, "messages from DB");
+          
+          // ✅ NU suprascrie mesajele noi trimise în sesiunea curentă
+          setMessages(prev => {
+            console.log("💬 [HISTORY-DEBUG] Current messages in state:", prev.length);
+            
+            // Dacă avem mesaje mai noi în state decât în DB, păstrează-le pe cele din state
+            if (prev.length > 0) {
+              const lastStateMsg = prev[prev.length - 1];
+              const lastDbMsg = loadedMessages[loadedMessages.length - 1];
+              
+              console.log("💬 [HISTORY-DEBUG] Last state msg timestamp:", lastStateMsg?.timestamp);
+              console.log("💬 [HISTORY-DEBUG] Last DB msg timestamp:", lastDbMsg?.timestamp);
+              
+              // Dacă ultimul mesaj din state este mai recent, păstrează state-ul
+              if (lastDbMsg && lastStateMsg.timestamp > lastDbMsg.timestamp) {
+                console.log("💬 [HISTORY-DEBUG] State messages are newer - keeping them");
+                return prev;
+              }
+            }
+            
+            console.log("💬 [HISTORY-DEBUG] Loading messages from DB");
+            return loadedMessages;
+          });
         }
         
         // Load user analyses for compare
