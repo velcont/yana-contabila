@@ -68,14 +68,9 @@ serve(async (req) => {
     }
     console.log("====================================");
 
-    // Validare minimă de date
+    // Validare minimă de date - nu mai blocăm generarea, doar logăm un avertisment
     if (!totalAnalyses || !companies || totalAnalyses === 0 || companies === 0) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Date insuficiente pentru generare. Asigură-te că există analize și companii în baza de date." 
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      console.warn("[generate-doctorate-draft] Date insuficiente pentru generare - continui cu valori implicite");
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

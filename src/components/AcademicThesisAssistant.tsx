@@ -715,7 +715,9 @@ IMPORTANT:
 
       // 2. Calculează statistici globale
       const totalAnalyses = allAnalyses?.length || 0;
-      const companies = new Set(allAnalyses?.map(a => a.company_name).filter(Boolean)).size;
+      const companies = (allAnalyses && allAnalyses.length > 0)
+        ? new Set(allAnalyses.map(a => a.company_name || a.file_name || a.id)).size
+        : 0;
       
       const profits = (allAnalyses || []).map(a => {
         const metadata = a.metadata as any;
@@ -728,7 +730,7 @@ IMPORTANT:
       const margins = (allAnalyses || []).map(a => {
         const md = a.metadata as any;
         const profit = Number(md?.profit) || 0;
-        const revenue = Number(md?.ca) || 0;
+        const revenue = Number(md?.revenue) || 0;
         return revenue > 0 ? (profit / revenue) * 100 : 0;
       }).filter(m => !isNaN(m) && isFinite(m));
       const avgMargin = margins.length > 0

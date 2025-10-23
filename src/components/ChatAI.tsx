@@ -210,6 +210,44 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }
 
     try {
+      // 1) Încercare răspuns direct din DB pentru întrebări despre o lună specifică
+      const msgLower = userMessage.toLowerCase();
+      const months: Record<string, string> = {
+        'ianuarie':'ianuarie','februarie':'februarie','martie':'martie','aprilie':'aprilie','mai':'mai','iunie':'iunie','iulie':'iulie','august':'august','septembrie':'septembrie','octombrie':'octombrie','noiembrie':'noiembrie','decembrie':'decembrie'
+      };
+      const detectedMonth = Object.keys(months).find(m => msgLower.includes(m)) || null;
+
+      if (detectedMonth) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: found, error: findErr } = await supabase
+            .from('analyses')
+            .select('metadata, file_name, created_at')
+            .eq('user_id', user.id)
+            .ilike('file_name', `%${detectedMonth}%`)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!findErr && found && found.length > 0 && found[0]?.metadata) {
+            const md = found[0].metadata as any;
+            let answer: string | null = null;
+            if (/(cifra|venit|ca)/i.test(userMessage)) {
+              answer = `Cifra de afaceri pentru ${detectedMonth} este ${Number(md?.revenue || 0).toLocaleString('ro-RO')} RON.`;
+            } else if (/profit/i.test(userMessage)) {
+              answer = `Profitul pentru ${detectedMonth} este ${Number(md?.profit || 0).toLocaleString('ro-RO')} RON.`;
+            } else if (/(cheltuieli)/i.test(userMessage)) {
+              answer = `Cheltuielile pentru ${detectedMonth} sunt ${Number(md?.expenses || 0).toLocaleString('ro-RO')} RON.`;
+            }
+            if (answer) {
+              setMessages(prev => [...prev, { role: 'assistant', content: answer }]);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+      }
+
+      // 2) Fallback: apel funcție backend chat-ai
       const { data: { session } } = await supabase.auth.getSession();
       
       const response = await fetch(
