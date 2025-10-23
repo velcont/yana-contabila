@@ -608,7 +608,7 @@ IMPORTANT:
   const fetchScientificLiterature = async () => {
     setLoading(true);
     try {
-      const { batchFetchTranscripts, isYouTubeUrl } = await import('@/lib/youtubeTranscript');
+      const { isYouTubeUrl } = await import('@/lib/youtubeTranscript');
       
       toast.info("🔍 Căutare literatură științifică...");
       
@@ -648,24 +648,31 @@ IMPORTANT:
       console.log(`📝 Găsite ${youtubeResources.length} video-uri YouTube pentru extragere transcript...`);
       toast.info(`📝 Extragere transcripturi pentru ${youtubeResources.length} video-uri...`);
       
-      // 5. Extrage transcripturile în batch
-      const urls = youtubeResources.map(r => r.research_notes!);
-      const transcripts = await batchFetchTranscripts(urls);
-      
-      // 6. Actualizează resursele cu transcripturile extrase
+      // 5. Extrage transcripturile folosind edge function
       let successCount = 0;
       for (const resource of youtubeResources) {
-        const transcript = transcripts.get(resource.research_notes!);
-        if (transcript) {
-          const { error: updateError } = await supabase
-            .from('research_data')
-            .update({ content: transcript })
-            .eq('id', resource.id);
+        try {
+          const { data: transcriptData, error: transcriptError } = await supabase.functions.invoke(
+            'extract-youtube-transcript',
+            { body: { videoUrl: resource.research_notes } }
+          );
           
-          if (!updateError) {
-            successCount++;
-            console.log(`✓ Transcript actualizat pentru resursa ${resource.id}`);
+          if (!transcriptError && transcriptData?.transcript) {
+            const { error: updateError } = await supabase
+              .from('research_data')
+              .update({ content: transcriptData.transcript })
+              .eq('id', resource.id);
+            
+            if (!updateError) {
+              successCount++;
+              console.log(`✓ Transcript actualizat pentru resursa ${resource.id} (${transcriptData.length} chars)`);
+            }
           }
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (err) {
+          console.error(`Eroare extragere transcript pentru ${resource.research_notes}:`, err);
         }
       }
       
