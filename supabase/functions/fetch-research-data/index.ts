@@ -9,43 +9,30 @@ function extractVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-// Helper function to fetch YouTube transcript
-async function getYoutubeTranscript(videoId: string): Promise<string | null> {
+// Helper function to fetch YouTube transcript using our edge function
+async function getYoutubeTranscript(supabaseClient: any, videoUrl: string): Promise<string | null> {
   try {
-    // Using youtube-transcript API endpoint
-    const response = await fetch(`https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${Deno.env.get('YOUTUBE_API_KEY')}`, {
-      headers: { 'Accept': 'application/json' }
+    console.log(`[Transcript] Apelare edge function pentru: ${videoUrl}`);
+    
+    const { data, error } = await supabaseClient.functions.invoke('extract-youtube-transcript', {
+      body: { videoUrl }
     });
     
-    if (!response.ok) {
-      console.log(`No captions available for video ${videoId}`);
+    if (error) {
+      console.error(`[Transcript] Eroare edge function:`, error);
       return null;
     }
     
-    const data = await response.json();
-    
-    // Check if captions are available
-    if (!data.items || data.items.length === 0) {
-      console.log(`No transcript found for video ${videoId}`);
+    if (!data?.transcript || data.transcript.length < 100) {
+      console.warn(`[Transcript] Transcript gol sau prea scurt pentru ${videoUrl}`);
       return null;
     }
     
-    // Get the first available caption track (preferably English or Romanian)
-    const captionTrack = data.items.find((item: any) => 
-      ['en', 'ro'].includes(item.snippet.language)
-    ) || data.items[0];
-    
-    if (!captionTrack) {
-      return null;
-    }
-    
-    // Note: Full transcript download requires additional API call with proper authentication
-    // For now, we'll use the video description and metadata which is already available
-    console.log(`Found caption track for video ${videoId}: ${captionTrack.snippet.language}`);
-    return null; // Placeholder - transcript extraction requires more complex setup
+    console.log(`[Transcript] ✅ Extras ${data.transcript.length} caractere`);
+    return data.transcript;
     
   } catch (error) {
-    console.error(`Error fetching transcript for ${videoId}:`, error);
+    console.error(`[Transcript] Excepție pentru ${videoUrl}:`, error);
     return null;
   }
 }
@@ -233,18 +220,19 @@ serve(async (req) => {
       
       for (const video of videosWithTranscripts) {
         try {
-          const transcript = await getYoutubeTranscript(video.videoId);
-          if (transcript) {
+          const transcript = await getYoutubeTranscript(supabaseClient, video.url);
+          if (transcript && transcript.length > 200) {
             video.transcript = transcript;
             transcriptsMap.set(video.url, transcript);
-            console.log(`✅ Transcript extras pentru: ${video.title}`);
+            console.log(`✅ Transcript extras pentru: ${video.title} (${transcript.length} caractere)`);
           } else {
             // Folosește descrierea ca fallback
             video.transcript = video.description;
             console.log(`⚠️ Nu există transcript, folosesc descrierea pentru: ${video.title}`);
           }
           
-          await new Promise(resolve => setTimeout(resolve, 400));
+          // Pauză mai mare între apeluri pentru a evita rate limiting
+          await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
           console.error(`Eroare extragere transcript pentru ${video.videoId}:`, error);
           video.transcript = video.description; // Fallback la descriere

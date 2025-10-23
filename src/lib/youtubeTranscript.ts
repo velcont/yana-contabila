@@ -66,3 +66,47 @@ export const fetchYouTubeTranscript = async (videoUrl: string): Promise<string |
 export const isYouTubeUrl = (url: string): boolean => {
   return url && (url.includes('youtube.com') || url.includes('youtu.be'));
 };
+
+/**
+ * Extrage transcripturile pentru multiple video-uri YouTube
+ * @param videoUrls - Array de URL-uri YouTube
+ * @param onProgress - Callback pentru progres (current, total)
+ * @returns Map cu URL -> transcript
+ */
+export const batchFetchTranscripts = async (
+  videoUrls: string[],
+  onProgress?: (current: number, total: number) => void
+): Promise<Map<string, string>> => {
+  const results = new Map<string, string>();
+  
+  console.log(`[Batch Transcript] Procesare ${videoUrls.length} video-uri YouTube...`);
+  
+  for (let i = 0; i < videoUrls.length; i++) {
+    const url = videoUrls[i];
+    
+    if (onProgress) {
+      onProgress(i + 1, videoUrls.length);
+    }
+    
+    try {
+      const transcript = await fetchYouTubeTranscript(url);
+      if (transcript && transcript.length > 100) {
+        results.set(url, transcript);
+        console.log(`[Batch Transcript] ✅ Extras: ${url} (${transcript.length} caractere)`);
+      } else {
+        console.warn(`[Batch Transcript] ⚠️ Transcript prea scurt sau gol: ${url}`);
+      }
+    } catch (err) {
+      console.error(`[Batch Transcript] ❌ Eroare pentru ${url}:`, err);
+    }
+    
+    // Pauză între request-uri pentru a evita rate limiting
+    if (i < videoUrls.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  console.log(`[Batch Transcript] ✅ Finalizat: ${results.size}/${videoUrls.length} extrase cu succes`);
+  
+  return results;
+};
