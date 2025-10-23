@@ -20,128 +20,56 @@ export interface FinancialIndicators {
 export const parseAnalysisText = (text: string): FinancialIndicators => {
   const indicators: FinancialIndicators = {};
 
-  // Caută secțiunea cu indicatori financiari structurați
-  const structuredSection = text.match(/===\s*INDICATORI\s+FINANCIARI\s*===[\s\S]*?(?=\n\n|$)/i);
-  
-  if (structuredSection) {
-    const section = structuredSection[0];
-    
-    // DSO
-    const dsoMatch = section.match(/DSO[:\s]+(\d+(?:\.\d+)?)/i);
-    if (dsoMatch) indicators.dso = parseFloat(dsoMatch[1]);
+  const scope = (() => {
+    const structured = text.match(/===\s*INDICATORI\s+FINANCIARI\s*===[\s\S]*?(?=\n\n|$)/i);
+    return structured ? structured[0] : text;
+  })();
 
-    // DPO
-    const dpoMatch = section.match(/DPO[:\s]+(\d+(?:\.\d+)?)/i);
-    if (dpoMatch) indicators.dpo = parseFloat(dpoMatch[1]);
-
-    // CCC (Cash Conversion Cycle)
-    const cccMatch = section.match(/CCC[:\s]+([+-]?\d+(?:\.\d+)?)/i);
-    if (cccMatch) indicators.cashConversionCycle = parseFloat(cccMatch[1]);
-
-    // EBITDA
-    const ebitdaMatch = section.match(/EBITDA[:\s]+([+-]?\d+(?:\.\d+)?)/i);
-    if (ebitdaMatch) indicators.ebitda = parseFloat(ebitdaMatch[1]);
-
-    // CA (Cifra de afaceri / Revenue)
-    const caMatch = section.match(/CA[:\s]+(\d+(?:\.\d+)?)/i);
-    if (caMatch) indicators.revenue = parseFloat(caMatch[1]);
-
-    // Cheltuieli
-    const expensesMatch = section.match(/Cheltuieli[:\s]+(\d+(?:\.\d+)?)/i);
-    if (expensesMatch) indicators.expenses = parseFloat(expensesMatch[1]);
-
-    // Profit
-    const profitMatch = section.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
-    if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
-
-    // Sold Furnizori
-    const furnizoriMatch = section.match(/Sold\s+Furnizori[:\s]+(\d+(?:\.\d+)?)/i);
-    if (furnizoriMatch) indicators.soldFurnizori = parseFloat(furnizoriMatch[1]);
-
-    // Sold Clienti
-    const clientiMatch = section.match(/Sold\s+Clienti[:\s]+(\d+(?:\.\d+)?)/i);
-    if (clientiMatch) indicators.soldClienti = parseFloat(clientiMatch[1]);
-
-    // Sold Banca
-    const bancaMatch = section.match(/Sold\s+Banca[:\s]+(\d+(?:\.\d+)?)/i);
-    if (bancaMatch) indicators.soldBanca = parseFloat(bancaMatch[1]);
-
-    // Sold Casa
-    const casaMatch = section.match(/Sold\s+Casa[:\s]+(\d+(?:\.\d+)?)/i);
-    if (casaMatch) indicators.soldCasa = parseFloat(casaMatch[1]);
-  }
-  
-  // Căutare în ultimele 15 linii ale textului pentru indicatori fără header
-  // (pentru cazurile când AI-ul nu adaugă secțiunea structurată)
-  const lines = text.trim().split('\n');
-  const lastLines = lines.slice(-15).join('\n');
-  
-  // Doar dacă nu am găsit nimic în secțiunea structurată
-  if (Object.keys(indicators).length === 0) {
-    // DSO
-    const dsoMatch = lastLines.match(/DSO[:\s]+(\d+(?:\.\d+)?)/i);
-    if (dsoMatch) indicators.dso = parseFloat(dsoMatch[1]);
-
-    // DPO
-    const dpoMatch = lastLines.match(/DPO[:\s]+(\d+(?:\.\d+)?)/i);
-    if (dpoMatch) indicators.dpo = parseFloat(dpoMatch[1]);
-
-    // CCC (Cash Conversion Cycle)
-    const cccMatch = lastLines.match(/CCC[:\s]+([+-]?\d+(?:\.\d+)?)/i);
-    if (cccMatch) indicators.cashConversionCycle = parseFloat(cccMatch[1]);
-
-    // EBITDA - poate fi și text
-    const ebitdaMatch = lastLines.match(/EBITDA[:\s]+([+-]?\d+(?:\.\d+)?)/i);
-    if (ebitdaMatch) indicators.ebitda = parseFloat(ebitdaMatch[1]);
-
-    // CA (Cifra de afaceri / Revenue)
-    const caMatch = lastLines.match(/CA[:\s]+(\d+(?:\.\d+)?)/i);
-    if (caMatch) indicators.revenue = parseFloat(caMatch[1]);
-
-    // Cheltuieli
-    const expensesMatch = lastLines.match(/Cheltuieli[:\s]+(\d+(?:\.\d+)?)/i);
-    if (expensesMatch) indicators.expenses = parseFloat(expensesMatch[1]);
-
-    // Profit
-    const profitMatch = lastLines.match(/Profit[:\s]+([+-]?\d+(?:\.\d+)?)/i);
-    if (profitMatch) indicators.profit = parseFloat(profitMatch[1]);
-
-    // Sold Furnizori
-    const furnizoriMatch = lastLines.match(/Sold\s+Furnizori[:\s]+(\d+(?:\.\d+)?)/i);
-    if (furnizoriMatch) indicators.soldFurnizori = parseFloat(furnizoriMatch[1]);
-
-    // Sold Clienti
-    const clientiMatch = lastLines.match(/Sold\s+Clienti[:\s]+(\d+(?:\.\d+)?)/i);
-    if (clientiMatch) indicators.soldClienti = parseFloat(clientiMatch[1]);
-
-    // Sold Banca
-    const bancaMatch = lastLines.match(/Sold\s+Banca[:\s]+(\d+(?:\.\d+)?)/i);
-    if (bancaMatch) indicators.soldBanca = parseFloat(bancaMatch[1]);
-
-    // Sold Casa
-    const casaMatch = lastLines.match(/Sold\s+Casa[:\s]+(\d+(?:\.\d+)?)/i);
-    if (casaMatch) indicators.soldCasa = parseFloat(casaMatch[1]);
-  }
-
-  // Fallback final: caută valorile în întregul text (pentru analize vechi)
-  if (Object.keys(indicators).length === 0) {
-    // Cifra de afaceri
-    const caMatch = text.match(/Cifra\s+de\s+afaceri\s+(?:anuală\s+)?(?:cumulată\s+)?[=:]\s*([0-9,.]+)\s*RON/i);
-    if (caMatch) {
-      indicators.revenue = parseFloat(caMatch[1].replace(/,/g, ''));
+  const toNumberRo = (raw?: string): number | undefined => {
+    if (!raw) return undefined;
+    let s = String(raw)
+      .replace(/\s+/g, '')
+      .replace(/[^0-9,.-]/g, ''); // păstrează cifre, virgulă, punct, minus
+    if (!s) return undefined;
+    if (s.includes(',') && s.includes('.')) {
+      // format românesc: . mii, , zecimale
+      s = s.replace(/\./g, '').replace(/,/g, '.');
+    } else if (s.includes(',') && !s.includes('.')) {
+      s = s.replace(/,/g, '.');
     }
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : undefined;
+  };
 
-    // Profit net
-    const profitMatch = text.match(/Profit(?:\s+net)?[:\s]+([+-]?\d+(?:[.,]\d+)?)\s*RON/i);
-    if (profitMatch) {
-      indicators.profit = parseFloat(profitMatch[1].replace(/,/g, ''));
-    }
+  const get = (re: RegExp, src: string = scope): number | undefined => {
+    const m = src.match(re);
+    return m ? toNumberRo(m[1]) : undefined;
+  };
 
-    // EBITDA
-    const ebitdaMatch = text.match(/EBITDA[:\s]+(?:RON\s*)?([+-]?\d+(?:[.,]\d+)?)/i);
-    if (ebitdaMatch) {
-      indicators.ebitda = parseFloat(ebitdaMatch[1].replace(/,/g, ''));
-    }
+  // Valori principale (acceptă diverse sinonime și prezența RON/lei)
+  indicators.revenue = get(/(?:Cifr[ăa]\s*(?:de\s+)?Afaceri|Venituri|\bCA\b)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i)
+    ?? get(/Cifra\s+de\s+afaceri[^\d]*([0-9.,\s\-]+)/i, text);
+
+  indicators.expenses = get(/(?:Cheltuieli(?:\s+totale)?|Total\s*cheltuieli)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i)
+    ?? get(/Cheltuieli[^\d]*([0-9.,\s\-]+)/i, text);
+
+  indicators.profit = get(/(?:Profit(?:\s+net)?|Rezultat(?:\s+(?:net|exercitiu|exercițiu))?)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i)
+    ?? get(/Profit[^\d]*([0-9.,\s\-]+)/i, text);
+
+  indicators.ebitda = get(/EBITDA\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
+
+  indicators.dso = get(/(?:DSO|Days\s*Sales\s*Outstanding)\s*[:=\-]?\s*([0-9.,\-]+)\s*(?:zile|days)?/i);
+  indicators.dpo = get(/(?:DPO|Days\s*Payable\s*Outstanding)\s*[:=\-]?\s*([0-9.,\-]+)\s*(?:zile|days)?/i);
+  indicators.cashConversionCycle = get(/(?:CCC|Cash\s*Conversion\s*Cycle)\s*[:=\-]?\s*([0-9.,\-]+)\s*(?:zile|days)?/i);
+
+  // Solduri bilanț
+  indicators.soldBanca = get(/(?:Sold\s*(?:Banc[ăa]|Banca)|Banc[ăa])\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
+  indicators.soldClienti = get(/(?:Sold\s*Clien[tț]i|Clien[tț]i)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
+  indicators.soldFurnizori = get(/(?:Sold\s*Furnizori|Furnizori)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
+
+  // Fallback simplu: dacă EBITDA lipsește dar avem CA și Cheltuieli
+  if (indicators.ebitda === undefined && indicators.revenue !== undefined && indicators.expenses !== undefined) {
+    indicators.ebitda = (indicators.revenue ?? 0) - (indicators.expenses ?? 0);
   }
 
   return indicators;
