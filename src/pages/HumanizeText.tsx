@@ -13,6 +13,7 @@ import { Loader2, Sparkles, Download, Copy, AlertTriangle, RefreshCw, FileText, 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import mammoth from "mammoth";
+import { Document, Packer, Paragraph, TextRun } from "docx";
 
 interface HumanizedResult {
   humanizedText: string;
@@ -183,7 +184,7 @@ export default function HumanizeText() {
     toast.success("Copiat în clipboard!");
   };
 
-  const handleDownload = () => {
+  const handleDownloadTxt = () => {
     const blob = new Blob([humanizedText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -193,7 +194,39 @@ export default function HumanizeText() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Descărcare inițiată!");
+    toast.success("Descărcare TXT inițiată!");
+  };
+
+  const handleDownloadWord = async () => {
+    try {
+      // Create Word document with humanized text
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: humanizedText.split('\n').map(paragraph => 
+            new Paragraph({
+              children: [new TextRun(paragraph)],
+              spacing: { after: 200 }
+            })
+          )
+        }]
+      });
+
+      // Generate and download
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `text-umanizat-${new Date().toISOString().split('T')[0]}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Descărcare Word inițiată!");
+    } catch (error) {
+      console.error('Word download error:', error);
+      toast.error("Eroare la descărcarea Word");
+    }
   };
 
   const loadSavedText = (saved: SavedHumanization) => {
@@ -368,12 +401,12 @@ export default function HumanizeText() {
                   />
                   <Button
                     onClick={() => fileInputRef.current?.click()}
-                    variant="default"
-                    size="lg"
+                    variant="outline"
+                    size="sm"
                     disabled={loading}
-                    className="w-full h-14 text-base"
+                    className="w-full"
                   >
-                    <Upload className="h-5 w-5 mr-2" />
+                    <Upload className="h-4 w-4 mr-2" />
                     📄 Încarcă Fișier (.txt, .doc, .docx)
                   </Button>
 
@@ -451,9 +484,13 @@ export default function HumanizeText() {
                       <Copy className="h-4 w-4 mr-2" />
                       Copiază
                     </Button>
-                    <Button onClick={handleDownload} variant="outline" size="sm">
+                    <Button onClick={handleDownloadTxt} variant="outline" size="sm">
                       <Download className="h-4 w-4 mr-2" />
-                      Descarcă TXT
+                      TXT
+                    </Button>
+                    <Button onClick={handleDownloadWord} variant="outline" size="sm">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Word
                     </Button>
                     <Button onClick={handleSave} size="sm">
                       <FileText className="h-4 w-4 mr-2" />
