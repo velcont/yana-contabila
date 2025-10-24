@@ -72,6 +72,34 @@ export const TestCheckout = () => {
     }
   };
 
+  const adminGenerateInvoice = async () => {
+    if (!sessionId.trim()) {
+      toast.error("Introdu Session ID!");
+      return;
+    }
+
+    setInvoiceLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-generate-invoice', {
+        body: { sessionId: sessionId.trim() }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast.success(data.message);
+        setResult(data);
+      } else {
+        toast.error(data.message || "Eroare la generare factură");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Eroare: " + (error as Error).message);
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <div>
@@ -102,26 +130,36 @@ export const TestCheckout = () => {
       </div>
 
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold mb-4">Test Generare Factură SmartBill</h3>
+        <h3 className="text-lg font-semibold mb-4">🔐 Admin: Generare Factură SmartBill</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          Introdu Session ID de la Stripe (din URL după plată: cs_test_...)
+          Introdu Session ID pentru a genera factură pentru orice client (necesită rol admin)
         </p>
         
         <input
           type="text"
           value={sessionId}
           onChange={(e) => setSessionId(e.target.value)}
-          placeholder="cs_test_a1b2c3..."
+          placeholder="cs_live_a1zoAkFj..."
           className="w-full p-2 border rounded mb-3"
         />
         
-        <Button 
-          onClick={generateTestInvoice} 
-          disabled={invoiceLoading || !sessionId.trim()}
-          variant="secondary"
-        >
-          {invoiceLoading ? "Se generează..." : "Generează Factură"}
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={adminGenerateInvoice} 
+            disabled={invoiceLoading || !sessionId.trim()}
+            variant="default"
+          >
+            {invoiceLoading ? "Se generează..." : "🔐 Generează Factură (Admin)"}
+          </Button>
+          
+          <Button 
+            onClick={generateTestInvoice} 
+            disabled={invoiceLoading || !sessionId.trim()}
+            variant="secondary"
+          >
+            {invoiceLoading ? "Se generează..." : "Generează (User)"}
+          </Button>
+        </div>
       </div>
 
       {result && (

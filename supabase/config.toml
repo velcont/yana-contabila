@@ -95,3 +95,6 @@ verify_jwt = true
 
 [functions.sync-stripe-subscription]
 verify_jwt = true
+
+[functions.admin-generate-invoice]
+verify_jwt = true
