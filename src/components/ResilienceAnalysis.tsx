@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar, Search, Loader2, Database, GraduationCap, AlertCircle, Download, FileSpreadsheet, BarChart3, LineChart, PieChart, Network } from "lucide-react";
+import { AlertTriangle, TrendingUp, Shield, Activity, Zap, Target, BookOpen, Calendar, Search, Loader2, Database, GraduationCap, AlertCircle, Download, FileSpreadsheet, BarChart3, LineChart, PieChart, Network, Lightbulb } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ScatterChart, Scatter, LineChart as RechartsLineChart, Line, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -973,7 +973,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
             </div>
             <Progress value={resilienceScore?.overall || 0} className="h-3" />
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mt-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Activity className="h-4 w-4" />
@@ -1037,6 +1037,57 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                 </div>
                 <div className={`text-2xl font-bold ${getScoreColor(resilienceScore?.robustness || 0)}`}>
                   {resilienceScore?.robustness || 0}%
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Shield className="h-4 w-4" />
+                  Redundanță
+                  <AcademicTooltip
+                    metric="Redundancy (Rezerve Strategice)"
+                    theory="Resource Slack Theory - Rezervele excesive oferă buffer de siguranță"
+                    study="Bourgeois (1981) - Academy of Management Review"
+                    citation="Organizational slack provides a cushion of actual or potential resources which allows an organization to adapt successfully to internal pressures for adjustment or to external pressures for change."
+                    doi="10.5465/amr.1981.4288500"
+                  />
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(resilienceScore?.redundancy || 0)}`}>
+                  {resilienceScore?.redundancy || 0}%
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Lightbulb className="h-4 w-4" />
+                  Ingeniozitate
+                  <AcademicTooltip
+                    metric="Resourcefulness (Mobilizare Resurse)"
+                    theory="Resource Orchestration - Capacitatea de mobilizare eficientă a resurselor"
+                    study="Sirmon et al. (2011) - Journal of Management"
+                    citation="Resource orchestration involves structuring the firm's resource portfolio, bundling resources into capabilities, and leveraging those capabilities in the marketplace to create value for customers and wealth for owners."
+                    doi="10.1177/0149206310385695"
+                  />
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(resilienceScore?.resourcefulness || 0)}`}>
+                  {resilienceScore?.resourcefulness || 0}%
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Zap className="h-4 w-4" />
+                  Rapiditate
+                  <AcademicTooltip
+                    metric="Rapidity (Viteză de Răspuns)"
+                    theory="Dynamic Capabilities - Viteza de răspuns în piețe cu viteză mare"
+                    study="Eisenhardt & Martin (2000) - Strategic Management Journal"
+                    citation="In moderately dynamic markets, dynamic capabilities resemble the traditional conception of routines. However, in high-velocity markets, they are fragile processes that are simple, experiential, and unstable."
+                    doi="10.1002/1097-0266(200010/11)21:10/11<1105::AID-SMJ133>3.0.CO;2-E"
+                  />
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(resilienceScore?.rapidity || 0)}`}>
+                  {resilienceScore?.rapidity || 0}%
                 </div>
               </div>
             </div>
