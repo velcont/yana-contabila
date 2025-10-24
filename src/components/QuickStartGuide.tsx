@@ -13,8 +13,13 @@ interface QuickStartGuideProps {
 export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionType, isAccountant }: QuickStartGuideProps) => {
   const navigate = useNavigate();
   
+  // Debug pentru a verifica ce valori primim
+  console.log('🔍 [QuickStartGuide] userSubscriptionType:', userSubscriptionType);
+  console.log('🔍 [QuickStartGuide] isAccountant:', isAccountant);
+  
   // Verificăm dacă utilizatorul este contabil
   const isAccountantUser = userSubscriptionType === 'accounting_firm' || isAccountant;
+  console.log('🔍 [QuickStartGuide] isAccountantUser:', isAccountantUser);
 
   // Primul card diferă în funcție de tipul de utilizator
   const firstFeature = isAccountantUser ? {
