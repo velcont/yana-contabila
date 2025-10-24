@@ -6,7 +6,9 @@ import { toast } from "sonner";
 
 export const TestCheckout = () => {
   const [loading, setLoading] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [sessionId, setSessionId] = useState("");
 
   const testCheckout = async () => {
     setLoading(true);
@@ -25,21 +27,70 @@ export const TestCheckout = () => {
     }
   };
 
-  return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-4">Test Checkout Function</h3>
+  const generateTestInvoice = async () => {
+    if (!sessionId.trim()) {
+      toast.error("Introdu Session ID de la Stripe!");
+      return;
+    }
+
+    setInvoiceLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-smartbill-invoice', {
+        body: { sessionId: sessionId.trim() }
+      });
       
-      <Button 
-        onClick={testCheckout} 
-        disabled={loading}
-        className="mb-4"
-      >
-        {loading ? "Se testează..." : "Testează Funcția"}
-      </Button>
+      if (error) throw error;
+      
+      toast.success("Factură SmartBill generată cu succes!");
+      setResult(data);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Eroare la generare factură: " + (error as Error).message);
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  return (
+    <Card className="p-6 space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Test Checkout Function</h3>
+        
+        <Button 
+          onClick={testCheckout} 
+          disabled={loading}
+          className="mb-4"
+        >
+          {loading ? "Se testează..." : "Testează Funcția"}
+        </Button>
+      </div>
+
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Test Generare Factură SmartBill</h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          Introdu Session ID de la Stripe (din URL după plată: cs_test_...)
+        </p>
+        
+        <input
+          type="text"
+          value={sessionId}
+          onChange={(e) => setSessionId(e.target.value)}
+          placeholder="cs_test_a1b2c3..."
+          className="w-full p-2 border rounded mb-3"
+        />
+        
+        <Button 
+          onClick={generateTestInvoice} 
+          disabled={invoiceLoading || !sessionId.trim()}
+          variant="secondary"
+        >
+          {invoiceLoading ? "Se generează..." : "Generează Factură"}
+        </Button>
+      </div>
 
       {result && (
         <div className="mt-4 p-4 bg-muted rounded-lg">
-          <p className="text-sm font-mono">
+          <p className="text-sm font-mono whitespace-pre-wrap">
             {JSON.stringify(result, null, 2)}
           </p>
         </div>
