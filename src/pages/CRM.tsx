@@ -30,9 +30,16 @@ const CRM = () => {
     }
   }, [user, authLoading, navigate]);
 
+  useEffect(() => {
+    console.log('[CRM] Auth state:', { authLoading, user: user?.email });
+    console.log('[CRM] Role state:', { roleLoading, isAdmin });
+    console.log('[CRM] Subscription state:', { subscriptionLoading, subscriptionType });
+  }, [authLoading, user, roleLoading, isAdmin, subscriptionLoading, subscriptionType]);
+
   // Render content based on state
   const renderContent = () => {
-    if (authLoading || roleLoading || subscriptionLoading) {
+    // Show loading only while checking auth initially
+    if (authLoading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -40,10 +47,11 @@ const CRM = () => {
       );
     }
 
-    // Verificare: Doar admini SAU firme contabile cu planul activ
+    // Don't wait for role/subscription if still loading - show access check
     const hasAccess = isAdmin || subscriptionType === 'accounting_firm';
+    console.log('[CRM] Access check:', { isAdmin, subscriptionType, hasAccess, roleLoading, subscriptionLoading });
 
-    if (!hasAccess) {
+    if (!roleLoading && !subscriptionLoading && !hasAccess) {
       return (
         <div className="flex items-center justify-center min-h-screen p-4">
           <Card className="max-w-md p-8 text-center">
