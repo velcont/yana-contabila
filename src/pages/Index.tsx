@@ -446,17 +446,6 @@ const Index = () => {
                 <Phone className="mr-2 h-4 w-4" />
                 Contact
               </Button>
-              {/* Buton YanaCRM pentru contabili */}
-              {(userSubscriptionType === 'accounting_firm' || isAccountant) && (
-                <Button
-                  onClick={() => navigate('/yanacrm')}
-                  variant="default"
-                  className="bg-green-600 hover:bg-green-700 text-sm"
-                >
-                  <Building2 className="mr-2 h-4 w-4" />
-                  YanaCRM
-                </Button>
-              )}
             </div>
             <div className="flex gap-2">
               <ThemeToggle />
@@ -568,7 +557,7 @@ const Index = () => {
             </p>
           </div>
 
-          {user && <QuickStartGuide onOpenChat={() => setShowChatOnLoad(true)} onOpenDashboard={() => setShowDashboard(true)} />}
+          {user && <QuickStartGuide onOpenChat={() => setShowChatOnLoad(true)} onOpenDashboard={() => setShowDashboard(true)} userSubscriptionType={userSubscriptionType} isAccountant={isAccountant} />}
 
           {analysis && (
             <Card className="shadow-lg">

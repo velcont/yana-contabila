@@ -1,23 +1,42 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, BarChart3, Download, Share2, TrendingUp, Zap } from 'lucide-react';
+import { MessageCircle, BarChart3, Download, Share2, TrendingUp, Zap, Building2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface QuickStartGuideProps {
   onOpenChat: () => void;
   onOpenDashboard: () => void;
+  userSubscriptionType?: string;
+  isAccountant?: boolean;
 }
 
-export const QuickStartGuide = ({ onOpenChat, onOpenDashboard }: QuickStartGuideProps) => {
+export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionType, isAccountant }: QuickStartGuideProps) => {
+  const navigate = useNavigate();
+  
+  // Verificăm dacă utilizatorul este contabil
+  const isAccountantUser = userSubscriptionType === 'accounting_firm' || isAccountant;
+
+  // Primul card diferă în funcție de tipul de utilizator
+  const firstFeature = isAccountantUser ? {
+    icon: Building2,
+    title: 'YanaCRM',
+    description: 'Gestionează clienții și serviciile contabile',
+    action: 'Deschide CRM',
+    onClick: () => navigate('/yanacrm'),
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-600/10',
+  } : {
+    icon: MessageCircle,
+    title: 'Chat AI',
+    description: 'Încarcă balanța în chatbot pentru analiză instant',
+    action: 'Deschide Chat',
+    onClick: onOpenChat,
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+  };
+
   const features = [
-    {
-      icon: MessageCircle,
-      title: 'Chat AI',
-      description: 'Încarcă balanța în chatbot pentru analiză instant',
-      action: 'Deschide Chat',
-      onClick: onOpenChat,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
+    firstFeature,
     {
       icon: BarChart3,
       title: 'Dashboard',
