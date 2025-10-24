@@ -38,10 +38,10 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Check profile for free access and trial period (+ ensure profile exists and sync from user_metadata)
+    // Check profile for free access, trial period, and manual subscription (+ ensure profile exists and sync from user_metadata)
     const { data: profile } = await supabaseClient
       .from('profiles')
-      .select('has_free_access, trial_ends_at, subscription_type, account_type_selected')
+      .select('has_free_access, trial_ends_at, subscription_type, account_type_selected, subscription_status, subscription_ends_at, stripe_customer_id, stripe_subscription_id')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -147,6 +147,38 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
+    }
+
+    // Check for manual subscription (set directly in DB without Stripe)
+    if (profile?.subscription_status === 'active' && profile?.subscription_ends_at) {
+      const subEndsAt = new Date(profile.subscription_ends_at);
+      const now = new Date();
+      
+      if (subEndsAt > now) {
+        logStep("Manual subscription active", { subscriptionEndsAt: profile.subscription_ends_at });
+        
+        return new Response(
+          JSON.stringify({
+            subscribed: true,
+            subscription_type: profile.subscription_type || effectiveType,
+            subscription_status: 'active',
+            subscription_end: profile.subscription_ends_at,
+            access_type: 'subscription'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      } else {
+        // Manual subscription expired
+        logStep("Manual subscription expired", { subscriptionEndsAt: profile.subscription_ends_at });
+        
+        await supabaseClient
+          .from('profiles')
+          .update({
+            subscription_status: 'inactive',
+            subscription_ends_at: null,
+          })
+          .eq('id', user.id);
+      }
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
