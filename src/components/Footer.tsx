@@ -19,8 +19,10 @@ export const Footer = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { themeType } = useTheme();
   const { isAccountant } = useSubscription();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isLoading } = useUserRole();
   const navigate = useNavigate();
+  
+  console.log('🔍 [Footer] isAdmin:', isAdmin, 'isLoading:', isLoading);
   const email = "offiice@velcont.com";
   const whatsapp = "+40731377793";
   const whatsappMessage = "Bună! Sunt interesat de serviciile Yana.";
@@ -89,7 +91,7 @@ export const Footer = () => {
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Analiză Balanță
             </Link>
-            {isAdmin && (
+            {!isLoading && isAdmin && (
               <Link to="/humanize-text" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
                 AI Humanizer
