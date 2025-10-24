@@ -530,9 +530,11 @@ const Index = () => {
                       <DropdownMenuItem onClick={() => navigate('/subscription')}>
                         Abonament
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
-                        Credite AI
-                      </DropdownMenuItem>
+                      {userSubscriptionType !== 'accounting_firm' && (
+                        <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
+                          Credite AI
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={handleSignOut}>
                         <LogOut className="mr-2 h-4 w-4" />
                         Deconectare
