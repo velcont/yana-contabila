@@ -621,7 +621,11 @@ Perioada: 01/04/2025 - 30/04/2025`,
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold">Toate din planul Antreprenor, plus:</span>
+                  <span className="text-sm font-semibold">Funcționalități specializate pentru cabinete:</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">Analiză AI nelimitată balanțe clienți</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
@@ -661,6 +665,16 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 Începe gratuit 30 zile
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
+
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-800 rounded-lg">
+                <p className="text-xs text-center text-red-900 dark:text-red-100 font-semibold flex items-center justify-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  ⚠️ Acest plan NU include acces la Yana Strategică (Consilier Strategic AI)
+                </p>
+                <p className="text-xs text-center text-red-800 dark:text-red-200 mt-1">
+                  Planul Contabil este specializat pentru managementul clienților și CRM
+                </p>
+              </div>
 
               <p className="text-xs text-center text-muted-foreground">
                 Storage inclus: 5GB • După trial: 199 RON/lună
