@@ -459,14 +459,22 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 <Brain className="h-8 w-8 text-primary" />
               </div>
               <CardTitle className="text-2xl mb-2">🧠 Modul 2: Yana Strategică</CardTitle>
-              <Badge variant="secondary" className="mb-2">
-                👔 Exclusiv pentru modul Antreprenor
+              <Badge variant="destructive" className="mb-2">
+                💳 Necesită Credite AI (separate de abonament)
               </Badge>
               <p className="text-muted-foreground text-sm">
                 Consultant AI strategic pentru decizii de business
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800 rounded-lg mb-4">
+                <p className="font-bold text-red-900 dark:text-red-100 mb-2">⚠️ IMPORTANT - Cost Separat:</p>
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  Yana Strategică NU este inclusă în abonamentul de 49 RON! 
+                  Necesită achiziționarea de <strong>Credite AI</strong> (pachete de la 19 lei).
+                  Primești 10 RON credite la început pentru test.
+                </p>
+              </div>
               <div className="p-4 bg-primary/5 rounded-lg">
                 <p className="font-semibold mb-2">🎯 Ce faci aici:</p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
@@ -486,9 +494,16 @@ Perioada: 01/04/2025 - 30/04/2025`,
           </Card>
         </div>
 
-        <div className="mt-12 text-center p-6 bg-muted/50 rounded-xl">
-          <p className="text-sm text-muted-foreground">
-            <strong>Notă:</strong> Modulul 1 este disponibil pentru toate tipurile de conturi. Modulul 2 (Yana Strategică) este disponibil exclusiv pentru conturile de tip Antreprenor.
+        <div className="mt-12 text-center p-6 bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800 rounded-xl">
+          <p className="text-sm font-semibold text-red-900 dark:text-red-100 mb-2">
+            ⚠️ IMPORTANT - Transparență Costuri:
+          </p>
+          <p className="text-sm text-red-800 dark:text-red-200">
+            <strong>Modulul 1 (Analiză Balanță)</strong> = Inclus în abonament (49 RON/lună)<br />
+            <strong>Modulul 2 (Yana Strategică)</strong> = Necesită achiziționarea de Credite AI separate (pachete de la 19 lei)
+          </p>
+          <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+            Nu există acces nelimitat la Yana Strategică, indiferent de abonament. Primești 10 RON credite la început pentru test.
           </p>
         </div>
       </section>
@@ -654,11 +669,51 @@ Perioada: 01/04/2025 - 30/04/2025`,
           </Card>
         </div>
 
-        {/* Costuri Suplimentare */}
-        <div className="mt-12 max-w-3xl mx-auto">
+        {/* IMPORTANT: Yana Strategică = Cost Separat */}
+        <div className="mt-12 max-w-4xl mx-auto">
+          <Card className="bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800">
+            <CardContent className="p-6">
+              <h3 className="font-bold text-center mb-4 text-red-900 dark:text-red-100 flex items-center justify-center gap-2">
+                <AlertCircle className="h-6 w-6" />
+                ⚠️ IMPORTANT: Transparență Costuri pentru Yana Strategică
+              </h3>
+              <div className="space-y-4 text-sm">
+                <div className="p-4 bg-white dark:bg-red-900/30 rounded-lg">
+                  <p className="font-semibold mb-2 text-red-900 dark:text-red-100">
+                    Ce include abonamentul de 49 RON/lună (Plan Antreprenor):
+                  </p>
+                  <ul className="space-y-1 text-red-800 dark:text-red-200">
+                    <li>✅ Analiză balanță AI nelimitată</li>
+                    <li>✅ Chat AI pentru întrebări despre balanță</li>
+                    <li>✅ Dashboard, grafice, rapoarte</li>
+                    <li>✅ Export PDF nelimitat</li>
+                  </ul>
+                </div>
+                <div className="p-4 bg-white dark:bg-red-900/30 rounded-lg">
+                  <p className="font-semibold mb-2 text-red-900 dark:text-red-100">
+                    Ce NU include abonamentul de 49 RON (necesită achiziționare credite AI):
+                  </p>
+                  <ul className="space-y-1 text-red-800 dark:text-red-200">
+                    <li>❌ <strong>Yana Strategică</strong> - Consilier Strategic AI (necesită credite AI de la 19 lei)</li>
+                    <li>❌ <strong>Analiză Vocală extinsă</strong> - Peste 10 minute/lună (necesită credite AI)</li>
+                    <li>❌ <strong>Predicții AI intensive</strong> - Peste 5 predicții/lună (necesită credite AI)</li>
+                  </ul>
+                </div>
+                <div className="text-center p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                  <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">
+                    🎁 Primești 10 RON credite AI la început pentru a testa Yana Strategică gratuit!
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Costuri Suplimentare Tehnice */}
+        <div className="mt-8 max-w-3xl mx-auto">
           <Card className="bg-muted/50">
             <CardContent className="p-6">
-              <h3 className="font-semibold text-center mb-4">💡 Costuri suplimentare transparente</h3>
+              <h3 className="font-semibold text-center mb-4">💡 Alte costuri suplimentare (tehnice)</h3>
               <div className="grid md:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">
                   <p className="flex items-center gap-2">
@@ -682,7 +737,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 </div>
               </div>
               <p className="text-xs text-center text-muted-foreground mt-4">
-                Pentru majoritatea utilizatorilor, costurile suplimentare sunt <span className="font-semibold text-foreground">0-10 RON/lună</span>
+                Pentru majoritatea utilizatorilor, costurile tehnice suplimentare sunt <span className="font-semibold text-foreground">0-10 RON/lună</span>
               </p>
             </CardContent>
           </Card>

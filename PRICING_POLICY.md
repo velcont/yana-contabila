@@ -1,7 +1,13 @@
 # Politica de Tarife și Prețuri YANA
 
-**Versiune:** 1.0  
+**Versiune:** 2.0  
 **Ultima actualizare:** Ianuarie 2025
+
+---
+
+## ⚠️ TRANSPARENȚĂ MAXIMĂ - Citește cu atenție
+
+**IMPORTANT LEGAL:** În conformitate cu legislația română privind protecția consumatorilor (OUG 34/2014), această politică detaliază EXACT ce este inclus și ce NU este inclus în fiecare abonament.
 
 ---
 
@@ -9,9 +15,11 @@
 
 **Durată:** 30 de zile complet gratuite  
 **Cerințe:** Nu este necesar card bancar  
+**Credite AI incluse:** 10 RON pentru testarea Yana Strategică
+
 **Funcții incluse:**
-- ✅ Analiză financiară completă
-- ✅ Chat AI pentru întrebări
+- ✅ Analiză financiară completă a balanței
+- ✅ Chat AI pentru întrebări despre balanță
 - ✅ Dashboard interactiv
 - ✅ Export PDF și rapoarte
 - ✅ Toate funcțiile de bază
@@ -19,18 +27,19 @@
 **Important:**
 - FĂRĂ reînnoire automată
 - Notificări la 15 și 7 zile înainte de expirare
-- NU include funcții premium AI (Consilier Strategic, Analiză Vocală, Predicții avansate)
+- Primești 10 RON credite AI pentru testare Yana Strategică
+- După consumarea celor 10 RON, trebuie să achiziționezi credite AI pentru a continua cu Yana Strategică
 
 ---
 
-## 💼 Plan Antreprenor - 99 LEI/LUNĂ (~24 EUR/lună)
+## 💼 Plan Antreprenor - 49 RON/LUNĂ (~12 EUR/lună)
 
 **Ideal pentru:** Afaceri mici și mijlocii, IMM-uri, firme individuale
 
-### CE ESTE INCLUS (în 99 lei/lună):
+### ✅ CE ESTE INCLUS (în 49 lei/lună):
 
 #### Funcții de Bază (Nelimitate):
-- ✅ **Analiză financiară NELIMITATĂ** - încarcă câte balanțe vrei
+- ✅ **Analiză balanță AI NELIMITATĂ** - încarcă câte balanțe vrei
 - ✅ **Chat AI financiar nelimitat** - întreabă orice despre balanță
 - ✅ **Dashboard interactiv** - grafice, indicatori, evoluții
 - ✅ **Rapoarte lunare automate** - rapoarte profesionale generate automat
@@ -41,17 +50,24 @@
 - ✅ **Gestionare companii multiple** - pentru antreprenori cu mai multe firme
 - ✅ **Istoric complet** - toate analizele salvate
 
-### CE NU ESTE INCLUS (se plătește separat - OPȚIONAL):
-- ❌ **Consilier Strategic Yana** - conversații strategice avansate (necesită credite AI)
-- ❌ **Analiză Vocală** - interacțiune prin voce (necesită credite AI)
-- ❌ **Predicții financiare AI foarte frecvente** - 1-2/lună e OK, 10+/lună necesită credite
+### ❌ CE NU ESTE INCLUS (OBLIGATORIU să cumperi credite AI):
+
+**IMPORTANT LEGAL:** Următoarele funcționalități NU sunt incluse în abonamentul de 49 RON/lună și necesită OBLIGATORIU achiziționarea de credite AI separate:
+
+- ❌ **Consilier Strategic Yana** (/strategic-advisor) - conversații strategice avansate AI
+- ❌ **Analiză Vocală extinsă** - peste 10 minute/lună de interacțiune vocală
+- ❌ **Predicții financiare AI intensive** - peste 5 predicții/lună
+
+### 🎁 Credite de Start:
+- Primești **10 RON credite AI** la începutul abonamentului pentru a testa Yana Strategică
+- După consumarea celor 10 RON, trebuie să achiziționezi pachete de credite AI (de la 19 lei)
 
 ### Important de știut:
-**99% dintre antreprenori NU au nevoie să cumpere credite AI suplimentare!**
+**NU există acces nelimitat la Yana Strategică, indiferent de tipul de abonament!**
 
 ---
 
-## 🏢 Plan Contabil - 199 LEI/LUNĂ (~48 EUR/lună)
+## 🏢 Plan Contabil - 199 RON/LUNĂ (~47 EUR/lună)
 
 **Ideal pentru:** Cabinete de contabilitate, consultanță fiscală
 
@@ -72,39 +88,48 @@
 ### Important:
 **Numărul de clienți este NELIMITAT - 10 clienți sau 200 clienți = 199 lei/lună**
 
+### ❌ CE NU ESTE INCLUS:
+La fel ca la Plan Antreprenor, **Yana Strategică necesită achiziționarea de credite AI separate**, nu este inclusă în cei 199 lei/lună.
+
 ---
 
-## 💎 Credite AI Opționale
+## 💎 Credite AI - OBLIGATORII pentru Yana Strategică
 
-### Când trebuie să cumpăr credite AI?
+### ⚠️ CLARIFICARE IMPORTANTĂ:
 
-**DOAR dacă folosești FOARTE INTENS:**
-- Consilier Strategic Yana cu conversații lungi/complexe (10+ conversații strategice/lună)
-- Analiză Vocală extensivă (peste 10 minute/lună)
-- Generare predicții AI foarte frecventă (10+ predicții/lună)
+**Yana Strategică NU este inclusă în niciun abonament!**
+
+Pentru a utiliza Consilierul Strategic Yana (modulul /strategic-advisor), trebuie să achiziționezi credite AI, indiferent dacă ai abonament de 49 RON sau 199 RON.
 
 ### Pachete Disponibile:
 
-#### Starter - 19 LEI
-- 100 credite AI
-- ~50 conversații strategice
-- Perfect pentru: utilizare ocazională
+#### Starter - 19 RON
+- 19 RON credite AI
+- ~20-30 minute conversații strategice
+- Perfect pentru: utilizare ocazională (1-2 conversații/lună)
 
-#### Professional - 49 LEI (⭐ CEL MAI POPULAR)
-- 300 credite AI
-- ~150 conversații strategice
-- Perfect pentru: utilizare regulată
+#### Professional - 49 RON (⭐ CEL MAI POPULAR)
+- 49 RON credite AI
+- ~60-90 minute conversații strategice
+- Perfect pentru: utilizare regulată (5-10 conversații/lună)
 
-#### Enterprise - 129 LEI
-- 1000 credite AI
-- ~500 conversații strategice
-- Perfect pentru: utilizare intensivă
+#### Enterprise - 129 RON
+- 129 RON credite AI
+- ~150-200 minute conversații strategice
+- Perfect pentru: utilizare intensivă (20+ conversații/lună)
+
+### Cum funcționează creditele AI:
+
+1. **Primești 10 RON credite** la începutul abonamentului pentru testare
+2. După consumarea celor 10 RON, trebuie să cumperi pachete de credite
+3. Creditele se consumă în funcție de complexitatea conversațiilor cu Yana Strategică
+4. Când rămâi fără credite, nu mai poți accesa Yana Strategică până nu cumperi un nou pachet
 
 ### Control Total asupra Costurilor:
 - ✅ Tu setezi bugetul lunar pentru AI
-- ✅ Alerte la 80% din buget
-- ✅ Oprire automată când atingi limita
-- ✅ Vezi în timp real cheltuielile exacte
+- ✅ Alerte la 5 RON rămași
+- ✅ Vezi în timp real creditele consumate
+- ✅ Poți opri consumul oricând
 - ✅ ZERO costuri ascunse
 
 ---
@@ -113,11 +138,11 @@
 
 Lista completă de funcții incluse în abonament (FĂRĂ cost suplimentar):
 - ✅ Analiză balanțe (nelimitată)
-- ✅ Chat AI pentru întrebări financiare (nelimitat)
+- ✅ Chat AI pentru întrebări financiare despre balanță (nelimitat)
 - ✅ Dashboard, rapoarte, grafice (nelimitat)
 - ✅ Export PDF/Excel (nelimitat)
 - ✅ Suport tehnic (inclus)
-- ✅ Stocare date (inclusă)
+- ✅ Stocare date (inclusă - 1GB Plan Antreprenor, 5GB Plan Contabil)
 - ✅ Actualizări software (incluse)
 - ✅ Securitate și backup (incluse)
 
@@ -125,51 +150,55 @@ Lista completă de funcții incluse în abonament (FĂRĂ cost suplimentar):
 
 ## 📊 Exemple Concrete
 
-### Exemplu 1: Antreprenor Clasic
-**Întrebare:** "Deci eu plătesc doar 99 lei/lună și atât?"
+### Exemplu 1: Antreprenor Clasic (DOAR analiza balanței)
+**Întrebare:** "Vreau doar să analizez balanța și să văd rapoarte. Cât plătesc?"
 
-**Răspuns:** DA! 99 lei/lună îți acoperă TOATE nevoile de bază:
-- Încarcă câte balanțe vrei, fără limită
-- Folosește chat-ul AI cât vrei pentru întrebări
+**Răspuns:** **49 RON/lună** - și atât! 
+- Încarcă câte balanțe vrei
+- Folosește chat-ul AI pentru întrebări despre balanță
 - Vezi toate rapoartele, graficele, analizele
 - Exportă tot ce vrei în PDF
-- **ZERO costuri suplimentare obligatorii**
+- **ZERO costuri suplimentare**
 
-Singurele costuri OPȚIONALE (dacă vrei) sunt creditele AI pentru Consilier Strategic sau Analiză Vocală. Dar 99% dintre utilizatori NU au nevoie de credite suplimentare!
+Nu ai nevoie de credite AI dacă folosești doar analiza balanței.
 
 ---
 
-### Exemplu 2: Antreprenor cu Consilier Strategic
-**Întrebare:** "Cât mă costă dacă vreau și Consilier Strategic?"
+### Exemplu 2: Antreprenor cu Yana Strategică
+**Întrebare:** "Vreau și Consilier Strategic. Cât mă costă total?"
 
 **Răspuns:** Depinde cât îl folosești:
-- **1-2 conversații strategice/lună** = GRATIS (incluse în 99 lei)
-- **5-10 conversații/lună** = 99 lei + 19 lei = **118 lei/lună TOTAL**
-- **20+ conversații/lună** = 99 lei + 49 lei = **148 lei/lună TOTAL**
+- **Abonament:** 49 lei/lună (obligatoriu)
+- **Primele 10 RON:** GRATIS (pentru testare)
+- **Apoi:**
+  - Utilizare ocazională (1-2 conversații/lună): +19 lei/lună = **68 lei/lună TOTAL**
+  - Utilizare regulată (5-10 conversații/lună): +49 lei/lună = **98 lei/lună TOTAL**
+  - Utilizare intensivă (20+ conversații/lună): +129 lei/lună = **178 lei/lună TOTAL**
 
 ---
 
-### Exemplu 3: Contabil cu Multi-Clienți
-**Întrebare:** "Cât plătesc pentru 50 de clienți?"
+### Exemplu 3: Contabil cu Multi-Clienți (DOAR analiza balanței)
+**Întrebare:** "Am 50 de clienți, vreau doar să le analizez balanțele. Cât plătesc?"
 
-**Răspuns:** Doar **199 lei/lună**, INDIFERENT de număr clienți!
+**Răspuns:** **199 lei/lună** - INDIFERENT de număr clienți!
 - 10 clienți = 199 lei/lună
 - 50 clienți = 199 lei/lună
 - 200 clienți = 199 lei/lună
 
-**Numărul de clienți este NELIMITAT în Plan Contabil.** Nu există cost per client!
+Numărul de clienți este NELIMITAT. Nu există cost per client!
 
 ---
 
-### Exemplu 4: Contabil cu Credite AI
+### Exemplu 4: Contabil cu Yana Strategică
 **Întrebare:** "Am 30 de clienți și vreau să folosesc și Consilier Strategic. Cât plătesc?"
 
 **Răspuns:**
-- **Plan Contabil:** 199 lei/lună (30 clienți nelimitați, CRM complet)
-- **Credite AI (dacă folosești intens):** 19-49 lei/lună
-- **TOTAL:** 218-248 lei/lună
-
-Dar dacă folosești Consilierul Strategic doar ocazional, rămâi la 199 lei/lună!
+- **Plan Contabil:** 199 lei/lună (CRM complet, 30 clienți nelimitați)
+- **Primele 10 RON credite:** GRATIS (pentru testare Yana Strategică)
+- **Credite AI (după consumarea celor 10 RON):**
+  - Ocazional: +19 lei/lună = **218 lei/lună TOTAL**
+  - Regulat: +49 lei/lună = **248 lei/lună TOTAL**
+  - Intensiv: +129 lei/lună = **328 lei/lună TOTAL**
 
 ---
 
@@ -194,12 +223,21 @@ Dar dacă folosești Consilierul Strategic doar ocazional, rămâi la 199 lei/lu
 - ✅ **Anulare ușoară** - poți anula abonamentul oricând, fără penalități
 - ✅ **Facturare conformă** - toate plățile procesate prin Stripe, conform legislației UE
 - ✅ **Protecție consumatori** - respectăm OUG 34/2014 privind drepturile consumatorilor
+- ✅ **Drept de retragere** - 14 zile conform legislației UE pentru consumatori
 
 ### Conformitate Legală:
 - Respectăm cu strictețe legislația românească privind protecția consumatorilor
 - Toate tranzacțiile sunt procesate securizat prin Stripe (certificat PCI DSS)
-- Facturare automată cu TVA inclus
+- Facturare automată cu TVA inclus (19%)
 - Drept de retragere în conformitate cu legislația UE
+- Politică de rambursare clară și transparentă
+
+### Declarație de Conformitate:
+Această politică de tarife respectă:
+- OUG 34/2014 privind drepturile consumatorilor în cadrul contractelor încheiate cu profesioniștii
+- Legea 363/2018 privind protecția consumatorilor
+- Directiva (UE) 2019/2161 privind protecția consumatorilor
+- GDPR (Regulamentul UE 2016/679) privind protecția datelor
 
 ---
 
@@ -208,19 +246,26 @@ Dar dacă folosești Consilierul Strategic doar ocazional, rămâi la 199 lei/lu
 Când utilizatorii întreabă despre tarife, folosește aceste template-uri:
 
 ### "Cât costă?"
-→ "Plan Antreprenor: 99 lei/lună pentru TOATE funcțiile de bază (analiză balanțe nelimitată, chat AI, dashboard, rapoarte). Majoritatea utilizatorilor NU au nevoie de nimic suplimentar!"
+→ "Plan Antreprenor: 49 lei/lună pentru analiza balanței (nelimitată). Yana Strategică necesită credite AI separate (19-129 lei/lună, în funcție de utilizare). Primești 10 RON credite pentru testare!"
 
 ### "Ce credite AI?"
-→ "Credite AI sunt OPȚIONALE pentru funcții premium (Consilier Strategic, Analiză Vocală). 99% dintre utilizatori NU au nevoie să le cumpere. Dacă le folosești intens: 19-129 lei/lună."
+→ "Credite AI sunt OBLIGATORII pentru Yana Strategică (Consilier Strategic AI). NU sunt incluse în abonament. Primești 10 RON pentru testare, apoi trebuie să cumperi pachete: 19 lei (Starter), 49 lei (Professional), 129 lei (Enterprise)."
+
+### "Include Yana Strategică?"
+→ "NU! Yana Strategică necesită achiziționarea de credite AI separate, indiferent de abonament. Primești 10 RON pentru testare, apoi cumperi pachete de la 19 lei."
 
 ### "Plan Contabil?"
-→ "199 lei/lună pentru clienți NELIMITAȚI + CRM complet + branding personalizat. 10 clienți sau 200 clienți = același preț!"
+→ "199 lei/lună pentru clienți NELIMITAȚI + CRM complet. Yana Strategică necesită tot credite AI separate (nu e inclusă)."
 
 ### "Trial gratuit?"
-→ "30 zile gratuite, fără card bancar, FĂRĂ reînnoire automată. Acces la toate funcțiile de bază, NU include funcții premium AI."
+→ "30 zile gratuite, fără card bancar, FĂRĂ reînnoire automată. Primești 10 RON credite AI pentru a testa Yana Strategică. După trial: 49 lei/lună (Antreprenor) sau 199 lei/lună (Contabil)."
 
 ---
 
-**Versiune document:** 1.0  
+**Versiune document:** 2.0  
 **Ultima revizie:** Ianuarie 2025  
 **© 2025 YANA Contabilă - Velcont**
+
+**Contact Legal:** office@velcont.com  
+**CUI:** [completează]  
+**Nr. Reg. Com.:** [completează]

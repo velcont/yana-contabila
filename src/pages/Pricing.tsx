@@ -12,7 +12,8 @@ import {
   Clock,
   DollarSign,
   Building2,
-  Briefcase
+  Briefcase,
+  AlertCircle
 } from 'lucide-react';
 
 const Pricing = () => {
@@ -169,33 +170,47 @@ const Pricing = () => {
           </div>
         </div>
 
-        {/* Credite AI */}
-        <Card>
+        {/* Credite AI - OBLIGATORII pentru Yana Strategică */}
+        <Card className="border-2 border-red-500/50">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-primary" />
-              <CardTitle>Costuri Credite AI (Optional)</CardTitle>
+              <AlertCircle className="h-6 w-6 text-red-600" />
+              <CardTitle className="text-red-900 dark:text-red-100">
+                ⚠️ Credite AI - OBLIGATORII pentru Yana Strategică
+              </CardTitle>
             </div>
-            <CardDescription>
-              Pentru funcționalități avansate de AI - se plătesc separat, doar dacă le folosești
+            <CardDescription className="text-base font-semibold">
+              Yana Strategică NU este inclusă în abonament! Necesită achiziționare de credite AI separate.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+            <div className="bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800 p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                <Info className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                <div className="space-y-2">
-                  <p className="font-semibold text-yellow-900 dark:text-yellow-100">
-                    Funcționalități Premium cu Credite AI:
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-500 mt-0.5" />
+                <div className="space-y-3">
+                  <p className="font-bold text-red-900 dark:text-red-100">
+                    TRANSPARENȚĂ TOTALĂ - Ce include abonamentul de 99 lei/lună:
                   </p>
-                  <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1">
-                    <li>• <strong>Consilier Strategic Yana</strong> - Consultanță strategică avansată</li>
-                    <li>• <strong>Analiză Vocală</strong> - Interacțiune prin voce</li>
-                    <li>• <strong>Predicții financiare avansate</strong></li>
-                  </ul>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
-                    <strong>Important:</strong> Aceste funcții consumă credite AI și sunt BLOCATE pentru utilizatorii cu acces gratuit sau trial. 
-                    Sunt disponibile DOAR pentru abonați plătitori.
+                  <div className="p-3 bg-white dark:bg-red-900/30 rounded">
+                    <p className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">✅ INCLUS în abonament:</p>
+                    <ul className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                      <li>• Analiză balanță AI nelimitată</li>
+                      <li>• Chat AI pentru întrebări financiare</li>
+                      <li>• Dashboard interactiv cu grafice</li>
+                      <li>• Export PDF nelimitat</li>
+                      <li>• Rapoarte și alerte</li>
+                    </ul>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-red-900/30 rounded">
+                    <p className="text-sm font-semibold text-red-900 dark:text-red-100 mb-2">❌ NU INCLUS (necesită credite AI):</p>
+                    <ul className="text-sm text-red-800 dark:text-red-200 space-y-1">
+                      <li>• <strong>Consilier Strategic Yana</strong> - Consultanță strategică AI</li>
+                      <li>• <strong>Analiză Vocală extinsă</strong> - Peste 10 min/lună</li>
+                      <li>• <strong>Predicții AI intensive</strong> - Peste 5 predicții/lună</li>
+                    </ul>
+                  </div>
+                  <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+                    <strong>IMPORTANT LEGAL:</strong> Nu există "acces nelimitat" la Yana Strategică. Toți utilizatorii trebuie să achiziționeze credite AI pentru a folosi această funcționalitate, indiferent de abonament. Primești 10 RON credite la început pentru testare.
                   </p>
                 </div>
               </div>
