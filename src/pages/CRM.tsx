@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyManager } from "@/components/CompanyManager";
 import { EmailBroadcast } from "@/components/EmailBroadcast";
@@ -11,10 +12,12 @@ import { Loader2, Building2, Mail, Users, UserPlus } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { Card } from "@/components/ui/card";
 
 const CRM = () => {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { subscriptionType, loading: subscriptionLoading } = useSubscription();
   const navigate = useNavigate();
   const [manualClientDialogOpen, setManualClientDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -27,7 +30,7 @@ const CRM = () => {
 
   // Render content based on state
   const renderContent = () => {
-    if (authLoading || roleLoading) {
+    if (authLoading || roleLoading || subscriptionLoading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -35,15 +38,30 @@ const CRM = () => {
       );
     }
 
-    if (!isAdmin) {
+    // Verificare: Doar admini SAU firme contabile cu planul activ
+    const hasAccess = isAdmin || subscriptionType === 'accounting_firm';
+
+    if (!hasAccess) {
       return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <Card className="max-w-md p-8 text-center">
+            <Building2 className="w-16 h-16 mx-auto mb-4 text-destructive" />
             <h1 className="text-2xl font-bold mb-4">Acces Restricționat</h1>
-            <p className="text-muted-foreground">
-              Doar administratorii pot accesa această pagină.
+            <p className="text-muted-foreground mb-6">
+              Modulul <strong>CRM</strong> este disponibil EXCLUSIV pentru firme de contabilitate cu <strong>Planul Contabil</strong> activ (199 lei/lună).
             </p>
-          </div>
+            <p className="text-sm text-muted-foreground mb-6">
+              Acest modul include: gestionare clienți nelimitați, management documente, calendar termene fiscale, task management, email marketing integrat și branding personalizat.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={() => navigate("/subscription")} size="lg">
+                Activează Planul Contabil
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/app")}>
+                Înapoi la Dashboard
+              </Button>
+            </div>
+          </Card>
         </div>
       );
     }

@@ -79,6 +79,14 @@ export default function StrategicAdvisor() {
 
         console.log("📊 [ACCESS-CHECK] Profile data:", profile);
 
+        // ✅ VERIFICARE: Doar utilizatorii cu planul Antreprenor au acces
+        if (profile?.subscription_type !== 'entrepreneur') {
+          console.log("❌ [ACCESS-CHECK] Wrong subscription type - requires entrepreneur plan");
+          setHasAccess(false);
+          setIsCheckingAccess(false);
+          return;
+        }
+
         const hasActiveSubscription = 
           profile?.subscription_status === "active" || 
           profile?.subscription_status === "trialing";
@@ -274,24 +282,24 @@ export default function StrategicAdvisor() {
           <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
           <h2 className="text-2xl font-bold mb-4">Acces Restricționat</h2>
           <p className="text-muted-foreground mb-6">
-            Funcționalitatea <strong>Yana Strategică</strong> este disponibilă DOAR pentru utilizatori cu abonament plătit activ.
+            <strong>Yana Strategică</strong> este disponibilă EXCLUSIV pentru utilizatori cu <strong>Planul Antreprenor</strong> activ.
           </p>
           <p className="text-sm text-muted-foreground mb-6">
             {creditRemaining === 0 ? (
               <>
                 Ai epuizat creditul de test de <strong>10 lei</strong>. 
-                Pentru a continua, te rog activează un abonament plătit.
+                Pentru a continua, activează <strong>Planul Antreprenor (49 lei/lună)</strong>.
               </>
             ) : (
               <>
-                Această funcționalitate necesită abonament plătit. 
-                Toți utilizatorii primesc <strong>10 lei credit de test</strong> la prima utilizare.
+                Această funcționalitate este disponibilă doar cu <strong>Planul Antreprenor</strong>. 
+                Toți antreprenorii primesc <strong>10 lei credit de test</strong> la prima utilizare.
               </>
             )}
           </p>
           <div className="flex flex-col gap-3">
-            <Button onClick={() => navigate("/pricing")} size="lg">
-              Vezi Planuri de Abonament
+            <Button onClick={() => navigate("/subscription")} size="lg">
+              Activează Planul Antreprenor
             </Button>
             <Button variant="outline" onClick={() => navigate("/app")}>
               Înapoi la Dashboard
