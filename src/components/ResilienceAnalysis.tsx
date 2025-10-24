@@ -1098,13 +1098,13 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       <Tabs defaultValue="adaptability" className="w-full">
         <div className="space-y-2">
           {/* Primul rând de taburi */}
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-5'}`}>
             <TabsTrigger value="adaptability">Adaptabilitate</TabsTrigger>
             <TabsTrigger value="radar">Analiză Vizuală</TabsTrigger>
             <TabsTrigger value="scenarios">Scenarii de Criză</TabsTrigger>
             <TabsTrigger value="comparison">Comparație Academică</TabsTrigger>
             <TabsTrigger value="predictive">🔮 Scenarii Predictive</TabsTrigger>
-            <TabsTrigger value="research">Date Doctorat</TabsTrigger>
+            {isAdmin && <TabsTrigger value="research">Date Doctorat</TabsTrigger>}
             {isAdmin && <TabsTrigger value="global">Global Stats</TabsTrigger>}
           </TabsList>
           
