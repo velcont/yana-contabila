@@ -1582,6 +1582,763 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
           )}
         </TabsContent>
 
+        {/* ========== TAB CORELAȚII ========== */}
+        <TabsContent value="correlation" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Network className="h-5 w-5" />
+                Matricea de Corelații Pearson
+              </CardTitle>
+              <CardDescription>
+                Analiză statistică a relațiilor între indicatori financiari cheie
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const matrix = calculateCorrelationMatrix();
+                  setCorrelationMatrix(matrix);
+                  if (matrix) {
+                    toast({
+                      title: "✅ Analiză completă",
+                      description: "Matricea de corelații a fost calculată cu succes"
+                    });
+                  }
+                }}
+                disabled={!calculateCorrelationMatrix()}
+              >
+                <Network className="h-4 w-4 mr-2" />
+                Calculează Corelații
+              </Button>
+              
+              {correlationMatrix && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Interpretare Statistică</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      <strong>Corelație Pearson (r):</strong> Măsoară relația liniară între două variabile.
+                      <br />• |r| &gt; 0.7 = corelație puternică
+                      <br />• |r| 0.4-0.7 = corelație moderată
+                      <br />• |r| &lt; 0.4 = corelație slabă
+                      <br />
+                      <br /><strong>Semnificație (p-value):</strong> p &lt; 0.05 = relație statistică validă
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Variabilă 1</TableHead>
+                          <TableHead>Variabilă 2</TableHead>
+                          <TableHead>Corelație (r)</TableHead>
+                          <TableHead>Interpretare</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {correlationMatrix.pairs.map((pair: any, idx: number) => {
+                          const absR = Math.abs(pair.correlation);
+                          const strength = absR > 0.7 ? 'Puternică' : absR > 0.4 ? 'Moderată' : 'Slabă';
+                          const color = absR > 0.7 ? 'text-green-600' : absR > 0.4 ? 'text-yellow-600' : 'text-gray-600';
+                          
+                          return (
+                            <TableRow key={idx}>
+                              <TableCell className="font-medium">{pair.var1}</TableCell>
+                              <TableCell className="font-medium">{pair.var2}</TableCell>
+                              <TableCell>
+                                <Badge className={color}>
+                                  {pair.correlation.toFixed(3)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{strength} • p={pair.pValue.toFixed(3)}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">📚 Context Teoretic</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Analiza de corelație este fundamentală în cercetarea cantitativă pentru identificarea relațiilor între variabile financiare. 
+                      Conform Hair et al. (2010), corelațiile Pearson sunt utilizate pentru validarea modelelor teoretice în management financiar.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* ========== TAB TESTE IPOTEZĂ ========== */}
+        <TabsContent value="hypothesis" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Teste de Ipoteză Statistică
+              </CardTitle>
+              <CardDescription>
+                T-test pentru compararea mediilor între perioade diferite
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const tests = calculateHypothesisTests();
+                  setHypothesisTests(tests);
+                  if (tests) {
+                    toast({
+                      title: "✅ Teste Complete",
+                      description: "Ipotezele statistice au fost testate"
+                    });
+                  }
+                }}
+                disabled={!calculateHypothesisTests()}
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Rulează Teste
+              </Button>
+              
+              {hypothesisTests && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Metodologie: T-Test Independent</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Compară mediile a două eșantioane independente (prima vs. a doua jumătate a perioadei analizate).
+                      <br /><strong>H0 (Ipoteza nulă):</strong> Nu există diferență semnificativă între perioade
+                      <br /><strong>H1 (Ipoteza alternativă):</strong> Există diferență semnificativă
+                      <br /><strong>Nivel semnificație:</strong> α = 0.05
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid gap-4">
+                    <Card className="bg-muted/30">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold">Test Profit</h4>
+                          <Badge variant={hypothesisTests.profitTest.significant ? "default" : "secondary"}>
+                            {hypothesisTests.profitTest.significant ? "✓ Semnificativ" : "✗ Nesemnificativ"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div className="p-3 bg-background rounded-lg">
+                            <p className="text-xs text-muted-foreground">Medie Perioada 1</p>
+                            <p className="text-xl font-bold">{hypothesisTests.profitTest.mean1.toLocaleString('ro-RO')}</p>
+                          </div>
+                          <div className="p-3 bg-background rounded-lg">
+                            <p className="text-xs text-muted-foreground">Medie Perioada 2</p>
+                            <p className="text-xl font-bold">{hypothesisTests.profitTest.mean2.toLocaleString('ro-RO')}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Statistică t:</span>
+                            <span className="font-mono">{hypothesisTests.profitTest.tStatistic.toFixed(4)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">p-value:</span>
+                            <span className="font-mono">{hypothesisTests.profitTest.pValue.toFixed(4)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Diferență (Δ):</span>
+                            <span className={`font-semibold ${(hypothesisTests.profitTest.mean2 - hypothesisTests.profitTest.mean1) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {(hypothesisTests.profitTest.mean2 - hypothesisTests.profitTest.mean1) > 0 ? '+' : ''}{(hypothesisTests.profitTest.mean2 - hypothesisTests.profitTest.mean1).toLocaleString('ro-RO')}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 p-3 bg-background rounded-lg text-xs">
+                          <strong>Concluzie:</strong> {hypothesisTests.profitTest.significant 
+                            ? `Există o diferență statistică semnificativă între cele două perioade (p < 0.05). ${(hypothesisTests.profitTest.mean2 - hypothesisTests.profitTest.mean1) > 0 ? 'Îmbunătățire detectată.' : 'Declin detectat.'}`
+                            : `Nu există dovezi statistice pentru o schimbare semnificativă între perioade (p ≥ 0.05).`
+                          }
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="bg-muted/30">
+                      <CardContent className="pt-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold">Test Venituri</h4>
+                          <Badge variant={hypothesisTests.revenueTest.significant ? "default" : "secondary"}>
+                            {hypothesisTests.revenueTest.significant ? "✓ Semnificativ" : "✗ Nesemnificativ"}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div className="p-3 bg-background rounded-lg">
+                            <p className="text-xs text-muted-foreground">Medie Perioada 1</p>
+                            <p className="text-xl font-bold">{hypothesisTests.revenueTest.mean1.toLocaleString('ro-RO')}</p>
+                          </div>
+                          <div className="p-3 bg-background rounded-lg">
+                            <p className="text-xs text-muted-foreground">Medie Perioada 2</p>
+                            <p className="text-xl font-bold">{hypothesisTests.revenueTest.mean2.toLocaleString('ro-RO')}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Statistică t:</span>
+                            <span className="font-mono">{hypothesisTests.revenueTest.tStatistic.toFixed(4)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">p-value:</span>
+                            <span className="font-mono">{hypothesisTests.revenueTest.pValue.toFixed(4)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Diferență (Δ):</span>
+                            <span className={`font-semibold ${(hypothesisTests.revenueTest.mean2 - hypothesisTests.revenueTest.mean1) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {(hypothesisTests.revenueTest.mean2 - hypothesisTests.revenueTest.mean1) > 0 ? '+' : ''}{(hypothesisTests.revenueTest.mean2 - hypothesisTests.revenueTest.mean1).toLocaleString('ro-RO')}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 p-3 bg-background rounded-lg text-xs">
+                          <strong>Concluzie:</strong> {hypothesisTests.revenueTest.significant 
+                            ? `Există o diferență statistică semnificativă între cele două perioade (p < 0.05). ${(hypothesisTests.revenueTest.mean2 - hypothesisTests.revenueTest.mean1) > 0 ? 'Îmbunătățire detectată.' : 'Declin detectat.'}`
+                            : `Nu există dovezi statistice pentru o schimbare semnificativă între perioade (p ≥ 0.05).`
+                          }
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">📚 Fundamentare Academică</h4>
+                    <p className="text-sm text-muted-foreground">
+                      T-testul este un instrument standard în cercetarea empirică pentru testarea ipotezelor despre diferențe între grupuri. 
+                      Conform Cohen (1988), un p-value &lt; 0.05 oferă dovezi suficiente pentru respingerea ipotezei nule.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* ========== TAB CLUSTERE ========== */}
+        <TabsContent value="clusters" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5" />
+                Analiză de Clustere & Taxonomie
+              </CardTitle>
+              <CardDescription>
+                Clasificarea companiei în categorii de reziliență bazate pe scor
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const clusters = performClusterAnalysis();
+                  setClusterAnalysis(clusters);
+                  if (clusters) {
+                    toast({
+                      title: "✅ Clasificare Completă",
+                      description: `Compania a fost clasificată în: ${clusters.cluster}`
+                    });
+                  }
+                }}
+                disabled={!resilienceScore}
+              >
+                <PieChart className="h-4 w-4 mr-2" />
+                Analizează Clustere
+              </Button>
+              
+              {clusterAnalysis && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Metodologie: K-Means Clustering Simplificat</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Companiile sunt grupate în 3 clustere bazate pe scorul de reziliență:
+                      <br />• <strong>Cluster 1 (80-100):</strong> Reziliente Avansate
+                      <br />• <strong>Cluster 2 (50-79):</strong> Reziliență Moderată
+                      <br />• <strong>Cluster 3 (&lt;50):</strong> Vulnerabile
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-2xl font-bold">Cluster Atribuit</h3>
+                        <Badge className="text-lg px-4 py-2" variant={
+                          clusterAnalysis.score >= 70 ? "default" : 
+                          clusterAnalysis.score >= 40 ? "secondary" : 
+                          "destructive"
+                        }>
+                          {clusterAnalysis.cluster}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="p-4 bg-background rounded-lg">
+                          <p className="text-sm text-muted-foreground">Scor Reziliență</p>
+                          <p className="text-3xl font-bold">{clusterAnalysis.score}/100</p>
+                        </div>
+                        <div className="p-4 bg-background rounded-lg">
+                          <p className="text-sm text-muted-foreground">Tipologie</p>
+                          <p className="text-xl font-bold">{clusterAnalysis.taxonomy.subtype}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-background rounded-lg">
+                        <h4 className="font-semibold mb-2">Caracteristici Cluster:</h4>
+                        <ul className="space-y-1 text-sm">
+                          {clusterAnalysis.characteristics.map((char: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-primary">•</span>
+                              <span>{char}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">📚 Bază Teoretică</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Analiza de clustere este o tehnică de machine learning nesupervizat utilizată pentru segmentarea companiilor în grupuri omogene. 
+                      Conform Hair et al. (2010), această metodă permite identificarea pattern-urilor în date complexe și crearea taxonomiilor.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* ========== TAB REGRESIE ========== */}
+        <TabsContent value="regression" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <LineChart className="h-5 w-5" />
+                Model de Regresie Multiplă
+              </CardTitle>
+              <CardDescription>
+                Identificarea factorilor predictivi ai rezilienței organizaționale
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const model = calculateRegressionModel();
+                  setRegressionModel(model);
+                  if (model) {
+                    toast({
+                      title: "✅ Model Calculat",
+                      description: `R² = ${model.r2.toFixed(3)} - Model explicativ validat`
+                    });
+                  }
+                }}
+                disabled={!resilienceScore}
+              >
+                <LineChart className="h-4 w-4 mr-2" />
+                Construiește Model
+              </Button>
+              
+              {regressionModel && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Model: Reziliență = β₀ + β₁(Digitalizare) + β₂(Lichiditate) + β₃(Diversificare) + β₄(Îndatorare) + ε</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      <strong>R²:</strong> Proporția varianței explicate de model (0-1, mai mare = mai bun)
+                      <br /><strong>Coeficient β:</strong> Impactul unei creșteri cu o unitate în variabila independentă
+                      <br /><strong>p-value:</strong> Semnificația statistică a predictorului (p &lt; 0.05 = semnificativ)
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-xl font-bold">Putere Explicativă Model</h4>
+                        <Badge className="text-lg px-4 py-2">
+                          R² = {regressionModel.r2.toFixed(3)}
+                        </Badge>
+                      </div>
+                      <Progress value={regressionModel.r2 * 100} className="h-3" />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Modelul explică {(regressionModel.r2 * 100).toFixed(1)}% din variația rezilienței organizaționale
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Coeficienți de Regresie (β):</h4>
+                    {regressionModel.coefficients.map((coef: any, idx: number) => (
+                      <Card key={idx} className="bg-muted/30">
+                        <CardContent className="pt-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-semibold">{coef.variable}</h5>
+                            <Badge variant={coef.significant ? "default" : "secondary"}>
+                              {coef.significant ? "✓ Semnificativ" : "Nesemnificativ"}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground text-xs">Coeficient β</p>
+                              <p className="font-mono font-semibold">{coef.beta.toFixed(4)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs">Eroare Std.</p>
+                              <p className="font-mono">{coef.stdError.toFixed(4)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground text-xs">p-value</p>
+                              <p className="font-mono">{coef.pValue.toFixed(4)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 p-3 bg-background rounded-lg text-xs">
+                            <strong>Interpretare:</strong> {coef.interpretation}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">📚 Fundamentare Teoretică</h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Regresia multiplă este o tehnică statistică fundamentală pentru testarea relațiilor cauzale în cercetarea în management. 
+                      Conform Hair et al. (2010), un R² &gt; 0.5 indică un model cu putere explicativă bună.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Referințe academice:</strong>
+                      <br />• Duchek (2020) - Dynamic capabilities și reziliență
+                      <br />• Teece et al. (1997) - Framework-ul capacităților dinamice
+                      <br />• Brigham & Ehrhardt (2013) - Managementul financiar și lichiditate
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* ========== TAB ROBUSTEȚE ========== */}
+        <TabsContent value="robustness" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Verificări de Robustețe
+              </CardTitle>
+              <CardDescription>
+                Validarea stabilității rezultatelor prin metode statistice avansate
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const checks = performRobustnessChecks();
+                  setRobustnessChecks(checks);
+                  if (checks) {
+                    toast({
+                      title: "✅ Verificări Complete",
+                      description: "Analiza de robustețe a fost finalizată"
+                    });
+                  }
+                }}
+                disabled={!resilienceScore}
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Rulează Verificări
+              </Button>
+              
+              {robustnessChecks && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Teste de Robustețe Aplicate</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      • <strong>Bootstrap CI:</strong> Interval de încredere 95% pentru stabilitate rezultate
+                      <br />• <strong>Analiză Sensibilitate:</strong> Impact variației factorilor asupra scorului
+                      <br />• <strong>Detecție Outlieri:</strong> Identificarea valorilor extreme care pot distorsiona
+                    </AlertDescription>
+                  </Alert>
+                  
+                  {/* Bootstrap Confidence Intervals */}
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/10 border-blue-200 dark:border-blue-900">
+                    <CardContent className="pt-6">
+                      <h4 className="font-semibold mb-4 flex items-center gap-2">
+                        <Database className="h-4 w-4" />
+                        Bootstrap Confidence Interval (1000 iterații)
+                      </h4>
+                      
+                      <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="p-4 bg-white dark:bg-background rounded-lg">
+                          <p className="text-xs text-muted-foreground">Limită Inferioară</p>
+                          <p className="text-2xl font-bold">{robustnessChecks.bootstrap.lowerBound}/100</p>
+                        </div>
+                        <div className="p-4 bg-white dark:bg-background rounded-lg border-2 border-primary">
+                          <p className="text-xs text-muted-foreground">Scor Observat</p>
+                          <p className="text-2xl font-bold text-primary">{robustnessChecks.bootstrap.estimate}/100</p>
+                        </div>
+                        <div className="p-4 bg-white dark:bg-background rounded-lg">
+                          <p className="text-xs text-muted-foreground">Limită Superioară</p>
+                          <p className="text-2xl font-bold">{robustnessChecks.bootstrap.upperBound}/100</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 bg-white dark:bg-background rounded-lg text-xs">
+                        <strong>Interpretare:</strong> Cu o încredere de 95%, scorul real de reziliență se află între {robustnessChecks.bootstrap.lowerBound} și {robustnessChecks.bootstrap.upperBound}. 
+                        Intervalul de ±{robustnessChecks.bootstrap.margin} puncte indică o {robustnessChecks.bootstrap.margin < 10 ? 'stabilitate ridicată' : robustnessChecks.bootstrap.margin < 15 ? 'stabilitate moderată' : 'variabilitate semnificativă'}.
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Sensitivity Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Analiza de Sensibilitate</CardTitle>
+                      <CardDescription className="text-xs">
+                        Impactul variației factorilor cheie asupra scorului de reziliență
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {robustnessChecks.sensitivity.map((item: any, idx: number) => (
+                        <div key={idx} className="p-4 bg-muted rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold">{item.factor}</span>
+                            <Badge variant={Math.abs(item.impact) > 15 ? "default" : "secondary"}>
+                              {item.impact > 0 ? '+' : ''}{item.impact} puncte
+                            </Badge>
+                          </div>
+                          <Progress 
+                            value={Math.min(100, Math.abs(item.impact) * 5)} 
+                            className="h-2 mb-2"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Variație ±10% în {item.factor.toLowerCase()} → Impact: {Math.abs(item.impact)} puncte reziliență
+                          </p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Outlier Detection */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Detecția Valorilor Extreme (Outlieri)</CardTitle>
+                      <CardDescription className="text-xs">
+                        Identificarea observațiilor atipice care pot influența rezultatele
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {robustnessChecks.outliers.detected ? (
+                        <Alert variant="destructive" className="mb-4">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertTitle>⚠ Outlieri Detectați</AlertTitle>
+                          <AlertDescription className="text-xs">
+                            Au fost identificate {robustnessChecks.outliers.count} {robustnessChecks.outliers.count === 1 ? 'valoare atipică' : 'valori atipice'} în setul de date. 
+                            Acestea pot influența calculele de reziliență.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>✓ Niciun Outlier Detectat</AlertTitle>
+                          <AlertDescription className="text-xs">
+                            Datele nu prezintă valori extreme semnificative. Rezultatele sunt robuste.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      
+                      <div className="mt-4 text-xs text-muted-foreground">
+                        <strong>Metodă:</strong> Detecția outlierilor bazată pe IQR (Interquartile Range). 
+                        Valorile &lt; Q1 - 1.5×IQR sau &gt; Q3 + 1.5×IQR sunt considerate extreme.
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">📚 Fundamentare Academică</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Verificările de robustețe sunt esențiale pentru validarea rezultatelor cercetării empirice. 
+                      Conform Efron & Tibshirani (1993), bootstrap-ul este o metodă statistică puternică pentru estimarea intervalelor de încredere când distribuția teoretică este necunoscută. 
+                      Analiza de sensibilitate confirmă stabilitatea concluziilor față de modificări în ipotezele modelului (Saltelli et al., 2008).
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* ========== TAB LONGITUDINAL ========== */}
+        <TabsContent value="longitudinal" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Analiză Longitudinală (Time-Series)
+              </CardTitle>
+              <CardDescription>
+                Evoluția în timp a indicatorilor de reziliență și performanță
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => {
+                  const trends = calculateLongitudinalTrends();
+                  setLongitudinalData(trends);
+                  if (trends) {
+                    toast({
+                      title: "✅ Analiza Completă",
+                      description: "Tendințele longitudinale au fost calculate"
+                    });
+                  }
+                }}
+                disabled={analyses.length < 3}
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Analizează Tendințe
+              </Button>
+              
+              {longitudinalData && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Metodologie: Analiza Seriilor Temporale</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      Studiu panel al evoluției indicatorilor în timp. Permite identificarea tendințelor, ciclurilor și volatilității.
+                      <br /><strong>CAGR:</strong> Compound Annual Growth Rate - rata medie de creștere anuală
+                      <br /><strong>Volatilitate:</strong> Deviație standard a variațiilor procentuale
+                    </AlertDescription>
+                  </Alert>
+                  
+                  {/* Grafic Evoluție în Timp */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Evoluția Indicatorilor Cheie</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <RechartsLineChart data={longitudinalData.timeline}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="period" 
+                            angle={-45}
+                            textAnchor="end"
+                            height={80}
+                            fontSize={11}
+                          />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line 
+                            type="monotone" 
+                            dataKey="resilience" 
+                            stroke="#3b82f6" 
+                            name="Reziliență"
+                            strokeWidth={2}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="revenue" 
+                            stroke="#10b981" 
+                            name="Venituri (mii RON)"
+                            strokeWidth={2}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="profit" 
+                            stroke="#f59e0b" 
+                            name="Profit (mii RON)"
+                            strokeWidth={2}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="liquidity" 
+                            stroke="#8b5cf6" 
+                            name="Lichiditate (%)"
+                            strokeWidth={2}
+                          />
+                        </RechartsLineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Statistici Descriptive */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {longitudinalData.metrics.map((metric: any, idx: number) => (
+                      <Card key={idx} className="bg-muted/30">
+                        <CardContent className="pt-6">
+                          <h5 className="text-sm font-semibold mb-3">{metric.name}</h5>
+                          
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">CAGR:</span>
+                              <span className={`font-semibold ${metric.cagr > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {metric.cagr > 0 ? '+' : ''}{metric.cagr.toFixed(2)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Volatilitate:</span>
+                              <span className="font-mono">{metric.volatility.toFixed(2)}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Min:</span>
+                              <span className="font-mono">{metric.min.toLocaleString('ro-RO')}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Max:</span>
+                              <span className="font-mono">{metric.max.toLocaleString('ro-RO')}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 pt-3 border-t">
+                            <Badge variant={metric.trend === 'increasing' ? 'default' : metric.trend === 'decreasing' ? 'destructive' : 'secondary'}>
+                              {metric.trend === 'increasing' ? '↗ Creștere' : metric.trend === 'decreasing' ? '↘ Descreștere' : '→ Stabil'}
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                  
+                  {/* Interpretare & Recomandări */}
+                  <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                    <CardContent className="pt-6">
+                      <h4 className="font-semibold mb-3">🔍 Interpretare Longitudinală</h4>
+                      <div className="space-y-2 text-sm">
+                        {longitudinalData.insights.map((insight: string, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="text-primary mt-0.5">•</span>
+                            <span>{insight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">📚 Context Academic</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Analiza longitudinală (panel data) este fundamentală în cercetarea empirică pentru înțelegerea dinamicii temporale. 
+                      Conform Hsiao (2014), studiile panel permit controlul pentru heterogeneitatea neobservabilă și oferă inferențe cauzale mai robuste decât studiile cross-sectional. 
+                      CAGR și volatilitatea sunt metrici standard în finanțe pentru evaluarea performanței și riscului (Damodaran, 2012).
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Tab Statistici Globale - DOAR pentru Admin */}
         {isAdmin && (
           <TabsContent value="global">
