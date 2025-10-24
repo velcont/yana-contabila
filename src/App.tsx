@@ -36,6 +36,7 @@ import HumanizeText from "./pages/HumanizeText";
 import { Settings } from "./pages/Settings";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
+import { UpdateNotificationBanner } from "@/components/UpdateNotificationBanner";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <UpdateNotificationBanner />
         <BrowserRouter>
           <SubscriptionProvider>
             <ThemeRoleProvider>

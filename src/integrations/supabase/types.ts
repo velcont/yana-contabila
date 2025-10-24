@@ -406,6 +406,7 @@ export type Database = {
           description: string
           id: string
           include_in_next_email: boolean | null
+          is_current_version: boolean | null
           is_published: boolean | null
           published_at: string | null
           status: string | null
@@ -418,6 +419,7 @@ export type Database = {
           description: string
           id?: string
           include_in_next_email?: boolean | null
+          is_current_version?: boolean | null
           is_published?: boolean | null
           published_at?: string | null
           status?: string | null
@@ -430,6 +432,7 @@ export type Database = {
           description?: string
           id?: string
           include_in_next_email?: boolean | null
+          is_current_version?: boolean | null
           is_published?: boolean | null
           published_at?: string | null
           status?: string | null

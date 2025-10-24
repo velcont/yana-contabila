@@ -50,6 +50,7 @@ export default function UpdatesManager() {
         is_published: status === "published",
         status: status,
         include_in_next_email: status === "published" && includeInEmail,
+        is_current_version: status === "published",
       });
 
       if (error) throw error;
@@ -252,21 +253,39 @@ export default function UpdatesManager() {
               />
             </div>
             {status === "published" && (
-              <div className="flex items-center space-x-2 p-4 bg-primary/10 rounded-md border border-primary/20">
-                <Switch
-                  id="include-email"
-                  checked={includeInEmail}
-                  onCheckedChange={setIncludeInEmail}
-                />
-                <div className="flex-1">
-                  <Label htmlFor="include-email" className="cursor-pointer font-semibold">
-                    📧 Trimite email automat la toți utilizatorii
-                  </Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Update-ul va fi trimis imediat după salvare la toți utilizatorii înregistrați
-                  </p>
+              <>
+                <div className="flex items-center space-x-2 p-4 bg-primary/10 rounded-md border border-primary/20">
+                  <Switch
+                    id="include-email"
+                    checked={includeInEmail}
+                    onCheckedChange={setIncludeInEmail}
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="include-email" className="cursor-pointer font-semibold">
+                      📧 Trimite email automat la toți utilizatorii
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Update-ul va fi trimis imediat după salvare la toți utilizatorii înregistrați
+                    </p>
+                  </div>
                 </div>
-              </div>
+                
+                <div className="flex items-center space-x-2 p-4 bg-success/10 rounded-md border border-success/20">
+                  <Switch
+                    id="set-current"
+                    checked={true}
+                    disabled
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="set-current" className="cursor-pointer font-semibold">
+                      🔔 Notifică utilizatorii despre versiunea nouă
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Această versiune va deveni automat versiunea curentă și utilizatorii vor vedea un banner de actualizare
+                    </p>
+                  </div>
+                </div>
+              </>
             )}
             <Button
               onClick={() => createMutation.mutate()}

@@ -11,7 +11,8 @@ import {
   Brain, 
   AlertCircle,
   ArrowLeft,
-  MessageSquarePlus
+  MessageSquarePlus,
+  MessageSquare
 } from "lucide-react";
 
 interface Message {
@@ -27,7 +28,17 @@ export default function StrategicAdvisor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState(() => crypto.randomUUID());
+  const [conversationId] = useState(() => {
+    const stored = localStorage.getItem('yana_strategic_conversation_id');
+    if (stored) {
+      console.log("📖 [CONVERSATION] Reusing existing conversation:", stored);
+      return stored;
+    }
+    const newId = crypto.randomUUID();
+    localStorage.setItem('yana_strategic_conversation_id', newId);
+    console.log("🆕 [CONVERSATION] Created new conversation:", newId);
+    return newId;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Access control states
@@ -263,6 +274,8 @@ export default function StrategicAdvisor() {
   };
 
   const startNewConversation = () => {
+    console.log("🔄 [CONVERSATION] Starting new conversation");
+    localStorage.removeItem('yana_strategic_conversation_id');
     setMessages([]);
     window.location.reload();
   };
@@ -355,6 +368,16 @@ export default function StrategicAdvisor() {
             </div>
             
             <div className="flex items-center gap-3">
+              {/* Conversation activity indicator */}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <MessageSquare className="w-3 h-3" />
+                {messages.length > 0 ? (
+                  <span>Conversație activă: {messages.length} mesaje</span>
+                ) : (
+                  <span>Conversație nouă</span>
+                )}
+              </div>
+              
               {/* Credit indicator - arată creditul în RON */}
               <div className={`px-4 py-2 rounded-lg border-2 ${
                 creditRemaining <= 2 
