@@ -35,8 +35,6 @@ export default function StrategicAdvisor() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const [creditRemaining, setCreditRemaining] = useState<number>(0);
-  const [isTrialUser, setIsTrialUser] = useState(false);
-  const [isUnlimited, setIsUnlimited] = useState(false);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -88,80 +86,39 @@ export default function StrategicAdvisor() {
           return;
         }
 
-        // ✅ VERIFICARE STRICTĂ ABONAMENT PLĂTIT STRIPE
-        // Un utilizator Antreprenor are abonament plătit DOAR dacă:
-        // 1. Are stripe_subscription_id valid (nu NULL, nu string gol)
-        // 2. Are subscription_status "active" sau "trialing"
-        // 3. NU are has_free_access = true (care înseamnă acces admin/test gratuit)
-        const hasValidStripeId = 
-          profile?.stripe_subscription_id !== null && 
-          profile?.stripe_subscription_id !== undefined &&
-          typeof profile.stripe_subscription_id === 'string' &&
-          profile.stripe_subscription_id.trim().length > 0;
-        
-        const hasActiveStatus = 
-          profile?.subscription_status === "active" || 
-          profile?.subscription_status === "trialing";
-
-        const hasFreeAccess = profile?.has_free_access === true;
-
-        // IMPORTANT: Utilizatorii cu has_free_access = true NU au abonament plătit real
-        // Ei folosesc sistemul de credit test (10 lei)
-        const hasPaidSubscription = hasValidStripeId && hasActiveStatus && !hasFreeAccess;
-
-        console.log("🔍 [ACCESS-CHECK] Subscription verification:", {
-          hasValidStripeId,
-          hasActiveStatus,
-          hasFreeAccess,
-          hasPaidSubscription,
-          stripe_id: profile?.stripe_subscription_id,
-          status: profile?.subscription_status,
-          free_access: profile?.has_free_access
-        });
-
         setSubscriptionStatus(profile?.subscription_status || "none");
 
-        if (hasPaidSubscription) {
-          console.log("✅ [ACCESS-CHECK] User has PAID Stripe subscription - UNLIMITED access");
-          setHasAccess(true);
-          setIsTrialUser(false);
-          setCreditRemaining(Infinity);
-        } else {
-          console.log("⚠️ [ACCESS-CHECK] No paid subscription - using TRIAL credit system");
-          setIsUnlimited(false);
-          // Utilizatori fără abonament plătit - folosesc creditul de test de 10 lei
-          let creditLeft = profile?.trial_credit_remaining;
+        // ✅ TOȚI UTILIZATORII folosesc DOAR sistemul de CREDITE
+        // NU există acces nelimitat - credite se cumpără separat
+        let creditLeft = profile?.trial_credit_remaining;
+        
+        // 🆕 Inițializare automată: toți antreprenorii primesc 10 lei credit inițial
+        if (creditLeft === null || creditLeft === undefined) {
+          console.log("🎁 [ACCESS-CHECK] Initializing 10 lei trial credit for new entrepreneur");
+          creditLeft = 10;
           
-          // 🆕 Inițializare automată: toți antreprenorii primesc 10 lei credit de test
-          if (creditLeft === null || creditLeft === undefined) {
-            console.log("🎁 [ACCESS-CHECK] Initializing 10 lei trial credit for new entrepreneur");
-            creditLeft = 10;
-            
-            // Actualizează în database
-            const { error: updateError } = await supabase
-              .from("profiles")
-              .update({ trial_credit_remaining: 10 })
-              .eq("id", user.id);
-            
-            if (updateError) {
-              console.error("❌ [ACCESS-CHECK] Failed to initialize trial credit:", updateError);
-            } else {
-              console.log("✅ [ACCESS-CHECK] Trial credit initialized successfully");
-            }
-          }
+          // Actualizează în database
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ trial_credit_remaining: 10 })
+            .eq("id", user.id);
           
-          console.log(`💰 [ACCESS-CHECK] No paid subscription - using test credit: ${creditLeft} lei`);
-          setCreditRemaining(creditLeft);
-          
-          if (creditLeft > 0) {
-            console.log("✅ [ACCESS-CHECK] User has trial credit - temporary access");
-            setHasAccess(true);
-            setIsTrialUser(true);
+          if (updateError) {
+            console.error("❌ [ACCESS-CHECK] Failed to initialize trial credit:", updateError);
           } else {
-            console.log("❌ [ACCESS-CHECK] No credit remaining - access denied");
-            setHasAccess(false);
-            setIsTrialUser(false);
+            console.log("✅ [ACCESS-CHECK] Trial credit initialized successfully");
           }
+        }
+        
+        console.log(`💰 [ACCESS-CHECK] Credit remaining: ${creditLeft} lei`);
+        setCreditRemaining(creditLeft);
+        
+        if (creditLeft > 0) {
+          console.log("✅ [ACCESS-CHECK] User has credit - access granted");
+          setHasAccess(true);
+        } else {
+          console.log("❌ [ACCESS-CHECK] No credit remaining - access denied");
+          setHasAccess(false);
         }
       } catch (error) {
         console.error("❌ [ACCESS-CHECK] Error:", error);
@@ -227,10 +184,10 @@ export default function StrategicAdvisor() {
       return;
     }
 
-    // Check credit for trial users
-    if (isTrialUser && creditRemaining <= 0) {
-      console.error("❌ [SEND] Trial credit exhausted");
-      toast.error("Credit de test epuizat. Te rog activează un abonament plătit.");
+    // Check credit before sending
+    if (creditRemaining <= 0) {
+      console.error("❌ [SEND] Credit exhausted");
+      toast.error("Credit epuizat. Cumpără credite pentru a continua.");
       setHasAccess(false);
       return;
     }
@@ -267,26 +224,24 @@ export default function StrategicAdvisor() {
       }
 
       // Deduct cost (estimated 0.5 lei per message)
-      if (isTrialUser) {
-        const messageCost = 0.5;
-        const newCredit = Math.max(0, creditRemaining - messageCost);
-        console.log(`💰 [CREDIT] Deducting ${messageCost} lei. New balance: ${newCredit} lei`);
-        setCreditRemaining(newCredit);
-        
-        // Update in DB
-        await supabase
-          .from("profiles")
-          .update({ trial_credit_remaining: newCredit })
-          .eq("id", user?.id);
-        
-        if (newCredit <= 0) {
-          console.warn("⚠️ [CREDIT] Credit exhausted!");
-          toast.warning("Credit de test epuizat! Activează un abonament pentru a continua.");
-          setHasAccess(false);
-        } else if (newCredit <= 2) {
-          console.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
-          toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit de test!`);
-        }
+      const messageCost = 0.5;
+      const newCredit = Math.max(0, creditRemaining - messageCost);
+      console.log(`💰 [CREDIT] Deducting ${messageCost} lei. New balance: ${newCredit} lei`);
+      setCreditRemaining(newCredit);
+      
+      // Update in DB
+      await supabase
+        .from("profiles")
+        .update({ trial_credit_remaining: newCredit })
+        .eq("id", user?.id);
+      
+      if (newCredit <= 0) {
+        console.warn("⚠️ [CREDIT] Credit exhausted!");
+        toast.warning("Credit epuizat! Cumpără credite pentru a continua.");
+        setHasAccess(false);
+      } else if (newCredit <= 2) {
+        console.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
+        toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit!`);
       }
 
       const aiMessage: Message = {
@@ -330,27 +285,40 @@ export default function StrategicAdvisor() {
       <div className="flex items-center justify-center min-h-screen p-4">
         <Card className="max-w-md p-8 text-center">
           <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-4">Acces Restricționat</h2>
+          <h2 className="text-2xl font-bold mb-4">
+            {creditRemaining === 0 ? "Credit Epuizat" : "Acces Restricționat"}
+          </h2>
           <p className="text-muted-foreground mb-6">
-            <strong>Yana Strategică</strong> este disponibilă EXCLUSIV pentru utilizatori cu <strong>Planul Antreprenor</strong> activ.
+            <strong>Yana Strategică</strong> este disponibilă EXCLUSIV pentru utilizatori cu <strong>Planul Antreprenor</strong>.
           </p>
           <p className="text-sm text-muted-foreground mb-6">
             {creditRemaining === 0 ? (
               <>
-                Ai epuizat creditul de test de <strong>10 lei</strong>. 
-                Pentru a continua, activează <strong>Planul Antreprenor (49 lei/lună)</strong>.
+                Ai epuizat creditul disponibil. 
+                Pentru a continua, <strong>cumpără credite AI</strong> sau activează <strong>Planul Antreprenor (49 lei/lună)</strong> pentru acces la platforma de bază.
               </>
             ) : (
               <>
-                Această funcționalitate este disponibilă doar cu <strong>Planul Antreprenor</strong>. 
-                Toți antreprenorii primesc <strong>10 lei credit de test</strong> la prima utilizare.
+                Această funcționalitate necesită <strong>Planul Antreprenor</strong>. 
+                Toți antreprenorii primesc <strong>10 lei credit inițial</strong> și pot achiziționa credite suplimentare pentru Yana Strategică.
               </>
             )}
           </p>
           <div className="flex flex-col gap-3">
-            <Button onClick={() => navigate("/subscription")} size="lg">
-              Activează Planul Antreprenor
-            </Button>
+            {creditRemaining === 0 ? (
+              <>
+                <Button onClick={() => navigate("/my-ai-costs")} size="lg">
+                  Cumpără Credite AI
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/subscription")}>
+                  Activează Planul Antreprenor
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => navigate("/subscription")} size="lg">
+                Activează Planul Antreprenor
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate("/app")}>
               Înapoi la Dashboard
             </Button>
@@ -387,32 +355,28 @@ export default function StrategicAdvisor() {
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Credit indicator - visible pentru toți */}
+              {/* Credit indicator - arată creditul în RON */}
               <div className={`px-4 py-2 rounded-lg border-2 ${
-                isTrialUser 
-                  ? creditRemaining <= 2 
-                    ? 'border-destructive bg-destructive/10' 
-                    : creditRemaining <= 5 
-                    ? 'border-yellow-500 bg-yellow-500/10'
-                    : 'border-primary bg-primary/10'
-                  : 'border-green-500 bg-green-500/10'
+                creditRemaining <= 2 
+                  ? 'border-destructive bg-destructive/10' 
+                  : creditRemaining <= 5 
+                  ? 'border-yellow-500 bg-yellow-500/10'
+                  : 'border-primary bg-primary/10'
               }`}>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
-                    isTrialUser 
-                      ? creditRemaining <= 2 
-                        ? 'bg-destructive animate-pulse' 
-                        : creditRemaining <= 5
-                        ? 'bg-yellow-500 animate-pulse'
-                        : 'bg-primary'
-                      : 'bg-green-500'
+                    creditRemaining <= 2 
+                      ? 'bg-destructive animate-pulse' 
+                      : creditRemaining <= 5
+                      ? 'bg-yellow-500 animate-pulse'
+                      : 'bg-primary'
                   }`} />
                   <div className="text-right">
                     <p className="text-xs font-medium text-muted-foreground">
-                      {creditRemaining === Infinity ? "Nelimitat" : "Credit Test"}
+                      Credit Disponibil
                     </p>
                     <p className="text-lg font-bold">
-                      {creditRemaining === Infinity ? "∞" : `${creditRemaining.toFixed(2)} lei`}
+                      {creditRemaining.toFixed(2)} lei
                     </p>
                   </div>
                 </div>
@@ -430,19 +394,35 @@ export default function StrategicAdvisor() {
             </div>
           </div>
 
-          {/* Trial credit banner */}
-          {isTrialUser && (
-            <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 rounded">
+          {/* Credit warning banner */}
+          {creditRemaining <= 5 && creditRemaining > 0 && (
+            <div className={`border-l-4 p-3 rounded ${
+              creditRemaining <= 2 
+                ? 'bg-destructive/10 border-destructive' 
+                : 'bg-yellow-500/10 border-yellow-500'
+            }`}>
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <AlertCircle className={`w-5 h-5 ${
+                  creditRemaining <= 2 ? 'text-destructive' : 'text-yellow-600'
+                }`} />
                 <div className="flex-1">
                   <p className="font-semibold text-sm">
-                    Credit de test rămas: {creditRemaining.toFixed(2)} lei
+                    {creditRemaining <= 2 
+                      ? `⚠️ Credit aproape epuizat: ${creditRemaining.toFixed(2)} lei`
+                      : `Credit scăzut: ${creditRemaining.toFixed(2)} lei`
+                    }
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    După epuizare, vei avea nevoie de un abonament plătit pentru a continua.
+                    Cumpără credite AI pentru a continua să folosești Yana Strategică.
                   </p>
                 </div>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => navigate("/my-ai-costs")}
+                >
+                  Cumpără Credite
+                </Button>
               </div>
             </div>
           )}
