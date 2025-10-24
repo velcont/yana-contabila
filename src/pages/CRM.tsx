@@ -8,7 +8,8 @@ import { CompanyManager } from "@/components/CompanyManager";
 import { EmailBroadcast } from "@/components/EmailBroadcast";
 import { UsersList } from "@/components/UsersList";
 import { CRMManualClientDialog } from "@/components/CRMManualClientDialog";
-import { Loader2, Building2, Mail, Users, UserPlus } from "lucide-react";
+import { CRMCSVImport } from "@/components/CRMCSVImport";
+import { Loader2, Building2, Mail, Users, UserPlus, FileUp } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -20,6 +21,7 @@ const CRM = () => {
   const { subscriptionType, loading: subscriptionLoading } = useSubscription();
   const navigate = useNavigate();
   const [manualClientDialogOpen, setManualClientDialogOpen] = useState(false);
+  const [csvImportDialogOpen, setCsvImportDialogOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -71,6 +73,10 @@ const CRM = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold">CRM - Gestionare Clienți</h1>
           <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => setCsvImportDialogOpen(true)}>
+              <FileUp className="mr-2 h-4 w-4" />
+              Import CSV
+            </Button>
             <Button onClick={() => setManualClientDialogOpen(true)}>
               <UserPlus className="mr-2 h-4 w-4" />
               Adaugă Client Manual
@@ -113,6 +119,12 @@ const CRM = () => {
         <CRMManualClientDialog
           open={manualClientDialogOpen}
           onOpenChange={setManualClientDialogOpen}
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+        />
+        
+        <CRMCSVImport
+          open={csvImportDialogOpen}
+          onOpenChange={setCsvImportDialogOpen}
           onSuccess={() => setRefreshKey(prev => prev + 1)}
         />
       </div>
