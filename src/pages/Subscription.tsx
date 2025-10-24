@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 const Subscription = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { subscriptionType, subscriptionStatus, isSubscribed, subscriptionEnd, checkSubscription } = useSubscription();
+  const { subscriptionType, subscriptionStatus, isSubscribed, subscriptionEnd, checkSubscription, accessType } = useSubscription();
   const [loading, setLoading] = useState<string | null>(null);
 
   const plans = [
@@ -140,15 +140,17 @@ const Subscription = () => {
               </CardDescription>
             </CardHeader>
             <CardFooter className="gap-2">
-              <Button
-                variant="outline"
-                onClick={handleManageSubscription}
-                disabled={loading === 'manage'}
-                className="border-primary/50 hover:bg-primary/10"
-              >
-                {loading === 'manage' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Gestionează Abonamentul
-              </Button>
+              {accessType !== 'free_access' && (
+                <Button
+                  variant="outline"
+                  onClick={handleManageSubscription}
+                  disabled={loading === 'manage'}
+                  className="border-primary/50 hover:bg-primary/10"
+                >
+                  {loading === 'manage' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Gestionează Abonamentul
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => checkSubscription(true)}
