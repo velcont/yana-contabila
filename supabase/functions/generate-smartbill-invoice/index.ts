@@ -228,7 +228,36 @@ serve(async (req) => {
       body: JSON.stringify(smartbillInvoice),
     });
 
-    const smartbillData = await smartbillResponse.json();
+    // Read response as text first to handle non-JSON responses
+    const responseText = await smartbillResponse.text();
+    logStep("SmartBill raw response", { 
+      status: smartbillResponse.status, 
+      contentType: smartbillResponse.headers.get('content-type'),
+      bodyPreview: responseText.substring(0, 200)
+    });
+
+    let smartbillData;
+    try {
+      smartbillData = JSON.parse(responseText);
+    } catch (parseError) {
+      logStep("Failed to parse response as JSON", { responseText: responseText.substring(0, 500) });
+      
+      // Save failed invoice with full error details
+      await supabaseClient.from('smartbill_invoices').insert({
+        user_id: user.id,
+        stripe_session_id: sessionId,
+        stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id || '',
+        customer_name: customerName,
+        customer_email: customerEmail,
+        amount: amountInRON,
+        currency: 'RON',
+        status: 'failed',
+        error_message: `SmartBill returnează HTML în loc de JSON. Status: ${smartbillResponse.status}. Verifică credențialele SmartBill și CIF-ul companiei.`,
+        invoice_series: 'conta',
+      });
+
+      throw new Error(`SmartBill API error (Status ${smartbillResponse.status}): Răspuns invalid - verifică credențialele SmartBill API (email/token) și CIF-ul companiei în setări.`);
+    }
     
     if (!smartbillResponse.ok) {
       logStep("SmartBill API error", { status: smartbillResponse.status, error: smartbillData });
