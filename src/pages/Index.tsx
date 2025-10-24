@@ -447,7 +447,7 @@ const Index = () => {
                 Contact
               </Button>
               {/* Buton YanaCRM pentru contabili */}
-              {userSubscriptionType === 'accounting_firm' && (
+              {(userSubscriptionType === 'accounting_firm' || isAccountant) && (
                 <Button
                   onClick={() => navigate('/yanacrm')}
                   variant="default"
