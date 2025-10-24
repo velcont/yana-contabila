@@ -99,7 +99,27 @@ export default function StrategicAdvisor() {
           setIsTrialUser(false);
           setCreditRemaining(Infinity);
         } else {
-          const creditLeft = profile?.trial_credit_remaining || 0;
+          // Utilizatori fără abonament activ - verifică/inițializează creditul de test
+          let creditLeft = profile?.trial_credit_remaining;
+          
+          // 🆕 Inițializare automată: toți antreprenorii noi primesc 10 lei credit
+          if (creditLeft === null || creditLeft === undefined) {
+            console.log("🎁 [ACCESS-CHECK] Initializing 10 lei trial credit for new entrepreneur");
+            creditLeft = 10;
+            
+            // Actualizează în database
+            const { error: updateError } = await supabase
+              .from("profiles")
+              .update({ trial_credit_remaining: 10 })
+              .eq("id", user.id);
+            
+            if (updateError) {
+              console.error("❌ [ACCESS-CHECK] Failed to initialize trial credit:", updateError);
+            } else {
+              console.log("✅ [ACCESS-CHECK] Trial credit initialized successfully");
+            }
+          }
+          
           console.log(`💰 [ACCESS-CHECK] No subscription - credit remaining: ${creditLeft} lei`);
           setCreditRemaining(creditLeft);
           
