@@ -15,8 +15,7 @@ export const EmailBroadcast = () => {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [useFilters, setUseFilters] = useState(false);
-  const [filterVat, setFilterVat] = useState<boolean | undefined>(undefined);
-  const [filterTaxType, setFilterTaxType] = useState<string | undefined>(undefined);
+  const [filterUserType, setFilterUserType] = useState<string>("all");
   const { toast } = useToast();
 
   const handleSend = async () => {
@@ -36,12 +35,11 @@ export const EmailBroadcast = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nu ești autentificat");
 
-      const filterCriteria = useFilters ? {
-        vatPayer: filterVat,
-        taxType: filterTaxType,
+      const filterCriteria = useFilters && filterUserType !== "all" ? {
+        userType: filterUserType,
       } : null;
 
-      const hasFilters = useFilters && (filterVat !== undefined || filterTaxType !== undefined);
+      const hasFilters = useFilters && filterUserType !== "all";
 
       const { data: broadcastData, error: broadcastError } = await supabase
         .from("email_broadcasts")
@@ -62,9 +60,8 @@ export const EmailBroadcast = () => {
         body: {
           subject,
           message,
-          filterCriteria: useFilters ? {
-            vatPayer: filterVat,
-            taxType: filterTaxType,
+          filterCriteria: useFilters && filterUserType !== "all" ? {
+            userType: filterUserType,
           } : undefined,
           broadcastId: broadcastData.id,
         },
@@ -81,8 +78,7 @@ export const EmailBroadcast = () => {
       setSubject("");
       setMessage("");
       setUseFilters(false);
-      setFilterVat(undefined);
-      setFilterTaxType(undefined);
+      setFilterUserType("all");
     } catch (error: any) {
       console.error("Eroare la trimitere broadcast:", error);
       toast({
@@ -150,14 +146,12 @@ export const EmailBroadcast = () => {
             </div>
 
             {useFilters && (
-              <div className="grid grid-cols-2 gap-4 pl-8">
+              <div className="pl-8">
                 <div className="space-y-2">
-                  <Label>Plătitor TVA</Label>
+                  <Label>Tip Utilizator</Label>
                   <Select
-                    value={filterVat === undefined ? "all" : filterVat.toString()}
-                    onValueChange={(value) =>
-                      setFilterVat(value === "all" ? undefined : value === "true")
-                    }
+                    value={filterUserType}
+                    onValueChange={setFilterUserType}
                     disabled={loading}
                   >
                     <SelectTrigger>
@@ -165,30 +159,8 @@ export const EmailBroadcast = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Toți</SelectItem>
-                      <SelectItem value="true">Da</SelectItem>
-                      <SelectItem value="false">Nu</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Tip Impozitare</Label>
-                  <Select
-                    value={filterTaxType || "all"}
-                    onValueChange={(value) =>
-                      setFilterTaxType(value === "all" ? undefined : value)
-                    }
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selectează..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toate</SelectItem>
-                      <SelectItem value="micro">Microîntreprindere</SelectItem>
-                      <SelectItem value="profit">Impozit pe Profit</SelectItem>
-                      <SelectItem value="dividend">Dividend</SelectItem>
-                      <SelectItem value="norma_venit">Normă de Venit</SelectItem>
+                      <SelectItem value="entrepreneur">Antreprenori</SelectItem>
+                      <SelectItem value="accounting_firm">Contabili</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -225,8 +197,7 @@ export const EmailBroadcast = () => {
             • Emailurile vor fi trimise către toți utilizatorii înregistrați în aplicație
           </p>
           <p>
-            • Dacă aplici filtre, doar utilizatorii care au firme cu caracteristicile
-            selectate vor primi emailul
+            • Dacă aplici filtre, doar utilizatorii din categoria selectată vor primi emailul (Antreprenori sau Contabili)
           </p>
           <p>
             • Verifică cu atenție mesajul înainte de trimitere - nu se poate anula după ce

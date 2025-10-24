@@ -12,8 +12,7 @@ interface BroadcastRequest {
   subject: string;
   message: string;
   filterCriteria?: {
-    vatPayer?: boolean;
-    taxType?: string;
+    userType?: string;
   };
   broadcastId?: string;
 }
@@ -82,34 +81,11 @@ const handler = async (req: Request): Promise<Response> => {
     const { subject, message, filterCriteria, broadcastId }: BroadcastRequest = await req.json();
 
     // Construiește query pentru utilizatori
-    let query = supabaseClient.from("profiles").select("id, email, full_name");
+    let query = supabaseClient.from("profiles").select("id, email, full_name, subscription_type");
 
-    // Dacă avem filtre, le aplicăm prin join cu companies
-    if (filterCriteria && (filterCriteria.vatPayer !== undefined || filterCriteria.taxType)) {
-      // Construiește filtrul în formatul corect pentru Supabase (snake_case)
-      const dbFilter: any = {};
-      if (filterCriteria.vatPayer !== undefined) {
-        dbFilter.vat_payer = filterCriteria.vatPayer;
-      }
-      if (filterCriteria.taxType) {
-        dbFilter.tax_type = filterCriteria.taxType;
-      }
-      
-      const { data: filteredCompanies } = await supabaseClient
-        .from("companies")
-        .select("user_id")
-        .match(dbFilter);
-
-      if (filteredCompanies && filteredCompanies.length > 0) {
-        const userIds = [...new Set(filteredCompanies.map(c => c.user_id))];
-        query = query.in("id", userIds);
-      } else {
-        // Dacă nu există companii cu criteriile specificate, nu trimitem nimic
-        return new Response(
-          JSON.stringify({ message: "Nu există utilizatori care să îndeplinească criteriile", sentCount: 0 }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    // Dacă avem filtre, le aplicăm direct pe profiles
+    if (filterCriteria && filterCriteria.userType) {
+      query = query.eq("subscription_type", filterCriteria.userType);
     }
 
     const { data: profiles, error: profilesError } = await query;
