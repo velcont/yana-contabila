@@ -68,7 +68,7 @@ export default function StrategicAdvisor() {
         
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("subscription_status, subscription_type, trial_credit_remaining, stripe_subscription_id")
+          .select("subscription_status, subscription_type, trial_credit_remaining, stripe_subscription_id, has_free_access")
           .eq("id", user.id)
           .single();
 
@@ -88,9 +88,10 @@ export default function StrategicAdvisor() {
         }
 
         // ✅ VERIFICARE STRICTĂ ABONAMENT PLĂTIT STRIPE
-        // Un utilizator are abonament plătit DOAR dacă:
+        // Un utilizator Antreprenor are abonament plătit DOAR dacă:
         // 1. Are stripe_subscription_id valid (nu NULL, nu string gol)
         // 2. Are subscription_status "active" sau "trialing"
+        // 3. NU are has_free_access = true (care înseamnă acces admin/test gratuit)
         const hasValidStripeId = 
           profile?.stripe_subscription_id !== null && 
           profile?.stripe_subscription_id !== undefined &&
@@ -101,14 +102,20 @@ export default function StrategicAdvisor() {
           profile?.subscription_status === "active" || 
           profile?.subscription_status === "trialing";
 
-        const hasPaidSubscription = hasValidStripeId && hasActiveStatus;
+        const hasFreeAccess = profile?.has_free_access === true;
+
+        // IMPORTANT: Utilizatorii cu has_free_access = true NU au abonament plătit real
+        // Ei folosesc sistemul de credit test (10 lei)
+        const hasPaidSubscription = hasValidStripeId && hasActiveStatus && !hasFreeAccess;
 
         console.log("🔍 [ACCESS-CHECK] Subscription verification:", {
           hasValidStripeId,
           hasActiveStatus,
+          hasFreeAccess,
           hasPaidSubscription,
           stripe_id: profile?.stripe_subscription_id,
-          status: profile?.subscription_status
+          status: profile?.subscription_status,
+          free_access: profile?.has_free_access
         });
 
         setSubscriptionStatus(profile?.subscription_status || "none");
