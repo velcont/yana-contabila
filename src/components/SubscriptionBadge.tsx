@@ -58,9 +58,54 @@ export const SubscriptionBadge = () => {
     );
   }
 
-  // If no subscription and no trial, show subscribe button
-  if (subscriptionStatus === 'inactive' && accessType !== 'free_access') {
+  // Show active subscription badge for ALL active users (including free_access)
+  if (subscriptionStatus === 'active' || accessType === 'free_access') {
+    const isAccountant = subscriptionType === 'accounting_firm';
+    const Icon = isAccountant ? Building2 : Crown;
 
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/subscription')}
+              className="gap-2"
+            >
+              <Icon className="h-4 w-4" />
+              <Badge variant={isAccountant ? "default" : "secondary"} className="text-xs">
+                {isAccountant ? 'Contabil' : 'Antreprenor'}
+              </Badge>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <p className="font-medium">
+                Plan: {isAccountant ? 'Firmă Contabilitate' : 'Antreprenor'}
+              </p>
+              {subscriptionEnd && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Valabil până: {new Date(subscriptionEnd).toLocaleDateString('ro-RO')}
+                </p>
+              )}
+              {accessType === 'free_access' && (
+                <p className="text-xs text-green-600 font-medium mt-1">
+                  ✅ Acces gratuit permanent
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Click pentru detalii
+              </p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  // If no subscription and no trial, show subscribe button
+  if (subscriptionStatus === 'inactive') {
     return (
       <Button
         variant="default"
