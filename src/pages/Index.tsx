@@ -441,10 +441,23 @@ const Index = () => {
           </div>
           <UserCreditsAlert />
           <div className="flex justify-between items-center mb-8">
-            <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
-              <Phone className="mr-2 h-4 w-4" />
-              Contact
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => navigate('/contact')} className="text-sm">
+                <Phone className="mr-2 h-4 w-4" />
+                Contact
+              </Button>
+              {/* Buton YanaCRM pentru contabili */}
+              {userSubscriptionType === 'accounting_firm' && (
+                <Button
+                  onClick={() => navigate('/yanacrm')}
+                  variant="default"
+                  className="bg-green-600 hover:bg-green-700 text-sm"
+                >
+                  <Building2 className="mr-2 h-4 w-4" />
+                  YanaCRM
+                </Button>
+              )}
+            </div>
             <div className="flex gap-2">
               <ThemeToggle />
               {user ? (
@@ -481,26 +494,7 @@ const Index = () => {
                       </Tooltip>
                     </TooltipProvider>
                   )}
-                  {/* Buton YanaCRM pentru contabili */}
-                  {userSubscriptionType === 'accounting_firm' && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => navigate('/yanacrm')}
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <Building2 className="h-4 w-4 mr-2" />
-                            YanaCRM
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Gestionare Clienți - CRM pentru Firme de Contabilitate</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}
                   {isAdmin && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
