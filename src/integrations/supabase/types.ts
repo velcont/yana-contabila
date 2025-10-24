@@ -1518,6 +1518,51 @@ export type Database = {
         }
         Relationships: []
       }
+      humanized_texts: {
+        Row: {
+          changes_percent: number | null
+          created_at: string
+          humanization_level: string
+          humanized_text: string
+          id: string
+          original_text: string
+          statistics: Json | null
+          tone_style: string
+          updated_at: string
+          user_id: string
+          word_count_humanized: number | null
+          word_count_original: number | null
+        }
+        Insert: {
+          changes_percent?: number | null
+          created_at?: string
+          humanization_level?: string
+          humanized_text: string
+          id?: string
+          original_text: string
+          statistics?: Json | null
+          tone_style?: string
+          updated_at?: string
+          user_id: string
+          word_count_humanized?: number | null
+          word_count_original?: number | null
+        }
+        Update: {
+          changes_percent?: number | null
+          created_at?: string
+          humanization_level?: string
+          humanized_text?: string
+          id?: string
+          original_text?: string
+          statistics?: Json | null
+          tone_style?: string
+          updated_at?: string
+          user_id?: string
+          word_count_humanized?: number | null
+          word_count_original?: number | null
+        }
+        Relationships: []
+      }
       knowledge_base: {
         Row: {
           avg_rating: number | null

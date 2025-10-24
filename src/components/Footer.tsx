@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, FileText, Building2 } from 'lucide-react';
+import { Mail, MessageCircle, FileText, Building2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -86,6 +86,10 @@ export const Footer = () => {
             <h4 className="font-semibold text-sm">Link-uri:</h4>
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Analiză Balanță
+            </Link>
+            <Link to="/humanize-text" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              AI Humanizer
             </Link>
             <Link to="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Contact

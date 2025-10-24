@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users, Plus, Trash2 } from "lucide-react";
+import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users, Plus, Trash2, Wand2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ResearchDataImport } from "./ResearchDataImport";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,7 @@ export default function AcademicThesisAssistant() {
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [generatingDoctorate, setGeneratingDoctorate] = useState(false);
   const { isAdmin } = useUserRole();
+  const navigate = useNavigate();
   
   // State for adding individual research resources
   const [newResourceTitle, setNewResourceTitle] = useState("");
@@ -1263,10 +1265,16 @@ Concluzie cheie: Companiile resiliente investesc în capabilități dinamice, nu
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Draft Teză Generată</CardTitle>
-              <Button onClick={exportThesisToWord} variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Exportă Draft (.DOCX - Format Academic)
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => navigate('/humanize-text')} variant="outline">
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Umanizează Text
+                </Button>
+                <Button onClick={exportThesisToWord} variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportă Draft (.DOCX)
+                </Button>
+              </div>
             </div>
             <CardDescription>
               Revizuiți și editați fiecare secțiune înainte de utilizare
