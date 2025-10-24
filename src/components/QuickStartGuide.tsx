@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, BarChart3, Download, Share2, TrendingUp, Zap, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface QuickStartGuideProps {
   onOpenChat: () => void;
@@ -12,13 +13,15 @@ interface QuickStartGuideProps {
 
 export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionType, isAccountant }: QuickStartGuideProps) => {
   const navigate = useNavigate();
+  const { themeType } = useTheme();
   
   // Debug pentru a verifica ce valori primim
   console.log('🔍 [QuickStartGuide] userSubscriptionType:', userSubscriptionType);
   console.log('🔍 [QuickStartGuide] isAccountant:', isAccountant);
+  console.log('🔍 [QuickStartGuide] themeType:', themeType);
   
-  // Verificăm dacă utilizatorul este contabil
-  const isAccountantUser = userSubscriptionType === 'accounting_firm' || isAccountant;
+  // Verificăm dacă utilizatorul este contabil SAU dacă adminul este în modul contabil
+  const isAccountantUser = userSubscriptionType === 'accounting_firm' || isAccountant || themeType === 'accountant';
   console.log('🔍 [QuickStartGuide] isAccountantUser:', isAccountantUser);
 
   // Primul card diferă în funcție de tipul de utilizator
