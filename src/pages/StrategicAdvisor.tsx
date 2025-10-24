@@ -87,20 +87,39 @@ export default function StrategicAdvisor() {
           return;
         }
 
-        // ✅ VERIFICARE ABONAMENT PLĂTIT: Verificăm dacă există Stripe subscription ID activ
-        const hasPaidSubscription = 
-          profile?.stripe_subscription_id && 
-          profile.stripe_subscription_id.trim().length > 0 &&
-          (profile?.subscription_status === "active" || profile?.subscription_status === "trialing");
+        // ✅ VERIFICARE STRICTĂ ABONAMENT PLĂTIT STRIPE
+        // Un utilizator are abonament plătit DOAR dacă:
+        // 1. Are stripe_subscription_id valid (nu NULL, nu string gol)
+        // 2. Are subscription_status "active" sau "trialing"
+        const hasValidStripeId = 
+          profile?.stripe_subscription_id !== null && 
+          profile?.stripe_subscription_id !== undefined &&
+          typeof profile.stripe_subscription_id === 'string' &&
+          profile.stripe_subscription_id.trim().length > 0;
+        
+        const hasActiveStatus = 
+          profile?.subscription_status === "active" || 
+          profile?.subscription_status === "trialing";
+
+        const hasPaidSubscription = hasValidStripeId && hasActiveStatus;
+
+        console.log("🔍 [ACCESS-CHECK] Subscription verification:", {
+          hasValidStripeId,
+          hasActiveStatus,
+          hasPaidSubscription,
+          stripe_id: profile?.stripe_subscription_id,
+          status: profile?.subscription_status
+        });
 
         setSubscriptionStatus(profile?.subscription_status || "none");
 
         if (hasPaidSubscription) {
-          console.log("✅ [ACCESS-CHECK] User has PAID subscription - unlimited access");
+          console.log("✅ [ACCESS-CHECK] User has PAID Stripe subscription - UNLIMITED access");
           setHasAccess(true);
           setIsTrialUser(false);
           setCreditRemaining(Infinity);
         } else {
+          console.log("⚠️ [ACCESS-CHECK] No paid subscription - using TRIAL credit system");
           // Utilizatori fără abonament plătit - folosesc creditul de test de 10 lei
           let creditLeft = profile?.trial_credit_remaining;
           
