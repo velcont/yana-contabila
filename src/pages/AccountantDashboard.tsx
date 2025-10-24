@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
+import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -269,7 +270,10 @@ const AccountantDashboard = () => {
                 <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
               </div>
             </div>
-            <AdminRoleSwitcher />
+            <div className="flex items-center gap-3">
+              <SubscriptionBadge />
+              <AdminRoleSwitcher />
+            </div>
           </div>
 
         <Tabs defaultValue="clients" className="space-y-6">

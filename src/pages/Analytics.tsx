@@ -35,6 +35,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -266,10 +267,13 @@ export default function Analytics() {
             Statistici despre comportamentul utilizatorilor și performanța AI-ului
           </p>
         </div>
-        <Badge variant="secondary" className="text-lg px-4 py-2">
-          <Users className="h-4 w-4 mr-2" />
-          Admin View
-        </Badge>
+        <div className="flex items-center gap-3">
+          <SubscriptionBadge />
+          <Badge variant="secondary" className="text-lg px-4 py-2">
+            <Users className="h-4 w-4 mr-2" />
+            Admin View
+          </Badge>
+        </div>
       </div>
 
       {/* KPI Cards */}
