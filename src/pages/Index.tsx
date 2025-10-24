@@ -436,9 +436,11 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="mb-4">
-            <CreditAndTrialIndicator />
-          </div>
+          {userSubscriptionType === 'entrepreneur' && (
+            <div className="mb-4">
+              <CreditAndTrialIndicator />
+            </div>
+          )}
           <UserCreditsAlert />
           <div className="flex justify-between items-center mb-8">
             <div className="flex gap-2">
