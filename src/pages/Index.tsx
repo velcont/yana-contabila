@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -481,7 +481,26 @@ const Index = () => {
                       </Tooltip>
                     </TooltipProvider>
                   )}
-                  {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}
+                  {/* Buton YanaCRM pentru contabili */}
+                  {userSubscriptionType === 'accounting_firm' && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => navigate('/yanacrm')}
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            YanaCRM
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Gestionare Clienți - CRM pentru Firme de Contabilitate</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   {isAdmin && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
