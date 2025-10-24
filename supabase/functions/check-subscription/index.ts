@@ -98,7 +98,39 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is still in trial period
+    // Check for manual subscription FIRST (set directly in DB without Stripe)
+    if (profile?.subscription_status === 'active' && profile?.subscription_ends_at) {
+      const subEndsAt = new Date(profile.subscription_ends_at);
+      const now = new Date();
+      
+      if (subEndsAt > now) {
+        logStep("Manual subscription active", { subscriptionEndsAt: profile.subscription_ends_at, subscriptionType: profile.subscription_type });
+        
+        return new Response(
+          JSON.stringify({
+            subscribed: true,
+            subscription_type: profile.subscription_type || effectiveType,
+            subscription_status: 'active',
+            subscription_end: profile.subscription_ends_at,
+            access_type: 'subscription'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      } else {
+        // Manual subscription expired
+        logStep("Manual subscription expired", { subscriptionEndsAt: profile.subscription_ends_at });
+        
+        await supabaseClient
+          .from('profiles')
+          .update({
+            subscription_status: 'inactive',
+            subscription_ends_at: null,
+          })
+          .eq('id', user.id);
+      }
+    }
+
+    // Check if user is still in trial period (ONLY if no manual subscription)
     if (profile?.trial_ends_at && new Date(profile.trial_ends_at) > new Date()) {
       logStep("User is in trial period", { trialEndsAt: profile.trial_ends_at });
 
@@ -147,38 +179,6 @@ serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
-    }
-
-    // Check for manual subscription (set directly in DB without Stripe)
-    if (profile?.subscription_status === 'active' && profile?.subscription_ends_at) {
-      const subEndsAt = new Date(profile.subscription_ends_at);
-      const now = new Date();
-      
-      if (subEndsAt > now) {
-        logStep("Manual subscription active", { subscriptionEndsAt: profile.subscription_ends_at });
-        
-        return new Response(
-          JSON.stringify({
-            subscribed: true,
-            subscription_type: profile.subscription_type || effectiveType,
-            subscription_status: 'active',
-            subscription_end: profile.subscription_ends_at,
-            access_type: 'subscription'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-        );
-      } else {
-        // Manual subscription expired
-        logStep("Manual subscription expired", { subscriptionEndsAt: profile.subscription_ends_at });
-        
-        await supabaseClient
-          .from('profiles')
-          .update({
-            subscription_status: 'inactive',
-            subscription_ends_at: null,
-          })
-          .eq('id', user.id);
-      }
     }
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
