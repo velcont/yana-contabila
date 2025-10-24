@@ -26,27 +26,49 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       {
         global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
+          headers: { Authorization: req.headers.get("Authorization") ?? "" },
         },
       }
     );
 
-    // Verifică dacă utilizatorul este admin
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
+    // Extrage userId din JWT (auth.getUser() poate eșua în funcții)
+    const authHeader = req.headers.get("Authorization") || "";
+    const jwt = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : authHeader;
+
+    function decodeJwtSub(token: string): string | null {
+      try {
+        const payload = token.split(".")[1];
+        if (!payload) return null;
+        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const padded = normalized.padEnd(
+          normalized.length + (4 - (normalized.length % 4 || 4)) % 4,
+          "="
+        );
+        const decoded = atob(padded);
+        const json = JSON.parse(decoded);
+        return json.sub ?? null;
+      } catch (_e) {
+        return null;
+      }
+    }
+
+    const userId = decodeJwtSub(jwt);
+
+    if (!userId) {
       return new Response(
         JSON.stringify({ error: "Nu ești autentificat" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Verifică dacă utilizatorul este admin
     const { data: roleData } = await supabaseClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
 
