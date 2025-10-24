@@ -13,11 +13,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export const Footer = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { themeType } = useTheme();
   const { isAccountant } = useSubscription();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const email = "offiice@velcont.com";
   const whatsapp = "+40731377793";
@@ -87,10 +89,12 @@ export const Footer = () => {
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Analiză Balanță
             </Link>
-            <Link to="/humanize-text" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
-              AI Humanizer
-            </Link>
+            {isAdmin && (
+              <Link to="/humanize-text" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                AI Humanizer
+              </Link>
+            )}
             <Link to="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Contact
             </Link>
