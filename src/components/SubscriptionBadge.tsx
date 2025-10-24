@@ -82,7 +82,7 @@ export const SubscriptionBadge = () => {
                 <span className="text-xs">Trial: {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'}</span>
               )}
               {accessType !== 'trial' && daysLeft !== null && (
-                <span className="text-xs">Renovare în {daysLeft} {daysLeft === 1 ? 'zi' : 'zile'}</span>
+                <span className="text-xs">Reînnoire abonament în {daysLeft} {daysLeft === 1 ? 'zi' : 'zile'}</span>
               )}
               {accessType === 'free_access' && (
                 <span className="text-xs text-green-600">Acces gratuit</span>
