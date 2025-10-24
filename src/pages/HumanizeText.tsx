@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Download, Copy, AlertTriangle, RefreshCw, FileText, History } from "lucide-react";
+import { Loader2, Sparkles, Download, Copy, AlertTriangle, RefreshCw, FileText, History, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import mammoth from "mammoth";
 
 interface HumanizedResult {
   humanizedText: string;
@@ -45,6 +46,39 @@ export default function HumanizeText() {
   const [statistics, setStatistics] = useState<HumanizedResult['statistics'] | null>(null);
   const [savedTexts, setSavedTexts] = useState<SavedHumanization[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    
+    try {
+      if (fileExtension === 'txt') {
+        // Handle plain text files
+        const text = await file.text();
+        setOriginalText(text);
+        toast.success("Fișier text încărcat!");
+      } else if (fileExtension === 'docx' || fileExtension === 'doc') {
+        // Handle Word documents
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        setOriginalText(result.value);
+        toast.success("Fișier Word încărcat!");
+      } else {
+        toast.error("Format nesuportat. Folosește .txt, .doc sau .docx");
+      }
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      toast.error("Eroare la încărcarea fișierului");
+    }
+
+    // Reset input so same file can be uploaded again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleHumanize = async () => {
     if (!originalText.trim()) {
@@ -319,17 +353,53 @@ export default function HumanizeText() {
               <CardHeader>
                 <CardTitle className="text-lg">Text Original</CardTitle>
                 <CardDescription>
-                  Introduce textul generat de AI (100 - 50.000 caractere)
+                  Încarcă un fișier sau introduce textul manual (100 - 50.000 caractere)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  value={originalText}
-                  onChange={(e) => setOriginalText(e.target.value)}
-                  placeholder="Lipește aici textul generat de AI..."
-                  className="min-h-[400px] font-mono text-sm"
-                  disabled={loading}
-                />
+                <div className="space-y-4">
+                  {/* File Upload Button */}
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".txt,.doc,.docx"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline"
+                      size="sm"
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Încarcă Fișier (.txt, .doc, .docx)
+                    </Button>
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        sau
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Manual Text Input */}
+                  <Textarea
+                    value={originalText}
+                    onChange={(e) => setOriginalText(e.target.value)}
+                    placeholder="Lipește aici textul generat de AI..."
+                    className="min-h-[320px] font-mono text-sm"
+                    disabled={loading}
+                  />
+                </div>
+
                 <div className="flex justify-between items-center mt-4">
                   <p className="text-xs text-muted-foreground">
                     {originalText.length.toLocaleString()} / 50,000 caractere
