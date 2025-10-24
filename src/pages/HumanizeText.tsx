@@ -205,8 +205,15 @@ export default function HumanizeText() {
           properties: {},
           children: humanizedText.split('\n').map(paragraph => 
             new Paragraph({
-              children: [new TextRun(paragraph)],
-              spacing: { after: 200 }
+              children: [new TextRun({
+                text: paragraph,
+                font: "Times New Roman",
+                size: 24, // 12pt (size is in half-points)
+              })],
+              spacing: { 
+                line: 360, // 1.5 line spacing (240 = single, 360 = 1.5, 480 = double)
+                after: 200 
+              }
             })
           )
         }]
