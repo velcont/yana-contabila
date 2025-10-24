@@ -142,7 +142,7 @@ serve(async (req) => {
 
             <div class="footer">
               <p>Acesta este un email automat generat de sistemul Yana Contabilă</p>
-              <p>Pentru suport tehnic: support@yanacontabila.ro</p>
+              <p>Pentru suport: office@velcont.com</p>
             </div>
           </div>
         </body>
