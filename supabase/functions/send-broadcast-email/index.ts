@@ -64,10 +64,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Dacă avem filtre, le aplicăm prin join cu companies
     if (filterCriteria && (filterCriteria.vatPayer !== undefined || filterCriteria.taxType)) {
+      // Construiește filtrul în formatul corect pentru Supabase (snake_case)
+      const dbFilter: any = {};
+      if (filterCriteria.vatPayer !== undefined) {
+        dbFilter.vat_payer = filterCriteria.vatPayer;
+      }
+      if (filterCriteria.taxType) {
+        dbFilter.tax_type = filterCriteria.taxType;
+      }
+      
       const { data: filteredCompanies } = await supabaseClient
         .from("companies")
         .select("user_id")
-        .match(filterCriteria as any);
+        .match(dbFilter);
 
       if (filteredCompanies && filteredCompanies.length > 0) {
         const userIds = [...new Set(filteredCompanies.map(c => c.user_id))];
