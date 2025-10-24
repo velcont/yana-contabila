@@ -36,6 +36,7 @@ export default function StrategicAdvisor() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const [creditRemaining, setCreditRemaining] = useState<number>(0);
   const [isTrialUser, setIsTrialUser] = useState(false);
+  const [isUnlimited, setIsUnlimited] = useState(false);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -127,6 +128,7 @@ export default function StrategicAdvisor() {
           setCreditRemaining(Infinity);
         } else {
           console.log("⚠️ [ACCESS-CHECK] No paid subscription - using TRIAL credit system");
+          setIsUnlimited(false);
           // Utilizatori fără abonament plătit - folosesc creditul de test de 10 lei
           let creditLeft = profile?.trial_credit_remaining;
           
@@ -407,10 +409,10 @@ export default function StrategicAdvisor() {
                   }`} />
                   <div className="text-right">
                     <p className="text-xs font-medium text-muted-foreground">
-                      {isTrialUser ? "Credit Test" : "Nelimitat"}
+                      {creditRemaining === Infinity ? "Nelimitat" : "Credit Test"}
                     </p>
                     <p className="text-lg font-bold">
-                      {isTrialUser ? `${creditRemaining.toFixed(2)} lei` : "∞"}
+                      {creditRemaining === Infinity ? "∞" : `${creditRemaining.toFixed(2)} lei`}
                     </p>
                   </div>
                 </div>
