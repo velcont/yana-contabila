@@ -62,6 +62,7 @@ export const SubscriptionBadge = () => {
   if (subscriptionStatus === 'active' || accessType === 'free_access') {
     const isAccountant = subscriptionType === 'accounting_firm';
     const Icon = isAccountant ? Building2 : Crown;
+    const daysLeft = subscriptionEnd ? Math.max(0, Math.ceil((new Date(subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
 
     return (
       <TooltipProvider>
@@ -71,12 +72,21 @@ export const SubscriptionBadge = () => {
               variant="outline"
               size="sm"
               onClick={() => navigate('/subscription')}
-              className="gap-2"
+              className="gap-2 whitespace-nowrap"
             >
               <Icon className="h-4 w-4" />
               <Badge variant={isAccountant ? "default" : "secondary"} className="text-xs">
                 {isAccountant ? 'Contabil' : 'Antreprenor'}
               </Badge>
+              {accessType === 'trial' && trialDaysRemaining !== null && (
+                <span className="text-xs">Trial: {trialDaysRemaining} {trialDaysRemaining === 1 ? 'zi' : 'zile'}</span>
+              )}
+              {accessType !== 'trial' && daysLeft !== null && (
+                <span className="text-xs">Renovare în {daysLeft} {daysLeft === 1 ? 'zi' : 'zile'}</span>
+              )}
+              {accessType === 'free_access' && (
+                <span className="text-xs text-green-600">Acces gratuit</span>
+              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
