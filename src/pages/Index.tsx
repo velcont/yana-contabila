@@ -530,7 +530,7 @@ const Index = () => {
                       <DropdownMenuItem onClick={() => navigate('/subscription')}>
                         Abonament
                       </DropdownMenuItem>
-                      {userSubscriptionType !== 'accounting_firm' && (
+                      {!isAccountant && (
                         <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
                           Credite AI
                         </DropdownMenuItem>
