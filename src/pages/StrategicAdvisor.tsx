@@ -90,6 +90,7 @@ export default function StrategicAdvisor() {
         // ✅ VERIFICARE ABONAMENT PLĂTIT: Verificăm dacă există Stripe subscription ID activ
         const hasPaidSubscription = 
           profile?.stripe_subscription_id && 
+          profile.stripe_subscription_id.trim().length > 0 &&
           (profile?.subscription_status === "active" || profile?.subscription_status === "trialing");
 
         setSubscriptionStatus(profile?.subscription_status || "none");
