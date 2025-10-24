@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare, UserPlus } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare, UserPlus, FileUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -39,6 +39,7 @@ import { EmailManager } from '@/components/EmailManager';
 import { ClientFiscalParamsDialog } from '@/components/ClientFiscalParamsDialog';
 import { BulkEmailDialog } from '@/components/BulkEmailDialog';
 import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
+import { CRMCSVImport } from '@/components/CRMCSVImport';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ const AccountantDashboard = () => {
   const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [manualClientDialogOpen, setManualClientDialogOpen] = useState(false);
+  const [csvImportDialogOpen, setCsvImportDialogOpen] = useState(false);
   
   // Fiscal filters
   const [vatRegimeFilter, setVatRegimeFilter] = useState<string[]>([]);
@@ -322,6 +324,14 @@ const AccountantDashboard = () => {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
+                <Button 
+                  onClick={() => setCsvImportDialogOpen(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <FileUp className="h-4 w-4" />
+                  Import CSV
+                </Button>
                 <Button 
                   onClick={() => setManualClientDialogOpen(true)}
                   variant="outline"
@@ -739,6 +749,15 @@ const AccountantDashboard = () => {
           onSuccess={() => {
             fetchClients();
             setManualClientDialogOpen(false);
+          }}
+        />
+        
+        <CRMCSVImport
+          open={csvImportDialogOpen}
+          onOpenChange={setCsvImportDialogOpen}
+          onSuccess={() => {
+            fetchClients();
+            setCsvImportDialogOpen(false);
           }}
         />
       </div>
