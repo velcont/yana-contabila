@@ -557,7 +557,7 @@ const Index = () => {
             </p>
           </div>
 
-          {user && <QuickStartGuide onOpenChat={() => setShowChatOnLoad(true)} onOpenDashboard={() => setShowDashboard(true)} userSubscriptionType={userSubscriptionType} isAccountant={isAccountant} />}
+          {user && <QuickStartGuide key={themeType} onOpenChat={() => setShowChatOnLoad(true)} onOpenDashboard={() => setShowDashboard(true)} userSubscriptionType={userSubscriptionType} isAccountant={isAccountant} />}
 
           {analysis && (
             <Card className="shadow-lg">

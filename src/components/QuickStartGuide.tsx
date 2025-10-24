@@ -131,20 +131,36 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
           ))}
         </div>
 
-        <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
-          <div className="flex items-start gap-3">
-            <MessageCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium mb-1">
-                💡 Începe cu Chat AI
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Apasă pe iconița de chat din colțul din dreapta jos și încarcă balanța ta Excel. 
-                Vei primi o analiză completă în câteva secunde!
-              </p>
+        {isAccountantUser ? (
+          <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
+            <div className="flex items-start gap-3">
+              <Building2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium mb-1">
+                  💼 Începe cu YanaCRM
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Deschide CRM-ul pentru a gestiona clienții și serviciile contabile. Poți invita clienți, seta servicii și centraliza documente.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20">
+            <div className="flex items-start gap-3">
+              <MessageCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium mb-1">
+                  💡 Începe cu Chat AI
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Apasă pe iconița de chat din colțul din dreapta jos și încarcă balanța ta Excel. 
+                  Vei primi o analiză completă în câteva secunde!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
