@@ -448,6 +448,17 @@ const Index = () => {
                 <Phone className="mr-2 h-4 w-4" />
                 Contact
               </Button>
+              {/* Buton YanaCRM pentru contabili */}
+              {userSubscriptionType === 'accounting_firm' && (
+                <Button 
+                  variant="default" 
+                  onClick={() => navigate('/yanacrm')}
+                  className="gap-2"
+                >
+                  <Building2 className="h-4 w-4" />
+                  YanaCRM
+                </Button>
+              )}
             </div>
             <div className="flex gap-2">
               <ThemeToggle />
