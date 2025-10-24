@@ -63,8 +63,8 @@ export const EmailBroadcast = () => {
           subject,
           message,
           filterCriteria: useFilters ? {
-            vat_payer: filterVat,
-            tax_type: filterTaxType,
+            vatPayer: filterVat,
+            taxType: filterTaxType,
           } : undefined,
           broadcastId: broadcastData.id,
         },
