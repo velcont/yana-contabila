@@ -51,6 +51,27 @@ export const TestCheckout = () => {
     }
   };
 
+  const syncStripeSubscription = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-stripe-subscription');
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast.success(data.message);
+        setResult(data);
+      } else {
+        toast.error(data.message || "Eroare la sincronizare");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Eroare: " + (error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <div>
@@ -62,6 +83,21 @@ export const TestCheckout = () => {
           className="mb-4"
         >
           {loading ? "Se testează..." : "Testează Funcția"}
+        </Button>
+      </div>
+
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Sincronizare Subscripție Stripe</h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          Sincronizează subscripția din Stripe cu profilul utilizatorului autentificat
+        </p>
+        
+        <Button 
+          onClick={syncStripeSubscription} 
+          disabled={loading}
+          variant="default"
+        >
+          {loading ? "Se sincronizează..." : "Sincronizează cu Stripe"}
         </Button>
       </div>
 
