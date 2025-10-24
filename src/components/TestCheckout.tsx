@@ -100,6 +100,34 @@ export const TestCheckout = () => {
     }
   };
 
+  const notifyPaymentAdmin = async () => {
+    if (!sessionId.trim()) {
+      toast.error("Introdu Session ID!");
+      return;
+    }
+
+    setInvoiceLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('notify-payment-admin', {
+        body: { sessionId: sessionId.trim() }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast.success("Email trimis cu succes!");
+        setResult(data);
+      } else {
+        toast.error(data.message || "Eroare la trimitere email");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Eroare: " + (error as Error).message);
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
   return (
     <Card className="p-6 space-y-6">
       <div>
@@ -130,9 +158,9 @@ export const TestCheckout = () => {
       </div>
 
       <div className="border-t pt-6">
-        <h3 className="text-lg font-semibold mb-4">🔐 Admin: Generare Factură SmartBill</h3>
+        <h3 className="text-lg font-semibold mb-4">📧 Trimite Detalii Plată prin Email</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          Introdu Session ID pentru a genera factură pentru orice client (necesită rol admin)
+          Primești toate detaliile clientului pe office@velcont.com pentru a emite factura manual
         </p>
         
         <input
@@ -143,23 +171,29 @@ export const TestCheckout = () => {
           className="w-full p-2 border rounded mb-3"
         />
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
-            onClick={adminGenerateInvoice} 
+            onClick={notifyPaymentAdmin} 
             disabled={invoiceLoading || !sessionId.trim()}
             variant="default"
+            className="flex-1"
           >
-            {invoiceLoading ? "Se generează..." : "🔐 Generează Factură (Admin)"}
+            {invoiceLoading ? "Se trimite..." : "📧 Trimite Email Detalii"}
           </Button>
           
           <Button 
-            onClick={generateTestInvoice} 
+            onClick={adminGenerateInvoice} 
             disabled={invoiceLoading || !sessionId.trim()}
-            variant="secondary"
+            variant="outline"
+            className="flex-1"
           >
-            {invoiceLoading ? "Se generează..." : "Generează (User)"}
+            {invoiceLoading ? "Se generează..." : "🧾 Generează SmartBill (Auto)"}
           </Button>
         </div>
+        
+        <p className="text-xs text-muted-foreground mt-2">
+          💡 Recomandare: Folosește "Trimite Email" și emiți factura manual în SmartBill
+        </p>
       </div>
 
       {result && (

@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.admin-generate-invoice]
 verify_jwt = true
+
+[functions.notify-payment-admin]
+verify_jwt = false
