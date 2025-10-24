@@ -68,7 +68,7 @@ export default function StrategicAdvisor() {
         
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("subscription_status, subscription_type, trial_credit_remaining")
+          .select("subscription_status, subscription_type, trial_credit_remaining, stripe_subscription_id")
           .eq("id", user.id)
           .single();
 
@@ -87,22 +87,23 @@ export default function StrategicAdvisor() {
           return;
         }
 
-        const hasActiveSubscription = 
-          profile?.subscription_status === "active" || 
-          profile?.subscription_status === "trialing";
+        // ✅ VERIFICARE ABONAMENT PLĂTIT: Verificăm dacă există Stripe subscription ID activ
+        const hasPaidSubscription = 
+          profile?.stripe_subscription_id && 
+          (profile?.subscription_status === "active" || profile?.subscription_status === "trialing");
 
         setSubscriptionStatus(profile?.subscription_status || "none");
 
-        if (hasActiveSubscription) {
-          console.log("✅ [ACCESS-CHECK] User has active subscription - unlimited access");
+        if (hasPaidSubscription) {
+          console.log("✅ [ACCESS-CHECK] User has PAID subscription - unlimited access");
           setHasAccess(true);
           setIsTrialUser(false);
           setCreditRemaining(Infinity);
         } else {
-          // Utilizatori fără abonament activ - verifică/inițializează creditul de test
+          // Utilizatori fără abonament plătit - folosesc creditul de test de 10 lei
           let creditLeft = profile?.trial_credit_remaining;
           
-          // 🆕 Inițializare automată: toți antreprenorii noi primesc 10 lei credit
+          // 🆕 Inițializare automată: toți antreprenorii primesc 10 lei credit de test
           if (creditLeft === null || creditLeft === undefined) {
             console.log("🎁 [ACCESS-CHECK] Initializing 10 lei trial credit for new entrepreneur");
             creditLeft = 10;
@@ -120,7 +121,7 @@ export default function StrategicAdvisor() {
             }
           }
           
-          console.log(`💰 [ACCESS-CHECK] No subscription - credit remaining: ${creditLeft} lei`);
+          console.log(`💰 [ACCESS-CHECK] No paid subscription - using test credit: ${creditLeft} lei`);
           setCreditRemaining(creditLeft);
           
           if (creditLeft > 0) {
