@@ -256,6 +256,7 @@ serve(async (req) => {
         subscription_type: subscriptionType,
         subscription_status: hasActiveSub ? 'active' : 'inactive',
         subscription_end: subscriptionEnd,
+        access_type: hasActiveSub ? 'subscription' : null,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

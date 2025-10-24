@@ -12,6 +12,9 @@ const Subscription = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { subscriptionType, subscriptionStatus, isSubscribed, subscriptionEnd, checkSubscription, accessType } = useSubscription();
+  
+  // Only show "Active Subscription" card if user has a real Stripe subscription
+  const hasStripeSubscription = accessType === 'subscription';
   const [loading, setLoading] = useState<string | null>(null);
 
   const plans = [
@@ -123,7 +126,7 @@ const Subscription = () => {
           </p>
         </div>
 
-        {isSubscribed && (
+        {hasStripeSubscription && (
           <Card className="mb-8 border-primary shadow-lg bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
@@ -140,17 +143,15 @@ const Subscription = () => {
               </CardDescription>
             </CardHeader>
             <CardFooter className="gap-2">
-              {accessType !== 'free_access' && (
-                <Button
-                  variant="outline"
-                  onClick={handleManageSubscription}
-                  disabled={loading === 'manage'}
-                  className="border-primary/50 hover:bg-primary/10"
-                >
-                  {loading === 'manage' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Gestionează Abonamentul
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                onClick={handleManageSubscription}
+                disabled={loading === 'manage'}
+                className="border-primary/50 hover:bg-primary/10"
+              >
+                {loading === 'manage' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Gestionează Abonamentul
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => checkSubscription(true)}
@@ -165,7 +166,7 @@ const Subscription = () => {
         <div className="grid md:grid-cols-2 gap-8">
           {plans.map((plan) => {
             const Icon = plan.icon;
-            const isCurrentPlan = isSubscribed && subscriptionType === plan.id;
+            const isCurrentPlan = hasStripeSubscription && subscriptionType === plan.id;
 
             return (
               <Card
