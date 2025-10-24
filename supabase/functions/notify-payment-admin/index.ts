@@ -149,42 +149,103 @@ serve(async (req) => {
       </html>
     `;
 
-    // Send email via Resend
+    // Send email via Resend with domain fallback
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    
-    const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Yana Contabilă <notificari@yanacontabila.ro>",
-      to: ["office@velcont.com"],
-      subject: `💰 Plată Nouă: ${amount} ${currency} - ${customer.name || customer.email}`,
-      html: emailHtml,
-    });
+    const primaryFrom = "Yana Contabilă <notificari@yanacontabila.ro>";
+    const fallbackFrom = "Yana Contabilă <onboarding@resend.dev>";
+
+    let emailId: string | undefined;
+    let usedFallback = false;
+
+    const sendWithFrom = async (from: string) => {
+      return await resend.emails.send({
+        from,
+        to: ["office@velcont.com"],
+        subject: `💰 Plată Nouă: ${amount} ${currency} - ${customer.name || customer.email}`,
+        html: emailHtml,
+      });
+    };
+
+    let { data: emailData, error: emailError } = await sendWithFrom(primaryFrom);
 
     if (emailError) {
       logStep("Email error", { error: emailError });
-      throw emailError;
-    }
 
-    logStep("Email sent successfully", { emailId: emailData?.id });
+      const isDomainNotVerified =
+        (emailError as any)?.statusCode === 403 &&
+        String((emailError as any)?.message || "")
+          .toLowerCase()
+          .includes("domain is not verified");
+
+      if (isDomainNotVerified) {
+        logStep("Retrying with fallback domain");
+        const retry = await sendWithFrom(fallbackFrom);
+        if (!retry.error) {
+          emailId = retry.data?.id;
+          usedFallback = true;
+          logStep("Email sent successfully with fallback", { emailId });
+        } else {
+          logStep("Fallback email error", { error: retry.error });
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message:
+                "Eroare la trimiterea emailului (domeniu nevalidat). Te rugăm validează domeniul sau folosește adresa implicită Resend.",
+              hint: "Verifică domeniul pe https://resend.com/domains sau folosește from: onboarding@resend.dev",
+              error: retry.error,
+              emailPreview: emailHtml,
+              details: {
+                sessionId,
+                customerId: customer.id,
+                amount,
+                currency,
+              },
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "Eroare la trimiterea emailului",
+            error: emailError,
+            emailPreview: emailHtml,
+            details: {
+              sessionId,
+              customerId: customer.id,
+              amount,
+              currency,
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
+        );
+      }
+    } else {
+      emailId = emailData?.id;
+      logStep("Email sent successfully", { emailId });
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Email trimis cu succes către office@velcont.com",
-        emailId: emailData?.id,
+        message: `Email trimis cu succes către office@velcont.com${usedFallback ? " (folosind domeniul fallback)" : ""}`,
+        emailId,
+        usedFallback,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
     );
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: false,
-        error: errorMessage 
+        error: errorMessage,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   }
 });
