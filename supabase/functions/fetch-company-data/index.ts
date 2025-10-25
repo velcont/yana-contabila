@@ -54,16 +54,20 @@ serve(async (req) => {
       }])
     });
 
-    if (!anafResponse.ok) {
-      console.error('❌ ANAF API error:', anafResponse.status);
+    // Try to parse response even on error status
+    let anafData;
+    try {
+      anafData = await anafResponse.json();
+      console.log('📦 ANAF Response:', JSON.stringify(anafData, null, 2));
+      console.log('📊 ANAF Status:', anafResponse.status);
+    } catch (parseError) {
+      console.error('❌ Failed to parse ANAF response:', parseError);
+      console.error('❌ ANAF API status:', anafResponse.status);
       return new Response(
-        JSON.stringify({ error: 'Eroare la apelarea API ANAF', found: false }),
+        JSON.stringify({ error: 'Eroare la procesarea răspunsului ANAF', found: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-
-    const anafData = await anafResponse.json();
-    console.log('📦 ANAF Response:', JSON.stringify(anafData, null, 2));
 
     // Check if company was found
     if (!anafData.found || anafData.found.length === 0) {
