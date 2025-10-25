@@ -1656,6 +1656,95 @@ export type Database = {
         }
         Relationships: []
       }
+      onboarding_processes: {
+        Row: {
+          accountant_id: string
+          created_at: string
+          id: string
+          is_default: boolean
+          process_name: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          process_name: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          process_name?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_processes_accountant_id_fkey"
+            columns: ["accountant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_steps_progress: {
+        Row: {
+          client_company_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          process_id: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          client_company_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          process_id: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          client_company_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          process_id?: string
+          step_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_steps_progress_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_steps_progress_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_type_selected: boolean | null
@@ -1858,6 +1947,115 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          commission_rate: number
+          company_name: string
+          contact_person: string | null
+          created_at: string
+          description: string | null
+          email: string
+          id: string
+          is_verified: boolean
+          phone: string | null
+          provider_type: string
+          rating: number | null
+          specializations: Json | null
+          updated_at: string
+        }
+        Insert: {
+          commission_rate?: number
+          company_name: string
+          contact_person?: string | null
+          created_at?: string
+          description?: string | null
+          email: string
+          id?: string
+          is_verified?: boolean
+          phone?: string | null
+          provider_type: string
+          rating?: number | null
+          specializations?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          commission_rate?: number
+          company_name?: string
+          contact_person?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string
+          id?: string
+          is_verified?: boolean
+          phone?: string | null
+          provider_type?: string
+          rating?: number | null
+          specializations?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      service_recommendations: {
+        Row: {
+          accountant_id: string
+          client_company_id: string
+          commission_amount: number | null
+          commission_paid: boolean
+          created_at: string
+          id: string
+          provider_id: string
+          service_description: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          client_company_id: string
+          commission_amount?: number | null
+          commission_paid?: boolean
+          created_at?: string
+          id?: string
+          provider_id: string
+          service_description?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          client_company_id?: string
+          commission_amount?: number | null
+          commission_paid?: boolean
+          created_at?: string
+          id?: string
+          provider_id?: string
+          service_description?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_recommendations_accountant_id_fkey"
+            columns: ["accountant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_recommendations_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_recommendations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
             referencedColumns: ["id"]
           },
         ]
