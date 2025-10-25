@@ -22,6 +22,20 @@ export const MultiCompanyComparison = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Auto-link analize orfane ÎNAINTE de query principal
+      try {
+        const { data: linkResults } = await supabase.rpc(
+          'link_orphan_analyses_to_companies',
+          { p_user_id: user.id }
+        );
+        
+        if (linkResults && linkResults.length > 0) {
+          console.log(`✅ Auto-linked ${linkResults.length} orphan analyses to companies`);
+        }
+      } catch (linkError) {
+        console.warn('Auto-linking skipped:', linkError);
+      }
+
       const { data: companies, error: companiesError } = await supabase
         .from('companies')
         .select('id, company_name')

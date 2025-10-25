@@ -2696,6 +2696,15 @@ export type Database = {
           success: boolean
         }[]
       }
+      link_orphan_analyses_to_companies: {
+        Args: { p_user_id: string }
+        Returns: {
+          analysis_id: string
+          company_name: string
+          linked_company_id: string
+          matched_by: string
+        }[]
+      }
       log_admin_access: {
         Args: { p_action?: string; p_record_id: string; p_table_name: string }
         Returns: undefined
