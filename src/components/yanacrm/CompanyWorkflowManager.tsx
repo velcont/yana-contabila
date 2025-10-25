@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { WorkflowCalendarView } from "./WorkflowCalendarView";
 import { WorkflowTemplateManager } from "./WorkflowTemplateManager";
 import { WorkflowTeamManager } from "./WorkflowTeamManager";
-import { Calendar, FileText, Users, Building2 } from "lucide-react";
+import { Calendar, FileText, Users, Building2, Settings } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 export const CompanyWorkflowManager = () => {
@@ -35,9 +35,9 @@ export const CompanyWorkflowManager = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold">📅 Dosare Lunare</h2>
+          <h2 className="text-2xl font-bold">📅 Dosare Lunare per Client</h2>
           <p className="text-muted-foreground mt-1">
-            Urmărește progresul lunar pentru fiecare companie și gestionează echipa ta
+            🎯 Fiecare client are workflow PROPRIU, complet separat - echipe și termene diferite per firmă
           </p>
         </div>
 
@@ -67,15 +67,15 @@ export const CompanyWorkflowManager = () => {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Calendar Lunar
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Șabloane Workflow
+            Workflow Client
           </TabsTrigger>
           <TabsTrigger value="team" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Echipa Mea
+            Echipa Client
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Șabloane
           </TabsTrigger>
         </TabsList>
 
@@ -83,12 +83,12 @@ export const CompanyWorkflowManager = () => {
           <WorkflowCalendarView selectedCompanyId={selectedCompanyId} />
         </TabsContent>
 
-        <TabsContent value="templates" className="mt-6">
-          <WorkflowTemplateManager />
-        </TabsContent>
-
         <TabsContent value="team" className="mt-6">
           <WorkflowTeamManager selectedCompanyId={selectedCompanyId} />
+        </TabsContent>
+
+        <TabsContent value="templates" className="mt-6">
+          <WorkflowTemplateManager />
         </TabsContent>
       </Tabs>
     </div>

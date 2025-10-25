@@ -6,9 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, Loader2 } from "lucide-react";
-import { MonthlyWorkflowStageDialog } from "./MonthlyWorkflowStageDialog";
+import { Sparkles, Loader2, Edit, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EditWorkflowDialog } from "./EditWorkflowDialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WorkflowCalendarViewProps {
   selectedCompanyId?: string;
@@ -22,7 +23,7 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedStage, setSelectedStage] = useState<any>(null);
+  const [editingWorkflow, setEditingWorkflow] = useState<any>(null);
 
   // Fetch workflows pentru luna selectată (doar pentru compania selectată)
   const { data: workflows, isLoading } = useQuery({
@@ -230,6 +231,15 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
 
   return (
     <div className="space-y-6">
+      {selectedCompanyId !== "all" && (
+        <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <AlertDescription className="text-blue-900 dark:text-blue-100">
+            <strong>Workflow SEPARAT</strong> pentru acest client - poți customiza complet etapele, termenele și echipa specifică acestei firme.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -307,7 +317,17 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
                         Progres: {workflow.progress_percent}% ({stages.filter((s: any) => s.status === "completed").length}/{stages.length} etape completate)
                       </p>
                     </div>
-                    {getStatusBadge(workflow)}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingWorkflow(workflow)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editează Workflow
+                      </Button>
+                      {getStatusBadge(workflow)}
+                    </div>
                   </div>
 
                   <div className="border-t pt-4 space-y-2">
@@ -387,6 +407,12 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
         </Card>
       )}
 
+      {editingWorkflow && (
+        <EditWorkflowDialog
+          workflow={editingWorkflow}
+          onClose={() => setEditingWorkflow(null)}
+        />
+      )}
     </div>
   );
 };
