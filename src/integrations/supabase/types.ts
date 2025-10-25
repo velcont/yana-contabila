@@ -829,6 +829,47 @@ export type Database = {
           },
         ]
       }
+      client_verification_history: {
+        Row: {
+          company_id: string
+          created_at: string
+          findings: Json
+          id: string
+          metadata: Json | null
+          risk_level: string
+          risk_score: number
+          verified_by: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          findings?: Json
+          id?: string
+          metadata?: Json | null
+          risk_level: string
+          risk_score: number
+          verified_by: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          findings?: Json
+          id?: string
+          metadata?: Json | null
+          risk_level?: string
+          risk_score?: number
+          verified_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_verification_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           accountant_brand_color: string | null

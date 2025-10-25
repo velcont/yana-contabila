@@ -3,6 +3,9 @@ project_id = "ygfsuoloxzjpiulogrjz"
 [functions.analyze-balance]
 verify_jwt = false
 
+[functions.client-due-diligence]
+verify_jwt = true
+
 [functions.humanize-academic-text]
 verify_jwt = true
 

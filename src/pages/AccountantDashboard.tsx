@@ -22,14 +22,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
 import { SubscriptionBadge } from '@/components/SubscriptionBadge';
-import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FiscalDeadlinesManager } from '@/components/FiscalDeadlinesManager';
@@ -41,6 +40,7 @@ import { BulkEmailDialog } from '@/components/BulkEmailDialog';
 import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
 import { CRMCSVImport } from '@/components/CRMCSVImport';
 import { MonthlyWorkflowManager } from '@/components/yanacrm/MonthlyWorkflowManager';
+import { ClientDueDiligence } from '@/components/ClientDueDiligence';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -303,9 +303,9 @@ const AccountantDashboard = () => {
               <Mail className="mr-2 h-4 w-4" />
               Email
             </TabsTrigger>
-            <TabsTrigger value="analytics">
-              <BarChart className="mr-2 h-4 w-4" />
-              Analiză
+            <TabsTrigger value="due-diligence">
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              Verificare Clienți
             </TabsTrigger>
             <TabsTrigger value="workflows">
               <Calendar className="mr-2 h-4 w-4" />
@@ -707,8 +707,8 @@ const AccountantDashboard = () => {
             <EmailManager />
           </TabsContent>
 
-          <TabsContent value="analytics">
-            <MultiCompanyComparison />
+          <TabsContent value="due-diligence">
+            <ClientDueDiligence clients={clients} onRefresh={fetchClients} />
           </TabsContent>
 
           <TabsContent value="workflows" className="space-y-6">
