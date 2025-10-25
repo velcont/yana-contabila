@@ -122,78 +122,6 @@ async function fetchFromTargetare(cui: string): Promise<CompanyData> {
   }
 }
 
-// Method 2: ANAF API with optimized headers
-async function fetchFromANAF(cui: string): Promise<CompanyData> {
-  try {
-    console.log('🔍 Calling ANAF API...');
-    const url = 'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva';
-    const currentDate = new Date().toISOString().split('T')[0];
-    
-    const requestBody = [{ cui: parseInt(cui.replace(/\D/g, ''), 10), data: currentDate }];
-    console.log('📤 ANAF request body:', JSON.stringify(requestBody));
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept-Language': 'ro-RO,ro;q=0.9,en;q=0.8',
-      },
-      body: JSON.stringify(requestBody),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    console.log(`📊 ANAF response status: ${response.status}`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`📋 ANAF error response: ${errorText.substring(0, 500)}`);
-      throw new Error(`ANAF returned status ${response.status}`);
-    }
-
-    const data: ANAFResponse = await response.json();
-    console.log('📦 ANAF raw data:', JSON.stringify(data));
-
-    // Check if company was not found
-    if (data.notfound && data.notfound.length > 0) {
-      console.log('⚠️ ANAF notfound:', data.notfound);
-      throw new Error('Firmă negăsită în baza ANAF');
-    }
-
-    if (!data.found || data.found.length === 0) {
-      console.log('⚠️ ANAF found array is empty');
-      throw new Error('Firmă negăsită în baza ANAF');
-    }
-
-    const company = data.found[0];
-    console.log('📋 ANAF company object:', JSON.stringify(company));
-    
-    const dateGenerale = company.date_generale || {};
-    const inregistrare_scop_Tva = company.inregistrare_scop_Tva;
-    
-    const companyData: CompanyData = {
-      source: 'ANAF',
-      company_name: dateGenerale.denumire || '',
-      cui: dateGenerale.cui ? `RO${dateGenerale.cui}` : cui,
-      registration_number: dateGenerale.nrRegCom || '',
-      address: dateGenerale.adresa || '',
-      vat_payer: inregistrare_scop_Tva?.scpTVA ?? false,
-      phone: dateGenerale.telefon || '',
-      email: '',
-      caen_code: '',
-      status: dateGenerale.stare_inactiv ? 'INACTIVA' : 'ACTIVA',
-      found: true
-    };
-
-    console.log('✅ ANAF formatted data:', companyData);
-    return companyData;
-
-  } catch (error: any) {
-    console.error('❌ ANAF failed:', error.message);
-    throw error;
-  }
-}
 
 // Main handler with fallback cascade
 serve(async (req) => {
@@ -225,42 +153,26 @@ serve(async (req) => {
 
     console.log(`\n🚀 Starting fetch for CUI: ${cleanCui}`);
 
+    // Use only Targetare.ro as requested by user
     let companyData: CompanyData | null = null;
-    const errors: string[] = [];
-
-    // Try Targetare.ro first (primary source with API key)
+    
     try {
-      console.log('\n📍 Step 1: Trying Targetare.ro...');
+      console.log('\n📍 Fetching from Targetare.ro...');
       companyData = await fetchFromTargetare(cleanCui);
       console.log('✅ SUCCESS: Targetare.ro');
     } catch (error: any) {
-      errors.push(`Targetare: ${error.message}`);
-      console.log('❌ FAILED: Targetare.ro');
-      console.log('\n📍 Step 2: Trying ANAF as fallback...');
-      
-      // Fallback to ANAF (free, no API key needed)
-      try {
-        companyData = await fetchFromANAF(cleanCui);
-        console.log('✅ SUCCESS: ANAF');
-      } catch (anafError: any) {
-        errors.push(`ANAF: ${anafError.message}`);
-        console.log('❌ FAILED: ANAF');
-      }
-    }
-
-    if (!companyData) {
-      console.error('\n❌ All sources failed. Errors:', errors);
+      console.error('\n❌ Targetare.ro failed:', error.message);
       return new Response(
         JSON.stringify({ 
-          error: 'Nu s-au putut prelua date din nicio sursă (Targetare.ro și ANAF au eșuat)',
-          details: errors,
+          error: 'Nu s-au putut prelua date de la Targetare.ro',
+          details: error.message,
           found: false
         }), 
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('\n✅ FINAL SUCCESS - Company data found from:', companyData.source);
+    console.log('\n✅ Company data found from:', companyData.source);
     console.log('📋 Data:', {
       name: companyData.company_name,
       cui: companyData.cui,
