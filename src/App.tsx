@@ -33,6 +33,7 @@ import AccountantBranding from "./pages/AccountantBranding";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import StrategicAdvisor from "./pages/StrategicAdvisor";
 import HumanizeText from "./pages/HumanizeText";
+import ClientOnboardingWizard from "./pages/ClientOnboardingWizard";
 import { Settings } from "./pages/Settings";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
@@ -88,6 +89,7 @@ const App = () => (
                     <Route path="/yanacrm" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
                     <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
                     <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                    <Route path="/client-onboarding/:processId" element={<ClientOnboardingWizard />} />
                     <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
                     <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                     <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />

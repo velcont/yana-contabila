@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare, UserPlus, FileUp } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, BarChart, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -40,8 +40,8 @@ import { ClientFiscalParamsDialog } from '@/components/ClientFiscalParamsDialog'
 import { BulkEmailDialog } from '@/components/BulkEmailDialog';
 import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
 import { CRMCSVImport } from '@/components/CRMCSVImport';
-// import { ServiceMarketplace } from '@/components/yanacrm/ServiceMarketplace';
-// import { OnboardingTracker } from '@/components/yanacrm/OnboardingTracker';
+import { ServiceMarketplace } from '@/components/yanacrm/ServiceMarketplace';
+import { OnboardingTracker } from '@/components/yanacrm/OnboardingTracker';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -281,7 +281,7 @@ const AccountantDashboard = () => {
           </div>
 
         <Tabs defaultValue="clients" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="clients">
               <Building2 className="mr-2 h-4 w-4" />
               Clienți
@@ -309,6 +309,14 @@ const AccountantDashboard = () => {
             <TabsTrigger value="analytics">
               <BarChart className="mr-2 h-4 w-4" />
               Analiză
+            </TabsTrigger>
+            <TabsTrigger value="marketplace">
+              <Handshake className="mr-2 h-4 w-4" />
+              Marketplace
+            </TabsTrigger>
+            <TabsTrigger value="onboarding">
+              <UserCheck className="mr-2 h-4 w-4" />
+              Onboarding
             </TabsTrigger>
           </TabsList>
 
@@ -712,6 +720,14 @@ const AccountantDashboard = () => {
 
           <TabsContent value="analytics">
             <MultiCompanyComparison />
+          </TabsContent>
+
+          <TabsContent value="marketplace">
+            <ServiceMarketplace clients={clients} />
+          </TabsContent>
+
+          <TabsContent value="onboarding">
+            <OnboardingTracker />
           </TabsContent>
         </Tabs>
 
