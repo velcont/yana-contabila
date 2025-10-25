@@ -552,7 +552,7 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
             >
               Anulează
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.company_name || !formData.email}>
+            <Button type="submit" disabled={isLoading || !formData.company_name} title={!formData.email ? "Completează emailul pentru a continua" : undefined}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? "Se adaugă..." : "Adaugă Client"}
             </Button>
