@@ -9,6 +9,7 @@ import { EmailBroadcast } from "@/components/EmailBroadcast";
 import { UsersList } from "@/components/UsersList";
 import { CRMManualClientDialog } from "@/components/CRMManualClientDialog";
 import { CRMCSVImport } from "@/components/CRMCSVImport";
+import { MonthlyWorkflowManager } from "@/components/yanacrm/MonthlyWorkflowManager";
 import { Loader2, Building2, Mail, Users, UserPlus, FileUp } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
@@ -94,19 +95,22 @@ const CRM = () => {
         </div>
         
         <Tabs defaultValue="clients" className="space-y-6">
-          <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-3">
+        <div className="flex items-center justify-between mb-6">
+            <TabsList className="grid w-full max-w-2xl grid-cols-4">
               <TabsTrigger value="clients" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                Clienți Firme
+                Clienți
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Utilizatori
               </TabsTrigger>
+              <TabsTrigger value="workflows" className="flex items-center gap-2">
+                📅 Dosare Lunare
+              </TabsTrigger>
               <TabsTrigger value="broadcast" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
-                Email Broadcast
+                Email
               </TabsTrigger>
             </TabsList>
           </div>
@@ -117,6 +121,10 @@ const CRM = () => {
 
           <TabsContent value="users">
             <UsersList />
+          </TabsContent>
+
+          <TabsContent value="workflows">
+            <MonthlyWorkflowManager />
           </TabsContent>
 
           <TabsContent value="broadcast">

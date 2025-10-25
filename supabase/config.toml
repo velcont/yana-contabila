@@ -110,3 +110,6 @@ verify_jwt = true
 
 [functions.send-crm-message-email]
 verify_jwt = true
+
+[functions.send-workflow-alert]
+verify_jwt = false

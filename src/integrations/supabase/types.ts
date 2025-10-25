@@ -1656,6 +1656,150 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_workflow_instances: {
+        Row: {
+          accountant_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          month_year: string
+          overall_status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          month_year: string
+          overall_status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          month_year?: string
+          overall_status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_workflow_instances_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_workflow_instances_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_workflow_stages: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          estimated_days: number
+          id: string
+          notes: string | null
+          responsible_person_id: string | null
+          responsible_person_name: string | null
+          stage_name: string
+          stage_number: number
+          started_at: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          estimated_days?: number
+          id?: string
+          notes?: string | null
+          responsible_person_id?: string | null
+          responsible_person_name?: string | null
+          stage_name: string
+          stage_number: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          estimated_days?: number
+          id?: string
+          notes?: string | null
+          responsible_person_id?: string | null
+          responsible_person_name?: string | null
+          stage_name?: string
+          stage_number?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_workflow_stages_responsible_person_id_fkey"
+            columns: ["responsible_person_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_workflow_stages_workflow_instance_id_fkey"
+            columns: ["workflow_instance_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_workflow_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_workflow_templates: {
+        Row: {
+          accountant_id: string
+          created_at: string
+          id: string
+          is_default: boolean
+          stages: Json
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          stages?: Json
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          stages?: Json
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       onboarding_processes: {
         Row: {
           accountant_id: string
@@ -2429,6 +2573,39 @@ export type Database = {
           month_year?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      workflow_team_members: {
+        Row: {
+          accountant_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          member_email: string
+          member_name: string
+          member_role: string
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          member_email: string
+          member_name: string
+          member_role: string
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          member_email?: string
+          member_name?: string
+          member_role?: string
+          updated_at?: string
         }
         Relationships: []
       }
