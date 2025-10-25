@@ -84,20 +84,30 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       });
 
       console.log('📦 Response:', { data, error });
+      console.log('📊 Data type:', typeof data, 'Data keys:', data ? Object.keys(data) : 'null');
       
       if (error) {
         console.error('❌ Supabase error:', error);
         throw error;
       }
       
-      if (data?.found) {
+      // Check if data exists and has required fields
+      if (data && (data.found || data.company_name)) {
         console.log('✅ Data fetched successfully from:', data.source);
+        console.log('📋 Parsed data:', {
+          company_name: data.company_name,
+          cui: data.cui,
+          address: data.address,
+          vat_payer: data.vat_payer,
+          status: data.status
+        });
+        
         setAnafData(data);
         setCifError(null);
         
         toast({
           title: `✓ Date preluate cu succes`,
-          description: `Firma ${data.company_name} găsită prin ${data.source}`,
+          description: `Firma ${data.company_name || 'găsită'} prin ${data.source || 'API'}`,
         });
         
         // Auto-expand next step
@@ -301,15 +311,15 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-muted-foreground">Nume Firmă:</span>
-                          <p className="font-medium">{anafData.company_name}</p>
+                          <p className="font-medium">{anafData.company_name || 'N/A'}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">CIF:</span>
-                          <p className="font-medium">{anafData.cif}</p>
+                          <p className="font-medium">{anafData.cui || anafData.cif || 'N/A'}</p>
                         </div>
                         <div className="col-span-2">
                           <span className="text-muted-foreground">Adresă:</span>
-                          <p className="font-medium">{anafData.address}</p>
+                          <p className="font-medium">{anafData.address || 'N/A'}</p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Plătitor TVA:</span>
@@ -317,7 +327,7 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
                         </div>
                         <div>
                           <span className="text-muted-foreground">Status:</span>
-                          <p className="font-medium">{anafData.status}</p>
+                          <p className="font-medium">{anafData.status || 'N/A'}</p>
                         </div>
                       </div>
                       
@@ -326,6 +336,7 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
                         onClick={applyAnafData}
                         className="w-full mt-2"
                         variant="default"
+                        disabled={!anafData.company_name || !anafData.cui}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         Aplică Aceste Date
