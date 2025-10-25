@@ -32,7 +32,6 @@ import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClientDocumentsManager } from '@/components/ClientDocumentsManager';
 import { FiscalDeadlinesManager } from '@/components/FiscalDeadlinesManager';
 import { AccountantTasksManager } from '@/components/AccountantTasksManager';
 import { CRMMessagingManager } from '@/components/CRMMessagingManager';
@@ -285,14 +284,10 @@ const AccountantDashboard = () => {
           </div>
 
         <Tabs defaultValue="clients" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-10">
+          <TabsList className="grid w-full grid-cols-9">
             <TabsTrigger value="clients">
               <Building2 className="mr-2 h-4 w-4" />
               Clienți
-            </TabsTrigger>
-            <TabsTrigger value="documents">
-              <FileText className="mr-2 h-4 w-4" />
-              Documente
             </TabsTrigger>
             <TabsTrigger value="deadlines">
               <Calendar className="mr-2 h-4 w-4" />
@@ -704,10 +699,6 @@ const AccountantDashboard = () => {
             )}
           </CardContent>
         </Card>
-          </TabsContent>
-
-          <TabsContent value="documents">
-            <ClientDocumentsManager />
           </TabsContent>
 
           <TabsContent value="deadlines">
