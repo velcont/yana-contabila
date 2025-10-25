@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, Save } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Loader2, Plus, Trash2, Save, UserPlus, Info } from "lucide-react";
 
 interface EditWorkflowDialogProps {
   workflow: any;
@@ -29,6 +31,12 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
   const queryClient = useQueryClient();
 
   const [stages, setStages] = useState<any[]>(workflow.stages || []);
+  
+  // Quick add member form state
+  const [showQuickAddForm, setShowQuickAddForm] = useState(false);
+  const [quickMemberName, setQuickMemberName] = useState("");
+  const [quickMemberEmail, setQuickMemberEmail] = useState("");
+  const [quickMemberRole, setQuickMemberRole] = useState("Contabil");
 
   // Fetch team members pentru asignare
   const { data: teamMembers } = useQuery({
@@ -133,25 +141,156 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
     setStages(newStages);
   };
 
-  return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            Editează Workflow - {workflow.companies?.company_name}
-          </DialogTitle>
-        </DialogHeader>
+  // Quick add member mutation
+  const addQuickMember = useMutation({
+    mutationFn: async () => {
+      // Step 1: Create team member
+      const { data: newMember, error: memberError } = await supabase
+        .from("workflow_team_members")
+        .insert({
+          accountant_id: user!.id,
+          member_name: quickMemberName,
+          member_email: quickMemberEmail,
+          member_role: quickMemberRole,
+          is_active: true,
+        })
+        .select()
+        .single();
 
-        <div className="space-y-4 py-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Personalizează etapele, termenele și echipa pentru acest client
-            </p>
-            <Button onClick={addStage} variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Adaugă Etapă
-            </Button>
-          </div>
+      if (memberError) throw memberError;
+
+      // Step 2: Assign to company
+      const { error: assignError } = await supabase
+        .from("company_team_assignments")
+        .insert({
+          accountant_id: user!.id,
+          company_id: workflow.company_id,
+          team_member_id: newMember.id,
+          role_on_company: quickMemberRole,
+          is_active: true,
+        });
+
+      if (assignError) throw assignError;
+
+      return newMember;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      queryClient.invalidateQueries({ queryKey: ["company-assignments"] });
+      toast({
+        title: "✅ Membru adăugat",
+        description: `${quickMemberName} a fost adăugat cu succes.`,
+      });
+      setShowQuickAddForm(false);
+      setQuickMemberName("");
+      setQuickMemberEmail("");
+      setQuickMemberRole("Contabil");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <TooltipProvider>
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Editează Workflow - {workflow.companies?.company_name}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Personalizează etapele, termenele și echipa pentru acest client
+              </p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={addStage} variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adaugă Etapă
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Adaugă un pas nou în procesul de lucru</p>
+                  <p className="text-xs text-muted-foreground">(ex: Verificare finală, Audit)</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+
+          {/* Quick Add Member Form */}
+          {showQuickAddForm && (
+            <Card className="p-4 border-primary/50 bg-primary/5">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Adaugă rapid un coleg</h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowQuickAddForm(false)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nume</Label>
+                    <Input
+                      placeholder="Ex: Ion Popescu"
+                      value={quickMemberName}
+                      onChange={(e) => setQuickMemberName(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="ion@example.com"
+                      value={quickMemberEmail}
+                      onChange={(e) => setQuickMemberEmail(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Rol</Label>
+                    <Select value={quickMemberRole} onValueChange={setQuickMemberRole}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Contabil">Contabil</SelectItem>
+                        <SelectItem value="Contabil Senior">Contabil Senior</SelectItem>
+                        <SelectItem value="Manager">Manager</SelectItem>
+                        <SelectItem value="Asistent">Asistent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <Button
+                  onClick={() => addQuickMember.mutate()}
+                  disabled={!quickMemberName || !quickMemberEmail || addQuickMember.isPending}
+                  size="sm"
+                  className="w-full"
+                >
+                  {addQuickMember.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <UserPlus className="h-4 w-4 mr-2" />
+                  )}
+                  Adaugă Membru
+                </Button>
+              </div>
+            </Card>
+          )}
 
           {stages.map((stage, index) => (
             <Card key={index} className="p-4">
@@ -209,25 +348,70 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Asignează membru</Label>
-                    <Select
-                      value={stage.assigned_member_id || "unassigned"}
-                      onValueChange={(value) =>
-                        updateStage(index, "assigned_member_id", value === "unassigned" ? null : value)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Neasignat" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Neasignat</SelectItem>
-                        {availableMembers.map((member: any) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.member_name} - {member.member_role}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <Label className="flex items-center gap-1 cursor-help">
+                            Asignează membru
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </Label>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="space-y-2">
+                            <h4 className="font-semibold text-sm">Ce sunt membrii echipei?</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Membrii sunt colegii care lucrează la dosarele tale. 
+                              Poți asigna fiecare etapă unui membru specific.
+                            </p>
+                            <p className="text-xs text-muted-foreground border-t pt-2">
+                              💡 Sfat: Adaugă mai întâi membrii folosind butonul de mai jos
+                            </p>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Select
+                        value={stage.assigned_member_id || "unassigned"}
+                        onValueChange={(value) =>
+                          updateStage(index, "assigned_member_id", value === "unassigned" ? null : value)
+                        }
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder={availableMembers.length === 0 ? "Nu există membri" : "Neasignat"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Neasignat</SelectItem>
+                          {availableMembers.length === 0 && (
+                            <SelectItem value="no-members" disabled>
+                              Nu există membri. Adaugă unul mai jos!
+                            </SelectItem>
+                          )}
+                          {availableMembers.map((member: any) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.member_name} - {member.member_role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowQuickAddForm(!showQuickAddForm)}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Adaugă membru nou rapid</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
                 </div>
 
@@ -261,5 +445,6 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
         </div>
       </DialogContent>
     </Dialog>
+    </TooltipProvider>
   );
 };
