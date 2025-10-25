@@ -26,6 +26,7 @@ import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, Trend
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
 import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
@@ -47,6 +48,7 @@ const AccountantDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAccountant, loading: subscriptionLoading } = useSubscription();
+  const { isAdmin, isLoading: adminLoading } = useUserRole();
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -75,8 +77,8 @@ const AccountantDashboard = () => {
     const init = async () => {
       console.log('AccountantDashboard - Verificare acces');
       
-      // Wait for subscription data to load
-      if (subscriptionLoading) {
+      // Wait for subscription and admin data to load
+      if (subscriptionLoading || adminLoading) {
         return;
       }
       
@@ -93,18 +95,19 @@ const AccountantDashboard = () => {
         .eq('id', user.id)
         .single();
 
-      if (profile?.subscription_type !== 'accounting_firm') {
-        console.log('⛔ Acces interzis - utilizator nu este contabil');
+      // Allow access for admins OR accountants
+      if (!isAdmin && profile?.subscription_type !== 'accounting_firm') {
+        console.log('⛔ Acces interzis - utilizator nu este admin sau contabil');
         toast({
           title: "Acces restricționat",
-          description: "Acest dashboard este disponibil doar pentru conturi de tip Contabil.",
+          description: "Acest dashboard YanaCRM este disponibil doar pentru conturi de tip Contabil.",
           variant: "destructive",
         });
         navigate('/app');
         return;
       }
       
-      console.log('✅ Acces permis - încărcare clienți');
+      console.log('✅ Acces permis la YanaCRM:', isAdmin ? 'Admin' : 'Contabil');
       if (mounted) {
         fetchClients();
       }
@@ -244,8 +247,8 @@ const AccountantDashboard = () => {
     return true;
   });
 
-  // Show loading while checking subscription
-  if (subscriptionLoading) {
+  // Show loading while checking subscription and admin status
+  if (subscriptionLoading || adminLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

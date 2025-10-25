@@ -71,7 +71,7 @@ export const Footer = () => {
             </Button>
           </div>
 
-          {isAccountant && (
+          {(isAccountant || isAdmin) && (
             <>
               <div className="h-6 w-px bg-border" />
               <Button

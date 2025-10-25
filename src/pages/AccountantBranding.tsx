@@ -8,26 +8,34 @@ import { ArrowLeft, Upload, Loader2, Image as ImageIcon, Check } from 'lucide-re
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const AccountantBranding = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAccountant, loading: subscriptionLoading } = useSubscription();
+  const { isAdmin, isLoading: adminLoading } = useUserRole();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandColor, setBrandColor] = useState('#10b981');
 
   useEffect(() => {
-    // Wait for subscription data to load before redirecting
-    if (subscriptionLoading) return;
+    // Wait for subscription and admin data to load before redirecting
+    if (subscriptionLoading || adminLoading) return;
     
-    if (!isAccountant) {
+    // Allow access for admins OR accountants
+    if (!isAdmin && !isAccountant) {
+      toast({
+        title: "Acces restricționat",
+        description: "Personalizarea brandului este disponibilă doar pentru conturi Contabil.",
+        variant: "destructive"
+      });
       navigate('/subscription');
       return;
     }
     fetchBranding();
-  }, [isAccountant, subscriptionLoading, navigate]);
+  }, [isAccountant, isAdmin, subscriptionLoading, adminLoading, navigate, toast]);
 
   const fetchBranding = async () => {
     try {
@@ -158,8 +166,8 @@ const AccountantBranding = () => {
     }
   };
 
-  // Show loading while checking subscription
-  if (subscriptionLoading) {
+  // Show loading while checking subscription and admin status
+  if (subscriptionLoading || adminLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
