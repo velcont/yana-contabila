@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, UserX, Loader2 } from "lucide-react";
+import { Plus, Edit, UserX, Loader2, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,7 +41,7 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
   const [memberRole, setMemberRole] = useState("junior_accountant");
   const [isActive, setIsActive] = useState(true);
 
-  // Fetch team members
+  // Fetch team members globali
   const { data: teamMembers, isLoading } = useQuery({
     queryKey: ["team-members", user?.id],
     queryFn: async () => {
@@ -55,6 +55,27 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
       return data;
     },
     enabled: !!user,
+  });
+
+  // Fetch asignări per companie (dacă e selectată o companie)
+  const { data: companyAssignments } = useQuery({
+    queryKey: ["company-assignments", selectedCompanyId, user?.id],
+    queryFn: async () => {
+      if (selectedCompanyId === "all") return [];
+
+      const { data, error } = await supabase
+        .from("company_team_assignments")
+        .select(`
+          *,
+          workflow_team_members(member_name, member_email, member_role)
+        `)
+        .eq("company_id", selectedCompanyId)
+        .eq("is_active", true);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && selectedCompanyId !== "all",
   });
 
   // Create/Update mutation
@@ -158,9 +179,13 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold">Echipa Mea</h3>
-          {selectedCompanyId !== "all" && (
+          {selectedCompanyId !== "all" ? (
             <p className="text-sm text-muted-foreground mt-1">
-              Vizualizare filtrată pentru compania selectată
+              Membri asignați pentru compania selectată
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">
+              Toți membrii echipei (selectează o companie pentru asignări)
             </p>
           )}
         </div>
@@ -169,6 +194,22 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
           Adaugă Membru Nou
         </Button>
       </div>
+
+      {selectedCompanyId !== "all" && companyAssignments && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-3">
+            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-900 dark:text-blue-100">
+                Echipa asignată acestei companii
+              </h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                {companyAssignments.length} {companyAssignments.length === 1 ? "membru asignat" : "membri asignați"} pentru această companie
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-12">
