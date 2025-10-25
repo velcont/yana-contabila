@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ export const CRMMessagingManager = () => {
   const [messageText, setMessageText] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -312,12 +313,30 @@ export const CRMMessagingManager = () => {
 
             <div className="space-y-2">
               <Label>Atașamente (opțional)</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingFiles}
+                >
+                  <Paperclip className="h-4 w-4" />
+                  Atașează fișiere
+                </Button>
+                {attachments.length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {attachments.length} selectate
+                  </span>
+                )}
+              </div>
               <Input
+                ref={fileInputRef}
                 type="file"
                 multiple
                 onChange={(e) => {
                   const files = Array.from(e.target.files || []);
-                  
                   // Validation: max 10MB per file
                   const invalidFiles = files.filter(f => f.size > 10 * 1024 * 1024);
                   if (invalidFiles.length > 0) {
@@ -328,11 +347,11 @@ export const CRMMessagingManager = () => {
                     });
                     return;
                   }
-                  
                   setAttachments(files);
                 }}
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
                 disabled={uploadingFiles}
+                className="hidden"
               />
               {attachments.length > 0 && (
                 <div className="text-sm text-muted-foreground">
