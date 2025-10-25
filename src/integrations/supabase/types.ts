@@ -986,6 +986,54 @@ export type Database = {
           },
         ]
       }
+      company_team_assignments: {
+        Row: {
+          accountant_id: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          role_on_company: string
+          team_member_id: string
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role_on_company: string
+          team_member_id: string
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role_on_company?: string
+          team_member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_team_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_team_assignments_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_history: {
         Row: {
           content: string
@@ -1655,6 +1703,60 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      monthly_company_workflows: {
+        Row: {
+          accountant_id: string
+          company_id: string
+          created_at: string
+          id: string
+          month_year: string
+          overall_status: string
+          progress_percent: number
+          stages: Json
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          month_year: string
+          overall_status?: string
+          progress_percent?: number
+          stages?: Json
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          month_year?: string
+          overall_status?: string
+          progress_percent?: number
+          stages?: Json
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_company_workflows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_company_workflows_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_workflow_instances: {
         Row: {

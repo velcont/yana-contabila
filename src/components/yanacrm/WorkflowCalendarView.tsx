@@ -10,7 +10,11 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { MonthlyWorkflowStageDialog } from "./MonthlyWorkflowStageDialog";
 import { Badge } from "@/components/ui/badge";
 
-export const WorkflowCalendarView = () => {
+interface WorkflowCalendarViewProps {
+  selectedCompanyId?: string;
+}
+
+export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCalendarViewProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -20,11 +24,11 @@ export const WorkflowCalendarView = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedStage, setSelectedStage] = useState<any>(null);
 
-  // Fetch workflows pentru luna selectată
+  // Fetch workflows pentru luna selectată (filtrate după companie)
   const { data: workflows, isLoading } = useQuery({
-    queryKey: ["monthly-workflows", selectedMonth, user?.id],
+    queryKey: ["monthly-workflows", selectedMonth, selectedCompanyId, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("monthly_workflow_instances")
         .select(`
           *,
@@ -34,8 +38,14 @@ export const WorkflowCalendarView = () => {
             workflow_team_members(member_name, member_email)
           )
         `)
-        .eq("month_year", selectedMonth)
-        .order("created_at", { ascending: false });
+        .eq("month_year", selectedMonth);
+
+      // Filter by company if not "all"
+      if (selectedCompanyId !== "all") {
+        query = query.eq("company_id", selectedCompanyId);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
@@ -43,14 +53,21 @@ export const WorkflowCalendarView = () => {
     enabled: !!user,
   });
 
-  // Fetch toate companiile pentru create bulk
+  // Fetch companiile pentru create bulk (filtrate sau toate)
   const { data: companies } = useQuery({
-    queryKey: ["accountant-companies", user?.id],
+    queryKey: ["accountant-companies", selectedCompanyId, user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("companies")
         .select("id, company_name")
         .eq("managed_by_accountant_id", user!.id);
+
+      // Filter by company if specific company selected
+      if (selectedCompanyId !== "all") {
+        query = query.eq("id", selectedCompanyId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data;

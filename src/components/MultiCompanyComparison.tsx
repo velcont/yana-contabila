@@ -36,6 +36,15 @@ export const MultiCompanyComparison = () => {
         console.warn('Auto-linking skipped:', linkError);
       }
 
+      // Backfill metadata pentru analizele cu metadata lipsă
+      try {
+        await supabase.functions.invoke('backfill-analysis-metadata', {
+          body: { userId: user.id }
+        });
+      } catch (backfillError) {
+        console.warn('Backfill skipped:', backfillError);
+      }
+
       const { data: companies, error: companiesError } = await supabase
         .from('companies')
         .select('id, company_name')
@@ -50,23 +59,25 @@ export const MultiCompanyComparison = () => {
       }
 
       const analyticsPromises = companies.map(async (company) => {
-        const { data: analyses } = await supabase
+        const { data: analysisData } = await supabase
           .from('analyses')
           .select('metadata, created_at')
           .eq('company_id', company.id)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
 
-        if (analyses && analyses.metadata) {
-          const meta = analyses.metadata as any;
+        if (analysisData && analysisData.length > 0) {
+          const latestAnalysis = analysisData[0];
+          const metadata = latestAnalysis.metadata as any || {};
+
           return {
+            id: company.id,
             name: company.company_name,
-            profit: meta.profit || 0,
-            ca: meta.ca || 0,
-            dso: meta.dso || 0,
-            ebitda: meta.ebitda || 0,
-            lastUpdate: analyses.created_at
+            profit: metadata.profit || 0,
+            ca: metadata.ca || metadata.revenue || 0, // Map revenue to CA
+            dso: metadata.dso || 0,
+            ebitda: metadata.ebitda || 0,
+            hasMetadata: Object.keys(metadata).length > 0,
           };
         }
         return null;
@@ -139,6 +150,44 @@ export const MultiCompanyComparison = () => {
 
   return (
     <div className="space-y-6">
+      {/* Company Cards with metadata status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        {companyData.map((company) => (
+          <Card key={company.id} className="p-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">{company.name}</h3>
+                {!company.hasMetadata && (
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 text-xs rounded">
+                    ⚠️ Metadate incomplete
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Profit Net:</span>
+                  <span className="font-medium">
+                    {company.hasMetadata ? `${company.profit.toLocaleString()} RON` : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cifră Afaceri:</span>
+                  <span className="font-medium">
+                    {company.hasMetadata ? `${company.ca.toLocaleString()} RON` : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">DSO:</span>
+                  <span className="font-medium">
+                    {company.hasMetadata ? `${company.dso} zile` : 'N/A'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
       {aggregateStats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>

@@ -22,13 +22,19 @@ const ROLE_OPTIONS = [
   { value: "declarations_accountant", label: "Contabil Declarații" },
 ];
 
-export const WorkflowTeamManager = () => {
+interface WorkflowTeamManagerProps {
+  selectedCompanyId?: string;
+}
+
+export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamManagerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningMember, setAssigningMember] = useState<any>(null);
 
   const [memberName, setMemberName] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
@@ -150,7 +156,14 @@ export const WorkflowTeamManager = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Echipa Mea</h3>
+        <div>
+          <h3 className="text-lg font-semibold">Echipa Mea</h3>
+          {selectedCompanyId !== "all" && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Vizualizare filtrată pentru compania selectată
+            </p>
+          )}
+        </div>
         <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
           Adaugă Membru Nou
