@@ -76,32 +76,53 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
     setCifError(null);
     setAnafData(null);
     
+    console.log('🔍 Fetching data for CIF:', cif);
+    
     try {
       const { data, error } = await supabase.functions.invoke('fetch-company-data', {
         body: { cif: cif.replace(/\s/g, '').toUpperCase() }
       });
+
+      console.log('📦 Response:', { data, error });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
       
       if (data?.found) {
+        console.log('✅ Data fetched successfully from:', data.source);
         setAnafData(data);
         setCifError(null);
         
         toast({
-          title: "✓ Date preluate din ANAF",
-          description: `Firma ${data.company_name} a fost găsită`,
+          title: `✓ Date preluate cu succes`,
+          description: `Firma ${data.company_name} găsită prin ${data.source}`,
         });
         
         // Auto-expand next step
         setCurrentStep(["step1", "step2"]);
       } else {
+        console.error('❌ API error:', data?.error, data?.details);
         setCifError(data?.error || "CIF invalid sau firmă neînregistrată");
         setAnafData(null);
+        
+        toast({
+          title: "Eroare la verificarea CIF-ului", 
+          description: `${data?.error || 'CIF invalid'}. ${data?.details ? `Surse încercate: ${data.details.length}` : ''}`,
+          variant: "destructive" 
+        });
       }
-    } catch (error) {
-      console.error('Error fetching CIF:', error);
-      setCifError("Eroare la verificarea CIF-ului în baza ANAF");
+    } catch (error: any) {
+      console.error('💥 Fatal error:', error);
+      setCifError("Eroare la verificarea CIF-ului");
       setAnafData(null);
+      
+      toast({
+        title: "Eroare", 
+        description: "Nu s-au putut prelua datele firmei. Verifică console pentru detalii.",
+        variant: "destructive" 
+      });
     } finally {
       setIsFetchingCIF(false);
     }
