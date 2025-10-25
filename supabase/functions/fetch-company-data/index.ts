@@ -46,59 +46,90 @@ interface CompanyData {
 
 // Method 1: OpenAPI.ro - Free and stable JSON API
 async function fetchFromOpenAPI(cui: string): Promise<CompanyData> {
-  try {
-    const url = `https://api.openapi.ro/api/companies/${cui}`;
-    console.log(`🔍 Calling OpenAPI.ro: ${url}`);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      },
-      signal: AbortSignal.timeout(10000)
-    });
+  // Try different CUI formats
+  const formats = [
+    cui,                    // Plain CUI: 32243431
+    `RO${cui}`,            // With RO prefix: RO32243431
+  ];
 
-    console.log(`📊 OpenAPI response status: ${response.status}`);
+  for (const format of formats) {
+    try {
+      const url = `https://api.openapi.ro/api/companies/${format}`;
+      console.log(`🔍 Calling OpenAPI.ro: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
 
-    if (!response.ok) {
-      throw new Error(`OpenAPI returned status ${response.status}`);
+      console.log(`📊 OpenAPI response status: ${response.status} for format: ${format}`);
+
+      if (!response.ok) {
+        // Log response body for debugging
+        const errorText = await response.text();
+        console.log(`📋 OpenAPI error response: ${errorText.substring(0, 500)}`);
+        
+        if (response.status === 400) {
+          console.log(`⚠️ Bad request for format ${format}, trying next format...`);
+          continue; // Try next format
+        }
+        
+        throw new Error(`OpenAPI returned status ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error(`❌ OpenAPI returned ${contentType} instead of JSON`);
+        continue;
+      }
+
+      const data = await response.json();
+      console.log('📦 OpenAPI raw data:', JSON.stringify(data));
+
+      // Validate data structure
+      if (!data || typeof data !== 'object') {
+        console.error('❌ Invalid data structure from OpenAPI:', data);
+        continue;
+      }
+
+      if (!data.denumire && !data.name) {
+        console.error('❌ Company name not found in OpenAPI response');
+        continue;
+      }
+
+      // Format data for application
+      const companyData: CompanyData = {
+        source: 'OpenAPI.ro',
+        company_name: data.denumire || data.name || '',
+        cui: data.cif || data.cui || cui,
+        registration_number: data.numar_reg_com || data.nrRegCom || '',
+        address: data.adresa || data.address || '',
+        vat_payer: data.tva === 'DA' || data.tva === 'Platitor TVA' || data.platitor_tva === true,
+        phone: data.telefon || data.phone || '',
+        email: data.email || '',
+        caen_code: data.cod_caen || data.caen || '',
+        status: data.stare || data.status || 'ACTIVA',
+        found: true
+      };
+
+      console.log('✅ OpenAPI formatted data:', companyData);
+      return companyData;
+
+    } catch (error: any) {
+      console.error(`❌ OpenAPI failed for format ${format}:`, error.message);
+      if (format === formats[formats.length - 1]) {
+        // Last format failed, throw error
+        throw error;
+      }
+      // Try next format
     }
-
-    const data = await response.json();
-    console.log('📦 OpenAPI raw data:', JSON.stringify(data).substring(0, 300));
-
-    // Validate data structure
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid data structure from OpenAPI');
-    }
-
-    if (!data.denumire && !data.name) {
-      throw new Error('Company name not found in OpenAPI response');
-    }
-
-    // Format data for application
-    const companyData: CompanyData = {
-      source: 'OpenAPI.ro',
-      company_name: data.denumire || data.name || '',
-      cui: data.cif || data.cui || cui,
-      registration_number: data.numar_reg_com || data.nrRegCom || '',
-      address: data.adresa || data.address || '',
-      vat_payer: data.tva === 'DA' || data.tva === 'Platitor TVA' || data.platitor_tva === true,
-      phone: data.telefon || data.phone || '',
-      email: data.email || '',
-      caen_code: data.cod_caen || data.caen || '',
-      status: data.stare || data.status || 'ACTIVA',
-      found: true
-    };
-
-    console.log('✅ OpenAPI formatted data:', companyData);
-    return companyData;
-
-  } catch (error: any) {
-    console.error('❌ OpenAPI failed:', error.message);
-    throw error;
   }
+
+  throw new Error('All OpenAPI formats failed');
 }
 
 // Method 2: ANAF API with optimized headers
@@ -126,17 +157,28 @@ async function fetchFromANAF(cui: string): Promise<CompanyData> {
     console.log(`📊 ANAF response status: ${response.status}`);
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`📋 ANAF error response: ${errorText.substring(0, 500)}`);
       throw new Error(`ANAF returned status ${response.status}`);
     }
 
     const data: ANAFResponse = await response.json();
-    console.log('📦 ANAF raw data:', JSON.stringify(data).substring(0, 300));
+    console.log('📦 ANAF raw data:', JSON.stringify(data));
+
+    // Check if company was not found
+    if (data.notfound && data.notfound.length > 0) {
+      console.log('⚠️ ANAF notfound:', data.notfound);
+      throw new Error('Firmă negăsită în baza ANAF');
+    }
 
     if (!data.found || data.found.length === 0) {
+      console.log('⚠️ ANAF found array is empty');
       throw new Error('Firmă negăsită în baza ANAF');
     }
 
     const company = data.found[0];
+    console.log('📋 ANAF company object:', JSON.stringify(company));
+    
     const dateGenerale = company.date_generale || {};
     const inregistrare_scop_Tva = company.inregistrare_scop_Tva;
     
