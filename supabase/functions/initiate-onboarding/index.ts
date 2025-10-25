@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,84 +72,101 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Created progress entries for", progressEntries.length, "steps");
 
-    // 3. Send welcome email with onboarding link
+    // 3. Send welcome email with onboarding link using Resend API
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const appUrl = Deno.env.get("APP_URL") || "https://yana-crm.lovable.app";
     const onboardingLink = `${appUrl}/client-onboarding/${process.id}`;
 
-    try {
-      const emailResponse = await resend.emails.send({
-        from: "YanaCRM <onboarding@resend.dev>",
-        to: [client_email],
-        subject: "Bun venit în YanaCRM! Completează procesul de onboarding",
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background-color: #4F46E5; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-                .button { 
-                  display: inline-block; 
-                  background-color: #4F46E5; 
-                  color: white; 
-                  padding: 12px 30px; 
-                  text-decoration: none; 
-                  border-radius: 6px; 
-                  margin: 20px 0;
-                }
-                .steps { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-                .step { margin: 10px 0; padding-left: 25px; position: relative; }
-                .step:before { 
-                  content: "✓"; 
-                  position: absolute; 
-                  left: 0; 
-                  color: #4F46E5; 
-                  font-weight: bold; 
-                }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>Bun venit în YanaCRM!</h1>
-                </div>
-                <div class="content">
-                  <p>Salut!</p>
-                  <p>Contabilul tău te-a adăugat în platformă YanaCRM. Pentru a finaliza configurarea contului, te rugăm să completezi procesul de onboarding.</p>
-                  
-                  <div class="steps">
-                    <h3>Ce urmează:</h3>
-                    ${process.steps.map((step: any) => 
-                      `<div class="step">${step.title}</div>`
-                    ).join('')}
+    if (resendApiKey) {
+      try {
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: "YanaCRM <onboarding@resend.dev>",
+            to: [client_email],
+            subject: "Bun venit în YanaCRM! Completează procesul de onboarding",
+            html: `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta charset="utf-8">
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #4F46E5; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                    .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                    .button { 
+                      display: inline-block; 
+                      background-color: #4F46E5; 
+                      color: white; 
+                      padding: 12px 30px; 
+                      text-decoration: none; 
+                      border-radius: 6px; 
+                      margin: 20px 0;
+                    }
+                    .steps { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+                    .step { margin: 10px 0; padding-left: 25px; position: relative; }
+                    .step:before { 
+                      content: "✓"; 
+                      position: absolute; 
+                      left: 0; 
+                      color: #4F46E5; 
+                      font-weight: bold; 
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>Bun venit în YanaCRM!</h1>
+                    </div>
+                    <div class="content">
+                      <p>Salut!</p>
+                      <p>Contabilul tău te-a adăugat în platformă YanaCRM. Pentru a finaliza configurarea contului, te rugăm să completezi procesul de onboarding.</p>
+                      
+                      <div class="steps">
+                        <h3>Ce urmează:</h3>
+                        ${process.steps.map((step: any) => 
+                          `<div class="step">${step.title}</div>`
+                        ).join('')}
+                      </div>
+
+                      <p style="text-align: center;">
+                        <a href="${onboardingLink}" class="button">Începe Onboarding-ul</a>
+                      </p>
+
+                      <p style="color: #666; font-size: 14px;">
+                        Dacă butonul de mai sus nu funcționează, copiază și lipește acest link în browser:<br>
+                        <a href="${onboardingLink}">${onboardingLink}</a>
+                      </p>
+
+                      <p>Ai nevoie de ajutor? Contactează-ne oricând!</p>
+                      
+                      <p>Cu stimă,<br>Echipa YanaCRM</p>
+                    </div>
                   </div>
+                </body>
+              </html>
+            `,
+          })
+        });
 
-                  <p style="text-align: center;">
-                    <a href="${onboardingLink}" class="button">Începe Onboarding-ul</a>
-                  </p>
-
-                  <p style="color: #666; font-size: 14px;">
-                    Dacă butonul de mai sus nu funcționează, copiază și lipește acest link în browser:<br>
-                    <a href="${onboardingLink}">${onboardingLink}</a>
-                  </p>
-
-                  <p>Ai nevoie de ajutor? Contactează-ne oricând!</p>
-                  
-                  <p>Cu stimă,<br>Echipa YanaCRM</p>
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-
-      console.log("Welcome email sent successfully:", emailResponse);
-    } catch (emailError: any) {
-      console.error("Error sending welcome email:", emailError);
-      // Don't fail the entire process if email fails
+        if (emailResponse.ok) {
+          console.log("Welcome email sent successfully");
+        } else {
+          const errorData = await emailResponse.text();
+          console.error("Error sending welcome email:", errorData);
+        }
+      } catch (emailError: any) {
+        console.error("Error sending welcome email:", emailError);
+        // Don't fail the entire process if email fails
+      }
+    } else {
+      console.log("Resend API key not configured, skipping welcome email");
     }
 
     return new Response(

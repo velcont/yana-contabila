@@ -104,3 +104,6 @@ verify_jwt = false
 
 [functions.initiate-onboarding]
 verify_jwt = false
+
+[functions.fetch-company-data]
+verify_jwt = true
