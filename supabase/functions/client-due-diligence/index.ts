@@ -105,15 +105,15 @@ async function performDueDiligence(cif: string, companyName: string): Promise<Ve
     findings.push({
       type: "critical",
       category: "legal",
-      message: "CUI invalid sau inactiv în registrul ANAF",
-      source: "ANAF API"
+      message: `CUI invalid sau inexistent în registrul ANAF (CIF verificat: ${cleanCif})`,
+      source: "ANAF API - Informații Generale"
     });
   } else {
     findings.push({
       type: "info",
       category: "legal",
-      message: `CUI valid: RO${cleanCif} - Status: ${anafResult.isActive ? 'ACTIV' : 'INACTIV'}`,
-      source: "ANAF API",
+      message: `CUI valid: RO${cleanCif} - Status: ${anafResult.companyStatus || (anafResult.isActive ? 'ACTIV' : 'INACTIV')}`,
+      source: "ANAF API - Informații Generale",
       link: `https://www.anaf.ro`
     });
 
@@ -122,7 +122,7 @@ async function performDueDiligence(cif: string, companyName: string): Promise<Ve
       findings.push({
         type: "critical",
         category: "legal",
-        message: "Compania este INACTIVĂ în registrul ANAF",
+        message: `Compania are status: ${anafResult.companyStatus || 'INACTIV'} în registrul ANAF`,
         source: "ANAF API"
       });
     }
@@ -188,8 +188,8 @@ async function checkANAF(cif: string): Promise<{
   registrationDate?: string;
 }> {
   try {
-    // ANAF Public API
-    const response = await fetch('https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva', {
+    // ANAF Public API - Informații generale (nu doar TVA)
+    const response = await fetch('https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/info', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify([{ cui: parseInt(cif) }])
@@ -201,18 +201,35 @@ async function checkANAF(cif: string): Promise<{
     }
 
     const data = await response.json();
+    console.log('ANAF Response for CIF', cif, ':', JSON.stringify(data, null, 2));
+    
     const companyData = data?.found?.[0];
 
     if (!companyData) {
+      // Verifică și în lista "notfound"
+      const notFound = data?.notfound?.[0];
+      if (notFound) {
+        console.log('Company not found in ANAF registry:', notFound);
+        return { 
+          valid: false, 
+          isActive: false,
+          companyStatus: 'NU EXISTĂ ÎN REGISTRUL ANAF'
+        };
+      }
       return { valid: false, isActive: false };
     }
 
+    // Status firmă: verificăm câmpul "stare"
+    // Valori posibile: "ACTIVA", "INACTIVA", "DIZOLVATA", "RADIATA"
+    const isActive = companyData.stare === 'ACTIVA';
+    
     return {
       valid: true,
-      isActive: companyData.scpTVA !== false,
-      administrator: companyData.adresa_sediu_social || undefined,
-      companyStatus: companyData.statusInregistrareScpTVA ? 'ACTIV' : 'INACTIV',
-      registrationDate: companyData.data_inregistrare_scpTVA || undefined
+      isActive: isActive,
+      capitalSocial: companyData.capitalSocial || undefined,
+      administrator: companyData.adresa || undefined,
+      companyStatus: companyData.stare || 'NECUNOSCUT',
+      registrationDate: companyData.dataInregistrare || undefined
     };
 
   } catch (error) {
