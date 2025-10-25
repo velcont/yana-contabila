@@ -70,6 +70,12 @@ export const MultiCompanyComparison = () => {
           const latestAnalysis = analysisData[0];
           const metadata = latestAnalysis.metadata as any || {};
 
+          // Validare metadata: trebuie să aibă cel puțin un indicator > 0 SAU cel puțin 3 indicatori != 0
+          const values = Object.values(metadata).filter(v => typeof v === 'number');
+          const hasPositive = values.some(v => v > 0);
+          const nonZeroCount = values.filter(v => v !== 0).length;
+          const hasValidMetadata = hasPositive || nonZeroCount >= 3;
+
           return {
             id: company.id,
             name: company.company_name,
@@ -77,7 +83,7 @@ export const MultiCompanyComparison = () => {
             ca: metadata.ca || metadata.revenue || 0, // Map revenue to CA
             dso: metadata.dso || 0,
             ebitda: metadata.ebitda || 0,
-            hasMetadata: Object.keys(metadata).length > 0,
+            hasMetadata: hasValidMetadata,
           };
         }
         return null;

@@ -104,12 +104,87 @@ export const WorkflowTemplateManager = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workflow-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["default-template"] });
       toast({
         title: editingTemplate ? "✅ Șablon actualizat" : "✅ Șablon creat",
         description: "Șablonul a fost salvat cu succes.",
       });
       resetForm();
       setDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create default template mutation
+  const createDefaultTemplate = useMutation({
+    mutationFn: async () => {
+      const defaultStages = [
+        {
+          stage_number: 1,
+          stage_name: "PRIMIRE DOCUMENTE",
+          default_responsible_role: "receptionist",
+          estimated_days: 1,
+          start_message: "Preia actele de la client",
+          end_message: "Firma {company_name} a predat actele pentru {month_year}",
+        },
+        {
+          stage_number: 2,
+          stage_name: "INTRODUCERE ACTE PRIMARE",
+          default_responsible_role: "junior_accountant",
+          estimated_days: 3,
+          start_message: "Am început să introduc actele pe {month_year}",
+          end_message: "Am terminat actele primare pe {month_year}",
+        },
+        {
+          stage_number: 3,
+          stage_name: "SALARIZARE (HR)",
+          default_responsible_role: "hr_accountant",
+          estimated_days: 2,
+          start_message: "Am început să lucrez la contabilitatea RU pentru {month_year}",
+          end_message: "Am terminat salarizarea pentru {month_year}",
+        },
+        {
+          stage_number: 4,
+          stage_name: "VERIFICARE BALANȚĂ",
+          default_responsible_role: "senior_accountant",
+          estimated_days: 2,
+          start_message: "Am început să verific balanța pentru {month_year}",
+          end_message: "Am verificat balanța și închis dosarul {month_year}",
+        },
+        {
+          stage_number: 5,
+          stage_name: "DECLARAȚII",
+          default_responsible_role: "declarations_accountant",
+          estimated_days: 2,
+          start_message: "Am început să redactez declarațiile pentru {month_year}",
+          end_message: "Am depus declarațiile pentru {month_year}",
+        },
+      ];
+
+      const { error } = await supabase
+        .from("monthly_workflow_templates")
+        .insert({
+          accountant_id: user!.id,
+          template_name: "Proces Standard Lunar 2025",
+          is_default: true,
+          stages: defaultStages,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workflow-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["default-template"] });
+      toast({
+        title: "✅ Șablon default creat!",
+        description: "Șablonul standard cu 5 etape a fost creat cu succes.",
+      });
     },
     onError: (error: any) => {
       toast({
@@ -179,10 +254,26 @@ export const WorkflowTemplateManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Șabloane Workflow</h3>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4 mr-2" />
-          Creează Șablon Nou
-        </Button>
+        <div className="flex gap-2">
+          {(!templates || !templates.some(t => t.is_default)) && (
+            <Button 
+              onClick={() => createDefaultTemplate.mutate()}
+              disabled={createDefaultTemplate.isPending}
+              variant="secondary"
+            >
+              {createDefaultTemplate.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Star className="h-4 w-4 mr-2" />
+              )}
+              Creează Șablon Default
+            </Button>
+          )}
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Creează Șablon Nou
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -234,11 +325,24 @@ export const WorkflowTemplateManager = () => {
       ) : (
         <Card className="p-12">
           <div className="text-center space-y-4">
-            <p className="text-muted-foreground">Nu există șabloane create.</p>
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Creează primul șablon
-            </Button>
+            <p className="text-lg font-medium">🔧 Nu există șabloane create</p>
+            <p className="text-muted-foreground">
+              Pentru a crea workflow-uri lunare, trebuie să ai cel puțin un șablon (de preferință marcat ca default).
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => createDefaultTemplate.mutate()} disabled={createDefaultTemplate.isPending}>
+                {createDefaultTemplate.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Star className="h-4 w-4 mr-2" />
+                )}
+                Creează Șablon Default
+              </Button>
+              <Button onClick={openCreateDialog} variant="outline">
+                <Plus className="h-4 w-4 mr-2" />
+                Creează Șablon Custom
+              </Button>
+            </div>
           </div>
         </Card>
       )}

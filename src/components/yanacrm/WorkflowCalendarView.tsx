@@ -294,6 +294,24 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
             </p>
           </div>
         </Card>
+      ) : !defaultTemplate ? (
+        <Card className="p-12">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>⚠️ Nu există șablon default!</strong> Trebuie să creezi mai întâi un șablon default pentru a putea genera workflow-uri.
+            </AlertDescription>
+          </Alert>
+          <div className="text-center space-y-4">
+            <p className="text-lg font-medium">🔧 Lipsește șablonul default</p>
+            <p className="text-muted-foreground">
+              Pentru a crea workflow-uri lunare, trebuie să ai un șablon default cu etapele procesului tău standard.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Mergi la tab-ul <strong>"Șabloane"</strong> și creează sau activează un șablon default.
+            </p>
+          </div>
+        </Card>
       ) : isLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />

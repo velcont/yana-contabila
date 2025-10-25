@@ -1264,19 +1264,28 @@ serve(async (req) => {
     // Adaugă warnings la sfârșitul analizei dacă există
     if (validationWarnings.length > 0) {
       const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
+      
+      // Validare metadata: trebuie să aibă cel puțin un indicator > 0 SAU cel puțin 3 indicatori != 0
+      const metadataValues = Object.values(finalMetadata).filter(v => typeof v === 'number');
+      const hasValidData = metadataValues.some(v => v > 0) || metadataValues.filter(v => v !== 0).length >= 3;
+      
       return new Response(
         JSON.stringify({ 
           analysis: analysis + warningsSection,
-          metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
+          metadata: hasValidData ? finalMetadata : null
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    // Validare metadata: trebuie să aibă cel puțin un indicator > 0 SAU cel puțin 3 indicatori != 0
+    const metadataValues = Object.values(finalMetadata).filter(v => typeof v === 'number');
+    const hasValidData = metadataValues.some(v => v > 0) || metadataValues.filter(v => v !== 0).length >= 3;
+    
     return new Response(
       JSON.stringify({ 
         analysis,
-        metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
+        metadata: hasValidData ? finalMetadata : null
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
