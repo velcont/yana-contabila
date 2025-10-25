@@ -37,15 +37,25 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Check if requesting user is accountant
+    // Check if requesting user is allowed (accountant or admin)
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('subscription_type')
       .eq('id', requestingUser.id)
       .single();
 
-    if (profile?.subscription_type !== 'accounting_firm') {
-      throw new Error('Only accountants can create manual clients');
+    // Check admin role via RPC
+    const { data: isAdminRes, error: roleErr } = await supabaseAdmin.rpc('has_role', {
+      _user_id: requestingUser.id,
+      _role: 'admin'
+    });
+    if (roleErr) {
+      console.error('Error checking admin role:', roleErr);
+    }
+    const isAdmin = Boolean(isAdminRes);
+
+    if (profile?.subscription_type !== 'accounting_firm' && !isAdmin) {
+      throw new Error('Only accountants or admins can create manual clients');
     }
 
     const { 
