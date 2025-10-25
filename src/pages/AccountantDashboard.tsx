@@ -43,6 +43,7 @@ import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
 import { CRMCSVImport } from '@/components/CRMCSVImport';
 import { ServiceMarketplace } from '@/components/yanacrm/ServiceMarketplace';
 import { OnboardingTracker } from '@/components/yanacrm/OnboardingTracker';
+import { MonthlyWorkflowManager } from '@/components/yanacrm/MonthlyWorkflowManager';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -284,7 +285,7 @@ const AccountantDashboard = () => {
           </div>
 
         <Tabs defaultValue="clients" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="clients">
               <Building2 className="mr-2 h-4 w-4" />
               Clienți
@@ -320,6 +321,10 @@ const AccountantDashboard = () => {
             <TabsTrigger value="onboarding">
               <UserCheck className="mr-2 h-4 w-4" />
               Onboarding
+            </TabsTrigger>
+            <TabsTrigger value="workflows">
+              <Calendar className="mr-2 h-4 w-4" />
+              Dosare Lunare
             </TabsTrigger>
           </TabsList>
 
@@ -731,6 +736,10 @@ const AccountantDashboard = () => {
 
           <TabsContent value="onboarding">
             <OnboardingTracker />
+          </TabsContent>
+
+          <TabsContent value="workflows" className="space-y-6">
+            <MonthlyWorkflowManager />
           </TabsContent>
         </Tabs>
 
