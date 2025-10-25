@@ -126,7 +126,7 @@ serve(async (req) => {
       }
     }
 
-    // Create company
+    // Create or attach company to accountant
     const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
@@ -134,13 +134,14 @@ serve(async (req) => {
         managed_by_accountant_id: requestingUser.id,
         company_name: companyName,
         cui: cui || null,
+        registration_number: taxType ? null : null, // keep null if not provided in payload
         contact_person: contactPerson || fullName,
         contact_email: email,
-        contact_phone: phone || null,
+        phone: phone || null,
         address: address || null,
         tax_type: taxType || 'micro',
         notes: notes || null,
-        vat_regime: vatPayer ? 'monthly' : 'none'
+        vat_payer: Boolean(vatPayer)
       })
       .select()
       .single();
