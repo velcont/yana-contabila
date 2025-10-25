@@ -54,8 +54,8 @@ async function fetchFromTargetare(cui: string): Promise<CompanyData> {
   }
 
   try {
-    // Targetare.ro API endpoint (most common pattern for Romanian company APIs)
-    const url = `https://api.targetare.ro/v1/company/${cui}`;
+    // Targetare.ro API endpoint - documented at https://api.targetare.ro/
+    const url = `https://api.targetare.ro/v1/companies/${cui}`;
     console.log(`🔍 Calling Targetare.ro: ${url}`);
     
     const response = await fetch(url, {
@@ -86,30 +86,26 @@ async function fetchFromTargetare(cui: string): Promise<CompanyData> {
     const data = await response.json();
     console.log('📦 Targetare raw data:', JSON.stringify(data).substring(0, 500));
 
-    // Handle different possible response structures
-    const companyInfo = data.data || data.company || data;
-    
-    if (!companyInfo || typeof companyInfo !== 'object') {
-      console.error('❌ Invalid data structure from Targetare:', data);
-      throw new Error('Invalid data structure');
+    // Targetare API response structure: { success: true, data: {...} }
+    if (!data.success || !data.data) {
+      console.error('❌ Invalid response structure from Targetare:', data);
+      throw new Error('Invalid response structure');
     }
 
-    // Extract company data (adapting to common Romanian API patterns)
+    const companyInfo = data.data;
+
+    // Extract company data based on Targetare API structure
     const companyData: CompanyData = {
       source: 'Targetare.ro',
-      company_name: companyInfo.denumire || companyInfo.name || companyInfo.nume || '',
-      cui: companyInfo.cui || companyInfo.cif || companyInfo.codFiscal || cui,
-      registration_number: companyInfo.nrRegCom || companyInfo.numar_reg_com || companyInfo.registrationNumber || '',
-      address: companyInfo.adresa || companyInfo.address || '',
-      vat_payer: companyInfo.platitor_tva === true || 
-                 companyInfo.tva === 'DA' || 
-                 companyInfo.tva === true ||
-                 companyInfo.vatPayer === true ||
-                 companyInfo.scpTVA === true,
-      phone: companyInfo.telefon || companyInfo.phone || '',
-      email: companyInfo.email || '',
-      caen_code: companyInfo.caen || companyInfo.cod_caen || companyInfo.caenCode || '',
-      status: companyInfo.stare || companyInfo.status || 'ACTIVA',
+      company_name: companyInfo.companyName || '',
+      cui: companyInfo.taxId || cui,
+      registration_number: companyInfo.companyId || '',
+      address: companyInfo.fullAddress || '',
+      vat_payer: companyInfo.VAT === true || companyInfo.checkoutVAT === true,
+      phone: companyInfo.hasPhone ? '(disponibil prin API separat)' : '',
+      email: companyInfo.hasEmail ? '(disponibil prin API separat)' : '',
+      caen_code: Array.isArray(companyInfo.caen) ? companyInfo.caen[companyInfo.caen.length - 1] : '',
+      status: companyInfo.status === 'functiune' ? 'ACTIVA' : companyInfo.status?.toUpperCase() || 'NECUNOSCUT',
       found: true
     };
 
