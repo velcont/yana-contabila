@@ -63,47 +63,62 @@ serve(async (req) => {
 
     // Removed redundant initial ANAF fetch (using robust fallback block below)
 
-    // Call ANAF OpenAPI with fallbacks and robust parsing
-    const urls = [
-      'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva',
-      'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva/'
-    ];
+    // Call ANAF OpenAPI with enhanced headers and retry logic
+    const currentDate = new Date().toISOString().split('T')[0];
+    const requestBody = [{
+      cui: parseInt(cleanCIF, 10),
+      data: currentDate
+    }];
+
+    console.log('📤 ANAF Request Body:', JSON.stringify(requestBody));
 
     let anafData: ANAFResponse | null = null;
+    let lastError: string = '';
 
-    for (const url of urls) {
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': 'YanaCRM/1.0'
-          },
-          body: JSON.stringify([{ cui: parseInt(cleanCIF, 10), data: new Date().toISOString().split('T')[0] }])
-        });
+    // Try main endpoint with browser-like headers
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
+      const res = await fetch('https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept-Language': 'ro-RO,ro;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive'
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('🌐 ANAF Response Status:', res.status);
+      
+      if (res.ok) {
         const text = await res.text();
-        console.log('🌐 ANAF URL tried:', url, 'status:', res.status);
-
-        if (!res.ok) {
-          console.error('❌ ANAF non-200 status for', url, res.status);
-          continue; // try next URL
-        }
-
+        console.log('📦 ANAF Response (first 500 chars):', text.substring(0, 500));
+        
         try {
           anafData = JSON.parse(text);
-          console.log('📦 ANAF Full Response:', JSON.stringify(anafData, null, 2));
-        } catch (e) {
-          console.error('❌ JSON parse failed for ANAF response:', e);
-          continue; // try next URL
+          console.log('✅ ANAF Parsed Successfully');
+        } catch (parseErr) {
+          console.error('❌ JSON parse error:', parseErr);
+          lastError = 'Răspuns invalid de la ANAF (JSON parse failed)';
         }
-
-        break; // parsed successfully
-      } catch (fetchErr) {
-        console.error('❌ Fetch to ANAF failed for', url, fetchErr);
-        continue; // try next URL
+      } else {
+        const errorText = await res.text();
+        console.error('❌ ANAF HTTP Error:', res.status, errorText.substring(0, 200));
+        lastError = `ANAF API error (${res.status})`;
       }
+    } catch (fetchErr: any) {
+      console.error('❌ ANAF Fetch Error:', fetchErr.message);
+      lastError = fetchErr.name === 'AbortError' 
+        ? 'Timeout - API-ul ANAF nu răspunde' 
+        : `Eroare de conectare: ${fetchErr.message}`;
     }
 
     if (!anafData) {
