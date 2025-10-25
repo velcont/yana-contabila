@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from '../_shared/cors.ts';
 
 interface ANAFResponse {
   cod: number;
@@ -48,10 +44,11 @@ interface CompanyData {
   found: boolean;
 }
 
-// Method 1: OpenAPI.ro - Free and stable API
+// Method 1: OpenAPI.ro - Free and stable JSON API
 async function fetchFromOpenAPI(cui: string): Promise<CompanyData> {
   try {
     const url = `https://api.openapi.ro/api/companies/${cui}`;
+    console.log(`🔍 Calling OpenAPI.ro: ${url}`);
     
     const response = await fetch(url, {
       method: 'GET',
@@ -59,34 +56,47 @@ async function fetchFromOpenAPI(cui: string): Promise<CompanyData> {
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
-      signal: AbortSignal.timeout(10000) // 10s timeout
+      signal: AbortSignal.timeout(10000)
     });
 
+    console.log(`📊 OpenAPI response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`OpenAPI status: ${response.status}`);
+      throw new Error(`OpenAPI returned status ${response.status}`);
     }
 
     const data = await response.json();
-    
-    if (!data || !data.denumire) {
-      throw new Error('Date invalide de la OpenAPI');
+    console.log('📦 OpenAPI raw data:', JSON.stringify(data).substring(0, 300));
+
+    // Validate data structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid data structure from OpenAPI');
     }
 
-    return {
+    if (!data.denumire && !data.name) {
+      throw new Error('Company name not found in OpenAPI response');
+    }
+
+    // Format data for application
+    const companyData: CompanyData = {
       source: 'OpenAPI.ro',
-      company_name: data.denumire || '',
-      cui: data.cif || cui,
-      registration_number: data.numar_reg_com || '',
-      address: data.adresa || '',
-      vat_payer: data.tva === 'DA' || data.tva === true,
-      phone: data.telefon || '',
+      company_name: data.denumire || data.name || '',
+      cui: data.cif || data.cui || cui,
+      registration_number: data.numar_reg_com || data.nrRegCom || '',
+      address: data.adresa || data.address || '',
+      vat_payer: data.tva === 'DA' || data.tva === 'Platitor TVA' || data.platitor_tva === true,
+      phone: data.telefon || data.phone || '',
       email: data.email || '',
-      caen_code: data.cod_caen || '',
-      status: data.stare || 'ACTIVA',
+      caen_code: data.cod_caen || data.caen || '',
+      status: data.stare || data.status || 'ACTIVA',
       found: true
     };
-  } catch (error) {
-    console.error('❌ OpenAPI failed:', error);
+
+    console.log('✅ OpenAPI formatted data:', companyData);
+    return companyData;
+
+  } catch (error: any) {
+    console.error('❌ OpenAPI failed:', error.message);
     throw error;
   }
 }
@@ -94,38 +104,43 @@ async function fetchFromOpenAPI(cui: string): Promise<CompanyData> {
 // Method 2: ANAF API with optimized headers
 async function fetchFromANAF(cui: string): Promise<CompanyData> {
   try {
+    console.log('🔍 Calling ANAF API...');
     const url = 'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva';
     const currentDate = new Date().toISOString().split('T')[0];
+    
+    const requestBody = [{ cui: parseInt(cui.replace(/\D/g, ''), 10), data: currentDate }];
+    console.log('📤 ANAF request body:', JSON.stringify(requestBody));
     
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept-Language': 'ro-RO,ro;q=0.9,en;q=0.8',
-        'Origin': 'https://www.anaf.ro',
-        'Referer': 'https://www.anaf.ro/'
       },
-      body: JSON.stringify([{ cui: parseInt(cui.replace(/\D/g, ''), 10), data: currentDate }]),
-      signal: AbortSignal.timeout(15000) // 15s timeout
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(15000)
     });
 
+    console.log(`📊 ANAF response status: ${response.status}`);
+
     if (!response.ok) {
-      throw new Error(`ANAF status: ${response.status}`);
+      throw new Error(`ANAF returned status ${response.status}`);
     }
 
     const data: ANAFResponse = await response.json();
-    
+    console.log('📦 ANAF raw data:', JSON.stringify(data).substring(0, 300));
+
     if (!data.found || data.found.length === 0) {
-      throw new Error('Firmă negăsită în ANAF');
+      throw new Error('Firmă negăsită în baza ANAF');
     }
 
     const company = data.found[0];
     const dateGenerale = company.date_generale || {};
     const inregistrare_scop_Tva = company.inregistrare_scop_Tva;
     
-    return {
+    const companyData: CompanyData = {
       source: 'ANAF',
       company_name: dateGenerale.denumire || '',
       cui: dateGenerale.cui ? `RO${dateGenerale.cui}` : cui,
@@ -138,122 +153,74 @@ async function fetchFromANAF(cui: string): Promise<CompanyData> {
       status: dateGenerale.stare_inactiv ? 'INACTIVA' : 'ACTIVA',
       found: true
     };
-  } catch (error) {
-    console.error('❌ ANAF failed:', error);
+
+    console.log('✅ ANAF formatted data:', companyData);
+    return companyData;
+
+  } catch (error: any) {
+    console.error('❌ ANAF failed:', error.message);
     throw error;
   }
 }
 
-// Method 3: ListaFirme.ro scraping (final fallback)
-async function fetchFromListaFirme(cui: string): Promise<CompanyData> {
-  try {
-    const cleanCui = cui.replace(/\D/g, '');
-    const url = `https://www.listafirme.ro/search.aspx?q=${cleanCui}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ro-RO,ro;q=0.9'
-      },
-      signal: AbortSignal.timeout(10000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`ListaFirme status: ${response.status}`);
-    }
-
-    const html = await response.text();
-    
-    // Simple HTML parsing (for basic data)
-    const nameMatch = html.match(/<h1[^>]*>([^<]+)<\/h1>/i);
-    const addressMatch = html.match(/Adresa[:\s]*([^<]+)</i);
-    
-    if (!nameMatch) {
-      throw new Error('Nu s-au putut extrage date din ListaFirme');
-    }
-
-    return {
-      source: 'ListaFirme.ro',
-      company_name: nameMatch[1].trim(),
-      cui: cleanCui,
-      registration_number: '',
-      address: addressMatch ? addressMatch[1].trim() : '',
-      vat_payer: false,
-      phone: '',
-      email: '',
-      caen_code: '',
-      status: 'NECUNOSCUT',
-      found: true
-    };
-  } catch (error) {
-    console.error('❌ ListaFirme failed:', error);
-    throw error;
-  }
-}
-
+// Main handler with fallback cascade
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { cif } = await req.json();
+    const body = await req.json();
+    // Accept both 'cui' and 'cif' parameters
+    const cui = body.cui || body.cif;
     
-    if (!cif || cif.trim() === '') {
+    if (!cui || cui.trim() === '') {
       return new Response(
-        JSON.stringify({ error: 'CIF lipsă sau invalid', found: false }), 
+        JSON.stringify({ error: 'CUI/CIF lipsă sau invalid', found: false }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const cleanCIF = cif.toString().replace(/\D/g, '');
+    const cleanCui = cui.toString().replace(/\D/g, '');
     
-    if (cleanCIF.length < 2 || cleanCIF.length > 10) {
+    if (cleanCui.length < 2 || cleanCui.length > 10) {
       return new Response(
-        JSON.stringify({ error: 'CIF trebuie să aibă între 2 și 10 cifre', found: false }), 
+        JSON.stringify({ error: 'CUI/CIF trebuie să aibă între 2 și 10 cifre', found: false }), 
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`🔍 Căutare CIF: ${cleanCIF}`);
+    console.log(`\n🚀 Starting fetch for CUI: ${cleanCui}`);
 
     let companyData: CompanyData | null = null;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     // Try OpenAPI (most stable)
     try {
-      console.log('📡 Trying OpenAPI.ro...');
-      companyData = await fetchFromOpenAPI(cleanCIF);
-      console.log('✅ OpenAPI success');
+      console.log('\n📍 Step 1: Trying OpenAPI.ro...');
+      companyData = await fetchFromOpenAPI(cleanCui);
+      console.log('✅ SUCCESS: OpenAPI.ro');
     } catch (error: any) {
       errors.push(`OpenAPI: ${error.message}`);
-      console.log('❌ OpenAPI failed, trying ANAF...');
+      console.log('❌ FAILED: OpenAPI.ro');
+      console.log('\n📍 Step 2: Trying ANAF as fallback...');
       
       // Fallback to ANAF
       try {
-        companyData = await fetchFromANAF(cleanCIF);
-        console.log('✅ ANAF success');
+        companyData = await fetchFromANAF(cleanCui);
+        console.log('✅ SUCCESS: ANAF');
       } catch (anafError: any) {
         errors.push(`ANAF: ${anafError.message}`);
-        console.log('❌ ANAF failed, trying ListaFirme...');
-        
-        // Final fallback to ListaFirme
-        try {
-          companyData = await fetchFromListaFirme(cleanCIF);
-          console.log('✅ ListaFirme success');
-        } catch (listaError: any) {
-          errors.push(`ListaFirme: ${listaError.message}`);
-        }
+        console.log('❌ FAILED: ANAF');
       }
     }
 
     if (!companyData) {
-      console.log('❌ Toate sursele au eșuat:', errors);
+      console.error('\n❌ All sources failed. Errors:', errors);
       return new Response(
         JSON.stringify({ 
-          error: 'Nu s-au putut prelua date din nicio sursă',
+          error: 'Nu s-au putut prelua date din nicio sursă (OpenAPI și ANAF au eșuat)',
           details: errors,
           found: false
         }), 
@@ -261,7 +228,12 @@ serve(async (req) => {
       );
     }
 
-    console.log('✅ Date firmă găsite:', companyData);
+    console.log('\n✅ FINAL SUCCESS - Company data found from:', companyData.source);
+    console.log('📋 Data:', {
+      name: companyData.company_name,
+      cui: companyData.cui,
+      vat_payer: companyData.vat_payer
+    });
 
     return new Response(
       JSON.stringify(companyData), 
@@ -269,9 +241,13 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('❌ Fatal error:', error);
+    console.error('\n💥 FATAL ERROR:', error);
     return new Response(
-      JSON.stringify({ error: error.message, found: false }), 
+      JSON.stringify({ 
+        error: 'Eroare la preluarea datelor firmei',
+        details: error.message,
+        found: false
+      }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
