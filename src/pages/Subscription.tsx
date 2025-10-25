@@ -15,7 +15,115 @@ const Subscription = () => {
   
   // Only show "Active Subscription" card if user has a real Stripe subscription
   const hasStripeSubscription = accessType === 'subscription';
+  const hasFreeAccess = accessType === 'free_access';
   const [loading, setLoading] = useState<string | null>(null);
+
+  // If user already has subscription or free access, show subscription details page
+  if (hasStripeSubscription || hasFreeAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/app')}
+            className="mb-6"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Înapoi la aplicație
+          </Button>
+
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">Abonamentul Tău</h1>
+              <p className="text-muted-foreground">
+                Gestionează abonamentul și preferințele tale
+              </p>
+            </div>
+
+            <Card className="border-primary shadow-lg bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 bg-primary/20 rounded-full flex items-center justify-center">
+                    <Check className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-primary">Abonament Activ</CardTitle>
+                    <CardDescription className="text-base">
+                      {subscriptionType === 'accounting_firm' 
+                        ? 'Plan Firmă Contabilitate' 
+                        : 'Plan Antreprenor'}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-background/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Plan curent</p>
+                    <p className="text-lg font-semibold text-foreground">
+                      {subscriptionType === 'accounting_firm' 
+                        ? 'Firmă Contabilitate' 
+                        : 'Antreprenor'}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-background/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Valabil până</p>
+                    <p className="text-lg font-semibold text-foreground">
+                      {subscriptionEnd 
+                        ? new Date(subscriptionEnd).toLocaleDateString('ro-RO', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric'
+                          })
+                        : 'Nelimitat'}
+                    </p>
+                  </div>
+                </div>
+
+                {hasStripeSubscription && (
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        setLoading('manage');
+                        const { data, error } = await supabase.functions.invoke('customer-portal');
+                        if (error) throw error;
+                        if (data?.url) {
+                          window.open(data.url, '_blank');
+                        }
+                      } catch (error: any) {
+                        console.error('Error opening customer portal:', error);
+                        toast({
+                          title: 'Eroare',
+                          description: error.message || 'Nu s-a putut deschide portalul',
+                          variant: 'destructive',
+                        });
+                      } finally {
+                        setLoading(null);
+                      }
+                    }}
+                    disabled={loading === 'manage'}
+                    className="w-full"
+                  >
+                    {loading === 'manage' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Gestionează Abonament (Stripe Portal)
+                  </Button>
+                )}
+
+                {hasFreeAccess && (
+                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                    <p className="text-sm font-medium text-primary flex items-center gap-2">
+                      <Check className="h-4 w-4" />
+                      Ai acces gratuit permanent la această aplicație
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const plans = [
     {
@@ -125,43 +233,6 @@ const Subscription = () => {
             Începe cu un abonament lunar, anulează oricând
           </p>
         </div>
-
-        {hasStripeSubscription && (
-          <Card className="mb-8 border-primary shadow-lg bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-primary">
-                <Check className="h-5 w-5" />
-                Abonament Activ
-              </CardTitle>
-              <CardDescription>
-                Plan curent: <strong className="text-foreground">{subscriptionType === 'accounting_firm' ? 'Firmă Contabilitate' : 'Antreprenor'}</strong>
-                {subscriptionEnd && (
-                  <span className="block mt-1">
-                    Valabil până la: {new Date(subscriptionEnd).toLocaleDateString('ro-RO')}
-                  </span>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardFooter className="gap-2">
-              <Button
-                variant="outline"
-                onClick={handleManageSubscription}
-                disabled={loading === 'manage'}
-                className="border-primary/50 hover:bg-primary/10"
-              >
-                {loading === 'manage' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Gestionează Abonamentul
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => checkSubscription(true)}
-                className="border-primary/50 hover:bg-primary/10"
-              >
-                Verifică Status
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
 
         <div className="grid md:grid-cols-2 gap-8">
           {plans.map((plan) => {

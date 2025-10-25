@@ -106,10 +106,18 @@ export const MultiCompanyComparison = () => {
   if (!companyData.length) {
     return (
       <Card>
-        <CardContent className="py-8">
-          <p className="text-center text-muted-foreground">
-            Nu există date disponibile pentru comparație
-          </p>
+        <CardContent className="py-12 text-center space-y-4">
+          <div className="flex flex-col items-center gap-3">
+            <TrendingUp className="h-12 w-12 text-muted-foreground" />
+            <div>
+              <p className="text-lg font-medium">
+                Încă nu ai analize pentru clienții tăi
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Pentru a vedea comparații și statistici, analizează balantele clienților tăi.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
