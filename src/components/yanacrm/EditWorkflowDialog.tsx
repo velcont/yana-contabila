@@ -38,43 +38,28 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
   const [quickMemberEmail, setQuickMemberEmail] = useState("");
   const [quickMemberRole, setQuickMemberRole] = useState("Contabil");
 
-  // Fetch team members pentru asignare
-  const { data: teamMembers } = useQuery({
-    queryKey: ["team-members", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("workflow_team_members")
-        .select("*")
-        .eq("accountant_id", user!.id)
-        .eq("is_active", true)
-        .order("member_name");
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
-  // Fetch company assignments
-  const { data: companyAssignments } = useQuery({
-    queryKey: ["company-assignments", workflow.company_id],
+  // Fetch DOAR membrii asignați acestei companii
+  const { data: availableMembers } = useQuery({
+    queryKey: ["company-team-members", workflow.company_id, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("company_team_assignments")
         .select(`
-          *,
-          workflow_team_members(id, member_name, member_email, member_role)
+          team_member_id,
+          workflow_team_members(id, member_name, member_email, member_role, is_active)
         `)
         .eq("company_id", workflow.company_id)
         .eq("is_active", true);
 
       if (error) throw error;
-      return data;
-    },
-    enabled: !!workflow.company_id,
-  });
 
-  const availableMembers = companyAssignments?.map((a: any) => a.workflow_team_members) || teamMembers || [];
+      // Flatten și filtrează doar membrii activi
+      return data
+        .map((assignment: any) => assignment.workflow_team_members)
+        .filter((member: any) => member && member.is_active);
+    },
+    enabled: !!user && !!workflow.company_id,
+  });
 
   const updateWorkflow = useMutation({
     mutationFn: async () => {
@@ -371,7 +356,7 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
                       </HoverCard>
                     </div>
                     
-                    <div className="flex gap-2">
+                     <div className="flex gap-2">
                       <Select
                         value={stage.assigned_member_id || "unassigned"}
                         onValueChange={(value) =>
@@ -379,20 +364,21 @@ export const EditWorkflowDialog = ({ workflow, onClose }: EditWorkflowDialogProp
                         }
                       >
                         <SelectTrigger className="flex-1">
-                          <SelectValue placeholder={availableMembers.length === 0 ? "Nu există membri" : "Neasignat"} />
+                          <SelectValue placeholder={(availableMembers?.length || 0) === 0 ? "Nu există membri asignați" : "Neasignat"} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="unassigned">Neasignat</SelectItem>
-                          {availableMembers.length === 0 && (
+                          {(!availableMembers || availableMembers.length === 0) ? (
                             <SelectItem value="no-members" disabled>
-                              Nu există membri. Adaugă unul mai jos!
+                              ⚠️ Niciun membru asignat companiei. Mergi la tab "Echipa Client".
                             </SelectItem>
+                          ) : (
+                            availableMembers.map((member: any) => (
+                              <SelectItem key={member.id} value={member.id}>
+                                {member.member_name} - {member.member_role}
+                              </SelectItem>
+                            ))
                           )}
-                          {availableMembers.map((member: any) => (
-                            <SelectItem key={member.id} value={member.id}>
-                              {member.member_name} - {member.member_role}
-                            </SelectItem>
-                          ))}
                         </SelectContent>
                       </Select>
                       

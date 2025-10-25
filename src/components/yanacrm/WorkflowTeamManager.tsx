@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, UserX, Loader2, Users } from "lucide-react";
+import { Plus, Edit, UserX, Loader2, Users, UserX as UserMinus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -148,6 +148,75 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
     },
   });
 
+  // Assign member to company
+  const assignMember = useMutation({
+    mutationFn: async (memberId: string) => {
+      // Check dacă este deja asignat
+      const { data: existing } = await supabase
+        .from("company_team_assignments")
+        .select("id")
+        .eq("company_id", selectedCompanyId)
+        .eq("team_member_id", memberId)
+        .maybeSingle();
+
+      if (existing) {
+        throw new Error("Membrul este deja asignat acestei companii.");
+      }
+
+      const { error } = await supabase
+        .from("company_team_assignments")
+        .insert({
+          company_id: selectedCompanyId,
+          team_member_id: memberId,
+          accountant_id: user!.id,
+          role_on_company: "general",
+          is_active: true,
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-assignments"] });
+      toast({
+        title: "✅ Membru asignat",
+        description: "Membrul a fost asignat companiei cu succes.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unassign member from company
+  const unassignMember = useMutation({
+    mutationFn: async (assignmentId: string) => {
+      const { error } = await supabase
+        .from("company_team_assignments")
+        .delete()
+        .eq("id", assignmentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["company-assignments"] });
+      toast({
+        title: "✅ Membru dezasignat",
+        description: "Membrul a fost dezasignat de la companie cu succes.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetForm = () => {
     setMemberName("");
     setMemberEmail("");
@@ -174,6 +243,11 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
     return ROLE_OPTIONS.find((r) => r.value === role)?.label || role;
   };
 
+  // Filtrare membri pentru UI per companie
+  const assignedMemberIds = companyAssignments?.map((a) => a.team_member_id) || [];
+  const assignedMembers = teamMembers?.filter((m) => assignedMemberIds.includes(m.id)) || [];
+  const availableMembers = teamMembers?.filter((m) => !assignedMemberIds.includes(m.id) && m.is_active) || [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -181,7 +255,7 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
           <h3 className="text-lg font-semibold">Echipa Mea</h3>
           {selectedCompanyId !== "all" ? (
             <p className="text-sm text-muted-foreground mt-1">
-              Membri asignați pentru compania selectată
+              Gestionează echipa pentru compania selectată
             </p>
           ) : (
             <p className="text-sm text-muted-foreground mt-1">
@@ -195,86 +269,179 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
         </Button>
       </div>
 
-      {selectedCompanyId !== "all" && companyAssignments && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-          <div className="flex items-start gap-3">
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-blue-900 dark:text-blue-100">
-                Echipa asignată acestei companii
-              </h4>
-              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                {companyAssignments.length} {companyAssignments.length === 1 ? "membru asignat" : "membri asignați"} pentru această companie
-              </p>
+      {/* Secțiune asignare per companie */}
+      {selectedCompanyId !== "all" && (
+        <div className="space-y-4">
+          {/* Membri Asignați */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <h4 className="font-semibold">Membri Asignați la Companie</h4>
+                <Badge variant="secondary">{assignedMembers.length}</Badge>
+              </div>
             </div>
-          </div>
-        </Card>
-      )}
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : teamMembers && teamMembers.length > 0 ? (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nume</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Rol</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Acțiuni</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teamMembers.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.member_name}</TableCell>
-                  <TableCell>{member.member_email}</TableCell>
-                  <TableCell>{getRoleLabel(member.member_role)}</TableCell>
-                  <TableCell>
-                    {member.is_active ? (
-                      <Badge className="bg-green-500">✅ Activ</Badge>
-                    ) : (
-                      <Badge variant="secondary">⏸️ Inactiv</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
+            {assignedMembers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nu există membri asignați acestei companii.</p>
+                <p className="text-sm mt-2">Folosește secțiunea "Membri Disponibili" de mai jos pentru a asigna membri.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {assignedMembers.map((member) => {
+                  const assignment = companyAssignments?.find((a) => a.team_member_id === member.id);
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-accent/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-primary">
+                            {member.member_name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{member.member_name}</p>
+                          <p className="text-sm text-muted-foreground">{getRoleLabel(member.member_role)}</p>
+                        </div>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => openEditDialog(member)}
+                        onClick={() => assignment && unassignMember.mutate(assignment.id)}
+                        disabled={unassignMember.isPending}
                       >
-                        <Edit className="h-4 w-4" />
+                        <UserX className="h-4 w-4 mr-2" />
+                        Șterge
                       </Button>
-                      {member.is_active && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deactivateMember.mutate(member.id)}
-                        >
-                          <UserX className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      ) : (
-        <Card className="p-12">
-          <div className="text-center space-y-4">
-            <p className="text-muted-foreground">Nu există membri adăugați în echipă.</p>
-            <Button onClick={openCreateDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Adaugă primul membru
-            </Button>
-          </div>
-        </Card>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          {/* Membri Disponibili */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Plus className="h-5 w-5 text-muted-foreground" />
+                <h4 className="font-semibold">Membri Disponibili</h4>
+                <Badge variant="outline">{availableMembers.length}</Badge>
+              </div>
+            </div>
+
+            {availableMembers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nu există membri disponibili pentru asignare.</p>
+                <p className="text-sm mt-2">Toți membrii activi sunt deja asignați acestei companii.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {availableMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-sm font-semibold text-muted-foreground">
+                          {member.member_name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{member.member_name}</p>
+                        <p className="text-sm text-muted-foreground">{getRoleLabel(member.member_role)}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => assignMember.mutate(member.id)}
+                      disabled={assignMember.isPending}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Asignează
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Lista globală de membri (doar când nu e selectată companie specifică) */}
+      {selectedCompanyId === "all" && (
+        <>
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : teamMembers && teamMembers.length > 0 ? (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nume</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Acțiuni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium">{member.member_name}</TableCell>
+                      <TableCell>{member.member_email}</TableCell>
+                      <TableCell>{getRoleLabel(member.member_role)}</TableCell>
+                      <TableCell>
+                        {member.is_active ? (
+                          <Badge className="bg-green-500">✅ Activ</Badge>
+                        ) : (
+                          <Badge variant="secondary">⏸️ Inactiv</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(member)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          {member.is_active && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deactivateMember.mutate(member.id)}
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          ) : (
+            <Card className="p-12">
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">Nu există membri adăugați în echipă.</p>
+                <Button onClick={openCreateDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adaugă primul membru
+                </Button>
+              </div>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Create/Edit Dialog */}
