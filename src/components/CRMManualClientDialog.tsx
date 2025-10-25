@@ -38,6 +38,7 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
   const [isFetchingCIF, setIsFetchingCIF] = useState(false);
   const [cifError, setCifError] = useState<string | null>(null);
   const [anafData, setAnafData] = useState<any>(null);
+  const [anafDataRaw, setAnafDataRaw] = useState<any>(null);
   const [currentStep, setCurrentStep] = useState<string[]>(["step1"]);
   
   const [formData, setFormData] = useState({
@@ -65,8 +66,66 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       notes: "",
     });
     setAnafData(null);
+    setAnafDataRaw(null);
     setCifError(null);
     setCurrentStep(["step1"]);
+  };
+
+  // Normalize different API response formats
+  const normalizeCompanyData = (res: any) => {
+    // Type 1: Targetare.ro raw format { success: true, data: { companyName, taxId, ... } }
+    if (res?.success === true && res?.data) {
+      const data = res.data;
+      const caenCode = Array.isArray(data.caen) && data.caen.length > 0 
+        ? data.caen[data.caen.length - 1] 
+        : "";
+      
+      return {
+        source: 'Targetare.ro',
+        company_name: data.companyName || "",
+        cui: data.taxId || "",
+        registration_number: data.companyId || "",
+        address: data.fullAddress || "",
+        vat_payer: data.VAT === true || data.checkoutVAT === true,
+        status: data.status === 'functiune' ? 'ACTIVA' : (data.status?.toUpperCase() || 'NECUNOSCUT'),
+        caen_code: caenCode,
+        found: true
+      };
+    }
+    
+    // Type 2: Already normalized format (edge function) { company_name, cui, address, ... }
+    if (res?.company_name || res?.cui || res?.found) {
+      return {
+        source: res.source || 'API',
+        company_name: res.company_name || "",
+        cui: res.cui || res.cif || "",
+        registration_number: res.registration_number || "",
+        address: res.address || "",
+        vat_payer: res.vat_payer ?? false,
+        status: res.status || "",
+        caen_code: res.caen_code || "",
+        found: res.found ?? true
+      };
+    }
+    
+    // Type 3: Old ANAF format { found: [{ date_generale: {...} }] }
+    if (res?.found && Array.isArray(res.found) && res.found[0]?.date_generale) {
+      const dg = res.found[0].date_generale;
+      return {
+        source: 'ANAF',
+        company_name: dg.denumire || "",
+        cui: dg.cui || "",
+        registration_number: dg.nrRegCom || "",
+        address: dg.adresa || "",
+        vat_payer: dg.scpTVA === true,
+        status: dg.stare_inactiv === "ACTIVA" ? "ACTIVA" : dg.stare_inactiv || "",
+        caen_code: "",
+        found: true
+      };
+    }
+    
+    // Fallback: no data found
+    return null;
   };
 
   const fetchCompanyData = async (cif: string) => {
@@ -75,6 +134,7 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
     setIsFetchingCIF(true);
     setCifError(null);
     setAnafData(null);
+    setAnafDataRaw(null);
     
     console.log('🔍 Fetching data for CIF:', cif);
     
@@ -83,31 +143,28 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
         body: { cif: cif.replace(/\s/g, '').toUpperCase() }
       });
 
-      console.log('📦 Response:', { data, error });
-      console.log('📊 Data type:', typeof data, 'Data keys:', data ? Object.keys(data) : 'null');
+      console.log('📦 Raw response:', { data, error });
+      console.log('📊 Response keys:', data ? Object.keys(data) : 'null');
       
       if (error) {
         console.error('❌ Supabase error:', error);
         throw error;
       }
       
-      // Check if data exists and has required fields
-      if (data && (data.found || data.company_name)) {
-        console.log('✅ Data fetched successfully from:', data.source);
-        console.log('📋 Parsed data:', {
-          company_name: data.company_name,
-          cui: data.cui,
-          address: data.address,
-          vat_payer: data.vat_payer,
-          status: data.status
-        });
-        
-        setAnafData(data);
+      // Save raw data for debugging
+      setAnafDataRaw(data);
+      
+      // Normalize the response
+      const normalized = normalizeCompanyData(data);
+      console.log('🔄 Normalized data:', normalized);
+      
+      if (normalized && normalized.found) {
+        setAnafData(normalized);
         setCifError(null);
         
         toast({
           title: `✓ Date preluate cu succes`,
-          description: `Firma ${data.company_name || 'găsită'} prin ${data.source || 'API'}`,
+          description: `Firma ${normalized.company_name || 'găsită'} prin ${normalized.source}`,
         });
         
         // Auto-expand next step
@@ -127,10 +184,11 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       console.error('💥 Fatal error:', error);
       setCifError("Eroare la verificarea CIF-ului");
       setAnafData(null);
+      setAnafDataRaw(null);
       
       toast({
         title: "Eroare", 
-        description: "Nu s-au putut prelua datele firmei. Verifică console pentru detalii.",
+        description: "Nu s-au putut prelua datele firmei.",
         variant: "destructive" 
       });
     } finally {
@@ -146,15 +204,19 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       company_name: anafData.company_name || prev.company_name,
       address: anafData.address || prev.address,
       vat_payer: anafData.vat_payer ?? prev.vat_payer,
-      cif: anafData.cif || prev.cif
+      cif: anafData.cui || prev.cif
     }));
     
     toast({
       title: "Date aplicate cu succes",
-      description: "Poți edita câmpurile înainte de salvare",
+      description: "Completează emailul pentru a continua",
     });
     
+    // Open step 3 and focus on email
     setCurrentStep(["step1", "step2", "step3"]);
+    setTimeout(() => {
+      document.getElementById('email')?.focus();
+    }, 100);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -336,7 +398,7 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
                         onClick={applyAnafData}
                         className="w-full mt-2"
                         variant="default"
-                        disabled={!anafData.company_name || !anafData.cui}
+                        disabled={!anafData || (!anafData.company_name && !anafData.cui)}
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         Aplică Aceste Date
@@ -434,6 +496,9 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
                       placeholder="contact@firma.ro"
                       required
                     />
+                    {!formData.email && formData.company_name && (
+                      <p className="text-xs text-muted-foreground">Completează emailul pentru a continua</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefon</Label>
