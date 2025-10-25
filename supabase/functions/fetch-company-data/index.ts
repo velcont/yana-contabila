@@ -44,92 +44,82 @@ interface CompanyData {
   found: boolean;
 }
 
-// Method 1: OpenAPI.ro - Free and stable JSON API
-async function fetchFromOpenAPI(cui: string): Promise<CompanyData> {
-  // Try different CUI formats
-  const formats = [
-    cui,                    // Plain CUI: 32243431
-    `RO${cui}`,            // With RO prefix: RO32243431
-  ];
-
-  for (const format of formats) {
-    try {
-      const url = `https://api.openapi.ro/api/companies/${format}`;
-      console.log(`🔍 Calling OpenAPI.ro: ${url}`);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        signal: AbortSignal.timeout(10000)
-      });
-
-      console.log(`📊 OpenAPI response status: ${response.status} for format: ${format}`);
-
-      if (!response.ok) {
-        // Log response body for debugging
-        const errorText = await response.text();
-        console.log(`📋 OpenAPI error response: ${errorText.substring(0, 500)}`);
-        
-        if (response.status === 400) {
-          console.log(`⚠️ Bad request for format ${format}, trying next format...`);
-          continue; // Try next format
-        }
-        
-        throw new Error(`OpenAPI returned status ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error(`❌ OpenAPI returned ${contentType} instead of JSON`);
-        continue;
-      }
-
-      const data = await response.json();
-      console.log('📦 OpenAPI raw data:', JSON.stringify(data));
-
-      // Validate data structure
-      if (!data || typeof data !== 'object') {
-        console.error('❌ Invalid data structure from OpenAPI:', data);
-        continue;
-      }
-
-      if (!data.denumire && !data.name) {
-        console.error('❌ Company name not found in OpenAPI response');
-        continue;
-      }
-
-      // Format data for application
-      const companyData: CompanyData = {
-        source: 'OpenAPI.ro',
-        company_name: data.denumire || data.name || '',
-        cui: data.cif || data.cui || cui,
-        registration_number: data.numar_reg_com || data.nrRegCom || '',
-        address: data.adresa || data.address || '',
-        vat_payer: data.tva === 'DA' || data.tva === 'Platitor TVA' || data.platitor_tva === true,
-        phone: data.telefon || data.phone || '',
-        email: data.email || '',
-        caen_code: data.cod_caen || data.caen || '',
-        status: data.stare || data.status || 'ACTIVA',
-        found: true
-      };
-
-      console.log('✅ OpenAPI formatted data:', companyData);
-      return companyData;
-
-    } catch (error: any) {
-      console.error(`❌ OpenAPI failed for format ${format}:`, error.message);
-      if (format === formats[formats.length - 1]) {
-        // Last format failed, throw error
-        throw error;
-      }
-      // Try next format
-    }
+// Method 1: Targetare.ro - Primary source with API key
+async function fetchFromTargetare(cui: string): Promise<CompanyData> {
+  const apiKey = Deno.env.get('TARGETARE_API_KEY');
+  
+  if (!apiKey) {
+    console.error('❌ TARGETARE_API_KEY not configured');
+    throw new Error('API key lipsă pentru Targetare.ro');
   }
 
-  throw new Error('All OpenAPI formats failed');
+  try {
+    // Targetare.ro API endpoint (most common pattern for Romanian company APIs)
+    const url = `https://api.targetare.ro/v1/company/${cui}`;
+    console.log(`🔍 Calling Targetare.ro: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'X-API-Key': apiKey,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      signal: AbortSignal.timeout(15000)
+    });
+
+    console.log(`📊 Targetare response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`📋 Targetare error response: ${errorText.substring(0, 500)}`);
+      throw new Error(`Targetare.ro returned status ${response.status}: ${errorText.substring(0, 200)}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error(`❌ Targetare returned ${contentType} instead of JSON`);
+      throw new Error('Invalid content type from Targetare.ro');
+    }
+
+    const data = await response.json();
+    console.log('📦 Targetare raw data:', JSON.stringify(data).substring(0, 500));
+
+    // Handle different possible response structures
+    const companyInfo = data.data || data.company || data;
+    
+    if (!companyInfo || typeof companyInfo !== 'object') {
+      console.error('❌ Invalid data structure from Targetare:', data);
+      throw new Error('Invalid data structure');
+    }
+
+    // Extract company data (adapting to common Romanian API patterns)
+    const companyData: CompanyData = {
+      source: 'Targetare.ro',
+      company_name: companyInfo.denumire || companyInfo.name || companyInfo.nume || '',
+      cui: companyInfo.cui || companyInfo.cif || companyInfo.codFiscal || cui,
+      registration_number: companyInfo.nrRegCom || companyInfo.numar_reg_com || companyInfo.registrationNumber || '',
+      address: companyInfo.adresa || companyInfo.address || '',
+      vat_payer: companyInfo.platitor_tva === true || 
+                 companyInfo.tva === 'DA' || 
+                 companyInfo.tva === true ||
+                 companyInfo.vatPayer === true ||
+                 companyInfo.scpTVA === true,
+      phone: companyInfo.telefon || companyInfo.phone || '',
+      email: companyInfo.email || '',
+      caen_code: companyInfo.caen || companyInfo.cod_caen || companyInfo.caenCode || '',
+      status: companyInfo.stare || companyInfo.status || 'ACTIVA',
+      found: true
+    };
+
+    console.log('✅ Targetare formatted data:', companyData);
+    return companyData;
+
+  } catch (error: any) {
+    console.error(`❌ Targetare failed:`, error.message);
+    throw error;
+  }
 }
 
 // Method 2: ANAF API with optimized headers
@@ -238,17 +228,17 @@ serve(async (req) => {
     let companyData: CompanyData | null = null;
     const errors: string[] = [];
 
-    // Try OpenAPI (most stable)
+    // Try Targetare.ro first (primary source with API key)
     try {
-      console.log('\n📍 Step 1: Trying OpenAPI.ro...');
-      companyData = await fetchFromOpenAPI(cleanCui);
-      console.log('✅ SUCCESS: OpenAPI.ro');
+      console.log('\n📍 Step 1: Trying Targetare.ro...');
+      companyData = await fetchFromTargetare(cleanCui);
+      console.log('✅ SUCCESS: Targetare.ro');
     } catch (error: any) {
-      errors.push(`OpenAPI: ${error.message}`);
-      console.log('❌ FAILED: OpenAPI.ro');
+      errors.push(`Targetare: ${error.message}`);
+      console.log('❌ FAILED: Targetare.ro');
       console.log('\n📍 Step 2: Trying ANAF as fallback...');
       
-      // Fallback to ANAF
+      // Fallback to ANAF (free, no API key needed)
       try {
         companyData = await fetchFromANAF(cleanCui);
         console.log('✅ SUCCESS: ANAF');
@@ -262,7 +252,7 @@ serve(async (req) => {
       console.error('\n❌ All sources failed. Errors:', errors);
       return new Response(
         JSON.stringify({ 
-          error: 'Nu s-au putut prelua date din nicio sursă (OpenAPI și ANAF au eșuat)',
+          error: 'Nu s-au putut prelua date din nicio sursă (Targetare.ro și ANAF au eșuat)',
           details: errors,
           found: false
         }), 
