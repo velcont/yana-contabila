@@ -7,12 +7,31 @@ const corsHeaders = {
 
 interface ANAFResponse {
   cod: number;
-  data: string;
-  nume: string;
-  adresa: string;
-  scpTVA: boolean;
-  data_inregistrare?: string;
-  statusRO?: string;
+  message: string;
+  found?: Array<{
+    date_generale: {
+      cui: number;
+      data: string;
+      denumire: string;
+      adresa: string;
+      nrRegCom?: string;
+      telefon?: string;
+      fax?: string;
+      codPostal?: string;
+      act?: string;
+      stare_inactiv?: string;
+      statusInactivi?: string;
+    };
+    inregistrare_scop_Tva?: {
+      scpTVA: boolean;
+      data_inregistrare_scop_Tva?: string;
+      data_anulare_inregistrare_scop_Tva?: string;
+    };
+  }>;
+  notfound?: Array<{
+    cui: number;
+    data: string;
+  }>;
 }
 
 serve(async (req) => {
@@ -54,23 +73,22 @@ serve(async (req) => {
       }])
     });
 
-    // Try to parse response even on error status
-    let anafData;
-    try {
-      anafData = await anafResponse.json();
-      console.log('📦 ANAF Response:', JSON.stringify(anafData, null, 2));
-      console.log('📊 ANAF Status:', anafResponse.status);
-    } catch (parseError) {
-      console.error('❌ Failed to parse ANAF response:', parseError);
-      console.error('❌ ANAF API status:', anafResponse.status);
+    if (!anafResponse.ok) {
+      const errorText = await anafResponse.text();
+      console.error('❌ ANAF API error:', anafResponse.status);
+      console.error('❌ ANAF Response:', errorText);
       return new Response(
-        JSON.stringify({ error: 'Eroare la procesarea răspunsului ANAF', found: false }),
+        JSON.stringify({ error: 'Eroare la apelarea API ANAF', found: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // Check if company was found
-    if (!anafData.found || anafData.found.length === 0) {
+    const anafData = await anafResponse.json();
+    console.log('📦 ANAF Full Response:', JSON.stringify(anafData, null, 2));
+
+    // Check ANAF response structure
+    if (anafData.cod !== 200 || !anafData.found || anafData.found.length === 0) {
+      console.log('⚠️ CIF not found in ANAF database');
       return new Response(
         JSON.stringify({ 
           error: 'CIF invalid sau firma nu este înregistrată în baza ANAF', 
@@ -80,17 +98,20 @@ serve(async (req) => {
       );
     }
 
-    const companyData: ANAFResponse = anafData.found[0];
+    // Extract company data from ANAF response
+    const foundData = anafData.found[0];
+    const dateGenerale = foundData.date_generale || {};
+    const inregistrare_scop_Tva = foundData.inregistrare_scop_Tva || {};
 
     // Return structured data
     const result = {
       found: true,
-      cif: `RO${cleanCIF}`,
-      company_name: companyData.nume,
-      address: companyData.adresa,
-      vat_payer: companyData.scpTVA,
-      registration_date: companyData.data_inregistrare || null,
-      status: companyData.statusRO || 'ACTIV',
+      cif: dateGenerale.cui ? `RO${dateGenerale.cui}` : `RO${cleanCIF}`,
+      company_name: dateGenerale.denumire || 'Nume necunoscut',
+      address: dateGenerale.adresa || '',
+      vat_payer: inregistrare_scop_Tva.scpTVA || false,
+      registration_date: inregistrare_scop_Tva.data_inregistrare_scop_Tva || null,
+      status: dateGenerale.statusInactivi || 'ACTIV',
       source: 'ANAF'
     };
 
