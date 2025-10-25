@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageSquare, Send, User } from "lucide-react";
+import { MessageSquare, Send, User, Paperclip, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -20,6 +20,13 @@ interface Message {
   message: string;
   is_read: boolean;
   created_at: string;
+  attachments?: Array<{
+    name: string;
+    path: string;
+    size: number;
+    type: string;
+    url: string;
+  }>;
   companies?: { company_name: string };
 }
 
@@ -30,6 +37,8 @@ export const CRMMessagingManager = () => {
   const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [messageText, setMessageText] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -74,24 +83,68 @@ export const CRMMessagingManager = () => {
     }
   };
 
+  const uploadAttachments = async (messageId: string): Promise<any[]> => {
+    if (attachments.length === 0) return [];
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    
+    const uploadedFiles = [];
+    
+    for (const file of attachments) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${user.id}/${selectedCompany}/${messageId}/${fileName}`;
+      
+      const { data, error } = await supabase.storage
+        .from('crm-attachments')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error(`Eroare upload ${file.name}:`, error);
+        continue;
+      }
+      
+      // Generate signed URL with 30 days expiry
+      const { data: urlData } = await supabase.storage
+        .from('crm-attachments')
+        .createSignedUrl(filePath, 2592000); // 30 days = 2592000 seconds
+      
+      uploadedFiles.push({
+        name: file.name,
+        path: filePath,
+        size: file.size,
+        type: file.type,
+        url: urlData?.signedUrl
+      });
+    }
+    
+    return uploadedFiles;
+  };
+
   const handleSendMessage = async () => {
     if (!selectedCompany || !subject || !messageText) {
       toast({
         title: "Eroare",
-        description: "Completează toate câmpurile",
+        description: "Completează subiect și mesaj",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      setUploadingFiles(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nu ești autentificat");
 
       const company = companies.find(c => c.id === selectedCompany);
       if (!company) throw new Error("Client negăsit");
 
-      const { error } = await supabase
+      // 1. Insert message in DB (without attachments yet)
+      const { data: insertedMessage, error: insertError } = await supabase
         .from("crm_messages")
         .insert([{
           sender_id: user.id,
@@ -100,14 +153,76 @@ export const CRMMessagingManager = () => {
           subject: subject,
           message: messageText,
           is_internal: false,
-        }]);
+          attachments: []
+        }])
+        .select('id')
+        .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
 
-      toast({ title: "Mesaj trimis cu succes!" });
+      // 2. Upload attachments (if any)
+      let uploadedFiles = [];
+      if (attachments.length > 0) {
+        toast({
+          title: "📤 Se încarcă fișierele...",
+          description: `Se procesează ${attachments.length} fișier(e)`,
+        });
+
+        uploadedFiles = await uploadAttachments(insertedMessage.id);
+        
+        if (uploadedFiles.length > 0) {
+          const { error: updateError } = await supabase
+            .from("crm_messages")
+            .update({ attachments: uploadedFiles })
+            .eq("id", insertedMessage.id);
+          
+          if (updateError) {
+            console.error("Eroare actualizare atașamente:", updateError);
+          }
+        }
+      }
+
+      // 3. Send email through edge function
+      toast({
+        title: "📧 Se trimite emailul...",
+        description: "Salvăm mesajul și trimitem notificarea către client",
+      });
+
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke(
+          "send-crm-message-email",
+          {
+            body: { message_id: insertedMessage.id }
+          }
+        );
+
+        if (emailError) {
+          console.error("Eroare trimitere email:", emailError);
+          toast({
+            title: "⚠️ Mesaj salvat, dar email-ul nu a fost trimis",
+            description: `Mesajul a fost salvat în sistem, dar nu am putut trimite email către ${company.contact_email || 'client'}`,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "✅ Mesaj trimis cu succes!",
+            description: `Email trimis către ${emailData.email_sent_to}${uploadedFiles.length > 0 ? ` cu ${uploadedFiles.length} atașament(e)` : ''}`,
+          });
+        }
+      } catch (emailErr) {
+        console.error("Email sending failed:", emailErr);
+        toast({
+          title: "⚠️ Eroare la trimiterea emailului",
+          description: "Mesajul este salvat în sistem, dar emailul nu a putut fi trimis.",
+          variant: "destructive",
+        });
+      }
+
+      // 4. Reset form
       setSubject("");
       setMessageText("");
       setSelectedCompany("");
+      setAttachments([]);
       fetchMessages();
     } catch (error: any) {
       toast({
@@ -115,6 +230,8 @@ export const CRMMessagingManager = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setUploadingFiles(false);
     }
   };
 
@@ -193,9 +310,47 @@ export const CRMMessagingManager = () => {
               />
             </div>
 
-            <Button onClick={handleSendMessage} className="w-full">
+            <div className="space-y-2">
+              <Label>Atașamente (opțional)</Label>
+              <Input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  
+                  // Validation: max 10MB per file
+                  const invalidFiles = files.filter(f => f.size > 10 * 1024 * 1024);
+                  if (invalidFiles.length > 0) {
+                    toast({
+                      title: "Fișiere prea mari",
+                      description: `${invalidFiles.map(f => f.name).join(', ')} depășesc 10MB`,
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  setAttachments(files);
+                }}
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                disabled={uploadingFiles}
+              />
+              {attachments.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {attachments.length} fișier(e) selectat(e):
+                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                    {attachments.map((file, idx) => (
+                      <li key={idx}>
+                        📄 {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <Button onClick={handleSendMessage} className="w-full" disabled={uploadingFiles}>
               <Send className="h-4 w-4 mr-2" />
-              Trimite Mesaj
+              {uploadingFiles ? "Se trimite..." : "Trimite Mesaj"}
             </Button>
           </CardContent>
         </Card>
@@ -231,6 +386,30 @@ export const CRMMessagingManager = () => {
                         </div>
                         <h4 className="font-semibold mb-2">{msg.subject}</h4>
                         <p className="text-sm text-muted-foreground mb-3">{msg.message}</p>
+                        
+                        {msg.attachments && Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-xs font-medium mb-2 flex items-center gap-1">
+                              <Paperclip className="h-3 w-3" />
+                              Atașamente ({msg.attachments.length})
+                            </p>
+                            <div className="space-y-1">
+                              {msg.attachments.map((att: any, idx: number) => (
+                                <a
+                                  key={idx}
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-xs text-primary hover:underline"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  {att.name} ({(att.size / 1024).toFixed(1)} KB)
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>{new Date(msg.created_at).toLocaleString()}</span>
                           {!msg.is_read && (
