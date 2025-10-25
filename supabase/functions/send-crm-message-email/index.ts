@@ -44,7 +44,7 @@ serve(async (req) => {
     }
     logStep("Request received", { message_id });
 
-    // 3. Fetch message + company + sender (JOIN)
+    // 3. Fetch message + company (without relying on sender profile relationship)
     const { data: messageData, error: fetchError } = await supabaseAdmin
       .from('crm_messages')
       .select(`
@@ -55,8 +55,7 @@ serve(async (req) => {
           accountant_logo_url, 
           accountant_brand_color,
           managed_by_accountant_id
-        ),
-        sender:profiles!sender_id(full_name, email)
+        )
       `)
       .eq('id', message_id)
       .single();
@@ -67,9 +66,19 @@ serve(async (req) => {
     }
     logStep("Message data fetched", { 
       messageId: messageData.id, 
-      companyName: messageData.companies?.company_name,
-      senderEmail: messageData.sender?.email
+      companyName: messageData.companies?.company_name
     });
+
+    // 3b. Fetch sender profile separately (no FK relationship required)
+    const { data: senderProfile, error: senderProfileError } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', messageData.sender_id)
+      .single();
+    if (senderProfileError) {
+      logStep('WARN: Sender profile fetch failed', { error: senderProfileError });
+    }
+
 
     // 4. Security validations
     if (messageData.sender_id !== user.id) {
@@ -143,8 +152,8 @@ serve(async (req) => {
     const contactEmail = messageData.companies?.contact_email;
     const logoUrl = messageData.companies?.accountant_logo_url;
     const brandColor = messageData.companies?.accountant_brand_color || '#10b981';
-    const senderName = messageData.sender?.full_name || 'Contabilul tău';
-    const senderEmail = messageData.sender?.email || user.email;
+    const senderName = senderProfile?.full_name || 'Contabilul tău';
+    const senderEmail = senderProfile?.email || user.email;
     const subject = messageData.subject;
     const message = messageData.message;
 
