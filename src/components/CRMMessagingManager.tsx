@@ -71,7 +71,7 @@ export const CRMMessagingManager = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMessages(data || []);
+      setMessages((data as any[]) || []);
     } catch (error: any) {
       toast({
         title: "Eroare",
