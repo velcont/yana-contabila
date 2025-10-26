@@ -25,15 +25,15 @@ export const YanaCRMWelcomeDialog = () => {
   const handleFullTutorial = () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     setOpen(false);
-    // Start de la primul pas YanaCRM (pas 15 = primul pas YanaCRM)
-    startTutorial(15);
+    // Start de la primul pas YanaCRM (pas 14 = primul pas YanaCRM după ultimul pas Yana)
+    setTimeout(() => startTutorial(14), 100);
   };
 
   const handleQuickTutorial = () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     setOpen(false);
-    // Start direct de la Dosare Lunare - Setup (pas 23)
-    startTutorial(23);
+    // Start direct de la Dosare Lunare - Setup (pas 22)
+    setTimeout(() => startTutorial(22), 100);
   };
 
   const handleSkip = () => {
@@ -59,14 +59,6 @@ export const YanaCRMWelcomeDialog = () => {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Video Demo */}
-          <div className="rounded-lg overflow-hidden bg-muted aspect-video flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <Play className="h-12 w-12 mx-auto text-primary" />
-              <p className="text-sm text-muted-foreground">Video demo coming soon</p>
-            </div>
-          </div>
-
           {/* Tutorial Options */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card className="border-primary bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer group" onClick={handleFullTutorial}>
