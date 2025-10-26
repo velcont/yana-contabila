@@ -27,10 +27,22 @@ export const RecentAnalysesWidget = ({ onViewAll }: RecentAnalysesWidgetProps) =
   useEffect(() => {
     loadRecentAnalyses();
 
-    // Listen for new analyses
-    const handler = () => loadRecentAnalyses();
-    window.addEventListener('analysis:created', handler);
-    return () => window.removeEventListener('analysis:created', handler);
+    // Set up Supabase Realtime subscription for automatic updates (fix audit 1.1)
+    const channel = supabase
+      .channel('recent-analyses-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'analyses' },
+        (payload) => {
+          console.log('📡 Realtime: recent analyses changed', payload);
+          loadRecentAnalyses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadRecentAnalyses = async () => {

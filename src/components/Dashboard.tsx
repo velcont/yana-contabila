@@ -66,13 +66,23 @@ export const Dashboard = () => {
 
   useEffect(() => {
     loadAnalyses();
-  }, []);
 
-  // Refresh automatically when a new analysis is created from ChatAI
-  useEffect(() => {
-    const handler = () => loadAnalyses();
-    window.addEventListener('analysis:created', handler);
-    return () => window.removeEventListener('analysis:created', handler);
+    // Set up Supabase Realtime subscription for automatic updates (fix audit 1.1)
+    const channel = supabase
+      .channel('analyses-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'analyses' },
+        (payload) => {
+          console.log('📡 Realtime: analyses changed', payload);
+          loadAnalyses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadAnalyses = async () => {

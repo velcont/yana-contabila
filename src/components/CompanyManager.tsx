@@ -100,6 +100,23 @@ export const CompanyManager = () => {
 
   useEffect(() => {
     fetchCompanies();
+
+    // Set up Supabase Realtime subscription for automatic updates (fix audit 1.1)
+    const channel = supabase
+      .channel('companies-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'companies' },
+        (payload) => {
+          console.log('📡 Realtime: companies changed', payload);
+          fetchCompanies();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchCompanies = async () => {

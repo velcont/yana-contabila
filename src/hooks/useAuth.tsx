@@ -8,11 +8,11 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Timeout maxim de 5 secunde pentru loading state
+    // Timeout redus la 2 secunde pentru loading state (fix audit 2.4)
     const loadingTimeout = setTimeout(() => {
       console.warn('Auth loading timeout reached - forcing loading=false');
       setLoading(false);
-    }, 5000);
+    }, 2000);
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
