@@ -47,6 +47,23 @@ export const AccountantTasksManager = () => {
   useEffect(() => {
     fetchTasks();
     fetchCompanies();
+
+    // Set up Supabase Realtime subscription for instant task updates (fix audit 1.1)
+    const channel = supabase
+      .channel('accountant-tasks-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'accountant_tasks' },
+        (payload) => {
+          console.log('📡 Realtime: accountant_tasks changed', payload);
+          fetchTasks();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchCompanies = async () => {

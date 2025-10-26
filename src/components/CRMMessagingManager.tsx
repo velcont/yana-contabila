@@ -45,6 +45,23 @@ export const CRMMessagingManager = () => {
   useEffect(() => {
     fetchMessages();
     fetchCompanies();
+
+    // Set up Supabase Realtime subscription for instant message updates (fix audit 1.1)
+    const channel = supabase
+      .channel('crm-messages-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'crm_messages' },
+        (payload) => {
+          console.log('📡 Realtime: crm_messages changed', payload);
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchCompanies = async () => {

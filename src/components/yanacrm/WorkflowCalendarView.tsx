@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,38 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [statusFilter, setStatusFilter] = useState("all");
   const [editingWorkflow, setEditingWorkflow] = useState<any>(null);
+
+  // Set up Realtime subscriptions for instant workflow updates (fix audit 1.1)
+  useEffect(() => {
+    const workflowsChannel = supabase
+      .channel('workflow-instances-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'monthly_workflow_instances' },
+        (payload) => {
+          console.log('📡 Realtime: workflow instances changed', payload);
+          queryClient.invalidateQueries({ queryKey: ["company-workflows"] });
+        }
+      )
+      .subscribe();
+
+    const stagesChannel = supabase
+      .channel('workflow-stages-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'monthly_workflow_stages' },
+        (payload) => {
+          console.log('📡 Realtime: workflow stages changed', payload);
+          queryClient.invalidateQueries({ queryKey: ["company-workflows"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(workflowsChannel);
+      supabase.removeChannel(stagesChannel);
+    };
+  }, [queryClient]);
 
   // Fetch workflows pentru luna selectată (doar pentru compania selectată)
   const { data: workflows, isLoading } = useQuery({
