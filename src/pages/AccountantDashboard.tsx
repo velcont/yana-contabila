@@ -41,6 +41,7 @@ import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
 import { CRMCSVImport } from '@/components/CRMCSVImport';
 import { MonthlyWorkflowManager } from '@/components/yanacrm/MonthlyWorkflowManager';
 import { ClientDueDiligence } from '@/components/ClientDueDiligence';
+import { YanaCRMWelcomeDialog } from '@/components/YanaCRMWelcomeDialog';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -259,6 +260,7 @@ const AccountantDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
+      <YanaCRMWelcomeDialog />
       <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -270,7 +272,7 @@ const AccountantDashboard = () => {
                 <Palette className="mr-2 h-4 w-4" />
                 Branding
               </Button>
-              <div>
+              <div data-tour="yanacrm-header">
                 <h1 className="text-3xl font-bold">YanaCRM</h1>
                 <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
               </div>
@@ -283,31 +285,31 @@ const AccountantDashboard = () => {
 
         <Tabs defaultValue="clients" className="space-y-6">
           <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="clients">
+            <TabsTrigger value="clients" data-tour="clients-tab">
               <Building2 className="mr-2 h-4 w-4" />
               Clienți
             </TabsTrigger>
-            <TabsTrigger value="deadlines">
+            <TabsTrigger value="deadlines" data-tour="deadlines-tab">
               <Calendar className="mr-2 h-4 w-4" />
               Termene
             </TabsTrigger>
-            <TabsTrigger value="tasks">
+            <TabsTrigger value="tasks" data-tour="tasks-tab">
               <ListTodo className="mr-2 h-4 w-4" />
               Sarcini
             </TabsTrigger>
-            <TabsTrigger value="messaging">
+            <TabsTrigger value="messaging" data-tour="messaging-tab">
               <MessageSquare className="mr-2 h-4 w-4" />
               Mesaje
             </TabsTrigger>
-            <TabsTrigger value="email">
+            <TabsTrigger value="email" data-tour="email-tab">
               <Mail className="mr-2 h-4 w-4" />
               Email
             </TabsTrigger>
-            <TabsTrigger value="due-diligence">
+            <TabsTrigger value="due-diligence" data-tour="due-diligence-tab">
               <ShieldAlert className="mr-2 h-4 w-4" />
               Verificare Clienți
             </TabsTrigger>
-            <TabsTrigger value="workflows">
+            <TabsTrigger value="workflows" data-tour="workflows-tab">
               <Calendar className="mr-2 h-4 w-4" />
               Dosare Lunare
             </TabsTrigger>
@@ -326,7 +328,7 @@ const AccountantDashboard = () => {
                   Toți clienții gestionați de firma ta
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2" data-tour="add-client-buttons">
                 <Button 
                   onClick={() => setCsvImportDialogOpen(true)}
                   variant="outline"
@@ -431,7 +433,7 @@ const AccountantDashboard = () => {
               </div>
               
               {/* Fiscal Filters */}
-              <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="border rounded-lg p-4 space-y-4 bg-muted/30" data-tour="fiscal-filters">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-medium">Filtre Parametri Fiscali</h3>
                   <Button
@@ -589,7 +591,7 @@ const AccountantDashboard = () => {
                 )}
               </div>
             ) : (
-              <Table>
+              <Table data-tour="clients-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">

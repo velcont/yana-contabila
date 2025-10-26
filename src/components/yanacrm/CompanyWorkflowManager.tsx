@@ -9,6 +9,7 @@ import { WorkflowTemplateManager } from "./WorkflowTemplateManager";
 import { WorkflowTeamManager } from "./WorkflowTeamManager";
 import { Calendar, FileText, Users, Building2, Settings } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { WorkflowTooltip } from "@/components/WorkflowTooltips";
 
 export const CompanyWorkflowManager = () => {
   const { user } = useAuth();
@@ -65,29 +66,29 @@ export const CompanyWorkflowManager = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
+          <TabsTrigger value="calendar" className="flex items-center gap-2" data-tour="calendar-subtab">
             <Calendar className="h-4 w-4" />
             Workflow Client
           </TabsTrigger>
-          <TabsTrigger value="team" className="flex items-center gap-2">
+          <TabsTrigger value="team" className="flex items-center gap-2" data-tour="team-subtab">
             <Users className="h-4 w-4" />
             Echipa Client
           </TabsTrigger>
-          <TabsTrigger value="templates" className="flex items-center gap-2">
+          <TabsTrigger value="templates" className="flex items-center gap-2" data-tour="templates-subtab">
             <Settings className="h-4 w-4" />
             Șabloane
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="calendar" className="mt-6">
+        <TabsContent value="calendar" className="mt-6" data-tour="calendar-content">
           <WorkflowCalendarView selectedCompanyId={selectedCompanyId} />
         </TabsContent>
 
-        <TabsContent value="team" className="mt-6">
+        <TabsContent value="team" className="mt-6" data-tour="team-content">
           <WorkflowTeamManager selectedCompanyId={selectedCompanyId} />
         </TabsContent>
 
-        <TabsContent value="templates" className="mt-6">
+        <TabsContent value="templates" className="mt-6" data-tour="templates-content">
           <WorkflowTemplateManager />
         </TabsContent>
       </Tabs>

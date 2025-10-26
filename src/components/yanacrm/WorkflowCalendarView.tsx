@@ -240,10 +240,10 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
         </Alert>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-          <SelectTrigger className="w-full sm:w-[200px]">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth} data-tour="company-selector">
+            <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -273,6 +273,7 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
             onClick={() => createWorkflowForCompany.mutate()}
             disabled={createWorkflowForCompany.isPending || !selectedCompany || !defaultTemplate}
             className="ml-auto"
+            data-tour="create-workflow-btn"
           >
             {createWorkflowForCompany.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -317,7 +318,7 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : filteredWorkflows && filteredWorkflows.length > 0 ? (
-        <div className="grid gap-4">
+        <div className="grid gap-4" data-tour="workflow-calendar">
           {filteredWorkflows.map((workflow) => {
             const stages = workflow.stages as any[] || [];
             return (
@@ -331,7 +332,7 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
                           - {new Date(selectedMonth + "-01").toLocaleDateString("ro-RO", { year: "numeric", month: "long" }).charAt(0).toUpperCase() + new Date(selectedMonth + "-01").toLocaleDateString("ro-RO", { year: "numeric", month: "long" }).slice(1)}
                         </span>
                       </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground" data-tour="workflow-progress">
                         Progres: {workflow.progress_percent}% ({stages.filter((s: any) => s.status === "completed").length}/{stages.length} etape completate)
                       </p>
                     </div>
@@ -340,15 +341,16 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
                         size="sm"
                         variant="outline"
                         onClick={() => setEditingWorkflow(workflow)}
+                        data-tour="edit-workflow-btn"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Editează Workflow
                       </Button>
-                      {getStatusBadge(workflow)}
+                      <span data-tour="workflow-status-badges">{getStatusBadge(workflow)}</span>
                     </div>
                   </div>
 
-                  <div className="border-t pt-4 space-y-2">
+                  <div className="border-t pt-4 space-y-2" data-tour="workflow-stages">
                     {stages
                       .sort((a: any, b: any) => a.stage_number - b.stage_number)
                       .map((stage: any, index: number) => (
@@ -382,6 +384,7 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
                                     assignedMemberId: stage.assigned_member_id,
                                   })}
                                   disabled={updateStageStatus.isPending}
+                                  data-tour="stage-start-btn"
                                 >
                                   {stage.status === "in_progress" ? "⏸️ Pauză" : "▶️ Start"}
                                 </Button>
@@ -394,6 +397,7 @@ export const WorkflowCalendarView = ({ selectedCompanyId = "all" }: WorkflowCale
                                     assignedMemberId: stage.assigned_member_id,
                                   })}
                                   disabled={updateStageStatus.isPending}
+                                  data-tour="stage-complete-btn"
                                 >
                                   ✅ Finalizează
                                 </Button>

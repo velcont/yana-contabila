@@ -104,6 +104,58 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
     setHighlightedElement(null);
   }, []);
 
+  const performAction = useCallback((action: string) => {
+    switch (action) {
+      case 'demo-upload':
+        console.log('Demo: Simulating file upload');
+        break;
+      case 'click-workflows-tab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="workflows-tab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 300);
+        break;
+      case 'click-templates-subtab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="templates-subtab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 500);
+        break;
+      case 'click-team-subtab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="team-subtab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 500);
+        break;
+      case 'click-due-diligence-tab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="due-diligence-tab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 300);
+        break;
+      case 'click-deadlines-tab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="deadlines-tab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 300);
+        break;
+      case 'click-email-tab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="email-tab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 300);
+        break;
+      case 'click-messaging-tab':
+        setTimeout(() => {
+          const tab = document.querySelector('[data-tour="messaging-tab"]') as HTMLElement;
+          if (tab) tab.click();
+        }, 300);
+        break;
+      default:
+        console.log('Unknown action:', action);
+    }
+  }, []);
+
   const nextStep = useCallback(() => {
     if (currentStepIndex < steps.length - 1) {
       const nextIndex = currentStepIndex + 1;
@@ -112,6 +164,11 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
       const nextStep = steps[nextIndex];
       if (nextStep.page && nextStep.page !== currentStep.page) {
         navigate(nextStep.page);
+      }
+      
+      // Execută acțiunea înainte de highlighting
+      if (nextStep.action) {
+        performAction(nextStep.action);
       }
       
       if (nextStep.highlight) {
@@ -124,7 +181,7 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
       stopTutorial();
       localStorage.removeItem(TUTORIAL_STORAGE_KEY);
     }
-  }, [currentStepIndex, steps, currentStep, navigate, stopTutorial]);
+  }, [currentStepIndex, steps, currentStep, navigate, stopTutorial, performAction]);
 
   const previousStep = useCallback(() => {
     if (currentStepIndex > 0) {
@@ -144,16 +201,6 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [currentStepIndex, steps, currentStep, navigate]);
-
-  const performAction = useCallback((action: string) => {
-    switch (action) {
-      case 'demo-upload':
-        console.log('Demo: Simulating file upload');
-        break;
-      default:
-        console.log('Unknown action:', action);
-    }
-  }, []);
 
   const toggleVoice = useCallback(() => {
     setVoiceEnabled(prev => !prev);

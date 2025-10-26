@@ -260,6 +260,7 @@ export const WorkflowTemplateManager = () => {
               onClick={() => createDefaultTemplate.mutate()}
               disabled={createDefaultTemplate.isPending}
               variant="secondary"
+              data-tour="create-default-template-btn"
             >
               {createDefaultTemplate.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -380,6 +381,7 @@ export const WorkflowTemplateManager = () => {
 
             <div className="space-y-4">
               <Label>Etape workflow</Label>
+              <div data-tour="template-stages">
               {stages.map((stage, index) => (
                 <Card key={index} className="p-4">
                   <div className="space-y-3">
@@ -426,6 +428,7 @@ export const WorkflowTemplateManager = () => {
                   </div>
                 </Card>
               ))}
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
