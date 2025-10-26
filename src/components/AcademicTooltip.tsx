@@ -26,7 +26,7 @@ export function AcademicTooltip({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-5 w-5">
+          <Button variant="ghost" size="icon" className="h-5 w-5" aria-label="Informații ajutător academic">
             <Info className="h-4 w-4 text-muted-foreground" />
           </Button>
         </TooltipTrigger>

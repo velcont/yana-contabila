@@ -267,6 +267,7 @@ export const SavedStrategies = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => toggleFavorite(strategy.id, strategy.is_favorite)}
+                              aria-label={strategy.is_favorite ? "Elimină din favorite" : "Adaugă la favorite"}
                             >
                               <Star className={`w-4 h-4 ${strategy.is_favorite ? 'fill-yellow-400 text-yellow-400' : ''}`} />
                             </Button>
@@ -274,6 +275,7 @@ export const SavedStrategies = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteStrategy(strategy.id)}
+                              aria-label="Șterge strategia"
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>

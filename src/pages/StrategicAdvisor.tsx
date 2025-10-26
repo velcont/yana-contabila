@@ -353,6 +353,7 @@ export default function StrategicAdvisor() {
                 variant="ghost"
                 size="icon"
                 onClick={() => navigate('/app')}
+                aria-label="Înapoi la aplicație"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>

@@ -25,6 +25,7 @@ export const ThemeToggle = () => {
       size="icon"
       onClick={toggleTheme}
       className="rounded-full"
+      aria-label={theme === 'light' ? 'Comută la tema întunecată' : 'Comută la tema luminoasă'}
     >
       {theme === 'light' ? (
         <Moon className="h-5 w-5" />

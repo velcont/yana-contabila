@@ -142,6 +142,7 @@ export const FavoriteAnalyses = () => {
                   size="icon"
                   onClick={() => removeFavorite(fav.id)}
                   className="hover:text-destructive"
+                  aria-label="Șterge din favorite"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

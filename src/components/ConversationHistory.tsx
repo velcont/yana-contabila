@@ -172,6 +172,7 @@ export const ConversationHistory = ({
                   size="icon"
                   className="h-8 w-8 ml-2 hover:bg-destructive/10 hover:text-destructive"
                   onClick={(e) => handleDeleteConversation(conv.conversation_id, e)}
+                  aria-label="Șterge conversația"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

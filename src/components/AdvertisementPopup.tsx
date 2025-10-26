@@ -71,6 +71,7 @@ const AdvertisementPopup = ({ intervalMinutes = 10 }: AdvertisementPopupProps) =
           size="icon"
           className="absolute right-4 top-4"
           onClick={handleClose}
+          aria-label="Închide notificarea"
         >
           <X className="h-4 w-4" />
         </Button>

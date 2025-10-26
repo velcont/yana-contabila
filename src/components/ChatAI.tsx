@@ -1245,6 +1245,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                         variant="outline"
                         size="icon"
                         className="shrink-0 relative"
+                        aria-label="Încarcă fișier"
                       >
                         <Paperclip className="h-4 w-4" />
                         {/* Animated arrow indicator */}
@@ -1289,6 +1290,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 disabled={isLoading || !input.trim() || isUploadingFile}
                 size="icon"
                 className="shrink-0"
+                aria-label="Trimite mesaj"
               >
                 <Send className="h-4 w-4" />
               </Button>

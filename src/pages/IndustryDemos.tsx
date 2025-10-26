@@ -693,6 +693,7 @@ export const IndustryDemos = () => {
                 size="icon"
                 onClick={() => navigate('/app')}
                 className="shrink-0"
+                aria-label="Înapoi la aplicație"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -737,6 +738,7 @@ export const IndustryDemos = () => {
                   variant={isSpeaking ? "destructive" : "outline"}
                   size="icon"
                   title={isSpeaking ? "Oprește" : "Citește conversația"}
+                  aria-label={isSpeaking ? "Oprește citirea" : "Citește conversația"}
                 >
                   {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>

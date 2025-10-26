@@ -226,6 +226,7 @@ const VoiceInterface: React.FC<VoiceInterfaceProps> = ({ onTranscript }) => {
           variant={isMicEnabled ? "default" : "outline"}
           size="icon"
           title={isMicEnabled ? "Dezactivează microfonul" : "Activează microfonul"}
+          aria-label={isMicEnabled ? "Dezactivează microfonul" : "Activează microfonul"}
         >
           {isMicEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
         </Button>

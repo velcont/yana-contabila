@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Building2, Briefcase } from 'lucide-react';
+import { Loader2, Building2, Briefcase, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
@@ -17,6 +17,9 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [accountType, setAccountType] = useState<'entrepreneur' | 'accounting_firm' | null>(null);
@@ -34,6 +37,28 @@ const Auth = () => {
       setIsForgotPassword(false);
     }
   }, [searchParams]);
+
+  // UX-007: Password strength calculation
+  const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {
+    if (pwd.length < 6) return 'weak';
+    let strength = 0;
+    if (pwd.length >= 8) strength++;
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
+    if (/\d/.test(pwd)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) strength++;
+    
+    if (strength <= 1) return 'weak';
+    if (strength <= 2) return 'medium';
+    return 'strong';
+  };
+
+  useEffect(() => {
+    if (!isLogin && password) {
+      setPasswordStrength(calculatePasswordStrength(password));
+    } else {
+      setPasswordStrength(null);
+    }
+  }, [password, isLogin]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,15 +313,29 @@ const Auth = () => {
                 <label htmlFor="newPassword" className="text-sm font-medium">
                   Parolă nouă
                 </label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    autoComplete="new-password"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    aria-label={showNewPassword ? "Ascunde parola" : "Arată parola"}
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">Minimum 6 caractere</p>
               </div>
 
@@ -328,6 +367,7 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                 />
               </div>
 
@@ -374,6 +414,7 @@ const Auth = () => {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required={!isLogin}
+                      autoComplete="name"
                     />
                   </div>
                   
@@ -483,6 +524,7 @@ const Auth = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                 />
               </div>
               
@@ -504,15 +546,41 @@ const Auth = () => {
                     </button>
                   )}
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Ascunde parola" : "Arată parola"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {!isLogin && passwordStrength && (
+                  <div className="space-y-1">
+                    <div className="flex gap-1">
+                      <div className={`h-1 flex-1 rounded ${passwordStrength === 'weak' ? 'bg-destructive' : passwordStrength === 'medium' ? 'bg-warning' : 'bg-success'}`} />
+                      <div className={`h-1 flex-1 rounded ${passwordStrength === 'medium' || passwordStrength === 'strong' ? (passwordStrength === 'medium' ? 'bg-warning' : 'bg-success') : 'bg-muted'}`} />
+                      <div className={`h-1 flex-1 rounded ${passwordStrength === 'strong' ? 'bg-success' : 'bg-muted'}`} />
+                    </div>
+                    <p className={`text-xs ${passwordStrength === 'weak' ? 'text-destructive' : passwordStrength === 'medium' ? 'text-warning' : 'text-success'}`}>
+                      Parolă {passwordStrength === 'weak' ? 'slabă' : passwordStrength === 'medium' ? 'medie' : 'puternică'}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {!isLogin && (
