@@ -42,10 +42,12 @@ import { CRMCSVImport } from '@/components/CRMCSVImport';
 import { MonthlyWorkflowManager } from '@/components/yanacrm/MonthlyWorkflowManager';
 import { ClientDueDiligence } from '@/components/ClientDueDiligence';
 import { YanaCRMWelcomeDialog } from '@/components/YanaCRMWelcomeDialog';
+import { useTutorial } from '@/contexts/TutorialContext';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setShowTutorialMenu } = useTutorial();
   const { isAccountant, loading: subscriptionLoading } = useSubscription();
   const { isAdmin, isLoading: adminLoading } = useUserRole();
   const [clients, setClients] = useState<any[]>([]);
@@ -263,21 +265,42 @@ const AccountantDashboard = () => {
       <YanaCRMWelcomeDialog />
       <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => navigate('/app')}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Înapoi
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate('/accountant-branding')}>
-                <Palette className="mr-2 h-4 w-4" />
-                Branding
-              </Button>
               <div data-tour="yanacrm-header">
-                <h1 className="text-3xl font-bold">YanaCRM</h1>
-                <p className="text-muted-foreground">Gestionează toți clienții tăi</p>
+                <h1 className="text-2xl font-bold text-primary">YanaCRM</h1>
+                <p className="text-xs text-muted-foreground">Gestionează toți clienții tăi</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowTutorialMenu(true)}
+                className="gap-2"
+              >
+                🎓 Tutorial
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/analytics')}
+                className="gap-2"
+              >
+                📊 Dashboard cu Grafice
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/accountant-branding')}
+                className="gap-2"
+              >
+                <Palette className="h-4 w-4" />
+                Branding
+              </Button>
               <SubscriptionBadge />
               <AdminRoleSwitcher />
             </div>
