@@ -287,7 +287,7 @@ const AccountantDashboard = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => navigate('/analytics')}
+                onClick={() => navigate('/app')}
                 className="gap-2"
               >
                 📊 Dashboard cu Grafice
