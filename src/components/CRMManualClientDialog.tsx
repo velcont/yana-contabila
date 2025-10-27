@@ -17,7 +17,7 @@ import { z } from "zod";
 const manualClientSchema = z.object({
   company_name: z.string().trim().min(1, { message: "Numele firmei este obligatoriu" }),
   cif: z.string().trim().optional().or(z.literal("")),
-  email: z.string().trim().email({ message: "Email invalid" }).min(1, { message: "Email-ul este obligatoriu" }),
+  email: z.string().trim().email({ message: "Email invalid" }).optional().or(z.literal("")),
   full_name: z.string().trim().optional().or(z.literal("")),
   phone: z.string().trim().optional().or(z.literal("")),
   address: z.string().trim().optional().or(z.literal("")),
@@ -162,13 +162,22 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
         setAnafData(normalized);
         setCifError(null);
         
+        // Auto-populate form with ANAF data immediately
+        setFormData(prev => ({
+          ...prev,
+          company_name: normalized.company_name || prev.company_name,
+          address: normalized.address || prev.address,
+          vat_payer: normalized.vat_payer ?? prev.vat_payer,
+          cif: normalized.cui || prev.cif
+        }));
+        
         toast({
-          title: `✓ Date preluate cu succes`,
-          description: `Firma ${normalized.company_name || 'găsită'} prin ${normalized.source}`,
+          title: `✓ Date preluate și aplicate automat`,
+          description: `Firma ${normalized.company_name || 'găsită'} prin ${normalized.source}. Poți trimite clientul direct!`,
         });
         
-        // Auto-expand next step
-        setCurrentStep(["step1", "step2"]);
+        // Auto-expand next steps
+        setCurrentStep(["step1", "step2", "step3"]);
       } else {
         console.error('❌ API error:', data?.error, data?.details);
         setCifError(data?.error || "CIF invalid sau firmă neînregistrată");
@@ -230,8 +239,8 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       // Call edge function to create client on server side
       const { data, error } = await supabase.functions.invoke('create-manual-client', {
         body: {
-          email: validatedData.email,
-          password: Math.random().toString(36).slice(-10), // Generate random password
+          email: validatedData.email || null, // Optional email
+          password: validatedData.email ? Math.random().toString(36).slice(-10) : null, // Only generate password if email exists
           fullName: validatedData.full_name || validatedData.company_name,
           companyName: validatedData.company_name,
           cui: validatedData.cif || null,
@@ -393,16 +402,9 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
                         </div>
                       </div>
                       
-                      <Button
-                        type="button"
-                        onClick={applyAnafData}
-                        className="w-full mt-2"
-                        variant="default"
-                        disabled={!anafData || (!anafData.company_name && !anafData.cui)}
-                      >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Aplică Aceste Date
-                      </Button>
+                      <p className="text-xs text-green-600 mt-2 font-medium">
+                        ✓ Datele au fost aplicate automat în formular mai jos
+                      </p>
                     </div>
                   )}
                 </div>
@@ -487,18 +489,17 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
               <AccordionContent className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Client *</Label>
+                    <Label htmlFor="email">Email Client (Opțional)</Label>
                     <Input
                       id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="contact@firma.ro"
-                      required
                     />
-                    {!formData.email && formData.company_name && (
-                      <p className="text-xs text-muted-foreground">Completează emailul pentru a continua</p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Dacă introduci email, clientul va primi acces la platforma Yana
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefon</Label>

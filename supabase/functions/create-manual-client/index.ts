@@ -72,71 +72,76 @@ serve(async (req) => {
       vatPayer 
     } = await req.json();
 
-    console.log('Creating manual client for:', email);
+    console.log('Creating manual client. Email:', email || 'NO EMAIL');
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email')
-      .eq('email', email)
-      .maybeSingle();
+    let userId: string | null = null;
 
-    let userId: string;
-
-    if (existingUsers) {
-      console.log('User already exists:', existingUsers.id);
-      userId = existingUsers.id;
-    } else {
-      // Create new user
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          full_name: fullName,
-          account_type: 'entrepreneur'
-        }
-      });
-
-      if (createError) {
-        console.error('Error creating user:', createError);
-        throw createError;
-      }
-
-      if (!newUser.user) {
-        throw new Error('Failed to create user');
-      }
-
-      userId = newUser.user.id;
-      console.log('Created new user:', userId);
-
-      // Create profile
-      const { error: profileError } = await supabaseAdmin
+    // Only create user if email is provided
+    if (email) {
+      // Check if user already exists
+      const { data: existingUsers } = await supabaseAdmin
         .from('profiles')
-        .insert({
-          id: userId,
+        .select('id, email')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingUsers) {
+        console.log('User already exists:', existingUsers.id);
+        userId = existingUsers.id;
+      } else {
+        // Create new user
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
-          full_name: fullName,
-          subscription_type: 'entrepreneur'
+          password: password || Math.random().toString(36).slice(-10),
+          email_confirm: true, // Auto-confirm email
+          user_metadata: {
+            full_name: fullName,
+            account_type: 'entrepreneur'
+          }
         });
 
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        throw profileError;
+        if (createError) {
+          console.error('Error creating user:', createError);
+          throw createError;
+        }
+
+        if (!newUser.user) {
+          throw new Error('Failed to create user');
+        }
+
+        userId = newUser.user.id;
+        console.log('Created new user:', userId);
+
+        // Create profile
+        const { error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .insert({
+            id: userId,
+            email,
+            full_name: fullName,
+            subscription_type: 'entrepreneur'
+          });
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          throw profileError;
+        }
       }
+    } else {
+      console.log('No email provided - creating company without user account');
     }
 
     // Create or attach company to accountant
     const { data: company, error: companyError } = await supabaseAdmin
       .from('companies')
       .insert({
-        user_id: userId,
+        user_id: userId, // Can be null if no email provided
         managed_by_accountant_id: requestingUser.id,
         company_name: companyName,
         cui: cui || null,
         registration_number: taxType ? null : null, // keep null if not provided in payload
         contact_person: contactPerson || fullName,
-        contact_email: email,
+        contact_email: email || null,
         phone: phone || null,
         address: address || null,
         tax_type: taxType || 'micro',
