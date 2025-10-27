@@ -669,6 +669,18 @@ INDICATORI OPERAȚIONALI:
         </TabsList>
 
         <TabsContent value="analytics" className="space-y-6">
+          <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+            <CardContent className="py-4">
+              <p className="text-sm">
+                <strong>Tab "Grafice":</strong> Analiză detaliată a companiei selectate în filtru.{' '}
+                {isAccountantMode && (
+                  <span className="text-muted-foreground">
+                    Pentru comparație între toate firmele, vezi tab-ul "Multi-Firmă".
+                  </span>
+                )}
+              </p>
+            </CardContent>
+          </Card>
           <TopIssuesWidget />
           <AnalyticsCharts analyses={filteredAnalyses} />
           {filteredAnalyses.length >= 2 && (

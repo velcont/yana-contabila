@@ -156,6 +156,30 @@ export const MultiCompanyComparison = () => {
 
   return (
     <div className="space-y-6">
+      {/* Explicație funcționalitate */}
+      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Comparație Multi-Firmă - Ce Face Acest Tab?
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p className="font-medium">
+            Acest tab compară TOATE firmele tale client pentru a identifica:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+            <li>Care clienți sunt cei mai profitabili</li>
+            <li>Care clienți au probleme de cash-flow (DSO ridicat)</li>
+            <li>Statistici agregate pentru întreg portofoliul tău</li>
+          </ul>
+          <p className="text-xs text-muted-foreground pt-2">
+            💡 <strong>Diferență față de "Grafice":</strong> Tab-ul "Grafice" arată analiza detaliată a <strong>unei singure companii</strong> (cea selectată), 
+            iar "Multi-Firmă" compară <strong>toate companiile</strong> între ele.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Company Cards with metadata status */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {companyData.map((company) => (
@@ -278,16 +302,31 @@ export const MultiCompanyComparison = () => {
           <CardDescription>Viteza de încasare pentru fiecare client</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={companyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <Tooltip formatter={(value: number) => value.toFixed(0) + ' zile'} />
-              <Legend />
-              <Bar dataKey="dso" fill="#3b82f6" name="DSO (zile)" />
-            </BarChart>
-          </ResponsiveContainer>
+          {companyData.filter(c => c.dso > 0).length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[300px] space-y-3">
+              <AlertCircle className="h-12 w-12 text-muted-foreground" />
+              <div className="text-center space-y-1">
+                <p className="font-medium">Nu există date DSO disponibile</p>
+                <p className="text-sm text-muted-foreground">
+                  Pentru ca acest grafic să afișeze date, analizele clienților tăi trebuie să conțină indicatorul DSO.
+                </p>
+                <p className="text-xs text-muted-foreground pt-2">
+                  💡 Încarcă balanțe recente pentru clienții tăi pentru a vedea comparația DSO.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={companyData.filter(c => c.dso > 0)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip formatter={(value: number) => value.toFixed(0) + ' zile'} />
+                <Legend />
+                <Bar dataKey="dso" fill="#3b82f6" name="DSO (zile)" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
     </div>
