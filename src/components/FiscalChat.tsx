@@ -55,10 +55,6 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         body: {
           message: input,
           messages: [{ role: 'user', content: input }]
-        },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
         }
       });
 

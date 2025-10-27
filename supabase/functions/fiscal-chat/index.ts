@@ -71,9 +71,30 @@ serve(async (req) => {
   }
 
   try {
-    let body: any = {};
+    // Read raw body to avoid JSON parse issues
+    let rawBody = '';
     try {
-      body = await req.json();
+      rawBody = await req.text();
+      console.log('[FISCAL-CHAT] Raw body length:', rawBody?.length ?? 0);
+    } catch (e) {
+      console.error('[FISCAL-CHAT] Failed to read body:', e);
+      return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    let body: any = {};
+    if (!rawBody) {
+      console.error('[FISCAL-CHAT] Empty request body');
+      return new Response(JSON.stringify({ error: 'Empty request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    try {
+      body = JSON.parse(rawBody);
     } catch (err) {
       console.error('[FISCAL-CHAT] JSON parse error:', err);
       return new Response(JSON.stringify({ error: 'Invalid JSON format' }), {
@@ -81,6 +102,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
     const message = typeof body.message === 'string' ? body.message
       : Array.isArray(body.messages) ? (body.messages?.[0]?.content ?? '') : '';
     console.log('[FISCAL-CHAT] Parsed message:', message ? message.slice(0, 120) : '(empty)');
