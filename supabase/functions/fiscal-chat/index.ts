@@ -84,19 +84,32 @@ serve(async (req) => {
       );
     }
 
-    // Authenticate user
+    // Authenticate user - Supabase already verified JWT when verify_jwt=true
+    // So we can get user info from the request
     const authHeader = req.headers.get('authorization');
-    const supabase = createClient(
+    console.log('[FISCAL-CHAT] Auth header present:', !!authHeader);
+    
+    if (!authHeader) {
+      console.error('[FISCAL-CHAT] Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Extract JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
     if (userError || !user) {
       console.error('[FISCAL-CHAT] Authentication failed:', userError);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
