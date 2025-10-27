@@ -255,11 +255,11 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
 
       if (error) {
         console.error('Error calling edge function:', error);
-        throw new Error(error.message || 'Failed to create client');
+        throw new Error(error.message || 'Eroare server la adăugare client');
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Failed to create client');
+        throw new Error(data?.message || data?.error || 'Eroare la adăugare client');
       }
 
       toast({
@@ -285,11 +285,14 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
         });
       } else {
         toast({
-          title: "Eroare",
-          description: error.message || "Nu s-a putut adăuga clientul",
+          title: "Eroare la salvarea clientului",
+          description: error.message || "Verifică datele și încearcă din nou",
           variant: "destructive",
         });
       }
+      // Închidem dialogul chiar și la eroare pentru a nu bloca UI-ul
+      onOpenChange(false);
+      resetForm();
     } finally {
       setIsLoading(false);
     }

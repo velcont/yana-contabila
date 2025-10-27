@@ -72,17 +72,21 @@ serve(async (req) => {
       vatPayer 
     } = await req.json();
 
-    console.log('Creating manual client. Email:', email || 'NO EMAIL');
+    const safeEmail = typeof email === 'string' && email.trim().length > 0 
+      ? email.trim().toLowerCase() 
+      : null;
+
+    console.log('Creating manual client. Email:', safeEmail || 'NO EMAIL');
 
     let userId: string | null = null;
 
-    // Only create user if email is provided
-    if (email) {
+    // Only create user if email is provided (and valid)
+    if (safeEmail) {
       // Check if user already exists
       const { data: existingUsers } = await supabaseAdmin
         .from('profiles')
         .select('id, email')
-        .eq('email', email)
+        .eq('email', safeEmail)
         .maybeSingle();
 
       if (existingUsers) {
@@ -91,7 +95,7 @@ serve(async (req) => {
       } else {
         // Create new user
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email,
+          email: safeEmail,
           password: password || Math.random().toString(36).slice(-10),
           email_confirm: true, // Auto-confirm email
           user_metadata: {
@@ -115,9 +119,9 @@ serve(async (req) => {
         // Create profile
         const { error: profileError } = await supabaseAdmin
           .from('profiles')
-          .insert({
+            .insert({
             id: userId,
-            email,
+            email: safeEmail,
             full_name: fullName,
             subscription_type: 'entrepreneur'
           });
@@ -141,7 +145,7 @@ serve(async (req) => {
         cui: cui || null,
         registration_number: taxType ? null : null, // keep null if not provided in payload
         contact_person: contactPerson || fullName,
-        contact_email: email || null,
+        contact_email: safeEmail || null,
         phone: phone || null,
         address: address || null,
         tax_type: taxType || 'micro',
@@ -175,11 +179,12 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
       JSON.stringify({ 
-        error: errorMessage
+        success: false,
+        message: errorMessage
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400 
+        status: 200 
       }
     );
   }
