@@ -132,7 +132,9 @@ serve(async (req) => {
         }
       }
     } else {
-      console.log('No email provided - creating company without user account');
+      console.log('No email provided - attaching company to accountant as temporary owner');
+      // Fallback: link company to requesting accountant until client email is provided
+      userId = requestingUser.id;
     }
 
     // Create or attach company to accountant
