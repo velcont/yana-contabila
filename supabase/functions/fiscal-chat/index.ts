@@ -60,12 +60,30 @@ IMPORTANT: Dacă găsești informații doar pe surse mai puțin oficiale (blogur
 `;
 
 serve(async (req) => {
+  console.log('[FISCAL-CHAT] New request received.');
+  console.log('[FISCAL-CHAT] Headers:', {
+    authorization: req.headers.get('authorization'),
+    contentType: req.headers.get('content-type'),
+    method: req.method,
+  });
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message } = await req.json();
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch (err) {
+      console.error('[FISCAL-CHAT] JSON parse error:', err);
+      return new Response(JSON.stringify({ error: 'Invalid JSON format' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const message = typeof body.message === 'string' ? body.message
+      : Array.isArray(body.messages) ? (body.messages?.[0]?.content ?? '') : '';
+    console.log('[FISCAL-CHAT] Parsed message:', message ? message.slice(0, 120) : '(empty)');
 
     if (!message || typeof message !== 'string') {
       return new Response(
@@ -193,6 +211,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        message: responseText,
         response: responseText,
         sources: sources,
         related_questions: relatedQuestions

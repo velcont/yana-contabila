@@ -34,54 +34,69 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
     setIsLoading(true);
 
     try {
-      console.log('[FISCAL-CHAT] Sending message:', input);
-      
-      // Get current session for authentication
+      console.log('[FISCAL-CHAT] START handleSend:', input);
+
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       console.log('[FISCAL-CHAT] Session check:', { hasSession: !!session, sessionError });
-      
-      if (!session || sessionError) {
+
+      if (!session) {
+        console.error('[FISCAL-CHAT] No active session!');
         toast({
           title: 'Eroare de autentificare',
-          description: 'Trebuie să fii autentificat pentru a folosi Yana Fiscală.',
+          description: 'Trebuie să fii logat pentru a folosi Yana Fiscală.',
           variant: 'destructive',
         });
         setMessages(prev => prev.slice(0, -1));
         return;
       }
 
-      console.log('[FISCAL-CHAT] Making request with token');
+      console.log('[FISCAL-CHAT] Preparing request to fiscal-chat...');
       const { data, error } = await supabase.functions.invoke('fiscal-chat', {
-        body: { message: input }
+        body: {
+          message: input,
+          messages: [{ role: 'user', content: input }]
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       console.log('[FISCAL-CHAT] Response:', { data, error });
 
       if (error) {
         console.error('[FISCAL-CHAT] Error from invoke:', error);
-        throw error;
-      }
-
-      if (data?.error) {
         toast({
-          title: 'Eroare',
-          description: data.error,
+          title: 'Eroare API fiscal-chat',
+          description: typeof error === 'string' ? error : (error?.message || 'Eroare necunoscută'),
           variant: 'destructive',
         });
-        setMessages(prev => prev.slice(0, -1)); // Remove user message on error
+        setMessages(prev => prev.slice(0, -1));
+        return;
+      }
+
+      const content = data?.message || data?.response;
+      if (!content) {
+        console.error('[FISCAL-CHAT] Empty AI response');
+        toast({
+          title: 'Eroare',
+          description: 'Yana Fiscală nu a putut răspunde. Verifică edge function.',
+          variant: 'destructive',
+        });
+        setMessages(prev => prev.slice(0, -1));
         return;
       }
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response || 'Nu am putut genera un răspuns.',
+        content,
         sources: data.sources || [],
         related_questions: data.related_questions || []
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (err) {
+      console.error('[FISCAL-CHAT] Fatal error:', err);
       toast({
         title: 'Eroare',
         description: 'Nu am putut trimite mesajul. Te rog încearcă din nou.',
