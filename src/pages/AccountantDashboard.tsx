@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit, Scale } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -44,6 +44,7 @@ import { ClientDueDiligence } from '@/components/ClientDueDiligence';
 import { YanaCRMWelcomeDialog } from '@/components/YanaCRMWelcomeDialog';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { CRMClientForm } from '@/components/CRMClientForm';
+import FiscalChat from '@/components/FiscalChat';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -69,6 +70,7 @@ const AccountantDashboard = () => {
   const [csvImportDialogOpen, setCsvImportDialogOpen] = useState(false);
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [fiscalChatOpen, setFiscalChatOpen] = useState(false);
   
   // Fiscal filters
   const [vatRegimeFilter, setVatRegimeFilter] = useState<string[]>([]);
@@ -828,6 +830,18 @@ const AccountantDashboard = () => {
           </Dialog>
         )}
       </div>
+
+      {/* Fiscal Chat FAB - only visible on /yanacrm */}
+      <Button
+        onClick={() => setFiscalChatOpen(true)}
+        size="lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-[#00B37E] hover:bg-[#00B37E]/90 z-50"
+        aria-label="Deschide Yana Fiscală"
+      >
+        <Scale className="h-6 w-6" />
+      </Button>
+
+      <FiscalChat open={fiscalChatOpen} onOpenChange={setFiscalChatOpen} />
     </div>
   );
 };

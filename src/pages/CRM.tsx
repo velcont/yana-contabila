@@ -10,8 +10,7 @@ import { UsersList } from "@/components/UsersList";
 import { CRMManualClientDialog } from "@/components/CRMManualClientDialog";
 import { CRMCSVImport } from "@/components/CRMCSVImport";
 import { MonthlyWorkflowManager } from "@/components/yanacrm/MonthlyWorkflowManager";
-import FiscalChat from "@/components/FiscalChat";
-import { Loader2, Building2, Mail, Users, UserPlus, FileUp, Scale } from "lucide-react";
+import { Loader2, Building2, Mail, Users, UserPlus, FileUp } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,7 +22,6 @@ const CRM = () => {
   const navigate = useNavigate();
   const [manualClientDialogOpen, setManualClientDialogOpen] = useState(false);
   const [csvImportDialogOpen, setCsvImportDialogOpen] = useState(false);
-  const [fiscalChatOpen, setFiscalChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -144,18 +142,6 @@ const CRM = () => {
           onOpenChange={setCsvImportDialogOpen}
           onSuccess={() => setRefreshKey(prev => prev + 1)}
         />
-
-        {/* Fiscal Chat FAB - only visible on CRM page */}
-        <Button
-          onClick={() => setFiscalChatOpen(true)}
-          size="lg"
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-[#00B37E] hover:bg-[#00B37E]/90 z-50"
-          aria-label="Deschide Yana Fiscală"
-        >
-          <Scale className="h-6 w-6" />
-        </Button>
-
-        <FiscalChat open={fiscalChatOpen} onOpenChange={setFiscalChatOpen} />
       </div>
     );
   };
