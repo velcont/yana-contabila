@@ -78,16 +78,19 @@ export const ClientFiscalParamsDialog = ({
   const handleSave = async () => {
     try {
       setSaving(true);
-      const { error } = await supabase
-        .from('companies')
-        .update({
-          vat_regime: vatRegime,
-          cash_accounting_vat: cashAccountingVat === 'true',
-          tax_type: taxType as 'micro' | 'profit' | 'norma_venit' | 'dividend',
-        })
-        .eq('id', companyId);
+      const { data, error } = await supabase.functions.invoke('update-fiscal-params', {
+        body: {
+          companyId,
+          vatRegime,
+          cashAccountingVat,
+          taxType,
+        },
+      });
 
       if (error) throw error;
+      if (!data?.success) {
+        throw new Error(data?.message || 'Nu s-au putut salva parametrii fiscali');
+      }
 
       toast({
         title: 'Succes',
@@ -100,14 +103,13 @@ export const ClientFiscalParamsDialog = ({
       console.error('Error saving fiscal params:', error);
       toast({
         title: 'Eroare',
-        description: 'Nu s-au putut salva parametrii fiscali',
+        description: error?.message || 'Nu s-au putut salva parametrii fiscali',
         variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
   };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
