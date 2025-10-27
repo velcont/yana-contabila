@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -43,6 +43,7 @@ import { MonthlyWorkflowManager } from '@/components/yanacrm/MonthlyWorkflowMana
 import { ClientDueDiligence } from '@/components/ClientDueDiligence';
 import { YanaCRMWelcomeDialog } from '@/components/YanaCRMWelcomeDialog';
 import { useTutorial } from '@/contexts/TutorialContext';
+import { CRMClientForm } from '@/components/CRMClientForm';
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -66,6 +67,8 @@ const AccountantDashboard = () => {
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [manualClientDialogOpen, setManualClientDialogOpen] = useState(false);
   const [csvImportDialogOpen, setCsvImportDialogOpen] = useState(false);
+  const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<any | null>(null);
   
   // Fiscal filters
   const [vatRegimeFilter, setVatRegimeFilter] = useState<string[]>([]);
@@ -690,6 +693,17 @@ const AccountantDashboard = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => {
+                              setEditingClient(client);
+                              setEditClientDialogOpen(true);
+                            }}
+                            title="Editează client"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
                               setSelectedClient(client);
                               setEmailDialogOpen(true);
                             }}
@@ -788,6 +802,31 @@ const AccountantDashboard = () => {
             setCsvImportDialogOpen(false);
           }}
         />
+        
+        {editingClient && (
+          <Dialog open={editClientDialogOpen} onOpenChange={setEditClientDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Editează Client: {editingClient.company_name}</DialogTitle>
+                <DialogDescription>
+                  Modifică informațiile clientului
+                </DialogDescription>
+              </DialogHeader>
+              <CRMClientForm
+                clientId={editingClient.id}
+                onSuccess={() => {
+                  setEditClientDialogOpen(false);
+                  setEditingClient(null);
+                  fetchClients();
+                }}
+                onCancel={() => {
+                  setEditClientDialogOpen(false);
+                  setEditingClient(null);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
