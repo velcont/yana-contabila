@@ -263,13 +263,17 @@ export const CRMManualClientDialog = ({ open, onOpenChange, onSuccess }: CRMManu
       }
 
       toast({
-        title: "Client adăugat cu succes!",
+        title: "✓ Client adăugat cu succes!",
         description: `${validatedData.company_name} a fost adăugat în sistem`,
       });
 
       resetForm();
       onOpenChange(false);
-      onSuccess();
+      
+      // Delay pentru a permite replicarea datelor în Supabase înainte de refresh
+      setTimeout(() => {
+        onSuccess();
+      }, 300);
     } catch (error: any) {
       console.error("Error adding manual client:", error);
       if (error instanceof z.ZodError) {
