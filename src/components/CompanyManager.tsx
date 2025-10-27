@@ -143,14 +143,24 @@ export const CompanyManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('[CompanyManager] Submit started', { 
+      isEditing: !!editingCompany, 
+      formData 
+    });
+    
     try {
       // Validate form data using zod schema
       const validatedData = companySchema.parse(formData);
+      console.log('[CompanyManager] Validation passed', validatedData);
       
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Nu ești autentificat");
+      if (!user) {
+        console.error('[CompanyManager] User not authenticated');
+        throw new Error("Nu ești autentificat");
+      }
 
       if (editingCompany) {
+        console.log('[CompanyManager] Updating company', editingCompany.id);
         const { error } = await supabase
           .from("companies")
           .update({
@@ -167,9 +177,18 @@ export const CompanyManager = () => {
           })
           .eq("id", editingCompany.id);
 
-        if (error) throw error;
-        toast({ title: "Firmă actualizată cu succes!" });
+        if (error) {
+          console.error('[CompanyManager] Update error:', error);
+          throw error;
+        }
+        console.log('[CompanyManager] Company updated successfully');
+        toast({ 
+          title: "✅ Succes", 
+          description: "Firmă actualizată cu succes!",
+          variant: "default"
+        });
       } else {
+        console.log('[CompanyManager] Creating new company');
         const { error } = await supabase
           .from("companies")
           .insert([{ 
@@ -186,29 +205,41 @@ export const CompanyManager = () => {
             user_id: user.id 
           }]);
 
-        if (error) throw error;
-        toast({ title: "Firmă adăugată cu succes!" });
+        if (error) {
+          console.error('[CompanyManager] Insert error:', error);
+          throw error;
+        }
+        console.log('[CompanyManager] Company created successfully');
+        toast({ 
+          title: "✅ Succes", 
+          description: "Firmă adăugată cu succes!",
+          variant: "default"
+        });
       }
 
+      console.log('[CompanyManager] Closing dialog and refreshing list');
       setIsDialogOpen(false);
       resetForm();
       fetchCompanies();
     } catch (error: any) {
+      console.error('[CompanyManager] Submit error:', error);
       if (error instanceof z.ZodError) {
         // Handle validation errors
         const firstError = error.errors[0];
+        console.error('[CompanyManager] Validation error:', firstError);
         toast({
-          title: "Date invalide",
+          title: "❌ Date invalide",
           description: firstError.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Eroare",
-          description: error.message,
+          title: "❌ Eroare la salvare",
+          description: error.message || "Verifică datele și încearcă din nou",
           variant: "destructive",
         });
       }
+      // DO NOT close dialog on error - let user fix the issue
     }
   };
 
@@ -246,20 +277,22 @@ export const CompanyManager = () => {
   };
 
   const openEditDialog = (company: Company) => {
+    console.log('[CompanyManager] Opening edit dialog for company:', company);
     setEditingCompany(company);
     setFormData({
-      company_name: company.company_name,
-      cif: company.cif,
-      vat_payer: company.vat_payer,
-      tax_type: company.tax_type,
-      registration_number: company.registration_number,
-      address: company.address,
-      phone: company.phone,
-      contact_person: company.contact_person,
+      company_name: company.company_name || "",
+      cif: company.cif || "",
+      vat_payer: company.vat_payer || false,
+      tax_type: company.tax_type || "micro",
+      registration_number: company.registration_number || "",
+      address: company.address || "",
+      phone: company.phone || "",
+      contact_person: company.contact_person || "",
       contact_email: (company as any).contact_email || "",
-      notes: company.notes,
+      notes: company.notes || "",
     });
     setIsDialogOpen(true);
+    console.log('[CompanyManager] Edit dialog opened, form data:', formData);
   };
 
   const filteredCompanies = companies.filter((company) => {
@@ -297,8 +330,13 @@ export const CompanyManager = () => {
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          console.log('[CompanyManager] Dialog onOpenChange:', open);
+          if (!open && !loading) {
+            // Only allow closing if not loading
+            console.log('[CompanyManager] Closing dialog and resetting form');
+            resetForm();
+          }
           setIsDialogOpen(open);
-          if (!open) resetForm();
         }}>
           <DialogTrigger asChild>
             <Button>
@@ -422,9 +460,28 @@ export const CompanyManager = () => {
                 />
               </div>
 
-              <DialogFooter>
-                <Button type="submit">
-                  {editingCompany ? "Actualizează" : "Adaugă"}
+              <DialogFooter className="gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    console.log('[CompanyManager] Cancel clicked');
+                    setIsDialogOpen(false);
+                    resetForm();
+                  }}
+                  disabled={loading}
+                >
+                  Anulează
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {editingCompany ? "Actualizare..." : "Adăugare..."}
+                    </>
+                  ) : (
+                    editingCompany ? "Salvează Modificările" : "Adaugă Firmă"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -499,9 +556,14 @@ export const CompanyManager = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => openEditDialog(company)}
+                  onClick={() => {
+                    console.log('[CompanyManager] Edit button clicked for company:', company.id);
+                    openEditDialog(company);
+                  }}
+                  title="Editează firma"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editează
                 </Button>
                 <Button
                   variant="destructive"

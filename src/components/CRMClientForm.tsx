@@ -69,25 +69,34 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
+    console.log('[CRMClientForm] Submit started', { 
+      isEditing: !!clientId, 
+      clientId,
+      data 
+    });
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Nu ești autentificat");
+      if (!user) {
+        console.error('[CRMClientForm] User not authenticated');
+        throw new Error("Nu ești autentificat");
+      }
 
       const companyData = {
         company_name: data.company_name,
-        cui: data.cui,
-        registration_number: data.registration_number,
-        address: data.address,
-        phone: data.phone,
-        contact_person: data.contact_person,
-        contact_email: data.contact_email,
-        notes: data.notes,
+        cui: data.cui || null,
+        registration_number: data.registration_number || null,
+        address: data.address || null,
+        phone: data.phone || null,
+        contact_person: data.contact_person || null,
+        contact_email: data.contact_email || null,
+        notes: data.notes || null,
         vat_payer: data.vat_payer === "da",
-        vat_regime: data.vat_regime,
-        tax_regime: data.tax_regime,
-        billing_cycle: data.billing_cycle,
-        client_status: data.client_status,
-        client_category: data.client_category,
+        vat_regime: data.vat_regime || null,
+        tax_regime: data.tax_regime || null,
+        billing_cycle: data.billing_cycle || null,
+        client_status: data.client_status || "active",
+        client_category: data.client_category || null,
         user_id: user.id,
         managed_by_accountant_id: user.id,
         is_own_company: false,
@@ -95,27 +104,56 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
       };
 
       if (clientId) {
+        console.log('[CRMClientForm] Updating client', clientId);
+        
+        // Verify ownership before update
+        const { data: existingClient } = await supabase
+          .from("companies")
+          .select("id, managed_by_accountant_id")
+          .eq("id", clientId)
+          .single();
+        
+        if (!existingClient) {
+          throw new Error("Clientul nu a fost găsit");
+        }
+        
+        if (existingClient.managed_by_accountant_id !== user.id) {
+          throw new Error("Nu ai permisiunea să modifici acest client");
+        }
+        
         const { error } = await supabase
           .from("companies")
           .update(companyData)
           .eq("id", clientId);
         
-        if (error) throw error;
-        toast.success("Client actualizat cu succes!");
+        if (error) {
+          console.error('[CRMClientForm] Update error:', error);
+          throw error;
+        }
+        console.log('[CRMClientForm] Client updated successfully');
+        toast.success("✅ Client actualizat cu succes!");
       } else {
+        console.log('[CRMClientForm] Creating new client');
         const { error } = await supabase
           .from("companies")
           .insert([companyData]);
         
-        if (error) throw error;
-        toast.success("Client adăugat cu succes!");
+        if (error) {
+          console.error('[CRMClientForm] Insert error:', error);
+          throw error;
+        }
+        console.log('[CRMClientForm] Client created successfully');
+        toast.success("✅ Client adăugat cu succes!");
       }
 
       form.reset();
-      if (onSuccess) onSuccess();
+      if (onSuccess) {
+        console.log('[CRMClientForm] Calling onSuccess callback');
+        onSuccess();
+      }
     } catch (error: any) {
-      console.error("Error:", error);
-      toast.error(error.message || "A apărut o eroare");
+      console.error('[CRMClientForm] Submit error:', error);
+      toast.error("❌ " + (error.message || "A apărut o eroare. Verifică datele și încearcă din nou."));
     } finally {
       setLoading(false);
     }
@@ -386,13 +424,27 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
 
         <div className="flex justify-end gap-3">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                console.log('[CRMClientForm] Cancel clicked');
+                onCancel();
+              }}
+              disabled={loading}
+            >
               Anulează
             </Button>
           )}
           <Button type="submit" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {clientId ? "Actualizează" : "Adaugă"} Client
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {clientId ? "Actualizare..." : "Adăugare..."}
+              </>
+            ) : (
+              clientId ? "Salvează Modificările" : "Adaugă Client"
+            )}
           </Button>
         </div>
       </form>
