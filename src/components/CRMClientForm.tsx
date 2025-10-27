@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,7 @@ interface FormData {
 
 export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const form = useForm<FormData>({
     defaultValues: {
       company_name: "",
@@ -66,6 +67,59 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
       client_category: "",
     },
   });
+
+  // Fetch client data when editing
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!clientId) return;
+      
+      setLoadingData(true);
+      console.log('[CRMClientForm] Fetching client data for:', clientId);
+      
+      try {
+        const { data: client, error } = await supabase
+          .from("companies")
+          .select("*")
+          .eq("id", clientId)
+          .single();
+        
+        if (error) {
+          console.error('[CRMClientForm] Fetch error:', error);
+          toast.error("❌ Eroare la încărcarea datelor clientului");
+          return;
+        }
+        
+        if (client) {
+          console.log('[CRMClientForm] Client data fetched:', client);
+          
+          // Pre-populate form with client data
+          form.reset({
+            company_name: client.company_name || "",
+            cui: client.cui || "",
+            registration_number: client.registration_number || "",
+            address: client.address || "",
+            phone: client.phone || "",
+            contact_person: client.contact_person || "",
+            contact_email: client.contact_email || "",
+            notes: client.notes || "",
+            vat_payer: client.vat_payer ? "da" : "nu",
+            vat_regime: client.vat_regime || "nu",
+            tax_regime: client.tax_regime || "impozit_pe_profit",
+            billing_cycle: client.billing_cycle || "anual",
+            client_status: client.client_status || "active",
+            client_category: client.client_category || "",
+          });
+        }
+      } catch (error) {
+        console.error('[CRMClientForm] Unexpected error:', error);
+        toast.error("❌ Eroare la încărcarea datelor");
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    
+    fetchClientData();
+  }, [clientId, form]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -158,6 +212,15 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
       setLoading(false);
     }
   };
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Se încarcă datele...</span>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
