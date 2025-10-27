@@ -34,11 +34,33 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
     setIsLoading(true);
 
     try {
+      console.log('[FISCAL-CHAT] Sending message:', input);
+      
+      // Get current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: 'Eroare de autentificare',
+          description: 'Trebuie să fii autentificat pentru a folosi Yana Fiscală.',
+          variant: 'destructive',
+        });
+        setMessages(prev => prev.slice(0, -1));
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('fiscal-chat', {
-        body: { message: input }
+        body: { message: input },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
       });
 
-      if (error) throw error;
+      console.log('[FISCAL-CHAT] Response:', { data, error });
+
+      if (error) {
+        console.error('[FISCAL-CHAT] Error from invoke:', error);
+        throw error;
+      }
 
       if (data?.error) {
         toast({
