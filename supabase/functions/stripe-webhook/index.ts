@@ -259,57 +259,10 @@ serve(async (req) => {
         }
       }
 
-      // 🔒 SECURITY FIX 4: Atomic update - verify both operations succeed
-      const { data: existingBudget } = await supabaseClient
-        .from("ai_budget_limits")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .single();
-
-      const oldBudget = existingBudget?.monthly_budget_cents || 0;
-      const newBudget = oldBudget + creditsToAdd;
-
-      let budgetUpdateSuccess = false;
-      let budgetId = existingBudget?.id;
-
-      if (existingBudget) {
-        // Add to existing budget
-        const { error: budgetError } = await supabaseClient
-          .from("ai_budget_limits")
-          .update({
-            monthly_budget_cents: newBudget,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingBudget.id);
-
-        if (budgetError) {
-          console.error("❌ Failed to update budget:", budgetError);
-          throw new Error(`Budget update failed: ${budgetError.message}`);
-        }
-        budgetUpdateSuccess = true;
-      } else {
-        // Create new budget
-        const { data: newBudgetData, error: budgetError } = await supabaseClient
-          .from("ai_budget_limits")
-          .insert({
-            user_id: user.id,
-            monthly_budget_cents: creditsToAdd,
-            alert_at_percent: 80,
-            is_active: true,
-          })
-          .select()
-          .single();
-
-        if (budgetError) {
-          console.error("❌ Failed to create budget:", budgetError);
-          throw new Error(`Budget creation failed: ${budgetError.message}`);
-        }
-        budgetUpdateSuccess = true;
-        budgetId = newBudgetData.id;
-      }
-
-      // 🔒 BUG FIX #2: Use UPSERT with ON CONFLICT to prevent race condition duplicates
+      // 🔒 BUG FIX #5: First record purchase, then update budget (atomic order)
+      // This prevents budget being updated if purchase recording fails
+      
+      // Step 1: Record the purchase first (using UPSERT to prevent duplicates)
       const { error: purchaseError } = await supabaseClient.from('credits_purchases').upsert({
         user_id: user.id,
         stripe_payment_intent_id: session.payment_intent as string,
@@ -328,22 +281,14 @@ serve(async (req) => {
       });
 
       if (purchaseError) {
-        console.error("❌ CRITICAL: Purchase recording failed but budget was updated!", purchaseError);
-        
-        // ROLLBACK: Revert budget to previous value
-        if (budgetUpdateSuccess && budgetId) {
-          console.log(`🔄 Rolling back budget from ${newBudget} to ${oldBudget}`);
-          await supabaseClient.from("ai_budget_limits").update({
-            monthly_budget_cents: oldBudget,
-          }).eq("id", budgetId);
-        }
+        console.error("❌ Purchase recording failed:", purchaseError);
         
         // Create critical alert
         await supabaseClient.from('admin_alerts').insert({
           alert_type: 'PURCHASE_RECORDING_FAILED',
           severity: 'critical',
           title: `Failed to Record Purchase for ${customerEmail}`,
-          description: `Budget was updated but purchase recording failed. Budget was rolled back.`,
+          description: `Purchase recording failed. No budget was updated (atomic safety).`,
           details: {
             sessionId: session.id,
             userId: user.id,
@@ -355,6 +300,50 @@ serve(async (req) => {
         });
         
         throw new Error(`Purchase recording failed: ${purchaseError.message}`);
+      }
+
+      // Step 2: Only after successful purchase recording, update budget
+      const { data: existingBudget } = await supabaseClient
+        .from("ai_budget_limits")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .single();
+
+      const oldBudget = existingBudget?.monthly_budget_cents || 0;
+      const newBudget = oldBudget + creditsToAdd;
+
+      if (existingBudget) {
+        // Add to existing budget
+        const { error: budgetError } = await supabaseClient
+          .from("ai_budget_limits")
+          .update({
+            monthly_budget_cents: newBudget,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingBudget.id);
+
+        if (budgetError) {
+          console.error("❌ Failed to update budget:", budgetError);
+          throw new Error(`Budget update failed: ${budgetError.message}`);
+        }
+      } else {
+        // Create new budget
+        const { error: budgetError } = await supabaseClient
+          .from("ai_budget_limits")
+          .insert({
+            user_id: user.id,
+            monthly_budget_cents: creditsToAdd,
+            alert_at_percent: 80,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (budgetError) {
+          console.error("❌ Failed to create budget:", budgetError);
+          throw new Error(`Budget creation failed: ${budgetError.message}`);
+        }
       }
 
       console.log(`✅ Successfully added ${creditsToAdd} credits to ${customerEmail}`);

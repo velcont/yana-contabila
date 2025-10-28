@@ -164,16 +164,36 @@ serve(async (req) => {
     }
 
     // No conflict - proceed with normal update
+    // 🔒 BUG FIX #6: Only clear trial_ends_at if user is NOT in an active trial
+    const updateData: any = {
+      subscription_status: 'active',
+      subscription_type: subscriptionType,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscription.id,
+      subscription_ends_at: subscriptionEnd,
+    };
+
+    // Only clear trial_ends_at if trial is expired or not active
+    if (currentProfile?.trial_ends_at) {
+      const trialEndDate = new Date(currentProfile.trial_ends_at);
+      const now = new Date();
+      
+      // If trial is expired, clear it
+      if (trialEndDate < now) {
+        updateData.trial_ends_at = null;
+        logStep("Trial expired - clearing trial_ends_at", { trial_ends_at: currentProfile.trial_ends_at });
+      } else {
+        // Trial is still active - keep it
+        logStep("Trial still active - preserving trial_ends_at", { 
+          trial_ends_at: currentProfile.trial_ends_at,
+          days_remaining: Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        });
+      }
+    }
+
     const { error: updateError } = await supabaseClient
       .from('profiles')
-      .update({
-        subscription_status: 'active',
-        subscription_type: subscriptionType,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscription.id,
-        subscription_ends_at: subscriptionEnd,
-        trial_ends_at: null, // Clear trial only if not in conflict
-      })
+      .update(updateData)
       .eq('id', user.id);
 
     if (updateError) {

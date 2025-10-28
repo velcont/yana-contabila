@@ -30,6 +30,27 @@ serve(async (req) => {
       );
     }
 
+    // 🔒 BUG FIX #4: Check for pending checkout sessions to prevent duplicates
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentCheckouts, error: checkoutError } = await supabaseClient
+      .from('credits_purchases')
+      .select('purchase_date, stripe_checkout_session_id')
+      .eq('user_id', user.id)
+      .gte('purchase_date', fiveMinutesAgo)
+      .order('purchase_date', { ascending: false })
+      .limit(1);
+
+    if (!checkoutError && recentCheckouts && recentCheckouts.length > 0) {
+      console.log(`⚠️ User ${user.id} has recent checkout in last 5 minutes, preventing duplicate`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Ai o achiziție în curs de procesare. Te rugăm să aștepți câteva minute.",
+          recent_checkout: true 
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { priceId } = await req.json();
 
     if (!priceId) {
