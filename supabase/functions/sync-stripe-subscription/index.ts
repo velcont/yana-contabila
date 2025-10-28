@@ -104,7 +104,7 @@ serve(async (req) => {
     // 🔒 BUG FIX #1: Check if user has manual subscription - DON'T overwrite
     const { data: currentProfile } = await supabaseClient
       .from('profiles')
-      .select('subscription_status, subscription_ends_at, subscription_type, has_free_access')
+      .select('subscription_status, subscription_ends_at, subscription_type, has_free_access, trial_ends_at')
       .eq('id', user.id)
       .single();
 
@@ -165,7 +165,16 @@ serve(async (req) => {
 
     // No conflict - proceed with normal update
     // 🔒 BUG FIX #6: Only clear trial_ends_at if user is NOT in an active trial
-    const updateData: any = {
+    interface ProfileUpdate {
+      subscription_status: string;
+      subscription_type: string;
+      stripe_customer_id: string;
+      stripe_subscription_id: string;
+      subscription_ends_at: string;
+      trial_ends_at?: null;
+    }
+
+    const updateData: ProfileUpdate = {
       subscription_status: 'active',
       subscription_type: subscriptionType,
       stripe_customer_id: customerId,
