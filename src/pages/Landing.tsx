@@ -232,15 +232,11 @@ Perioada: 01/04/2025 - 30/04/2025`,
           </Badge>
           
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 animate-in fade-in slide-in-from-bottom-4 leading-tight">
-            Analizează balanțe contabile în{' '}
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              30 de secunde
-            </span>{' '}
-            cu AI
+            ChatGPT nu știe <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Codul Fiscal</span>. Yana știe.
           </h1>
           
           <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 md:mb-8 px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-            Identifică erori, calculează indicatori, generează rapoarte instant
+            Prima analiză financiară AI antrenată pe legislația română 2025. Analiza balanței în 2 secunde + consultanță fiscală specializată.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-stretch sm:items-center px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
@@ -419,6 +415,107 @@ Perioada: 01/04/2025 - 30/04/2025`,
               </CardContent>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Yana vs ChatGPT Comparison */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            ChatGPT nu știe Codul Fiscal. Yana știe.
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            De ce să plătești pentru un instrument generic când poți avea unul construit 
+            special pentru legislația și businessul românesc?
+          </p>
+        </div>
+
+        {/* Comparison Table */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          {/* ChatGPT Column */}
+          <Card className="border-red-500/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-500" />
+                ChatGPT Plus
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">~80 lei/lună</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">Chat general AI</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">Nu știe legislație RO 2025</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">Fără analiză balanță</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">Fără dashboard financiar</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">Fără rapoarte automate</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm">Răspunsuri generice</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Yana Column */}
+          <Card className="border-green-500/50 relative">
+            <Badge className="absolute -top-2 -right-2 bg-green-500 text-white">Pentru Afaceri RO</Badge>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Yana
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">49 lei/lună</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Chat AI specializat pentru business</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Antrenată pe Codul Fiscal RO 2025</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Analiză balanță AI automată</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Dashboard + grafice interactive</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Rapoarte automate PDF/Excel</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Răspunsuri verificate cu surse ANAF</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* CTA */}
+        <div className="text-center mt-8">
+          <p className="text-sm text-muted-foreground mb-4">
+            💡 Cu 31 lei MAI PUȚIN decât ChatGPT, primești un instrument 5x mai valoros pentru businessul tău românesc
+          </p>
+          <Button size="lg" onClick={() => navigate('/auth')}>
+            Testează gratuit 30 de zile
+          </Button>
         </div>
       </section>
 
