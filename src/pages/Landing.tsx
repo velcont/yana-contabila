@@ -25,11 +25,13 @@ import {
   Building2,
   Check,
   Gift,
-  Brain
+  Brain,
+  PlayCircle
 } from 'lucide-react';
 import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { AIPredictions } from '@/components/AIPredictions';
 import { formatCurrency } from '@/utils/analysisParser';
+import { StickyTrialBanner } from '@/components/StickyTrialBanner';
 
 export const Landing = () => {
   const navigate = useNavigate();
@@ -219,61 +221,66 @@ Perioada: 01/04/2025 - 30/04/2025`,
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <Badge className="mb-4 animate-in fade-in slide-in-from-top-4" variant="secondary">
-          <Sparkles className="h-3 w-3 mr-1" />
-          AI-ul financiar care înțelege România
-        </Badge>
-        
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-in fade-in slide-in-from-bottom-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          YANA – AI-ul care analizează balanțe și dezvoltă afaceri
-        </h1>
-        
-        <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-          Analiză balanță AI + Consultant strategic pentru afacerea ta.<br />
-          <span className="font-semibold text-foreground">Vorbești</span>, nu citești PDF-uri.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
-          <Button 
-            size="lg" 
-            className="text-lg px-8 py-6"
-            onClick={() => navigate('/auth')}
-          >
-            Începe Gratuit
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+      <StickyTrialBanner />
+      
+      {/* Hero Section - Optimized */}
+      <section className="container mx-auto px-4 py-12 md:py-20">
+        <div className="max-w-4xl mx-auto text-center">
+          <Badge className="mb-4 md:mb-6 animate-in fade-in slide-in-from-top-4" variant="secondary">
+            <Sparkles className="h-3 w-3 mr-1" />
+            AI-ul financiar care înțelege România
+          </Badge>
           
-          <Button 
-            size="lg" 
-            variant="outline"
-            className="text-lg px-8 py-6"
-            onClick={() => navigate('/demo')}
-          >
-            <Database className="mr-2 h-5 w-5" />
-            Vezi Demo Interactiv
-          </Button>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 animate-in fade-in slide-in-from-bottom-4 leading-tight">
+            Analizează balanțe contabile în{' '}
+            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              30 de secunde
+            </span>{' '}
+            cu AI
+          </h1>
+          
+          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 md:mb-8 px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
+            Identifică erori, calculează indicatori, generează rapoarte instant
+          </p>
 
-          <Button
-            size="lg"
-            variant="secondary"
-            className="text-lg px-8 py-6"
-            onClick={() => navigate('/auth')}
-          >
-            Autentificare
-          </Button>
-
-          {isAccountant && (
-            <Button
-              size="lg"
-              className="text-lg px-8 py-6 bg-green-600 hover:bg-green-700"
-              onClick={() => navigate('/yanacrm')}
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-stretch sm:items-center px-4 animate-in fade-in slide-in-from-bottom-4 mb-8" style={{ animationDelay: '200ms' }}>
+            <Button 
+              size="lg" 
+              className="text-base md:text-lg px-6 md:px-8 py-5 md:py-6 w-full sm:w-auto shadow-lg hover:shadow-xl transition-shadow"
+              onClick={() => navigate('/auth')}
             >
-              <Building2 className="mr-2 h-5 w-5" />
-              YanaCRM
+              <Gift className="mr-2 h-5 w-5" />
+              Testează gratuit 30 de zile
             </Button>
-          )}
+            
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="text-base md:text-lg px-6 md:px-8 py-5 md:py-6 w-full sm:w-auto"
+              onClick={loadDemoData}
+            >
+              <PlayCircle className="mr-2 h-5 w-5" />
+              Demo Instant
+            </Button>
+          </div>
+
+          {/* Social Proof */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground animate-in fade-in" style={{ animationDelay: '300ms' }}>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <span>Fără card de credit</span>
+            </div>
+            <div className="hidden sm:block h-4 w-px bg-border" />
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <span>Acces instant</span>
+            </div>
+            <div className="hidden sm:block h-4 w-px bg-border" />
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <span>Anulare oricând</span>
+            </div>
+          </div>
         </div>
       </section>
 

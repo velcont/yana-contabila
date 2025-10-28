@@ -10,6 +10,10 @@ export type AnalyticsEvent =
   | 'company_created'
   | 'user_login'
   | 'user_signup'
+  | 'first_analysis'
+  | 'crm_first_client'
+  | 'fiscal_chat_message'
+  | 'subscription_started'
   | 'error_occurred';
 
 interface TrackEventParams {
@@ -81,5 +85,25 @@ export const analytics = {
       error_message: errorMessage,
       error_stack: errorStack
     }
+  }),
+
+  firstAnalysis: (companyName: string, fileType: string) => trackEvent({
+    eventName: 'first_analysis',
+    eventData: { company_name: companyName, file_type: fileType }
+  }),
+
+  crmFirstClient: (companyName: string) => trackEvent({
+    eventName: 'crm_first_client',
+    eventData: { company_name: companyName }
+  }),
+
+  fiscalChatMessage: (messageLength: number, hasAnswer: boolean) => trackEvent({
+    eventName: 'fiscal_chat_message',
+    eventData: { message_length: messageLength, has_answer: hasAnswer }
+  }),
+
+  subscriptionStarted: (planType: string, amount?: number) => trackEvent({
+    eventName: 'subscription_started',
+    eventData: { plan_type: planType, amount }
   }),
 };
