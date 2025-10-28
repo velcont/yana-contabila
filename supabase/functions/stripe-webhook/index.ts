@@ -32,6 +32,85 @@ serve(async (req) => {
 
     console.log("Webhook event type:", event.type);
 
+    // Handle subscription invoice payments
+    if (event.type === "invoice.paid") {
+      const invoice = event.data.object as Stripe.Invoice;
+      
+      // Skip if not a subscription invoice
+      if (!invoice.subscription) {
+        console.log("Invoice not associated with subscription, skipping");
+        return new Response(JSON.stringify({ received: true }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200 
+        });
+      }
+
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
+      const subscription = await stripe.subscriptions.retrieve(
+        invoice.subscription as string
+      );
+
+      // Find user by customer email
+      const customerEmail = invoice.customer_email;
+      if (!customerEmail) {
+        console.error("No customer email found in invoice");
+        return new Response("No email", { status: 400 });
+      }
+
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('id, email, subscription_type')
+        .eq('email', customerEmail)
+        .single();
+
+      if (profile) {
+        // Insert subscription payment record
+        await supabaseClient.from('subscription_payments').insert({
+          user_id: profile.id,
+          stripe_subscription_id: subscription.id,
+          stripe_invoice_id: invoice.id,
+          stripe_payment_intent_id: invoice.payment_intent as string,
+          amount_paid_cents: invoice.amount_paid,
+          currency: invoice.currency?.toUpperCase() || 'RON',
+          subscription_type: profile.subscription_type || 'entrepreneur',
+          period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          payment_date: new Date(invoice.created * 1000).toISOString(),
+          status: 'paid',
+          metadata: {
+            invoice_number: invoice.number,
+            hosted_invoice_url: invoice.hosted_invoice_url
+          }
+        });
+
+        // Log audit event
+        await supabaseClient.from('audit_logs').insert({
+          user_id: profile.id,
+          user_email: profile.email,
+          action_type: 'SUBSCRIPTION_PAYMENT_RECEIVED',
+          table_name: 'subscription_payments',
+          metadata: {
+            amount_cents: invoice.amount_paid,
+            subscription_id: subscription.id,
+            invoice_id: invoice.id,
+            period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            period_end: new Date(subscription.current_period_end * 1000).toISOString()
+          }
+        });
+
+        console.log(`✅ Recorded subscription payment for user ${profile.id}`);
+      }
+
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       

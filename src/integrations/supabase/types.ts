@@ -2488,6 +2488,78 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_payments: {
+        Row: {
+          amount_paid_cents: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          invoice_generated: boolean | null
+          metadata: Json | null
+          payment_date: string | null
+          period_end: string
+          period_start: string
+          smartbill_invoice_id: string | null
+          status: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_subscription_id: string
+          subscription_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid_cents: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_generated?: boolean | null
+          metadata?: Json | null
+          payment_date?: string | null
+          period_end: string
+          period_start: string
+          smartbill_invoice_id?: string | null
+          status?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id: string
+          subscription_type: string
+          user_id: string
+        }
+        Update: {
+          amount_paid_cents?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          invoice_generated?: boolean | null
+          metadata?: Json | null
+          payment_date?: string | null
+          period_end?: string
+          period_start?: string
+          smartbill_invoice_id?: string | null
+          status?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_subscription_id?: string
+          subscription_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_smartbill_invoice_id_fkey"
+            columns: ["smartbill_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "smartbill_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string | null

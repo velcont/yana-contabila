@@ -82,29 +82,59 @@ serve(async (req) => {
 
     logStep("Admin authenticated", { adminId: user.id });
 
-    const { sessionId } = await req.json();
+    const { sessionId, paymentType } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
 
-    logStep("Processing session", { sessionId });
+    logStep("Processing session", { sessionId, paymentType });
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Get session details
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    logStep("Session retrieved", { 
-      customerId: session.customer,
-      amount: session.amount_total,
-      currency: session.currency 
-    });
+    let customerEmail: string;
+    let customerName: string;
+    let amount: number;
+    let stripeCustomerId: string;
+    let productName: string;
+
+    if (paymentType === 'subscription') {
+      // Handle subscription invoice
+      const invoice = await stripe.invoices.retrieve(sessionId);
+      customerEmail = invoice.customer_email || '';
+      const customer = await stripe.customers.retrieve(invoice.customer as string);
+      customerName = (customer as any).name || customerEmail;
+      amount = invoice.amount_paid / 100;
+      stripeCustomerId = invoice.customer as string;
+      productName = "Abonament Yana Contabila";
+
+      logStep("Invoice retrieved", { 
+        customerId: stripeCustomerId,
+        amount,
+        currency: invoice.currency 
+      });
+    } else {
+      // Handle credits checkout session
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const customer = await stripe.customers.retrieve(session.customer as string);
+      customerEmail = (customer as any).email;
+      customerName = (customer as any).name || customerEmail;
+      amount = (session.amount_total || 0) / 100;
+      stripeCustomerId = session.customer as string;
+      productName = "Credite AI Yana";
+
+      logStep("Session retrieved", { 
+        customerId: session.customer,
+        amount: session.amount_total,
+        currency: session.currency 
+      });
+    }
 
     // Check if invoice already exists
     const { data: existingInvoice } = await supabaseClient
       .from('smartbill_invoices')
       .select('id')
-      .eq('stripe_session_id', sessionId)
+      .eq(paymentType === 'subscription' ? 'stripe_invoice_id' : 'stripe_session_id', sessionId)
       .eq('status', 'success')
       .maybeSingle();
 
@@ -113,16 +143,11 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false,
-          message: "Factura a fost deja generată pentru această sesiune"
+          message: "Factura a fost deja generată pentru această plată"
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
-
-    // Get customer details
-    const customer = await stripe.customers.retrieve(session.customer as string);
-    const customerEmail = (customer as any).email;
-    const customerName = (customer as any).name || customerEmail;
 
     logStep("Customer details", { customerEmail, customerName });
 
@@ -139,7 +164,8 @@ serve(async (req) => {
 
     logStep("Target user found", { userId: targetUser.id });
 
-    // Get billing details
+    // Get billing details from Stripe customer
+    const customer = await stripe.customers.retrieve(stripeCustomerId);
     const billingDetails = (customer as any).address;
     const taxId = (customer as any).tax_ids?.data?.[0]?.value;
 
@@ -162,7 +188,6 @@ serve(async (req) => {
     logStep("SmartBill client prepared", { clientType: smartBillClient.type });
 
     // Prepare SmartBill invoice
-    const amount = (session.amount_total || 0) / 100;
     const companyCIF = Deno.env.get("SMARTBILL_COMPANY_CIF") || "";
 
     const invoiceData: SmartBillInvoice = {
@@ -175,8 +200,8 @@ serve(async (req) => {
       language: "RO",
       products: [
         {
-          name: "Abonament Yana Contabila",
-          code: "YANA-SUB",
+          name: productName,
+          code: paymentType === 'subscription' ? "YANA-SUB" : "YANA-AI",
           measuringUnit: "buc",
           quantity: 1,
           price: amount,
@@ -212,10 +237,9 @@ serve(async (req) => {
       logStep("SmartBill error", { status: smartBillResponse.status, response: responseText });
       
       // Save failed attempt
-      await supabaseClient.from('smartbill_invoices').insert({
+      const failedInvoiceData: any = {
         user_id: targetUser.id,
-        stripe_session_id: sessionId,
-        stripe_customer_id: session.customer as string,
+        stripe_customer_id: stripeCustomerId,
         customer_email: customerEmail,
         customer_name: customerName,
         amount: amount,
@@ -223,7 +247,15 @@ serve(async (req) => {
         invoice_series: 'conta',
         status: 'failed',
         error_message: `SmartBill returnează HTML în loc de JSON. Status: ${smartBillResponse.status}. Verifică credențialele SmartBill și CIF-ul companiei.`,
-      });
+      };
+
+      if (paymentType === 'subscription') {
+        failedInvoiceData.stripe_invoice_id = sessionId;
+      } else {
+        failedInvoiceData.stripe_session_id = sessionId;
+      }
+
+      await supabaseClient.from('smartbill_invoices').insert(failedInvoiceData);
 
       throw new Error(`SmartBill API error: ${smartBillResponse.status}`);
     }
@@ -242,42 +274,47 @@ serve(async (req) => {
     });
 
     // Save to database
+    const successInvoiceData: any = {
+      user_id: targetUser.id,
+      stripe_customer_id: stripeCustomerId,
+      customer_email: customerEmail,
+      customer_name: customerName,
+      customer_cif: taxId,
+      amount: amount,
+      currency: 'RON',
+      invoice_series: smartBillData.series,
+      invoice_number: smartBillData.number,
+      invoice_url: smartBillData.url,
+      status: 'success',
+      smartbill_response: smartBillData,
+    };
+
+    if (paymentType === 'subscription') {
+      successInvoiceData.stripe_invoice_id = sessionId;
+    } else {
+      successInvoiceData.stripe_session_id = sessionId;
+    }
+
     const { error: insertError } = await supabaseClient
       .from('smartbill_invoices')
-      .insert({
-        user_id: targetUser.id,
-        stripe_session_id: sessionId,
-        stripe_customer_id: session.customer as string,
-        customer_email: customerEmail,
-        customer_name: customerName,
-        customer_cif: taxId,
-        amount: amount,
-        currency: 'RON',
-        invoice_series: smartBillData.series,
-        invoice_number: smartBillData.number,
-        invoice_url: smartBillData.url,
-        status: 'success',
-        smartbill_response: smartBillData,
-      });
+      .insert(successInvoiceData);
 
     if (insertError) {
       logStep("Error saving to database", { error: insertError });
       throw insertError;
     }
 
-    // Update user subscription
-    await supabaseClient
-      .from('profiles')
-      .update({
-        subscription_status: 'active',
-        subscription_type: 'accounting_firm',
-        stripe_customer_id: session.customer as string,
-        subscription_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        trial_ends_at: null,
-      })
-      .eq('id', targetUser.id);
+    // Update subscription payment status if applicable
+    if (paymentType === 'subscription') {
+      await supabaseClient
+        .from('subscription_payments')
+        .update({ invoice_generated: true })
+        .eq('stripe_invoice_id', sessionId);
+      
+      logStep("Subscription payment marked as invoiced");
+    }
 
-    logStep("Subscription updated for user");
+    logStep("Invoice saved successfully");
 
     return new Response(
       JSON.stringify({

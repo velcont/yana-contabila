@@ -20,58 +20,71 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { sessionId } = await req.json();
+    const { sessionId, paymentType } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
 
-    logStep("Processing session", { sessionId });
+    logStep("Processing session", { sessionId, paymentType });
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Get session details
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['line_items', 'customer']
-    });
+    let emailDetails: any;
+    let customer: any;
 
-    const customer = session.customer as Stripe.Customer;
-    const amount = (session.amount_total || 0) / 100;
-    const currency = session.currency?.toUpperCase() || 'RON';
+    if (paymentType === 'subscription') {
+      // Handle subscription invoice
+      const invoice = await stripe.invoices.retrieve(sessionId);
+      const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+      customer = await stripe.customers.retrieve(invoice.customer as string);
+      
+      emailDetails = {
+        type: 'Abonament Recurent',
+        amount: (invoice.amount_paid / 100).toFixed(2),
+        currency: invoice.currency?.toUpperCase() || 'RON',
+        customer_email: invoice.customer_email,
+        customer_name: (customer as any).name || invoice.customer_email,
+        period: `${new Date(subscription.current_period_start * 1000).toLocaleDateString('ro-RO')} - ${new Date(subscription.current_period_end * 1000).toLocaleDateString('ro-RO')}`,
+        invoice_url: invoice.hosted_invoice_url,
+        reference: invoice.id
+      };
 
-    logStep("Session retrieved", { 
-      customerId: customer.id,
-      amount,
-      currency
-    });
+      logStep("Invoice retrieved", { 
+        customerId: customer.id,
+        amount: emailDetails.amount,
+        currency: emailDetails.currency
+      });
+    } else {
+      // Handle credits checkout session
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['line_items', 'customer']
+      });
+
+      customer = session.customer as Stripe.Customer;
+      const amount = (session.amount_total || 0) / 100;
+      const currency = session.currency?.toUpperCase() || 'RON';
+
+      emailDetails = {
+        type: 'Credite AI',
+        amount: amount.toFixed(2),
+        currency: currency,
+        customer_email: customer.email,
+        customer_name: customer.name || customer.email,
+        reference: session.id
+      };
+
+      logStep("Session retrieved", { 
+        customerId: customer.id,
+        amount,
+        currency
+      });
+    }
 
     // Get billing details
-    const billingDetails = customer.address;
-    const taxId = customer.tax_ids?.data?.[0]?.value;
-    const phone = customer.phone;
-
-    // Determine payment type
-    let paymentType = 'Nedeterminat';
-    let description = '';
-    
-    if (session.line_items?.data?.[0]) {
-      const lineItem = session.line_items.data[0];
-      const priceId = lineItem.price?.id;
-      
-      if (priceId === 'price_1SLWzFBu3m83VcDAgP1veppc') {
-        paymentType = '💼 Abonament CONTABIL (199 RON/lună)';
-        description = 'Abonament pentru firme de contabilitate';
-      } else if (priceId === 'price_1SLWzEBu3m83VcDAfHVcQupt') {
-        paymentType = '👔 Abonament ANTREPRENOR (49 RON/lună)';
-        description = 'Abonament pentru antreprenori';
-      } else if (lineItem.description?.toLowerCase().includes('credit')) {
-        paymentType = '🤖 Credite AI';
-        description = `Achiziție ${amount} RON credite AI`;
-      } else {
-        paymentType = '💳 Altă plată';
-        description = lineItem.description || 'Plată procesată';
-      }
-    }
+    const billingDetails = (customer as any).address;
+    const taxId = (customer as any).tax_ids?.data?.[0]?.value;
+    const phone = (customer as any).phone;
 
     // Prepare email content
     const emailHtml = `
@@ -101,16 +114,16 @@ serve(async (req) => {
             <div class="content">
               <div class="section">
                 <h2 style="margin-top: 0; color: #4F46E5;">💰 Detalii Plată</h2>
-                <p><span class="label">Tip:</span> <span class="value">${paymentType}</span></p>
-                <p><span class="label">Descriere:</span> <span class="value">${description}</span></p>
-                <p><span class="label">Sumă:</span> <span class="amount">${amount} ${currency}</span></p>
+                <p><span class="label">Tip:</span> <span class="value">${emailDetails.type}</span></p>
+                ${emailDetails.period ? `<p><span class="label">Perioadă:</span> <span class="value">${emailDetails.period}</span></p>` : ''}
+                <p><span class="label">Sumă:</span> <span class="amount">${emailDetails.amount} ${emailDetails.currency}</span></p>
                 <p><span class="label">Data:</span> <span class="value">${new Date().toLocaleString('ro-RO')}</span></p>
               </div>
 
               <div class="section">
                 <h2 style="margin-top: 0; color: #4F46E5;">👤 Date Client</h2>
-                <p><span class="label">Nume:</span> <span class="value">${customer.name || 'N/A'}</span></p>
-                <p><span class="label">Email:</span> <span class="value">${customer.email || 'N/A'}</span></p>
+                <p><span class="label">Nume:</span> <span class="value">${emailDetails.customer_name || 'N/A'}</span></p>
+                <p><span class="label">Email:</span> <span class="value">${emailDetails.customer_email || 'N/A'}</span></p>
                 ${phone ? `<p><span class="label">Telefon:</span> <span class="value">${phone}</span></p>` : ''}
                 ${taxId ? `<p><span class="label">CIF:</span> <span class="value highlight">${taxId}</span> <strong>(Persoană Juridică)</strong></p>` : '<p><span class="value">Persoană Fizică (fără CIF)</span></p>'}
               </div>
@@ -128,9 +141,9 @@ serve(async (req) => {
 
               <div class="section">
                 <h2 style="margin-top: 0; color: #4F46E5;">🔗 Referințe Stripe</h2>
-                <p><span class="label">Session ID:</span> <code>${sessionId}</code></p>
-                <p><span class="label">Customer ID:</span> <code>${customer.id}</code></p>
-                <p><span class="label">Payment Intent:</span> <code>${session.payment_intent || 'N/A'}</code></p>
+                <p><span class="label">Referință:</span> <code>${emailDetails.reference}</code></p>
+                <p><span class="label">Customer ID:</span> <code>${(customer as any).id}</code></p>
+                ${emailDetails.invoice_url ? `<p><a href="${emailDetails.invoice_url}" style="color: #4F46E5;">Vezi factura Stripe</a></p>` : ''}
               </div>
 
               <div class="section" style="background: #fef3c7; border-left-color: #f59e0b;">
@@ -161,7 +174,7 @@ serve(async (req) => {
       return await resend.emails.send({
         from,
         to: ["office@velcont.com"],
-        subject: `💰 Plată Nouă: ${amount} ${currency} - ${customer.name || customer.email}`,
+        subject: `💰 Plată Nouă: ${emailDetails.amount} ${emailDetails.currency} - ${emailDetails.customer_name || emailDetails.customer_email}`,
         html: emailHtml,
       });
     };
@@ -194,12 +207,12 @@ serve(async (req) => {
               hint: "Verifică domeniul pe https://resend.com/domains sau folosește from: onboarding@resend.dev",
               error: retry.error,
               emailPreview: emailHtml,
-              details: {
-                sessionId,
-                customerId: customer.id,
-                amount,
-                currency,
-              },
+            details: {
+              sessionId,
+              customerId: (customer as any).id,
+              amount: emailDetails.amount,
+              currency: emailDetails.currency,
+            },
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },
           );
@@ -213,9 +226,9 @@ serve(async (req) => {
             emailPreview: emailHtml,
             details: {
               sessionId,
-              customerId: customer.id,
-              amount,
-              currency,
+              customerId: (customer as any).id,
+              amount: emailDetails.amount,
+              currency: emailDetails.currency,
             },
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 },

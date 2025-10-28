@@ -15,7 +15,7 @@ import { StorageManager } from "@/components/StorageManager";
 import { StrategicConversationsViewer } from "@/components/StrategicConversationsViewer";
 import { IntellectualPropertyCertificate } from "@/components/IntellectualPropertyCertificate";
 import { AdminCostsDashboard } from "@/components/AdminCostsDashboard";
-import AdminCreditsMonitor from "@/components/AdminCreditsMonitor";
+import AdminRevenueMonitor from "@/components/AdminRevenueMonitor";
 import { TestCheckout } from "@/components/TestCheckout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
@@ -266,9 +266,9 @@ const Admin = () => {
               <Users className="h-4 w-4 mr-2" />
               Utilizatori ({profiles.length})
             </TabsTrigger>
-            <TabsTrigger value="credits">
+            <TabsTrigger value="revenue">
               <DollarSign className="h-4 w-4 mr-2" />
-              Monitor Credite
+              💰 Facturare & Venituri
             </TabsTrigger>
             <TabsTrigger value="test">
               <Package className="h-4 w-4 mr-2" />
@@ -312,8 +312,8 @@ const Admin = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="credits">
-            <AdminCreditsMonitor />
+          <TabsContent value="revenue">
+            <AdminRevenueMonitor />
           </TabsContent>
 
           <TabsContent value="users">
