@@ -147,11 +147,24 @@ const Index = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (selectedFiles.length > 0) {
+      // FIX #13: Validare dimensiune fișiere (max 20MB)
+      const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+      const oversizedFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE);
+      
+      if (oversizedFiles.length > 0) {
+        toast({
+          title: "Fișiere prea mari",
+          description: `${oversizedFiles.length} ${oversizedFiles.length === 1 ? 'fișier depășește' : 'fișiere depășesc'} limita de 20MB. Fișiere mari pot cauza timeout-uri.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const invalidFiles = selectedFiles.filter(file => {
         const nameOk = file.name?.toLowerCase().match(/\.(xls|xlsx)$/);
         const typeOk = file.type === "application/vnd.ms-excel" || 
                        file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        return !nameOk || !typeOk; // FIX: Changed from && to || for correct validation
+        return !nameOk || !typeOk;
       });
 
       if (invalidFiles.length > 0) {
@@ -197,9 +210,16 @@ const Index = () => {
     let failCount = 0;
 
     try {
-      // Process each file separately
-      for (const file of files) {
+      // FIX #14: Feedback intermediar pentru fiecare fișier procesat
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         try {
+          // Toast progres pentru fiecare fișier
+          toast({
+            title: `Procesare fișier ${i + 1}/${files.length}`,
+            description: `Se analizează: ${file.name}`,
+          });
+          
           const excelBase64 = await convertExcelToBase64(file);
 
           const { data, error } = await supabase.functions.invoke("analyze-balance", {

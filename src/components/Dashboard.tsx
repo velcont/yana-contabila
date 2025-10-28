@@ -87,10 +87,14 @@ export const Dashboard = () => {
 
   const loadAnalyses = async () => {
     try {
+      // FIX #15: Limit query pentru a preveni încărcarea a sute de analize simultan
+      const ANALYSES_LIMIT = 100; // Încarcă maxim 100 de analize
+      
       const { data, error } = await supabase
         .from('analyses')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(ANALYSES_LIMIT);
 
       if (error) throw error;
       
@@ -169,7 +173,23 @@ export const Dashboard = () => {
   };
 
   const deleteAllAnalyses = async () => {
-    if (!window.confirm('Ești sigur că vrei să ștergi TOATE analizele? Această acțiune nu poate fi anulată!')) {
+    // FIX #16: Confirmare dublă pentru operațiune critică
+    const firstConfirm = window.confirm(
+      `⚠️ ATENȚIE: Vrei să ștergi TOATE ${analyses.length} analizele?\n\nAceastă acțiune NU poate fi anulată!`
+    );
+    
+    if (!firstConfirm) return;
+    
+    // Confirmare secundară cu text exact
+    const secondConfirm = window.confirm(
+      `🔴 CONFIRMARE FINALĂ:\n\nEști absolut sigur? Tastează OK pentru a continua.\n\nSe vor șterge ${analyses.length} analize permanent.`
+    );
+    
+    if (!secondConfirm) {
+      toast({
+        title: 'Ștergere anulată',
+        description: 'Analizele tale sunt în siguranță.'
+      });
       return;
     }
 
@@ -189,7 +209,7 @@ export const Dashboard = () => {
       
       toast({
         title: 'Șters cu succes',
-        description: 'Toate analizele au fost șterse.'
+        description: 'Toate analizele au fost șterse permanent.'
       });
     } catch (error) {
       console.error('Error deleting all analyses:', error);
