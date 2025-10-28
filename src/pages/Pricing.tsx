@@ -94,7 +94,7 @@ const Pricing = () => {
                     <CardDescription>Pentru afaceri individuale și IMM-uri</CardDescription>
                   </div>
                 </div>
-                <div className="text-3xl font-bold">99 lei<span className="text-sm font-normal text-muted-foreground">/lună</span></div>
+                <div className="text-3xl font-bold">49 lei<span className="text-sm font-normal text-muted-foreground">/lună</span></div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm">
@@ -189,7 +189,7 @@ const Pricing = () => {
                 <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-500 mt-0.5" />
                 <div className="space-y-3">
                   <p className="font-bold text-red-900 dark:text-red-100">
-                    TRANSPARENȚĂ TOTALĂ - Ce include abonamentul de 99 lei/lună:
+                    TRANSPARENȚĂ TOTALĂ - Ce include abonamentul de 49 lei/lună:
                   </p>
                   <div className="p-3 bg-white dark:bg-red-900/30 rounded">
                     <p className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">✅ INCLUS în abonament:</p>

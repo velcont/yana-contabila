@@ -81,7 +81,7 @@ const Terms = () => {
             <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 my-4">
               <h3 className="font-semibold mb-2">6.1. Plan Antreprenor</h3>
               <ul>
-                <li><strong>Preț:</strong> 99 lei/lună (TVA inclus)</li>
+                <li><strong>Preț:</strong> 49 lei/lună (TVA inclus)</li>
                 <li><strong>Include:</strong> Analiză financiară nelimitată, Chat AI, Dashboard interactiv, Export rapoarte</li>
                 <li><strong>Pentru:</strong> Afaceri individuale și IMM-uri</li>
               </ul>
