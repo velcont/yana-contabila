@@ -590,11 +590,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    // Validate file size (max 20MB pentru consistență cu Index.tsx)
+    if (file.size > 20 * 1024 * 1024) {
       toast({
         title: "Fișier prea mare",
-        description: "Mărimea maximă permisă este 10MB.",
+        description: "Mărimea maximă permisă este 20MB.",
         variant: "destructive"
       });
       return;

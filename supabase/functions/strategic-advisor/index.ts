@@ -596,19 +596,37 @@ serve(async (req) => {
       );
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        temperature: 0.8,
-        max_tokens: 1024,
-      }),
-    });
+    // FIX #17: Timeout 45s pentru API call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    
+    let response: Response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages,
+          temperature: 0.8,
+          max_tokens: 1024,
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: "Timeout: cererea a depășit 45 secunde" }),
+          { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw err;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();

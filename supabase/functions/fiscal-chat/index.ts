@@ -156,32 +156,49 @@ serve(async (req) => {
 
     console.log('[FISCAL-CHAT] Request from user:', user.email);
 
-    // Call Perplexity API
-    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'sonar',
-        messages: [
-          {
-            role: 'system',
-            content: FISCAL_SYSTEM_PROMPT
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 2000,
-        search_recency_filter: 'year',
-        return_images: false,
-        return_related_questions: true,
-      }),
-    });
+    // Call Perplexity API - FIX #17: Timeout 30s
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    let perplexityResponse: Response;
+    try {
+      perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [
+            {
+              role: 'system',
+              content: FISCAL_SYSTEM_PROMPT
+            },
+            {
+              role: 'user',
+              content: message
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 2000,
+          search_recency_filter: 'year',
+          return_images: false,
+          return_related_questions: true,
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: 'Timeout: răspunsul a depășit 30 secunde. Te rog încearcă din nou.' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw err;
+    }
 
     if (!perplexityResponse.ok) {
       const errorText = await perplexityResponse.text();

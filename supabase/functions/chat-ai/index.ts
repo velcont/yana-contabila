@@ -911,22 +911,39 @@ serve(async (req) => {
       );
     }
 
-    // Prima cerere cu tool calling
-    let aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + LOVABLE_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: messages,
-        tools: TOOLS,
-        tool_choice: "auto",
-        stream: streamResponse,
-        max_tokens: 1024
-      }),
-    });
+    // Prima cerere cu tool calling - FIX #17: Timeout 45s
+    const controller1 = new AbortController();
+    const timeout1 = setTimeout(() => controller1.abort(), 45000);
+    
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + LOVABLE_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: messages,
+          tools: TOOLS,
+          tool_choice: "auto",
+          stream: streamResponse,
+          max_tokens: 1024
+        }),
+        signal: controller1.signal
+      });
+      clearTimeout(timeout1);
+    } catch (err: any) {
+      clearTimeout(timeout1);
+      if (err.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: "Timeout: cererea a depășit 45 secunde" }),
+          { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw err;
+    }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
@@ -1019,25 +1036,43 @@ serve(async (req) => {
                   // Execută tools
                   const toolResults = await executeTools(toolCalls, authHeader);
                   
-                  // Apel secundar cu rezultatele tool-urilor
+                  // Apel secundar cu rezultatele tool-urilor - FIX #17: Timeout 45s
                   const followUpMessages = [
                     ...messages,
                     { role: "assistant", content: accumulatedContent || null, tool_calls: toolCalls },
                     ...toolResults
                   ];
 
-                  const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                      "Authorization": "Bearer " + LOVABLE_API_KEY,
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      model: "google/gemini-2.5-flash",
-                      messages: followUpMessages,
-                      stream: true
-                    }),
-                  });
+                  const controller2 = new AbortController();
+                  const timeout2 = setTimeout(() => controller2.abort(), 45000);
+                  
+                  let followUpResponse: Response;
+                  try {
+                    followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                      method: "POST",
+                      headers: {
+                        "Authorization": "Bearer " + LOVABLE_API_KEY,
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        model: "google/gemini-2.5-flash",
+                        messages: followUpMessages,
+                        stream: true
+                      }),
+                      signal: controller2.signal
+                    });
+                    clearTimeout(timeout2);
+                  } catch (err: any) {
+                    clearTimeout(timeout2);
+                    if (err.name === 'AbortError') {
+                      const fallback = "Timeout: răspunsul a depășit 45 secunde. Te rog încearcă din nou.";
+                      controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
+                      sentAnyContent = true;
+                      followUpResponse = new Response(null, { status: 504 }); // Fallback
+                    } else {
+                      throw err;
+                    }
+                  }
 
                   if (!followUpResponse.ok) {
                     const errText = await followUpResponse.text();

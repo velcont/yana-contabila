@@ -103,21 +103,39 @@ serve(async (req) => {
 - NU explica ce ai făcut - doar livrează rezultatul final
 - Textul trebuie să sune ca scris de un doctorand real, nu de un AI`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: text }
-        ],
-        temperature: 0.8, // Higher temperature for more variation
-      }),
-    });
+    // FIX #17: Timeout 45s pentru API call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    
+    let response: Response;
+    try {
+      response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: text }
+          ],
+          temperature: 0.8, // Higher temperature for more variation
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        return new Response(
+          JSON.stringify({ error: 'Timeout: cererea a depășit 45 secunde' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw err;
+    }
 
     if (!response.ok) {
       if (response.status === 429) {

@@ -978,21 +978,44 @@ serve(async (req) => {
     }
 
     console.log("Trimit cerere către Lovable AI...");
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Analizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
-        ],
-        max_tokens: 2048,
-      }),
-    });
+    
+    // FIX #17: Timeout de 45 secunde pentru API call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: `Analizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
+          ],
+          max_tokens: 2048,
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error("Timeout: API call a depășit 45 secunde");
+        return new Response(
+          JSON.stringify({ error: "Timpul de așteptare a expirat. Te rog încearcă din nou." }),
+          { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      throw fetchError;
+    }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
