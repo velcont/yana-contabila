@@ -1625,37 +1625,39 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
             {isAdmin && <TabsTrigger value="global">Global Stats</TabsTrigger>}
           </TabsList>
           
-          {/* Al doilea rând de taburi - Funcții Academice Avansate */}
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="validation">
-              <CheckCircle2 className="h-4 w-4 mr-1" />
-              Validare
-            </TabsTrigger>
-            <TabsTrigger value="correlation">
-              <Network className="h-4 w-4 mr-1" />
-              Corelații
-            </TabsTrigger>
-            <TabsTrigger value="hypothesis">
-              <BarChart3 className="h-4 w-4 mr-1" />
-              Teste Ipoteză
-            </TabsTrigger>
-            <TabsTrigger value="clusters">
-              <PieChart className="h-4 w-4 mr-1" />
-              Clustere
-            </TabsTrigger>
-            <TabsTrigger value="regression">
-              <LineChart className="h-4 w-4 mr-1" />
-              Regresie
-            </TabsTrigger>
-            <TabsTrigger value="robustness">
-              <Shield className="h-4 w-4 mr-1" />
-              Robustețe
-            </TabsTrigger>
-            <TabsTrigger value="longitudinal">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              Longitudinal
-            </TabsTrigger>
-          </TabsList>
+          {/* Al doilea rând de taburi - Funcții Academice Avansate (Admin Only) */}
+          {isAdmin && (
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="validation">
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                Validare
+              </TabsTrigger>
+              <TabsTrigger value="correlation">
+                <Network className="h-4 w-4 mr-1" />
+                Corelații
+              </TabsTrigger>
+              <TabsTrigger value="hypothesis">
+                <BarChart3 className="h-4 w-4 mr-1" />
+                Teste Ipoteză
+              </TabsTrigger>
+              <TabsTrigger value="clusters">
+                <PieChart className="h-4 w-4 mr-1" />
+                Clustere
+              </TabsTrigger>
+              <TabsTrigger value="regression">
+                <LineChart className="h-4 w-4 mr-1" />
+                Regresie
+              </TabsTrigger>
+              <TabsTrigger value="robustness">
+                <Shield className="h-4 w-4 mr-1" />
+                Robustețe
+              </TabsTrigger>
+              <TabsTrigger value="longitudinal">
+                <TrendingUp className="h-4 w-4 mr-1" />
+                Longitudinal
+              </TabsTrigger>
+            </TabsList>
+          )}
         </div>
 
         <TabsContent value="adaptability" className="space-y-4">
@@ -2183,7 +2185,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                   </>
                 )}
               </Button>
-              <ResearchDataImport onImportSuccess={fetchResearchData} />
+              {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
             </div>
           )}
           
@@ -2297,26 +2299,28 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                     Toate testele statistice și verificările metodologice într-un singur loc
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={exportAcademicData}
-                    disabled={isExporting || analyses.length < 2}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    {isExporting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Exportare...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4" />
-                        Export Academic (CSV)
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={exportAcademicData}
+                      disabled={isExporting || analyses.length < 2}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      {isExporting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Exportare...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          Export Academic (CSV)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
