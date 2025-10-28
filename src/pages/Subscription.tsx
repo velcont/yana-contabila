@@ -47,11 +47,15 @@ const Subscription = () => {
                     <Check className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-primary">Abonament Activ</CardTitle>
+                    <CardTitle className="text-primary">
+                      {hasFreeAccess ? '🎉 Acces Gratuit Permanent' : 'Abonament Activ'}
+                    </CardTitle>
                     <CardDescription className="text-base">
-                      {subscriptionType === 'accounting_firm' 
-                        ? 'Plan Firmă Contabilitate' 
-                        : 'Plan Antreprenor'}
+                      {hasFreeAccess 
+                        ? 'Fără costuri, toate funcționalitățile disponibile'
+                        : subscriptionType === 'accounting_firm' 
+                          ? 'Plan Firmă Contabilitate' 
+                          : 'Plan Antreprenor'}
                     </CardDescription>
                   </div>
                 </div>
@@ -61,9 +65,11 @@ const Subscription = () => {
                   <div className="p-4 bg-background/50 rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">Plan curent</p>
                     <p className="text-lg font-semibold text-foreground">
-                      {subscriptionType === 'accounting_firm' 
-                        ? 'Firmă Contabilitate' 
-                        : 'Antreprenor'}
+                      {hasFreeAccess
+                        ? '🎁 Acces Gratuit'
+                        : subscriptionType === 'accounting_firm' 
+                          ? 'Firmă Contabilitate' 
+                          : 'Antreprenor'}
                     </p>
                   </div>
                   <div className="p-4 bg-background/50 rounded-lg">
@@ -110,11 +116,20 @@ const Subscription = () => {
                 )}
 
                 {hasFreeAccess && (
-                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                    <p className="text-sm font-medium text-primary flex items-center gap-2">
-                      <Check className="h-4 w-4" />
-                      Ai acces gratuit permanent la această aplicație
-                    </p>
+                  <div className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="h-10 w-10 bg-green-500/20 rounded-full flex items-center justify-center shrink-0">
+                        <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-green-700 dark:text-green-300">
+                          🎉 Ai acces gratuit permanent!
+                        </p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          Nu este necesar niciun abonament plătit. Bucură-te de toate funcționalitățile aplicației!
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>
