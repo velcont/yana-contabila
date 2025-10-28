@@ -101,7 +101,69 @@ serve(async (req) => {
     
     logStep("Subscription type determined", { subscriptionType });
 
-    // Update profile with subscription info
+    // 🔒 BUG FIX #1: Check if user has manual subscription - DON'T overwrite
+    const { data: currentProfile } = await supabaseClient
+      .from('profiles')
+      .select('subscription_status, subscription_ends_at, subscription_type, has_free_access')
+      .eq('id', user.id)
+      .single();
+
+    // If user has ACTIVE manual subscription (not expired), create alert instead of overwriting
+    if (currentProfile?.subscription_status === 'active' && 
+        currentProfile.subscription_ends_at && 
+        new Date(currentProfile.subscription_ends_at) > new Date()) {
+      
+      logStep("⚠️ User has active manual subscription - creating admin alert", {
+        currentStatus: currentProfile.subscription_status,
+        currentEnds: currentProfile.subscription_ends_at,
+        stripeEnds: subscriptionEnd
+      });
+
+      // Create admin alert for manual review
+      await supabaseClient.from('admin_alerts').insert({
+        alert_type: 'SUBSCRIPTION_CONFLICT',
+        severity: 'high',
+        title: `Subscription Conflict for ${user.email}`,
+        description: `User has active manual subscription but also has Stripe subscription. Manual review required.`,
+        details: {
+          userId: user.id,
+          userEmail: user.email,
+          currentSubscription: {
+            status: currentProfile.subscription_status,
+            type: currentProfile.subscription_type,
+            endsAt: currentProfile.subscription_ends_at
+          },
+          stripeSubscription: {
+            subscriptionId: subscription.id,
+            customerId: customerId,
+            type: subscriptionType,
+            endsAt: subscriptionEnd
+          },
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      logStep("Admin alert created - manual subscription preserved");
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Conflict detectat: ai deja un abonament activ manual. Administratorul va revizui situația.',
+          conflict: true,
+          data: {
+            currentSubscription: currentProfile,
+            stripeSubscription: {
+              subscription_id: subscription.id,
+              subscription_type: subscriptionType,
+              subscription_end: subscriptionEnd
+            }
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 409 }
+      );
+    }
+
+    // No conflict - proceed with normal update
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({
@@ -110,7 +172,7 @@ serve(async (req) => {
         stripe_customer_id: customerId,
         stripe_subscription_id: subscription.id,
         subscription_ends_at: subscriptionEnd,
-        trial_ends_at: null, // Clear trial
+        trial_ends_at: null, // Clear trial only if not in conflict
       })
       .eq('id', user.id);
 

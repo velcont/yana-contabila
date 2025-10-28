@@ -83,8 +83,8 @@ serve(async (req) => {
         .single();
 
       if (profile) {
-        // Insert subscription payment record
-        await supabaseClient.from('subscription_payments').insert({
+        // 🔒 BUG FIX #3: Use UPSERT with ON CONFLICT to prevent race condition duplicates
+        const { error: paymentError } = await supabaseClient.from('subscription_payments').upsert({
           user_id: profile.id,
           stripe_subscription_id: subscription.id,
           stripe_invoice_id: invoice.id,
@@ -100,7 +100,15 @@ serve(async (req) => {
             invoice_number: invoice.number,
             hosted_invoice_url: invoice.hosted_invoice_url
           }
+        }, {
+          onConflict: 'stripe_invoice_id',
+          ignoreDuplicates: true
         });
+
+        if (paymentError) {
+          console.error("❌ Failed to record subscription payment:", paymentError);
+          throw new Error(`Payment recording failed: ${paymentError.message}`);
+        }
 
         // Log audit event
         await supabaseClient.from('audit_logs').insert({
@@ -301,8 +309,8 @@ serve(async (req) => {
         budgetId = newBudgetData.id;
       }
 
-      // Record purchase in credits_purchases table
-      const { error: purchaseError } = await supabaseClient.from('credits_purchases').insert({
+      // 🔒 BUG FIX #2: Use UPSERT with ON CONFLICT to prevent race condition duplicates
+      const { error: purchaseError } = await supabaseClient.from('credits_purchases').upsert({
         user_id: user.id,
         stripe_payment_intent_id: session.payment_intent as string,
         stripe_checkout_session_id: session.id,
@@ -314,6 +322,9 @@ serve(async (req) => {
           customer_email: customerEmail,
           session_mode: session.mode
         }
+      }, {
+        onConflict: 'stripe_checkout_session_id',
+        ignoreDuplicates: true
       });
 
       if (purchaseError) {
