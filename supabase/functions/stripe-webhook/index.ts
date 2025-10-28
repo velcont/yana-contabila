@@ -139,28 +139,40 @@ serve(async (req) => {
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
       const priceId = lineItems.data[0]?.price?.id;
       
-      // Map price IDs to credit amounts (in cents)
-      const creditPackages: Record<string, number> = {
-        "price_1SIsUMBu3m83VcDA5X8MPfrS": 1000,   // 10 lei = 1000 credits
-        "price_1SIsUPBu3m83VcDAqCC955qF": 2500,   // 20 lei = 2500 credits  
-        "price_1SIsUQBu3m83VcDAQUwk4CZZ": 5000,   // 40 lei = 5000 credits
-        "price_1SIsUQBu3m83VcDAykzaXTeT": 10000,  // 70 lei = 10000 credits
+      // Map price IDs to credit amounts and package names
+      const creditPackages: Record<string, { credits: number; name: string }> = {
+        "price_1SIsUMBu3m83VcDA5X8MPfrS": { credits: 1000, name: "Starter (10 lei)" },
+        "price_1SIsUPBu3m83VcDAqCC955qF": { credits: 2500, name: "Professional (20 lei)" },
+        "price_1SIsUQBu3m83VcDAQUwk4CZZ": { credits: 5000, name: "Business (40 lei)" },
+        "price_1SIsUQBu3m83VcDAykzaXTeT": { credits: 10000, name: "Enterprise (70 lei)" },
       };
 
       const amountPaid = session.amount_total || 0;
       
-      // Determine credits to add based on amount
+      // Use priceId to determine credits (primary method)
       let creditsToAdd = 0;
-      let packageName = '';
-      if (amountPaid >= 12900) {
-        creditsToAdd = 1000; // Enterprise: 129 RON
-        packageName = 'Enterprise (129 RON)';
-      } else if (amountPaid >= 4900) {
-        creditsToAdd = 300; // Professional: 49 RON
-        packageName = 'Professional (49 RON)';
-      } else if (amountPaid >= 1900) {
-        creditsToAdd = 100; // Starter: 19 RON
-        packageName = 'Starter (19 RON)';
+      let packageName = 'Unknown Package';
+      
+      if (priceId && creditPackages[priceId]) {
+        creditsToAdd = creditPackages[priceId].credits;
+        packageName = creditPackages[priceId].name;
+        console.log(`✅ Matched priceId ${priceId} to ${creditsToAdd} credits`);
+      } else {
+        // Fallback: determine by amount if priceId not found
+        console.warn(`⚠️ Price ID ${priceId} not found, using amount fallback`);
+        if (amountPaid >= 7000) {
+          creditsToAdd = 10000;
+          packageName = 'Enterprise (70 lei)';
+        } else if (amountPaid >= 4000) {
+          creditsToAdd = 5000;
+          packageName = 'Business (40 lei)';
+        } else if (amountPaid >= 2000) {
+          creditsToAdd = 2500;
+          packageName = 'Professional (20 lei)';
+        } else if (amountPaid >= 1000) {
+          creditsToAdd = 1000;
+          packageName = 'Starter (10 lei)';
+        }
       }
 
       // Update or insert budget limit - check existing first
