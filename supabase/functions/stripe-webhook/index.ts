@@ -130,6 +130,25 @@ serve(async (req) => {
         console.log(`✅ Recorded subscription payment for user ${profile.id}`);
       }
 
+      // 🔒 BUG FIX #12: Audit log pentru plată subscription
+      if (profile) {
+        await supabaseClient.rpc('log_audit_event', {
+          p_action_type: 'STRIPE_SUBSCRIPTION_PAYMENT',
+          p_table_name: 'subscription_payments',
+          p_record_id: null,
+          p_metadata: {
+            stripe_invoice_id: invoice.id,
+            stripe_subscription_id: subscription.id,
+            amount_paid_cents: invoice.amount_paid,
+            user_id: profile.id,
+            user_email: profile.email,
+            event_id: event.id
+          }
+        }).then(({ error }) => {
+          if (error) console.error("⚠️ Audit log failed:", error);
+        });
+      }
+
       return new Response(JSON.stringify({ received: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -350,20 +369,24 @@ serve(async (req) => {
 
       console.log(`✅ Successfully added ${creditsToAdd} credits to ${customerEmail}`);
 
-      // Log the purchase
-      await supabaseClient.from("audit_logs").insert({
-        user_id: user.id,
-        user_email: customerEmail,
-        action_type: "CREDIT_PURCHASE",
-        table_name: "ai_budget_limits",
-        metadata: {
-          stripe_session_id: session.id,
+      // 🔒 BUG FIX #12: Enhanced audit log pentru achiziție credite
+      await supabaseClient.rpc('log_audit_event', {
+        p_action_type: 'STRIPE_CREDITS_PURCHASE',
+        p_table_name: 'credits_purchases',
+        p_record_id: null,
+        p_metadata: {
+          stripe_checkout_session_id: session.id,
+          stripe_payment_intent_id: session.payment_intent,
+          amount_paid_cents: amountPaid,
           credits_added: creditsToAdd,
-          amount_paid: amountPaid,
-          new_budget: newBudget,
           package_name: packageName,
-          currency: session.currency,
-        },
+          old_budget_cents: oldBudget,
+          new_budget_cents: newBudget,
+          user_email: customerEmail,
+          event_id: event.id
+        }
+      }).then(({ error }) => {
+        if (error) console.error("⚠️ Audit log failed:", error);
       });
 
       // 🔒 BUG FIX #8: Email with comprehensive error handling and admin alerts
@@ -465,6 +488,28 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Webhook error:", error);
+    
+    // 🔒 BUG FIX #12: Audit log pentru erori webhook critice
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+      
+      await supabaseClient.rpc('log_audit_event', {
+        p_action_type: 'STRIPE_WEBHOOK_ERROR',
+        p_table_name: 'stripe_webhooks',
+        p_record_id: null,
+        p_metadata: {
+          error_message: (error as Error).message,
+          error_stack: (error as Error).stack,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (auditError) {
+      console.error("⚠️ Failed to log webhook error to audit:", auditError);
+    }
+    
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       {

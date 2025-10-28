@@ -18,11 +18,13 @@ serve(async (req) => {
     { auth: { persistSession: false } }
   );
 
+  let user = null; // 🔒 BUG FIX #12: Declare user outside try block for error logging
+
   try {
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
+    user = data.user;
 
     if (!user?.email) {
       return new Response(
@@ -121,12 +123,46 @@ serve(async (req) => {
 
     console.log("Checkout session created:", session.id);
 
+    // 🔒 BUG FIX #12: Audit log pentru inițiere checkout credite
+    await supabaseClient.rpc('log_audit_event', {
+      p_action_type: 'STRIPE_CHECKOUT_INITIATED',
+      p_table_name: 'checkout_sessions',
+      p_record_id: null,
+      p_metadata: {
+        stripe_session_id: session.id,
+        stripe_price_id: priceId,
+        user_id: user.id,
+        user_email: user.email,
+        session_url: session.url
+      }
+    }).then(({ error }) => {
+      if (error) console.error("⚠️ Audit log failed:", error);
+    });
+
     return new Response(
       JSON.stringify({ url: session.url }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
     console.error("Error creating checkout:", error);
+    
+    // 🔒 BUG FIX #12: Audit log pentru erori checkout
+    try {
+      await supabaseClient.rpc('log_audit_event', {
+        p_action_type: 'STRIPE_CHECKOUT_ERROR',
+        p_table_name: 'checkout_sessions',
+        p_record_id: null,
+        p_metadata: {
+          error_message: (error as Error).message,
+          error_stack: (error as Error).stack,
+          user_id: user?.id || null,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (auditError) {
+      console.error("⚠️ Failed to log checkout error to audit:", auditError);
+    }
+    
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

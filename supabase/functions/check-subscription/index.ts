@@ -311,6 +311,22 @@ serve(async (req) => {
           subscription_ends_at: subscriptionEnd,
         })
         .eq('id', user.id);
+
+      // 🔒 BUG FIX #12: Audit log pentru verificare subscription reușită
+      await supabaseClient.rpc('log_audit_event', {
+        p_action_type: 'SUBSCRIPTION_CHECK_SUCCESS',
+        p_table_name: 'profiles',
+        p_record_id: user.id,
+        p_metadata: {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: stripeSubscriptionId,
+          subscription_status: 'active',
+          subscription_type: subscriptionType,
+          subscription_ends_at: subscriptionEnd
+        }
+      }).then(({ error }) => {
+        if (error) console.error("⚠️ Audit log failed:", error);
+      });
     } else {
       logStep("No active subscription");
       
@@ -342,6 +358,28 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
+    
+    // 🔒 BUG FIX #12: Audit log pentru erori verificare subscription
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      await supabaseClient.rpc('log_audit_event', {
+        p_action_type: 'SUBSCRIPTION_CHECK_ERROR',
+        p_table_name: 'profiles',
+        p_record_id: null,
+        p_metadata: {
+          error_message: errorMessage,
+          error_stack: error instanceof Error ? error.stack : undefined,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (auditError) {
+      console.error("⚠️ Failed to log subscription check error:", auditError);
+    }
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
       {
