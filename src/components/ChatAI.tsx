@@ -71,7 +71,17 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     ]
   );
   const [input, setInput] = useState('');
-  const [fiscalMessages, setFiscalMessages] = useState<Message[]>([]);
+  const [fiscalMessages, setFiscalMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: `👋 Bună! Sunt Yana Fiscală!
+
+🏛️ Întreabă-mă despre taxe, legislație fiscală și impozite.
+
+💡 **Nu analizez balanțe** - pentru asta folosește modul "Analiză Balanță"
+🎯 **Nu ofer consultanță strategică** - pentru asta folosește **Yana Strategică** (premium)`
+    }
+  ]);
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [conversationId] = useState(() => crypto.randomUUID());
