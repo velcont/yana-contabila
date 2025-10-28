@@ -32,7 +32,19 @@ serve(async (req) => {
       Deno.env.get("STRIPE_WEBHOOK_SECRET") || ""
     );
 
-    console.log("Webhook event type:", event.type);
+    // 🔒 SECURITY FIX #6: Prevent replay attacks
+    const eventAge = Math.floor(Date.now() / 1000) - event.created;
+    if (eventAge > 300) { // 5 minutes
+      console.error(`⚠️ Webhook event too old: ${eventAge} seconds`);
+      return new Response(JSON.stringify({ 
+        error: "Webhook event too old - possible replay attack" 
+      }), { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400 
+      });
+    }
+
+    console.log("Webhook event type:", event.type, "age:", eventAge, "seconds");
 
     // Handle subscription invoice payments
     if (event.type === "invoice.paid") {

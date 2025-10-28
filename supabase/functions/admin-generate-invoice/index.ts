@@ -68,22 +68,41 @@ serve(async (req) => {
     
     if (userError || !user) throw new Error("Authentication failed");
 
-    // Check if user is admin
-    const { data: userRoles } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .single();
+    // 🔒 SECURITY FIX #2: Use RPC to check admin role
+    const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    });
 
-    if (!userRoles) {
+    if (roleError) {
+      logStep("Error checking admin role", { error: roleError });
+      throw new Error(`Role check failed: ${roleError.message}`);
+    }
+
+    if (!isAdmin) {
+      logStep("Unauthorized access attempt", { userId: user.id });
+      
+      // Log security event
+      await supabaseClient.rpc('log_security_event', {
+        event_type: 'UNAUTHORIZED_ADMIN_ACCESS_ATTEMPT',
+        event_details: {
+          user_id: user.id,
+          user_email: user.email,
+          attempted_function: 'admin-generate-invoice',
+          timestamp: new Date().toISOString()
+        }
+      });
+      
       throw new Error("Unauthorized: Admin access required");
     }
 
-    logStep("Admin authenticated", { adminId: user.id });
+    logStep("Admin access verified", { adminId: user.id });
 
     const { sessionId, paymentType } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
+
+    // Prepare SmartBill CIF early (needed later)
+    const companyCIF = Deno.env.get("SMARTBILL_COMPANY_CIF") || "";
 
     logStep("Processing session", { sessionId, paymentType });
 
@@ -130,23 +149,59 @@ serve(async (req) => {
       });
     }
 
-    // Check if invoice already exists
+    // Check if invoice already exists IN DATABASE
     const { data: existingInvoice } = await supabaseClient
       .from('smartbill_invoices')
-      .select('id')
+      .select('id, invoice_number, invoice_series')
       .eq(paymentType === 'subscription' ? 'stripe_invoice_id' : 'stripe_session_id', sessionId)
       .eq('status', 'success')
       .maybeSingle();
 
     if (existingInvoice) {
-      logStep("Invoice already exists", { invoiceId: existingInvoice.id });
+      logStep("Invoice already exists in DB", { 
+        invoiceId: existingInvoice.id,
+        invoiceSeries: existingInvoice.invoice_series,
+        invoiceNumber: existingInvoice.invoice_number 
+      });
+      
       return new Response(
         JSON.stringify({ 
           success: false,
-          message: "Factura a fost deja generată pentru această plată"
+          message: `Factura ${existingInvoice.invoice_series}-${existingInvoice.invoice_number} a fost deja generată pentru această plată`
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
+    }
+    
+    // 🔒 DUPLICATE PREVENTION FIX #4: Also check in SmartBill directly
+    // This prevents duplicates if DB record was deleted
+    try {
+      logStep("Checking SmartBill for existing invoices");
+      const smartBillCheckResponse = await fetch(`https://ws.smartbill.ro/SBORO/api/invoice/list?cif=${companyCIF}&customer=${customerEmail}&page=1&pageSize=10`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Basic ${btoa(
+            `${Deno.env.get("SMARTBILL_EMAIL")}:${Deno.env.get("SMARTBILL_API_KEY")}`
+          )}`,
+        },
+      });
+      
+      if (smartBillCheckResponse.ok) {
+        const existingInvoices = await smartBillCheckResponse.json();
+        if (existingInvoices && existingInvoices.list && existingInvoices.list.length > 0) {
+          logStep("⚠️ Found existing invoices in SmartBill for customer", { 
+            count: existingInvoices.list.length,
+            customerEmail 
+          });
+          // Continue anyway but log warning
+        }
+      }
+    } catch (smartBillCheckError) {
+      logStep("⚠️ Could not check SmartBill for duplicates (non-fatal)", { 
+        error: smartBillCheckError instanceof Error ? smartBillCheckError.message : String(smartBillCheckError) 
+      });
+      // Continue anyway - this is just a safety check
     }
 
     logStep("Customer details", { customerEmail, customerName });
@@ -188,8 +243,6 @@ serve(async (req) => {
     logStep("SmartBill client prepared", { clientType: smartBillClient.type });
 
     // Prepare SmartBill invoice
-    const companyCIF = Deno.env.get("SMARTBILL_COMPANY_CIF") || "";
-
     const invoiceData: SmartBillInvoice = {
       companyVatCode: companyCIF,
       client: smartBillClient,
@@ -214,18 +267,64 @@ serve(async (req) => {
 
     logStep("Sending to SmartBill", { amount });
 
-    // Call SmartBill API
-    const smartBillResponse = await fetch("https://ws.smartbill.ro/SBORO/api/invoice", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": `Basic ${btoa(
-          `${Deno.env.get("SMARTBILL_EMAIL")}:${Deno.env.get("SMARTBILL_API_KEY")}`
-        )}`,
-      },
-      body: JSON.stringify(invoiceData),
-    });
+    // 🔒 RESILIENCE FIX #3: Add retry logic with timeout
+    let smartBillResponse: Response | undefined;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        
+        smartBillResponse = await fetch("https://ws.smartbill.ro/SBORO/api/invoice", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Basic ${btoa(
+              `${Deno.env.get("SMARTBILL_EMAIL")}:${Deno.env.get("SMARTBILL_API_KEY")}`
+            )}`,
+          },
+          body: JSON.stringify(invoiceData),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        break; // Success, exit retry loop
+      } catch (fetchError) {
+        retryCount++;
+        const errorMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        logStep(`SmartBill attempt ${retryCount} failed`, { error: errorMsg });
+        
+        if (retryCount >= maxRetries) {
+          // Create admin alert for manual intervention
+          await supabaseClient.from('admin_alerts').insert({
+            alert_type: 'SMARTBILL_API_FAILURE',
+            severity: 'critical',
+            title: `SmartBill API Failed After ${maxRetries} Retries`,
+            description: `Failed to generate invoice for ${customerEmail}. Manual intervention required.`,
+            details: {
+              sessionId,
+              paymentType,
+              customerEmail,
+              amount,
+              error: errorMsg,
+              timestamp: new Date().toISOString()
+            }
+          });
+          
+          throw new Error(`SmartBill API failed after ${maxRetries} attempts: ${errorMsg}`);
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount - 1) * 1000));
+      }
+    }
+    
+    if (!smartBillResponse) {
+      throw new Error("Failed to get response from SmartBill after retries");
+    }
 
     const responseText = await smartBillResponse.text();
     logStep("SmartBill response received", { 

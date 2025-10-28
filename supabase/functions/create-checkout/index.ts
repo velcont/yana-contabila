@@ -17,13 +17,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  );
+  
+  let user = null;
+
   try {
     logStep("Function started");
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header provided');
@@ -32,7 +34,7 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
+    user = userData.user;
     if (!user?.email) throw new Error('User not authenticated or email not available');
     
     logStep("User authenticated", { userId: user.id, email: user.email });
@@ -82,6 +84,23 @@ serve(async (req) => {
 
     logStep("Checkout session created", { sessionId: session.id });
 
+    // 🔒 AUDIT FIX #1: Log checkout initiation
+    const { error: auditError } = await supabaseClient.rpc('log_audit_event', {
+      p_action_type: 'SUBSCRIPTION_CHECKOUT_INITIATED',
+      p_table_name: 'checkout_sessions',
+      p_record_id: null,
+      p_metadata: {
+        stripe_session_id: session.id,
+        stripe_price_id: priceId,
+        user_id: user.id,
+        user_email: user.email,
+        session_url: session.url,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    if (auditError) logStep("⚠️ Audit log failed", { error: auditError });
+
     return new Response(
       JSON.stringify({ url: session.url }),
       {
@@ -92,6 +111,21 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
+    
+    // 🔒 AUDIT FIX #1: Log checkout errors
+    const { error: auditError } = await supabaseClient.rpc('log_audit_event', {
+      p_action_type: 'SUBSCRIPTION_CHECKOUT_ERROR',
+      p_table_name: 'checkout_sessions',
+      p_record_id: null,
+      p_metadata: {
+        error_message: errorMessage,
+        user_id: user?.id || null,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    if (auditError) logStep("⚠️ Failed to log checkout error", { auditError });
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
       {
