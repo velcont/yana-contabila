@@ -45,7 +45,8 @@ serve(async (req) => {
     // Find customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
-      throw new Error('No Stripe customer found for this user');
+      logStep("No customer found - user needs to subscribe first");
+      throw new Error('Nu ai un abonament Stripe activ. Pentru a accesa acest portal, trebuie să te abonezi mai întâi.');
     }
     
     const customerId = customers.data[0].id;

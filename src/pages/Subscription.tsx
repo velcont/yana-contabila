@@ -93,8 +93,8 @@ const Subscription = () => {
                       } catch (error: any) {
                         console.error('Error opening customer portal:', error);
                         toast({
-                          title: 'Eroare',
-                          description: error.message || 'Nu s-a putut deschide portalul',
+                          title: 'Eroare Portal Stripe',
+                          description: error.message || 'Nu s-a putut deschide portalul. Contactează suportul.',
                           variant: 'destructive',
                         });
                       } finally {
