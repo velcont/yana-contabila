@@ -154,9 +154,25 @@ export const CRMCSVImport = ({ open, onOpenChange, onSuccess }: CSVImportProps) 
         const text = event.target?.result as string;
         const clients = parseCSV(text);
 
+        // Simulate progress for better UX
+        setProgress(10);
+        
+        // Show progress toast
+        toast({
+          title: "Import în curs...",
+          description: `Se importă ${clients.length} clienți...`,
+        });
+
+        // Progress updates
+        const progressInterval = setInterval(() => {
+          setProgress(prev => Math.min(prev + 10, 80));
+        }, 500);
+
         const { data, error } = await supabase.functions.invoke("import-crm-clients", {
           body: { clients },
         });
+
+        clearInterval(progressInterval);
 
         if (error) throw error;
 

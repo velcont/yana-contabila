@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -243,9 +244,10 @@ export const CompanyManager = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Sigur vrei să ștergi această firmă?")) return;
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
 
+  const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase.from("companies").delete().eq("id", id);
       if (error) throw error;
@@ -257,6 +259,9 @@ export const CompanyManager = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setDeleteConfirmOpen(false);
+      setCompanyToDelete(null);
     }
   };
 
@@ -568,7 +573,10 @@ export const CompanyManager = () => {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => handleDelete(company.id)}
+                  onClick={() => {
+                    setCompanyToDelete(company.id);
+                    setDeleteConfirmOpen(true);
+                  }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -587,6 +595,29 @@ export const CompanyManager = () => {
       )}
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sigur vrei să ștergi această firmă?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Această acțiune este permanentă și va șterge toate datele asociate cu firma.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCompanyToDelete(null)}>
+              Anulează
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => companyToDelete && handleDelete(companyToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Șterge definitiv
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   BookmarkIcon, 
   Star, 
@@ -138,6 +139,9 @@ export const SavedStrategies = () => {
     }
   };
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [strategyToDelete, setStrategyToDelete] = useState<string | null>(null);
+
   const deleteStrategy = async (strategyId: string) => {
     try {
       const { error } = await supabase
@@ -152,6 +156,9 @@ export const SavedStrategies = () => {
     } catch (error) {
       console.error("Error deleting strategy:", error);
       toast.error("Eroare la ștergere");
+    } finally {
+      setDeleteDialogOpen(false);
+      setStrategyToDelete(null);
     }
   };
 
@@ -274,7 +281,10 @@ export const SavedStrategies = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => deleteStrategy(strategy.id)}
+                              onClick={() => {
+                                setStrategyToDelete(strategy.id);
+                                setDeleteDialogOpen(true);
+                              }}
                               aria-label="Șterge strategia"
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
@@ -298,6 +308,29 @@ export const SavedStrategies = () => {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sigur vrei să ștergi această strategie?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Această acțiune este permanentă și nu poate fi anulată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setStrategyToDelete(null)}>
+              Anulează
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => strategyToDelete && deleteStrategy(strategyToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Șterge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

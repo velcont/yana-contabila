@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -117,9 +118,10 @@ export const EmailTemplatesManager = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Sigur vrei să ștergi acest template?")) return;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
+  const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
         .from("email_templates")
@@ -135,6 +137,9 @@ export const EmailTemplatesManager = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
     }
   };
 
@@ -261,7 +266,10 @@ export const EmailTemplatesManager = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(template.id)}
+                      onClick={() => {
+                        setTemplateToDelete(template.id);
+                        setDeleteDialogOpen(true);
+                      }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -287,6 +295,29 @@ export const EmailTemplatesManager = () => {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sigur vrei să ștergi acest template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Această acțiune este permanentă și nu poate fi anulată.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setTemplateToDelete(null)}>
+              Anulează
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => templateToDelete && handleDelete(templateToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Șterge
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
