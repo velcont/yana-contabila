@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Paperclip } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Paperclip, Scale } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,6 +21,8 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   id?: string; // ID pentru feedback
+  sources?: Array<{ title: string; url: string; domain: string }>;
+  related_questions?: string[];
 }
 
 interface Insight {
@@ -50,6 +52,7 @@ interface ChatAIProps {
 
 export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
   const [isOpen, setIsOpen] = useState(openOnLoad);
+  const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
   const [messages, setMessages] = useState<Message[]>(
     autoStart ? [] : [
       {
@@ -68,6 +71,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     ]
   );
   const [input, setInput] = useState('');
+  const [fiscalMessages, setFiscalMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [conversationId] = useState(() => crypto.randomUUID());
@@ -183,7 +187,82 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, fiscalMessages]);
+
+  // Funcție SEPARATĂ pentru mesaje fiscale (Perplexity) - NU AFECTEAZĂ analiza balanțelor
+  const sendFiscalMessage = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: 'user', content: input.trim() };
+    setFiscalMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: 'Eroare de autentificare',
+          description: 'Trebuie să fii logat pentru a folosi Yana Fiscală.',
+          variant: 'destructive',
+        });
+        setFiscalMessages(prev => prev.slice(0, -1));
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('fiscal-chat', {
+        body: {
+          message: userMessage.content,
+          messages: [{ role: 'user', content: userMessage.content }]
+        }
+      });
+
+      if (error) {
+        console.error('[FISCAL-CHAT] Error:', error);
+        toast({
+          title: 'Eroare',
+          description: 'Nu am putut trimite mesajul. Te rog încearcă din nou.',
+          variant: 'destructive',
+        });
+        setFiscalMessages(prev => prev.slice(0, -1));
+        setIsLoading(false);
+        return;
+      }
+
+      const content = data?.message || data?.response;
+      if (!content) {
+        toast({
+          title: 'Eroare',
+          description: 'Yana Fiscală nu a putut răspunde.',
+          variant: 'destructive',
+        });
+        setFiscalMessages(prev => prev.slice(0, -1));
+        setIsLoading(false);
+        return;
+      }
+
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content,
+        sources: data.sources || [],
+        related_questions: data.related_questions || []
+      };
+
+      setFiscalMessages(prev => [...prev, assistantMessage]);
+    } catch (err) {
+      console.error('[FISCAL-CHAT] Fatal error:', err);
+      toast({
+        title: 'Eroare',
+        description: 'A apărut o eroare. Te rog încearcă din nou.',
+        variant: 'destructive',
+      });
+      setFiscalMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -475,7 +554,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      if (chatMode === 'fiscal') {
+        sendFiscalMessage();
+      } else {
+        sendMessage();
+      }
     }
   };
 
@@ -908,6 +991,28 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 <p className="text-[10px] text-muted-foreground">Asistentă Financiară</p>
               </div>
             </div>
+
+            {/* Mode Switcher - Tabs */}
+            <div className="ml-4 flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+              <Button
+                variant={chatMode === 'balance' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setChatMode('balance')}
+                className="h-7 px-3 text-xs"
+              >
+                <FileBarChart className="h-3 w-3 mr-1" />
+                Analiză Balanță
+              </Button>
+              <Button
+                variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setChatMode('fiscal')}
+                className="h-7 px-3 text-xs"
+              >
+                <Scale className="h-3 w-3 mr-1" />
+                Consultanță Fiscală
+              </Button>
+            </div>
           </div>
 
           {/* Grup dreapta - Controale */}
@@ -1162,7 +1267,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               </CardContent>
             </Card>
             
-            {messages.map((msg, idx) => (
+            {/* Selectează mesajele corecte bazat pe modul activ */}
+            {(chatMode === 'balance' ? messages : fiscalMessages).map((msg, idx) => (
               <div
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300`}
@@ -1211,6 +1317,49 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                           </TooltipProvider>
                         </div>
                       )}
+                      
+                      {/* Sources și Related Questions (doar în modul fiscal) */}
+                      {chatMode === 'fiscal' && msg.sources && msg.sources.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-border/50">
+                          <p className="text-xs font-semibold mb-1.5 flex items-center gap-1 text-muted-foreground">
+                            <ExternalLink className="h-3 w-3" />
+                            Surse verificate:
+                          </p>
+                          <div className="space-y-1">
+                            {msg.sources.map((source, sourceIdx) => (
+                              <a
+                                key={sourceIdx}
+                                href={source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs hover:underline flex items-start gap-1 text-primary hover:text-primary/80"
+                              >
+                                <span>📄</span>
+                                <span className="flex-1">{source.title}</span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {chatMode === 'fiscal' && msg.related_questions && msg.related_questions.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-border/50">
+                          <p className="text-xs font-semibold mb-1.5 text-muted-foreground">Întrebări similare:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {msg.related_questions.slice(0, 3).map((q, qIdx) => (
+                              <Button
+                                key={qIdx}
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setInput(q)}
+                                className="text-xs h-auto py-1 px-2 text-muted-foreground hover:text-foreground"
+                              >
+                                {q}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1235,45 +1384,48 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 onChange={handleFileUpload}
                 className="hidden"
               />
-              <div className="relative">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading || isUploadingFile}
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0 relative"
-                        aria-label="Încarcă fișier"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                        {/* Animated arrow indicator */}
-                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce">
-                          <span className="text-[10px] font-medium text-primary whitespace-nowrap bg-primary/10 px-2 py-0.5 rounded-full">
-                            Încarcă balanța aici
-                          </span>
-                          <svg 
-                            className="w-4 h-4 text-primary animate-pulse" 
-                            fill="currentColor" 
-                            viewBox="0 0 20 20"
-                          >
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V4a1 1 0 011-1z" clipRule="evenodd" />
-                          </svg>
+              {/* Buton upload - doar în modul balanță */}
+              {chatMode === 'balance' && (
+                <div className="relative">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isLoading || isUploadingFile}
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 relative"
+                          aria-label="Încarcă fișier"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                          {/* Animated arrow indicator */}
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce">
+                            <span className="text-[10px] font-medium text-primary whitespace-nowrap bg-primary/10 px-2 py-0.5 rounded-full">
+                              Încarcă balanța aici
+                            </span>
+                            <svg 
+                              className="w-4 h-4 text-primary animate-pulse" 
+                              fill="currentColor" 
+                              viewBox="0 0 20 20"
+                            >
+                              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v10.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V4a1 1 0 011-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="space-y-1">
+                          <p className="font-semibold">Încarcă balanță Excel pentru analiză</p>
+                          <p className="text-xs">📋 Format: .xls sau .xlsx</p>
+                          <p className="text-xs">📅 Nume recomandat: Balanta_Luna_An.xls</p>
+                          <p className="text-xs opacity-80">Exemplu: Balanta_Ianuarie_2025.xls</p>
                         </div>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="space-y-1">
-                        <p className="font-semibold">Încarcă balanță Excel pentru analiză</p>
-                        <p className="text-xs">📋 Format: .xls sau .xlsx</p>
-                        <p className="text-xs">📅 Nume recomandat: Balanta_Luna_An.xls</p>
-                        <p className="text-xs opacity-80">Exemplu: Balanta_Ianuarie_2025.xls</p>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              )}
               <Input
                 ref={inputRef}
                 value={input}
@@ -1281,12 +1433,18 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 onKeyPress={handleKeyPress}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder={isUploadingFile ? "Încărcare..." : "Întreabă despre analizele tale sau încarcă o balanță..."}
+                placeholder={
+                  isUploadingFile 
+                    ? "Încărcare..." 
+                    : chatMode === 'fiscal'
+                    ? "Întreabă despre legislație fiscală, proceduri ANAF, monografii..."
+                    : "Întreabă despre analizele tale sau încarcă o balanță..."
+                }
                 disabled={isLoading || isUploadingFile}
                 className="flex-1"
               />
               <Button
-                onClick={sendMessage}
+                onClick={chatMode === 'fiscal' ? sendFiscalMessage : sendMessage}
                 disabled={isLoading || !input.trim() || isUploadingFile}
                 size="icon"
                 className="shrink-0"
