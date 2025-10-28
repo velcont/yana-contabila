@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings, Building2 } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings, Building2, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -30,6 +30,7 @@ import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import FiscalChat from "@/components/FiscalChat";
 import {
   Tooltip,
   TooltipContent,
@@ -58,6 +59,7 @@ const Index = () => {
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
   const [showAddCompany, setShowAddCompany] = useState(false);
   const [userSubscriptionType, setUserSubscriptionType] = useState<string | null>(null);
+  const [fiscalChatOpen, setFiscalChatOpen] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
@@ -617,6 +619,22 @@ const Index = () => {
           onOpenDashboard={() => setShowDashboard(true)}
           openOnLoad={showChatOnLoad}
         />
+      )}
+
+      {/* Fiscal Chat FAB - doar pentru antreprenori */}
+      {userSubscriptionType === 'entrepreneur' && (
+        <>
+          <Button
+            onClick={() => setFiscalChatOpen(true)}
+            size="lg"
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-[#00B37E] hover:bg-[#00B37E]/90 z-50"
+            aria-label="Deschide Yana Fiscală"
+          >
+            <Scale className="h-6 w-6" />
+          </Button>
+          
+          <FiscalChat open={fiscalChatOpen} onOpenChange={setFiscalChatOpen} />
+        </>
       )}
       
       <AdvertisementPopup intervalMinutes={10} />
