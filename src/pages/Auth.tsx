@@ -38,17 +38,26 @@ const Auth = () => {
     }
   }, [searchParams]);
 
-  // UX-007: Password strength calculation
+  // UX-007: Password strength calculation with strict requirements
   const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {
-    if (pwd.length < 6) return 'weak';
-    let strength = 0;
-    if (pwd.length >= 8) strength++;
-    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++;
-    if (/\d/.test(pwd)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) strength++;
+    // Cerințe minime: 8 caractere, literă mare, literă mică, cifră
+    const hasMinLength = pwd.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(pwd);
+    const hasLowerCase = /[a-z]/.test(pwd);
+    const hasNumber = /\d/.test(pwd);
+    const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
     
-    if (strength <= 1) return 'weak';
-    if (strength <= 2) return 'medium';
+    // Weak: Nu îndeplinește cerințele minime
+    if (!hasMinLength || !hasUpperCase || !hasLowerCase || !hasNumber) {
+      return 'weak';
+    }
+    
+    // Medium: Îndeplinește cerințele minime
+    if (hasMinLength && hasUpperCase && hasLowerCase && hasNumber && !hasSpecial) {
+      return 'medium';
+    }
+    
+    // Strong: Include și caractere speciale
     return 'strong';
   };
 
@@ -326,9 +335,9 @@ const Auth = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    minLength={6}
                     autoComplete="new-password"
                     className="pr-10"
+                    minLength={8}
                   />
                   <Button
                     type="button"
@@ -341,7 +350,7 @@ const Auth = () => {
                     {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">Minimum 6 caractere</p>
+                <p className="text-xs text-muted-foreground">Minimum 8 caractere: litere mari/mici, cifre</p>
               </div>
 
               <Button
@@ -555,11 +564,11 @@ const Auth = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder={isLogin ? "••••••••" : "Min. 8 caractere: A-Z, a-z, 0-9"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={isLogin ? 6 : 8}
                     autoComplete={isLogin ? "current-password" : "new-password"}
                     className="pr-10"
                   />
@@ -576,14 +585,27 @@ const Auth = () => {
                 </div>
                 {!isLogin && passwordStrength && (
                   <div className="space-y-1">
-                    <div className="flex gap-1">
-                      <div className={`h-1 flex-1 rounded ${passwordStrength === 'weak' ? 'bg-destructive' : passwordStrength === 'medium' ? 'bg-warning' : 'bg-success'}`} />
-                      <div className={`h-1 flex-1 rounded ${passwordStrength === 'medium' || passwordStrength === 'strong' ? (passwordStrength === 'medium' ? 'bg-warning' : 'bg-success') : 'bg-muted'}`} />
-                      <div className={`h-1 flex-1 rounded ${passwordStrength === 'strong' ? 'bg-success' : 'bg-muted'}`} />
+                    <div className="flex items-center gap-1">
+                      <div className={`h-1 flex-1 rounded ${
+                        passwordStrength === 'weak' ? 'bg-red-500' : 
+                        passwordStrength === 'medium' ? 'bg-yellow-500' : 
+                        'bg-green-500'
+                      }`} />
+                      <span className={`text-xs font-medium ${
+                        passwordStrength === 'weak' ? 'text-red-500' : 
+                        passwordStrength === 'medium' ? 'text-yellow-600' : 
+                        'text-green-600'
+                      }`}>
+                        {passwordStrength === 'weak' ? 'Slabă' : 
+                         passwordStrength === 'medium' ? 'Medie' : 
+                         'Puternică'}
+                      </span>
                     </div>
-                    <p className={`text-xs ${passwordStrength === 'weak' ? 'text-destructive' : passwordStrength === 'medium' ? 'text-warning' : 'text-success'}`}>
-                      Parolă {passwordStrength === 'weak' ? 'slabă' : passwordStrength === 'medium' ? 'medie' : 'puternică'}
-                    </p>
+                    {passwordStrength === 'weak' && (
+                      <p className="text-xs text-red-500">
+                        Obligatoriu: min. 8 caractere, litere mari/mici, cifre
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -613,7 +635,7 @@ const Auth = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || (!isLogin && !termsAccepted)}
+                disabled={isLoading || (!isLogin && !termsAccepted) || (!isLogin && !accountType) || (!isLogin && passwordStrength === 'weak')}
               >
                 {isLoading ? (
                   <>
