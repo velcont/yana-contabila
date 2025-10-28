@@ -243,7 +243,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
             Identifică erori, calculează indicatori, generează rapoarte instant
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-stretch sm:items-center px-4 animate-in fade-in slide-in-from-bottom-4 mb-8" style={{ animationDelay: '200ms' }}>
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-stretch sm:items-center px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
             <Button 
               size="lg" 
               className="text-base md:text-lg px-6 md:px-8 py-5 md:py-6 w-full sm:w-auto shadow-lg hover:shadow-xl transition-shadow"
@@ -263,6 +263,15 @@ Perioada: 01/04/2025 - 30/04/2025`,
               Demo Instant
             </Button>
           </div>
+
+          <Button
+            variant="ghost"
+            className="text-sm text-muted-foreground hover:text-foreground animate-in fade-in"
+            style={{ animationDelay: '250ms' }}
+            onClick={() => navigate('/auth')}
+          >
+            Ai deja cont? <span className="underline ml-1">Autentifică-te</span>
+          </Button>
 
           {/* Social Proof */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground animate-in fade-in" style={{ animationDelay: '300ms' }}>
