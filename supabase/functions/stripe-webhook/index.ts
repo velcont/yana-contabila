@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2025-08-27.basil",
+  timeout: 10000, // 🔒 BUG FIX #9: 10 second timeout for all Stripe API calls
+  maxNetworkRetries: 2,
 });
 
 const corsHeaders = {
@@ -364,12 +366,27 @@ serve(async (req) => {
         },
       });
 
-      // 🔒 SECURITY FIX 5: Send email with fallback to in-app notification
+      // 🔒 BUG FIX #8: Email with comprehensive error handling and admin alerts
       try {
         const resendApiKey = Deno.env.get("RESEND_API_KEY");
         const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
         
-        if (resendApiKey) {
+        if (!resendApiKey) {
+          console.warn("⚠️ RESEND_API_KEY not configured - creating admin alert");
+          
+          await supabaseClient.from('admin_alerts').insert({
+            alert_type: 'EMAIL_NOT_CONFIGURED',
+            severity: 'medium',
+            title: `Email Not Configured - Credits Purchase by ${customerEmail}`,
+            description: `User purchased ${creditsToAdd} credits but email cannot be sent (RESEND_API_KEY missing).`,
+            details: {
+              userId: user.id,
+              customerEmail,
+              creditsAdded: creditsToAdd,
+              amountPaid
+            }
+          });
+        } else {
           const emailResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -384,65 +401,41 @@ serve(async (req) => {
                 <h1>Bună!</h1>
                 <p>Credite AI au fost adăugate în contul tău:</p>
                 <ul>
-                  <li><strong>Credite adăugate:</strong> ${creditsToAdd / 100} lei (${creditsToAdd} cenți)</li>
+                  <li><strong>Credite adăugate:</strong> ${creditsToAdd / 100} lei</li>
                   <li><strong>Sumă plătită:</strong> ${(session.amount_total || 0) / 100} ${session.currency?.toUpperCase()}</li>
                   <li><strong>Pachet:</strong> ${packageName}</li>
                 </ul>
-                <p>Poți folosi creditele imediat pentru:</p>
-                <ul>
-                  <li>Analize de bilanț AI</li>
-                  <li>Predicții financiare</li>
-                  <li>Chat AI strategic</li>
-                  <li>Consilier strategic AI</li>
-                </ul>
-                <p>Mulțumim pentru încredere!</p>
+                <p>Poți folosi creditele imediat!</p>
               `,
             }),
           });
 
           if (!emailResponse.ok) {
-            throw new Error(`Email API returned ${emailResponse.status}`);
+            const errorText = await emailResponse.text();
+            throw new Error(`Resend API error: ${errorText}`);
           }
           
           console.log("✅ Confirmation email sent to:", customerEmail);
         }
       } catch (emailError) {
-        console.error("⚠️ Failed to send confirmation email:", emailError);
+        console.error("❌ Email send failed:", emailError);
         
-        // Fallback: Create in-app notification
-        try {
-          await supabaseClient.from('user_notifications').insert({
-            user_id: user.id,
-            type: 'credits_added',
-            title: '✅ Credite AI Adăugate cu Succes',
-            message: `Ai primit ${creditsToAdd / 100} lei (${creditsToAdd} cenți) în credite AI! Pachet: ${packageName}. Poți folosi creditele imediat pentru analize, predicții și chat AI.`,
-            priority: 'high',
-            metadata: {
-              credits_added: creditsToAdd,
-              package_name: packageName,
-              amount_paid_cents: amountPaid,
-              reason: 'payment_received'
-            }
-          });
-          console.log("✅ In-app notification created as fallback");
-        } catch (notifError) {
-          console.error("❌ Failed to create in-app notification:", notifError);
-          // Create alert for admin
-          await supabaseClient.from('admin_alerts').insert({
-            alert_type: 'NOTIFICATION_FAILED',
-            severity: 'medium',
-            title: `Failed to Notify User About Credits: ${customerEmail}`,
-            description: `Both email and in-app notification failed. User may not know they received ${creditsToAdd} credits.`,
-            details: {
-              userId: user.id,
-              customerEmail,
-              creditsAdded: creditsToAdd,
-              sessionId: session.id,
-              emailError: emailError instanceof Error ? emailError.message : String(emailError),
-              notifError: notifError instanceof Error ? notifError.message : String(notifError)
-            }
-          });
-        }
+        // Create admin alert for failed email (DON'T block purchase)
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'EMAIL_SEND_FAILED',
+          severity: 'medium',
+          title: `Email Failed - Credits Purchase by ${customerEmail}`,
+          description: `Credits added successfully but email notification failed.`,
+          details: {
+            userId: user.id,
+            customerEmail,
+            creditsAdded: creditsToAdd,
+            amountPaid,
+            error: emailError instanceof Error ? emailError.message : String(emailError)
+          }
+        });
+        
+        console.log("⚠️ Purchase completed despite email failure");
       }
 
       // Log success with audit trail

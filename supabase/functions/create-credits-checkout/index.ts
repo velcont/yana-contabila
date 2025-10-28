@@ -54,6 +54,14 @@ serve(async (req) => {
 
     const { priceId } = await req.json();
 
+    // 🔒 BUG FIX #7: Validate priceId against whitelist
+    const validPriceIds = [
+      "price_1SIsUMBu3m83VcDA5X8MPfrS", // Starter (10 lei)
+      "price_1SIsUPBu3m83VcDAqCC955qF", // Professional (20 lei)
+      "price_1SIsUQBu3m83VcDAQUwk4CZZ", // Business (40 lei)
+      "price_1SIsUQBu3m83VcDAykzaXTeT", // Enterprise (70 lei)
+    ];
+
     if (!priceId) {
       return new Response(
         JSON.stringify({ error: "Price ID lipsă" }),
@@ -61,8 +69,34 @@ serve(async (req) => {
       );
     }
 
+    if (!validPriceIds.includes(priceId)) {
+      console.error(`⚠️ Invalid priceId attempted: ${priceId} by user ${user.id}`);
+      
+      // Log suspicious activity
+      await supabaseClient.from('audit_logs').insert({
+        user_id: user.id,
+        user_email: user.email,
+        action_type: 'INVALID_PRICE_ID_ATTEMPTED',
+        table_name: 'credits_purchases',
+        metadata: {
+          attempted_price_id: priceId,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          error: "Price ID invalid. Te rugăm să selectezi un pachet valid.",
+          valid_packages: ["Starter", "Professional", "Business", "Enterprise"]
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
+      timeout: 10000, // 🔒 BUG FIX #9: 10 second timeout for all Stripe API calls
+      maxNetworkRetries: 2, // Retry failed requests twice
     });
 
     // Check for existing customer

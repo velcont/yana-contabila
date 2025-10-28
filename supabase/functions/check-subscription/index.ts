@@ -38,6 +38,48 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // 🔒 BUG FIX #10: Rate limiting - max 30 requests per minute per user
+    const rateLimitKey = `check_subscription_${user.id}`;
+    const rateLimitWindow = 60; // 1 minute in seconds
+    const rateLimitMax = 30;
+
+    const { data: rateLimitData } = await supabaseClient
+      .from('api_rate_limits')
+      .select('request_count, window_start')
+      .eq('user_id', user.id)
+      .eq('endpoint', 'check-subscription')
+      .gte('window_start', new Date(Date.now() - rateLimitWindow * 1000).toISOString())
+      .maybeSingle();
+
+    if (rateLimitData && rateLimitData.request_count >= rateLimitMax) {
+      logStep("Rate limit exceeded", { userId: user.id, count: rateLimitData.request_count });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Prea multe cereri. Te rugăm să aștepți un minut.',
+          rate_limited: true 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+      );
+    }
+
+    // Update rate limit counter
+    if (rateLimitData) {
+      await supabaseClient
+        .from('api_rate_limits')
+        .update({ request_count: rateLimitData.request_count + 1 })
+        .eq('user_id', user.id)
+        .eq('endpoint', 'check-subscription');
+    } else {
+      await supabaseClient
+        .from('api_rate_limits')
+        .insert({
+          user_id: user.id,
+          endpoint: 'check-subscription',
+          request_count: 1,
+          window_start: new Date().toISOString()
+        });
+    }
+
     // Check profile for free access, trial period, and manual subscription (+ ensure profile exists and sync from user_metadata)
     const { data: profile } = await supabaseClient
       .from('profiles')
@@ -183,6 +225,8 @@ serve(async (req) => {
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
+      timeout: 10000, // 🔒 BUG FIX #9: 10 second timeout
+      maxNetworkRetries: 2,
     });
 
     // Find customer by email
