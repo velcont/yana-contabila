@@ -10,6 +10,24 @@
 
       gtag('config', 'AW-996832923');
     </script>
+
+    <!-- Event snippet for Înscriere conversion page -->
+    <script>
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof(url) != 'undefined') {
+            window.location = url;
+          }
+        };
+        gtag('event', 'conversion', {
+            'send_to': 'AW-996832923/0iuhCNubqbUbEJvtqdsD',
+            'value': 10.0,
+            'currency': 'RON',
+            'event_callback': callback
+        });
+        return false;
+      }
+    </script>
     
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -272,6 +272,11 @@ const Auth = () => {
             : "Contul tău de contabil a fost configurat cu succes! Ai 30 de zile gratuite!",
         });
         
+        // Track Google Ads conversion
+        if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
+          (window as any).gtag_report_conversion();
+        }
+        
         // TOȚI utilizatorii merg la /app indiferent de tip
         // Pagina /app va decide ce modul să afișeze
         navigate('/app');
