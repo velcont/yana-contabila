@@ -63,62 +63,83 @@ export default function AdminRevenueMonitor() {
         .select('*')
         .order('purchase_date', { ascending: false });
 
-      // Fetch profiles for credits
-      const creditsWithProfiles = await Promise.all(
-        (credits || []).map(async (c) => {
-          const { data: profile } = await supabase.from('profiles').select('email, full_name').eq('id', c.user_id).single();
-          const { data: invoice } = await supabase.from('smartbill_invoices').select('invoice_number, invoice_series').eq('stripe_session_id', c.stripe_checkout_session_id).single();
-          return { ...c, profile, invoice };
-        })
-      );
-
       // Fetch abonamente
       const { data: subscriptions } = await supabase
         .from('subscription_payments')
         .select('*')
         .order('payment_date', { ascending: false });
 
-      // Fetch profiles for subscriptions
-      const subscriptionsWithProfiles = await Promise.all(
-        (subscriptions || []).map(async (s) => {
-          const { data: profile } = await supabase.from('profiles').select('email, full_name').eq('id', s.user_id).single();
-          const { data: invoice } = await supabase.from('smartbill_invoices').select('invoice_number, invoice_series').eq('stripe_invoice_id', s.stripe_invoice_id).single();
-          return { ...s, profile, invoice };
-        })
-      );
+      // Fetch toate profile-urile necesare
+      const allUserIds = [
+        ...(credits || []).map(c => c.user_id),
+        ...(subscriptions || []).map(s => s.user_id)
+      ];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', allUserIds);
+
+      // Fetch toate facturile pentru credite (prin stripe_session_id)
+      const allSessionIds = (credits || []).map(c => c.stripe_checkout_session_id).filter(Boolean);
+      const { data: creditInvoices } = await supabase
+        .from('smartbill_invoices')
+        .select('*')
+        .in('stripe_session_id', allSessionIds);
+
+      // Fetch facturile pentru abonamente (prin smartbill_invoice_id din subscription_payments)
+      const subscriptionInvoiceIds = (subscriptions || [])
+        .map(s => s.smartbill_invoice_id)
+        .filter(Boolean);
+      const { data: subInvoices } = await supabase
+        .from('smartbill_invoices')
+        .select('*')
+        .in('id', subscriptionInvoiceIds);
+
+      // Create lookup maps
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+      const invoiceBySessionMap = new Map(creditInvoices?.map(i => [i.stripe_session_id, i]) || []);
+      const invoiceByIdMap = new Map(subInvoices?.map(i => [i.id, i]) || []);
 
       // Transformă în format unificat
-      const creditsPayments: PaymentRecord[] = creditsWithProfiles.map(c => ({
-        id: c.id,
-        payment_type: 'credits' as const,
-        date: c.purchase_date,
-        user_email: c.profile?.email || 'N/A',
-        user_name: c.profile?.full_name || 'N/A',
-        amount_cents: c.amount_paid_cents,
-        currency: 'RON',
-        description: `Pachet ${c.credits_added} credite AI`,
-        stripe_reference: c.stripe_checkout_session_id,
-        invoice_number: c.invoice?.invoice_number,
-        invoice_series: c.invoice?.invoice_series,
-        invoice_generated: !!c.invoice,
-        metadata: c.metadata
-      }));
+      const creditsPayments: PaymentRecord[] = (credits || []).map(c => {
+        const profile = profileMap.get(c.user_id);
+        const invoice = invoiceBySessionMap.get(c.stripe_checkout_session_id);
+        return {
+          id: c.id,
+          payment_type: 'credits' as const,
+          date: c.purchase_date,
+          user_email: profile?.email || 'N/A',
+          user_name: profile?.full_name || 'N/A',
+          amount_cents: c.amount_paid_cents,
+          currency: 'RON',
+          description: `Pachet ${c.credits_added} credite AI`,
+          stripe_reference: c.stripe_checkout_session_id,
+          invoice_number: invoice?.invoice_number,
+          invoice_series: invoice?.invoice_series,
+          invoice_generated: !!invoice,
+          metadata: c.metadata
+        };
+      });
 
-      const subscriptionsPayments: PaymentRecord[] = subscriptionsWithProfiles.map(s => ({
-        id: s.id,
-        payment_type: 'subscription' as const,
-        date: s.payment_date,
-        user_email: s.profile?.email || 'N/A',
-        user_name: s.profile?.full_name || 'N/A',
-        amount_cents: s.amount_paid_cents,
-        currency: s.currency,
-        description: `Abonament ${s.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Cabinet Contabil'} (${format(new Date(s.period_start), 'MMM yyyy', { locale: ro })})`,
-        stripe_reference: s.stripe_invoice_id,
-        invoice_number: s.invoice?.invoice_number,
-        invoice_series: s.invoice?.invoice_series,
-        invoice_generated: s.invoice_generated,
-        metadata: s.metadata
-      }));
+      const subscriptionsPayments: PaymentRecord[] = (subscriptions || []).map(s => {
+        const profile = profileMap.get(s.user_id);
+        const invoice = s.smartbill_invoice_id ? invoiceByIdMap.get(s.smartbill_invoice_id) : null;
+        return {
+          id: s.id,
+          payment_type: 'subscription' as const,
+          date: s.payment_date,
+          user_email: profile?.email || 'N/A',
+          user_name: profile?.full_name || 'N/A',
+          amount_cents: s.amount_paid_cents,
+          currency: s.currency,
+          description: `Abonament ${s.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Cabinet Contabil'} (${format(new Date(s.period_start), 'MMM yyyy', { locale: ro })})`,
+          stripe_reference: s.stripe_invoice_id || '',
+          invoice_number: invoice?.invoice_number,
+          invoice_series: invoice?.invoice_series,
+          invoice_generated: s.invoice_generated || !!invoice,
+          metadata: s.metadata
+        };
+      });
 
       // Combină și sortează
       const combined = [...creditsPayments, ...subscriptionsPayments]
