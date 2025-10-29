@@ -87,7 +87,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
 💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
 
-🎯 Pentru **consultanță strategică** despre creștere, profit și dezvoltare business → folosește **Yana Strategică** (feature premium).`
+⚖️ Pentru **consultanță fiscală** despre taxe, legislație fiscală și impozite → schimbă pe tab-ul "Consultanță Fiscală" de mai sus.`
       }
     ]
   );
@@ -1317,10 +1317,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsOpen(false)}
-                    className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    className="h-9 w-9 border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all"
                     aria-label="Închide chat"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="h-5 w-5 stroke-[2.5]" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Închide Chat</TooltipContent>
