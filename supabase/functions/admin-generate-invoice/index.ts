@@ -101,6 +101,33 @@ serve(async (req) => {
     const { sessionId, paymentType } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
 
+    // 🔒 FIX MANUAL_FIX: Detectează ID-uri manuale care nu sunt valide în Stripe
+    if (sessionId.startsWith('manual_fix_')) {
+      logStep("⚠️ REJECTED: Manual fix ID detected", { sessionId });
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Acest ID de plată este manual și nu poate fi folosit pentru generare factură automată. Generați factura manual în SmartBill."
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Validate Stripe ID format
+    const isValidStripeId = (paymentType === 'subscription' && sessionId.startsWith('in_')) ||
+                           (paymentType === 'credits' && sessionId.startsWith('cs_'));
+    
+    if (!isValidStripeId) {
+      logStep("⚠️ REJECTED: Invalid Stripe ID format", { sessionId, paymentType });
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `ID Stripe invalid: ${paymentType === 'subscription' ? 'trebuie să înceapă cu "in_"' : 'trebuie să înceapă cu "cs_"'}`
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     // Prepare SmartBill CIF early (needed later)
     const companyCIF = Deno.env.get("SMARTBILL_COMPANY_CIF") || "";
 
