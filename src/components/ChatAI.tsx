@@ -1311,15 +1311,20 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 <TooltipContent>{isMaximized ? 'Minimizează' : 'Maximizează'}</TooltipContent>
               </Tooltip>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(false)}
-                className="h-9 w-9"
-                aria-label="Închide"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsOpen(false)}
+                    className="h-9 w-9 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    aria-label="Închide chat"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Închide Chat</TooltipContent>
+              </Tooltip>
             </TooltipProvider>
           </div>
         </CardHeader>
