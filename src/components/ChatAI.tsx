@@ -16,11 +16,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
 import { useTutorial } from '@/contexts/TutorialContext';
+// 🧠 AI Learning System
+import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   id?: string; // ID pentru feedback
+  conversationId?: string; // 🧠 ID conversație pentru AI Learning
+  feedbackGiven?: boolean; // 🧠 Marker pentru feedback dat
   sources?: Array<{ title: string; url: string; domain: string }>;
   related_questions?: string[];
 }
@@ -118,9 +122,46 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }
   }, [autoStart]);
   
-  // Feedback handler pentru sistem de învățare
+  // 🧠 AI Learning: Feedback handler pentru noul sistem de învățare
   const handleFeedback = async (messageId: string, rating: number) => {
     try {
+      console.log('📊 AI Learning: Processing feedback...');
+      
+      // Găsește mesajul în state pentru a obține conversationId
+      const allMessages = chatMode === 'balance' ? messages : fiscalMessages;
+      const messageIndex = allMessages.findIndex(msg => msg.id === messageId);
+      
+      if (messageIndex === -1 || !allMessages[messageIndex].conversationId) {
+        console.warn('⚠️ Message not found or no conversationId');
+        return;
+      }
+      
+      const conversationId = allMessages[messageIndex].conversationId!;
+      const wasHelpful = rating > 0;
+      const ratingValue = Math.abs(rating);
+      
+      // Salvează feedback în noul sistem
+      const success = await saveFeedback(conversationId, wasHelpful, ratingValue);
+      
+      if (success) {
+        toast({
+          title: '✅ Mulțumim pentru feedback!',
+          description: 'AI-ul Yana învață din răspunsul tău pentru a se îmbunătăți.'
+        });
+        
+        // Marchează mesajul ca având feedback dat
+        if (chatMode === 'balance') {
+          setMessages(prev => prev.map((msg, idx) => 
+            idx === messageIndex ? { ...msg, feedbackGiven: true } : msg
+          ));
+        } else {
+          setFiscalMessages(prev => prev.map((msg, idx) => 
+            idx === messageIndex ? { ...msg, feedbackGiven: true } : msg
+          ));
+        }
+      }
+      
+      // Fallback la sistemul vechi pentru compatibilitate
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -352,6 +393,44 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         }
       }
 
+      // 🧠 AI Learning: Obține prompt îmbogățit cu context învățat
+      let finalMessage = userMessage;
+      let learningContext = null;
+      
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Încearcă să obții compania selectată
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .limit(1);
+          
+          if (companies && companies.length > 0) {
+            const companyId = companies[0].id;
+            
+            // Obține prompt îmbogățit cu învățături din trecut
+            learningContext = await getEnhancedPrompt({
+              question: userMessage,
+              companyId: companyId,
+              userId: user.id,
+              month: new Date().getMonth() + 1,
+              year: new Date().getFullYear()
+            });
+            
+            // Folosește prompt-ul îmbogățit dacă e disponibil
+            if (learningContext?.enhancedPrompt) {
+              finalMessage = learningContext.enhancedPrompt;
+              console.log('🧠 AI Learning: Using enhanced prompt with learned context');
+            }
+          }
+        }
+      } catch (learningError) {
+        console.error('⚠️ AI Learning error (non-critical):', learningError);
+        // Continue cu mesajul original - aplicația merge mai departe
+      }
+
       // 2) Fallback: apel funcție backend chat-ai
       console.log('[Chat] Apel AI generic pentru răspuns...');
       const { data: { session } } = await supabase.auth.getSession();
@@ -365,7 +444,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
           },
           body: JSON.stringify({
-            message: userMessage,
+            message: finalMessage, // 🧠 Folosește prompt-ul îmbogățit
             history: messages,
             conversationId,
             summaryType
@@ -469,19 +548,61 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         });
       }
 
-      // Salvează răspunsul assistant în istoric
+      // 🧠 AI Learning: Salvează conversația în noul sistem
+      let savedConversationId: string | null = null;
+      
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user && assistantContent) {
+          // Salvează în sistemul vechi (conversation_history)
           await supabase.from('conversation_history').insert({
             user_id: user.id,
             conversation_id: conversationId,
             role: 'assistant',
             content: assistantContent
           });
+          
+          // 🧠 Salvează în noul sistem de învățare
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .limit(1);
+          
+          if (companies && companies.length > 0) {
+            savedConversationId = await saveConversation(
+              userMessage, // întrebarea originală
+              assistantContent, // răspunsul AI
+              {
+                question: userMessage,
+                companyId: companies[0].id,
+                userId: user.id,
+                month: new Date().getMonth() + 1,
+                year: new Date().getFullYear()
+              }
+            );
+            
+            if (savedConversationId) {
+              console.log('✅ AI Learning: Conversation saved for future learning');
+              
+              // Update ultimul mesaj cu conversationId pentru feedback
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastIndex = newMessages.length - 1;
+                if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
+                  newMessages[lastIndex] = {
+                    ...newMessages[lastIndex],
+                    conversationId: savedConversationId || undefined
+                  };
+                }
+                return newMessages;
+              });
+            }
+          }
         }
       } catch (err) {
-        console.error('Error saving assistant message:', err);
+        console.error('⚠️ Error saving conversation (non-critical):', err);
+        // Aplicația continuă chiar dacă salvarea eșuează
       }
 
     } catch (error) {
@@ -1297,7 +1418,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                       <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 border-l-2 border-primary/30">
                         <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                       </div>
-                      {msg.id && (
+                      {msg.id && !msg.feedbackGiven && (
                         <div className="flex items-center gap-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <TooltipProvider>
                             <Tooltip>
@@ -1310,7 +1431,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   <ThumbsUp className="h-3 w-3 text-muted-foreground hover:text-green-600" />
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent>Răspuns util</TooltipContent>
+                              <TooltipContent>Răspuns util 👍</TooltipContent>
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1322,9 +1443,15 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   <ThumbsDown className="h-3 w-3 text-muted-foreground hover:text-red-600" />
                                 </button>
                               </TooltipTrigger>
-                              <TooltipContent>Răspuns neutil</TooltipContent>
+                              <TooltipContent>Răspuns neutil 👎</TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                        </div>
+                      )}
+                      {msg.feedbackGiven && (
+                        <div className="text-xs text-muted-foreground px-2 flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          Mulțumim! AI învață din feedback-ul tău.
                         </div>
                       )}
                       

@@ -213,6 +213,218 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_company_preferences: {
+        Row: {
+          company_id: string
+          confidence: number | null
+          created_at: string
+          examples_count: number | null
+          id: string
+          preference_type: string
+          preference_value: Json
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          confidence?: number | null
+          created_at?: string
+          examples_count?: number | null
+          id?: string
+          preference_type: string
+          preference_value: Json
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          confidence?: number | null
+          created_at?: string
+          examples_count?: number | null
+          id?: string
+          preference_type?: string
+          preference_value?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_company_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          answer: string
+          company_id: string | null
+          context: Json | null
+          conversation_duration_seconds: number | null
+          created_at: string
+          id: string
+          model_used: string | null
+          question: string
+          rating: number | null
+          tokens_used: number | null
+          updated_at: string
+          user_feedback: string | null
+          user_id: string
+          was_helpful: boolean | null
+        }
+        Insert: {
+          answer: string
+          company_id?: string | null
+          context?: Json | null
+          conversation_duration_seconds?: number | null
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          question: string
+          rating?: number | null
+          tokens_used?: number | null
+          updated_at?: string
+          user_feedback?: string | null
+          user_id: string
+          was_helpful?: boolean | null
+        }
+        Update: {
+          answer?: string
+          company_id?: string | null
+          context?: Json | null
+          conversation_duration_seconds?: number | null
+          created_at?: string
+          id?: string
+          model_used?: string | null
+          question?: string
+          rating?: number | null
+          tokens_used?: number | null
+          updated_at?: string
+          user_feedback?: string | null
+          user_id?: string
+          was_helpful?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_learned_patterns: {
+        Row: {
+          applies_to_company_id: string | null
+          applies_to_company_size: string | null
+          applies_to_industry: string | null
+          confidence_score: number | null
+          created_at: string
+          example_questions: string[] | null
+          first_seen_at: string
+          id: string
+          last_used_at: string | null
+          pattern_description: string
+          pattern_key: string
+          pattern_type: string
+          related_context: Json | null
+          suggested_answer_template: string | null
+          times_used: number | null
+          times_validated: number | null
+          updated_at: string
+        }
+        Insert: {
+          applies_to_company_id?: string | null
+          applies_to_company_size?: string | null
+          applies_to_industry?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          example_questions?: string[] | null
+          first_seen_at?: string
+          id?: string
+          last_used_at?: string | null
+          pattern_description: string
+          pattern_key: string
+          pattern_type: string
+          related_context?: Json | null
+          suggested_answer_template?: string | null
+          times_used?: number | null
+          times_validated?: number | null
+          updated_at?: string
+        }
+        Update: {
+          applies_to_company_id?: string | null
+          applies_to_company_size?: string | null
+          applies_to_industry?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          example_questions?: string[] | null
+          first_seen_at?: string
+          id?: string
+          last_used_at?: string | null
+          pattern_description?: string
+          pattern_key?: string
+          pattern_type?: string
+          related_context?: Json | null
+          suggested_answer_template?: string | null
+          times_used?: number | null
+          times_validated?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_learned_patterns_applies_to_company_id_fkey"
+            columns: ["applies_to_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_response_feedback: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          feedback_type: string
+          id: string
+          missing_information: string | null
+          rating: number | null
+          response_segment: string | null
+          suggested_improvement: string | null
+          user_comment: string | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          feedback_type: string
+          id?: string
+          missing_information?: string | null
+          rating?: number | null
+          response_segment?: string | null
+          suggested_improvement?: string | null
+          user_comment?: string | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          missing_information?: string | null
+          rating?: number | null
+          response_segment?: string | null
+          suggested_improvement?: string | null
+          user_comment?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_response_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_usage: {
         Row: {
           created_at: string
@@ -2935,6 +3147,22 @@ export type Database = {
         Returns: {
           category: string
           pattern: string
+        }[]
+      }
+      find_similar_conversations: {
+        Args: {
+          p_company_id: string
+          p_limit?: number
+          p_question_keywords: string[]
+        }
+        Returns: {
+          answer: string
+          context: Json
+          created_at: string
+          id: string
+          question: string
+          similarity_score: number
+          was_helpful: boolean
         }[]
       }
       get_monthly_ai_usage: {
