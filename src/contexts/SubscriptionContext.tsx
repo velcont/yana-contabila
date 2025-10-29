@@ -108,10 +108,9 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (user) {
       checkSubscription(true);
-      
-      // Auto-refresh every 5 minutes without showing loading state
-      const interval = setInterval(() => checkSubscription(false), 300000);
-      return () => clearInterval(interval);
+      // REMOVED: Auto-refresh polling - causes UI flickering and is unnecessary
+      // Subscription status doesn't change frequently enough to warrant constant polling
+      // Will refresh on: page reload, manual refresh, or specific user actions
     } else {
       setSubscriptionStatus('inactive');
       setLoading(false);

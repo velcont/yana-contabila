@@ -21,8 +21,6 @@ export const Footer = () => {
   const { isAccountant } = useSubscription();
   const { isAdmin, isLoading } = useUserRole();
   const navigate = useNavigate();
-  
-  console.log('🔍 [Footer] isAdmin:', isAdmin, 'isLoading:', isLoading);
   const email = "offiice@velcont.com";
   const whatsapp = "+40731377793";
   const whatsappMessage = "Bună! Sunt interesat de serviciile Yana.";

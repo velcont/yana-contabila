@@ -27,8 +27,9 @@ export const UpdateNotificationBanner = () => {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 5 * 60 * 1000, // 5 minute
-    refetchOnWindowFocus: true,
+    refetchInterval: 30 * 60 * 1000, // 30 minutes - reduced from 5 to prevent UI flickering
+    refetchOnWindowFocus: false, // Disable to reduce unnecessary checks
+    staleTime: 10 * 60 * 1000, // 10 minutes - consider data fresh for 10 min
   });
 
   const hasNewVersion = currentVersion && 

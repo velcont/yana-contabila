@@ -23,7 +23,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const setThemeOverrideSynced = (theme: ThemeType | null) => {
     // Single source of truth: ThemeRoleContext
     setRoleThemeOverride(theme);
-    console.log('🎨 [THEME SYNC] Synced override to role context:', theme);
   };
   useEffect(() => {
     // Determine theme based on route-driven theme, allow explicit override (used to switch modules)
@@ -31,8 +30,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     if (themeOverride) {
       next = themeOverride;
     }
-    
-    console.log('🎨 [THEME CONTEXT] Setting themeType:', next, 'from currentTheme:', currentTheme, 'override:', themeOverride);
     
     setThemeType(next);
   }, [currentTheme, themeOverride, isAdmin]);
