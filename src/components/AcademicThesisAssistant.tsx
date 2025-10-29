@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { ResearchDataImport } from "./ResearchDataImport";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 
 interface ResearchData {
@@ -48,6 +49,7 @@ export default function AcademicThesisAssistant() {
   const [newResourceTitle, setNewResourceTitle] = useState("");
   const [newResourceLink, setNewResourceLink] = useState("");
   const [newResourceContent, setNewResourceContent] = useState("");
+  const [sourceType, setSourceType] = useState<string>("enformation");
 
   useEffect(() => {
     loadResearchData();
@@ -91,8 +93,14 @@ export default function AcademicThesisAssistant() {
         .insert({
           user_id: user.id,
           data_collection_date: new Date().toISOString().split('T')[0],
-          course_name: newResourceTitle,
-          research_theme: 'Inovație Digitală și Reziliență',
+          course_name: sourceType === 'enformation' 
+            ? '🇷🇴 e-nformation.ro' 
+            : sourceType === 'semantic'
+            ? '🔬 Semantic Scholar'
+            : sourceType === 'youtube'
+            ? '🎥 YouTube'
+            : newResourceTitle,
+          research_theme: newResourceTitle,
           content: newResourceContent,
           case_studies: [],
           theoretical_frameworks: [],
@@ -107,6 +115,7 @@ export default function AcademicThesisAssistant() {
       setNewResourceTitle("");
       setNewResourceLink("");
       setNewResourceContent("");
+      setSourceType("enformation");
       loadResearchData();
     } catch (error) {
       console.error('Error adding resource:', error);
@@ -1052,25 +1061,43 @@ IMPORTANT:
         <CardContent className="space-y-4">
           <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
             <div>
+              <Label htmlFor="source-type">Tip Sursă *</Label>
+              <Select value={sourceType} onValueChange={setSourceType}>
+                <SelectTrigger id="source-type">
+                  <SelectValue placeholder="Alege tipul de sursă" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="enformation">🇷🇴 e-nformation.ro (Articol RO)</SelectItem>
+                  <SelectItem value="semantic">🔬 Articol Științific Internațional</SelectItem>
+                  <SelectItem value="youtube">🎥 Video YouTube</SelectItem>
+                  <SelectItem value="manual">✍️ Altă Sursă</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selectează sursa pentru a eticheta corect resursa
+              </p>
+            </div>
+
+            <div>
               <Label htmlFor="resource-title">Titlu Resursă *</Label>
               <Input
                 id="resource-title"
-                placeholder="Ex: Dispelling Five Myths on Business Resilience"
+                placeholder="Ex: Digitalizarea IMM-urilor în România - Amfiteatru Economic"
                 value={newResourceTitle}
                 onChange={(e) => setNewResourceTitle(e.target.value)}
               />
             </div>
 
             <div>
-              <Label htmlFor="resource-link">Link YouTube sau Articol (opțional)</Label>
+              <Label htmlFor="resource-link">Link (opțional)</Label>
               <Input
                 id="resource-link"
-                placeholder="https://www.youtube.com/watch?v=... sau link articol"
+                placeholder="https://www.e-nformation.ro/articol/123456"
                 value={newResourceLink}
                 onChange={(e) => setNewResourceLink(e.target.value)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Pentru YouTube: transcriptul se va extrage automat dacă e disponibil
+                Link către articolul sau video-ul sursă
               </p>
             </div>
 
@@ -1083,17 +1110,15 @@ IMPORTANT:
               </Label>
               <Textarea
                 id="resource-content"
-                placeholder="Exemplu:
+                placeholder="Exemplu pentru e-nformation.ro:
 
-Video-ul/articolul discută 5 mituri despre reziliență organizațională:
+Acest studiu analizează impactul transformării digitale asupra IMM-urilor românești în perioada 2018-2023.
 
-1. Mitul rezistenței: Reziliența ≠ rigiditate. Nu înseamnă să rezişti neschimbat, ci să te adaptezi rapid.
+Concluzie 1: 67% dintre IMM-uri au adoptat soluții cloud după pandemie.
+Concluzie 2: Digitalizarea a crescut productivitatea cu 23% în medie.
+Concluzie 3: Barierele principale: costuri inițiale și lipsa competențelor digitale.
 
-2. Mitul costurilor: Investiția în reziliență nu e o cheltuială inutilă - previne pierderi mult mai mari în criză.
-
-3. Mitul planificării totale: Nu poți anticipa totul. Reziliența = flexibilitate + capacitate de improvizație.
-
-Concluzie cheie: Companiile resiliente investesc în capabilități dinamice, nu doar în procese rigide."
+Relevanță pentru teză: Oferă date empirice din context românesc despre reziliență digitală."
                 value={newResourceContent}
                 onChange={(e) => setNewResourceContent(e.target.value)}
                 rows={12}
@@ -1116,40 +1141,60 @@ Concluzie cheie: Companiile resiliente investesc în capabilități dinamice, nu
               <h3 className="font-semibold text-sm mb-3">Resurse Adăugate ({researchData.length}):</h3>
               <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-3">
-                  {researchData.map((resource) => (
-                    <div 
-                      key={resource.id} 
-                      className="border rounded-lg p-4 space-y-2 bg-card hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm line-clamp-2">
-                            {resource.course_name || resource.research_theme}
-                          </h4>
-                          
-                          {resource.research_notes && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <a 
-                                href={resource.research_notes} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-700 text-xs flex items-center gap-1 truncate"
-                              >
-                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">{resource.research_notes}</span>
-                              </a>
-                              
-                              {/* Indicator transcript extras pentru YouTube */}
-                              {resource.content && 
-                               resource.research_notes.includes('youtube') && 
-                               resource.content.length > 200 && (
-                                <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs flex-shrink-0">
-                                  <TranscriptIcon className="h-3 w-3 mr-1" />
-                                  Transcript {Math.round(resource.content.length / 1000)}k
-                                </Badge>
-                              )}
+                  {researchData.map((resource) => {
+                    const getBadgeForSource = () => {
+                      if (resource.course_name?.includes('e-nformation')) {
+                        return <Badge className="bg-blue-600 text-white">🇷🇴 Articol RO</Badge>;
+                      }
+                      if (resource.course_name?.includes('Semantic')) {
+                        return <Badge className="bg-purple-600 text-white">🔬 Internațional</Badge>;
+                      }
+                      if (resource.research_notes?.includes('youtube') || resource.course_name?.includes('YouTube')) {
+                        return <Badge className="bg-red-600 text-white">🎥 Video</Badge>;
+                      }
+                      return <Badge variant="outline">✍️ Manual</Badge>;
+                    };
+
+                    return (
+                      <div 
+                        key={resource.id} 
+                        className="border rounded-lg p-4 space-y-2 bg-card hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {getBadgeForSource()}
                             </div>
-                          )}
+                            
+                            <h4 className="font-semibold text-sm line-clamp-2">
+                              {resource.research_theme || resource.course_name}
+                            </h4>
+                            
+                            {resource.research_notes && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <a 
+                                  href={resource.research_notes} 
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:text-blue-700 text-xs flex items-center gap-1 truncate"
+                                >
+                                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                  {resource.course_name?.includes('e-nformation') 
+                                    ? 'Vezi pe e-nformation.ro' 
+                                    : 'Vezi sursa'}
+                                </a>
+                                
+                                {/* Indicator transcript extras pentru YouTube */}
+                                {resource.content && 
+                                 resource.research_notes.includes('youtube') && 
+                                 resource.content.length > 200 && (
+                                  <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white text-xs flex-shrink-0">
+                                    <TranscriptIcon className="h-3 w-3 mr-1" />
+                                    Transcript {Math.round(resource.content.length / 1000)}k
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
 
                           {/* Preview conținut */}
                           {resource.content && (
@@ -1177,7 +1222,8 @@ Concluzie cheie: Companiile resiliente investesc în capabilități dinamice, nu
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </ScrollArea>
             </div>
