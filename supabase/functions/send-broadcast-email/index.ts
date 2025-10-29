@@ -11,9 +11,7 @@ const corsHeaders = {
 interface BroadcastRequest {
   subject: string;
   message: string;
-  filterCriteria?: {
-    userType?: string;
-  };
+  companyIds?: string[];
   broadcastId?: string;
 }
 
@@ -63,65 +61,68 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verifică dacă utilizatorul este admin
-    const { data: roleData } = await supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
+    // Verifică dacă utilizatorul este contabil
+    const { data: profileData } = await supabaseClient
+      .from("profiles")
+      .select("subscription_type")
+      .eq("id", userId)
       .maybeSingle();
 
-    if (!roleData) {
+    if (!profileData || profileData.subscription_type !== "accounting_firm") {
       return new Response(
-        JSON.stringify({ error: "Nu ai permisiuni de admin" }),
+        JSON.stringify({ error: "Doar contabilii pot trimite broadcast-uri" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { subject, message, filterCriteria, broadcastId }: BroadcastRequest = await req.json();
+    const { subject, message, companyIds, broadcastId }: BroadcastRequest = await req.json();
 
-    // Construiește query pentru utilizatori
-    let query = supabaseClient.from("profiles").select("id, email, full_name, subscription_type");
+    // Ia companiile pentru acest contabil
+    let companiesQuery = supabaseClient
+      .from("companies")
+      .select("id, company_name, contact_email")
+      .eq("managed_by_accountant_id", userId)
+      .not("contact_email", "is", null);
 
-    // Dacă avem filtre, le aplicăm direct pe profiles
-    if (filterCriteria && filterCriteria.userType) {
-      query = query.eq("subscription_type", filterCriteria.userType);
+    // Dacă avem IDs specifice, filtrăm
+    if (companyIds && companyIds.length > 0) {
+      companiesQuery = companiesQuery.in("id", companyIds);
     }
 
-    const { data: profiles, error: profilesError } = await query;
+    const { data: companies, error: companiesError } = await companiesQuery;
 
-    if (profilesError) {
-      console.error("Eroare la obținere profiles:", profilesError);
+    if (companiesError) {
+      console.error("Eroare la obținere companii:", companiesError);
       return new Response(
-        JSON.stringify({ error: "Eroare la obținere utilizatori" }),
+        JSON.stringify({ error: "Eroare la obținere companii" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!profiles || profiles.length === 0) {
+    if (!companies || companies.length === 0) {
       return new Response(
-        JSON.stringify({ message: "Nu există utilizatori înregistrați", sentCount: 0 }),
+        JSON.stringify({ message: "Nu există companii pentru acest criteriu", sentCount: 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Trimit email către ${profiles.length} utilizatori...`);
+    console.log(`Trimit email către ${companies.length} companii...`);
 
     let successCount = 0;
     const errors: string[] = [];
 
-    // Trimite email către fiecare utilizator
-    for (const profile of profiles) {
+    // Trimite email către fiecare companie
+    for (const company of companies) {
       try {
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #333;">Bună, ${profile.full_name || profile.email}!</h2>
+            <h2 style="color: #333;">Bună ziua, ${company.company_name}!</h2>
             <div style="color: #555; line-height: 1.6;">
               ${message.replace(/\n/g, '<br>')}
             </div>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
             <p style="color: #999; font-size: 12px;">
-              Primești acest email pentru că ai un cont activ în aplicația noastră de analiză financiară.
+              Acest email a fost trimis de cabinetul dumneavoastră de contabilitate.
             </p>
           </div>
         `;
@@ -134,7 +135,7 @@ const handler = async (req: Request): Promise<Response> => {
           },
           body: JSON.stringify({
             from: Deno.env.get("RESEND_FROM_EMAIL") || "YANA Contabilă <onboarding@resend.dev>",
-            to: [profile.email],
+            to: [company.contact_email],
             subject: subject,
             html: emailHtml,
           }),
@@ -146,32 +147,30 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const emailData = await emailResponse.json();
-        console.log(`Email trimis către ${profile.email}:`, emailData);
+        console.log(`Email trimis către ${company.contact_email}:`, emailData);
         successCount++;
 
         // Loghează în email_logs
         await supabaseClient.from("email_logs").insert({
           email_type: "broadcast",
-          recipient_user_id: profile.id,
-          recipient_email: profile.email,
+          recipient_email: company.contact_email,
           subject: subject,
           status: "sent",
-          metadata: { broadcast_id: broadcastId }
+          metadata: { broadcast_id: broadcastId, company_id: company.id }
         });
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`Eroare la trimitere email către ${profile.email}:`, error);
-        errors.push(`${profile.email}: ${errorMessage}`);
+        console.error(`Eroare la trimitere email către ${company.contact_email}:`, error);
+        errors.push(`${company.contact_email}: ${errorMessage}`);
         
         // Loghează eroarea
         await supabaseClient.from("email_logs").insert({
           email_type: "broadcast",
-          recipient_user_id: profile.id,
-          recipient_email: profile.email,
+          recipient_email: company.contact_email,
           subject: subject,
           status: "failed",
-          metadata: { broadcast_id: broadcastId, error: errorMessage }
+          metadata: { broadcast_id: broadcastId, company_id: company.id, error: errorMessage }
         });
       }
     }
@@ -190,9 +189,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(
       JSON.stringify({
-        message: `Emailuri trimise cu succes către ${successCount} din ${profiles.length} utilizatori`,
+        message: `Emailuri trimise cu succes către ${successCount} din ${companies.length} companii`,
         sentCount: successCount,
-        totalCount: profiles.length,
+        totalCount: companies.length,
         errors: errors.length > 0 ? errors : undefined
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
