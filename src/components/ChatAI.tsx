@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
 import { useTutorial } from '@/contexts/TutorialContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
 
@@ -55,13 +56,29 @@ interface ChatAIProps {
 }
 
 export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
+  const { isAccountant } = useSubscription();
   const [isOpen, setIsOpen] = useState(openOnLoad);
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
+  const [showModeSwitchBanner, setShowModeSwitchBanner] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState('');
+  
   const [messages, setMessages] = useState<Message[]>(
     autoStart ? [] : [
       {
         role: 'assistant',
-        content: `👋 Bună! Sunt Yana, asistenta ta AI financiară!
+        content: isAccountant ? 
+          `👋 Bună! Sunt Yana, asistenta ta AI financiară!
+
+📊 **Pentru analiză balanță:**
+- Încarcă fișier Excel (.xls sau .xlsx)
+- Numele fișierului trebuie să conțină luna și anul
+- Exemplu: Balanta_Ianuarie_2025.xls
+
+💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
+
+📞 Pentru consultanță fiscală → schimbă pe tab-ul "Consultanță Fiscală"`
+          :
+          `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
 📊 **Pentru analiză balanță:**
 - Încarcă fișier Excel (.xls sau .xlsx)
@@ -82,8 +99,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
 🏛️ Întreabă-mă despre taxe, legislație fiscală și impozite.
 
-💡 **Nu analizez balanțe** - pentru asta folosește modul "Analiză Balanță"
-🎯 **Nu ofer consultanță strategică** - pentru asta folosește **Yana Strategică** (premium)`
+💡 **Nu analizez balanțe** - pentru asta schimbă pe tab-ul "Analiză Balanță"`
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -239,6 +255,18 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   useEffect(() => {
     scrollToBottom();
   }, [messages, fiscalMessages]);
+
+  // Banner explicativ la schimbarea modului
+  useEffect(() => {
+    if (chatMode === 'balance') {
+      setBannerMessage('📊 Modul ANALIZĂ BALANȚĂ activat - încarcă fișier Excel pentru analiză');
+    } else {
+      setBannerMessage('⚖️ Modul CONSULTANȚĂ FISCALĂ activat - întreabă despre legislație');
+    }
+    setShowModeSwitchBanner(true);
+    const timer = setTimeout(() => setShowModeSwitchBanner(false), 3000);
+    return () => clearTimeout(timer);
+  }, [chatMode]);
 
   // Funcție SEPARATĂ pentru mesaje fiscale (Perplexity) - NU AFECTEAZĂ analiza balanțelor
   const sendFiscalMessage = async () => {
@@ -1123,26 +1151,42 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               </div>
             </div>
 
-            {/* Mode Switcher - Tabs */}
-            <div className="ml-4 flex items-center gap-1 bg-muted/50 rounded-lg p-1">
-              <Button
-                variant={chatMode === 'balance' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setChatMode('balance')}
-                className="h-7 px-3 text-xs"
-              >
-                <FileBarChart className="h-3 w-3 mr-1" />
-                Analiză Balanță
-              </Button>
-              <Button
-                variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setChatMode('fiscal')}
-                className="h-7 px-3 text-xs"
-              >
-                <Scale className="h-3 w-3 mr-1" />
-                Consultanță Fiscală
-              </Button>
+            {/* Mode Switcher - Tabs cu separare vizuală îmbunătățită */}
+            <div className="ml-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20">
+              <span className="text-[10px] font-semibold text-muted-foreground px-2 hidden sm:block">
+                Alege funcția:
+              </span>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant={chatMode === 'balance' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setChatMode('balance')}
+                  className={`h-8 px-4 text-xs font-semibold transition-all ${
+                    chatMode === 'balance' 
+                      ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                      : 'hover:bg-primary/10'
+                  }`}
+                >
+                  <FileBarChart className="h-4 w-4 mr-2" />
+                  📊 Analiză Balanță
+                </Button>
+                
+                <div className="h-6 w-px bg-border" /> {/* Separator vizual */}
+                
+                <Button
+                  variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setChatMode('fiscal')}
+                  className={`h-8 px-4 text-xs font-semibold transition-all ${
+                    chatMode === 'fiscal' 
+                      ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                      : 'hover:bg-primary/10'
+                  }`}
+                >
+                  <Scale className="h-4 w-4 mr-2" />
+                  ⚖️ Consultanță Fiscală
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1397,6 +1441,17 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 </div>
               </CardContent>
             </Card>
+
+            {/* Banner explicativ la schimbarea modului */}
+            {showModeSwitchBanner && (
+              <Card className="bg-primary/10 border-2 border-primary animate-in slide-in-from-top duration-300">
+                <CardContent className="p-3">
+                  <p className="text-sm font-semibold text-primary text-center">
+                    {bannerMessage}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
             
             {/* Selectează mesajele corecte bazat pe modul activ */}
             {(chatMode === 'balance' ? messages : fiscalMessages).map((msg, idx) => (
