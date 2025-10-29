@@ -104,7 +104,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [insights, setInsights] = useState<Insight[]>([]);
-  const [conversationId] = useState(() => crypto.randomUUID());
+  const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
   const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
   const [isMaximized, setIsMaximized] = useState(false);
   const [isReadingMode, setIsReadingMode] = useState(false);
@@ -721,6 +721,52 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }
   };
 
+  // Încarcă o conversație anterioară
+  const loadConversation = async (loadConversationId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Încarcă toate mesajele conversației
+      const { data, error } = await supabase
+        .from('conversation_history')
+        .select('*')
+        .eq('conversation_id', loadConversationId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        // Convertește din format DB în format Message
+        const loadedMessages: Message[] = data.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+          id: msg.id,
+          conversationId: msg.conversation_id
+        }));
+
+        setMessages(loadedMessages);
+        setConversationId(loadConversationId);
+        setShowHistory(false);
+        
+        toast({
+          title: 'Conversație încărcată',
+          description: `${data.length} mesaje încărcate`
+        });
+
+        scrollToBottom();
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu am putut încărca conversația',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1098,13 +1144,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       {showHistory && (
         <div className="pointer-events-auto w-80 h-full p-4">
           <ConversationHistory 
-            onSelectConversation={(id) => {
-              console.log('Load conversation:', id);
-              toast({
-                title: 'Funcție în dezvoltare',
-                description: 'Încărcarea conversațiilor anterioare va fi disponibilă în curând'
-              });
-            }}
+            onSelectConversation={loadConversation}
             currentConversationId={conversationId}
           />
         </div>
@@ -1128,14 +1168,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               </SheetTrigger>
               <SheetContent side="left" className="w-80 p-0">
                 <ConversationHistory 
-                  onSelectConversation={(id) => {
-                    console.log('Load conversation:', id);
-                    toast({
-                      title: 'Funcție în dezvoltare',
-                      description: 'Încărcarea conversațiilor va fi disponibilă în curând'
-                    });
-                    setShowHistory(false);
-                  }}
+                  onSelectConversation={loadConversation}
                   currentConversationId={conversationId}
                 />
               </SheetContent>
