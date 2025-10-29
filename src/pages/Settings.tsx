@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, User, Bell, Shield, CreditCard } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, CreditCard, Brain } from 'lucide-react';
 import { AccountDeletion } from '@/components/AccountDeletion';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Footer } from '@/components/Footer';
+import { AILearningDashboard } from '@/components/AILearningDashboard';
 
 export const Settings = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile" className="gap-2">
               <User className="h-4 w-4" />
               Profil
@@ -41,6 +42,10 @@ export const Settings = () => {
             <TabsTrigger value="billing" className="gap-2">
               <CreditCard className="h-4 w-4" />
               Abonament
+            </TabsTrigger>
+            <TabsTrigger value="ai-learning" className="gap-2">
+              <Brain className="h-4 w-4" />
+              AI Learning
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Shield className="h-4 w-4" />
@@ -99,6 +104,10 @@ export const Settings = () => {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="ai-learning" className="space-y-6">
+            <AILearningDashboard />
           </TabsContent>
 
           <TabsContent value="security" className="space-y-6">
