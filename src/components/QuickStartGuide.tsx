@@ -25,8 +25,8 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
     description: 'Gestionează clienții și serviciile contabile',
     action: 'Deschide CRM',
     onClick: () => navigate('/yanacrm'),
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-600/10',
+    color: 'text-chart-4',
+    bgColor: 'bg-chart-4/10',
   } : {
     icon: MessageCircle,
     title: 'Chat AI',
@@ -54,8 +54,8 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
       description: 'Compară multiple analize pentru tendințe',
       action: 'Explorează',
       onClick: onOpenDashboard,
-      color: 'text-green-600',
-      bgColor: 'bg-green-600/10',
+      color: 'text-success',
+      bgColor: 'bg-success/10',
     },
     {
       icon: Download,
@@ -63,8 +63,8 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
       description: 'Descarcă rapoarte profesionale instant',
       action: 'Generează',
       onClick: onOpenDashboard,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-600/10',
+      color: 'text-chart-4',
+      bgColor: 'bg-chart-4/10',
     },
     {
       icon: Share2,
@@ -72,8 +72,8 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
       description: 'Trimite analize prin email către echipă',
       action: 'Trimite',
       onClick: onOpenDashboard,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-600/10',
+      color: 'text-accent',
+      bgColor: 'bg-accent/10',
     },
     {
       icon: Zap,
@@ -81,8 +81,8 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
       description: 'Rezultate în 3-5 secunde cu AI',
       action: 'Încearcă',
       onClick: onOpenChat,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-600/10',
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
     },
   ];
 
@@ -102,20 +102,20 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
               className="group p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-accent/5 transition-all animate-fade-in hover-scale"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 h-full">
                 <div className={`p-3 rounded-lg ${feature.bgColor} w-fit`}>
                   <feature.icon className={`h-6 w-6 ${feature.color}`} />
                 </div>
-                <div>
+                <div className="flex-1 flex flex-col">
                   <h3 className="font-semibold text-sm mb-1">{feature.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">
+                  <p className="text-xs text-muted-foreground mb-3 flex-1">
                     {feature.description}
                   </p>
                   <Button
                     onClick={feature.onClick}
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs hover-scale"
+                    className="w-full text-xs hover-scale mt-auto"
                   >
                     {feature.action}
                   </Button>
