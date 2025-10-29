@@ -1151,7 +1151,17 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       )}
       
       {/* Chat principal */}
-      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+        {/* Close - floating, always visible */}
+        <Button
+          variant="destructive"
+          size="icon"
+          onClick={() => setIsOpen(false)}
+          aria-label="Închide chat"
+          className="absolute top-2 right-2 z-50 shadow-md"
+        >
+          <X className="h-5 w-5" />
+        </Button>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b bg-gradient-to-r from-background to-muted/30">
           {/* Grup stânga - Branding + Actions */}
           <div className="flex items-center gap-3">
