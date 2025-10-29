@@ -1532,17 +1532,17 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                           disabled={isLoading || isUploadingFile}
                           variant="outline"
                           size="icon"
-                          className="shrink-0 relative"
+                          className="shrink-0 relative animate-glow-pulse border-2"
                           aria-label="Încarcă fișier"
                         >
-                          <Paperclip className="h-4 w-4" />
-                          {/* Animated arrow indicator */}
-                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce">
-                            <span className="text-[10px] font-medium text-primary whitespace-nowrap bg-primary/10 px-2 py-0.5 rounded-full">
-                              Încarcă balanța aici
+                          <Paperclip className="h-5 w-5" />
+                          {/* Animated arrow indicator cu culori mai vizibile */}
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 animate-bounce">
+                            <span className="text-xs font-bold text-warning whitespace-nowrap bg-warning/30 px-3 py-1 rounded-full border-2 border-warning shadow-lg">
+                              📤 Încarcă balanța aici
                             </span>
                             <svg 
-                              className="w-4 h-4 text-primary animate-pulse" 
+                              className="w-5 h-5 text-warning animate-pulse drop-shadow-lg" 
                               fill="currentColor" 
                               viewBox="0 0 20 20"
                             >
@@ -1553,7 +1553,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                       </TooltipTrigger>
                       <TooltipContent>
                         <div className="space-y-1">
-                          <p className="font-semibold">Încarcă balanță Excel pentru analiză</p>
+                          <p className="font-semibold">📊 Încarcă balanță Excel pentru analiză</p>
                           <p className="text-xs">📋 Format: .xls sau .xlsx</p>
                           <p className="text-xs">📅 Nume recomandat: Balanta_Luna_An.xls</p>
                           <p className="text-xs opacity-80">Exemplu: Balanta_Ianuarie_2025.xls</p>
