@@ -1317,10 +1317,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsOpen(false)}
-                    className="h-9 w-9 border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all"
+                    className="h-9 w-9 bg-muted/50 hover:bg-destructive hover:text-destructive-foreground border border-border/50 hover:border-destructive transition-all"
                     aria-label="Închide chat"
                   >
-                    <X className="h-5 w-5 stroke-[2.5]" />
+                    <X className="h-5 w-5 stroke-[3]" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Închide Chat</TooltipContent>
