@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { 
   Send, 
@@ -12,8 +13,10 @@ import {
   AlertCircle,
   ArrowLeft,
   MessageSquarePlus,
-  MessageSquare
+  MessageSquare,
+  TrendingUp
 } from "lucide-react";
+import { YanaCFODashboard } from "@/components/YanaCFODashboard";
 
 interface Message {
   role: "user" | "assistant";
@@ -28,6 +31,7 @@ export default function StrategicAdvisor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("chat");
   const [conversationId] = useState(() => {
     const stored = localStorage.getItem('yana_strategic_conversation_id');
     if (stored) {
@@ -186,6 +190,39 @@ export default function StrategicAdvisor() {
       isMounted = false;
     };
   }, [user, conversationId]);
+
+  // Generic credit deduction function
+  const deductCredit = async (amount: number): Promise<boolean> => {
+    if (creditRemaining < amount) {
+      toast.error(`Credit insuficient! Necesari ${amount.toFixed(2)} lei.`);
+      return false;
+    }
+
+    const newCredit = Math.max(0, creditRemaining - amount);
+    setCreditRemaining(newCredit);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ trial_credit_remaining: newCredit })
+      .eq("id", user?.id);
+
+    if (error) {
+      console.error('Error updating credit:', error);
+      toast.error('Eroare la deducerea creditelor');
+      return false;
+    }
+
+    if (newCredit <= 2) {
+      toast.warning(`⚠️ Credit scăzut: ${newCredit.toFixed(2)} lei. Cumpără credite!`, {
+        action: {
+          label: "Cumpără",
+          onClick: () => navigate('/my-ai-costs')
+        }
+      });
+    }
+
+    return true;
+  };
 
   const sendMessage = async (textToSend?: string) => {
     const messageText = textToSend || input.trim();
@@ -363,21 +400,23 @@ export default function StrategicAdvisor() {
               <div>
                 <h1 className="text-2xl font-bold">Yana Strategică</h1>
                 <p className="text-sm text-muted-foreground">
-                  Consultant AI Strategic - Teoria Jocului în Business
+                  Consultant AI Strategic & CFO Dashboard
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3">
               {/* Conversation activity indicator */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MessageSquare className="w-3 h-3" />
-                {messages.length > 0 ? (
-                  <span>Conversație activă: {messages.length} mesaje</span>
-                ) : (
-                  <span>Conversație nouă</span>
-                )}
-              </div>
+              {activeTab === "chat" && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MessageSquare className="w-3 h-3" />
+                  {messages.length > 0 ? (
+                    <span>Conversație activă: {messages.length} mesaje</span>
+                  ) : (
+                    <span>Conversație nouă</span>
+                  )}
+                </div>
+              )}
               
               {/* Credit indicator - arată creditul în RON */}
               <div className={`px-4 py-2 rounded-lg border-2 ${
@@ -406,17 +445,27 @@ export default function StrategicAdvisor() {
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={startNewConversation}
-                className="gap-2"
-              >
-                <MessageSquarePlus className="w-4 h-4" />
-                Conversație Nouă
-              </Button>
+              {activeTab === "chat" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startNewConversation}
+                  className="gap-2"
+                >
+                  <MessageSquarePlus className="w-4 h-4" />
+                  Conversație Nouă
+                </Button>
+              )}
             </div>
           </div>
+
+          {/* Tabs Navigation */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="chat">💬 Chat Strategist</TabsTrigger>
+              <TabsTrigger value="cfo">📊 CFO Dashboard</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {/* Credit warning banner */}
           {creditRemaining <= 5 && creditRemaining > 0 && (
@@ -453,96 +502,113 @@ export default function StrategicAdvisor() {
         </div>
       </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="container mx-auto max-w-4xl space-y-4">
-          {/* Welcome message */}
-          {messages.length === 0 && (
-            <div className="text-center p-8">
-              <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
-              <h2 className="text-xl font-semibold mb-2">
-                Bun venit la Yana Strategică!
-              </h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Sunt partenerul tău AI pentru decizii strategice de business bazate pe teoria jocurilor. 
-                Pune-mi o întrebare sau descrie provocarea ta de business.
+      {/* Main Content with Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        {/* Chat Tab */}
+        <TabsContent value="chat" className="flex-1 flex flex-col m-0 overflow-hidden">
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="container mx-auto max-w-4xl space-y-4">
+              {/* Welcome message */}
+              {messages.length === 0 && (
+                <div className="text-center p-8">
+                  <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
+                  <h2 className="text-xl font-semibold mb-2">
+                    Bun venit la Yana Strategică!
+                  </h2>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Sunt partenerul tău AI pentru decizii strategice de business bazate pe teoria jocurilor. 
+                    Pune-mi o întrebare sau descrie provocarea ta de business.
+                  </p>
+                </div>
+              )}
+
+              {/* Messages list */}
+              {messages.map((msg, idx) => (
+                <div
+                  key={`${msg.timestamp.getTime()}-${idx}`}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-lg p-4 ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <p className={`text-xs mt-2 ${msg.role === "user" ? "opacity-70" : "text-muted-foreground"}`}>
+                      {msg.timestamp.toLocaleTimeString("ro-RO", { 
+                        hour: "2-digit", 
+                        minute: "2-digit" 
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted rounded-lg p-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  </div>
+                </div>
+              )}
+
+              {/* Scroll anchor */}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input Area */}
+          <div className="border-t bg-card/50 backdrop-blur p-4">
+            <div className="container mx-auto max-w-4xl">
+              <div className="flex gap-2">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
+                  placeholder="Descrie provocarea ta de business aici..."
+                  className="flex-1 min-h-[60px] resize-none"
+                  disabled={isLoading}
+                />
+                <Button
+                  onClick={() => sendMessage()}
+                  disabled={!input.trim() || isLoading}
+                  size="lg"
+                  className="shrink-0"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Apasă Enter pentru a trimite, Shift+Enter pentru linie nouă
               </p>
             </div>
-          )}
-
-          {/* Messages list */}
-          {messages.map((msg, idx) => (
-            <div
-              key={`${msg.timestamp.getTime()}-${idx}`}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-4 ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-                <p className={`text-xs mt-2 ${msg.role === "user" ? "opacity-70" : "text-muted-foreground"}`}>
-                  {msg.timestamp.toLocaleTimeString("ro-RO", { 
-                    hour: "2-digit", 
-                    minute: "2-digit" 
-                  })}
-                </p>
-              </div>
-            </div>
-          ))}
-
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg p-4">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              </div>
-            </div>
-          )}
-
-          {/* Scroll anchor */}
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="border-t bg-card/50 backdrop-blur p-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder="Descrie provocarea ta de business aici..."
-              className="flex-1 min-h-[60px] resize-none"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || isLoading}
-              size="lg"
-              className="shrink-0"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            Apasă Enter pentru a trimite, Shift+Enter pentru linie nouă
-          </p>
-        </div>
-      </div>
+        </TabsContent>
+
+        {/* CFO Dashboard Tab */}
+        <TabsContent value="cfo" className="flex-1 m-0 overflow-y-auto p-4">
+          <div className="container mx-auto max-w-6xl">
+            <YanaCFODashboard
+              userId={user?.id || ""}
+              creditRemaining={creditRemaining}
+              onCreditDeduct={deductCredit}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
