@@ -740,6 +740,104 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          color_id: string | null
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          end_time: string | null
+          event_category: string | null
+          event_date: string
+          event_type: string
+          google_event_id: string | null
+          id: string
+          is_all_day: boolean | null
+          location: string | null
+          reminder_minutes: number | null
+          start_time: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_category?: string | null
+          event_date: string
+          event_type: string
+          google_event_id?: string | null
+          id?: string
+          is_all_day?: boolean | null
+          location?: string | null
+          reminder_minutes?: number | null
+          start_time?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color_id?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_category?: string | null
+          event_date?: string
+          event_type?: string
+          google_event_id?: string | null
+          id?: string
+          is_all_day?: boolean | null
+          location?: string | null
+          reminder_minutes?: number | null
+          start_time?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_tokens: {
+        Row: {
+          access_token: string
+          created_at: string | null
+          id: string
+          refresh_token: string
+          token_expiry: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string | null
+          id?: string
+          refresh_token: string
+          token_expiry: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string | null
+          id?: string
+          refresh_token?: string
+          token_expiry?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_analytics: {
         Row: {
           avg_conversation_length: number | null
