@@ -872,67 +872,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </Card>
       )}
 
-      {/* 4. QUICK QUESTIONS - AI PREMIUM */}
-      <Card className="border-primary/40">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <CardTitle className="flex items-center gap-2">
-                💬 Întrebări Quick CFO
-                <Badge className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI Premium
-                </Badge>
-              </CardTitle>
-              <CardDescription>Click pentru răspuns instant (0.85 lei/întrebare)</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Button 
-              variant="outline" 
-              onClick={() => askCFOQuestion("Pot angaja 2 oameni cu salariu 5000 lei?")}
-              disabled={creditRemaining < 0.85 || isLoading}
-              className="justify-start"
-            >
-              <UserPlus className="mr-2 h-4 w-4" />
-              Pot angaja 2 oameni?
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => askCFOQuestion("Când ajung la break-even?")}
-              disabled={creditRemaining < 0.85 || isLoading}
-              className="justify-start"
-            >
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Când ajung la break-even?
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => askCFOQuestion("Îmi permit echipament nou de 20.000 lei?")}
-              disabled={creditRemaining < 0.85 || isLoading}
-              className="justify-start"
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Îmi permit 20k investiție?
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => askCFOQuestion("Ce costuri pot reduce urgent?")}
-              disabled={creditRemaining < 0.85 || isLoading}
-              className="justify-start"
-            >
-              <Scissors className="mr-2 h-4 w-4" />
-              Ce costuri reduc?
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* 5. ALERTS - GRATUIT */}
       {alerts.length > 0 && (
         <Card>
