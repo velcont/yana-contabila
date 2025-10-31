@@ -93,13 +93,30 @@ La fel ca la Plan Antreprenor, **Yana Strategică necesită achiziționarea de c
 
 ---
 
-## 💎 Credite AI - OBLIGATORII pentru Yana Strategică
+## 💎 Credite AI - Pentru Funcții AI Premium
 
 ### ⚠️ CLARIFICARE IMPORTANTĂ:
 
-**Yana Strategică NU este inclusă în niciun abonament!**
+**CFO Dashboard și Consilier Strategic Yana au funcții GRATUITE și funcții AI PREMIUM**
 
-Pentru a utiliza Consilierul Strategic Yana (modulul /strategic-advisor), trebuie să achiziționezi credite AI, indiferent dacă ai abonament de 49 RON sau 199 RON.
+#### CFO Dashboard:
+**✅ GRATUIT (din date balanță):**
+- Cash disponibil din balanță
+- Grafic istoric cash-flow (ultimele 6 luni)
+- Alerte simple financiare
+- Indicatori de bază (lichiditate, solvabilitate, runway)
+
+**💎 AI PREMIUM (consumă credite):**
+- Predicții cash-flow 90 zile (0.15 lei)
+- Scenarii What-If interactive (0.25 lei/scenariu)
+- Recomandări strategice AI (0.25 lei)
+- Întrebări rapide CFO (0.85 lei/întrebare)
+
+#### Chat Strategist:
+**🧠 AI STRATEGIC (consumă credite):**
+- Conversații strategice complexe (0.65-0.85 lei/conversație)
+- Context multi-turn și memorie conversațională
+- Recomandări personalizate avansate
 
 ### Pachete Disponibile:
 
@@ -121,9 +138,10 @@ Pentru a utiliza Consilierul Strategic Yana (modulul /strategic-advisor), trebui
 ### Cum funcționează creditele AI:
 
 1. **Primești 10 RON credite** la începutul abonamentului pentru testare
-2. După consumarea celor 10 RON, trebuie să cumperi pachete de credite
-3. Creditele se consumă în funcție de complexitatea conversațiilor cu Yana Strategică
-4. Când rămâi fără credite, nu mai poți accesa Yana Strategică până nu cumperi un nou pachet
+2. **Funcții gratuite CFO Dashboard** nu consumă credite (cash disponibil, grafice istoric, alerte)
+3. **Funcții AI Premium** consumă credite (predicții, scenarii, întrebări CFO)
+4. **Chat Strategist** consumă întotdeauna credite pentru conversații complexe
+5. După consumarea celor 10 RON, trebuie să cumperi pachete de credite pentru a folosi funcțiile AI Premium
 
 ### Control Total asupra Costurilor:
 - ✅ Tu setezi bugetul lunar pentru AI
@@ -164,16 +182,17 @@ Nu ai nevoie de credite AI dacă folosești doar analiza balanței.
 
 ---
 
-### Exemplu 2: Antreprenor cu Yana Strategică
-**Întrebare:** "Vreau și Consilier Strategic. Cât mă costă total?"
+### Exemplu 2: Antreprenor cu AI Premium
+**Întrebare:** "Vreau și funcții AI (predicții, scenarii, chat strategic). Cât mă costă total?"
 
-**Răspuns:** Depinde cât îl folosești:
+**Răspuns:** Depinde cât le folosești:
 - **Abonament:** 49 lei/lună (obligatoriu)
-- **Primele 10 RON:** GRATIS (pentru testare)
-- **Apoi:**
-  - Utilizare ocazională (1-2 conversații/lună): +19 lei/lună = **68 lei/lună TOTAL**
-  - Utilizare regulată (5-10 conversații/lună): +49 lei/lună = **98 lei/lună TOTAL**
-  - Utilizare intensivă (20+ conversații/lună): +129 lei/lună = **178 lei/lună TOTAL**
+- **CFO Dashboard Gratuit:** Cash disponibil, grafice, alerte - ZERO cost extra
+- **Primele 10 RON:** GRATIS (pentru testare AI Premium)
+- **Apoi, pentru AI Premium:**
+  - Utilizare ocazională (1-2 conversații/lună + câteva scenarii): +19 lei/lună = **68 lei/lună TOTAL**
+  - Utilizare regulată (5-10 conversații/lună + scenarii frecvente): +49 lei/lună = **98 lei/lună TOTAL**
+  - Utilizare intensivă (20+ conversații/lună + multe scenarii): +129 lei/lună = **178 lei/lună TOTAL**
 
 ---
 
@@ -249,10 +268,13 @@ Când utilizatorii întreabă despre tarife, folosește aceste template-uri:
 → "Plan Antreprenor: 49 lei/lună pentru analiza balanței (nelimitată). Yana Strategică necesită credite AI separate (19-129 lei/lună, în funcție de utilizare). Primești 10 RON credite pentru testare!"
 
 ### "Ce credite AI?"
-→ "Credite AI sunt OBLIGATORII pentru Yana Strategică (Consilier Strategic AI). NU sunt incluse în abonament. Primești 10 RON pentru testare, apoi trebuie să cumperi pachete: 19 lei (Starter), 49 lei (Professional), 129 lei (Enterprise)."
+→ "Credite AI sunt pentru funcțiile AI PREMIUM: predicții avansate, scenarii What-If, chat strategic. CFO Dashboard are funcții GRATUITE (cash, grafice, alerte) + funcții AI PREMIUM. Primești 10 RON pentru testare, apoi pachete: 19 lei (Starter), 49 lei (Professional), 129 lei (Enterprise)."
 
-### "Include Yana Strategică?"
-→ "NU! Yana Strategică necesită achiziționarea de credite AI separate, indiferent de abonament. Primești 10 RON pentru testare, apoi cumperi pachete de la 19 lei."
+### "Include CFO Dashboard gratuit?"
+→ "DA, parțial! CFO Dashboard afișează GRATUIT: cash disponibil, grafice istorice, alerte simple. Pentru AI PREMIUM (predicții 90 zile, scenarii What-If, întrebări CFO) ai nevoie de credite AI (0.15-0.85 lei/funcție)."
+
+### "Include Chat Strategic?"
+→ "Chat Strategic consumă ÎNTOTDEAUNA credite AI (0.65-0.85 lei/conversație) pentru conversații strategice complexe. Primești 10 RON pentru testare, apoi cumperi pachete de la 19 lei."
 
 ### "Plan Contabil?"
 → "199 lei/lună pentru clienți NELIMITAȚI + CRM complet. Yana Strategică necesită tot credite AI separate (nu e inclusă)."

@@ -23,8 +23,9 @@ import {
   type Alert as FinancialAlert
 } from '@/services/financialAnalysis';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2 } from 'lucide-react';
+import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2, FileBarChart, Sparkles, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface YanaCFODashboardProps {
   userId: string;
@@ -54,10 +55,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   }, [userId]);
 
   const handleRefreshDashboard = async () => {
-    const cost = 0.25;
-    const success = await onCreditDeduct(cost);
-    if (!success) return;
-    
     setIsLoading(true);
     
     try {
@@ -65,9 +62,9 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
       
       if (!data) {
         toast({
-          title: "Nu există date ANAF",
-          description: "Încarcă o balanță pentru a vedea dashboard-ul CFO.",
-          variant: "destructive"
+          title: "📊 Nicio balanță încărcată",
+          description: "Mergi la tab-ul 'Chat Strategist' și încarcă o balanță Excel pentru a vedea CFO Dashboard.",
+          variant: "default"
         });
         setIsLoading(false);
         return;
@@ -87,7 +84,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
       
       toast({
         title: "✅ Dashboard actualizat",
-        description: `Cost: ${cost.toFixed(2)} lei. Credit rămas: ${(creditRemaining - cost).toFixed(2)} lei`
+        description: "Date financiare afișate gratuit din analiza balanței tale."
       });
     } catch (error) {
       console.error('Error refreshing dashboard:', error);
@@ -102,7 +99,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   };
 
   const handleSimulate = async () => {
-    const cost = 0.44;
+    const cost = 0.25;
     const success = await onCreditDeduct(cost);
     if (!success) return;
     
@@ -180,10 +177,34 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
   return (
     <div className="space-y-6">
+      {/* Badge info header */}
+      {financialData && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Coins className="h-4 w-4" />
+          <AlertTitle className="text-sm font-semibold flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30">
+              ✅ GRATUIT
+            </Badge>
+            Dashboard de Bază
+          </AlertTitle>
+          <AlertDescription className="text-xs mt-1">
+            <strong>Gratuit:</strong> Cash disponibil, grafic istoric, alerte simple, indicatori de bază
+            <br />
+            <strong className="text-primary">💎 AI Premium:</strong> Predicții 90 zile (0.15 lei), Scenarii What-If (0.25 lei), Întrebări CFO (0.85 lei)
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* 1. HEADER: Runway + Refresh */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div className="flex-1">
+          {financialData && (
+            <Badge variant="outline" className="absolute top-4 left-4 text-xs">
+              📊 Date din: Analiza Balanței
+            </Badge>
+          )}
+          
+          <div className="flex-1 mt-6">
             <CardTitle className="text-2xl">
               {runway ? (
                 <>
@@ -204,8 +225,9 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
           
           <Button 
             onClick={handleRefreshDashboard} 
-            disabled={isLoading || creditRemaining < 0.25}
+            disabled={isLoading}
             size="sm"
+            variant="outline"
           >
             {isLoading ? (
               <>
@@ -213,7 +235,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
                 Se recalculează...
               </>
             ) : (
-              <>🔄 Refresh (0.25 lei)</>
+              <>🔄 Refresh</>
             )}
           </Button>
         </CardHeader>
@@ -231,16 +253,25 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         )}
       </Card>
 
-      {/* 2. GRAFIC: Cash Flow Forecast */}
+      {/* 2. GRAFIC: Cash Flow Forecast - GRATUIT historic, PREMIUM predicții */}
       {cashFlowForecast && (
         <Card>
           <CardHeader>
-            <CardTitle>📊 Cash Flow Forecast (90 zile)</CardTitle>
-            <CardDescription>
-              Trend: {cashFlowForecast.trendLine === 'positive' ? '📈 Pozitiv' : 
-                      cashFlowForecast.trendLine === 'negative' ? '📉 Negativ' : 
-                      '➡️ Stabil'}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <CardTitle className="flex items-center gap-2">
+                  📊 Cash Flow Forecast
+                  <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 text-xs">
+                    ✅ GRATUIT
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Trend: {cashFlowForecast.trendLine === 'positive' ? '📈 Pozitiv' : 
+                          cashFlowForecast.trendLine === 'negative' ? '📉 Negativ' : 
+                          '➡️ Stabil'}
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -276,12 +307,22 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </Card>
       )}
 
-      {/* 3. SIMULATOR: What-If Interactive */}
+      {/* 3. SIMULATOR: What-If Interactive - PREMIUM */}
       {financialData && (
-        <Card>
+        <Card className="border-primary/40">
           <CardHeader>
-            <CardTitle>🎲 What-If Simulator</CardTitle>
-            <CardDescription>Testează scenarii și vezi impactul LIVE (0.44 lei/simulare)</CardDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <CardTitle className="flex items-center gap-2">
+                  🎲 What-If Simulator
+                  <Badge className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    AI Premium
+                  </Badge>
+                </CardTitle>
+                <CardDescription>Testează scenarii și vezi impactul LIVE (0.25 lei/simulare)</CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
@@ -332,7 +373,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
             
             <Button 
               onClick={handleSimulate} 
-              disabled={creditRemaining < 0.44 || isLoading}
+              disabled={creditRemaining < 0.25 || isLoading}
               className="w-full"
             >
               {isLoading ? (
@@ -341,7 +382,10 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
                   Se simulează...
                 </>
               ) : (
-                <>▶️ Simulează Scenariul (0.44 lei)</>
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Simulează Scenariul (0.25 lei)
+                </>
               )}
             </Button>
             
@@ -373,11 +417,21 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </Card>
       )}
 
-      {/* 4. QUICK QUESTIONS */}
-      <Card>
+      {/* 4. QUICK QUESTIONS - AI PREMIUM */}
+      <Card className="border-primary/40">
         <CardHeader>
-          <CardTitle>💬 Întrebări Quick CFO</CardTitle>
-          <CardDescription>Click pentru răspuns instant (0.85 lei/întrebare)</CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="flex items-center gap-2">
+                💬 Întrebări Quick CFO
+                <Badge className="bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  AI Premium
+                </Badge>
+              </CardTitle>
+              <CardDescription>Click pentru răspuns instant (0.85 lei/întrebare)</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -424,11 +478,16 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </CardContent>
       </Card>
 
-      {/* 5. ALERTS */}
+      {/* 5. ALERTS - GRATUIT */}
       {alerts.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>🔔 Alerte Financiare ({alerts.length})</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              🔔 Alerte Financiare ({alerts.length})
+              <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 text-xs">
+                ✅ GRATUIT
+              </Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {alerts.map((alert, idx) => (
@@ -456,14 +515,49 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
       {/* 6. EMPTY STATE */}
       {!financialData && !isLoading && (
-        <Card>
-          <CardContent className="pt-6 text-center">
+        <Card className="border-2 border-dashed">
+          <CardContent className="pt-8 pb-8 text-center max-w-md mx-auto">
+            <div className="mb-4">
+              <FileBarChart className="w-16 h-16 mx-auto text-muted-foreground/50" />
+            </div>
+            <h3 className="text-xl font-semibold mb-3">
+              CFO Dashboard Gol
+            </h3>
             <p className="text-muted-foreground mb-4">
-              Nu există date ANAF disponibile pentru analiză CFO.
+              CFO Dashboard afișează date financiare din <strong>analiza balanței tale</strong>.
             </p>
-            <Button onClick={() => window.location.href = '/dashboard'}>
-              📊 Încarcă o balanță ANAF
-            </Button>
+            <Alert className="text-left mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Cum funcționează?</AlertTitle>
+              <AlertDescription>
+                <ol className="list-decimal ml-4 mt-2 space-y-1 text-sm">
+                  <li>Mergi la tab-ul <strong>"💬 Chat Strategist"</strong></li>
+                  <li>Încarcă balanța ta (.xls/.xlsx)</li>
+                  <li>Revino aici pentru dashboard-ul CFO</li>
+                </ol>
+              </AlertDescription>
+            </Alert>
+            <div className="flex flex-col gap-2">
+              <Button 
+                size="lg" 
+                onClick={() => {
+                  const tabsList = document.querySelector('[role="tablist"]');
+                  const chatTab = tabsList?.querySelector('[value="chat"]');
+                  if (chatTab instanceof HTMLElement) {
+                    chatTab.click();
+                  }
+                }}
+                className="w-full"
+              >
+                💬 Mergi la Chat pentru Upload
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.href = '/app'}
+              >
+                ↩️ Înapoi la Dashboard Principal
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
