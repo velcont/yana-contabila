@@ -1151,7 +1151,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       )}
       
       {/* Chat principal */}
-      <Card className={`pointer-events-auto ${isMaximized ? 'flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+      <Card className={`pointer-events-auto ${isMaximized ? 'w-full flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
         {/* Close - floating, always visible */}
         <Button
           variant="destructive"
