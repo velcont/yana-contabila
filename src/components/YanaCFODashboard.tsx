@@ -55,6 +55,8 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
   // Load initial data
   useEffect(() => {
+    console.log('🚨 CFO Dashboard - Component mounted/updated');
+    console.log('🔍 Chat interface should be visible at id="cfo-chat"');
     handleRefreshDashboard();
   }, [userId]);
 
