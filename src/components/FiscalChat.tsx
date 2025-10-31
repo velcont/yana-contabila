@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Scale, Send, Loader2, ExternalLink, FileText, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -127,10 +128,15 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Scale className="h-6 w-6 text-[#00B37E]" />
-            Yana Fiscală – Asistent AI Contabil (CRM)
+            🏛️ Yana Legislație - Expert Fiscal & Contabil
           </DialogTitle>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="secondary" className="text-xs bg-[#00B37E]/10 text-[#00B37E] border-[#00B37E]/30">
+              🔍 Caută în legislație
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground mt-2">
-            Expertiza în legislație fiscală și contabilă din România, bazată pe surse oficiale actualizate
+            Răspunsuri din surse oficiale ANAF, CECCAR și legislație
           </p>
         </DialogHeader>
 

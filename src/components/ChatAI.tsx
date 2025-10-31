@@ -1107,7 +1107,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     return (
       <div className="fixed bottom-4 right-4 flex items-center gap-3 animate-in fade-in slide-in-from-right-5 duration-500">
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg font-medium text-sm">
-          Întreabă Yana 💬
+          💬 Chat Financiar Personal
         </div>
         <TooltipProvider>
           <Tooltip>
@@ -1130,7 +1130,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               </Button>
             </TooltipTrigger>
             <TooltipContent side="left">
-              <p>Deschide Chat AI {insights.length > 0 && `(${insights.length} alerte)`}</p>
+              <p>Analizează-ți balanța și primește sfaturi personalizate {insights.length > 0 && `(${insights.length} alerte)`}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -1215,35 +1215,59 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 Alege funcția:
               </span>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant={chatMode === 'balance' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setChatMode('balance')}
-                  className={`h-8 px-4 text-xs font-semibold transition-all ${
-                    chatMode === 'balance' 
-                      ? 'bg-primary text-primary-foreground shadow-md scale-105' 
-                      : 'hover:bg-primary/10'
-                  }`}
-                >
-                  <FileBarChart className="h-4 w-4 mr-2" />
-                  📊 Analiză Balanță
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={chatMode === 'balance' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatMode('balance')}
+                        className={`h-8 px-4 text-xs font-semibold transition-all ${
+                          chatMode === 'balance' 
+                            ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                            : 'hover:bg-primary/10'
+                        }`}
+                      >
+                        <FileBarChart className="h-4 w-4 mr-2" />
+                        📊 Analiză Balanță
+                        <Badge variant="secondary" className="ml-2 text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
+                          💡 Analiză personală
+                        </Badge>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Analizează-ți balanța și primește sfaturi personalizate</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 
                 <div className="h-6 w-px bg-border" /> {/* Separator vizual */}
                 
-                <Button
-                  variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setChatMode('fiscal')}
-                  className={`h-8 px-4 text-xs font-semibold transition-all ${
-                    chatMode === 'fiscal' 
-                      ? 'bg-primary text-primary-foreground shadow-md scale-105' 
-                      : 'hover:bg-primary/10'
-                  }`}
-                >
-                  <Scale className="h-4 w-4 mr-2" />
-                  ⚖️ Consultanță Fiscală
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatMode('fiscal')}
+                        className={`h-8 px-4 text-xs font-semibold transition-all ${
+                          chatMode === 'fiscal' 
+                            ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                            : 'hover:bg-primary/10'
+                        }`}
+                      >
+                        <Scale className="h-4 w-4 mr-2" />
+                        🏛️ Legislație Fiscală
+                        <Badge variant="secondary" className="ml-2 text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
+                          🔍 Caută în legislație
+                        </Badge>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Caută informații oficiale în legislația fiscală română</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>
