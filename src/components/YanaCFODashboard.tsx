@@ -252,21 +252,32 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
             <CardDescription>{runway?.message}</CardDescription>
           </div>
           
-          <Button 
-            onClick={handleRefreshDashboard} 
-            disabled={isLoading}
-            size="sm"
-            variant="outline"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Se recalculează...
-              </>
-            ) : (
-              <>🔄 Refresh</>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              💬 Sari la Chat
+            </Button>
+            
+            <Button 
+              onClick={handleRefreshDashboard} 
+              disabled={isLoading}
+              size="sm"
+              variant="outline"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se recalculează...
+                </>
+              ) : (
+                <>🔄 Refresh</>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         
         {runway && (
@@ -281,6 +292,19 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
           </CardContent>
         )}
       </Card>
+
+      {/* Mini Loading Banner - Feedback instant */}
+      {loading && (
+        <Alert className="border-blue-500/30 bg-blue-500/10">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertTitle className="text-sm font-semibold">
+            🔍 Se încarcă datele CFO...
+          </AlertTitle>
+          <AlertDescription className="text-xs">
+            Analizăm balanțele tale pentru a genera dashboard-ul complet
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Loading State - PRIORITATE 1 */}
       {loading && !financialData && (
@@ -376,7 +400,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
       )}
 
       {/* CHAT INTERFACE CFO - SECȚIUNEA PRINCIPALĂ */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 border border-slate-700">
+      <div id="cfo-chat" className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 border border-slate-700 scroll-mt-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
