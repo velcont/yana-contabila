@@ -282,6 +282,45 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         )}
       </Card>
 
+      {/* Loading State - PRIORITATE 1 */}
+      {loading && !financialData && (
+        <div className="flex-1 flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h3 className="text-xl font-semibold text-white mb-2">🔍 Se încarcă datele financiare...</h3>
+            <p className="text-sm text-gray-400 mb-4">Analizăm balanțele tale pentru a genera dashboard-ul CFO</p>
+            <div className="space-y-2 text-left max-w-md mx-auto">
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Citire balanțe din baza de date...
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                Calcul indicatori financiari...
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                Generare predicții și alerte...
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-6">⏱️ Durează aproximativ 3-5 secunde</p>
+          </div>
+        </div>
+      )}
+
+      {/* Skeleton Loading pentru tranziție smoothă */}
+      {loading && financialData && (
+        <div className="space-y-4 animate-pulse">
+          <div className="grid grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-gray-800 rounded-lg h-24"></div>
+            ))}
+          </div>
+          <div className="bg-gray-800 rounded-xl h-64"></div>
+          <div className="bg-gray-800 rounded-xl h-96"></div>
+        </div>
+      )}
+
       {/* SNAPSHOT FINANCIAR RAPID */}
       {financialData && (
         <Card className="border-primary/30">
