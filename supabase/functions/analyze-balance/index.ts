@@ -653,46 +653,66 @@ serve(async (req) => {
             const possibleTotalCredit = lastTwo[1]?.value || 0;
             
             // Mapare conturi cunoscute (clasa 1-5: folosim Sold Final)
-            if (contCode === '4111' && possibleSFDebit > 0) {
-              soldClienti = possibleSFDebit;
-              console.log(`  ✅ [FALLBACK] CLIENTI (4111): ${soldClienti}`);
+            // ✅ ÎMBUNĂTĂȚIRE: Încearcă TOATE variantele de poziții pentru solduri finale
+            if (contCode === '4111') {
+              // Clienti - sold final debitor (ultimele 2 coloane, ia partea debit)
+              const candidati = [possibleSFDebit, possibleSFCredit, ...allNumbers.map(n => n.value)];
+              const maxClienti = Math.max(...candidati.filter(v => v > 0));
+              if (maxClienti > 0) {
+                soldClienti = maxClienti;
+                console.log(`  ✅ [FALLBACK-IMPROVED] CLIENTI (4111): ${soldClienti}`);
+              }
             }
-            if (contCode === '401' && possibleSFCredit > 0) {
-              soldFurnizori = possibleSFCredit;
-              console.log(`  ✅ [FALLBACK] FURNIZORI (401): ${soldFurnizori}`);
+            if (contCode === '401') {
+              // Furnizori - sold final creditor (ultimele 2 coloane, ia partea credit)
+              const candidati = [possibleSFCredit, possibleSFDebit, ...allNumbers.map(n => n.value)];
+              const maxFurnizori = Math.max(...candidati.filter(v => v > 0));
+              if (maxFurnizori > 0) {
+                soldFurnizori = maxFurnizori;
+                console.log(`  ✅ [FALLBACK-IMPROVED] FURNIZORI (401): ${soldFurnizori}`);
+              }
             }
-            if ((contCode === '5121' || contCode === '5124' || contCode === '5125') && possibleSFDebit > 0) {
-              soldBanca += possibleSFDebit;
-              console.log(`  ✅ [FALLBACK] BANCA (${contCode}): ${possibleSFDebit} (Total bănci: ${soldBanca})`);
+            if (contCode === '5121' || contCode === '5124' || contCode === '5125') {
+              // Banca - sold final debitor
+              const candidati = [possibleSFDebit, possibleSFCredit, ...allNumbers.map(n => n.value)];
+              const maxBanca = Math.max(...candidati.filter(v => v > 0));
+              if (maxBanca > 0) {
+                soldBanca += maxBanca;
+                console.log(`  ✅ [FALLBACK-IMPROVED] BANCA (${contCode}): ${maxBanca} (Total: ${soldBanca})`);
+              }
             }
-            if (contCode === '5311' && possibleSFDebit > 0) {
-              soldCasa = possibleSFDebit;
-              console.log(`  ✅ [FALLBACK] CASA (5311): ${soldCasa}`);
+            if (contCode === '5311') {
+              // Casa - sold final debitor
+              const candidati = [possibleSFDebit, possibleSFCredit, ...allNumbers.map(n => n.value)];
+              const maxCasa = Math.max(...candidati.filter(v => v > 0));
+              if (maxCasa > 0) {
+                soldCasa = maxCasa;
+                console.log(`  ✅ [FALLBACK-IMPROVED] CASA (5311): ${soldCasa}`);
+              }
             }
             
-            // Venituri (clasa 7): folosim Total Credit (ultima valoare credit)
+            // Venituri (clasa 7): ia valoarea maximă din rând (Total Credit)
             if (contCode.startsWith('7') && contCode !== '709') {
-              // Ia valoarea cea mai mare din rând (probabil e Total Credit)
-              const maxVal = Math.max(...allNumbers.map(n => n.value));
+              const maxVal = Math.max(...allNumbers.map(n => n.value), 0);
               if (maxVal > 0) {
                 totalVenituri += maxVal;
-                console.log(`  ✅ [FALLBACK] VENIT cont ${contCode}: +${maxVal} → Total venituri: ${totalVenituri}`);
+                console.log(`  ✅ [FALLBACK-IMPROVED] VENIT ${contCode}: +${maxVal} → Total: ${totalVenituri}`);
               }
             }
             if (contCode === '709') {
-              const maxVal = Math.max(...allNumbers.map(n => n.value));
+              const maxVal = Math.max(...allNumbers.map(n => n.value), 0);
               if (maxVal > 0) {
                 reduceriComerciale = maxVal;
-                console.log(`  ✅ [FALLBACK] REDUCERI (709): ${reduceriComerciale}`);
+                console.log(`  ✅ [FALLBACK-IMPROVED] REDUCERI (709): ${reduceriComerciale}`);
               }
             }
             
-            // Cheltuieli (clasa 6): folosim Total Debit (ultima valoare debit)
+            // Cheltuieli (clasa 6): ia valoarea maximă din rând (Total Debit)
             if (contCode.startsWith('6')) {
-              const maxVal = Math.max(...allNumbers.map(n => n.value));
+              const maxVal = Math.max(...allNumbers.map(n => n.value), 0);
               if (maxVal > 0) {
                 totalCheltuieli += maxVal;
-                console.log(`  ✅ [FALLBACK] CHELTUIALĂ cont ${contCode}: +${maxVal} → Total cheltuieli: ${totalCheltuieli}`);
+                console.log(`  ✅ [FALLBACK-IMPROVED] CHELTUIALĂ ${contCode}: +${maxVal} → Total: ${totalCheltuieli}`);
               }
             }
           }
