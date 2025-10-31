@@ -33,19 +33,30 @@ serve(async (req) => {
     // Auth verification
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('❌ No Authorization header');
       throw new Error('Nu ești autentificat');
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing Supabase credentials');
+      throw new Error('Configurație Supabase lipsă');
+    }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Extract JWT token and verify
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
+    
     if (userError || !user) {
+      console.error('❌ Auth error:', userError);
       throw new Error('Autentificare invalidă');
     }
+    
+    console.log('✅ User authenticated:', user.id);
 
     // Parse request
     const { question, financialData, conversationId }: CFORequest = await req.json();
@@ -86,39 +97,46 @@ REGULI RĂSPUNS:
 
 Fii DIRECT, NUMERIC, ACȚIONABIL. Nu face introduceri lungi! Răspunde în limba română.`;
 
-    // Call OpenAI API (Lovable AI)
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY lipsește');
+    // Call Lovable AI Gateway
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY lipsește');
     }
 
-    console.log('📤 Trimit cerere la OpenAI pentru CFO advice...');
+    console.log('📤 Trimit cerere la Lovable AI pentru CFO advice...');
     
-    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: question }
         ],
-        temperature: 0.3,
         max_tokens: 1500
       }),
     });
 
     if (!aiResponse.ok) {
-      const errorData = await aiResponse.json();
-      console.error('❌ OpenAI API Error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown'}`);
+      const errorText = await aiResponse.text();
+      console.error('❌ Lovable AI Error:', aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
+        throw new Error('Limită de rate depășită. Te rog încearcă din nou în câteva momente.');
+      }
+      if (aiResponse.status === 402) {
+        throw new Error('Fonduri insuficiente în Lovable AI. Te rog adaugă credite în workspace.');
+      }
+      
+      throw new Error(`Lovable AI error: ${errorText}`);
     }
 
     const aiData = await aiResponse.json();
-    console.log('✅ Răspuns primit de la OpenAI');
+    console.log('✅ Răspuns primit de la Lovable AI');
 
     const answer = aiData.choices[0].message.content;
     const tokensUsed = aiData.usage.total_tokens;
@@ -144,7 +162,7 @@ Fii DIRECT, NUMERIC, ACȚIONABIL. Nu face introduceri lungi! Răspunde în limba
         cost: 0.85,
         metadata: {
           tokens_used: tokensUsed,
-          model: 'gpt-4o-mini',
+          model: 'google/gemini-2.5-flash',
           runway_months: runwayMonths === Infinity ? null : runwayMonths
         }
       }),
