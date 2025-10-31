@@ -257,6 +257,111 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         )}
       </Card>
 
+      {/* SNAPSHOT FINANCIAR RAPID */}
+      {financialData && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Snapshot Financiar Rapid
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Cash Total */}
+              <div className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white">
+                <div className="text-xs opacity-80 mb-1">💰 Cash Total</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(financialData.soldBanca + financialData.soldCasa)}
+                </div>
+              </div>
+
+              {/* Profit/Loss */}
+              <div className={cn(
+                "p-4 rounded-xl text-white",
+                financialData.profit >= 0
+                  ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                  : "bg-gradient-to-br from-red-500 to-rose-600"
+              )}>
+                <div className="text-xs opacity-80 mb-1">
+                  {financialData.profit >= 0 ? '✅ Profit' : '🔴 Pierdere'}
+                </div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(Math.abs(financialData.profit))}
+                </div>
+              </div>
+
+              {/* Runway */}
+              <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl text-white">
+                <div className="text-xs opacity-80 mb-1">⏱️ Runway</div>
+                <div className="text-2xl font-bold">
+                  {runway?.months === Infinity ? '∞' : runway?.months.toFixed(1)} luni
+                </div>
+              </div>
+
+              {/* Alerte */}
+              <div className="p-4 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl text-white">
+                <div className="text-xs opacity-80 mb-1">🔔 Alerte</div>
+                <div className="text-2xl font-bold">
+                  {alerts.length}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* QUICK ACTIONS CFO */}
+      {financialData && (
+        <Card className="border-primary/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Întrebări CFO Rapide
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
+                💎 0.85 lei fiecare
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto py-4 px-6 flex flex-col items-start gap-1 hover:border-primary hover:bg-primary/5"
+                onClick={() => askCFOQuestion("Pot angaja 2 oameni noi? Ce impact va avea asupra cash flow-ului?")}
+                disabled={isLoading}
+              >
+                <div className="text-2xl mb-1">👥</div>
+                <div className="font-semibold text-sm">Pot angaja 2 oameni?</div>
+                <div className="text-xs text-muted-foreground">Analiză impact cash flow</div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto py-4 px-6 flex flex-col items-start gap-1 hover:border-primary hover:bg-primary/5"
+                onClick={() => askCFOQuestion("Ce strategie de cash management îmi recomanzi pentru următoarele 3 luni?")}
+                disabled={isLoading}
+              >
+                <div className="text-2xl mb-1">📊</div>
+                <div className="font-semibold text-sm">Strategie Cash?</div>
+                <div className="text-xs text-muted-foreground">Recomandări 3 luni</div>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="h-auto py-4 px-6 flex flex-col items-start gap-1 hover:border-primary hover:bg-primary/5"
+                onClick={() => askCFOQuestion("Care sunt cele mai mari riscuri financiare și cum le pot preveni?")}
+                disabled={isLoading}
+              >
+                <div className="text-2xl mb-1">⚠️</div>
+                <div className="font-semibold text-sm">Riscuri Financiare?</div>
+                <div className="text-xs text-muted-foreground">Identificare & prevenire</div>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 2. CARD: Date Sursă Balanță - Pentru Verificare */}
       {financialData && (
         <Card className="border-primary/20">
