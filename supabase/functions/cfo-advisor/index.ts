@@ -37,13 +37,20 @@ serve(async (req) => {
       throw new Error('Nu ești autentificat');
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase env vars');
+      throw new Error('Configurație lipsă');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
     if (userError || !user) {
       console.error('❌ Auth error:', userError?.message);
       throw new Error('Autentificare invalidă');
