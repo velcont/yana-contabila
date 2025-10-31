@@ -1295,11 +1295,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
             {/* Mode Switcher - Tabs cu separare vizuală îmbunătățită */}
             {!isAccountantModule && (
-              <div className="ml-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20">
-                <span className="text-[10px] font-semibold text-muted-foreground px-2 hidden sm:block">
+              <div className="ml-4 flex flex-wrap items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20 max-w-full overflow-hidden">
+                <span className="text-[10px] font-semibold text-muted-foreground px-2 whitespace-nowrap hidden sm:block">
                   Alege funcția:
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 flex-1">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1307,15 +1307,15 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                           variant={chatMode === 'balance' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setChatMode('balance')}
-                          className={`h-8 px-4 text-xs font-semibold transition-all ${
+                          className={`h-8 px-3 text-xs font-semibold transition-all flex-shrink-0 ${
                             chatMode === 'balance' 
                               ? 'bg-primary text-primary-foreground shadow-md scale-105' 
                               : 'hover:bg-primary/10'
                           }`}
                         >
-                          <FileBarChart className="h-4 w-4 mr-2" />
-                          📊 Analiză Balanță
-                          <Badge variant="secondary" className="ml-2 text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
+                          <FileBarChart className="h-4 w-4 mr-1" />
+                          <span className="whitespace-nowrap">📊 Analiză Balanță</span>
+                          <Badge variant="secondary" className="ml-1 text-[9px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-600 border-blue-500/30 hidden sm:inline-flex">
                             💡 Analiză personală
                           </Badge>
                         </Button>
@@ -1326,7 +1326,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     </Tooltip>
                   </TooltipProvider>
                   
-                  <div className="h-6 w-px bg-border" /> {/* Separator vizual */}
+                  <div className="h-6 w-px bg-border flex-shrink-0" /> {/* Separator vizual */}
                   
                   <TooltipProvider>
                     <Tooltip>
@@ -1335,15 +1335,15 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                           variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
                           size="sm"
                           onClick={() => setChatMode('fiscal')}
-                          className={`h-8 px-4 text-xs font-semibold transition-all ${
+                          className={`h-8 px-3 text-xs font-semibold transition-all flex-shrink-0 ${
                             chatMode === 'fiscal' 
                               ? 'bg-primary text-primary-foreground shadow-md scale-105' 
                               : 'hover:bg-primary/10'
                           }`}
                         >
-                          <Scale className="h-4 w-4 mr-2" />
-                          🏛️ Legislație Fiscală
-                          <Badge variant="secondary" className="ml-2 text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
+                          <Scale className="h-4 w-4 mr-1" />
+                          <span className="whitespace-nowrap">🏛️ Legislație Fiscală</span>
+                          <Badge variant="secondary" className="ml-1 text-[9px] px-1.5 py-0 h-4 bg-green-500/10 text-green-600 border-green-500/30 hidden sm:inline-flex">
                             🔍 Caută în legislație
                           </Badge>
                         </Button>
