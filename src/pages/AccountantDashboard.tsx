@@ -81,15 +81,17 @@ const AccountantDashboard = () => {
     let mounted = true;
     
     const init = async () => {
-      console.log('AccountantDashboard - Verificare acces');
+      console.log('🔍 CRM - Mounting, checking access...');
       
       // Wait for subscription and admin data to load
       if (subscriptionLoading || adminLoading) {
+        console.log('⏳ CRM - Waiting for auth data...', { subscriptionLoading, adminLoading });
         return;
       }
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('❌ CRM - No user, redirecting to auth');
         navigate('/auth');
         return;
       }
@@ -114,6 +116,7 @@ const AccountantDashboard = () => {
       }
       
       console.log('✅ Acces permis la YanaCRM:', isAdmin ? 'Admin' : 'Contabil');
+      console.log('🔍 CRM - Fetching clients...');
       if (mounted) {
         fetchClients();
       }
@@ -124,14 +127,18 @@ const AccountantDashboard = () => {
     return () => {
       mounted = false;
     };
-  }, [subscriptionLoading, navigate, toast]);
+  }, [subscriptionLoading, adminLoading, isAdmin, navigate, toast]);
 
   const fetchClients = async () => {
     try {
+      console.log('🔍 CRM - fetchClients started...');
       setLoading(true);
       
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.log('❌ CRM - No user in fetchClients');
+        return;
+      }
 
       // Fetch companies managed by this accountant with latest analysis
       const { data, error } = await supabase
@@ -140,6 +147,8 @@ const AccountantDashboard = () => {
         .eq('managed_by_accountant_id', user.id);
 
       if (error) throw error;
+
+      console.log('✅ CRM - Fetched companies:', data?.length || 0);
 
       // For each company, get the latest analysis
       const companiesWithAnalysis = await Promise.all(
@@ -159,9 +168,10 @@ const AccountantDashboard = () => {
         })
       );
       
+      console.log('✅ CRM - Clients with analysis:', companiesWithAnalysis.length);
       setClients(companiesWithAnalysis);
     } catch (error: any) {
-      console.error('Error fetching clients:', error);
+      console.error('❌ CRM - Error fetching clients:', error);
       toast({
         title: 'Eroare',
         description: 'Nu s-au putut încărca clienții',
@@ -716,8 +726,14 @@ const AccountantDashboard = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/app?company=${client.id}`)}
-                            title="Vezi analize"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              console.log('👁️ View client clicked:', client.id, client.company_name);
+                              console.log('👁️ Current route:', window.location.pathname);
+                              setSelectedClient(client);
+                              setFiscalParamsDialogOpen(true);
+                            }}
+                            title="Vezi detalii client"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
