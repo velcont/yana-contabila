@@ -37,22 +37,15 @@ serve(async (req) => {
       throw new Error('Nu ești autentificat');
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('❌ Missing Supabase credentials');
-      throw new Error('Configurație Supabase lipsă');
-    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Extract JWT token and verify
-    const jwt = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
-    
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      console.error('❌ Auth error:', userError);
+      console.error('❌ Auth error:', userError?.message);
       throw new Error('Autentificare invalidă');
     }
     
@@ -143,15 +136,19 @@ Fii DIRECT, NUMERIC, ACȚIONABIL. Nu face introduceri lungi! Răspunde în limba
 
     // Save conversation (optional, for history)
     if (conversationId) {
-      await supabase.from('ai_conversations').insert({
-        user_id: user.id,
-        company_id: null,
-        question,
-        answer,
-        context: financialData,
-        was_helpful: null,
-        conversation_id: conversationId
-      }).catch(err => console.error('Error saving conversation:', err));
+      try {
+        await supabase.from('ai_conversations').insert({
+          user_id: user.id,
+          company_id: null,
+          question,
+          answer,
+          context: financialData,
+          was_helpful: null,
+          conversation_id: conversationId
+        });
+      } catch (convError) {
+        console.error('Error saving conversation:', convError);
+      }
     }
 
     // Return response
