@@ -308,100 +308,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </Alert>
       )}
 
-      {/* Loading State - PRIORITATE 1 */}
-      {loading && !financialData && (
-        <div className="flex-1 flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <h3 className="text-xl font-semibold text-white mb-2">🔍 Se încarcă datele financiare...</h3>
-            <p className="text-sm text-gray-400 mb-4">Analizăm balanțele tale pentru a genera dashboard-ul CFO</p>
-            <div className="space-y-2 text-left max-w-md mx-auto">
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                Citire balanțe din baza de date...
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                Calcul indicatori financiari...
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                Generare predicții și alerte...
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-6">⏱️ Durează aproximativ 3-5 secunde</p>
-          </div>
-        </div>
-      )}
-
-      {/* Skeleton Loading pentru tranziție smoothă */}
-      {loading && financialData && (
-        <div className="space-y-4 animate-pulse">
-          <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="bg-gray-800 rounded-lg h-24"></div>
-            ))}
-          </div>
-          <div className="bg-gray-800 rounded-xl h-64"></div>
-          <div className="bg-gray-800 rounded-xl h-96"></div>
-        </div>
-      )}
-
-      {/* SNAPSHOT FINANCIAR RAPID */}
-      {financialData && (
-        <Card className="border-primary/30">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Snapshot Financiar Rapid
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* Cash Total */}
-              <div className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white">
-                <div className="text-xs opacity-80 mb-1">💰 Cash Total</div>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(financialData.soldBanca + financialData.soldCasa)}
-                </div>
-              </div>
-
-              {/* Profit/Loss */}
-              <div className={cn(
-                "p-4 rounded-xl text-white",
-                financialData.profit >= 0
-                  ? "bg-gradient-to-br from-green-500 to-emerald-600"
-                  : "bg-gradient-to-br from-red-500 to-rose-600"
-              )}>
-                <div className="text-xs opacity-80 mb-1">
-                  {financialData.profit >= 0 ? '✅ Profit' : '🔴 Pierdere'}
-                </div>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(Math.abs(financialData.profit))}
-                </div>
-              </div>
-
-              {/* Runway */}
-              <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl text-white">
-                <div className="text-xs opacity-80 mb-1">⏱️ Runway</div>
-                <div className="text-2xl font-bold">
-                  {runway?.months === Infinity ? '∞' : runway?.months.toFixed(1)} luni
-                </div>
-              </div>
-
-              {/* Alerte */}
-              <div className="p-4 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl text-white">
-                <div className="text-xs opacity-80 mb-1">🔔 Alerte</div>
-                <div className="text-2xl font-bold">
-                  {alerts.length}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* CHAT INTERFACE CFO - SECȚIUNEA PRINCIPALĂ */}
+      {/* CHAT INTERFACE CFO - SECȚIUNEA PRINCIPALĂ - MUTATĂ LA ÎNCEPUT */}
       <div id="cfo-chat" className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 border border-slate-700 scroll-mt-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -504,6 +411,110 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </div>
       </div>
 
+      {/* Loading State - PRIORITATE 1 */}
+      {loading && !financialData && (
+        <div className="flex-1 flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <h3 className="text-xl font-semibold text-white mb-2">🔍 Se încarcă datele financiare...</h3>
+            <p className="text-sm text-gray-400 mb-4">Analizăm balanțele tale pentru a genera dashboard-ul CFO</p>
+            <div className="space-y-2 text-left max-w-md mx-auto">
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Citire balanțe din baza de date...
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                Calcul indicatori financiari...
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
+                Generare predicții și alerte...
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-6">⏱️ Durează aproximativ 3-5 secunde</p>
+          </div>
+        </div>
+      )}
+
+      {/* Skeleton Loading pentru tranziție smoothă */}
+      {loading && financialData && (
+        <div className="space-y-4 animate-pulse">
+          <div className="grid grid-cols-4 gap-4">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="bg-gray-800 rounded-lg h-24"></div>
+            ))}
+          </div>
+          <div className="bg-gray-800 rounded-xl h-64"></div>
+          <div className="bg-gray-800 rounded-xl h-96"></div>
+        </div>
+      )}
+
+      {/* SNAPSHOT FINANCIAR RAPID */}
+      {financialData && (
+        <Card className="border-primary/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Snapshot Financiar Rapid
+              </CardTitle>
+              <Button 
+                onClick={() => document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                size="sm"
+                variant="outline"
+                className="gap-2"
+              >
+                💬 Sari la Chat
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Cash Total */}
+              <div className="p-4 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl text-white">
+                <div className="text-xs opacity-80 mb-1">💰 Cash Total</div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(financialData.soldBanca + financialData.soldCasa)}
+                </div>
+              </div>
+
+              {/* Profit/Loss */}
+              <div className={cn(
+                "p-4 rounded-xl text-white",
+                financialData.profit >= 0
+                  ? "bg-gradient-to-br from-green-500 to-emerald-600"
+                  : "bg-gradient-to-br from-red-500 to-rose-600"
+              )}>
+                <div className="text-xs opacity-80 mb-1">
+                  {financialData.profit >= 0 ? '✅ Profit' : '🔴 Pierdere'}
+                </div>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(Math.abs(financialData.profit))}
+                </div>
+              </div>
+
+              {/* Runway */}
+              <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl text-white">
+                <div className="text-xs opacity-80 mb-1">⏱️ Runway</div>
+                <div className="text-2xl font-bold">
+                  {runway?.months === Infinity ? '∞' : runway?.months.toFixed(1)} luni
+                </div>
+              </div>
+
+              {/* Alerte */}
+              <div className="p-4 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl text-white">
+                <div className="text-xs opacity-80 mb-1">🔔 Alerte</div>
+                <div className="text-2xl font-bold">
+                  {alerts.length}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* 2. CARD: Date Sursă Balanță - Pentru Verificare */}
       {financialData && (
         <Card className="border-primary/20">
@@ -522,6 +533,14 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
                   Toate datele CFO Dashboard provin din această analiză. Verifică cu contabilul tău.
                 </CardDescription>
               </div>
+              <Button 
+                onClick={() => document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                size="sm"
+                variant="outline"
+                className="gap-2 ml-4"
+              >
+                💬 Sari la Chat
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
