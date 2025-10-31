@@ -381,6 +381,48 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
             >
               🏦 Finanțare?
             </button>
+            <button 
+              onClick={() => setCfoQuestion("Cum negociez mai bine cu furnizorii pentru a reduce costurile?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🤝 Negociere furnizori?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Ce costuri fixe pot transforma în costuri variabile?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🔄 Flexibilizare costuri?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Cum îmi stabilesc prețurile pentru a maximiza profitul?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              💵 Strategie prețuri?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Ce rezerve de cash ar trebui să am pentru situații neprevăzute?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🏦 Rezerve?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Cum îmi diversific sursele de venit pentru a reduce riscul?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🌐 Diversificare?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Ce procese pot automatiza pentru a reduce costurile operaționale?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              ⚙️ Automatizări?
+            </button>
           </div>
         </div>
       </div>
