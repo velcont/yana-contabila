@@ -353,6 +353,34 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
             >
               🎯 Optimizare taxe?
             </button>
+            <button 
+              onClick={() => setCfoQuestion("Cum îmbunătățesc cash flow-ul și încasările de la clienți?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              💸 Încasări rapid?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Ce indicatori financiari ar trebui să urmăresc lunar?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              📈 KPI-uri?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Cum mă pregătesc pentru o perioadă de criză sau scădere a vânzărilor?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🛡️ Plan criză?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Ce oportunități de finanțare sau creditare sunt disponibile pentru afacerea mea?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🏦 Finanțare?
+            </button>
           </div>
         </div>
       </div>
