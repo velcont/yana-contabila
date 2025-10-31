@@ -1152,6 +1152,21 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       
       {/* Chat principal */}
       <Card className={`pointer-events-auto ${isMaximized ? 'w-full flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+        {/* Maximize/Restore button - floating, always visible */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsMaximized(!isMaximized)}
+          aria-label={isMaximized ? "Restabilește mărimea" : "Maximizează fereastra"}
+          className="absolute top-2 right-14 z-50 bg-background/90 hover:bg-primary/20 border-primary/30 shadow-md"
+        >
+          {isMaximized ? (
+            <Minimize2 className="h-5 w-5 text-primary" />
+          ) : (
+            <Maximize2 className="h-5 w-5 text-primary" />
+          )}
+        </Button>
+        
         {/* Close - floating, always visible */}
         <Button
           variant="destructive"
