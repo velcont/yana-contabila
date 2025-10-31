@@ -260,6 +260,29 @@ const Admin = () => {
           </AlertDescription>
         </Alert>
 
+        {/* Quick Access Card for Platform Costs */}
+        <Card className="bg-primary/5 border-primary/20 mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              💸 Monitorizare Costuri Platformă
+            </CardTitle>
+            <CardDescription>
+              Vezi consumul AI, credite rămase, costuri totale și gestionează bugetul platformei
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => navigate('/admin/platform-costs')} 
+              size="lg"
+              className="w-full"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Deschide Dashboard Costuri Complet
+            </Button>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="users" className="space-y-6">
           <TabsList className="flex flex-wrap w-full gap-2">
             <TabsTrigger value="users">
@@ -305,10 +328,6 @@ const Admin = () => {
             <TabsTrigger value="research">
               <GraduationCap className="h-4 w-4 mr-2" />
               Asistent Doctorat
-            </TabsTrigger>
-            <TabsTrigger value="costs">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Costuri Totale
             </TabsTrigger>
           </TabsList>
 
@@ -775,10 +794,6 @@ const Admin = () => {
 
           <TabsContent value="research">
             <AcademicThesisAssistant />
-          </TabsContent>
-
-          <TabsContent value="costs">
-            <AdminCostsDashboard />
           </TabsContent>
 
           <TabsContent value="test">

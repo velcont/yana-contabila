@@ -54,11 +54,40 @@ const SystemHealth = () => {
         </p>
       </div>
 
+      <Card className="bg-primary/5 border-primary/20 mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            ⚠️ Pagină Închisă - Folosește Dashboard-ul Nou
+          </CardTitle>
+          <CardDescription>
+            Monitorizarea costurilor s-a mutat în noul dashboard centralizat
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm">
+            Toate funcționalitățile de monitorizare costuri AI, credite și bugetare au fost consolidate într-un singur dashboard.
+          </p>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => window.location.href = '/admin/platform-costs'}
+              className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              Deschide Dashboard Costuri Platformă
+            </button>
+            <button 
+              onClick={() => window.location.href = '/admin'}
+              className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+            >
+              Înapoi la Admin
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="health" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList>
           <TabsTrigger value="health">Status Servicii</TabsTrigger>
-          <TabsTrigger value="ai-costs">Costuri AI</TabsTrigger>
-          <TabsTrigger value="total-costs">Costuri Totale</TabsTrigger>
         </TabsList>
 
         <TabsContent value="health" className="space-y-6">
@@ -96,14 +125,6 @@ const SystemHealth = () => {
             </div>
           </CardContent>
         </Card>
-        </TabsContent>
-
-        <TabsContent value="ai-costs">
-          <AIUsageDashboard />
-        </TabsContent>
-
-        <TabsContent value="total-costs">
-          <AdminCostsDashboard />
         </TabsContent>
       </Tabs>
     </div>

@@ -22,6 +22,7 @@ import { Landing } from "./pages/Landing";
 import { Demo } from "./pages/Demo";
 import { IndustryDemos } from "./pages/IndustryDemos";
 import SystemHealth from "./pages/SystemHealth";
+import PlatformCosts from "./pages/PlatformCosts";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Pricing from "./pages/Pricing";
@@ -77,6 +78,7 @@ const App = () => (
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
                     <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+                    <Route path="/admin/platform-costs" element={<PrivateRoute><PlatformCosts /></PrivateRoute>} />
                     <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
                     <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
                     <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
