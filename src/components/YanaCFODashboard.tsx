@@ -407,6 +407,20 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
             >
               💰 Creștere profit?
             </button>
+            <button 
+              onClick={() => setCfoQuestion("Îmi permit să fac investiții majore acum? Ce trebuie să știu?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🚀 Pot investi?
+            </button>
+            <button 
+              onClick={() => setCfoQuestion("Cum optimizez taxele și contribuțiile pentru a reduce cheltuielile?")}
+              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              🎯 Optimizare taxe?
+            </button>
           </div>
         </div>
       </div>
