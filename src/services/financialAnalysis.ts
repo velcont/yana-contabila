@@ -46,7 +46,7 @@ export interface Alert {
   actionable?: string[];
 }
 
-// 1. Extract latest financial data from ANAF analyses
+// 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
 export const getLatestFinancialData = async (userId: string): Promise<FinancialData | null> => {
   const { data, error } = await supabase
     .from('analyses')
@@ -54,26 +54,71 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
     .eq('user_id', userId)
     .not('metadata', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(1);
+    .limit(6);
   
-  if (error || !data?.[0]?.metadata) {
+  if (error || !data?.length) {
     console.error('Error fetching financial data:', error);
     return null;
   }
   
-  const meta = data[0].metadata as any;
-  
-  return {
-    revenue: meta.revenue || 0,
-    expenses: meta.expenses || 0,
-    profit: meta.profit || 0,
-    soldBanca: meta.soldBanca || 0,
-    soldCasa: meta.soldCasa || 0,
-    soldClienti: meta.soldClienti || 0,
-    soldFurnizori: meta.soldFurnizori || 0,
-    dso: meta.dso || 0,
-    dpo: meta.dpo || 0
+  const merged: Record<string, number | undefined> = {};
+
+  const setIfEmpty = (key: keyof FinancialData | 'profit', value: any) => {
+    const num = value !== undefined && value !== null ? Number(value) : undefined;
+    if (
+      (!Object.prototype.hasOwnProperty.call(merged, key) || merged[key] === undefined || merged[key] === null || merged[key] === 0) &&
+      typeof num === 'number' && !isNaN(num) && num !== 0
+    ) {
+      merged[key] = num;
+    }
   };
+
+  for (const row of data) {
+    const m: any = row.metadata || {};
+
+    // Synonyms mapping (ro/en) and fallbacks
+    const revenue = m.revenue ?? m.ca ?? m.cifraAfaceri ?? m.venituri ?? m.totalVenituri;
+    const expenses = m.expenses ?? m.cheltuieli ?? m.totalCheltuieli ?? m.costuri;
+    const profit = m.profit ?? m.profitNet ?? (
+      (revenue !== undefined && expenses !== undefined)
+        ? (Number(revenue) - Number(expenses))
+        : undefined
+    );
+    const soldBanca = m.soldBanca ?? m.cashBanca ?? m.banca ?? m.conturiBancare;
+    const soldCasa = m.soldCasa ?? m.cashCasa ?? m.casa ?? m.numerar;
+    const soldClienti = m.soldClienti ?? m.creante ?? m.clienti;
+    const soldFurnizori = m.soldFurnizori ?? m.datorii ?? m.furnizori;
+    const dso = m.dso ?? m.dso_zile ?? m.DSO;
+    const dpo = m.dpo ?? m.dpo_zile ?? m.DPO;
+
+    setIfEmpty('revenue', revenue);
+    setIfEmpty('expenses', expenses);
+    setIfEmpty('profit', profit);
+    setIfEmpty('soldBanca', soldBanca);
+    setIfEmpty('soldCasa', soldCasa);
+    setIfEmpty('soldClienti', soldClienti);
+    setIfEmpty('soldFurnizori', soldFurnizori);
+    setIfEmpty('dso', dso);
+    setIfEmpty('dpo', dpo);
+  }
+
+  const result: FinancialData = {
+    revenue: Number(merged.revenue) || 0,
+    expenses: Number(merged.expenses) || 0,
+    profit: Number(
+      merged.profit !== undefined
+        ? merged.profit
+        : (Number(merged.revenue || 0) - Number(merged.expenses || 0))
+    ) || 0,
+    soldBanca: Number(merged.soldBanca) || 0,
+    soldCasa: Number(merged.soldCasa) || 0,
+    soldClienti: Number(merged.soldClienti) || 0,
+    soldFurnizori: Number(merged.soldFurnizori) || 0,
+    dso: Number(merged.dso) || 0,
+    dpo: Number(merged.dpo) || 0,
+  };
+
+  return result;
 };
 
 // 2. Calculate runway (months until cash runs out)
