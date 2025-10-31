@@ -226,74 +226,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </Alert>
       )}
 
-      {/* 1. HEADER: Runway + Refresh */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          {financialData && (
-            <Badge variant="outline" className="absolute top-4 left-4 text-xs">
-              📊 Date din: Analiza Balanței
-            </Badge>
-          )}
-          
-          <div className="flex-1 mt-6">
-            <CardTitle className="text-2xl">
-              {runway ? (
-                <>
-                  Runway: <span className={cn(
-                    runway.status === 'critical' && 'text-destructive',
-                    runway.status === 'warning' && 'text-orange-600',
-                    runway.status === 'healthy' && 'text-green-600'
-                  )}>
-                    {runway.months === Infinity ? '∞' : runway.months.toFixed(1)} luni
-                  </span> ({runway.days === Infinity ? '∞' : Math.floor(runway.days)} zile)
-                </>
-              ) : (
-                'Dashboard CFO'
-              )}
-            </CardTitle>
-            <CardDescription>{runway?.message}</CardDescription>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              size="sm"
-              variant="outline"
-              className="gap-2"
-            >
-              💬 Sari la Chat
-            </Button>
-            
-            <Button 
-              onClick={handleRefreshDashboard} 
-              disabled={isLoading}
-              size="sm"
-              variant="outline"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Se recalculează...
-                </>
-              ) : (
-                <>🔄 Refresh</>
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-        
-        {runway && (
-          <CardContent>
-            <Progress 
-              value={runway.status === 'critical' ? 20 : runway.status === 'warning' ? 50 : 80} 
-              className="h-3"
-            />
-            <div className="mt-2 text-sm text-muted-foreground">
-              Cash disponibil: {formatCurrency((financialData?.soldBanca || 0) + (financialData?.soldCasa || 0))}
-            </div>
-          </CardContent>
-        )}
-      </Card>
 
       {/* Mini Loading Banner - Feedback instant */}
       {loading && (
@@ -424,6 +356,75 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
           </div>
         </div>
       </div>
+
+      {/* 1. CARD: Runway + Refresh */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          {financialData && (
+            <Badge variant="outline" className="absolute top-4 left-4 text-xs">
+              📊 Date din: Analiza Balanței
+            </Badge>
+          )}
+          
+          <div className="flex-1 mt-6">
+            <CardTitle className="text-2xl">
+              {runway ? (
+                <>
+                  Runway: <span className={cn(
+                    runway.status === 'critical' && 'text-destructive',
+                    runway.status === 'warning' && 'text-orange-600',
+                    runway.status === 'healthy' && 'text-green-600'
+                  )}>
+                    {runway.months === Infinity ? '∞' : runway.months.toFixed(1)} luni
+                  </span> ({runway.days === Infinity ? '∞' : Math.floor(runway.days)} zile)
+                </>
+              ) : (
+                'Dashboard CFO'
+              )}
+            </CardTitle>
+            <CardDescription>{runway?.message}</CardDescription>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              💬 Sari la Chat
+            </Button>
+            
+            <Button 
+              onClick={handleRefreshDashboard} 
+              disabled={isLoading}
+              size="sm"
+              variant="outline"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se recalculează...
+                </>
+              ) : (
+                <>🔄 Refresh</>
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+        
+        {runway && (
+          <CardContent>
+            <Progress 
+              value={runway.status === 'critical' ? 20 : runway.status === 'warning' ? 50 : 80} 
+              className="h-3"
+            />
+            <div className="mt-2 text-sm text-muted-foreground">
+              Cash disponibil: {formatCurrency((financialData?.soldBanca || 0) + (financialData?.soldCasa || 0))}
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* Loading State - PRIORITATE 1 */}
       {loading && !financialData && (
