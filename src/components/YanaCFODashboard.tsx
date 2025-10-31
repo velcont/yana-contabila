@@ -23,7 +23,7 @@ import {
   type Alert as FinancialAlert
 } from '@/services/financialAnalysis';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2, FileBarChart, Sparkles, Coins } from 'lucide-react';
+import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2, FileBarChart, Sparkles, Coins, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -253,7 +253,96 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         )}
       </Card>
 
-      {/* 2. GRAFIC: Cash Flow Forecast - GRATUIT historic, PREMIUM predicții */}
+      {/* 2. CARD: Date Sursă Balanță - Pentru Verificare */}
+      {financialData && (
+        <Card className="border-primary/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <CardTitle className="flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5 text-primary" />
+                  Date Sursă - Balanța Analizată
+                  <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 text-xs">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Verificat
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Toate datele CFO Dashboard provin din această analiză. Verifică cu contabilul tău.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Cifră Afaceri Anuală</p>
+                <p className="text-lg font-semibold">{formatCurrency(financialData.revenue)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Cheltuieli Anuale</p>
+                <p className="text-lg font-semibold">{formatCurrency(financialData.expenses)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Profit/Pierdere</p>
+                <p className={cn(
+                  "text-lg font-semibold",
+                  financialData.profit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                )}>
+                  {formatCurrency(financialData.profit)}
+                </p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Cash Bancă</p>
+                <p className="text-lg font-semibold">{formatCurrency(financialData.soldBanca)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Cash Casă</p>
+                <p className="text-lg font-semibold">{formatCurrency(financialData.soldCasa)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Total Cash Disponibil</p>
+                <p className="text-lg font-semibold text-primary">
+                  {formatCurrency(financialData.soldBanca + financialData.soldCasa)}
+                </p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Creanțe Clienți</p>
+                <p className="text-lg font-semibold">{formatCurrency(financialData.soldClienti)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Datorii Furnizori</p>
+                <p className="text-lg font-semibold">{formatCurrency(financialData.soldFurnizori)}</p>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">DSO / DPO</p>
+                <p className="text-lg font-semibold">
+                  {financialData.dso} / {financialData.dpo} zile
+                </p>
+              </div>
+            </div>
+            
+            <Alert className="mt-4">
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>📋 Pentru Verificare cu Contabilul</AlertTitle>
+              <AlertDescription className="text-sm">
+                Poți copia aceste date și le poți trimite contabilului tău pentru confirmare. 
+                Toate calculele CFO Dashboard (runway, predicții, scenarii) se bazează pe aceste cifre.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 3. GRAFIC: Cash Flow Forecast - GRATUIT historic, PREMIUM predicții */}
       {cashFlowForecast && (
         <Card>
           <CardHeader>
