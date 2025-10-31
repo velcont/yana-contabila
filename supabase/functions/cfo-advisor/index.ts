@@ -30,13 +30,16 @@ serve(async (req) => {
   }
 
   try {
-    // Auth verification
+    // Auth verification - FIXED
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('❌ No Authorization header');
       throw new Error('Nu ești autentificat');
     }
 
+    // Extract JWT token from header
+    const token = authHeader.replace('Bearer ', '');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -45,11 +48,11 @@ serve(async (req) => {
       throw new Error('Configurație lipsă');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Create client with service role for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Verify JWT token
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !user) {
       console.error('❌ Auth error:', userError?.message);
@@ -144,7 +147,7 @@ Fii DIRECT, NUMERIC, ACȚIONABIL. Nu face introduceri lungi! Răspunde în limba
     // Save conversation (optional, for history)
     if (conversationId) {
       try {
-        await supabase.from('ai_conversations').insert({
+        await supabaseAdmin.from('ai_conversations').insert({
           user_id: user.id,
           company_id: null,
           question,
@@ -154,7 +157,7 @@ Fii DIRECT, NUMERIC, ACȚIONABIL. Nu face introduceri lungi! Răspunde în limba
           conversation_id: conversationId
         });
       } catch (convError) {
-        console.error('Error saving conversation:', convError);
+        console.error('⚠️ Error saving conversation (non-critical):', convError);
       }
     }
 

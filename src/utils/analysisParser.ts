@@ -20,47 +20,29 @@ export interface FinancialIndicators {
 export const parseAnalysisText = (text: string): FinancialIndicators => {
   const indicators: FinancialIndicators = {};
 
-  const scope = (() => {
-    const structured = text.match(/===\s*INDICATORI\s+FINANCIARI\s*===[\s\S]*?(?=\n\n|$)/i);
-    return structured ? structured[0] : text;
-  })();
-
+  // Funcție îmbunătățită pentru extragere numere românești
   const toNumberRo = (raw?: string): number | undefined => {
     if (!raw) return undefined;
-    
-    // Dacă e deja număr, returnează direct
     if (typeof raw === 'number') return raw;
     
-    // Convertește în string și curăță
     let str = String(raw).trim();
-    
-    // Găsește ultimul separator (punct sau virgulă)
     const lastDotIndex = str.lastIndexOf('.');
     const lastCommaIndex = str.lastIndexOf(',');
-    
-    // Determină care e ultimul separator
     const lastSeparatorIndex = Math.max(lastDotIndex, lastCommaIndex);
     
     if (lastSeparatorIndex === -1) {
-      // NU are separator → număr întreg
       str = str.replace(/[^0-9-]/g, '');
       if (!str) return undefined;
       const n = parseFloat(str);
       return Number.isFinite(n) ? n : undefined;
     }
     
-    // ARE separator → împarte în parte întreagă + zecimale
     let integerPart = str.substring(0, lastSeparatorIndex);
     let decimalPart = str.substring(lastSeparatorIndex + 1);
     
-    // Curăță partea întreagă: șterge TOȚI separatorii
-    integerPart = integerPart.replace(/[.,]/g, '');
-    integerPart = integerPart.replace(/[^0-9-]/g, '');
-    
-    // Curăță zecimalele
+    integerPart = integerPart.replace(/[.,]/g, '').replace(/[^0-9-]/g, '');
     decimalPart = decimalPart.replace(/[^0-9]/g, '');
     
-    // Construiește numărul în format standard
     const standardFormat = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
     if (!standardFormat) return undefined;
     
@@ -68,36 +50,69 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     return Number.isFinite(n) ? n : undefined;
   };
 
-  const get = (re: RegExp, src: string = scope): number | undefined => {
-    const m = src.match(re);
+  const get = (re: RegExp): number | undefined => {
+    const m = text.match(re);
     return m ? toNumberRo(m[1]) : undefined;
   };
 
-  // Valori principale (acceptă diverse sinonime și prezența RON/lei)
-  indicators.revenue = get(/(?:Cifr[ăa]\s*(?:de\s+)?Afaceri|Venituri|\bCA\b)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i)
-    ?? get(/Cifra\s+de\s+afaceri[^\d]*([0-9.,\s\-]+)/i, text);
+  // ÎMBUNĂTĂȚIT: Extragere mai robustă cu multiple pattern-uri
+  
+  // 1. Cifra de Afaceri / Venituri
+  indicators.revenue = get(/(?:Cifr[ăa]\s*(?:de\s+)?Afaceri|Venituri\s*totale?|Total\s*venituri|\bCA\b)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/Venituri[^\d]*([0-9.,\s]+)/i)
+    ?? get(/CA[^\d]*([0-9.,\s]+)/i);
 
-  indicators.expenses = get(/(?:Cheltuieli(?:\s+totale)?|Total\s*cheltuieli)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i)
-    ?? get(/Cheltuieli[^\d]*([0-9.,\s\-]+)/i, text);
+  // 2. Cheltuieli
+  indicators.expenses = get(/(?:Cheltuieli(?:\s+totale)?|Total\s*cheltuieli)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/Cheltuieli[^\d]*([0-9.,\s]+)/i);
 
-  indicators.profit = get(/(?:Profit(?:\s+net)?|Rezultat(?:\s+(?:net|exercitiu|exercițiu))?)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i)
-    ?? get(/Profit[^\d]*([0-9.,\s\-]+)/i, text);
+  // 3. Profit / Pierdere (acceptă valori negative)
+  indicators.profit = get(/(?:Profit(?:\s+net)?|Rezultat(?:\s+(?:net|exerci[tț]iu))?|Pierdere)\s*[:=\-]?\s*(?:RON|lei)?\s*([-]?[0-9.,\s]+)/i)
+    ?? get(/Profit[^\d]*([-]?[0-9.,\s]+)/i);
 
-  indicators.ebitda = get(/EBITDA\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
+  // 4. EBITDA
+  indicators.ebitda = get(/EBITDA\s*[:=\-]?\s*(?:RON|lei)?\s*([-]?[0-9.,\s]+)/i);
 
-  indicators.dso = get(/(?:DSO|Days\s*Sales\s*Outstanding)\s*[:=\-]?\s*([0-9.,\-]+)\s*(?:zile|days)?/i);
-  indicators.dpo = get(/(?:DPO|Days\s*Payable\s*Outstanding)\s*[:=\-]?\s*([0-9.,\-]+)\s*(?:zile|days)?/i);
-  indicators.cashConversionCycle = get(/(?:CCC|Cash\s*Conversion\s*Cycle)\s*[:=\-]?\s*([0-9.,\-]+)\s*(?:zile|days)?/i);
+  // 5. DSO (Days Sales Outstanding)
+  indicators.dso = get(/(?:DSO|Days\s*Sales\s*Outstanding|Zile\s*clien[tț]i)\s*[:=\-]?\s*([0-9.,]+)\s*(?:zile|days)?/i);
 
-  // Solduri bilanț
-  indicators.soldBanca = get(/(?:Sold\s*(?:Banc[ăa]|Banca)|Banc[ăa])\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
-  indicators.soldClienti = get(/(?:Sold\s*Clien[tț]i|Clien[tț]i)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
-  indicators.soldFurnizori = get(/(?:Sold\s*Furnizori|Furnizori)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s\-]+)/i);
+  // 6. DPO (Days Payable Outstanding)
+  indicators.dpo = get(/(?:DPO|Days\s*Payable\s*Outstanding|Zile\s*furnizori)\s*[:=\-]?\s*([0-9.,]+)\s*(?:zile|days)?/i);
 
-  // Fallback simplu: dacă EBITDA lipsește dar avem CA și Cheltuieli
+  // 7. CCC (Cash Conversion Cycle)
+  indicators.cashConversionCycle = get(/(?:CCC|Cash\s*Conversion\s*Cycle|Ciclu\s*cash)\s*[:=\-]?\s*([0-9.,]+)\s*(?:zile|days)?/i);
+
+  // 8. Sold Bancă
+  indicators.soldBanca = get(/(?:Sold\s*(?:Banc[ăa]|conturi?\s*bancare)|Banc[ăa]|Conturi?\s*bancare)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/5121[^\d]*([0-9.,\s]+)/i); // Cont 5121
+
+  // 9. Sold Casă
+  indicators.soldCasa = get(/(?:Sold\s*Cas[ăa]|Cas[ăa]|Numerar)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/5311[^\d]*([0-9.,\s]+)/i); // Cont 5311
+
+  // 10. Sold Clienți
+  indicators.soldClienti = get(/(?:Sold\s*Clien[tț]i|Clien[tț]i|Crean[tț]e\s*clien[tț]i)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/411[^\d]*([0-9.,\s]+)/i); // Cont 411
+
+  // 11. Sold Furnizori
+  indicators.soldFurnizori = get(/(?:Sold\s*Furnizori|Furnizori|Datorii\s*furnizori)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/401[^\d]*([0-9.,\s]+)/i); // Cont 401
+
+  // Fallback EBITDA
   if (indicators.ebitda === undefined && indicators.revenue !== undefined && indicators.expenses !== undefined) {
     indicators.ebitda = (indicators.revenue ?? 0) - (indicators.expenses ?? 0);
   }
+
+  // Log pentru debugging
+  console.log('📊 Parsed indicators:', {
+    revenue: indicators.revenue,
+    expenses: indicators.expenses,
+    profit: indicators.profit,
+    soldBanca: indicators.soldBanca,
+    soldCasa: indicators.soldCasa,
+    dso: indicators.dso,
+    dpo: indicators.dpo
+  });
 
   return indicators;
 };

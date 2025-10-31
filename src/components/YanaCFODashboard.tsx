@@ -22,8 +22,9 @@ import {
   type SimulationResult,
   type Alert as FinancialAlert
 } from '@/services/financialAnalysis';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2, FileBarChart, Sparkles, Coins, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2, FileBarChart, Sparkles, Coins, CheckCircle2, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -38,6 +39,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   const [runway, setRunway] = useState<RunwayData | null>(null);
   const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowData | null>(null);
   const [alerts, setAlerts] = useState<FinancialAlert[]>([]);
+  const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showCFOResponseDialog, setShowCFOResponseDialog] = useState(false);
   const [cfoResponse, setCFOResponse] = useState('');
@@ -55,6 +57,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   }, [userId]);
 
   const handleRefreshDashboard = async () => {
+    setLoading(true);
     setIsLoading(true);
     
     try {
@@ -94,6 +97,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         variant: "destructive"
       });
     } finally {
+      setLoading(false);
       setIsLoading(false);
     }
   };
@@ -273,69 +277,165 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Cifră Afaceri Anuală</p>
-                <p className="text-lg font-semibold">{formatCurrency(financialData.revenue)}</p>
+          <CardContent className="space-y-6">
+            {/* Date Principale Financiare */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Venituri */}
+              <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="text-xs text-muted-foreground mb-1">💰 Cifra Afaceri</div>
+                <div className="text-xl font-bold text-green-700 dark:text-green-300">
+                  {formatCurrency(financialData.revenue)}
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Cheltuieli Anuale</p>
-                <p className="text-lg font-semibold">{formatCurrency(financialData.expenses)}</p>
+
+              {/* Cheltuieli */}
+              <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 rounded-lg border border-red-200 dark:border-red-800">
+                <div className="text-xs text-muted-foreground mb-1">📉 Cheltuieli</div>
+                <div className="text-xl font-bold text-red-700 dark:text-red-300">
+                  {formatCurrency(financialData.expenses)}
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Profit/Pierdere</p>
-                <p className={cn(
-                  "text-lg font-semibold",
-                  financialData.profit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+
+              {/* Profit/Pierdere */}
+              <div className={cn(
+                "p-4 rounded-lg border",
+                financialData.profit >= 0 
+                  ? "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800"
+                  : "bg-gradient-to-br from-rose-50 to-rose-100 dark:from-rose-950 dark:to-rose-900 border-rose-200 dark:border-rose-800"
+              )}>
+                <div className="text-xs text-muted-foreground mb-1">
+                  {financialData.profit >= 0 ? '✅ Profit Net' : '🔴 Pierdere'}
+                </div>
+                <div className={cn(
+                  "text-xl font-bold",
+                  financialData.profit >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"
                 )}>
                   {formatCurrency(financialData.profit)}
-                </p>
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Cash Bancă</p>
-                <p className="text-lg font-semibold">{formatCurrency(financialData.soldBanca)}</p>
+
+              {/* Sold Bancă */}
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="text-xs text-muted-foreground mb-1">🏦 Sold Bancă</div>
+                <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
+                  {formatCurrency(financialData.soldBanca)}
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Cash Casă</p>
-                <p className="text-lg font-semibold">{formatCurrency(financialData.soldCasa)}</p>
+
+              {/* Sold Casă */}
+              <div className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 rounded-lg border border-amber-200 dark:border-amber-800">
+                <div className="text-xs text-muted-foreground mb-1">💵 Sold Casă</div>
+                <div className="text-xl font-bold text-amber-700 dark:text-amber-300">
+                  {formatCurrency(financialData.soldCasa)}
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Total Cash Disponibil</p>
-                <p className="text-lg font-semibold text-primary">
+
+              {/* Cash Total */}
+              <div className="p-4 bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950 dark:to-cyan-900 rounded-lg border-2 border-cyan-400 dark:border-cyan-600">
+                <div className="text-xs text-muted-foreground mb-1">💎 Cash Disponibil</div>
+                <div className="text-xl font-bold text-cyan-700 dark:text-cyan-300">
                   {formatCurrency(financialData.soldBanca + financialData.soldCasa)}
-                </p>
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Creanțe Clienți</p>
-                <p className="text-lg font-semibold">{formatCurrency(financialData.soldClienti)}</p>
+
+              {/* Creanțe */}
+              <div className="p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950 dark:to-indigo-900 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <div className="text-xs text-muted-foreground mb-1">📊 Creanțe Clienți</div>
+                <div className="text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                  {formatCurrency(financialData.soldClienti)}
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Datorii Furnizori</p>
-                <p className="text-lg font-semibold">{formatCurrency(financialData.soldFurnizori)}</p>
+
+              {/* Datorii */}
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 rounded-lg border border-purple-200 dark:border-purple-800">
+                <div className="text-xs text-muted-foreground mb-1">📋 Datorii Furnizori</div>
+                <div className="text-xl font-bold text-purple-700 dark:text-purple-300">
+                  {formatCurrency(financialData.soldFurnizori)}
+                </div>
               </div>
-              
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">DSO / DPO</p>
-                <p className="text-lg font-semibold">
-                  {financialData.dso} / {financialData.dpo} zile
-                </p>
+
+              {/* DSO */}
+              <div className="p-4 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-950 dark:to-teal-900 rounded-lg border border-teal-200 dark:border-teal-800">
+                <div className="text-xs text-muted-foreground mb-1">⏱️ DSO (Zile Încasare)</div>
+                <div className="text-xl font-bold text-teal-700 dark:text-teal-300">
+                  {financialData.dso.toFixed(0)} zile
+                </div>
+              </div>
+
+              {/* DPO */}
+              <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="text-xs text-muted-foreground mb-1">⏳ DPO (Zile Plată)</div>
+                <div className="text-xl font-bold text-orange-700 dark:text-orange-300">
+                  {financialData.dpo.toFixed(0)} zile
+                </div>
+              </div>
+            </div>
+
+            {/* Separare - Indicatori Cheie Avansați */}
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Indicatori Cheie Calculați
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Capital de Lucru */}
+                <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+                  <div className="text-xs text-muted-foreground mb-1">💼 Capital de Lucru</div>
+                  <div className={cn(
+                    "text-xl font-bold",
+                    (financialData.soldClienti - financialData.soldFurnizori) >= 0 
+                      ? "text-emerald-700 dark:text-emerald-300" 
+                      : "text-rose-700 dark:text-rose-300"
+                  )}>
+                    {formatCurrency(financialData.soldClienti - financialData.soldFurnizori)}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Creanțe - Datorii
+                  </div>
+                </div>
+
+                {/* Marja de Profit */}
+                <div className="p-4 bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-950 dark:to-violet-900 rounded-lg border border-violet-200 dark:border-violet-800">
+                  <div className="text-xs text-muted-foreground mb-1">📈 Marja de Profit</div>
+                  <div className={cn(
+                    "text-xl font-bold",
+                    (financialData.profit / financialData.revenue * 100) >= 0 
+                      ? "text-violet-700 dark:text-violet-300" 
+                      : "text-rose-700 dark:text-rose-300"
+                  )}>
+                    {(financialData.profit / financialData.revenue * 100).toFixed(1)}%
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    (Profit / Venituri) × 100
+                  </div>
+                </div>
+
+                {/* Burn Rate */}
+                <div className="p-4 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950 dark:to-pink-900 rounded-lg border border-pink-200 dark:border-pink-800">
+                  <div className="text-xs text-muted-foreground mb-1">🔥 Burn Rate Lunar</div>
+                  <div className={cn(
+                    "text-xl font-bold",
+                    ((financialData.expenses / 12) - (financialData.revenue / 12)) > 0
+                      ? "text-rose-700 dark:text-rose-300" 
+                      : "text-emerald-700 dark:text-emerald-300"
+                  )}>
+                    {formatCurrency((financialData.expenses / 12) - (financialData.revenue / 12))}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Cheltuieli - Venituri /lună
+                  </div>
+                </div>
               </div>
             </div>
             
-            <Alert className="mt-4">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>📋 Pentru Verificare cu Contabilul</AlertTitle>
-              <AlertDescription className="text-sm">
+            <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+              <CheckCircle2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">📋 Date Verificabile</AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
                 Poți copia aceste date și le poți trimite contabilului tău pentru confirmare. 
-                Toate calculele CFO Dashboard (runway, predicții, scenarii) se bazează pe aceste cifre.
+                CFO AI folosește exact acești indicatori pentru recomandări.
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -372,7 +472,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
                   interval={15}
                 />
                 <YAxis />
-                <Tooltip 
+                <ChartTooltip 
                   formatter={(value: number) => formatCurrency(value)}
                 />
                 <Legend />
