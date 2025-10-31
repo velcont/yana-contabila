@@ -17,6 +17,7 @@ import VoiceInterface from './VoiceInterface';
 import { Progress } from '@/components/ui/progress';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useThemeRole } from '@/contexts/ThemeRoleContext';
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
 
@@ -57,6 +58,9 @@ interface ChatAIProps {
 
 export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
   const { isAccountant } = useSubscription();
+  const { currentTheme } = useThemeRole();
+  const isAccountantModule = currentTheme === 'accountant';
+  
   const [isOpen, setIsOpen] = useState(openOnLoad);
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
   const [showModeSwitchBanner, setShowModeSwitchBanner] = useState(false);
@@ -66,7 +70,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     autoStart ? [] : [
       {
         role: 'assistant',
-        content: isAccountant ? 
+        content: isAccountantModule ? 
           `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
 📊 **Pentru analiză balanță:**
@@ -76,7 +80,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
 💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
 
-📞 Pentru consultanță fiscală → schimbă pe tab-ul "Consultanță Fiscală"`
+🏛️ Pentru consultanță fiscală → folosește butonul verde "Consultanță Fiscală" din YanaCRM`
           :
           `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
@@ -87,7 +91,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
 💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
 
-⚖️ Pentru **consultanță fiscală** despre taxe, legislație fiscală și impozite → schimbă pe tab-ul "Consultanță Fiscală" de mai sus.`
+⚖️ Pentru **consultanță fiscală** despre taxe, legislație fiscală și impozite → schimbă pe tab-ul "Consultanță Fiscală" de mai jos.`
       }
     ]
   );
@@ -1290,66 +1294,68 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             </div>
 
             {/* Mode Switcher - Tabs cu separare vizuală îmbunătățită */}
-            <div className="ml-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20">
-              <span className="text-[10px] font-semibold text-muted-foreground px-2 hidden sm:block">
-                Alege funcția:
-              </span>
-              <div className="flex items-center gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant={chatMode === 'balance' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setChatMode('balance')}
-                        className={`h-8 px-4 text-xs font-semibold transition-all ${
-                          chatMode === 'balance' 
-                            ? 'bg-primary text-primary-foreground shadow-md scale-105' 
-                            : 'hover:bg-primary/10'
-                        }`}
-                      >
-                        <FileBarChart className="h-4 w-4 mr-2" />
-                        📊 Analiză Balanță
-                        <Badge variant="secondary" className="ml-2 text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
-                          💡 Analiză personală
-                        </Badge>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Analizează-ți balanța și primește sfaturi personalizate</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <div className="h-6 w-px bg-border" /> {/* Separator vizual */}
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setChatMode('fiscal')}
-                        className={`h-8 px-4 text-xs font-semibold transition-all ${
-                          chatMode === 'fiscal' 
-                            ? 'bg-primary text-primary-foreground shadow-md scale-105' 
-                            : 'hover:bg-primary/10'
-                        }`}
-                      >
-                        <Scale className="h-4 w-4 mr-2" />
-                        🏛️ Legislație Fiscală
-                        <Badge variant="secondary" className="ml-2 text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
-                          🔍 Caută în legislație
-                        </Badge>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Caută informații oficiale în legislația fiscală română</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+            {!isAccountantModule && (
+              <div className="ml-4 flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20">
+                <span className="text-[10px] font-semibold text-muted-foreground px-2 hidden sm:block">
+                  Alege funcția:
+                </span>
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant={chatMode === 'balance' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setChatMode('balance')}
+                          className={`h-8 px-4 text-xs font-semibold transition-all ${
+                            chatMode === 'balance' 
+                              ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                              : 'hover:bg-primary/10'
+                          }`}
+                        >
+                          <FileBarChart className="h-4 w-4 mr-2" />
+                          📊 Analiză Balanță
+                          <Badge variant="secondary" className="ml-2 text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
+                            💡 Analiză personală
+                          </Badge>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Analizează-ți balanța și primește sfaturi personalizate</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <div className="h-6 w-px bg-border" /> {/* Separator vizual */}
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={chatMode === 'fiscal' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setChatMode('fiscal')}
+                          className={`h-8 px-4 text-xs font-semibold transition-all ${
+                            chatMode === 'fiscal' 
+                              ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                              : 'hover:bg-primary/10'
+                          }`}
+                        >
+                          <Scale className="h-4 w-4 mr-2" />
+                          🏛️ Legislație Fiscală
+                          <Badge variant="secondary" className="ml-2 text-[10px] bg-green-500/10 text-green-600 border-green-500/30">
+                            🔍 Caută în legislație
+                          </Badge>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Caută informații oficiale în legislația fiscală română</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Grup dreapta - Controale */}
