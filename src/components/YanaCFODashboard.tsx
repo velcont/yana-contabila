@@ -1,3 +1,4 @@
+// Force rebuild - Production deployment test - 2025-10-31T21:30:00Z
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,18 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
     handleRefreshDashboard();
     loadCFOConversationHistory();
   }, [userId]);
+
+  // Debug logging for production debugging
+  useEffect(() => {
+    console.log('🚨 CFO Dashboard - Component mounted/updated');
+    console.log('🔍 Props:', { userId, creditRemaining });
+    console.log('🔍 State:', { 
+      loading, 
+      hasFinancialData: !!financialData, 
+      historyLength: cfoConversationHistory.length 
+    });
+    console.log('🔍 Chat element exists:', document.getElementById('cfo-chat'));
+  }, [loading, financialData, cfoConversationHistory, userId, creditRemaining]);
 
   const loadCFOConversationHistory = async () => {
     try {

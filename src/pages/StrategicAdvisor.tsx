@@ -191,6 +191,17 @@ export default function StrategicAdvisor() {
     };
   }, [user, conversationId]);
 
+  // Debug logging for CFO tab mounting
+  useEffect(() => {
+    if (activeTab === 'cfo') {
+      console.log('🔍 Strategic Advisor - CFO tab active');
+      console.log('🔍 Mounting YanaCFODashboard with props:', { 
+        userId: user?.id, 
+        creditRemaining 
+      });
+    }
+  }, [activeTab, user, creditRemaining]);
+
   // Generic credit deduction function
   const deductCredit = async (amount: number): Promise<boolean> => {
     if (creditRemaining < amount) {
