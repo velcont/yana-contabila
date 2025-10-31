@@ -92,17 +92,68 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     ]
   );
   const [input, setInput] = useState('');
-  const [fiscalMessages, setFiscalMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: `👋 Bună! Sunt Yana Fiscală!
-
-🏛️ Întreabă-mă despre taxe, legislație fiscală și impozite.
-
-💡 **Nu analizez balanțe** - pentru asta schimbă pe tab-ul "Analiză Balanță"`
-    }
-  ]);
+  const [fiscalMessages, setFiscalMessages] = useState<Message[]>([]);
+  const [fiscalConversationId, setFiscalConversationId] = useState<string>(crypto.randomUUID());
   const [isLoading, setIsLoading] = useState(false);
+  // Încarcă istoric fiscal când se schimbă pe modul fiscal
+  useEffect(() => {
+    if (chatMode === 'fiscal' && isOpen && fiscalMessages.length <= 1) {
+      loadFiscalConversationHistory();
+    }
+  }, [chatMode, isOpen]);
+
+  const loadFiscalConversationHistory = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Încarcă ultimele mesaje fiscale din ChatAI
+      const { data, error } = await supabase
+        .from('conversation_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('metadata->>type', 'fiscal_chatai')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error loading fiscal ChatAI history:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Grupează pe conversation_id
+        const conversationGroups = data.reduce((acc, msg) => {
+          if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = [];
+          }
+          acc[msg.conversation_id].push(msg);
+          return acc;
+        }, {} as Record<string, typeof data>);
+
+        const lastConvId = Object.keys(conversationGroups)[0];
+        if (lastConvId) {
+          const lastMessages = conversationGroups[lastConvId]
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .map(msg => {
+              const metadata = msg.metadata as any;
+              return {
+                role: msg.role as 'user' | 'assistant',
+                content: msg.content,
+                sources: metadata?.sources || [],
+                related_questions: metadata?.related_questions || []
+              };
+            });
+
+          setFiscalMessages(lastMessages);
+          setFiscalConversationId(lastConvId);
+          console.log('✅ Încărcat istoric fiscal ChatAI:', lastMessages.length, 'mesaje');
+        }
+      }
+    } catch (err) {
+      console.error('Error loading fiscal conversation:', err);
+    }
+  };
   const [insights, setInsights] = useState<Insight[]>([]);
   const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
   const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
@@ -272,7 +323,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const sendFiscalMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input.trim() };
+    const userMessageContent = input.trim();
+    const userMessage: Message = { role: 'user', content: userMessageContent };
     setFiscalMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -291,10 +343,22 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         return;
       }
 
+      // Salvează mesajul user în baza de date
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: fiscalConversationId,
+          role: 'user',
+          content: userMessageContent,
+          metadata: { type: 'fiscal_chatai' }
+        });
+      }
+
       const { data, error } = await supabase.functions.invoke('fiscal-chat', {
         body: {
-          message: userMessage.content,
-          messages: [{ role: 'user', content: userMessage.content }]
+          message: userMessageContent,
+          messages: [{ role: 'user', content: userMessageContent }]
         }
       });
 
@@ -330,6 +394,22 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       };
 
       setFiscalMessages(prev => [...prev, assistantMessage]);
+
+      // Salvează răspunsul în baza de date
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: fiscalConversationId,
+          role: 'assistant',
+          content: content,
+          metadata: { 
+            type: 'fiscal_chatai',
+            sources: data.sources || [],
+            related_questions: data.related_questions || []
+          }
+        });
+        console.log('✅ Conversație fiscală salvată în BD (ChatAI)');
+      }
     } catch (err) {
       console.error('[FISCAL-CHAT] Fatal error:', err);
       toast({

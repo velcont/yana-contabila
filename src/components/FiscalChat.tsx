@@ -24,18 +24,81 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
   const { toast } = useToast();
+
+  // Încarcă conversația anterioară când se deschide dialogul
+  React.useEffect(() => {
+    if (open) {
+      loadLastConversation();
+    }
+  }, [open]);
+
+  const loadLastConversation = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Încarcă ultima conversație fiscală
+      const { data, error } = await supabase
+        .from('conversation_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('metadata->>type', 'fiscal')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error loading fiscal conversation:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Grupează mesajele după conversation_id pentru a găsi ultima conversație
+        const conversationGroups = data.reduce((acc, msg) => {
+          if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = [];
+          }
+          acc[msg.conversation_id].push(msg);
+          return acc;
+        }, {} as Record<string, typeof data>);
+
+        // Ia ultima conversație (primul grup după sortare)
+        const lastConvId = Object.keys(conversationGroups)[0];
+        if (lastConvId) {
+          const lastMessages = conversationGroups[lastConvId]
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .map(msg => {
+              const metadata = msg.metadata as any;
+              return {
+                role: msg.role as 'user' | 'assistant',
+                content: msg.content,
+                sources: metadata?.sources || [],
+                related_questions: metadata?.related_questions || []
+              };
+            });
+
+          setMessages(lastMessages);
+          setConversationId(lastConvId);
+          console.log('✅ Încărcat istoric fiscal:', lastMessages.length, 'mesaje');
+        }
+      }
+    } catch (err) {
+      console.error('Error loading conversation:', err);
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: input };
+    const userMessageContent = input.trim();
+    const userMessage: Message = { role: 'user', content: userMessageContent };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      console.log('[FISCAL-CHAT] START handleSend:', input);
+      console.log('[FISCAL-CHAT] START handleSend:', userMessageContent);
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       console.log('[FISCAL-CHAT] Session check:', { hasSession: !!session, sessionError });
@@ -51,11 +114,23 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         return;
       }
 
+      // Salvează mesajul user în baza de date
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: 'user',
+          content: userMessageContent,
+          metadata: { type: 'fiscal' }
+        });
+      }
+
       console.log('[FISCAL-CHAT] Preparing request to fiscal-chat...');
       const { data, error } = await supabase.functions.invoke('fiscal-chat', {
         body: {
-          message: input,
-          messages: [{ role: 'user', content: input }]
+          message: userMessageContent,
+          messages: [{ role: 'user', content: userMessageContent }]
         }
       });
 
@@ -92,6 +167,22 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      // Salvează răspunsul assistant în baza de date
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: content,
+          metadata: { 
+            type: 'fiscal',
+            sources: data.sources || [],
+            related_questions: data.related_questions || []
+          }
+        });
+        console.log('✅ Conversație fiscală salvată în BD');
+      }
     } catch (err) {
       console.error('[FISCAL-CHAT] Fatal error:', err);
       toast({

@@ -45,6 +45,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   const [cfoResponse, setCFOResponse] = useState('');
   const [cfoQuestion, setCfoQuestion] = useState('');
   const [cfoConversationHistory, setCfoConversationHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
+  const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
   const { toast } = useToast();
 
   // What-If Simulator state
@@ -58,7 +59,56 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
     console.log('🚨 CFO Dashboard - Component mounted/updated');
     console.log('🔍 Chat interface should be visible at id="cfo-chat"');
     handleRefreshDashboard();
+    loadCFOConversationHistory();
   }, [userId]);
+
+  const loadCFOConversationHistory = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Încarcă ultimele 20 mesaje CFO
+      const { data, error } = await supabase
+        .from('conversation_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('metadata->>type', 'cfo')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error loading CFO history:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Grupează pe conversation_id pentru a lua ultima conversație
+        const conversationGroups = data.reduce((acc, msg) => {
+          if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = [];
+          }
+          acc[msg.conversation_id].push(msg);
+          return acc;
+        }, {} as Record<string, typeof data>);
+
+        const lastConvId = Object.keys(conversationGroups)[0];
+        if (lastConvId) {
+          const lastMessages = conversationGroups[lastConvId]
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .map(msg => ({
+              role: msg.role as 'user' | 'assistant',
+              content: msg.content
+            }));
+
+          setCfoConversationHistory(lastMessages);
+          setConversationId(lastConvId);
+          console.log('✅ Încărcat istoric CFO:', lastMessages.length, 'mesaje');
+        }
+      }
+    } catch (err) {
+      console.error('Error loading CFO conversation:', err);
+    }
+  };
 
   const handleRefreshDashboard = async () => {
     setLoading(true);
@@ -161,12 +211,24 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         return;
       }
 
+      // Salvează întrebarea în baza de date
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: 'user',
+          content: question,
+          metadata: { type: 'cfo' }
+        });
+      }
+
       const { data: cfoResponseData, error } = await supabase.functions.invoke('cfo-advisor', {
         body: {
           userId,
           question,
           financialData: data,
-          conversationId: crypto.randomUUID()
+          conversationId
         }
       });
 
@@ -177,6 +239,18 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         role: 'assistant',
         content: cfoResponseData.answer
       }]);
+
+      // Salvează răspunsul în baza de date
+      if (user) {
+        await supabase.from('conversation_history').insert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: cfoResponseData.answer,
+          metadata: { type: 'cfo' }
+        });
+        console.log('✅ Conversație CFO salvată în BD');
+      }
       
       toast({
         title: "✅ Răspuns primit",
