@@ -17,6 +17,9 @@ import {
   TrendingUp
 } from "lucide-react";
 import { YanaCFODashboard } from "@/components/YanaCFODashboard";
+import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ContextualHelp } from "@/components/ContextualHelp";
 
 interface Message {
   role: "user" | "assistant";
@@ -330,61 +333,30 @@ export default function StrategicAdvisor() {
 
   // Loading state
   if (isCheckingAccess) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Verificare acces...</p>
-        </div>
-      </div>
-    );
+    return <LoadingOverlay message="Verificare acces..." />;
   }
 
   // No access state
   if (!hasAccess) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="max-w-md p-8 text-center">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-          <h2 className="text-2xl font-bold mb-4">
-            {creditRemaining === 0 ? "Credit Epuizat" : "Acces Restricționat"}
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            <strong>Yana Strategică</strong> este disponibilă EXCLUSIV pentru utilizatori cu <strong>Planul Antreprenor</strong>.
-          </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            {creditRemaining === 0 ? (
-              <>
-                Ai epuizat creditul disponibil. 
-                Pentru a continua, <strong>cumpără credite AI</strong> sau activează <strong>Planul Antreprenor (49 lei/lună)</strong> pentru acces la platforma de bază.
-              </>
-            ) : (
-              <>
-                Această funcționalitate necesită <strong>Planul Antreprenor</strong>. 
-                Toți antreprenorii primesc <strong>10 lei credit inițial</strong> și pot achiziționa credite suplimentare pentru Yana Strategică.
-              </>
-            )}
-          </p>
-          <div className="flex flex-col gap-3">
-            {creditRemaining === 0 ? (
-              <>
-                <Button onClick={() => navigate("/my-ai-costs")} size="lg">
-                  Cumpără Credite AI
-                </Button>
-                <Button variant="outline" onClick={() => navigate("/subscription")}>
-                  Activează Planul Antreprenor
-                </Button>
-              </>
-            ) : (
-              <Button onClick={() => navigate("/subscription")} size="lg">
-                Activează Planul Antreprenor
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => navigate("/app")}>
-              Înapoi la Dashboard
-            </Button>
-          </div>
-        </Card>
+        <EmptyState
+          icon={<AlertCircle className="w-16 h-16" />}
+          title={creditRemaining === 0 ? "Credit Epuizat" : "Acces Restricționat"}
+          description={
+            creditRemaining === 0 
+              ? "Ai epuizat creditul disponibil. Pentru a continua, cumpără credite AI sau activează Planul Antreprenor (49 lei/lună)."
+              : "Yana Strategică este disponibilă EXCLUSIV pentru utilizatori cu Planul Antreprenor. Toți antreprenorii primesc 10 lei credit inițial."
+          }
+          action={{
+            label: creditRemaining === 0 ? "Cumpără Credite AI" : "Activează Planul Antreprenor",
+            onClick: () => navigate(creditRemaining === 0 ? "/my-ai-costs" : "/subscription")
+          }}
+          secondaryAction={{
+            label: "Înapoi la Dashboard",
+            onClick: () => navigate("/app")
+          }}
+        />
       </div>
     );
   }
@@ -393,7 +365,7 @@ export default function StrategicAdvisor() {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur p-4">
+      <header className="border-b bg-card/50 backdrop-blur p-4 animate-appear">
         <div className="container mx-auto max-w-4xl">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -402,17 +374,24 @@ export default function StrategicAdvisor() {
                 size="icon"
                 onClick={() => navigate('/app')}
                 aria-label="Înapoi la aplicație"
+                className="btn-hover-lift"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
                 <Brain className="w-6 h-6 text-primary" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">Yana Strategică</h1>
-                <p className="text-sm text-muted-foreground">
-                  Consultant AI Strategic & CFO Dashboard
-                </p>
+              <div className="flex items-center gap-2">
+                <div>
+                  <h1 className="text-2xl font-bold">Yana Strategică</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Consultant AI Strategic & CFO Dashboard
+                  </p>
+                </div>
+                <ContextualHelp
+                  title="Yana Strategică"
+                  content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive, sau consultă CFO Dashboard pentru indicatori financiari."
+                />
               </div>
             </div>
             
@@ -461,7 +440,7 @@ export default function StrategicAdvisor() {
                   variant="outline"
                   size="sm"
                   onClick={startNewConversation}
-                  className="gap-2"
+                  className="gap-2 btn-hover-lift"
                 >
                   <MessageSquarePlus className="w-4 h-4" />
                   Conversație Nouă

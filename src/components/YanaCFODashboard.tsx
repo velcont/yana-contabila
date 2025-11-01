@@ -21,6 +21,9 @@ import { CFOChatInterface } from './cfo/CFOChatInterface';
 import { RunwayCard } from './cfo/RunwayCard';
 import { FinancialSnapshot } from './cfo/FinancialSnapshot';
 import { SourceDataCard } from './cfo/SourceDataCard';
+import { LoadingSpinner } from './ui/skeleton-loader';
+import { EmptyState } from './ui/empty-state';
+import { ContextualHelp } from './ContextualHelp';
 
 // Lazy load Recharts heavy components
 const CashFlowChart = lazy(() => import('./cfo/CashFlowChart').then(m => ({ default: m.CashFlowChart })));
@@ -29,7 +32,7 @@ const FinancialAlerts = lazy(() => import('./cfo/FinancialAlerts').then(m => ({ 
 
 const ChartLoader = () => (
   <div className="flex items-center justify-center min-h-[300px]">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <LoadingSpinner size="lg" />
   </div>
 );
 
@@ -427,51 +430,25 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
       {/* 6. EMPTY STATE */}
       {!financialData && !isLoading && (
-        <Card className="border-2 border-dashed">
-          <CardContent className="pt-8 pb-8 text-center max-w-md mx-auto">
-            <div className="mb-4">
-              <FileBarChart className="w-16 h-16 mx-auto text-muted-foreground/50" />
-            </div>
-            <h3 className="text-xl font-semibold mb-3">
-              CFO Dashboard Gol
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              CFO Dashboard afișează date financiare din <strong>analiza balanței tale</strong>.
-            </p>
-            <Alert className="text-left mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Cum funcționează?</AlertTitle>
-              <AlertDescription>
-                <ol className="list-decimal ml-4 mt-2 space-y-1 text-sm">
-                  <li>Mergi la tab-ul <strong>"💬 Chat Strategist"</strong></li>
-                  <li>Încarcă balanța ta (.xls/.xlsx)</li>
-                  <li>Revino aici pentru dashboard-ul CFO</li>
-                </ol>
-              </AlertDescription>
-            </Alert>
-            <div className="flex flex-col gap-2">
-              <Button 
-                size="lg" 
-                onClick={() => {
-                  const tabsList = document.querySelector('[role="tablist"]');
-                  const chatTab = tabsList?.querySelector('[value="chat"]');
-                  if (chatTab instanceof HTMLElement) {
-                    chatTab.click();
-                  }
-                }}
-                className="w-full"
-              >
-                💬 Mergi la Chat pentru Upload
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.href = '/app'}
-              >
-                ↩️ Înapoi la Dashboard Principal
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<FileBarChart className="w-16 h-16" />}
+          title="CFO Dashboard Gol"
+          description="CFO Dashboard afișează date financiare din analiza balanței tale. Mergi la tab-ul 'Chat Strategist', încarcă balanța ta (.xls/.xlsx) și revino aici pentru dashboard-ul complet."
+          action={{
+            label: "💬 Mergi la Chat pentru Upload",
+            onClick: () => {
+              const tabsList = document.querySelector('[role="tablist"]');
+              const chatTab = tabsList?.querySelector('[value="chat"]');
+              if (chatTab instanceof HTMLElement) {
+                chatTab.click();
+              }
+            }
+          }}
+          secondaryAction={{
+            label: "↩️ Înapoi la Dashboard Principal",
+            onClick: () => window.location.href = '/app'
+          }}
+        />
       )}
 
       {/* CFO Response Dialog */}

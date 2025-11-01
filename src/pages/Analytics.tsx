@@ -17,6 +17,8 @@ import {
   Edit,
   Star
 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/skeleton-loader';
+import { ContextualHelp } from '@/components/ContextualHelp';
 import { 
   BarChart, 
   Bar, 
@@ -231,7 +233,7 @@ export default function Analytics() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <LoadingSpinner size="lg" />
           <p className="mt-4 text-muted-foreground">Se încarcă statisticile...</p>
         </div>
       </div>
@@ -256,20 +258,26 @@ export default function Analytics() {
   }));
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl animate-appear">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-8 w-8" />
-            Dashboard Analytics AI
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Statistici despre comportamentul utilizatorilor și performanța AI-ului
-          </p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <BarChart3 className="h-8 w-8" />
+              Dashboard Analytics AI
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Statistici despre comportamentul utilizatorilor și performanța AI-ului
+            </p>
+          </div>
+          <ContextualHelp
+            title="Analytics Dashboard"
+            content="Monitorizează pattern-urile de întrebări, feedback-ul utilizatorilor și performanța AI. Optimizează răspunsurile din Knowledge Base pentru rezultate mai bune."
+          />
         </div>
         <div className="flex items-center gap-3">
           <SubscriptionBadge />
-          <Badge variant="secondary" className="text-lg px-4 py-2">
+          <Badge variant="secondary" className="text-lg px-4 py-2 badge-pulse">
             <Users className="h-4 w-4 mr-2" />
             Admin View
           </Badge>
@@ -278,7 +286,7 @@ export default function Analytics() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="card-hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Total Conversații
@@ -293,7 +301,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Pattern-uri Învățate
@@ -308,7 +316,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Feedback Pozitiv
@@ -323,7 +331,7 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Feedback Negativ
@@ -344,7 +352,7 @@ export default function Analytics() {
       {/* Grafice principale */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Top Întrebări */}
-        <Card>
+        <Card className="card-hover-scale">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
@@ -366,7 +374,7 @@ export default function Analytics() {
         </Card>
 
         {/* Categorii Populare */}
-        <Card>
+        <Card className="card-hover-scale">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
