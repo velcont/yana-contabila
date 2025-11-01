@@ -115,8 +115,8 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Comparație Perioade</CardTitle>
-        <CardDescription>Compară indicatorii financiari între 2 perioade</CardDescription>
+        <CardTitle className="break-words">Comparație Perioade</CardTitle>
+        <CardDescription className="break-words">Compară indicatorii financiari între 2 perioade</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -128,8 +128,9 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
               </SelectTrigger>
               <SelectContent>
                 {validAnalyses.map(a => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.file_name} ({new Date(a.created_at).toLocaleDateString('ro-RO')})
+                  <SelectItem key={a.id} value={a.id} className="break-words overflow-wrap-anywhere">
+                    <span className="block max-w-full break-words">{a.file_name}</span>
+                    <span className="text-xs text-muted-foreground">({new Date(a.created_at).toLocaleDateString('ro-RO')})</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -144,8 +145,9 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
               </SelectTrigger>
               <SelectContent>
                 {validAnalyses.map(a => (
-                  <SelectItem key={a.id} value={a.id} disabled={a.id === period1}>
-                    {a.file_name} ({new Date(a.created_at).toLocaleDateString('ro-RO')})
+                  <SelectItem key={a.id} value={a.id} disabled={a.id === period1} className="break-words overflow-wrap-anywhere">
+                    <span className="block max-w-full break-words">{a.file_name}</span>
+                    <span className="text-xs text-muted-foreground">({new Date(a.created_at).toLocaleDateString('ro-RO')})</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -168,11 +170,11 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
             )}
             
             <div className="space-y-3">
-            <div className="grid grid-cols-4 gap-4 pb-2 border-b font-medium text-sm">
-              <div>Indicator</div>
-              <div className="text-right">Perioada 1</div>
-              <div className="text-right">Perioada 2</div>
-              <div className="text-right">Diferență</div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pb-2 border-b font-medium text-sm">
+              <div className="break-words">Indicator</div>
+              <div className="text-right break-words">Perioada 1</div>
+              <div className="text-right break-words">Perioada 2</div>
+              <div className="text-right break-words">Diferență</div>
             </div>
 
             {metrics.map(metric => {
@@ -181,15 +183,17 @@ const CompareAnalyses = ({ analyses }: CompareAnalysesProps) => {
               const diff = val1 !== null && val2 !== null ? calculateDiff(val1, val2) : null;
 
               return (
-                <div key={metric.key} className="grid grid-cols-4 gap-4 items-center py-2 hover:bg-muted/50 rounded px-2">
-                  <div className="font-medium text-sm">{metric.label}</div>
-                  <div className="text-right text-sm text-muted-foreground">
+                <div key={metric.key} className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4 items-start sm:items-center py-2 hover:bg-muted/50 rounded px-2">
+                  <div className="font-medium text-sm break-words">{metric.label}</div>
+                  <div className="text-left sm:text-right text-sm text-muted-foreground break-words overflow-wrap-anywhere">
+                    <span className="sm:hidden font-medium">P1: </span>
                     {val1 !== undefined && val1 !== null ? metric.formatter(val1) : 'N/A'}
                   </div>
-                  <div className="text-right text-sm font-medium">
+                  <div className="text-left sm:text-right text-sm font-medium break-words overflow-wrap-anywhere">
+                    <span className="sm:hidden font-medium">P2: </span>
                     {val2 !== undefined && val2 !== null ? metric.formatter(val2) : 'N/A'}
                   </div>
-                  <div className="text-right">{renderDiffBadge(diff)}</div>
+                  <div className="text-left sm:text-right">{renderDiffBadge(diff)}</div>
                 </div>
               );
             })}

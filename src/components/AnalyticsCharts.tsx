@@ -148,7 +148,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
       {/* Financial Scorecard */}
       <Card>
         <CardHeader>
-          <CardTitle>Scor Sănătate Financiară</CardTitle>
+          <CardTitle className="break-words">Scor Sănătate Financiară</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
@@ -179,8 +179,8 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
               { label: 'Datorii', value: (latestAnalysis.metadata.soldFurnizori || 0) < (latestAnalysis.metadata.soldClienti || 0) ? 'OK' : 'Risc', status: (latestAnalysis.metadata.soldFurnizori || 0) < (latestAnalysis.metadata.soldClienti || 0) },
             ].map((item, idx) => (
               <div key={idx} className="text-center p-3 rounded-lg bg-muted/50">
-                <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
-                <div className={`text-sm font-semibold ${item.status ? 'text-success' : 'text-destructive'}`}>
+                <div className="text-xs text-muted-foreground mb-1 break-words">{item.label}</div>
+                <div className={`text-sm font-semibold break-words ${item.status ? 'text-success' : 'text-destructive'}`}>
                   {item.value}
                 </div>
               </div>
@@ -193,7 +193,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
       {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Evoluție Venituri vs Cheltuieli</CardTitle>
+            <CardTitle className="break-words">Evoluție Venituri vs Cheltuieli</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -219,7 +219,7 @@ const AnalyticsCharts = ({ analyses }: AnalyticsChartsProps) => {
       {chartData.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle>Timeline DSO vs DPO</CardTitle>
+            <CardTitle className="break-words">Timeline DSO vs DPO</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

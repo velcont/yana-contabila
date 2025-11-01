@@ -151,7 +151,7 @@ export const TopIssuesWidget = () => {
               
               <div className="flex-1 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="font-semibold text-sm leading-tight">
+                  <h4 className="font-semibold text-sm leading-tight break-words overflow-wrap-anywhere">
                     {issue.title}
                   </h4>
                   <Badge 
@@ -163,7 +163,7 @@ export const TopIssuesWidget = () => {
                   </Badge>
                 </div>
                 
-                <p className="text-xs text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed break-words overflow-wrap-anywhere">
                   {issue.description}
                 </p>
 
@@ -173,7 +173,7 @@ export const TopIssuesWidget = () => {
                     {Object.entries(issue.metadata).slice(0, 3).map(([key, value]) => (
                       <span
                         key={key}
-                        className="text-xs px-2 py-1 bg-muted rounded-md font-mono"
+                        className="text-xs px-2 py-1 bg-muted rounded-md font-mono break-words overflow-wrap-anywhere"
                       >
                         {key}: {typeof value === 'number' ? value.toLocaleString('ro-RO') : String(value)}
                       </span>
