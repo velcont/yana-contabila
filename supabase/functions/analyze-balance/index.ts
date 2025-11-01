@@ -1023,6 +1023,80 @@ serve(async (req) => {
       }
     }
 
+    // ===================================
+    // [VERIFICARE ACCES ABONAMENT] - Opțiunea B
+    // Blocare completă analize după trial pentru non-subscribers
+    // ===================================
+    console.log('[ACCESS-CHECK] Verificare drepturi de acces...');
+    
+    let validatedCount = 0;
+    let userProfile: any = null;
+    
+    if (user) {
+      // Numără analizele cu validare consiliu
+      const { count, error: countError } = await supabaseClient
+        .from('analyses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .not('council_validation', 'is', null);
+      
+      if (!countError) {
+        validatedCount = count || 0;
+      }
+      
+      // Preia profilul utilizatorului
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('subscription_status, subscription_type, trial_ends_at')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profileError && profile) {
+        userProfile = profile;
+      }
+    }
+    
+    // Verifică dacă utilizatorul are drept de analiză
+    const hasFreeAnalysesLeft = validatedCount < 6;
+    const isInTrial = userProfile?.trial_ends_at && new Date(userProfile.trial_ends_at) > new Date();
+    const hasActiveSubscription = userProfile?.subscription_status === 'active' && 
+                                   ['entrepreneur', 'accounting_firm'].includes(userProfile?.subscription_type);
+    
+    const canAnalyze = hasFreeAnalysesLeft || isInTrial || hasActiveSubscription;
+    
+    console.log('[ACCESS-CHECK] Stare acces:', {
+      hasActiveSubscription,
+      isInTrial,
+      trialEndsAt: userProfile?.trial_ends_at,
+      hasFreeAnalysesLeft,
+      validatedCount,
+      canAnalyze
+    });
+    
+    // OPȚIUNEA B: Blocare totală dacă nu are acces
+    if (user && !canAnalyze) {
+      console.log('🚫 [ACCESS-DENIED] Utilizator fără abonament activ - analiză blocată');
+      
+      return new Response(
+        JSON.stringify({
+          error: 'subscription_required',
+          message: 'Abonamentul tău a expirat',
+          details: {
+            freeAnalysesUsed: validatedCount,
+            trialExpired: !isInTrial,
+            needsSubscription: true,
+            upgradeMessage: `🔒 **Abonamentul tău a expirat**\n\nAi utilizat cele 6 analize gratuite și perioada de probă de 30 de zile s-a încheiat.\n\n**Pentru a continua să analizezi balanțe, alege un plan:**\n\n💼 **Plan Antreprenor** - 49 RON/lună\n• Analize nelimitate cu validare Consiliu AI\n• Chat AI strategic pentru decizii financiare\n• Toate funcționalitățile platformei\n\n🏢 **Plan Contabil** - 199 RON/lună\n• Tot ce include Antreprenor\n• Management clienți (CRM)\n• Workflow-uri automatizate\n• White-label și branding personalizat\n\n➡️ [Upgrade acum pentru a continua](/subscription)`
+          }
+        }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    console.log('✅ [ACCESS-CHECK] Utilizator autorizat pentru analiză');
+
     // Check cache pentru balanțe identice (hash pe primele 1000 caractere)
     const textHash = balanceText.slice(0, 1000);
     const cacheKey = `balance_${textHash.length}_${textHash.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)}`;
@@ -1121,86 +1195,38 @@ serve(async (req) => {
 
     console.log("Analiză generată cu succes!");
     
-    // 🔍 VALIDARE CU CONSILIUL DE AI-URI (automat pentru toți userii)
+    // 🔍 VALIDARE CU CONSILIUL DE AI-URI
+    // Dacă utilizatorul a ajuns aici, înseamnă că are dreptul la analiză ȘI validare consiliu
     let councilValidation = null;
-    let shouldValidate = false;
     
     try {
       if (user) {
-        // Verifică numărul de analize validate pentru acest user
-        const { count: validatedCount, error: countError } = await supabaseClient
-          .from('analyses')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .not('council_validation', 'is', null);
-
-        if (countError) {
-          console.error('❌ [AI-COUNCIL] Error checking validated count:', countError);
+        console.log(`📊 [AI-COUNCIL] User has ${validatedCount} validated analyses`);
+        
+        // Determină statusul pentru logging
+        const statusMsg = validatedCount < 6 
+          ? `analiză ${validatedCount + 1}/6 gratuită`
+          : isInTrial 
+            ? `în perioada de trial (până la ${new Date(userProfile.trial_ends_at).toLocaleDateString('ro-RO')})`
+            : `cu abonament ${userProfile.subscription_type}`;
+        
+        console.log(`✅ [AI-COUNCIL] Validare inclusă - ${statusMsg}`);
+        console.log("🔍 [AI-COUNCIL] Starting automatic validation...");
+        
+        const councilResponse = await supabaseClient.functions.invoke('validate-analysis-with-council', {
+          body: {
+            metadata: deterministic_metadata,
+            analysisText: analysis,
+            balanceText: balanceText.slice(0, 5000),
+            userId: user.id
+          }
+        });
+        
+        if (councilResponse.error) {
+          console.error("❌ [AI-COUNCIL] Validation error:", councilResponse.error);
         } else {
-          console.log(`📊 [AI-COUNCIL] User has ${validatedCount || 0} validated analyses`);
-          
-          // Primele 6 analize sunt GRATUITE pentru toți (inclusiv trial)
-          if ((validatedCount || 0) < 6) {
-            shouldValidate = true;
-            console.log(`✅ [AI-COUNCIL] Analiză ${(validatedCount || 0) + 1}/6 gratuită`);
-          } else {
-            // După 6 analize: Verifică dacă user are abonament activ
-            const { data: profile, error: profileError } = await supabaseClient
-              .from('profiles')
-              .select('subscription_status, subscription_type, trial_ends_at')
-              .eq('id', user.id)
-              .single();
-            
-            if (!profileError && profile) {
-              // Verifică dacă e în perioada de trial SAU are abonament plătit activ
-              const isInTrial = profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date();
-              const hasActiveSubscription = profile.subscription_status === 'active' && 
-                                           ['entrepreneur', 'accounting_firm'].includes(profile.subscription_type);
-              
-              if (isInTrial || hasActiveSubscription) {
-                shouldValidate = true;
-                const statusMsg = isInTrial 
-                  ? `în perioada de trial (până la ${new Date(profile.trial_ends_at).toLocaleDateString('ro-RO')})`
-                  : `cu abonament ${profile.subscription_type}`;
-                console.log(`✅ [AI-COUNCIL] Validare inclusă ${statusMsg}`);
-              } else {
-                shouldValidate = false;
-                console.log(`⚠️ [AI-COUNCIL] Necesită abonament activ pentru validare consiliu`);
-              }
-            } else {
-              console.log(`⚠️ [AI-COUNCIL] Eroare la verificare profil:`, profileError);
-            }
-          }
-        }
-
-        if (shouldValidate) {
-          console.log("🔍 [AI-COUNCIL] Starting automatic validation...");
-          
-          const councilResponse = await supabaseClient.functions.invoke('validate-analysis-with-council', {
-            body: {
-              metadata: deterministic_metadata,
-              analysisText: analysis,
-              balanceText: balanceText.slice(0, 5000),
-              userId: user.id
-            }
-          });
-          
-          if (councilResponse.error) {
-            console.error("❌ [AI-COUNCIL] Validation error:", councilResponse.error);
-          } else {
-            councilValidation = councilResponse.data;
-            console.log(`✅ [AI-COUNCIL] Validation complete - Verdict: ${councilValidation?.consensus?.verdict}`);
-          }
-        } else {
-          console.log("⏭️ [AI-COUNCIL] Validare dezactivată - necesită abonament activ");
-          
-          // Adaugă mesaj informativ în analiză pentru upgrade
-          if (validatedCount && validatedCount >= 6) {
-            councilValidation = {
-              needsSubscription: true,
-              message: "Validarea consiliului AI necesită abonament activ"
-            };
-          }
+          councilValidation = councilResponse.data;
+          console.log(`✅ [AI-COUNCIL] Validation complete - Verdict: ${councilValidation?.consensus?.verdict}`);
         }
       }
     } catch (councilError) {
@@ -1473,19 +1499,7 @@ serve(async (req) => {
     // Adaugă badge de validare consiliu AI la analiza finală
     let finalAnalysisText = analysis;
     if (councilValidation) {
-      if (councilValidation.needsSubscription) {
-        // Mesaj pentru utilizatori fără abonament după 6 analize gratuite
-        finalAnalysisText += `\n\n---\n`;
-        finalAnalysisText += `💎 **Validare Consiliu AI disponibilă cu abonament**\n\n`;
-        finalAnalysisText += `Ai epuizat cele 6 analize gratuite cu validare consiliu AI. Pentru validare automată cu 3 AI-uri specializate (Contabil Expert, Auditor Financiar, CFO Strategic), upgrade la:\n\n`;
-        finalAnalysisText += `• **Plan Antreprenor** (49 RON/lună) - Validare consiliu AI inclusă pentru toate analizele\n`;
-        finalAnalysisText += `• **Plan Contabil** (199 RON/lună) - Validare premium pentru toți clienții tăi\n\n`;
-        finalAnalysisText += `**Beneficii validare consiliu:**\n`;
-        finalAnalysisText += `✓ Detecție automată anomalii cross-validate\n`;
-        finalAnalysisText += `✓ Verificare independentă de 3 AI-uri specializate\n`;
-        finalAnalysisText += `✓ Recomandări strategice personalizate\n`;
-        finalAnalysisText += `✓ Încredere sporită în acuratețea analizelor\n`;
-      } else if (councilValidation.validated && councilValidation.confidence >= 80) {
+      if (councilValidation.validated && councilValidation.confidence >= 80) {
         finalAnalysisText += `\n\n---\n✅ **Validat de Consiliul AI** (Confidence: ${councilValidation.confidence}%)\n`;
         finalAnalysisText += `Această analiză a fost verificată de 3 AI-uri specializate (Contabil Expert, Auditor Financiar, CFO Strategic).\n`;
         
