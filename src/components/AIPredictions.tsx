@@ -161,21 +161,21 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Predicții AI - Următoarele 3 Luni
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0 w-full">
+              <CardTitle className="flex items-center gap-2 flex-wrap break-words">
+                <Sparkles className="h-5 w-5 text-primary flex-shrink-0" />
+                <span className="break-words">Predicții AI - Următoarele 3 Luni</span>
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1 break-words">
                 Scenarii realiste bazate pe date istorice și contextul economic actual
               </p>
               
               {/* Business Sector Selector */}
-              <div className="mt-4 max-w-md">
-                <Label htmlFor="business-sector" className="flex items-center gap-2 mb-2">
-                  <Building2 className="h-4 w-4" />
-                  <span className="font-semibold">Domeniul de activitate al firmei</span>
+              <div className="mt-4 max-w-md w-full">
+                <Label htmlFor="business-sector" className="flex items-center gap-2 mb-2 break-words">
+                  <Building2 className="h-4 w-4 flex-shrink-0" />
+                  <span className="font-semibold break-words">Domeniul de activitate al firmei</span>
                 </Label>
                 <Select value={businessSector} onValueChange={setBusinessSector}>
                   <SelectTrigger id="business-sector">
@@ -199,7 +199,7 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                     <SelectItem value="other">Altele</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-1 break-words">
                   Acest lucru ajută AI-ul să folosească date macroeconomice relevante sectorului tău
                 </p>
               </div>
@@ -207,7 +207,7 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
             <Button
               onClick={generatePredictions}
               disabled={isLoading || analyses.length < 2 || !businessSector}
-              className="gap-2"
+              className="gap-2 flex-shrink-0 w-full sm:w-auto"
             >
               {isLoading ? (
                 <>
@@ -239,11 +239,11 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
               {originalPredictions.length > 0 && (
                 <Card className="border-2 border-primary/20 bg-primary/5">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Lightbulb className="h-5 w-5 text-primary" />
-                      Simulări Interactive "What If"
+                    <CardTitle className="flex items-center gap-2 text-lg flex-wrap break-words">
+                      <Lightbulb className="h-5 w-5 text-primary flex-shrink-0" />
+                      <span className="break-words">Simulări Interactive "What If"</span>
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground break-words">
                       Ajustează variabilele pentru a vedea impactul asupra predicțiilor
                     </p>
                   </CardHeader>
@@ -251,8 +251,8 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                     <div className="space-y-4">
                       {/* Revenue Change */}
                       <div className="space-y-2">
-                        <Label className="flex justify-between">
-                          <span>Schimbare Venituri</span>
+                        <Label className="flex flex-col sm:flex-row justify-between gap-1">
+                          <span className="break-words">Schimbare Venituri</span>
                           <span className="font-mono text-sm">
                             {revenueChange > 0 ? '+' : ''}{revenueChange}%
                           </span>
@@ -265,15 +265,15 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                           step={5}
                           className="w-full"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground break-words overflow-wrap-anywhere">
                           Ce se întâmplă dacă veniturile {revenueChange >= 0 ? 'cresc' : 'scad'} cu {Math.abs(revenueChange)}%?
                         </p>
                       </div>
 
                       {/* Expense Change */}
                       <div className="space-y-2">
-                        <Label className="flex justify-between">
-                          <span>Schimbare Cheltuieli</span>
+                        <Label className="flex flex-col sm:flex-row justify-between gap-1">
+                          <span className="break-words">Schimbare Cheltuieli</span>
                           <span className="font-mono text-sm">
                             {expenseChange > 0 ? '+' : ''}{expenseChange}%
                           </span>
@@ -286,15 +286,15 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                           step={5}
                           className="w-full"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground break-words overflow-wrap-anywhere">
                           Ce se întâmplă dacă cheltuielile {expenseChange >= 0 ? 'cresc' : 'scad'} cu {Math.abs(expenseChange)}%?
                         </p>
                       </div>
 
                       {/* DSO Delay */}
                       <div className="space-y-2">
-                        <Label className="flex justify-between">
-                          <span>Întârziere Încasări (DSO)</span>
+                        <Label className="flex flex-col sm:flex-row justify-between gap-1">
+                          <span className="break-words">Întârziere Încasări (DSO)</span>
                           <span className="font-mono text-sm">+{dsoDelay} zile</span>
                         </Label>
                         <Slider
@@ -305,13 +305,13 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                           step={5}
                           className="w-full"
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground break-words overflow-wrap-anywhere">
                           Cum arată cash flow-ul dacă clienții întârzie cu {dsoDelay} zile?
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
                         onClick={applySimulation}
                         className="flex-1"
@@ -324,6 +324,7 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                         <Button 
                           onClick={resetSimulation}
                           variant="outline"
+                          className="w-full sm:w-auto"
                         >
                           Reset
                         </Button>
@@ -332,11 +333,11 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
 
                     {showSimulation && (
                       <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                        <p className="text-sm font-medium text-primary flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4" />
-                          Simulare Activă
+                        <p className="text-sm font-medium text-primary flex items-center gap-2 break-words">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                          <span className="break-words">Simulare Activă</span>
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground mt-1 break-words">
                           Predicțiile afișate reflectă scenariul ajustat
                         </p>
                       </div>
@@ -348,21 +349,21 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
               {predictions.map((prediction, idx) => (
                 <Card key={idx} className="border-2">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <CardTitle className="text-lg break-words overflow-wrap-anywhere">
                         {prediction.timeframe}
                       </CardTitle>
-                      <Badge className={getScenarioColor(prediction.scenario)}>
+                      <Badge className={`${getScenarioColor(prediction.scenario)} flex-shrink-0`}>
                         {getScenarioLabel(prediction.scenario)}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Forecast Summary */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 rounded-lg bg-muted">
-                        <p className="text-sm text-muted-foreground mb-1">Cash Flow Estimat</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-sm text-muted-foreground mb-1 break-words">Cash Flow Estimat</p>
+                        <p className="text-2xl font-bold break-words overflow-wrap-anywhere">
                           {formatCurrency(prediction.cash_flow)}
                         </p>
                         {prediction.cash_flow > 0 ? (
@@ -372,8 +373,8 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                         )}
                       </div>
                       <div className="p-4 rounded-lg bg-muted">
-                        <p className="text-sm text-muted-foreground mb-1">Venituri Estimate</p>
-                        <p className="text-2xl font-bold">
+                        <p className="text-sm text-muted-foreground mb-1 break-words">Venituri Estimate</p>
+                        <p className="text-2xl font-bold break-words overflow-wrap-anywhere">
                           {formatCurrency(prediction.revenue_forecast)}
                         </p>
                       </div>
@@ -382,15 +383,15 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                     {/* Key Risks */}
                     {prediction.key_risks.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-destructive" />
-                          Riscuri Identificate
+                        <h4 className="font-semibold text-sm flex items-center gap-2 break-words">
+                          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+                          <span className="break-words">Riscuri Identificate</span>
                         </h4>
                         <ul className="space-y-1">
                           {prediction.key_risks.map((risk, riskIdx) => (
                             <li key={riskIdx} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-destructive mt-1">•</span>
-                              {risk}
+                              <span className="text-destructive mt-1 flex-shrink-0">•</span>
+                              <span className="break-words overflow-wrap-anywhere">{risk}</span>
                             </li>
                           ))}
                         </ul>
@@ -400,15 +401,15 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                     {/* Opportunities */}
                     {prediction.opportunities.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-success" />
-                          Oportunități
+                        <h4 className="font-semibold text-sm flex items-center gap-2 break-words">
+                          <TrendingUp className="h-4 w-4 text-success flex-shrink-0" />
+                          <span className="break-words">Oportunități</span>
                         </h4>
                         <ul className="space-y-1">
                           {prediction.opportunities.map((opp, oppIdx) => (
                             <li key={oppIdx} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-success mt-1">•</span>
-                              {opp}
+                              <span className="text-success mt-1 flex-shrink-0">•</span>
+                              <span className="break-words overflow-wrap-anywhere">{opp}</span>
                             </li>
                           ))}
                         </ul>
@@ -418,15 +419,15 @@ export const AIPredictions = ({ analyses }: AIPredictionsProps) => {
                     {/* Recommended Actions */}
                     {prediction.recommended_actions.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-sm flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          Acțiuni Recomandate
+                        <h4 className="font-semibold text-sm flex items-center gap-2 break-words">
+                          <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                          <span className="break-words">Acțiuni Recomandate</span>
                         </h4>
                         <ul className="space-y-1">
                           {prediction.recommended_actions.map((action, actionIdx) => (
                             <li key={actionIdx} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-primary mt-1">→</span>
-                              {action}
+                              <span className="text-primary mt-1 flex-shrink-0">→</span>
+                              <span className="break-words overflow-wrap-anywhere">{action}</span>
                             </li>
                           ))}
                         </ul>
