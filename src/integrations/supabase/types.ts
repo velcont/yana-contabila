@@ -478,6 +478,7 @@ export type Database = {
           analysis_text: string
           company_id: string | null
           company_name: string | null
+          council_validation: Json | null
           created_at: string
           file_name: string
           id: string
@@ -490,6 +491,7 @@ export type Database = {
           analysis_text: string
           company_id?: string | null
           company_name?: string | null
+          council_validation?: Json | null
           created_at?: string
           file_name: string
           id?: string
@@ -502,6 +504,7 @@ export type Database = {
           analysis_text?: string
           company_id?: string | null
           company_name?: string | null
+          council_validation?: Json | null
           created_at?: string
           file_name?: string
           id?: string

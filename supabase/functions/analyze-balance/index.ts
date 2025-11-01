@@ -1121,6 +1121,75 @@ serve(async (req) => {
 
     console.log("Analiză generată cu succes!");
     
+    // 🔍 VALIDARE CU CONSILIUL DE AI-URI (automat pentru toți userii)
+    let councilValidation = null;
+    let shouldValidate = false;
+    
+    try {
+      if (user) {
+        // Verifică numărul de analize validate pentru acest user
+        const { count: validatedCount, error: countError } = await supabaseClient
+          .from('analyses')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .not('council_validation', 'is', null);
+
+        if (countError) {
+          console.error('❌ [AI-COUNCIL] Error checking validated count:', countError);
+        } else {
+          console.log(`📊 [AI-COUNCIL] User has ${validatedCount || 0} validated analyses`);
+          
+          // Primele 6 sunt gratuite
+          if ((validatedCount || 0) < 6) {
+            shouldValidate = true;
+            console.log(`✅ [AI-COUNCIL] Free validation (${validatedCount}/6)`);
+          } else {
+            // După 6, verifică dacă are credite AI disponibile
+            const { data: creditData, error: creditError } = await supabaseClient
+              .rpc('get_monthly_ai_usage', { user_id_param: user.id });
+            
+            if (!creditError && creditData && creditData.length > 0) {
+              const usage = creditData[0];
+              const remainingBudget = (usage.monthly_budget_usd || 10) - (usage.total_cost_usd || 0);
+              
+              // Verifică dacă are minim $0.15 disponibil (cost estimativ pentru validare consiliu)
+              if (remainingBudget >= 0.15) {
+                shouldValidate = true;
+                console.log(`💰 [AI-COUNCIL] Paid validation (${remainingBudget.toFixed(2)} USD remaining)`);
+              } else {
+                console.log(`⚠️ [AI-COUNCIL] Insufficient credits (${remainingBudget.toFixed(2)} USD remaining, need $0.15)`);
+              }
+            }
+          }
+        }
+
+        if (shouldValidate) {
+          console.log("🔍 [AI-COUNCIL] Starting automatic validation...");
+          
+          const councilResponse = await supabaseClient.functions.invoke('validate-analysis-with-council', {
+            body: {
+              metadata: deterministic_metadata,
+              analysisText: analysis,
+              balanceText: balanceText.slice(0, 5000),
+              userId: user.id
+            }
+          });
+          
+          if (councilResponse.error) {
+            console.error("❌ [AI-COUNCIL] Validation error:", councilResponse.error);
+          } else {
+            councilValidation = councilResponse.data;
+            console.log(`✅ [AI-COUNCIL] Validation complete - Verdict: ${councilValidation?.consensus?.verdict}`);
+          }
+        } else {
+          console.log("⏭️ [AI-COUNCIL] Skipping validation (no credits or limit reached)");
+        }
+      }
+    } catch (councilError) {
+      console.error('❌ [AI-COUNCIL] Validation failed:', councilError);
+      // Continue fără validare dacă apare eroare
+    }
+    
     // Cache analiza pentru 6 ore
     if (user && analysis && analysis.length > 100) {
       await supabaseClient.from("chat_cache").insert({
@@ -1359,10 +1428,21 @@ serve(async (req) => {
       const metadataValues = Object.values(finalMetadata).filter(v => typeof v === 'number');
       const hasValidData = metadataValues.some(v => v > 0) || metadataValues.filter(v => v !== 0).length >= 3;
       
+      // Adaugă badge consiliu AI
+      let finalAnalysisWithWarnings = analysis + warningsSection;
+      if (councilValidation) {
+        if (councilValidation.validated && councilValidation.confidence >= 80) {
+          finalAnalysisWithWarnings += `\n\n---\n✅ **Validat de Consiliul AI** (${councilValidation.confidence}%)\n`;
+        } else if (councilValidation.consensus?.verdict === "REQUIRES_REVIEW") {
+          finalAnalysisWithWarnings += `\n\n---\n⚠️ **Consiliul AI recomandă verificare suplimentară**\n`;
+        }
+      }
+      
       return new Response(
         JSON.stringify({ 
-          analysis: analysis + warningsSection,
-          metadata: hasValidData ? finalMetadata : null
+          analysis: finalAnalysisWithWarnings,
+          metadata: hasValidData ? finalMetadata : null,
+          councilValidation: councilValidation
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -1372,10 +1452,29 @@ serve(async (req) => {
     const metadataValues = Object.values(finalMetadata).filter(v => typeof v === 'number');
     const hasValidData = metadataValues.some(v => v > 0) || metadataValues.filter(v => v !== 0).length >= 3;
     
+    // Adaugă badge de validare consiliu AI la analiza finală
+    let finalAnalysisText = analysis;
+    if (councilValidation) {
+      if (councilValidation.validated && councilValidation.confidence >= 80) {
+        finalAnalysisText += `\n\n---\n✅ **Validat de Consiliul AI** (Confidence: ${councilValidation.confidence}%)\n`;
+        finalAnalysisText += `Această analiză a fost verificată de 3 AI-uri specializate (Contabil Expert, Auditor Financiar, CFO Strategic).\n`;
+        
+        if (councilValidation.recommendations && councilValidation.recommendations.length > 0) {
+          finalAnalysisText += `\n**Recomandări consiliu:**\n${councilValidation.recommendations.slice(0, 3).map((r: string) => `• ${r}`).join('\n')}\n`;
+        }
+      } else if (councilValidation.consensus?.verdict === "REQUIRES_REVIEW") {
+        finalAnalysisText += `\n\n---\n⚠️ **Necesită Verificare**: Consiliul AI a detectat aspecte care necesită atenție suplimentară.\n`;
+        if (councilValidation.alerts && councilValidation.alerts.length > 0) {
+          finalAnalysisText += `\n**Alerte detectate:**\n${councilValidation.alerts.slice(0, 3).map((a: string) => `• ${a}`).join('\n')}\n`;
+        }
+      }
+    }
+    
     return new Response(
       JSON.stringify({ 
-        analysis,
-        metadata: hasValidData ? finalMetadata : null
+        analysis: finalAnalysisText,
+        metadata: hasValidData ? finalMetadata : null,
+        councilValidation: councilValidation
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

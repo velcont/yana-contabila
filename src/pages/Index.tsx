@@ -263,12 +263,16 @@ const Index = () => {
                   file_name: file.name,
                   analysis_text: data.analysis,
                   company_name: companyName.trim() || 'Firmă nouă',
-                  metadata: indicators as any
+                  metadata: indicators as any,
+                  council_validation: data.councilValidation || null
                 });
               
               if (saveError) throw saveError;
               
-              console.log('✅ [FRONTEND] Analiză salvată cu', Object.keys(indicators).length, 'indicatori');
+              const validationStatus = data.councilValidation?.validated ? 
+                `✅ Validat de Consiliul AI (${data.councilValidation.confidence}%)` : 
+                '';
+              console.log('✅ [FRONTEND] Analiză salvată cu', Object.keys(indicators).length, 'indicatori', validationStatus);
             } catch (saveError) {
               console.error('❌ [FRONTEND] Eroare salvare:', saveError);
               failCount++;
