@@ -1404,15 +1404,35 @@ serve(async (req) => {
       }
     }
     
+    // Verifică dacă user-ul este admin pentru a afișa corecțiile
+    let isAdmin = false;
+    if (user) {
+      const { data: adminCheck } = await supabaseClient.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      isAdmin = adminCheck === true;
+    }
+    
     if (corrections.length > 0) {
-      const correctionsSection = `\n\n🔴 **CORECȚII AUTOMATE - VALORI INCORECTE DETECTATE ÎN ANALIZĂ**\n\n${corrections.join('\n\n')}`;
-      return new Response(
-        JSON.stringify({ 
-          analysis: analysis + correctionsSection,
-          metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Loghează corecțiile pentru debugging (vizibile în Supabase logs)
+      console.log('⚠️ [CORRECTIONS] Detected', corrections.length, 'automatic corrections');
+      corrections.forEach((corr, idx) => {
+        console.log(`   Correction ${idx + 1}:`, corr.substring(0, 100));
+      });
+      
+      // Adaugă corecțiile în analiză DOAR pentru admini
+      if (isAdmin) {
+        const correctionsSection = `\n\n🔴 **CORECȚII AUTOMATE - VALORI INCORECTE DETECTATE ÎN ANALIZĂ** (Vizibil doar pentru admin)\n\n${corrections.join('\n\n')}`;
+        return new Response(
+          JSON.stringify({ 
+            analysis: analysis + correctionsSection,
+            metadata: Object.keys(finalMetadata).length > 0 ? finalMetadata : undefined
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Pentru useri normali, returnăm analiza fără corecții (dar cu metadata corectată)
     }
     
     const validationWarnings: string[] = [];
