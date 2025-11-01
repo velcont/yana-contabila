@@ -545,26 +545,8 @@ INDICATORI OPERAȚIONALI:
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
-        <div className="flex justify-between items-center mb-8">
-          <div className="space-y-2">
-            <div className="h-8 w-64 skeleton-shimmer rounded" />
-            <div className="h-4 w-48 skeleton-shimmer rounded" />
-          </div>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-        <SkeletonChart />
-      </div>
-    );
-  }
-
   // PERFORMANCE: Memoized filtered analyses to avoid recalculation on every render
+  // MUST be before any conditional returns (Rules of Hooks)
   const filteredAnalyses = useMemo(() => {
     let filtered = analyses;
     
@@ -588,12 +570,32 @@ INDICATORI OPERAȚIONALI:
   }, [analyses, periodFilter, companyFilter]);
   
   // PERFORMANCE: Memoized unique companies list
+  // MUST be before any conditional returns (Rules of Hooks)
   const uniqueCompanies = useMemo(() => 
     Array.from(new Set(
       analyses.map(a => a.company_name).filter(Boolean)
     )).sort(),
     [analyses]
   );
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+        <div className="flex justify-between items-center mb-8">
+          <div className="space-y-2">
+            <div className="h-8 w-64 skeleton-shimmer rounded" />
+            <div className="h-4 w-48 skeleton-shimmer rounded" />
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <SkeletonChart />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
