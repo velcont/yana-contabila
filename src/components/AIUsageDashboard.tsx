@@ -25,15 +25,47 @@ export const AIUsageDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showPurchase, setShowPurchase] = useState(false);
 
-  // Check for success/cancel params
+  // Check for success/cancel params and verify purchase
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("credits_success") === "true") {
-      toast.success("✅ Credite adăugate cu succes!", {
-        description: "Creditele tale AI au fost actualizate.",
-      });
-      fetchUsage();
-      window.history.replaceState({}, "", window.location.pathname);
+    const sessionId = params.get("session_id");
+    
+    if (sessionId) {
+      // Verify and process the purchase
+      const verifyPurchase = async () => {
+        try {
+          toast.loading("Se verifică plata...", { id: "verify-purchase" });
+          
+          const { data, error } = await supabase.functions.invoke("verify-credits-purchase", {
+            body: { sessionId },
+          });
+
+          if (error) throw error;
+
+          if (data?.success) {
+            toast.success("✅ Credite adăugate cu succes!", {
+              id: "verify-purchase",
+              description: data.message || `${data.credits_added} credite adăugate`,
+            });
+            fetchUsage();
+          } else {
+            toast.error("Verificare eșuată", {
+              id: "verify-purchase",
+              description: data?.message || "Te rugăm să încerci din nou",
+            });
+          }
+        } catch (error: any) {
+          console.error("Error verifying purchase:", error);
+          toast.error("Eroare la verificare", {
+            id: "verify-purchase",
+            description: error.message,
+          });
+        } finally {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+      };
+      
+      verifyPurchase();
     } else if (params.get("credits_cancel") === "true") {
       toast.info("Achiziție anulată", {
         description: "Poți cumpăra credite oricând.",
