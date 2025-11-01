@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit, Scale } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit, Scale, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -31,20 +31,28 @@ import { AdminRoleSwitcher } from '@/components/AdminRoleSwitcher';
 import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import EmailAnalysisDialog from '@/components/EmailAnalysisDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FiscalDeadlinesManager } from '@/components/FiscalDeadlinesManager';
-import { AccountantTasksManager } from '@/components/AccountantTasksManager';
-import { CRMMessagingManager } from '@/components/CRMMessagingManager';
-import { EmailManager } from '@/components/EmailManager';
 import { ClientFiscalParamsDialog } from '@/components/ClientFiscalParamsDialog';
 import { BulkEmailDialog } from '@/components/BulkEmailDialog';
 import { CRMManualClientDialog } from '@/components/CRMManualClientDialog';
 import { CRMCSVImport } from '@/components/CRMCSVImport';
-import { MonthlyWorkflowManager } from '@/components/yanacrm/MonthlyWorkflowManager';
-import { ClientDueDiligence } from '@/components/ClientDueDiligence';
 import { YanaCRMWelcomeDialog } from '@/components/YanaCRMWelcomeDialog';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { CRMClientForm } from '@/components/CRMClientForm';
-import FiscalChat from '@/components/FiscalChat';
+
+// Lazy load heavy tab components
+const FiscalDeadlinesManager = lazy(() => import('@/components/FiscalDeadlinesManager').then(m => ({ default: m.FiscalDeadlinesManager })));
+const AccountantTasksManager = lazy(() => import('@/components/AccountantTasksManager').then(m => ({ default: m.AccountantTasksManager })));
+const CRMMessagingManager = lazy(() => import('@/components/CRMMessagingManager').then(m => ({ default: m.CRMMessagingManager })));
+const EmailManager = lazy(() => import('@/components/EmailManager').then(m => ({ default: m.EmailManager })));
+const MonthlyWorkflowManager = lazy(() => import('@/components/yanacrm/MonthlyWorkflowManager').then(m => ({ default: m.MonthlyWorkflowManager })));
+const ClientDueDiligence = lazy(() => import('@/components/ClientDueDiligence').then(m => ({ default: m.ClientDueDiligence })));
+const FiscalChat = lazy(() => import('@/components/FiscalChat'));
+
+const TabContentLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const AccountantDashboard = () => {
   const navigate = useNavigate();
@@ -749,27 +757,39 @@ const AccountantDashboard = () => {
           </TabsContent>
 
           <TabsContent value="deadlines">
-            <FiscalDeadlinesManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <FiscalDeadlinesManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="tasks">
-            <AccountantTasksManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <AccountantTasksManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="messaging">
-            <CRMMessagingManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <CRMMessagingManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="email">
-            <EmailManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <EmailManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="due-diligence">
-            <ClientDueDiligence clients={clients} onRefresh={fetchClients} />
+            <Suspense fallback={<TabContentLoader />}>
+              <ClientDueDiligence clients={clients} onRefresh={fetchClients} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="workflows" className="space-y-6">
-            <MonthlyWorkflowManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <MonthlyWorkflowManager />
+            </Suspense>
           </TabsContent>
         </Tabs>
 
@@ -857,7 +877,9 @@ const AccountantDashboard = () => {
         <Scale className="h-6 w-6" />
       </Button>
 
-      <FiscalChat open={fiscalChatOpen} onOpenChange={setFiscalChatOpen} />
+      <Suspense fallback={null}>
+        <FiscalChat open={fiscalChatOpen} onOpenChange={setFiscalChatOpen} />
+      </Suspense>
     </div>
   );
 };

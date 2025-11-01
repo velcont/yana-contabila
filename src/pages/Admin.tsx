@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -9,20 +9,28 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
-import AcademicThesisAssistant from "@/components/AcademicThesisAssistant";
-import { AuditLogs } from "@/components/AuditLogs";
-import { StorageManager } from "@/components/StorageManager";
-import { StrategicConversationsViewer } from "@/components/StrategicConversationsViewer";
-import { IntellectualPropertyCertificate } from "@/components/IntellectualPropertyCertificate";
-import { AdminCostsDashboard } from "@/components/AdminCostsDashboard";
-import AdminRevenueMonitor from "@/components/AdminRevenueMonitor";
-import { TestCheckout } from "@/components/TestCheckout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+
+// Lazy load heavy admin components
+const AcademicThesisAssistant = lazy(() => import("@/components/AcademicThesisAssistant"));
+const AuditLogs = lazy(() => import("@/components/AuditLogs").then(m => ({ default: m.AuditLogs })));
+const StorageManager = lazy(() => import("@/components/StorageManager").then(m => ({ default: m.StorageManager })));
+const StrategicConversationsViewer = lazy(() => import("@/components/StrategicConversationsViewer").then(m => ({ default: m.StrategicConversationsViewer })));
+const IntellectualPropertyCertificate = lazy(() => import("@/components/IntellectualPropertyCertificate").then(m => ({ default: m.IntellectualPropertyCertificate })));
+const AdminCostsDashboard = lazy(() => import("@/components/AdminCostsDashboard").then(m => ({ default: m.AdminCostsDashboard })));
+const AdminRevenueMonitor = lazy(() => import("@/components/AdminRevenueMonitor"));
+const TestCheckout = lazy(() => import("@/components/TestCheckout").then(m => ({ default: m.TestCheckout })));
+
+const TabContentLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 interface Profile {
   id: string;
@@ -332,7 +340,9 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="revenue">
-            <AdminRevenueMonitor />
+            <Suspense fallback={<TabContentLoader />}>
+              <AdminRevenueMonitor />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="users">
@@ -605,7 +615,9 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="strategic">
-            <StrategicConversationsViewer />
+            <Suspense fallback={<TabContentLoader />}>
+              <StrategicConversationsViewer />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="email">
@@ -781,23 +793,33 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="storage">
-            <StorageManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <StorageManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="audit">
-            <AuditLogs />
+            <Suspense fallback={<TabContentLoader />}>
+              <AuditLogs />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="copyright">
-            <IntellectualPropertyCertificate />
+            <Suspense fallback={<TabContentLoader />}>
+              <IntellectualPropertyCertificate />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="research">
-            <AcademicThesisAssistant />
+            <Suspense fallback={<TabContentLoader />}>
+              <AcademicThesisAssistant />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="test">
-            <TestCheckout />
+            <Suspense fallback={<TabContentLoader />}>
+              <TestCheckout />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

@@ -1,19 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CompanyManager } from "@/components/CompanyManager";
-import { EmailBroadcast } from "@/components/EmailBroadcast";
-import { UsersList } from "@/components/UsersList";
 import { CRMManualClientDialog } from "@/components/CRMManualClientDialog";
 import { CRMCSVImport } from "@/components/CRMCSVImport";
-import { MonthlyWorkflowManager } from "@/components/yanacrm/MonthlyWorkflowManager";
 import { Loader2, Building2, Mail, Users, UserPlus, FileUp } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+// Lazy load CRM components
+const CompanyManager = lazy(() => import("@/components/CompanyManager").then(m => ({ default: m.CompanyManager })));
+const EmailBroadcast = lazy(() => import("@/components/EmailBroadcast").then(m => ({ default: m.EmailBroadcast })));
+const UsersList = lazy(() => import("@/components/UsersList").then(m => ({ default: m.UsersList })));
+const MonthlyWorkflowManager = lazy(() => import("@/components/yanacrm/MonthlyWorkflowManager").then(m => ({ default: m.MonthlyWorkflowManager })));
+
+const TabContentLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const CRM = () => {
   const { user, loading: authLoading } = useAuth();
@@ -115,19 +123,27 @@ const CRM = () => {
           </div>
 
           <TabsContent value="clients">
-            <CompanyManager key={refreshKey} />
+            <Suspense fallback={<TabContentLoader />}>
+              <CompanyManager key={refreshKey} />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="users">
-            <UsersList />
+            <Suspense fallback={<TabContentLoader />}>
+              <UsersList />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="workflows">
-            <MonthlyWorkflowManager />
+            <Suspense fallback={<TabContentLoader />}>
+              <MonthlyWorkflowManager />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="broadcast">
-            <EmailBroadcast />
+            <Suspense fallback={<TabContentLoader />}>
+              <EmailBroadcast />
+            </Suspense>
           </TabsContent>
         </Tabs>
 
