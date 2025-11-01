@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import AdvertisementPopup from "@/components/AdvertisementPopup";
-import { Landing } from "@/pages/Landing";
+import Landing from "@/pages/Landing";
 import { QuickStartGuide } from "@/components/QuickStartGuide";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";

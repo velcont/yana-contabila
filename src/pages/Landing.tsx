@@ -33,7 +33,7 @@ import { AIPredictions } from '@/components/AIPredictions';
 import { formatCurrency } from '@/utils/analysisParser';
 import { StickyTrialBanner } from '@/components/StickyTrialBanner';
 
-export const Landing = () => {
+const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
   const [demoAnalyses, setDemoAnalyses] = useState<any[]>([]);
@@ -1483,3 +1483,5 @@ Perioada: 01/04/2025 - 30/04/2025`,
     </div>
   );
 };
+
+export default Landing;

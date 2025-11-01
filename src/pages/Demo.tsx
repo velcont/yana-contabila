@@ -235,7 +235,7 @@ INDICATORI OPERAȚIONALI:
   }
 ];
 
-export const Demo = () => {
+const Demo = () => {
   const [selectedAnalysis, setSelectedAnalysis] = useState(demoAnalyses[demoAnalyses.length - 1]);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -569,3 +569,5 @@ export const Demo = () => {
     </div>
   );
 };
+
+export default Demo;

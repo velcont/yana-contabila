@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Footer } from '@/components/Footer';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
 
-export const Settings = () => {
+const Settings = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -133,3 +133,5 @@ export const Settings = () => {
     </div>
   );
 };
+
+export default Settings;

@@ -546,7 +546,7 @@ const industries: IndustryDemo[] = [
   },
 ];
 
-export const IndustryDemos = () => {
+const IndustryDemos = () => {
   const [selectedIndustry, setSelectedIndustry] = useState(industries[0]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const { toast } = useToast();
@@ -806,3 +806,5 @@ export const IndustryDemos = () => {
     </div>
   );
 };
+
+export default IndustryDemos;
