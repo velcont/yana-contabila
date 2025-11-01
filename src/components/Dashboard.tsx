@@ -801,7 +801,7 @@ INDICATORI OPERAȚIONALI:
                           {analysis.file_name}
                         </p>
                         {analysis.company_name && (
-                          <p className="text-xs font-semibold text-primary">
+                          <p className="text-xs font-semibold text-primary truncate">
                             {analysis.company_name}
                           </p>
                         )}

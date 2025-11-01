@@ -376,7 +376,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
               )}
             </DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none mt-4 whitespace-pre-wrap animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <div className="prose prose-sm dark:prose-invert max-w-none mt-4 whitespace-pre-wrap break-words overflow-wrap-anywhere animate-fade-in" style={{ animationDelay: '100ms' }}>
             {selectedSection?.content}
           </div>
         </DialogContent>

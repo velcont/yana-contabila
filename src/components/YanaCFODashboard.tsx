@@ -464,7 +464,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
           <DialogHeader>
             <DialogTitle>💬 Răspuns CFO</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap break-words overflow-wrap-anywhere">
             {cfoResponse}
           </div>
         </DialogContent>

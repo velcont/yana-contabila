@@ -297,7 +297,7 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
                     : 'bg-secondary text-foreground'
                 }`}
               >
-                <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm">{msg.content}</div>
 
                 {/* Sources */}
                 {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (

@@ -1710,7 +1710,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                         <Progress value={streamingProgress} className="h-1 mb-2" />
                       )}
                       <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 border-l-2 border-primary/30">
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed">{msg.content}</p>
                       </div>
                       {msg.id && !msg.feedbackGiven && (
                         <div className="flex items-center gap-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1795,7 +1795,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                   </div>
                 ) : (
                   <div className="max-w-[90%] rounded-2xl rounded-tr-sm px-4 py-3 bg-primary text-primary-foreground shadow-sm ml-auto">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed">{msg.content}</p>
                   </div>
                 )}
               </div>

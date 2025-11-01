@@ -271,7 +271,7 @@ export const StrategicConversationsViewer = () => {
                             {format(new Date(msg.created_at), "HH:mm", { locale: ro })}
                           </span>
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{msg.content}</p>
                       </div>
                     </div>
                   </div>

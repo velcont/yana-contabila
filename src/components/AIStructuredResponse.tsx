@@ -149,14 +149,14 @@ export const AIStructuredResponse: React.FC<AIStructuredResponseProps> = ({
                 {getSectionIcon(section.type)}
                 <div className="flex-1 space-y-2">
                   <h4 className="font-semibold text-foreground">{section.title}</h4>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{section.content}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words overflow-wrap-anywhere">{section.content}</p>
                 </div>
               </div>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="text-sm text-foreground whitespace-pre-wrap">{content}</div>
+        <div className="text-sm text-foreground whitespace-pre-wrap break-words overflow-wrap-anywhere">{content}</div>
       )}
 
       {/* Key Insights */}
