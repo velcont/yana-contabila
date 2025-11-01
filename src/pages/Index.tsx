@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { ChatAI } from "@/components/ChatAI";
@@ -71,7 +72,7 @@ const Index = () => {
   useEffect(() => {
     const checkAccountType = async () => {
       if (user && !loading) {
-        console.log('🟢 [INDEX] Checking account type for user:', user.id);
+        logger.log('🟢 [INDEX] Checking account type for user:', user.id);
         
         const { data, error } = await supabase
           .from('profiles')
@@ -79,7 +80,7 @@ const Index = () => {
           .eq('id', user.id)
           .single();
 
-        console.log('🟢 [INDEX] Profile data:', data, 'Error:', error);
+        logger.log('🟢 [INDEX] Profile data:', data, 'Error:', error);
 
         if (!error && data) {
           if (!data.account_type_selected) {
@@ -91,11 +92,11 @@ const Index = () => {
           // Diferența e doar TEMA aplicată, NU pagina
           // YanaCRM este o pagină separată accesibilă doar din Footer pentru contabili
           if (data.subscription_type === 'accounting_firm') {
-            console.log('✅ User este contabil - afișare /app cu temă contabil');
+            logger.log('✅ User este contabil - afișare /app cu temă contabil');
             setUserSubscriptionType('accounting_firm');
             if (!themeOverride) setThemeOverride?.('accountant');
           } else {
-            console.log('✅ User este antreprenor - afișare /app cu temă antreprenor');
+            logger.log('✅ User este antreprenor - afișare /app cu temă antreprenor');
             setUserSubscriptionType('entrepreneur');
             if (!themeOverride) setThemeOverride?.('entrepreneur');
           }
@@ -240,20 +241,20 @@ const Index = () => {
               // PRIORITATE 1: Metadata din edge function (calculată determinist din Excel)
               let indicators = data.metadata || {};
               
-              console.log('📊 [FRONTEND] Metadata primită de la edge function:', indicators);
-              console.log('📊 [FRONTEND] Număr indicatori:', Object.keys(indicators).length);
+              logger.log('📊 [FRONTEND] Metadata primită de la edge function:', indicators);
+              logger.log('📊 [FRONTEND] Număr indicatori:', Object.keys(indicators).length);
               
               // PRIORITATE 2: Dacă metadata lipsește complet, parsează din text AI (fallback)
               if (!data.metadata || Object.keys(data.metadata).length === 0) {
-                console.warn('⚠️ [FRONTEND] Metadata lipsește - folosesc fallback parsing din text');
+                logger.warn('⚠️ [FRONTEND] Metadata lipsește - folosesc fallback parsing din text');
                 const { parseAnalysisText } = await import('@/utils/analysisParser');
                 indicators = parseAnalysisText(data.analysis);
-                console.log('📊 [FRONTEND] Metadata din fallback:', indicators);
+                logger.log('📊 [FRONTEND] Metadata din fallback:', indicators);
               }
               
               // VALIDARE CRITICĂ: Verifică că metadata are minim 3 indicatori
               if (Object.keys(indicators).length < 3) {
-                console.error('❌ [FRONTEND] METADATA INCOMPLETĂ! Doar', Object.keys(indicators).length, 'indicatori');
+                logger.error('❌ [FRONTEND] METADATA INCOMPLETĂ! Doar', Object.keys(indicators).length, 'indicatori');
               }
               
               // Extract CUI from filename (e.g., "Balanta - 12345678.xls")
@@ -271,7 +272,7 @@ const Index = () => {
                 
                 if (companyData) {
                   companyId = companyData.id;
-                  console.log(`✅ [COMPANY-LINK] Găsit company_id pentru CUI ${cui}:`, companyId);
+                  logger.log(`✅ [COMPANY-LINK] Găsit company_id pentru CUI ${cui}:`, companyId);
                 }
               }
               
@@ -292,9 +293,9 @@ const Index = () => {
               const validationStatus = data.councilValidation?.validated ? 
                 `✅ Validat de Consiliul AI (${data.councilValidation.confidence}%)` : 
                 '';
-              console.log('✅ [FRONTEND] Analiză salvată cu', Object.keys(indicators).length, 'indicatori', validationStatus);
+              logger.log('✅ [FRONTEND] Analiză salvată cu', Object.keys(indicators).length, 'indicatori', validationStatus);
             } catch (saveError) {
-              console.error('❌ [FRONTEND] Eroare salvare:', saveError);
+              logger.error('❌ [FRONTEND] Eroare salvare:', saveError);
               failCount++;
               continue;
             }
@@ -419,11 +420,11 @@ const Index = () => {
 
   // Dacă utilizatorul NU este autentificat, afișează Landing page
   if (!user) {
-    console.log('User is not authenticated, showing Landing page');
+    logger.log('User is not authenticated, showing Landing page');
     return <Landing />;
   }
 
-  console.log('User is authenticated:', user.email);
+  logger.log('User is authenticated:', user.email);
 
   // /app afișează interfața de ANALIZĂ pentru TOȚI utilizatorii
   // Dashboard-ul contabil este la /yanacrm (rută separată)
