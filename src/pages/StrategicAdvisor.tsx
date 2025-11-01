@@ -20,6 +20,7 @@ import { YanaCFODashboard } from "@/components/YanaCFODashboard";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContextualHelp } from "@/components/ContextualHelp";
+import { getLatestFinancialData, type FinancialData } from "@/services/financialAnalysis";
 
 interface Message {
   role: "user" | "assistant";
@@ -195,7 +196,7 @@ export default function StrategicAdvisor() {
   }, [user, conversationId]);
 
   // Load latest financial data when CFO tab is active
-  const [financialData, setFinancialData] = useState<any>(null);
+  const [financialData, setFinancialData] = useState<FinancialData | null>(null);
 
   useEffect(() => {
     if (activeTab === 'cfo' && user) {
@@ -214,26 +215,18 @@ export default function StrategicAdvisor() {
     try {
       console.log('📊 Loading latest financial data for CFO...');
       
-      const { data, error } = await supabase
-        .from('analyses')
-        .select('metadata')
-        .eq('user_id', user.id)
-        .not('metadata', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const data = await getLatestFinancialData(user.id);
 
-      if (error) {
-        console.log('No financial data found:', error.message);
-        return;
-      }
-
-      if (data?.metadata) {
-        console.log('✅ Loaded financial data with keys:', Object.keys(data.metadata));
-        setFinancialData(data.metadata);
+      if (data) {
+        console.log('✅ Loaded financial data:', data);
+        setFinancialData(data);
+      } else {
+        console.log('⚠️ No financial data found');
+        setFinancialData(null);
       }
     } catch (err) {
       console.error('Error loading financial data:', err);
+      setFinancialData(null);
     }
   };
 
