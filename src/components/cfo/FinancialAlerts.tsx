@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,9 +10,10 @@ import { type Alert as FinancialAlert } from '@/services/financialAnalysis';
 interface FinancialAlertsProps {
   alerts: FinancialAlert[];
   onScrollToChat: () => void;
+  companyName?: string;
 }
 
-export const FinancialAlerts = React.memo(({ alerts, onScrollToChat }: FinancialAlertsProps) => {
+export const FinancialAlerts = React.memo(({ alerts, onScrollToChat, companyName }: FinancialAlertsProps) => {
   if (alerts.length === 0) return null;
 
   return (
@@ -22,6 +24,11 @@ export const FinancialAlerts = React.memo(({ alerts, onScrollToChat }: Financial
             <CardTitle className="flex items-center gap-2 text-red-600">
               <AlertCircle className="h-5 w-5" />
               Alerte Financiare ({alerts.length})
+              {companyName && (
+                <Badge variant="outline" className="text-xs font-normal text-foreground">
+                  {companyName}
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Probleme detectate automat care necesită atenție

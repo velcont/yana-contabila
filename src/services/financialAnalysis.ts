@@ -10,6 +10,8 @@ export interface FinancialData {
   soldFurnizori: number;
   dso: number;
   dpo: number;
+  companyId?: string;
+  companyName?: string;
 }
 
 export interface RunwayData {
@@ -92,7 +94,7 @@ const pickFirstNumber = (obj: any, candidates: string[]): number => {
 export const getLatestFinancialData = async (userId: string): Promise<FinancialData | null> => {
   const { data, error } = await supabase
     .from('analyses')
-    .select('metadata, created_at')
+    .select('metadata, created_at, company_id')
     .eq('user_id', userId)
     .not('metadata', 'is', null)
     .order('created_at', { ascending: false })
@@ -217,6 +219,26 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
 
   console.log('✅ CFO - Parsed financial data:', merged);
 
+  // Get company info from the most recent analysis
+  let companyId: string | undefined = undefined;
+  let companyName: string | undefined = undefined;
+  
+  if (data[0]?.company_id) {
+    companyId = data[0].company_id;
+    
+    // Fetch company name
+    const { data: companyData, error: companyError } = await supabase
+      .from('companies')
+      .select('company_name')
+      .eq('id', companyId)
+      .single();
+    
+    if (!companyError && companyData) {
+      companyName = companyData.company_name;
+      console.log('✅ CFO - Company info:', { companyId, companyName });
+    }
+  }
+
   return {
     revenue: merged.revenue,
     expenses: merged.expenses,
@@ -226,7 +248,9 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
     soldClienti: merged.soldClienti,
     soldFurnizori: merged.soldFurnizori,
     dso: merged.dso,
-    dpo: merged.dpo
+    dpo: merged.dpo,
+    companyId,
+    companyName
   };
 };
 

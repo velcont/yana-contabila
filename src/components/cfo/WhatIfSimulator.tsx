@@ -20,6 +20,7 @@ interface WhatIfSimulatorProps {
   onRevenueGrowthChange: (value: number[]) => void;
   onSimulate: () => void;
   onScrollToChat: () => void;
+  companyName?: string;
 }
 
 export const WhatIfSimulator = React.memo(({
@@ -32,7 +33,8 @@ export const WhatIfSimulator = React.memo(({
   onAvgSalaryChange,
   onRevenueGrowthChange,
   onSimulate,
-  onScrollToChat
+  onScrollToChat,
+  companyName
 }: WhatIfSimulatorProps) => {
   return (
     <Card className="border-yellow-500/30 bg-yellow-500/5">
@@ -42,6 +44,11 @@ export const WhatIfSimulator = React.memo(({
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-yellow-500" />
               What-If Simulator
+              {companyName && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  {companyName}
+                </Badge>
+              )}
               <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
                 💎 0.25 lei
               </Badge>

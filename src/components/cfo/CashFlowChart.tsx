@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { type CashFlowData } from '@/services/financialAnalysis';
@@ -8,9 +9,10 @@ import { type CashFlowData } from '@/services/financialAnalysis';
 interface CashFlowChartProps {
   cashFlowForecast: CashFlowData | null;
   onScrollToChat: () => void;
+  companyName?: string;
 }
 
-export const CashFlowChart = React.memo(({ cashFlowForecast, onScrollToChat }: CashFlowChartProps) => {
+export const CashFlowChart = React.memo(({ cashFlowForecast, onScrollToChat, companyName }: CashFlowChartProps) => {
   if (!cashFlowForecast) return null;
 
   return (
@@ -21,6 +23,11 @@ export const CashFlowChart = React.memo(({ cashFlowForecast, onScrollToChat }: C
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
               Cash Flow Forecast (90 zile)
+              {companyName && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  {companyName}
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Proiecția evoluției cash-ului bazată pe trend-ul curent (Gratuit)

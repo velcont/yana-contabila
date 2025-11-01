@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertCircle, RefreshCw, MessageCircle } from 'lucide-react';
@@ -13,9 +14,10 @@ interface RunwayCardProps {
   isLoading: boolean;
   onRefresh: () => void;
   onScrollToChat: () => void;
+  companyName?: string;
 }
 
-export const RunwayCard = memo(({ runway, currentCash, isLoading, onRefresh, onScrollToChat }: RunwayCardProps) => {
+export const RunwayCard = memo(({ runway, currentCash, isLoading, onRefresh, onScrollToChat, companyName }: RunwayCardProps) => {
   if (!runway) {
     return (
       <Card>
@@ -85,6 +87,11 @@ export const RunwayCard = memo(({ runway, currentCash, isLoading, onRefresh, onS
         <div className="flex-1">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             ⏳ Cash Runway
+            {companyName && (
+              <Badge variant="outline" className="text-xs font-normal">
+                {companyName}
+              </Badge>
+            )}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>

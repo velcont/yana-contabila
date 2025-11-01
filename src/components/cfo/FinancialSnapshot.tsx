@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency, type RunwayData, type Alert as FinancialAlert } from '@/services/financialAnalysis';
@@ -11,6 +12,7 @@ interface FinancialSnapshotProps {
   runway: RunwayData | null;
   alertsCount: number;
   onScrollToChat: () => void;
+  companyName?: string;
 }
 
 export const FinancialSnapshot = React.memo(({ 
@@ -18,7 +20,8 @@ export const FinancialSnapshot = React.memo(({
   profit, 
   runway, 
   alertsCount,
-  onScrollToChat 
+  onScrollToChat,
+  companyName 
 }: FinancialSnapshotProps) => {
   return (
     <Card className="border-primary/30">
@@ -27,6 +30,11 @@ export const FinancialSnapshot = React.memo(({
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             Snapshot Financiar Rapid
+            {companyName && (
+              <Badge variant="outline" className="text-xs font-normal">
+                {companyName}
+              </Badge>
+            )}
           </CardTitle>
           <Button 
             onClick={onScrollToChat}

@@ -20,6 +20,11 @@ export const SourceDataCard = React.memo(({ financialData, onScrollToChat }: Sou
             <CardTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
               Date Sursă - Balanța Analizată
+              {financialData.companyName && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  {financialData.companyName}
+                </Badge>
+              )}
               <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Verificat

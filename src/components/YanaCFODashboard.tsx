@@ -330,6 +330,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
         onScrollToChat={() => {
           document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }}
+        companyName={financialData?.companyName}
       />
 
       {/* Loading State - PRIORITATE 1 */}
@@ -381,6 +382,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
           onScrollToChat={() => {
             document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
+          companyName={financialData.companyName}
         />
       )}
 
@@ -402,6 +404,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
           onScrollToChat={() => {
             document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
+          companyName={financialData?.companyName}
         />
       </Suspense>
 
@@ -421,6 +424,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
             onScrollToChat={() => {
               document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
+            companyName={financialData.companyName}
           />
         </Suspense>
       )}
@@ -432,6 +436,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
           onScrollToChat={() => {
             document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
+          companyName={financialData?.companyName}
         />
       </Suspense>
 
