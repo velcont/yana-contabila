@@ -1026,8 +1026,20 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           // Save analysis to database
           const { data: { user } } = await supabase.auth.getUser();
           if (user && data) {
-            const metadataToSave = data.metadata || {};
-            console.log(`💾 Salvare analiză în DB - metadata cu ${Object.keys(metadataToSave).length} chei:`, Object.keys(metadataToSave));
+            // PRIORITATE 1: Metadata din edge function
+            let metadataToSave = data.metadata || {};
+            logger.log('📊 [ChatAI] Metadata primită de la edge function:', metadataToSave);
+            logger.log('📊 [ChatAI] Număr indicatori:', Object.keys(metadataToSave).length);
+            
+            // PRIORITATE 2: Dacă metadata lipsește complet, parsează din text AI (fallback)
+            if (!data.metadata || Object.keys(data.metadata).length === 0) {
+              logger.warn('⚠️ [ChatAI] Metadata lipsește - folosesc fallback parsing din text');
+              const { parseAnalysisText } = await import('@/utils/analysisParser');
+              metadataToSave = parseAnalysisText(data.analysis);
+              logger.log('📊 [ChatAI] Metadata din fallback:', metadataToSave);
+            }
+            
+            logger.log(`💾 Salvare analiză în DB - metadata cu ${Object.keys(metadataToSave).length} chei:`, Object.keys(metadataToSave));
             
             // Extract CUI from filename and find company_id
             const cuiMatch = file.name.match(/(\d{8})\.xls/i);

@@ -136,12 +136,15 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
   };
 
   const handleRefreshDashboard = async () => {
+    console.log('🔍 CFO Dashboard - Loading financial data...');
     setIsLoading(true);
     
     try {
       const data = await getLatestFinancialData(userId);
+      console.log('🔍 CFO Dashboard - Financial data loaded:', data);
       
       if (!data) {
+        console.log('🔍 CFO Dashboard - NO DATA FOUND');
         toast({
           title: "📊 Nicio balanță încărcată",
           description: "Mergi la tab-ul 'Chat Strategist' și încarcă o balanță Excel pentru a vedea CFO Dashboard.",
@@ -149,6 +152,13 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
         });
         return;
       }
+      
+      console.log('🔍 CFO Dashboard - Sold Banca:', data?.soldBanca);
+      console.log('🔍 CFO Dashboard - Sold Casa:', data?.soldCasa);
+      console.log('🔍 CFO Dashboard - Revenue:', data?.revenue);
+      console.log('🔍 CFO Dashboard - Expenses:', data?.expenses);
+      console.log('🔍 CFO Dashboard - DSO:', data?.dso);
+      console.log('🔍 CFO Dashboard - DPO:', data?.dpo);
       
       setFinancialData(data);
       

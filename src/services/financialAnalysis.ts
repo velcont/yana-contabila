@@ -92,6 +92,8 @@ const pickFirstNumber = (obj: any, candidates: string[]): number => {
 
 // 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
 export const getLatestFinancialData = async (userId: string): Promise<FinancialData | null> => {
+  console.log('🔍 getLatestFinancialData - START for userId:', userId);
+  
   const { data, error } = await supabase
     .from('analyses')
     .select('metadata, created_at, company_id')
@@ -100,10 +102,19 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
     .order('created_at', { ascending: false })
     .limit(6);
   
+  console.log('🔍 getLatestFinancialData - Raw DB response:', { data, error });
+  console.log('🔍 getLatestFinancialData - Number of analyses found:', data?.length || 0);
+  
   if (error || !data?.length) {
-    console.error('Error fetching financial data:', error);
+    console.error('🔍 getLatestFinancialData - ERROR or NO DATA:', error);
     return null;
   }
+  
+  // Log each metadata object
+  data.forEach((row, idx) => {
+    console.log(`🔍 getLatestFinancialData - Analysis [${idx}] metadata:`, row.metadata);
+    console.log(`🔍 getLatestFinancialData - Analysis [${idx}] metadata keys:`, Object.keys(row.metadata || {}));
+  });
   
   const merged: Record<string, number> = {
     revenue: 0,
@@ -218,6 +229,17 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
   }
 
   console.log('✅ CFO - Parsed financial data:', merged);
+  console.log('🔍 getLatestFinancialData - Final merged values:', {
+    revenue: merged.revenue,
+    expenses: merged.expenses,
+    profit: merged.profit,
+    soldBanca: merged.soldBanca,
+    soldCasa: merged.soldCasa,
+    soldClienti: merged.soldClienti,
+    soldFurnizori: merged.soldFurnizori,
+    dso: merged.dso,
+    dpo: merged.dpo
+  });
 
   // Get company info from the most recent analysis
   let companyId: string | undefined = undefined;
