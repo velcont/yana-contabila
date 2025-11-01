@@ -153,12 +153,12 @@ export const AIUsageDashboard = () => {
     );
   }
 
-  const costUSD = usage ? (usage.total_cost_cents / 100).toFixed(2) : "0.00";
-  const budgetUSD = usage ? (usage.budget_cents / 100).toFixed(2) : "10.00";
+  const costRON = usage ? (usage.total_cost_cents / 100).toFixed(2) : "0.00";
+  const budgetRON = usage ? (usage.budget_cents / 100).toFixed(2) : "10.00";
   const usagePercent = usage?.usage_percent || 0;
-  const remainingUSD = (() => {
-    const b = parseFloat(budgetUSD);
-    const c = parseFloat(costUSD);
+  const remainingRON = (() => {
+    const b = parseFloat(budgetRON);
+    const c = parseFloat(costRON);
     return Math.max(0, b - c).toFixed(2);
   })();
 
@@ -171,9 +171,9 @@ export const AIUsageDashboard = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${costUSD}</div>
-            <p className="text-xs text-muted-foreground">din ${budgetUSD} buget</p>
-            <p className="text-xs text-muted-foreground">Rămas: ${remainingUSD}</p>
+            <div className="text-2xl font-bold">{costRON} lei</div>
+            <p className="text-xs text-muted-foreground">din {budgetRON} lei buget</p>
+            <p className="text-xs text-muted-foreground">Rămas: {remainingRON} lei</p>
           </CardContent>
         </Card>
 
