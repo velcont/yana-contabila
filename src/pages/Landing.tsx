@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,12 +26,21 @@ import {
   Check,
   Gift,
   Brain,
-  PlayCircle
+  PlayCircle,
+  Loader2
 } from 'lucide-react';
-import AnalyticsCharts from '@/components/AnalyticsCharts';
 import { AIPredictions } from '@/components/AIPredictions';
 import { formatCurrency } from '@/utils/analysisParser';
 import { StickyTrialBanner } from '@/components/StickyTrialBanner';
+
+// Lazy load Recharts component
+const AnalyticsCharts = lazy(() => import('@/components/AnalyticsCharts'));
+
+const ChartLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -373,7 +382,9 @@ Perioada: 01/04/2025 - 30/04/2025`,
 
           {/* Charts */}
           <div className="mb-8">
-            <AnalyticsCharts analyses={demoAnalyses} />
+            <Suspense fallback={<ChartLoader />}>
+              <AnalyticsCharts analyses={demoAnalyses} />
+            </Suspense>
           </div>
 
           {/* AI Predictions */}

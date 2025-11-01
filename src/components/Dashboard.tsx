@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield, Loader2 } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
-import AnalyticsCharts from './AnalyticsCharts';
 import CompareAnalyses from './CompareAnalyses';
 import { parseAnalysisText, formatCurrency, type FinancialIndicators } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
@@ -17,7 +16,6 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useThemeRole } from '@/contexts/ThemeRoleContext';
 import { TopIssuesWidget } from './TopIssuesWidget';
 import { ProactiveAlerts } from './ProactiveAlerts';
-import { MultiCompanyComparison } from './MultiCompanyComparison';
 import { AIPredictions } from './AIPredictions';
 import { ResilienceAnalysis } from './ResilienceAnalysis';
 import { EmailAnalysisDialog } from './EmailAnalysisDialog';
@@ -25,6 +23,16 @@ import { ShareAnalysisDialog } from './ShareAnalysisDialog';
 import { AnalysisComments } from './AnalysisComments';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
+
+// Lazy load Recharts components (~100KB)
+const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
+const MultiCompanyComparison = lazy(() => import('./MultiCompanyComparison').then(m => ({ default: m.MultiCompanyComparison })));
+
+const ChartLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 import {
   Select,
   SelectContent,
@@ -701,7 +709,9 @@ INDICATORI OPERAȚIONALI:
             </CardContent>
           </Card>
           <TopIssuesWidget />
-          <AnalyticsCharts analyses={filteredAnalyses} />
+          <Suspense fallback={<ChartLoader />}>
+            <AnalyticsCharts analyses={filteredAnalyses} />
+          </Suspense>
           {filteredAnalyses.length >= 2 && (
             <CompareAnalyses analyses={filteredAnalyses} />
           )}
@@ -721,7 +731,9 @@ INDICATORI OPERAȚIONALI:
 
         {isAccountantMode && (
           <TabsContent value="multi-company" className="space-y-6">
-            <MultiCompanyComparison />
+            <Suspense fallback={<ChartLoader />}>
+              <MultiCompanyComparison />
+            </Suspense>
           </TabsContent>
         )}
 

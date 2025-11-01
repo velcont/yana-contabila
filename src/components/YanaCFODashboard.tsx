@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,9 +21,17 @@ import { CFOChatInterface } from './cfo/CFOChatInterface';
 import { RunwayCard } from './cfo/RunwayCard';
 import { FinancialSnapshot } from './cfo/FinancialSnapshot';
 import { SourceDataCard } from './cfo/SourceDataCard';
-import { CashFlowChart } from './cfo/CashFlowChart';
-import { WhatIfSimulator } from './cfo/WhatIfSimulator';
-import { FinancialAlerts } from './cfo/FinancialAlerts';
+
+// Lazy load Recharts heavy components
+const CashFlowChart = lazy(() => import('./cfo/CashFlowChart').then(m => ({ default: m.CashFlowChart })));
+const WhatIfSimulator = lazy(() => import('./cfo/WhatIfSimulator').then(m => ({ default: m.WhatIfSimulator })));
+const FinancialAlerts = lazy(() => import('./cfo/FinancialAlerts').then(m => ({ default: m.FinancialAlerts })));
+
+const ChartLoader = () => (
+  <div className="flex items-center justify-center min-h-[300px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 interface YanaCFODashboardProps {
   userId: string;
@@ -378,38 +386,44 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
       )}
 
       {/* CASH FLOW CHART - Extracted Component */}
-      <CashFlowChart
-        cashFlowForecast={cashFlowForecast}
-        onScrollToChat={() => {
-          document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-      />
-
-      {/* WHAT-IF SIMULATOR - Extracted Component */}
-      {financialData && (
-        <WhatIfSimulator
-          newEmployees={newEmployees}
-          avgSalary={avgSalary}
-          revenueGrowth={revenueGrowth}
-          simulationResult={simulationResult}
-          isLoading={isLoading}
-          onNewEmployeesChange={(value) => setNewEmployees(value[0])}
-          onAvgSalaryChange={(value) => setAvgSalary(value[0])}
-          onRevenueGrowthChange={(value) => setRevenueGrowth(value[0])}
-          onSimulate={handleSimulate}
+      <Suspense fallback={<ChartLoader />}>
+        <CashFlowChart
+          cashFlowForecast={cashFlowForecast}
           onScrollToChat={() => {
             document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
         />
+      </Suspense>
+
+      {/* WHAT-IF SIMULATOR - Extracted Component */}
+      {financialData && (
+        <Suspense fallback={<ChartLoader />}>
+          <WhatIfSimulator
+            newEmployees={newEmployees}
+            avgSalary={avgSalary}
+            revenueGrowth={revenueGrowth}
+            simulationResult={simulationResult}
+            isLoading={isLoading}
+            onNewEmployeesChange={(value) => setNewEmployees(value[0])}
+            onAvgSalaryChange={(value) => setAvgSalary(value[0])}
+            onRevenueGrowthChange={(value) => setRevenueGrowth(value[0])}
+            onSimulate={handleSimulate}
+            onScrollToChat={() => {
+              document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          />
+        </Suspense>
       )}
 
       {/* FINANCIAL ALERTS - Extracted Component */}
-      <FinancialAlerts
-        alerts={alerts}
-        onScrollToChat={() => {
-          document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-      />
+      <Suspense fallback={<ChartLoader />}>
+        <FinancialAlerts
+          alerts={alerts}
+          onScrollToChat={() => {
+            document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        />
+      </Suspense>
 
       {/* 6. EMPTY STATE */}
       {!financialData && !isLoading && (

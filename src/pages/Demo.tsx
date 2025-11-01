@@ -1,23 +1,31 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, AlertTriangle, Sparkles, Building2, Mail, Users, Shield, ArrowLeft } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, AlertTriangle, Sparkles, Building2, Mail, Users, Shield, ArrowLeft, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
-import AnalyticsCharts from '@/components/AnalyticsCharts';
 import CompareAnalyses from '@/components/CompareAnalyses';
 import { formatCurrency } from '@/utils/analysisParser';
 import { FiscalNews } from '@/components/FiscalNews';
 import { AnalysisDisplay } from '@/components/AnalysisDisplay';
 import { TopIssuesWidget } from '@/components/TopIssuesWidget';
 import { ProactiveAlerts } from '@/components/ProactiveAlerts';
-import { MultiCompanyComparison } from '@/components/MultiCompanyComparison';
 import { AIPredictions } from '@/components/AIPredictions';
 import { ResilienceAnalysis } from '@/components/ResilienceAnalysis';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+
+// Lazy load Recharts components
+const AnalyticsCharts = lazy(() => import('@/components/AnalyticsCharts'));
+const MultiCompanyComparison = lazy(() => import('@/components/MultiCompanyComparison').then(m => ({ default: m.MultiCompanyComparison })));
+
+const ChartLoader = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 // Demo data - 4 months of financial analyses
 const demoAnalyses = [
@@ -322,7 +330,9 @@ const Demo = () => {
               </p>
             </CardContent>
           </Card>
-          <AnalyticsCharts analyses={demoAnalyses} />
+          <Suspense fallback={<ChartLoader />}>
+            <AnalyticsCharts analyses={demoAnalyses} />
+          </Suspense>
           <CompareAnalyses analyses={demoAnalyses} />
         </TabsContent>
 
@@ -418,7 +428,9 @@ const Demo = () => {
               </p>
             </CardContent>
           </Card>
-          <MultiCompanyComparison />
+          <Suspense fallback={<ChartLoader />}>
+            <MultiCompanyComparison />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="news" className="space-y-6">
