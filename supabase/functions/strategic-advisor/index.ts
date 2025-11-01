@@ -466,6 +466,21 @@ serve(async (req) => {
 
     const { message, conversationId, industryType, financialData } = await req.json();
 
+    // ✅ SECURITY FIX: Input validation
+    if (!message || typeof message !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "Mesaj invalid" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (message.length > 5000) {
+      return new Response(
+        JSON.stringify({ error: "Mesajul este prea lung. Maximum 5,000 caractere." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log("[STRATEGIC-ADVISOR] Request data:", { 
       hasIndustry: !!industryType, 
       hasFinancialData: !!financialData 
@@ -692,13 +707,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    // ✅ SECURITY FIX: Sanitize error messages - don't expose internal details
     console.error("[STRATEGIC-ADVISOR] Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: "A apărut o eroare tehnică. Te rog încearcă din nou." }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }

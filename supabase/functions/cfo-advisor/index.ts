@@ -64,8 +64,23 @@ serve(async (req) => {
     // Parse request
     const { question, financialData, conversationId }: CFORequest = await req.json();
 
-    if (!question || !financialData) {
-      throw new Error('Lipsesc datele necesare');
+    // ✅ SECURITY FIX: Input validation
+    if (!question || typeof question !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "Întrebare invalidă" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (question.length > 5000) {
+      return new Response(
+        JSON.stringify({ error: "Întrebarea este prea lungă. Maximum 5,000 caractere." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!financialData) {
+      throw new Error('Date financiare lipsă');
     }
 
     // Calculate financial metrics
@@ -180,11 +195,11 @@ Fii DIRECT, NUMERIC, ACȚIONABIL. Nu face introduceri lungi! Răspunde în limba
     );
 
   } catch (error: any) {
+    // ✅ SECURITY FIX: Sanitize error messages
     console.error('❌ Error în cfo-advisor:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Eroare necunoscută',
-        details: error.toString()
+        error: "A apărut o eroare tehnică. Te rog încearcă din nou."
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

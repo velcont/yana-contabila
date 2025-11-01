@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Contact = () => {
   const navigate = useNavigate();
-  const email = "offiice@velcont.com";
+  const email = "office@velcont.com";
   const whatsapp = "+40731377793";
   const whatsappMessage = "Bună! Sunt interesat de serviciile Yana pentru analiză balanță contabilă.";
 

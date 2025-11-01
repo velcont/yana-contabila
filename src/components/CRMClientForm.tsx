@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { crmClientSchema, type CRMClientFormData } from "@/schemas/crmClient";
 
 interface CRMClientFormProps {
   clientId?: string;
@@ -49,7 +51,8 @@ interface FormData {
 export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormProps) => {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
-  const form = useForm<FormData>({
+  const form = useForm<CRMClientFormData>({
+    resolver: zodResolver(crmClientSchema),
     defaultValues: {
       company_name: "",
       cui: "",
@@ -121,7 +124,7 @@ export const CRMClientForm = ({ clientId, onSuccess, onCancel }: CRMClientFormPr
     fetchClientData();
   }, [clientId, form]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: CRMClientFormData) => {
     setLoading(true);
     console.log('[CRMClientForm] Submit started', { 
       isEditing: !!clientId, 

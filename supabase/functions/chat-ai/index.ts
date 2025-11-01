@@ -683,9 +683,26 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const { message, history, conversationId, summaryType = 'detailed', stream: streamResponse = true } = await req.json();
 
-    if (!message) {
+    // ✅ SECURITY FIX: Input validation
+    if (!message || typeof message !== 'string') {
       return new Response(
-        JSON.stringify({ error: "Mesajul lipsește" }),
+        JSON.stringify({ error: "Mesaj invalid" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ✅ SECURITY FIX: Length validation (DoS protection)
+    if (message.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: "Mesajul este prea lung. Maximum 10,000 caractere." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ✅ SECURITY FIX: Conversation history size limit
+    if (history && Array.isArray(history) && history.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Istoricul conversației este prea lung. Maximum 100 mesaje." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -1244,10 +1261,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    // ✅ SECURITY FIX: Sanitize error messages - don't expose stack traces
     console.error("Eroare în chat-ai:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Eroare necunoscută"
+        error: "A apărut o eroare tehnică. Te rog încearcă din nou."
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

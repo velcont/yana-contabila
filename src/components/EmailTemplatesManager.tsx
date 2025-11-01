@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from "@/components/ui/textarea";
 import { FileText, Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { sanitizeHtml } from "@/utils/htmlSanitizer";
 
 interface EmailTemplate {
   id: string;
@@ -74,6 +75,9 @@ export const EmailTemplatesManager = () => {
       return;
     }
 
+    // ✅ SECURITY FIX: Sanitize HTML to prevent XSS
+    const sanitizedBody = sanitizeHtml(formData.body);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Nu ești autentificat");
@@ -84,7 +88,7 @@ export const EmailTemplatesManager = () => {
           .update({
             name: formData.name,
             subject: formData.subject,
-            body: formData.body,
+            body: sanitizedBody,
             category: formData.category,
           })
           .eq("id", editingTemplate.id);
@@ -98,7 +102,7 @@ export const EmailTemplatesManager = () => {
             accountant_id: user.id,
             name: formData.name,
             subject: formData.subject,
-            body: formData.body,
+            body: sanitizedBody,
             category: formData.category,
           }]);
 

@@ -434,10 +434,22 @@ serve(async (req) => {
 
   try {
     const { excelBase64, fileName } = await req.json();
+    
+    // ✅ SECURITY FIX: Validate file presence
     if (!excelBase64) {
       return new Response(
         JSON.stringify({ error: "Lipsește fișierul Excel" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ✅ SECURITY FIX: File size validation (zip bomb protection)
+    // Base64 encoding increases size by ~33%, so 10MB limit = ~7.5MB original
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in base64
+    if (excelBase64.length > MAX_FILE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: "Fișierul este prea mare. Maximum 7.5MB." }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -1334,10 +1346,11 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    // ✅ SECURITY FIX: Sanitize error messages - don't expose internal details
     console.error("Eroare în analyze-balance:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Eroare necunoscută la procesarea Excel-ului"
+        error: "A apărut o eroare tehnică la procesarea fișierului. Te rog verifică formatul și încearcă din nou."
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
