@@ -99,12 +99,78 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [fiscalMessages, setFiscalMessages] = useState<Message[]>([]);
   const [fiscalConversationId, setFiscalConversationId] = useState<string>(crypto.randomUUID());
   const [isLoading, setIsLoading] = useState(false);
+  
   // Încarcă istoric fiscal când se schimbă pe modul fiscal
   useEffect(() => {
     if (chatMode === 'fiscal' && isOpen && fiscalMessages.length <= 1) {
       loadFiscalConversationHistory();
     }
   }, [chatMode, isOpen]);
+
+  // Încarcă istoric balance când componenta se deschide
+  useEffect(() => {
+    if (chatMode === 'balance' && isOpen && messages.length <= 1 && !autoStart) {
+      loadBalanceConversationHistory();
+    }
+  }, [isOpen, autoStart]);
+
+  const loadBalanceConversationHistory = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log('📜 Încărcare istoric conversații analiză balanță...');
+
+      // Încarcă ultimele mesaje de analiză balanță
+      const { data, error } = await supabase
+        .from('conversation_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .or('metadata->>type.eq.balance,metadata->>type.is.null')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('Error loading balance history:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Grupează pe conversation_id
+        const conversationGroups = data.reduce((acc, msg) => {
+          if (!acc[msg.conversation_id]) {
+            acc[msg.conversation_id] = [];
+          }
+          acc[msg.conversation_id].push(msg);
+          return acc;
+        }, {} as Record<string, typeof data>);
+
+        const lastConvId = Object.keys(conversationGroups)[0];
+        if (lastConvId) {
+          const lastMessages = conversationGroups[lastConvId]
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+            .map(msg => {
+              const metadata = msg.metadata as any;
+              return {
+                id: msg.id,
+                role: msg.role as 'user' | 'assistant',
+                content: msg.content,
+                conversationId: msg.conversation_id,
+                sources: metadata?.sources || [],
+                insights: metadata?.insights || [],
+                feedbackGiven: false
+              };
+            });
+
+          setMessages(lastMessages);
+          setConversationId(lastConvId);
+          console.log('✅ Încărcat istoric balance:', lastMessages.length, 'mesaje din conversația', lastConvId);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading balance conversation:', err);
+    }
+  };
 
   const loadFiscalConversationHistory = async () => {
     try {

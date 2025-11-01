@@ -194,16 +194,48 @@ export default function StrategicAdvisor() {
     };
   }, [user, conversationId]);
 
-  // Debug logging for CFO tab mounting
+  // Load latest financial data when CFO tab is active
+  const [financialData, setFinancialData] = useState<any>(null);
+
   useEffect(() => {
-    if (activeTab === 'cfo') {
+    if (activeTab === 'cfo' && user) {
       console.log('🔍 Strategic Advisor - CFO tab active');
       console.log('🔍 Mounting YanaCFODashboard with props:', { 
         userId: user?.id, 
         creditRemaining 
       });
+      loadLatestFinancialData();
     }
   }, [activeTab, user, creditRemaining]);
+
+  const loadLatestFinancialData = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('📊 Loading latest financial data for CFO...');
+      
+      const { data, error } = await supabase
+        .from('analyses')
+        .select('metadata')
+        .eq('user_id', user.id)
+        .not('metadata', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.log('No financial data found:', error.message);
+        return;
+      }
+
+      if (data?.metadata) {
+        console.log('✅ Loaded financial data with keys:', Object.keys(data.metadata));
+        setFinancialData(data.metadata);
+      }
+    } catch (err) {
+      console.error('Error loading financial data:', err);
+    }
+  };
 
   // Generic credit deduction function
   const deductCredit = async (amount: number): Promise<boolean> => {
@@ -595,6 +627,7 @@ export default function StrategicAdvisor() {
               userId={user?.id || ""}
               creditRemaining={creditRemaining}
               onCreditDeduct={deductCredit}
+              financialData={financialData}
             />
           </div>
         </TabsContent>

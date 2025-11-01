@@ -40,10 +40,11 @@ interface YanaCFODashboardProps {
   userId: string;
   creditRemaining: number;
   onCreditDeduct: (amount: number) => Promise<boolean>;
+  financialData?: FinancialData | null;
 }
 
-export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: YanaCFODashboardProps) => {
-  const [financialData, setFinancialData] = useState<FinancialData | null>(null);
+export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, financialData: propFinancialData }: YanaCFODashboardProps) => {
+  const [financialData, setFinancialData] = useState<FinancialData | null>(propFinancialData || null);
   const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showCFOResponseDialog, setShowCFOResponseDialog] = useState(false);
@@ -78,9 +79,15 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
   // Load initial data
   useEffect(() => {
-    handleRefreshDashboard();
+    // Use prop data if available
+    if (propFinancialData) {
+      console.log('✅ Using financial data from prop');
+      setFinancialData(propFinancialData);
+    } else {
+      handleRefreshDashboard();
+    }
     loadCFOConversationHistory();
-  }, [userId]);
+  }, [userId, propFinancialData]);
 
   const loadCFOConversationHistory = async () => {
     try {
