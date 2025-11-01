@@ -86,7 +86,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         .limit(20);
 
       if (error) {
-        console.error('Error loading CFO history:', error);
         return;
       }
 
@@ -114,7 +113,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         }
       }
     } catch (err) {
-      console.error('Error loading CFO conversation:', err);
+      // Silently handle error - conversation history is optional
     }
   };
 
