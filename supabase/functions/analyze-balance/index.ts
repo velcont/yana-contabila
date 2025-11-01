@@ -1500,16 +1500,38 @@ serve(async (req) => {
     let finalAnalysisText = analysis;
     if (councilValidation) {
       if (councilValidation.validated && councilValidation.confidence >= 80) {
-        finalAnalysisText += `\n\n---\n✅ **Validat de Consiliul AI** (Confidence: ${councilValidation.confidence}%)\n`;
-        finalAnalysisText += `Această analiză a fost verificată de 3 AI-uri specializate (Contabil Expert, Auditor Financiar, CFO Strategic).\n`;
+        finalAnalysisText += `\n\n---\n✅ **Validat de Consiliul AI** (${councilValidation.consensus.total}/3 AI-uri, Confidence: ${councilValidation.confidence}%)\n`;
+        finalAnalysisText += `Această analiză a fost verificată de ${councilValidation.aiResponses.map((r: any) => r.provider).join(', ').toUpperCase()}.\n`;
+        
+        // Afișează consensul pe indicatori
+        if (councilValidation.agreements) {
+          const consensusCount = councilValidation.consensus.indicatorsWithConsensus || 0;
+          finalAnalysisText += `\n📊 Consens pe ${consensusCount}/10 indicatori financiari\n`;
+        }
         
         if (councilValidation.recommendations && councilValidation.recommendations.length > 0) {
           finalAnalysisText += `\n**Recomandări consiliu:**\n${councilValidation.recommendations.slice(0, 3).map((r: string) => `• ${r}`).join('\n')}\n`;
         }
       } else if (councilValidation.consensus?.verdict === "REQUIRES_REVIEW") {
-        finalAnalysisText += `\n\n---\n⚠️ **Necesită Verificare**: Consiliul AI a detectat aspecte care necesită atenție suplimentară.\n`;
+        finalAnalysisText += `\n\n---\n⚠️ **Necesită Verificare**: Consiliul AI a detectat discrepanțe (${councilValidation.discrepancies?.length || 0} indicatori în dezacord).\n`;
+        
+        if (councilValidation.discrepancies && councilValidation.discrepancies.length > 0) {
+          finalAnalysisText += `\n**Discrepanțe detectate:**\n`;
+          councilValidation.discrepancies.slice(0, 3).forEach((d: any) => {
+            finalAnalysisText += `• ${d.field}: ${d.reason}\n`;
+          });
+        }
+        
         if (councilValidation.alerts && councilValidation.alerts.length > 0) {
-          finalAnalysisText += `\n**Alerte detectate:**\n${councilValidation.alerts.slice(0, 3).map((a: string) => `• ${a}`).join('\n')}\n`;
+          finalAnalysisText += `\n**Alerte consiliu:**\n${councilValidation.alerts.slice(0, 3).map((a: string) => `• ${a}`).join('\n')}\n`;
+        }
+      } else {
+        // Confidence moderat (70-80%)
+        finalAnalysisText += `\n\n---\n⚡ **Validare Consiliu AI** (${councilValidation.consensus.total}/3 AI-uri, Confidence: ${councilValidation.confidence}%)\n`;
+        finalAnalysisText += `Analiză verificată de consiliul AI cu consens parțial.\n`;
+        
+        if (councilValidation.discrepancies && councilValidation.discrepancies.length > 0) {
+          finalAnalysisText += `\n⚠️ Atenție: ${councilValidation.discrepancies.length} indicatori fără consens clar.\n`;
         }
       }
     }
