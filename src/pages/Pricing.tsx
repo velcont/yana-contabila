@@ -118,6 +118,10 @@ const Pricing = () => {
                     <Check className="h-4 w-4 text-green-500 mt-0.5" />
                     <span>Suport prioritar</span>
                   </li>
+                  <li className="flex items-start gap-2">
+                    <Shield className="h-4 w-4 text-green-500 mt-0.5" />
+                    <span className="font-semibold">Validare automată Consiliu AI (3 AI-uri independente)</span>
+                  </li>
                 </ul>
                 <Button className="w-full" onClick={() => navigate('/subscription')}>
                   Abonează-te Acum
@@ -160,6 +164,10 @@ const Pricing = () => {
                   <li className="flex items-start gap-2">
                     <Check className="h-4 w-4 text-green-500 mt-0.5" />
                     <span>Branding personalizat</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Shield className="h-4 w-4 text-green-500 mt-0.5" />
+                    <span className="font-semibold">Validare Premium Consiliu AI pentru toate analizele</span>
                   </li>
                 </ul>
                 <Button className="w-full" onClick={() => navigate('/subscription')}>

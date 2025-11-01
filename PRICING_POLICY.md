@@ -49,6 +49,7 @@
 - ✅ **Suport prioritar** - răspuns rapid la office@velcont.com
 - ✅ **Gestionare companii multiple** - pentru antreprenori cu mai multe firme
 - ✅ **Istoric complet** - toate analizele salvate
+- ✅ **Validare Consiliu AI** - Fiecare balanță analizată este validată automat de un consiliu de 3 AI-uri independente (Contabil Expert, Auditor Financiar, CFO Strategic) pentru acuratețe maximă și detecție anomalii cross-validate
 
 ### ❌ CE NU ESTE INCLUS (OBLIGATORIU să cumperi credite AI):
 
@@ -84,6 +85,7 @@
 - ✅ **Email-uri white-label** - emailuri trimise din numele tău
 - ✅ **Raportare agregată** - statistici pentru toți clienții
 - ✅ **Invitații clienți** - trimiți link de acces automat
+- ✅ **Validare Consiliu AI Premium** - Toate balanțele clienților tăi sunt validate automat cu consiliu de 3 AI-uri specializați, fără limită de utilizare, pentru încredere sporită în acuratețea analizelor
 
 ### Important:
 **Numărul de clienți este NELIMITAT - 10 clienți sau 200 clienți = 199 lei/lună**

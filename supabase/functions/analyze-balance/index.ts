@@ -1139,26 +1139,36 @@ serve(async (req) => {
         } else {
           console.log(`📊 [AI-COUNCIL] User has ${validatedCount || 0} validated analyses`);
           
-          // Primele 6 sunt gratuite
+          // Primele 6 analize sunt GRATUITE pentru toți (inclusiv trial)
           if ((validatedCount || 0) < 6) {
             shouldValidate = true;
-            console.log(`✅ [AI-COUNCIL] Free validation (${validatedCount}/6)`);
+            console.log(`✅ [AI-COUNCIL] Analiză ${(validatedCount || 0) + 1}/6 gratuită`);
           } else {
-            // După 6, verifică dacă are credite AI disponibile
-            const { data: creditData, error: creditError } = await supabaseClient
-              .rpc('get_monthly_ai_usage', { user_id_param: user.id });
+            // După 6 analize: Verifică dacă user are abonament activ
+            const { data: profile, error: profileError } = await supabaseClient
+              .from('profiles')
+              .select('subscription_status, subscription_type, trial_ends_at')
+              .eq('id', user.id)
+              .single();
             
-            if (!creditError && creditData && creditData.length > 0) {
-              const usage = creditData[0];
-              const remainingBudget = (usage.monthly_budget_usd || 10) - (usage.total_cost_usd || 0);
+            if (!profileError && profile) {
+              // Verifică dacă e în perioada de trial SAU are abonament plătit activ
+              const isInTrial = profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date();
+              const hasActiveSubscription = profile.subscription_status === 'active' && 
+                                           ['entrepreneur', 'accounting_firm'].includes(profile.subscription_type);
               
-              // Verifică dacă are minim $0.15 disponibil (cost estimativ pentru validare consiliu)
-              if (remainingBudget >= 0.15) {
+              if (isInTrial || hasActiveSubscription) {
                 shouldValidate = true;
-                console.log(`💰 [AI-COUNCIL] Paid validation (${remainingBudget.toFixed(2)} USD remaining)`);
+                const statusMsg = isInTrial 
+                  ? `în perioada de trial (până la ${new Date(profile.trial_ends_at).toLocaleDateString('ro-RO')})`
+                  : `cu abonament ${profile.subscription_type}`;
+                console.log(`✅ [AI-COUNCIL] Validare inclusă ${statusMsg}`);
               } else {
-                console.log(`⚠️ [AI-COUNCIL] Insufficient credits (${remainingBudget.toFixed(2)} USD remaining, need $0.15)`);
+                shouldValidate = false;
+                console.log(`⚠️ [AI-COUNCIL] Necesită abonament activ pentru validare consiliu`);
               }
+            } else {
+              console.log(`⚠️ [AI-COUNCIL] Eroare la verificare profil:`, profileError);
             }
           }
         }
@@ -1182,7 +1192,7 @@ serve(async (req) => {
             console.log(`✅ [AI-COUNCIL] Validation complete - Verdict: ${councilValidation?.consensus?.verdict}`);
           }
         } else {
-          console.log("⏭️ [AI-COUNCIL] Skipping validation (no credits or limit reached)");
+          console.log("⏭️ [AI-COUNCIL] Validare dezactivată - necesită abonament activ");
         }
       }
     } catch (councilError) {
