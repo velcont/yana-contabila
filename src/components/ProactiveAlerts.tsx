@@ -113,18 +113,18 @@ export const ProactiveAlerts = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-primary" />
-            Alerte Proactive
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4">
+        <div className="flex-1 min-w-0">
+          <CardTitle className="flex items-center gap-2 flex-wrap break-words">
+            <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0" />
+            <span className="break-words">Alerte Proactive</span>
             {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">
+              <Badge variant="destructive" className="ml-2 flex-shrink-0">
                 {unreadCount} noi
               </Badge>
             )}
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 break-words">
             Probleme detectate automat în analizele tale
           </p>
         </div>
@@ -132,7 +132,7 @@ export const ProactiveAlerts = () => {
           variant="outline"
           size="sm"
           onClick={toggleEmailNotifications}
-          className="gap-2"
+          className="gap-2 flex-shrink-0"
         >
           {emailNotifications ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
           {emailNotifications ? 'Email ON' : 'Email OFF'}
@@ -159,17 +159,17 @@ export const ProactiveAlerts = () => {
               <div className="flex-shrink-0 mt-0.5">
                 {getIcon(alert.severity)}
               </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="font-semibold text-sm">{alert.title}</h4>
-                  <Badge variant={getBadgeVariant(alert.severity)}>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-start sm:items-center justify-between gap-2 flex-wrap">
+                  <h4 className="font-semibold text-sm break-words overflow-wrap-anywhere flex-1">{alert.title}</h4>
+                  <Badge variant={getBadgeVariant(alert.severity)} className="flex-shrink-0">
                     {alert.severity === 'critical' ? 'CRITIC' : 
                      alert.severity === 'warning' ? 'ATENȚIE' : 'INFO'}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">{alert.description}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground break-words overflow-wrap-anywhere">{alert.description}</p>
+                <div className="flex items-center justify-between mt-2 gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground break-words">
                     {new Date(alert.created_at).toLocaleDateString('ro-RO', {
                       day: 'numeric',
                       month: 'short',
@@ -183,7 +183,7 @@ export const ProactiveAlerts = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => markAsRead(alert.id)}
-                      className="h-7 text-xs"
+                      className="h-7 text-xs flex-shrink-0"
                     >
                       Marcare citit
                     </Button>
