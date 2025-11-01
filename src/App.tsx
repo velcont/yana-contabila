@@ -14,6 +14,7 @@ import { TutorialMenu } from "@/components/TutorialMenu";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { UpdateNotificationBanner } from "@/components/UpdateNotificationBanner";
+import { NotificationProvider } from "@/components/NotificationSystem";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -77,7 +78,8 @@ const App = () => (
           <SubscriptionProvider>
             <ThemeRoleProvider>
               <AppThemeProvider>
-                <TutorialProvider>
+                <NotificationProvider>
+                  <TutorialProvider>
                   <Suspense fallback={<LoadingFallback />}>
                     <Routes>
                       <Route path="/" element={<Landing />} />
@@ -110,8 +112,9 @@ const App = () => (
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
-                  <TutorialMenu />
-                </TutorialProvider>
+                    <TutorialMenu />
+                  </TutorialProvider>
+                </NotificationProvider>
               </AppThemeProvider>
             </ThemeRoleProvider>
           </SubscriptionProvider>

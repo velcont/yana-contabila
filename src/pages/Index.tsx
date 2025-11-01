@@ -31,6 +31,7 @@ import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { NotificationBell } from "@/components/NotificationSystem";
 import {
   Tooltip,
   TooltipContent,
@@ -482,6 +483,7 @@ const Index = () => {
               )}
             </div>
             <div className="flex gap-2">
+              <NotificationBell />
               <ThemeToggle />
               {user ? (
                 <>
