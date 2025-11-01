@@ -256,6 +256,25 @@ const Index = () => {
                 console.error('❌ [FRONTEND] METADATA INCOMPLETĂ! Doar', Object.keys(indicators).length, 'indicatori');
               }
               
+              // Extract CUI from filename (e.g., "Balanta - 12345678.xls")
+              const cuiMatch = file.name.match(/(\d{8})\.xls/i);
+              let companyId = null;
+              
+              if (cuiMatch) {
+                const cui = cuiMatch[1];
+                const { data: companyData } = await supabase
+                  .from('companies')
+                  .select('id')
+                  .eq('cui', cui)
+                  .eq('managed_by_accountant_id', user.id)
+                  .single();
+                
+                if (companyData) {
+                  companyId = companyData.id;
+                  console.log(`✅ [COMPANY-LINK] Găsit company_id pentru CUI ${cui}:`, companyId);
+                }
+              }
+              
               const { error: saveError } = await supabase
                 .from('analyses')
                 .insert({
@@ -263,6 +282,7 @@ const Index = () => {
                   file_name: file.name,
                   analysis_text: data.analysis,
                   company_name: companyName.trim() || 'Firmă nouă',
+                  company_id: companyId,
                   metadata: indicators as any,
                   council_validation: data.councilValidation || null
                 });

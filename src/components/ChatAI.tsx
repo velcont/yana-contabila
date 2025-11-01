@@ -1028,6 +1028,25 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             const metadataToSave = data.metadata || {};
             console.log(`💾 Salvare analiză în DB - metadata cu ${Object.keys(metadataToSave).length} chei:`, Object.keys(metadataToSave));
             
+            // Extract CUI from filename and find company_id
+            const cuiMatch = file.name.match(/(\d{8})\.xls/i);
+            let companyId = null;
+            
+            if (cuiMatch) {
+              const cui = cuiMatch[1];
+              const { data: companyData } = await supabase
+                .from('companies')
+                .select('id')
+                .eq('cui', cui)
+                .eq('managed_by_accountant_id', user.id)
+                .single();
+              
+              if (companyData) {
+                companyId = companyData.id;
+                console.log(`✅ [COMPANY-LINK] Găsit company_id pentru CUI ${cui}:`, companyId);
+              }
+            }
+            
             const { error: saveError } = await supabase
               .from('analyses')
               .insert({
@@ -1035,7 +1054,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 analysis_text: data.analysis || '',
                 metadata: metadataToSave,
                 file_name: file.name,
-                company_name: data.company_name || null
+                company_name: data.company_name || null,
+                company_id: companyId
               });
 
             if (saveError) {
