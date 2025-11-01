@@ -14,8 +14,6 @@ import { Mail, Loader2, Paperclip, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { formatCurrency, formatNumber } from '@/utils/analysisParser';
 import { Input } from '@/components/ui/input';
 
@@ -63,6 +61,12 @@ export const EmailAnalysisDialog = ({
   };
 
   const generatePDFBase64 = async (): Promise<string> => {
+    // Dynamic import to reduce initial bundle size
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable')
+    ]);
+    
     const doc = new jsPDF();
     const PRIMARY_COLOR: [number, number, number] = [59, 130, 246];
     

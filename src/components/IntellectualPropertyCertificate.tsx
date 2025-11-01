@@ -2,16 +2,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Download, Github, Calendar, Shield } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { toast } from "sonner";
 
 export const IntellectualPropertyCertificate = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateCertificate = () => {
+  const generateCertificate = async () => {
     setIsGenerating(true);
     
     try {
+      // Dynamic import to reduce initial bundle size
+      const { jsPDF } = await import('jspdf');
+      
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();

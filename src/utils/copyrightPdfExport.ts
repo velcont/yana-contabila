@@ -1,6 +1,7 @@
-import jsPDF from 'jspdf';
-
-export const generateCopyrightPDF = () => {
+export const generateCopyrightPDF = async () => {
+  // Dynamic import to reduce initial bundle size
+  const { default: jsPDF } = await import('jspdf');
+  
   const pdf = new jsPDF();
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();

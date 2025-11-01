@@ -8,7 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield } from 'lucide-react';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
-import jsPDF from 'jspdf';
 import AnalyticsCharts from './AnalyticsCharts';
 import CompareAnalyses from './CompareAnalyses';
 import { parseAnalysisText, formatCurrency, type FinancialIndicators } from '@/utils/analysisParser';

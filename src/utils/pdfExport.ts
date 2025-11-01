@@ -1,16 +1,8 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { FinancialIndicators, formatCurrency, formatNumber } from './analysisParser';
 
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-    lastAutoTable: {
-      finalY: number;
-    };
-  }
-}
+// Types for dynamic jsPDF import
+type JsPDFType = any;
+type AutoTableType = any;
 
 interface ExportData {
   companyName: string;
@@ -51,6 +43,12 @@ const WARNING_COLOR: [number, number, number] = [245, 158, 11]; // Amber
 const SUCCESS_COLOR: [number, number, number] = [16, 185, 129]; // Green
 
 export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
+  // Dynamic import to reduce initial bundle size
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable')
+  ]);
+  
   const doc = new jsPDF();
   
   // Determine primary color based on theme

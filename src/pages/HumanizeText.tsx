@@ -12,8 +12,6 @@ import { toast } from "sonner";
 import { Loader2, Sparkles, Download, Copy, AlertTriangle, RefreshCw, FileText, History, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import mammoth from "mammoth";
-import { Document, Packer, Paragraph, TextRun } from "docx";
 
 interface HumanizedResult {
   humanizedText: string;
@@ -62,7 +60,8 @@ export default function HumanizeText() {
         setOriginalText(text);
         toast.success("Fișier text încărcat!");
       } else if (fileExtension === 'docx' || fileExtension === 'doc') {
-        // Handle Word documents
+        // Handle Word documents - dynamic import
+        const mammoth = (await import('mammoth')).default;
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         setOriginalText(result.value);
@@ -199,6 +198,9 @@ export default function HumanizeText() {
 
   const handleDownloadWord = async () => {
     try {
+      // Dynamic import for docx library
+      const { Document, Packer, Paragraph, TextRun } = await import('docx');
+      
       // Create Word document with humanized text
       const doc = new Document({
         sections: [{
