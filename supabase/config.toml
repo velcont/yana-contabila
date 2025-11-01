@@ -125,3 +125,9 @@ verify_jwt = false
 
 [functions.cfo-advisor]
 verify_jwt = true
+
+[functions.create-manual-client]
+verify_jwt = true
+
+[functions.import-crm-clients]
+verify_jwt = true
