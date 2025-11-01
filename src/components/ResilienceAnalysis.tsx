@@ -1225,17 +1225,17 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Analiza Rezilienței Financiare
+          <CardTitle className="flex items-center justify-between flex-wrap gap-2 break-words">
+            <div className="flex items-center gap-2 break-words">
+              <Shield className="h-5 w-5 flex-shrink-0" />
+              <span className="break-words">Analiza Rezilienței Financiare</span>
             </div>
             {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="break-words overflow-wrap-anywhere">
             Sunt necesare minimum 2 analize pentru a calcula indicatorii de reziliență
             {researchData.length > 0 && (
-              <div className="mt-2 text-sm text-muted-foreground">
+              <div className="mt-2 text-sm text-muted-foreground break-words">
                 📚 {researchData.length} {researchData.length === 1 ? 'set de date de cercetare importat' : 'seturi de date de cercetare importate'}
               </div>
             )}
@@ -1248,30 +1248,30 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               {researchData.map((data) => (
                 <Card key={data.id}>
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      {data.course_name}
+                    <CardTitle className="text-base flex items-center gap-2 break-words">
+                      <BookOpen className="h-4 w-4 flex-shrink-0" />
+                      <span className="break-words">{data.course_name}</span>
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(data.data_collection_date).toLocaleDateString('ro-RO')}
+                    <CardDescription className="flex items-center gap-2 break-words">
+                      <Calendar className="h-3 w-3 flex-shrink-0" />
+                      <span className="break-words">{new Date(data.data_collection_date).toLocaleDateString('ro-RO')}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div>
-                      <span className="text-sm font-medium">Temă: </span>
-                      <Badge variant="outline">{data.research_theme}</Badge>
+                      <span className="text-sm font-medium break-words">Temă: </span>
+                      <Badge variant="outline" className="break-words">{data.research_theme}</Badge>
                     </div>
                     {data.case_studies && data.case_studies.length > 0 && (
-                      <div>
-                        <span className="text-sm font-medium">Studii de caz: </span>
-                        <span className="text-sm text-muted-foreground">
+                      <div className="break-words">
+                        <span className="text-sm font-medium break-words">Studii de caz: </span>
+                        <span className="text-sm text-muted-foreground break-words">
                           {data.case_studies.length} compan{data.case_studies.length === 1 ? 'ie' : 'ii'} analizat{data.case_studies.length === 1 ? 'ă' : 'e'}
                         </span>
                       </div>
                     )}
                     {data.research_notes && (
-                      <p className="text-sm text-muted-foreground">{data.research_notes}</p>
+                      <p className="text-sm text-muted-foreground break-words overflow-wrap-anywhere">{data.research_notes}</p>
                     )}
                   </CardContent>
                 </Card>
@@ -1296,12 +1296,12 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       {/* Overall Resilience Score */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Scor Global Reziliență
+          <CardTitle className="flex items-center justify-between flex-wrap gap-2 break-words">
+            <div className="flex items-center gap-2 break-words">
+              <Shield className="h-5 w-5 flex-shrink-0" />
+              <span className="break-words">Scor Global Reziliență</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 onClick={exportAcademicData}
                 disabled={isExporting || analyses.length < 2}
@@ -1311,23 +1311,23 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               >
                 {isExporting ? (
                   <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Export...
+                    <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+                    <span className="break-words">Export...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="h-3 w-3" />
-                    Export CSV
+                    <Download className="h-3 w-3 flex-shrink-0" />
+                    <span className="break-words">Export CSV</span>
                   </>
                 )}
               </Button>
               {isAdmin && <ResearchDataImport onImportSuccess={fetchResearchData} />}
             </div>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="break-words overflow-wrap-anywhere">
             Indicator compozit al capacității afacerii de a face față șocurilor externe
             {researchData.length > 0 && (
-              <span className="ml-2 text-xs">
+              <span className="ml-2 text-xs break-words">
                 📚 {researchData.length} {researchData.length === 1 ? 'set doctorat' : 'seturi doctorat'}
               </span>
             )}
@@ -1343,9 +1343,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mt-6">
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Activity className="h-4 w-4" />
-                  Anticipație
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <Activity className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Anticipație</span>
                   <AcademicTooltip
                     metric="Anticipație (Anticipation)"
                     theory="Resource-Based View - Resurse strategice stabile generează avantaj competitiv"
@@ -1360,9 +1360,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <TrendingUp className="h-4 w-4" />
-                  Capacitate Imediată
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <TrendingUp className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Capacitate Imediată</span>
                   <AcademicTooltip
                     metric="Coping (Capacitate Imediată)"
                     theory="Liquidity Theory - Lichiditatea = capacitate de supraviețuire în criză"
@@ -1376,9 +1376,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Target className="h-4 w-4" />
-                  Adaptare
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <Target className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Adaptare</span>
                   <AcademicTooltip
                     metric="Adaptation (Adaptare Strategică)"
                     theory="Dynamic Capabilities - Capacitatea de reconfigurare rapidă a resurselor"
@@ -1392,9 +1392,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Zap className="h-4 w-4" />
-                  Robustețe
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <Zap className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Robustețe</span>
                   <AcademicTooltip
                     metric="Robustness (Rezistență Structurală)"
                     theory="Financial Stability Theory - Structura de capital solidă = rezistență la șocuri"
@@ -1409,9 +1409,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Shield className="h-4 w-4" />
-                  Redundanță
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <Shield className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Redundanță</span>
                   <AcademicTooltip
                     metric="Redundancy (Rezerve Strategice)"
                     theory="Resource Slack Theory - Rezervele excesive oferă buffer de siguranță"
@@ -1426,9 +1426,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Lightbulb className="h-4 w-4" />
-                  Ingeniozitate
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <Lightbulb className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Ingeniozitate</span>
                   <AcademicTooltip
                     metric="Resourcefulness (Mobilizare Resurse)"
                     theory="Resource Orchestration - Capacitatea de mobilizare eficientă a resurselor"
@@ -1443,9 +1443,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Zap className="h-4 w-4" />
-                  Rapiditate
+                <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap break-words">
+                  <Zap className="h-4 w-4 flex-shrink-0" />
+                  <span className="break-words">Rapiditate</span>
                   <AcademicTooltip
                     metric="Rapidity (Viteză de Răspuns)"
                     theory="Dynamic Capabilities - Viteza de răspuns în piețe cu viteză mare"
@@ -1586,15 +1586,15 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
           {crisisScenarios.map((scenario, index) => (
             <Card key={index}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className={`h-5 w-5 ${getSeverityColor(scenario.severity)}`} />
-                      {scenario.name}
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="flex items-center gap-2 break-words">
+                      <AlertTriangle className={`h-5 w-5 flex-shrink-0 ${getSeverityColor(scenario.severity)}`} />
+                      <span className="break-words">{scenario.name}</span>
                     </CardTitle>
-                    <CardDescription>{scenario.impact}</CardDescription>
+                    <CardDescription className="break-words overflow-wrap-anywhere">{scenario.impact}</CardDescription>
                   </div>
-                  <Badge variant={scenario.severity === "critical" ? "destructive" : "secondary"}>
+                  <Badge variant={scenario.severity === "critical" ? "destructive" : "secondary"} className="flex-shrink-0 break-words">
                     {scenario.severity === "critical" ? "CRITIC" : scenario.severity === "high" ? "RIDICAT" : "MODERAT"}
                   </Badge>
                 </div>
@@ -1818,11 +1818,11 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         <TabsContent value="predictive">
           <Card>
             <CardHeader>
-              <CardTitle>Scenarii "Ce se întâmplă dacă..."</CardTitle>
-              <CardDescription>
+              <CardTitle className="break-words">Scenarii "Ce se întâmplă dacă..."</CardTitle>
+              <CardDescription className="break-words overflow-wrap-anywhere">
                 Simulează impactul îmbunătățirilor asupra rezilienței
                 <br />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground break-words">
                   📚 Model predictiv bazat pe corelații din literatură academică
                 </span>
               </CardDescription>
@@ -1830,41 +1830,41 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <Label>Ce se întâmplă dacă crești scorul de digitalizare?</Label>
-                  <div className="flex items-center gap-4 mt-2">
+                  <Label className="break-words">Ce se întâmplă dacă crești scorul de digitalizare?</Label>
+                  <div className="flex items-center gap-4 mt-2 flex-wrap">
                     <Slider
                       value={[digitalAdjustment]}
                       onValueChange={(val) => setDigitalAdjustment(val[0])}
                       min={0}
                       max={40}
                       step={5}
-                      className="flex-1"
+                      className="flex-1 min-w-[200px]"
                     />
-                    <span className="text-sm font-medium w-20">
+                    <span className="text-sm font-medium w-20 break-words">
                       +{digitalAdjustment} puncte
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere">
                     Conform Matarazzo et al. (2021): Digitalizarea mărește reziliența cu 30-40%
                   </p>
                 </div>
                 
                 <div>
-                  <Label>Ce se întâmplă dacă îmbunătățești lichiditatea (Current Ratio)?</Label>
-                  <div className="flex items-center gap-4 mt-2">
+                  <Label className="break-words">Ce se întâmplă dacă îmbunătățești lichiditatea (Current Ratio)?</Label>
+                  <div className="flex items-center gap-4 mt-2 flex-wrap">
                     <Slider
                       value={[liquidityAdjustment]}
                       onValueChange={(val) => setLiquidityAdjustment(val[0])}
                       min={0}
                       max={1}
                       step={0.1}
-                      className="flex-1"
+                      className="flex-1 min-w-[200px]"
                     />
-                    <span className="text-sm font-medium w-20">
+                    <span className="text-sm font-medium w-20 break-words">
                       +{liquidityAdjustment.toFixed(1)}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 break-words overflow-wrap-anywhere">
                     Conform Brigham & Ehrhardt (2013): Current Ratio optim = 1.5-2.0
                   </p>
                 </div>
@@ -1930,56 +1930,58 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               
               {predictionResult && (
                 <div className="mt-6 p-4 border rounded-lg bg-muted/50">
-                  <h4 className="font-semibold mb-4">Rezultate Predicție:</h4>
+                  <h4 className="font-semibold mb-4 break-words">Rezultate Predicție:</h4>
                   
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead></TableHead>
-                        <TableHead>Actual</TableHead>
-                        <TableHead>După Îmbunătățiri</TableHead>
-                        <TableHead>Delta</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Scor Reziliență</TableCell>
-                        <TableCell>{resilienceScore?.overall || 0}/100</TableCell>
-                        <TableCell className="font-semibold text-green-600">
-                          {predictionResult.predictedResilience}/100
-                        </TableCell>
-                        <TableCell>
-                          <Badge className="bg-green-600">
-                            +{predictionResult.predictedResilience - (resilienceScore?.overall || 0)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                      
-                      <TableRow>
-                        <TableCell>Clasificare</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{predictionResult.currentClass}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="default">{predictionResult.predictedClass}</Badge>
-                        </TableCell>
-                        <TableCell>↑ Upgrade</TableCell>
-                      </TableRow>
-                      
-                      <TableRow>
-                        <TableCell>Risc Criză</TableCell>
-                        <TableCell>{predictionResult.currentRisk}%</TableCell>
-                        <TableCell className="text-green-600">
-                          {predictionResult.predictedRisk}%
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-green-600">
-                            -{predictionResult.currentRisk - predictionResult.predictedRisk}%
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="break-words"></TableHead>
+                          <TableHead className="break-words">Actual</TableHead>
+                          <TableHead className="break-words">După Îmbunătățiri</TableHead>
+                          <TableHead className="break-words">Delta</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium break-words">Scor Reziliență</TableCell>
+                          <TableCell className="break-words">{resilienceScore?.overall || 0}/100</TableCell>
+                          <TableCell className="font-semibold text-green-600 break-words">
+                            {predictionResult.predictedResilience}/100
+                          </TableCell>
+                          <TableCell className="break-words">
+                            <Badge className="bg-green-600">
+                              +{predictionResult.predictedResilience - (resilienceScore?.overall || 0)}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                        
+                        <TableRow>
+                          <TableCell className="break-words">Clasificare</TableCell>
+                          <TableCell className="break-words">
+                            <Badge variant="outline">{predictionResult.currentClass}</Badge>
+                          </TableCell>
+                          <TableCell className="break-words">
+                            <Badge variant="default">{predictionResult.predictedClass}</Badge>
+                          </TableCell>
+                          <TableCell className="break-words">↑ Upgrade</TableCell>
+                        </TableRow>
+                        
+                        <TableRow>
+                          <TableCell className="break-words">Risc Criză</TableCell>
+                          <TableCell className="break-words">{predictionResult.currentRisk}%</TableCell>
+                          <TableCell className="text-green-600 break-words">
+                            {predictionResult.predictedRisk}%
+                          </TableCell>
+                          <TableCell className="break-words">
+                            <span className="text-green-600">
+                              -{predictionResult.currentRisk - predictionResult.predictedRisk}%
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
                   
                   <Alert className="mt-4">
                     <AlertCircle className="h-4 w-4" />
@@ -1995,14 +1997,14 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                   
                   {predictionResult.recommendations.length > 0 && (
                     <div className="mt-4 space-y-2">
-                      <h5 className="text-sm font-semibold">🎯 Pași Concreți Recomandați:</h5>
+                      <h5 className="text-sm font-semibold break-words">🎯 Pași Concreți Recomandați:</h5>
                       {predictionResult.recommendations.map((rec: any, idx: number) => (
                         <div key={idx} className="flex items-start gap-2 text-sm">
-                          <span className="text-primary font-medium">{idx + 1}.</span>
-                          <div>
-                            <p className="font-medium">{rec.action}</p>
-                            <p className="text-xs text-muted-foreground">{rec.rationale}</p>
-                            <p className="text-xs text-primary mt-1">
+                          <span className="text-primary font-medium flex-shrink-0">{idx + 1}.</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium break-words overflow-wrap-anywhere">{rec.action}</p>
+                            <p className="text-xs text-muted-foreground break-words overflow-wrap-anywhere">{rec.rationale}</p>
+                            <p className="text-xs text-primary mt-1 break-words overflow-wrap-anywhere">
                               📚 {rec.academicSource}
                             </p>
                           </div>
@@ -2055,50 +2057,50 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
               {researchData.map((data) => (
                 <Card key={data.id}>
                   <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      {data.course_name}
+                    <CardTitle className="text-base flex items-center gap-2 break-words">
+                      <BookOpen className="h-4 w-4 flex-shrink-0" />
+                      <span className="break-words">{data.course_name}</span>
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(data.data_collection_date).toLocaleDateString('ro-RO')}
+                    <CardDescription className="flex items-center gap-2 break-words">
+                      <Calendar className="h-3 w-3 flex-shrink-0" />
+                      <span className="break-words">{new Date(data.data_collection_date).toLocaleDateString('ro-RO')}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <span className="text-sm font-medium">Temă de cercetare: </span>
-                      <Badge variant="outline">{data.research_theme}</Badge>
+                      <span className="text-sm font-medium break-words">Temă de cercetare: </span>
+                      <Badge variant="outline" className="break-words">{data.research_theme}</Badge>
                     </div>
 
                     {data.case_studies && data.case_studies.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="text-sm font-semibold">Studii de caz ({data.case_studies.length})</h4>
+                        <h4 className="text-sm font-semibold break-words">Studii de caz ({data.case_studies.length})</h4>
                         {data.case_studies.map((caseStudy: any, idx: number) => (
                           <Card key={idx} className="bg-muted/50">
                             <CardContent className="pt-4 space-y-2">
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <h5 className="font-medium">{caseStudy.company_name}</h5>
-                                  <p className="text-xs text-muted-foreground">{caseStudy.industry}</p>
+                              <div className="flex items-start justify-between gap-4 flex-wrap">
+                                <div className="min-w-0 flex-1">
+                                  <h5 className="font-medium break-words">{caseStudy.company_name}</h5>
+                                  <p className="text-xs text-muted-foreground break-words">{caseStudy.industry}</p>
                                 </div>
                                 {caseStudy.resilience_impact?.cost_flexibility && (
-                                  <Badge variant="secondary">
+                                  <Badge variant="secondary" className="flex-shrink-0">
                                     Flexibilitate: {caseStudy.resilience_impact.cost_flexibility}/10
                                   </Badge>
                                 )}
                               </div>
                               {caseStudy.digital_tools_adopted && caseStudy.digital_tools_adopted.length > 0 && (
                                 <div>
-                                  <span className="text-xs font-medium">Instrumente digitale: </span>
+                                  <span className="text-xs font-medium break-words">Instrumente digitale: </span>
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {caseStudy.digital_tools_adopted.map((tool: string, i: number) => (
-                                      <Badge key={i} variant="outline" className="text-xs">{tool}</Badge>
+                                      <Badge key={i} variant="outline" className="text-xs break-words">{tool}</Badge>
                                     ))}
                                   </div>
                                 </div>
                               )}
                               {caseStudy.key_insights && (
-                                <p className="text-xs text-muted-foreground italic">{caseStudy.key_insights}</p>
+                                <p className="text-xs text-muted-foreground italic break-words overflow-wrap-anywhere">{caseStudy.key_insights}</p>
                               )}
                             </CardContent>
                           </Card>
@@ -2110,14 +2112,14 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                       <div className="grid grid-cols-2 gap-4">
                         {data.metrics_collected.avg_digital_maturity_score && (
                           <div className="p-3 bg-muted rounded-lg">
-                            <p className="text-xs text-muted-foreground">Maturitate Digitală</p>
-                            <p className="text-2xl font-bold">{data.metrics_collected.avg_digital_maturity_score}</p>
+                            <p className="text-xs text-muted-foreground break-words">Maturitate Digitală</p>
+                            <p className="text-2xl font-bold break-words">{data.metrics_collected.avg_digital_maturity_score}</p>
                           </div>
                         )}
                         {data.metrics_collected.avg_resilience_score && (
                           <div className="p-3 bg-muted rounded-lg">
-                            <p className="text-xs text-muted-foreground">Scor Reziliență</p>
-                            <p className="text-2xl font-bold">{data.metrics_collected.avg_resilience_score}</p>
+                            <p className="text-xs text-muted-foreground break-words">Scor Reziliență</p>
+                            <p className="text-2xl font-bold break-words">{data.metrics_collected.avg_resilience_score}</p>
                           </div>
                         )}
                       </div>
@@ -2125,8 +2127,8 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
 
                     {data.research_notes && (
                       <div>
-                        <h4 className="text-sm font-semibold mb-1">Note de cercetare</h4>
-                        <p className="text-sm text-muted-foreground">{data.research_notes}</p>
+                        <h4 className="text-sm font-semibold mb-1 break-words">Note de cercetare</h4>
+                        <p className="text-sm text-muted-foreground break-words overflow-wrap-anywhere">{data.research_notes}</p>
                       </div>
                     )}
                   </CardContent>
