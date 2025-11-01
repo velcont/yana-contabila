@@ -91,14 +91,22 @@ const pickFirstNumber = (obj: any, candidates: string[]): number => {
 };
 
 // 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
-export const getLatestFinancialData = async (userId: string): Promise<FinancialData | null> => {
+export const getLatestFinancialData = async (userId: string, companyId?: string): Promise<FinancialData | null> => {
   console.log('🔍 getLatestFinancialData - START for userId:', userId);
+  console.log('🔍 getLatestFinancialData - Filter by companyId:', companyId);
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('analyses')
     .select('metadata, created_at, company_id')
     .eq('user_id', userId)
-    .not('metadata', 'is', null)
+    .not('metadata', 'is', null);
+  
+  // Filter by company if provided
+  if (companyId) {
+    query = query.eq('company_id', companyId);
+  }
+  
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(6);
   
@@ -114,6 +122,7 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
   data.forEach((row, idx) => {
     console.log(`🔍 getLatestFinancialData - Analysis [${idx}] metadata:`, row.metadata);
     console.log(`🔍 getLatestFinancialData - Analysis [${idx}] metadata keys:`, Object.keys(row.metadata || {}));
+    console.log(`🔍 getLatestFinancialData - Analysis [${idx}] company_id:`, row.company_id);
   });
   
   const merged: Record<string, number> = {
@@ -242,22 +251,22 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
   });
 
   // Get company info from the most recent analysis
-  let companyId: string | undefined = undefined;
+  let foundCompanyId: string | undefined = undefined;
   let companyName: string | undefined = undefined;
   
   if (data[0]?.company_id) {
-    companyId = data[0].company_id;
+    foundCompanyId = data[0].company_id;
     
     // Fetch company name
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('company_name')
-      .eq('id', companyId)
+      .eq('id', foundCompanyId)
       .single();
     
     if (!companyError && companyData) {
       companyName = companyData.company_name;
-      console.log('✅ CFO - Company info:', { companyId, companyName });
+      console.log('✅ CFO - Company info:', { companyId: foundCompanyId, companyName });
     }
   }
 
@@ -271,7 +280,7 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
     soldFurnizori: merged.soldFurnizori,
     dso: merged.dso,
     dpo: merged.dpo,
-    companyId,
+    companyId: foundCompanyId,
     companyName
   };
 };

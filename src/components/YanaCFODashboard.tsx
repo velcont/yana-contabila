@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -16,7 +17,7 @@ import {
   type CashFlowData,
   type SimulationResult,
 } from '@/services/financialAnalysis';
-import { Loader2, FileBarChart, Coins, AlertCircle } from 'lucide-react';
+import { Loader2, FileBarChart, Coins, AlertCircle, Building2 } from 'lucide-react';
 import { CFOChatInterface } from './cfo/CFOChatInterface';
 import { RunwayCard } from './cfo/RunwayCard';
 import { FinancialSnapshot } from './cfo/FinancialSnapshot';
@@ -52,6 +53,11 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
   const [cfoQuestion, setCfoQuestion] = useState('');
   const [cfoConversationHistory, setCfoConversationHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
+  
+  // Company selector state
+  const [companies, setCompanies] = useState<Array<{id: string, company_name: string}>>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  
   const { toast } = useToast();
 
   // What-If Simulator state
@@ -77,6 +83,11 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
     return financialData.soldBanca + financialData.soldCasa;
   }, [financialData]);
 
+  // Load companies list
+  useEffect(() => {
+    loadCompanies();
+  }, [userId]);
+
   // Load initial data
   useEffect(() => {
     // Use prop data if available
@@ -87,7 +98,30 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
       handleRefreshDashboard();
     }
     loadCFOConversationHistory();
-  }, [userId, propFinancialData]);
+  }, [userId, propFinancialData, selectedCompanyId]);
+
+  const loadCompanies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, company_name')
+        .or(`user_id.eq.${userId},managed_by_accountant_id.eq.${userId}`)
+        .eq('is_active', true)
+        .order('company_name');
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setCompanies(data);
+        // Auto-select first company if none selected
+        if (!selectedCompanyId) {
+          setSelectedCompanyId(data[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading companies:', error);
+    }
+  };
 
   const loadCFOConversationHistory = async () => {
     try {
@@ -137,17 +171,20 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
 
   const handleRefreshDashboard = async () => {
     console.log('🔍 CFO Dashboard - Loading financial data...');
+    console.log('🔍 CFO Dashboard - Selected company:', selectedCompanyId);
     setIsLoading(true);
     
     try {
-      const data = await getLatestFinancialData(userId);
+      const data = await getLatestFinancialData(userId, selectedCompanyId || undefined);
       console.log('🔍 CFO Dashboard - Financial data loaded:', data);
       
       if (!data) {
         console.log('🔍 CFO Dashboard - NO DATA FOUND');
         toast({
           title: "📊 Nicio balanță încărcată",
-          description: "Mergi la tab-ul 'Chat Strategist' și încarcă o balanță Excel pentru a vedea CFO Dashboard.",
+          description: selectedCompanyId 
+            ? "Nu există balanță încărcată pentru firma selectată. Încarcă o balanță în Chat Strategist."
+            : "Mergi la tab-ul 'Chat Strategist' și încarcă o balanță Excel pentru a vedea CFO Dashboard.",
           variant: "default"
         });
         return;
@@ -159,6 +196,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
       console.log('🔍 CFO Dashboard - Expenses:', data?.expenses);
       console.log('🔍 CFO Dashboard - DSO:', data?.dso);
       console.log('🔍 CFO Dashboard - DPO:', data?.dpo);
+      console.log('🔍 CFO Dashboard - Company:', data?.companyName);
       
       setFinancialData(data);
       
@@ -291,6 +329,34 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
 
   return (
     <div className="space-y-6">
+      {/* Company Selector - NEW */}
+      {companies.length > 1 && (
+        <Card className="border-primary/20 bg-muted/30">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <Building2 className="h-5 w-5 text-primary" />
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">
+                  Selectează firma pentru care vrei să vezi CFO Dashboard:
+                </label>
+                <Select value={selectedCompanyId || undefined} onValueChange={setSelectedCompanyId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Alege firma..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map(company => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.company_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Badge info header */}
       {financialData && (
         <Alert className="border-primary/30 bg-primary/5">
