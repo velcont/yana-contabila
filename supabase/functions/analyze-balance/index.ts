@@ -1200,34 +1200,33 @@ serve(async (req) => {
     let councilValidation = null;
     
     try {
-      if (user) {
-        console.log(`📊 [AI-COUNCIL] User has ${validatedCount} validated analyses`);
-        
-        // Determină statusul pentru logging
-        const statusMsg = validatedCount < 6 
-          ? `analiză ${validatedCount + 1}/6 gratuită`
-          : isInTrial 
-            ? `în perioada de trial (până la ${new Date(userProfile.trial_ends_at).toLocaleDateString('ro-RO')})`
-            : `cu abonament ${userProfile.subscription_type}`;
-        
-        console.log(`✅ [AI-COUNCIL] Validare inclusă - ${statusMsg}`);
-        console.log("🔍 [AI-COUNCIL] Starting automatic validation...");
-        
-        const councilResponse = await supabaseClient.functions.invoke('validate-analysis-with-council', {
-          body: {
-            metadata: deterministic_metadata,
-            analysisText: analysis,
-            balanceText: balanceText.slice(0, 5000),
-            userId: user.id
-          }
-        });
-        
-        if (councilResponse.error) {
-          console.error("❌ [AI-COUNCIL] Validation error:", councilResponse.error);
-        } else {
-          councilValidation = councilResponse.data;
-          console.log(`✅ [AI-COUNCIL] Validation complete - Verdict: ${councilValidation?.consensus?.verdict}`);
+      console.log(`📊 [AI-COUNCIL] User authenticated: ${!!user}`);
+      console.log(`📊 [AI-COUNCIL] Validated analyses count: ${validatedCount}`);
+      
+      // Determină statusul pentru logging
+      const statusMsg = validatedCount < 6 
+        ? `analiză ${validatedCount + 1}/6 gratuită`
+        : isInTrial 
+          ? `în perioada de trial (până la ${new Date(userProfile?.trial_ends_at).toLocaleDateString('ro-RO')})`
+          : `cu abonament ${userProfile?.subscription_type}`;
+      
+      console.log(`✅ [AI-COUNCIL] Validare inclusă - ${statusMsg}`);
+      console.log("🔍 [AI-COUNCIL] Starting automatic validation...");
+      
+      const councilResponse = await supabaseClient.functions.invoke('validate-analysis-with-council', {
+        body: {
+          metadata: deterministic_metadata,
+          analysisText: analysis,
+          balanceText: balanceText.slice(0, 5000),
+          userId: user?.id || 'anonymous'
         }
+      });
+      
+      if (councilResponse.error) {
+        console.error("❌ [AI-COUNCIL] Validation error:", councilResponse.error);
+      } else {
+        councilValidation = councilResponse.data;
+        console.log(`✅ [AI-COUNCIL] Validation complete - Verdict: ${councilValidation?.consensus?.verdict}`);
       }
     } catch (councilError) {
       console.error('❌ [AI-COUNCIL] Validation failed:', councilError);
