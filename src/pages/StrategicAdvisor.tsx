@@ -107,29 +107,28 @@ export default function StrategicAdvisor() {
 
         setSubscriptionStatus(profile?.subscription_status || "none");
 
-        // ✅ TOȚI UTILIZATORII folosesc DOAR sistemul de CREDITE
-        // NU există acces nelimitat - credite se cumpără separat
-        let creditLeft = profile?.trial_credit_remaining;
-        
-        // 🆕 Inițializare automată: toți antreprenorii primesc 10 lei credit inițial
-        if (creditLeft === null || creditLeft === undefined) {
-          console.log("🎁 [ACCESS-CHECK] Initializing 10 lei trial credit for new entrepreneur");
-          creditLeft = 10;
-          
-          // Actualizează în database
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ trial_credit_remaining: 10 })
-            .eq("id", user.id);
-          
-          if (updateError) {
-            console.error("❌ [ACCESS-CHECK] Failed to initialize trial credit:", updateError);
+        // ✅ Creditul se bazează pe bugetul AI (ai_budget_limits) minus consumul lunar (ai_usage)
+        let creditLeft = 0;
+        try {
+          const { data: usageData, error: usageError } = await supabase.rpc('get_monthly_ai_usage');
+          if (usageError) {
+            console.warn('⚠️ [ACCESS-CHECK] get_monthly_ai_usage failed, falling back to profile trial credit:', usageError.message);
+            creditLeft = profile?.trial_credit_remaining ?? 0;
           } else {
-            console.log("✅ [ACCESS-CHECK] Trial credit initialized successfully");
+            const usage = usageData?.[0];
+            if (usage) {
+              const remainingCents = Math.max(0, (usage.budget_cents || 0) - (usage.total_cost_cents || 0));
+              creditLeft = Number((remainingCents / 100).toFixed(2));
+            } else {
+              creditLeft = profile?.trial_credit_remaining ?? 0;
+            }
           }
+        } catch (e) {
+          console.warn('⚠️ [ACCESS-CHECK] Usage check error, fallback to profile:', e);
+          creditLeft = profile?.trial_credit_remaining ?? 0;
         }
         
-        console.log(`💰 [ACCESS-CHECK] Credit remaining: ${creditLeft} lei`);
+        console.log(`💰 [ACCESS-CHECK] Credit remaining (RON): ${creditLeft}`);
         setCreditRemaining(creditLeft);
         
         if (creditLeft > 0) {
