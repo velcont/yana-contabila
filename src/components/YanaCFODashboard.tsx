@@ -1,5 +1,4 @@
-// Force rebuild - Production deployment test - 2025-10-31T21:30:00Z
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -28,6 +27,8 @@ import { AlertCircle, TrendingUp, UserPlus, ShoppingCart, Scissors, Loader2, Fil
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { CFOChatInterface } from './cfo/CFOChatInterface';
+import { RunwayCard } from './cfo/RunwayCard';
 
 interface YanaCFODashboardProps {
   userId: string;
@@ -37,10 +38,7 @@ interface YanaCFODashboardProps {
 
 export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: YanaCFODashboardProps) => {
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
-  const [runway, setRunway] = useState<RunwayData | null>(null);
   const [cashFlowForecast, setCashFlowForecast] = useState<CashFlowData | null>(null);
-  const [alerts, setAlerts] = useState<FinancialAlert[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showCFOResponseDialog, setShowCFOResponseDialog] = useState(false);
   const [cfoResponse, setCFOResponse] = useState('');
@@ -55,25 +53,28 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   const [revenueGrowth, setRevenueGrowth] = useState(0);
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
 
+  // Computed values with useMemo for performance
+  const runway = useMemo(() => {
+    if (!financialData) return null;
+    const currentCash = financialData.soldBanca + financialData.soldCasa;
+    return calculateRunway(currentCash, financialData.revenue / 12, financialData.expenses / 12);
+  }, [financialData]);
+
+  const alerts = useMemo(() => {
+    if (!financialData) return [];
+    return detectFinancialAlerts(financialData);
+  }, [financialData]);
+
+  const currentCash = useMemo(() => {
+    if (!financialData) return 0;
+    return financialData.soldBanca + financialData.soldCasa;
+  }, [financialData]);
+
   // Load initial data
   useEffect(() => {
-    console.log('🚨 CFO Dashboard - Component mounted/updated');
-    console.log('🔍 Chat interface should be visible at id="cfo-chat"');
     handleRefreshDashboard();
     loadCFOConversationHistory();
   }, [userId]);
-
-  // Debug logging for production debugging
-  useEffect(() => {
-    console.log('🚨 CFO Dashboard - Component mounted/updated');
-    console.log('🔍 Props:', { userId, creditRemaining });
-    console.log('🔍 State:', { 
-      loading, 
-      hasFinancialData: !!financialData, 
-      historyLength: cfoConversationHistory.length 
-    });
-    console.log('🔍 Chat element exists:', document.getElementById('cfo-chat'));
-  }, [loading, financialData, cfoConversationHistory, userId, creditRemaining]);
 
   const loadCFOConversationHistory = async () => {
     try {
@@ -115,7 +116,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
           setCfoConversationHistory(lastMessages);
           setConversationId(lastConvId);
-          console.log('✅ Încărcat istoric CFO:', lastMessages.length, 'mesaje');
         }
       }
     } catch (err) {
@@ -124,7 +124,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
   };
 
   const handleRefreshDashboard = async () => {
-    setLoading(true);
     setIsLoading(true);
     
     try {
@@ -136,36 +135,26 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
           description: "Mergi la tab-ul 'Chat Strategist' și încarcă o balanță Excel pentru a vedea CFO Dashboard.",
           variant: "default"
         });
-        setIsLoading(false);
         return;
       }
       
       setFinancialData(data);
-      console.log('✅ CFO - financialData set:', data);
       
       const currentCash = data.soldBanca + data.soldCasa;
-      const runwayData = calculateRunway(currentCash, data.revenue / 12, data.expenses / 12);
-      setRunway(runwayData);
-      
       const forecastData = calculateCashFlowForecast(currentCash, data.revenue / 12, data.expenses / 12);
       setCashFlowForecast(forecastData);
-      
-      const detectedAlerts = detectFinancialAlerts(data);
-      setAlerts(detectedAlerts);
       
       toast({
         title: "✅ Dashboard actualizat",
         description: "Date financiare afișate gratuit din analiza balanței tale."
       });
     } catch (error) {
-      console.error('Error refreshing dashboard:', error);
       toast({
         title: "Eroare",
         description: "Nu s-a putut actualiza dashboard-ul.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
       setIsLoading(false);
     }
   };
@@ -207,7 +196,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
       role: 'user',
       content: question
     }]);
-    console.log('📨 CFO - user question:', question);
 
     setIsLoading(true);
 
@@ -220,7 +208,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
           description: "Încarcă o balanță pentru a folosi CFO Chat.",
           variant: "destructive"
         });
-        setIsLoading(false);
         return;
       }
 
@@ -262,7 +249,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
           content: cfoResponseData.answer,
           metadata: { type: 'cfo' }
         });
-        console.log('✅ Conversație CFO salvată în BD');
       }
       
       toast({
@@ -270,7 +256,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         description: `Cost: ${cost.toFixed(2)} lei`
       });
     } catch (error: any) {
-      console.error('Error asking CFO:', error);
       toast({
         title: "Eroare",
         description: "Nu s-a putut obține răspunsul CFO.",
@@ -281,17 +266,6 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
     }
   };
 
-  const handleAskCFO = async () => {
-    if (!cfoQuestion.trim() || isLoading) return;
-    
-    await askCFOQuestion(cfoQuestion);
-    setCfoQuestion('');
-  };
-
-  // Debug logging
-  console.log('🔍 CFO Dashboard - Render check');
-  console.log('🔍 financialData:', financialData);
-  console.log('🔍 cfoConversationHistory.length:', cfoConversationHistory.length);
 
   return (
     <div className="space-y-6">
@@ -315,7 +289,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
 
 
       {/* Mini Loading Banner - Feedback instant */}
-      {loading && (
+      {isLoading && (
         <Alert className="border-blue-500/30 bg-blue-500/10">
           <Loader2 className="h-4 w-4 animate-spin" />
           <AlertTitle className="text-sm font-semibold">
@@ -327,264 +301,27 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
         </Alert>
       )}
 
-      {/* CHAT INTERFACE CFO - SECȚIUNEA PRINCIPALĂ - MUTATĂ LA ÎNCEPUT */}
-      <div id="cfo-chat" className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 border border-slate-700 scroll-mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            💬 Întreabă CFO AI
-          </h3>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-            💎 0.85 lei/întrebare
-          </Badge>
-        </div>
+      {/* CFO CHAT INTERFACE - Extracted Component */}
+      <CFOChatInterface
+        financialData={financialData}
+        cfoConversationHistory={cfoConversationHistory}
+        isLoading={isLoading}
+        onAskQuestion={askCFOQuestion}
+      />
 
-        {/* Hint dacă nu există financial data */}
-        {!financialData && (
-          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-            <p className="text-xs text-yellow-200">
-              💡 <strong>Tip:</strong> Pentru analiză CFO mai precisă, încarcă o balanță în tab-ul "Chat Strategist".
-            </p>
-          </div>
-        )}
-
-        {/* Istoric conversație (dacă există) */}
-        {cfoConversationHistory.length > 0 && (
-          <div className="mb-4 space-y-3 max-h-[400px] overflow-y-auto bg-slate-950/50 rounded-lg p-4">
-            {cfoConversationHistory.map((msg, idx) => (
-              <div key={idx} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-                <div className={cn(
-                  "max-w-[80%] rounded-lg p-3",
-                  msg.role === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-slate-700 text-slate-100'
-                )}>
-                  {msg.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-sm max-w-none">
-                      {msg.content.split('\n').map((line, i) => (
-                        <p key={i} className="mb-2 last:mb-0">{line}</p>
-                      ))}
-                    </div>
-                  ) : (
-                    msg.content
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Input pentru întrebare CUSTOM */}
-        <div className="flex gap-3 mb-4">
-          <input
-            type="text"
-            value={cfoQuestion}
-            onChange={(e) => setCfoQuestion(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAskCFO()}
-            placeholder="Scrie orice întrebare despre afacerea ta..."
-            className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-            disabled={isLoading}
-          />
-          <Button
-            onClick={handleAskCFO}
-            disabled={isLoading || !cfoQuestion.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? '⏳' : '🚀'} Întreabă
-          </Button>
-        </div>
-
-        {/* Quick Questions ca SHORTCUTS (opțional) */}
-        <div className="pt-4 border-t border-slate-700">
-          <p className="text-xs text-slate-400 mb-2">💡 Shortcuts rapide:</p>
-          <div className="flex flex-wrap gap-2">
-            <button 
-              onClick={() => setCfoQuestion("Pot angaja 2 oameni noi? Ce impact va avea asupra cash flow-ului?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              👥 Pot angaja?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Ce strategie de cash management îmi recomanzi pentru următoarele 3 luni?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              📊 Strategie cash?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Care sunt cele mai mari riscuri financiare și cum le pot preveni?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              ⚠️ Riscuri?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum pot crește profitul în următoarele 6 luni?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              💰 Creștere profit?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Îmi permit să fac investiții majore acum? Ce trebuie să știu?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🚀 Pot investi?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum optimizez taxele și contribuțiile pentru a reduce cheltuielile?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🎯 Optimizare taxe?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum îmbunătățesc cash flow-ul și încasările de la clienți?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              💸 Încasări rapid?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Ce indicatori financiari ar trebui să urmăresc lunar?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              📈 KPI-uri?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum mă pregătesc pentru o perioadă de criză sau scădere a vânzărilor?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🛡️ Plan criză?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Ce oportunități de finanțare sau creditare sunt disponibile pentru afacerea mea?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🏦 Finanțare?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum negociez mai bine cu furnizorii pentru a reduce costurile?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🤝 Negociere furnizori?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Ce costuri fixe pot transforma în costuri variabile?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🔄 Flexibilizare costuri?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum îmi stabilesc prețurile pentru a maximiza profitul?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              💵 Strategie prețuri?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Ce rezerve de cash ar trebui să am pentru situații neprevăzute?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🏦 Rezerve?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Cum îmi diversific sursele de venit pentru a reduce riscul?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              🌐 Diversificare?
-            </button>
-            <button 
-              onClick={() => setCfoQuestion("Ce procese pot automatiza pentru a reduce costurile operaționale?")}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
-            >
-              ⚙️ Automatizări?
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 1. CARD: Runway + Refresh */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          {financialData && (
-            <Badge variant="outline" className="absolute top-4 left-4 text-xs">
-              📊 Date din: Analiza Balanței
-            </Badge>
-          )}
-          
-          <div className="flex-1 mt-6">
-            <CardTitle className="text-2xl">
-              {runway ? (
-                <>
-                  Runway: <span className={cn(
-                    runway.status === 'critical' && 'text-destructive',
-                    runway.status === 'warning' && 'text-orange-600',
-                    runway.status === 'healthy' && 'text-green-600'
-                  )}>
-                    {runway.months === Infinity ? '∞' : runway.months.toFixed(1)} luni
-                  </span> ({runway.days === Infinity ? '∞' : Math.floor(runway.days)} zile)
-                </>
-              ) : (
-                'Dashboard CFO'
-              )}
-            </CardTitle>
-            <CardDescription>{runway?.message}</CardDescription>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              size="sm"
-              variant="outline"
-              className="gap-2"
-            >
-              💬 Sari la Chat
-            </Button>
-            
-            <Button 
-              onClick={handleRefreshDashboard} 
-              disabled={isLoading}
-              size="sm"
-              variant="outline"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Se recalculează...
-                </>
-              ) : (
-                <>🔄 Refresh</>
-              )}
-            </Button>
-          </div>
-        </CardHeader>
-        
-        {runway && (
-          <CardContent>
-            <Progress 
-              value={runway.status === 'critical' ? 20 : runway.status === 'warning' ? 50 : 80} 
-              className="h-3"
-            />
-            <div className="mt-2 text-sm text-muted-foreground">
-              Cash disponibil: {formatCurrency((financialData?.soldBanca || 0) + (financialData?.soldCasa || 0))}
-            </div>
-          </CardContent>
-        )}
-      </Card>
+      {/* RUNWAY CARD - Extracted Component */}
+      <RunwayCard
+        runway={runway}
+        currentCash={currentCash}
+        isLoading={isLoading}
+        onRefresh={handleRefreshDashboard}
+        onScrollToChat={() => {
+          document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+      />
 
       {/* Loading State - PRIORITATE 1 */}
-      {loading && !financialData && (
+      {isLoading && !financialData && (
         <div className="flex-1 flex items-center justify-center py-20">
           <div className="text-center">
             <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -610,7 +347,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct }: Ya
       )}
 
       {/* Skeleton Loading pentru tranziție smoothă */}
-      {loading && financialData && (
+      {isLoading && financialData && (
         <div className="space-y-4 animate-pulse">
           <div className="grid grid-cols-4 gap-4">
             {[1,2,3,4].map(i => (
