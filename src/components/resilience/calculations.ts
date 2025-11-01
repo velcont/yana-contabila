@@ -77,10 +77,14 @@ export const calculateResilienceScore = (analyses: Analysis[]): ResilienceScore 
   const anticipation = Math.min(100, (profitTrendR2 * 50) + (revenueGrowth > 0 ? 50 : 0));
   
   // === COPING (25%) ===
-  const currentAssets = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0) + (latestAnalysis.metadata.clienti || 0);
-  const currentLiabilities = latestAnalysis.metadata.furnizori || 1;
+  const currentAssets = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                        (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0) + 
+                        (latestAnalysis.metadata.soldClienti || latestAnalysis.metadata.clienti || 0);
+  const currentLiabilities = latestAnalysis.metadata.soldFurnizori || latestAnalysis.metadata.furnizori || 1;
   const currentRatio = currentAssets / currentLiabilities;
-  const quickAssets = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0) + (latestAnalysis.metadata.clienti || 0);
+  const quickAssets = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                      (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0) + 
+                      (latestAnalysis.metadata.soldClienti || latestAnalysis.metadata.clienti || 0);
   const quickRatio = quickAssets / currentLiabilities;
   const coping = Math.min(100, (Math.min(currentRatio, 2) / 2 * 50) + (Math.min(quickRatio, 1) / 1 * 50));
   
@@ -90,7 +94,7 @@ export const calculateResilienceScore = (analyses: Analysis[]): ResilienceScore 
   const adaptation = Math.max(0, Math.min(100, 100 - (profitCV * 30) + (costElasticity * 50)));
   
   // === ROBUSTNESS (20%) ===
-  const totalDebt = latestAnalysis.metadata.furnizori || 0;
+  const totalDebt = latestAnalysis.metadata.soldFurnizori || latestAnalysis.metadata.furnizori || 0;
   const equity = Math.max(1, (latestAnalysis.metadata.ca || 0) - (latestAnalysis.metadata.cheltuieli || 0));
   const debtToEquity = totalDebt / equity;
   const ebitda = latestAnalysis.metadata.ebitda || 0;
@@ -98,7 +102,8 @@ export const calculateResilienceScore = (analyses: Analysis[]): ResilienceScore 
   const robustness = Math.min(100, (Math.max(0, 100 - debtToEquity * 50)) * 0.5 + (Math.min(interestCoverage, 10) / 10 * 50));
   
   // === REDUNDANCY (10%) ===
-  const cashReserves = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0);
+  const cashReserves = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                       (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0);
   const monthlyExpenses = (latestAnalysis.metadata.cheltuieli || 0) / 12;
   const monthsOfReserve = monthlyExpenses > 0 ? cashReserves / monthlyExpenses : 0;
   const redundancy = Math.min(100, (monthsOfReserve / 6) * 100);
@@ -108,7 +113,10 @@ export const calculateResilienceScore = (analyses: Analysis[]): ResilienceScore 
   const resourcefulness = Math.max(0, Math.min(100, 100 - (revenueVolatility * 40)));
   
   // === RAPIDITY (5%) ===
-  const cashPositions = sortedAnalyses.map(a => (a.metadata.casa || 0) + (a.metadata.banca || 0));
+  const cashPositions = sortedAnalyses.map(a => 
+    (a.metadata.soldCasa || a.metadata.casa || 0) + 
+    (a.metadata.soldBanca || a.metadata.banca || 0)
+  );
   const cashChanges = cashPositions.slice(1).map((val, i) => Math.abs(val - cashPositions[i]));
   const avgCashChange = cashChanges.length > 0 
     ? cashChanges.reduce((sum, c) => sum + c, 0) / cashChanges.length 

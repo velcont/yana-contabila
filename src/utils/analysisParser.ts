@@ -6,6 +6,7 @@ export interface FinancialIndicators {
   cashConversionCycle?: number;
   ebitda?: number;
   revenue?: number;
+  ca?: number; // Alias pentru revenue (cifră de afaceri)
   expenses?: number;
   profit?: number;
   currentRatio?: number;
@@ -15,6 +16,7 @@ export interface FinancialIndicators {
   soldClienti?: number;
   soldBanca?: number;
   soldCasa?: number;
+  cheltuieli?: number; // Alias pentru expenses
 }
 
 export const parseAnalysisText = (text: string): FinancialIndicators => {
@@ -65,6 +67,9 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
   // 2. Cheltuieli
   indicators.expenses = get(/(?:Cheltuieli(?:\s+totale)?|Total\s*cheltuieli)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
     ?? get(/Cheltuieli[^\d]*([0-9.,\s]+)/i);
+  
+  // Alias pentru compatibilitate
+  indicators.cheltuieli = indicators.expenses;
 
   // 3. Profit / Pierdere (acceptă valori negative)
   indicators.profit = get(/(?:Profit(?:\s+net)?|Rezultat(?:\s+(?:net|exerci[tț]iu))?|Pierdere)\s*[:=\-]?\s*(?:RON|lei)?\s*([-]?[0-9.,\s]+)/i)
@@ -103,10 +108,16 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     indicators.ebitda = (indicators.revenue ?? 0) - (indicators.expenses ?? 0);
   }
 
+  // Mapping compatibilitate: ca = revenue, cheltuieli = expenses
+  const ca = indicators.revenue || 0;
+  const cheltuieli = indicators.expenses || 0;
+
   // Log pentru debugging
   console.log('📊 Parsed indicators:', {
     revenue: indicators.revenue,
+    ca: ca,
     expenses: indicators.expenses,
+    cheltuieli: cheltuieli,
     profit: indicators.profit,
     soldBanca: indicators.soldBanca,
     soldCasa: indicators.soldCasa,
@@ -114,7 +125,11 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
     dpo: indicators.dpo
   });
 
-  return indicators;
+  return {
+    ...indicators,
+    ca, // Adaugă câmpul ca pentru compatibilitate cu calculations.ts
+    cheltuieli // Adaugă câmpul cheltuieli pentru compatibilitate
+  };
 };
 
 export const formatCurrency = (value: number): string => {

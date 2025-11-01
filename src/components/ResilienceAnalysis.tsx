@@ -172,7 +172,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     const flexibility = Math.max(0, Math.min(100, 50 + avgGrowth * 5));
 
     // Reaction speed (volatility in key metrics)
-    const cashPositions = sortedAnalyses.map(a => (a.metadata.casa || 0) + (a.metadata.banca || 0));
+    const cashPositions = sortedAnalyses.map(a => 
+      (a.metadata.soldCasa || a.metadata.casa || 0) + 
+      (a.metadata.soldBanca || a.metadata.banca || 0)
+    );
     const cashChanges = [];
     for (let i = 1; i < cashPositions.length; i++) {
       cashChanges.push(Math.abs(cashPositions[i] - cashPositions[i-1]));
@@ -196,7 +199,8 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     const latestAnalysis = analyses[analyses.length - 1];
     const revenue = latestAnalysis.metadata.ca || 0;
     const expenses = latestAnalysis.metadata.cheltuieli || 0;
-    const cash = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0);
+    const cash = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                 (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0);
 
     return [
       {
@@ -279,11 +283,15 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     const profitTrendR2 = calculateTrendR2(profits);
     const anticipation = Math.min(100, (profitTrendR2 * 50) + (revenueGrowth > 0 ? 50 : 0));
     
-    const currentAssets = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0) + (latestAnalysis.metadata.clienti || 0);
-    const currentLiabilities = latestAnalysis.metadata.furnizori || 1;
+    const currentAssets = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                          (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0) + 
+                          (latestAnalysis.metadata.soldClienti || latestAnalysis.metadata.clienti || 0);
+    const currentLiabilities = latestAnalysis.metadata.soldFurnizori || latestAnalysis.metadata.furnizori || 1;
     const currentRatio = currentAssets / currentLiabilities;
     
-    const quickAssets = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0) + (latestAnalysis.metadata.clienti || 0);
+    const quickAssets = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                        (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0) + 
+                        (latestAnalysis.metadata.soldClienti || latestAnalysis.metadata.clienti || 0);
     const quickRatio = quickAssets / currentLiabilities;
     
     const coping = Math.min(100, (Math.min(currentRatio, 2) / 2 * 50) + (Math.min(quickRatio, 1) / 1 * 50));
@@ -292,7 +300,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     const costElasticity = calculateCostElasticity(sortedAnalyses);
     const adaptation = Math.max(0, Math.min(100, 100 - (profitCV * 30) + (costElasticity * 50)));
     
-    const totalDebt = latestAnalysis.metadata.furnizori || 0;
+    const totalDebt = latestAnalysis.metadata.soldFurnizori || latestAnalysis.metadata.furnizori || 0;
     const equity = Math.max(1, (latestAnalysis.metadata.ca || 0) - (latestAnalysis.metadata.cheltuieli || 0));
     const debtToEquity = totalDebt / equity;
     
@@ -301,7 +309,8 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     
     const robustness = Math.min(100, (Math.max(0, 100 - debtToEquity * 50)) * 0.5 + (Math.min(interestCoverage, 10) / 10 * 50));
     
-    const cashReserves = (latestAnalysis.metadata.casa || 0) + (latestAnalysis.metadata.banca || 0);
+    const cashReserves = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
+                         (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0);
     const monthlyExpenses = (latestAnalysis.metadata.cheltuieli || 0) / 12;
     const monthsOfReserve = monthlyExpenses > 0 ? cashReserves / monthlyExpenses : 0;
     const redundancy = Math.min(100, (monthsOfReserve / 6) * 100);
@@ -309,7 +318,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     const revenueVolatility = calculateCoeffVariation(revenues);
     const resourcefulness = Math.max(0, Math.min(100, 100 - (revenueVolatility * 40)));
     
-    const cashPositions = sortedAnalyses.map(a => (a.metadata.casa || 0) + (a.metadata.banca || 0));
+    const cashPositions = sortedAnalyses.map(a => 
+      (a.metadata.soldCasa || a.metadata.casa || 0) + 
+      (a.metadata.soldBanca || a.metadata.banca || 0)
+    );
     const cashChanges = cashPositions.slice(1).map((val, i) => Math.abs(val - cashPositions[i]));
     const avgCashChange = cashChanges.length > 0 
       ? cashChanges.reduce((sum, c) => sum + c, 0) / cashChanges.length 
@@ -355,7 +367,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
       revenue: sortedAnalyses.map(a => a.metadata.ca || 0),
       profit: sortedAnalyses.map(a => a.metadata.profit || 0),
       ebitda: sortedAnalyses.map(a => a.metadata.ebitda || 0),
-      cash: sortedAnalyses.map(a => (a.metadata.casa || 0) + (a.metadata.banca || 0)),
+      cash: sortedAnalyses.map(a => 
+        (a.metadata.soldCasa || a.metadata.casa || 0) + 
+        (a.metadata.soldBanca || a.metadata.banca || 0)
+      ),
       expenses: sortedAnalyses.map(a => a.metadata.cheltuieli || 0),
     };
     
@@ -530,8 +545,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         const score = calculateResilienceScoreForSingle(subset);
         if (score) {
           const analysis = sortedAnalyses[i];
-          const currentAssets = (analysis.metadata.casa || 0) + (analysis.metadata.banca || 0) + (analysis.metadata.clienti || 0);
-          const currentLiabilities = Math.max(1, analysis.metadata.furnizori || 1);
+          const currentAssets = (analysis.metadata.soldCasa || analysis.metadata.casa || 0) + 
+                                (analysis.metadata.soldBanca || analysis.metadata.banca || 0) + 
+                                (analysis.metadata.soldClienti || analysis.metadata.clienti || 0);
+          const currentLiabilities = Math.max(1, analysis.metadata.soldFurnizori || analysis.metadata.furnizori || 1);
           const equity = Math.max(1, (analysis.metadata.ca || 0) - (analysis.metadata.cheltuieli || 0));
           const revenue = analysis.metadata.ca || 1;
           
@@ -914,7 +931,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         resilience: resScore?.overall || 0,
         revenue: (analysis.metadata.ca || 0) / 1000,  // în mii
         profit: (analysis.metadata.profit || 0) / 1000,  // în mii
-        liquidity: ((analysis.metadata.casa || 0) + (analysis.metadata.banca || 0)) / Math.max(1, analysis.metadata.furnizori || 1) * 100
+        liquidity: ((analysis.metadata.soldCasa || analysis.metadata.casa || 0) + 
+                    (analysis.metadata.soldBanca || analysis.metadata.banca || 0)) / 
+                   Math.max(1, analysis.metadata.soldFurnizori || analysis.metadata.furnizori || 1) * 100
       };
     }).filter(d => d.resilience > 0);
     
@@ -1019,8 +1038,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
           ? calculateResilienceScoreForSingle(sortedAnalyses.slice(0, index + 1))
           : null;
         
-        const currentAssets = (analysis.metadata.casa || 0) + (analysis.metadata.banca || 0) + (analysis.metadata.clienti || 0);
-        const currentLiabilities = Math.max(1, analysis.metadata.furnizori || 1);
+        const currentAssets = (analysis.metadata.soldCasa || analysis.metadata.casa || 0) + 
+                              (analysis.metadata.soldBanca || analysis.metadata.banca || 0) + 
+                              (analysis.metadata.soldClienti || analysis.metadata.clienti || 0);
+        const currentLiabilities = Math.max(1, analysis.metadata.soldFurnizori || analysis.metadata.furnizori || 1);
         const equity = Math.max(1, (analysis.metadata.ca || 0) - (analysis.metadata.cheltuieli || 0));
         
         return {
@@ -1034,10 +1055,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
           expenses: analysis.metadata.cheltuieli || 0,
           profit: analysis.metadata.profit || 0,
           ebitda: analysis.metadata.ebitda || 0,
-          cash: analysis.metadata.casa || 0,
-          bank: analysis.metadata.banca || 0,
-          receivables: analysis.metadata.clienti || 0,
-          payables: analysis.metadata.furnizori || 0,
+          cash: analysis.metadata.soldCasa || analysis.metadata.casa || 0,
+          bank: analysis.metadata.soldBanca || analysis.metadata.banca || 0,
+          receivables: analysis.metadata.soldClienti || analysis.metadata.clienti || 0,
+          payables: analysis.metadata.soldFurnizori || analysis.metadata.furnizori || 0,
           inventory: analysis.metadata.stocuri || 0,
           
           // Calculated Ratios

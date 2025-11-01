@@ -12,6 +12,11 @@ export interface Analysis {
     furnizori?: number;
     stocuri?: number;
     cheltuieli?: number;
+    // Alias-uri alternative (folosite de analysisParser)
+    soldCasa?: number;
+    soldBanca?: number;
+    soldClienti?: number;
+    soldFurnizori?: number;
   };
 }
 
