@@ -102,7 +102,7 @@ export const getLatestFinancialData = async (
   
   let query = supabase
     .from('analyses')
-    .select('metadata, created_at, company_id')
+    .select('id, metadata, created_at, company_id, file_name')
     .eq('user_id', userId)
     .not('metadata', 'is', null);
   
@@ -266,7 +266,7 @@ export const getLatestFinancialData = async (
   if (data[0]?.company_id) {
     foundCompanyId = data[0].company_id;
     
-    // Fetch company name
+    // Fetch company name from companies table
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('company_name')
@@ -275,7 +275,38 @@ export const getLatestFinancialData = async (
     
     if (!companyError && companyData) {
       companyName = companyData.company_name;
-      console.log('✅ CFO - Company info:', { companyId: foundCompanyId, companyName });
+      console.log('✅ CFO - Company info from DB:', { companyId: foundCompanyId, companyName });
+    }
+  } else {
+    // FALLBACK: Extract company name from metadata or file_name
+    const metadataObj = data[0]?.metadata as Record<string, any> | null;
+    const fileName = data[0]?.file_name;
+    
+    // Try to get company name from metadata first
+    companyName = metadataObj?.company_name || 
+                 metadataObj?.companyName ||
+                 metadataObj?.nume_companie;
+    
+    // If not in metadata, extract from file_name (remove CUI and .xls extension)
+    if (!companyName && fileName) {
+      companyName = fileName
+        .replace(/\d{8,10}\.xls.*$/i, '') // Remove CUI (8-10 digits) and .xls extension
+        .replace(/_/g, ' ')                // Replace underscores with spaces
+        .trim();
+    }
+    
+    // Use analysis ID as pseudo company ID
+    foundCompanyId = analysisId || data[0]?.id;
+    
+    console.log('✅ CFO - Company info from FALLBACK:', { 
+      companyId: foundCompanyId, 
+      companyName: companyName || 'Companie Necunoscută',
+      source: metadataObj?.company_name ? 'metadata' : 'file_name'
+    });
+    
+    // Default if nothing found
+    if (!companyName) {
+      companyName = 'Companie Necunoscută';
     }
   }
 
