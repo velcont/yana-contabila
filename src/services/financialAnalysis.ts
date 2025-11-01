@@ -46,6 +46,48 @@ export interface Alert {
   actionable?: string[];
 }
 
+// Helper: Parse Romanian number format ("1 234,56 RON" → 1234.56)
+const parseRoNumber = (value: any): number => {
+  if (typeof value === 'number') return value;
+  if (value === null || value === undefined) return 0;
+  
+  const str = String(value)
+    .replace(/\s+/g, '')        // Remove spaces
+    .replace(/RON/gi, '')       // Remove "RON"
+    .replace(/lei/gi, '')       // Remove "lei"
+    .replace(/,/g, '.')         // Romanian comma → decimal point
+    .trim();
+  
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+// Helper: Safely access nested object paths ("indicators.ca" → obj.indicators?.ca)
+const getNested = (obj: any, path: string): any => {
+  const keys = path.split('.');
+  let result = obj;
+  for (const key of keys) {
+    if (result && typeof result === 'object' && key in result) {
+      result = result[key];
+    } else {
+      return undefined;
+    }
+  }
+  return result;
+};
+
+// Helper: Pick first valid number from candidate keys (flat + nested paths)
+const pickFirstNumber = (obj: any, candidates: string[]): number => {
+  for (const key of candidates) {
+    const value = getNested(obj, key);
+    if (value !== undefined && value !== null) {
+      const num = parseRoNumber(value);
+      if (num !== 0) return num;
+    }
+  }
+  return 0;
+};
+
 // 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
 export const getLatestFinancialData = async (userId: string): Promise<FinancialData | null> => {
   const { data, error } = await supabase
@@ -61,64 +103,131 @@ export const getLatestFinancialData = async (userId: string): Promise<FinancialD
     return null;
   }
   
-  const merged: Record<string, number | undefined> = {};
-
-  const setIfEmpty = (key: keyof FinancialData | 'profit', value: any) => {
-    const num = value !== undefined && value !== null ? Number(value) : undefined;
-    if (
-      (!Object.prototype.hasOwnProperty.call(merged, key) || merged[key] === undefined || merged[key] === null || merged[key] === 0) &&
-      typeof num === 'number' && !isNaN(num) && num !== 0
-    ) {
-      merged[key] = num;
-    }
+  const merged: Record<string, number> = {
+    revenue: 0,
+    expenses: 0,
+    profit: 0,
+    soldBanca: 0,
+    soldCasa: 0,
+    soldClienti: 0,
+    soldFurnizori: 0,
+    dso: 0,
+    dpo: 0
   };
 
+  // Merge data from multiple analyses (prioritize non-zero values)
   for (const row of data) {
     const m: any = row.metadata || {};
 
-    // Synonyms mapping (ro/en) and fallbacks
-    const revenue = m.revenue ?? m.ca ?? m.cifraAfaceri ?? m.venituri ?? m.totalVenituri;
-    const expenses = m.expenses ?? m.cheltuieli ?? m.totalCheltuieli ?? m.costuri;
-    const profit = m.profit ?? m.profitNet ?? (
-      (revenue !== undefined && expenses !== undefined)
-        ? (Number(revenue) - Number(expenses))
-        : undefined
-    );
-    const soldBanca = m.soldBanca ?? m.cashBanca ?? m.banca ?? m.conturiBancare;
-    const soldCasa = m.soldCasa ?? m.cashCasa ?? m.casa ?? m.numerar;
-    const soldClienti = m.soldClienti ?? m.creante ?? m.clienti;
-    const soldFurnizori = m.soldFurnizori ?? m.datorii ?? m.furnizori;
-    const dso = m.dso ?? m.dso_zile ?? m.DSO;
-    const dpo = m.dpo ?? m.dpo_zile ?? m.DPO;
+    // Revenue (extended synonyms + nested paths)
+    if (merged.revenue === 0) {
+      merged.revenue = pickFirstNumber(m, [
+        'revenue', 'ca', 'cifraAfaceri', 'venituri', 'totalVenituri',
+        'indicators.ca', 'indicators.cifraAfaceri', 'indicators.venituri',
+        'indicatori.ca', 'indicatori.cifraAfaceri', 'indicatori.venituri',
+        'metrics.revenue', 'metrics.venituri', 'metrics.totalVenituri'
+      ]);
+    }
 
-    setIfEmpty('revenue', revenue);
-    setIfEmpty('expenses', expenses);
-    setIfEmpty('profit', profit);
-    setIfEmpty('soldBanca', soldBanca);
-    setIfEmpty('soldCasa', soldCasa);
-    setIfEmpty('soldClienti', soldClienti);
-    setIfEmpty('soldFurnizori', soldFurnizori);
-    setIfEmpty('dso', dso);
-    setIfEmpty('dpo', dpo);
+    // Expenses
+    if (merged.expenses === 0) {
+      merged.expenses = pickFirstNumber(m, [
+        'expenses', 'cheltuieli', 'totalCheltuieli', 'costuri',
+        'indicators.cheltuieli', 'indicators.totalCheltuieli', 'indicators.costuri',
+        'indicatori.cheltuieli', 'indicatori.totalCheltuieli', 'indicatori.costuri',
+        'metrics.expenses', 'metrics.cheltuieli', 'metrics.totalCheltuieli'
+      ]);
+    }
+
+    // Profit
+    if (merged.profit === 0) {
+      merged.profit = pickFirstNumber(m, [
+        'profit', 'profitNet', 'profitBrut', 'rezultat',
+        'indicators.profit', 'indicators.profitNet', 'indicators.rezultat',
+        'indicatori.profit', 'indicatori.profitNet', 'indicatori.rezultat',
+        'metrics.profit', 'metrics.profitNet'
+      ]);
+    }
+
+    // Sold Banca
+    if (merged.soldBanca === 0) {
+      merged.soldBanca = pickFirstNumber(m, [
+        'soldBanca', 'cashBanca', 'banca', 'conturiBancare',
+        'indicators.soldBanca', 'indicators.banca', 'indicators.conturiBancare',
+        'indicatori.soldBanca', 'indicatori.banca', 'indicatori.conturiBancare',
+        'metrics.soldBanca', 'metrics.banca'
+      ]);
+    }
+
+    // Sold Casa
+    if (merged.soldCasa === 0) {
+      merged.soldCasa = pickFirstNumber(m, [
+        'soldCasa', 'cashCasa', 'casa', 'numerar',
+        'indicators.soldCasa', 'indicators.casa', 'indicators.numerar',
+        'indicatori.soldCasa', 'indicatori.casa', 'indicatori.numerar',
+        'metrics.soldCasa', 'metrics.casa'
+      ]);
+    }
+
+    // Sold Clienti (creanțe)
+    if (merged.soldClienti === 0) {
+      merged.soldClienti = pickFirstNumber(m, [
+        'soldClienti', 'creante', 'clienti', 'receivables',
+        'indicators.soldClienti', 'indicators.creante', 'indicators.clienti',
+        'indicatori.soldClienti', 'indicatori.creante', 'indicatori.clienti',
+        'metrics.soldClienti', 'metrics.creante'
+      ]);
+    }
+
+    // Sold Furnizori (datorii)
+    if (merged.soldFurnizori === 0) {
+      merged.soldFurnizori = pickFirstNumber(m, [
+        'soldFurnizori', 'datorii', 'furnizori', 'payables',
+        'indicators.soldFurnizori', 'indicators.datorii', 'indicators.furnizori',
+        'indicatori.soldFurnizori', 'indicatori.datorii', 'indicatori.furnizori',
+        'metrics.soldFurnizori', 'metrics.datorii'
+      ]);
+    }
+
+    // DSO (Days Sales Outstanding)
+    if (merged.dso === 0) {
+      merged.dso = pickFirstNumber(m, [
+        'dso', 'dso_zile', 'DSO', 'daysSalesOutstanding',
+        'indicators.dso', 'indicators.dso_zile',
+        'indicatori.dso', 'indicatori.dso_zile',
+        'metrics.dso'
+      ]);
+    }
+
+    // DPO (Days Payable Outstanding)
+    if (merged.dpo === 0) {
+      merged.dpo = pickFirstNumber(m, [
+        'dpo', 'dpo_zile', 'DPO', 'daysPayableOutstanding',
+        'indicators.dpo', 'indicators.dpo_zile',
+        'indicatori.dpo', 'indicatori.dpo_zile',
+        'metrics.dpo'
+      ]);
+    }
   }
 
-  const result: FinancialData = {
-    revenue: Number(merged.revenue) || 0,
-    expenses: Number(merged.expenses) || 0,
-    profit: Number(
-      merged.profit !== undefined
-        ? merged.profit
-        : (Number(merged.revenue || 0) - Number(merged.expenses || 0))
-    ) || 0,
-    soldBanca: Number(merged.soldBanca) || 0,
-    soldCasa: Number(merged.soldCasa) || 0,
-    soldClienti: Number(merged.soldClienti) || 0,
-    soldFurnizori: Number(merged.soldFurnizori) || 0,
-    dso: Number(merged.dso) || 0,
-    dpo: Number(merged.dpo) || 0,
-  };
+  // Fallback: Calculate profit if not found but revenue & expenses exist
+  if (merged.profit === 0 && merged.revenue > 0 && merged.expenses > 0) {
+    merged.profit = merged.revenue - merged.expenses;
+  }
 
-  return result;
+  console.log('✅ CFO - Parsed financial data:', merged);
+
+  return {
+    revenue: merged.revenue,
+    expenses: merged.expenses,
+    profit: merged.profit,
+    soldBanca: merged.soldBanca,
+    soldCasa: merged.soldCasa,
+    soldClienti: merged.soldClienti,
+    soldFurnizori: merged.soldFurnizori,
+    dso: merged.dso,
+    dpo: merged.dpo
+  };
 };
 
 // 2. Calculate runway (months until cash runs out)
