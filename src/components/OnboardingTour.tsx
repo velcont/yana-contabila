@@ -1,130 +1,104 @@
-import { useEffect, useState } from "react";
-import Joyride, { Step, CallBackProps, STATUS, EVENTS } from "react-joyride";
+import { useState } from 'react';
+import Joyride, { Step, CallBackProps, STATUS, EVENTS } from 'react-joyride';
 
 interface OnboardingTourProps {
   run: boolean;
   onComplete: () => void;
 }
 
+const steps: Step[] = [
+  {
+    target: 'body',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold">👋 Bine ai venit în Yana!</h3>
+        <p>Hai să explorăm împreună funcționalitățile esențiale pentru a-ți gestiona finanțele eficient.</p>
+        <p className="text-xs text-muted-foreground">Durată estimată: ~2 minute</p>
+      </div>
+    ),
+    placement: 'center',
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="file-upload"]',
+    content: (
+      <div className="space-y-2">
+        <h4 className="font-semibold">📁 Încarcă Balanța Contabilă</h4>
+        <p>Începe prin a încărca o balanță în format Excel. Yana o analizează automat și extrage indicatori financiari cheie.</p>
+        <p className="text-xs text-muted-foreground mt-2">💡 Tip: Funcționează cu orice format standard de balanță contabilă.</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="analyze-button"]',
+    content: (
+      <div className="space-y-2">
+        <h4 className="font-semibold">🚀 Generează Analiza AI</h4>
+        <p>Un singur click și primești o analiză completă: indicatori financiari, alerte automate și recomandări personalizate.</p>
+        <p className="text-xs text-muted-foreground mt-2">⚡ Procesare în ~10 secunde</p>
+      </div>
+    ),
+    placement: 'bottom',
+  },
+  {
+    target: '[data-tour="dashboard-button"]',
+    content: (
+      <div className="space-y-2">
+        <h4 className="font-semibold">📊 Dashboard & Istoric</h4>
+        <p>Vizualizează toate analizele, compară evoluția lunară cu grafice interactive și exportă rapoarte PDF profesionale.</p>
+        <p className="text-xs text-muted-foreground mt-2">🎯 Ideal pentru prezentări către bănci sau investitori</p>
+      </div>
+    ),
+    placement: 'right',
+  },
+  {
+    target: '[data-tour="chat-button"]',
+    content: (
+      <div className="space-y-2">
+        <h4 className="font-semibold">💬 Chat AI Inteligent</h4>
+        <p>Pune orice întrebare despre finanțele tale. Yana înțelege contextul și oferă răspunsuri detaliate bazate pe datele tale.</p>
+        <p className="text-xs text-muted-foreground mt-2">Exemple: "De ce a scăzut profitul?" sau "Cum optimizez cash flow-ul?"</p>
+      </div>
+    ),
+    placement: 'left',
+  },
+  {
+    target: '[data-tour="voice-button"]',
+    content: (
+      <div className="space-y-2">
+        <h4 className="font-semibold">🎤 Conversații Voice</h4>
+        <p>Activează modul voice pentru discuții naturale. Perfect când ești în mișcare sau preferi să vorbești.</p>
+        <p className="text-xs text-muted-foreground mt-2">🔊 Funcționează și în română!</p>
+      </div>
+    ),
+    placement: 'left',
+  },
+  {
+    target: '[data-tour="conversation-history"]',
+    content: (
+      <div className="space-y-2">
+        <h4 className="font-semibold">📚 Istoric Conversații</h4>
+        <p>Toate discuțiile sunt salvate automat. Revino oricând pentru a consulta sfaturile anterioare.</p>
+      </div>
+    ),
+    placement: 'left',
+  },
+  {
+    target: 'body',
+    content: (
+      <div className="space-y-3">
+        <h3 className="text-lg font-bold">🎉 Ești gata să începi!</h3>
+        <p>Acum cunoști funcționalitățile principale. Pentru ajutor suplimentar, caută iconița <span className="inline-flex items-center">💡</span> lângă fiecare secțiune.</p>
+        <p className="text-sm font-medium text-primary mt-3">Succes în gestionarea finanțelor tale! 🚀</p>
+      </div>
+    ),
+    placement: 'center',
+  },
+];
+
 export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
   const [stepIndex, setStepIndex] = useState(0);
-
-  const steps: Step[] = [
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Bine ai venit în Yana! 👋</h3>
-          <p>Hai să-ți arăt cum funcționează aplicația în câțiva pași simpli.</p>
-          <p className="text-xs text-muted-foreground mt-2">✨ Tutorialul actualizat cu toate funcțiile noi!</p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="file-upload"]',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Pasul 1: Încarcă balanța 📄</h3>
-          <p>Apasă aici pentru a selecta unul sau mai multe fișiere Excel cu balanța ta.</p>
-          <p className="text-sm text-muted-foreground">✅ Format: .xls sau .xlsx</p>
-          <p className="text-sm text-muted-foreground">✅ Trebuie să conțină: Solduri inițiale, Rulaje perioadă, Total sume și Solduri finale.</p>
-        </div>
-      ),
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="analyze-button"]',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Pasul 2: Generează analiza 🔍</h3>
-          <p>După ce ai încărcat fișierul, apasă acest buton pentru a genera analiza automată.</p>
-          <p className="text-sm text-muted-foreground">⏱️ Analiza durează 10-30 secunde și folosește inteligență artificială avansată.</p>
-          <p className="text-sm text-muted-foreground">💾 Analizele se salvează automat în contul tău.</p>
-        </div>
-      ),
-      placement: 'top',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="dashboard-button"]',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Pasul 3: Dashboard cu grafice 📊</h3>
-          <p>Aici găsești toate analizele tale salvate, vizualizate cu grafice interactive și indicatori cheie.</p>
-          <p className="text-sm text-muted-foreground">📈 Compară luni diferite</p>
-          <p className="text-sm text-muted-foreground">🔍 Filtrează după firmă sau perioadă</p>
-          <p className="text-sm text-muted-foreground">📥 Exportă rapoarte PDF sau CSV</p>
-        </div>
-      ),
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="chat-button"]',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Pasul 4: Chat AI Yana 💬</h3>
-          <p>Asistentul tău financiar inteligent! Întreabă-mă orice despre datele tale.</p>
-          <p className="text-sm text-muted-foreground">✨ <strong>Funcții noi:</strong></p>
-          <p className="text-sm text-muted-foreground">• Sugestii inteligente în timp real</p>
-          <p className="text-sm text-muted-foreground">• Istoric conversații salvat</p>
-          <p className="text-sm text-muted-foreground">• Quick replies cu întrebări populare</p>
-          <p className="text-sm text-muted-foreground">• Stil răspuns personalizabil (Detaliat/Scurt/Action)</p>
-        </div>
-      ),
-      placement: 'top',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="voice-button"]',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">✨ Nou: Conversații Vocale 🎤</h3>
-          <p>Vorbește direct cu Yana! Pune întrebări vocal și primește răspunsuri audio.</p>
-          <p className="text-sm text-muted-foreground">🎙️ Click pe iconița de microfon din header-ul chat-ului</p>
-          <p className="text-sm text-muted-foreground">⏱️ 20 minute gratuite pe lună</p>
-          <p className="text-sm text-muted-foreground">💡 Perfect când ești pe drum sau ai mâinile ocupate!</p>
-        </div>
-      ),
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="conversation-history"]',
-      content: (
-        <div className="space-y-2">
-          <h3 className="font-semibold text-lg">Istoric Conversații 📚</h3>
-          <p>Toate conversațiile tale cu AI-ul sunt salvate automat.</p>
-          <p className="text-sm text-muted-foreground">🔍 Căutare rapidă prin întrebările anterioare</p>
-          <p className="text-sm text-muted-foreground">📅 Organizate cronologic</p>
-          <p className="text-sm text-muted-foreground">💾 Accesibile oricând</p>
-        </div>
-      ),
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: 'body',
-      content: (
-        <div className="space-y-3">
-          <h3 className="font-semibold text-lg">Gata! Ești pregătit 🎉</h3>
-          <p>Acum poți începe să folosești Yana pentru a-ți analiza situația financiară.</p>
-          <div className="bg-muted/50 p-3 rounded-lg text-sm">
-            <p className="font-medium mb-1">💡 Sfaturi rapide:</p>
-            <p className="text-xs text-muted-foreground">• Încarcă mai multe balanțe odată pentru analiză rapidă</p>
-            <p className="text-xs text-muted-foreground">• Folosește chat-ul vocal când ești pe telefon</p>
-            <p className="text-xs text-muted-foreground">• Explorează Dashboard-ul pentru insights vizuale</p>
-          </div>
-          <p className="text-sm text-muted-foreground">Dacă ai nevoie de ajutor, apasă pe ? în colțul dreapta sus!</p>
-        </div>
-      ),
-      placement: 'center',
-      disableBeacon: true,
-    },
-  ];
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, type, index } = data;
@@ -182,7 +156,7 @@ export const OnboardingTour = ({ run, onComplete }: OnboardingTourProps) => {
         close: 'Închide',
         last: 'Finalizează',
         next: 'Următorul',
-        skip: 'Omite tutorialul',
+        skip: 'Sari peste',
       }}
     />
   );

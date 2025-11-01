@@ -239,3 +239,89 @@ All colors MUST be HSL.
   box-shadow: 0 0 40px 15px rgba(245, 158, 11, 0.6),
               0 0 60px 20px rgba(239, 68, 68, 0.4);
 }
+
+/* Premium Micro-interactions */
+@keyframes smooth-hover {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes subtle-glow {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 20px 5px hsl(var(--primary) / 0.2);
+  }
+}
+
+@keyframes slide-in-elegant {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Button hover effects */
+.btn-hover-lift {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.25);
+}
+
+/* Card hover effects */
+.card-hover-scale {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-scale:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px -8px hsl(var(--primary) / 0.15);
+}
+
+/* Smooth appear animation */
+.animate-appear {
+  animation: slide-in-elegant 0.4s ease-out;
+}
+
+/* Skeleton shimmer effect */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.7) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Interactive badge pulse */
+.badge-pulse {
+  animation: subtle-glow 2s ease-in-out infinite;
+}
+
+/* Smooth fade transitions */
+.fade-enter {
+  animation: fade-in 0.3s ease-out;
+}
+
+.fade-exit {
+  animation: fade-out 0.3s ease-out;
+}
