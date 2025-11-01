@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Building2, Briefcase, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/utils/sentry';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -88,7 +89,7 @@ const Auth = () => {
       setIsForgotPassword(false);
       setIsLogin(true);
     } catch (error: any) {
-      console.error('Reset password error:', error);
+      logError(error instanceof Error ? error : new Error('Reset password error'), { context: 'forgot_password' });
       toast({
         title: "Eroare",
         description: error.message || "Nu s-a putut trimite emailul de resetare.",
@@ -117,7 +118,7 @@ const Auth = () => {
       
       navigate('/app');
     } catch (error: any) {
-      console.error('Update password error:', error);
+      logError(error instanceof Error ? error : new Error('Update password error'), { context: 'reset_password' });
       toast({
         title: "Eroare",
         description: error.message || "Nu s-a putut reseta parola.",
@@ -185,7 +186,7 @@ const Auth = () => {
                     }
                   });
                 } catch (trackError) {
-                  console.error('Error tracking terms acceptance:', trackError);
+                  logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_existing_user' });
                 }
 
                 await supabase
@@ -213,7 +214,7 @@ const Auth = () => {
               try {
                 await supabase.functions.invoke('send-reset-password', { body: { email } });
               } catch (e) {
-                console.error('Auto reset email error:', e);
+                logError(e instanceof Error ? e : new Error('Auto reset email error'), { context: 'auto_password_reset', email });
               }
 
               toast({
@@ -247,7 +248,7 @@ const Auth = () => {
               }
             });
           } catch (trackError) {
-            console.error('Error tracking terms acceptance:', trackError);
+            logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_new_user' });
             // Don't block registration if tracking fails
           }
 
@@ -291,7 +292,7 @@ const Auth = () => {
         navigate('/app');
       }
     } catch (error: any) {
-      console.error('Auth error:', error);
+      logError(error instanceof Error ? error : new Error('Auth error'), { context: 'authentication' });
       toast({
         title: "Eroare",
         description: error.message || "A apărut o eroare. Te rog încearcă din nou.",

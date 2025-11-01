@@ -10,7 +10,6 @@ export const useAuth = () => {
   useEffect(() => {
     // Timeout redus la 2 secunde pentru loading state (fix audit 2.4)
     const loadingTimeout = setTimeout(() => {
-      console.warn('Auth loading timeout reached - forcing loading=false');
       setLoading(false);
     }, 2000);
 
@@ -32,8 +31,7 @@ export const useAuth = () => {
         setLoading(false);
         clearTimeout(loadingTimeout);
       })
-      .catch((error) => {
-        console.error('Error getting session:', error);
+      .catch(() => {
         setLoading(false);
         clearTimeout(loadingTimeout);
       });

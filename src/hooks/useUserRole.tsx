@@ -24,13 +24,11 @@ export const useUserRole = () => {
       });
 
       if (rpcError) {
-        console.error('Error checking admin role via RPC:', rpcError);
         setIsAdmin(false);
       } else {
         setIsAdmin(!!hasAdmin);
       }
-    } catch (error) {
-      console.error('Error checking admin role:', error);
+    } catch {
       setIsAdmin(false);
     } finally {
       setIsLoading(false);
