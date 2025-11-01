@@ -173,8 +173,19 @@ serve(async (req) => {
       throw new Error(`Missing API keys: ${missingKeys.join(", ")}`);
     }
 
-    // Pregătește contextul pentru validare
+    // Pregătește contextul pentru validare cu DATA CORECTĂ
+    const currentDate = new Date().toLocaleDateString('ro-RO', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
     const contextSummary = `
+**DATA CURENTĂ: ${currentDate}**
+
+IMPORTANT: Orice perioadă anterioară acestei date este în TRECUT, nu în viitor!
+Exemplu: Dacă data curentă este noiembrie 2025, atunci septembrie 2025 este în TRECUT (acum 2 luni).
+
 METADATA FINANCIARĂ EXTRASĂ:
 - Cifră de afaceri: ${metadata.ca || metadata.revenue || 'N/A'} RON
 - Profit/Pierdere: ${metadata.profit || 'N/A'} RON
