@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -83,8 +83,7 @@ export const Dashboard = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'analyses' },
-        (payload) => {
-          console.log('📡 Realtime: analyses changed', payload);
+        () => {
           loadAnalyses();
         }
       )
@@ -97,12 +96,17 @@ export const Dashboard = () => {
 
   const loadAnalyses = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Nu ești autentificat');
+
       // FIX #15: Limit query pentru a preveni încărcarea a sute de analize simultan
       const ANALYSES_LIMIT = 100; // Încarcă maxim 100 de analize
       
+      // SECURITY FIX: Explicit user_id filtering for clarity and performance
       const { data, error } = await supabase
         .from('analyses')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(ANALYSES_LIMIT);
 
@@ -120,7 +124,6 @@ export const Dashboard = () => {
       // Logging pentru observabilitate
       const withMetadata = analysesWithMetadata.filter(a => Object.keys(a.metadata || {}).length >= 3).length;
       const withoutMetadata = analysesWithMetadata.length - withMetadata;
-      console.log(`📊 Analize încărcate: ${analysesWithMetadata.length} total, ${withMetadata} cu metadata completă, ${withoutMetadata} fără metadata`);
       
       if (withoutMetadata > 0 && analysesWithMetadata.length > 0) {
         // Toast doar dacă sunt analize recente fără metadata
@@ -154,7 +157,7 @@ export const Dashboard = () => {
     }
   };
 
-  const deleteAnalysis = async (id: string) => {
+  const deleteAnalysis = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
         .from('analyses')
@@ -180,9 +183,9 @@ export const Dashboard = () => {
         variant: 'destructive'
       });
     }
-  };
+  }, [selectedAnalysis, toast]);
 
-  const deleteAllAnalyses = async () => {
+  const deleteAllAnalyses = useCallback(async () => {
     // FIX #16: Confirmare dublă pentru operațiune critică
     const firstConfirm = window.confirm(
       `⚠️ ATENȚIE: Vrei să ștergi TOATE ${analyses.length} analizele?\n\nAceastă acțiune NU poate fi anulată!`
@@ -229,7 +232,7 @@ export const Dashboard = () => {
         variant: 'destructive'
       });
     }
-  };
+  }, [analyses.length, toast]);
 
   const loadDemoData = async () => {
     try {
@@ -561,8 +564,8 @@ INDICATORI OPERAȚIONALI:
     );
   }
 
-  // Filtrare date pe perioadă și companie
-  const getFilteredAnalyses = () => {
+  // PERFORMANCE: Memoized filtered analyses to avoid recalculation on every render
+  const filteredAnalyses = useMemo(() => {
     let filtered = analyses;
     
     // Filtrare după perioadă
@@ -582,14 +585,15 @@ INDICATORI OPERAȚIONALI:
     }
     
     return filtered;
-  };
+  }, [analyses, periodFilter, companyFilter]);
   
-  // Lista unică de companii pentru filtru
-  const uniqueCompanies = Array.from(new Set(
-    analyses.map(a => a.company_name).filter(Boolean)
-  )).sort();
-
-  const filteredAnalyses = getFilteredAnalyses();
+  // PERFORMANCE: Memoized unique companies list
+  const uniqueCompanies = useMemo(() => 
+    Array.from(new Set(
+      analyses.map(a => a.company_name).filter(Boolean)
+    )).sort(),
+    [analyses]
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
