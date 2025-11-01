@@ -91,9 +91,14 @@ const pickFirstNumber = (obj: any, candidates: string[]): number => {
 };
 
 // 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
-export const getLatestFinancialData = async (userId: string, companyId?: string): Promise<FinancialData | null> => {
+export const getLatestFinancialData = async (
+  userId: string, 
+  companyId?: string, 
+  analysisId?: string
+): Promise<FinancialData | null> => {
   console.log('🔍 getLatestFinancialData - START for userId:', userId);
   console.log('🔍 getLatestFinancialData - Filter by companyId:', companyId);
+  console.log('🔍 getLatestFinancialData - Filter by analysisId:', analysisId);
   
   let query = supabase
     .from('analyses')
@@ -101,8 +106,12 @@ export const getLatestFinancialData = async (userId: string, companyId?: string)
     .eq('user_id', userId)
     .not('metadata', 'is', null);
   
-  // Filter by company if provided
-  if (companyId) {
+  // Filter by specific analysis if provided
+  if (analysisId) {
+    query = query.eq('id', analysisId);
+  }
+  // Otherwise filter by company if provided
+  else if (companyId) {
     query = query.eq('company_id', companyId);
   }
   

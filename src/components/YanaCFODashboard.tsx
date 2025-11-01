@@ -102,24 +102,65 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
 
   const loadCompanies = async () => {
     try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, company_name')
-        .or(`user_id.eq.${userId},managed_by_accountant_id.eq.${userId}`)
-        .eq('is_active', true)
-        .order('company_name');
-      
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        setCompanies(data);
-        // Auto-select first company if none selected
-        if (!selectedCompanyId) {
-          setSelectedCompanyId(data[0].id);
+      // Get all analyses for this user to extract company info
+      const { data: analyses, error: analysesError } = await supabase
+        .from('analyses')
+        .select('id, company_id, file_name, metadata')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (analysesError) {
+        console.error('❌ Error loading analyses:', analysesError);
+        return;
+      }
+
+      console.log('📊 Analyses found:', analyses?.length || 0);
+
+      // Extract unique companies from analyses
+      const companyMap = new Map<string, { id: string; company_name: string }>();
+
+      for (const analysis of analyses || []) {
+        let companyId = analysis.company_id;
+        let companyName = '';
+
+        // If company_id exists, fetch from companies table
+        if (companyId) {
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('company_name')
+            .eq('id', companyId)
+            .maybeSingle();
+
+          companyName = companyData?.company_name || `Companie ${companyId.slice(0, 8)}`;
+        } else {
+          // Extract company name from file_name or metadata
+          const metadataObj = analysis.metadata as Record<string, any> | null;
+          companyName = metadataObj?.company_name || 
+                       analysis.file_name?.replace(/\d{8}\.xls.*$/i, '').trim() || 
+                       'Companie Necunoscută';
+          // Use analysis id as pseudo company id for filtering
+          companyId = `analysis_${analysis.id}`;
+        }
+
+        if (!companyMap.has(companyId)) {
+          companyMap.set(companyId, { id: companyId, company_name: companyName });
         }
       }
+
+      const companiesList = Array.from(companyMap.values());
+      console.log('🏢 Companies extracted:', companiesList);
+
+      if (companiesList.length > 0) {
+        setCompanies(companiesList);
+        // Auto-select first company
+        if (!selectedCompanyId) {
+          setSelectedCompanyId(companiesList[0].id);
+        }
+      } else {
+        console.warn('⚠️ No companies found');
+      }
     } catch (error) {
-      console.error('Error loading companies:', error);
+      console.error('❌ Exception loading companies:', error);
     }
   };
 
@@ -175,7 +216,17 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
     setIsLoading(true);
     
     try {
-      const data = await getLatestFinancialData(userId, selectedCompanyId || undefined);
+      // If selected company is a pseudo ID (analysis_*), extract the analysis ID
+      let targetCompanyId = selectedCompanyId;
+      let targetAnalysisId: string | undefined;
+      
+      if (selectedCompanyId?.startsWith('analysis_')) {
+        targetAnalysisId = selectedCompanyId.replace('analysis_', '');
+        targetCompanyId = undefined; // Don't filter by company_id
+        console.log('🔍 CFO Dashboard - Using analysis ID for filtering:', targetAnalysisId);
+      }
+
+      const data = await getLatestFinancialData(userId, targetCompanyId, targetAnalysisId);
       console.log('🔍 CFO Dashboard - Financial data loaded:', data);
       
       if (!data) {
