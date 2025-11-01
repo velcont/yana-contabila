@@ -68,9 +68,21 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
 
   // Computed values with useMemo for performance
   const runway = useMemo(() => {
-    if (!financialData) return null;
+    if (!financialData) {
+      console.log('🔍 CFO - Runway useMemo: financialData is null');
+      return null;
+    }
     const currentCash = financialData.soldBanca + financialData.soldCasa;
-    return calculateRunway(currentCash, financialData.revenue / 12, financialData.expenses / 12);
+    const monthlyRevenue = financialData.revenue / 12;
+    const monthlyExpenses = financialData.expenses / 12;
+    const runwayData = calculateRunway(currentCash, monthlyRevenue, monthlyExpenses);
+    console.log('🔍 CFO - Runway useMemo calculated:', { 
+      currentCash, 
+      monthlyRevenue, 
+      monthlyExpenses,
+      runwayData 
+    });
+    return runwayData;
   }, [financialData]);
 
   const alerts = useMemo(() => {
@@ -254,6 +266,8 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
       const currentCash = data.soldBanca + data.soldCasa;
       const forecastData = calculateCashFlowForecast(currentCash, data.revenue / 12, data.expenses / 12);
       setCashFlowForecast(forecastData);
+      
+      console.log('✅ CFO - Financial data set, runway should recalculate automatically');
       
       toast({
         title: "✅ Dashboard actualizat",
