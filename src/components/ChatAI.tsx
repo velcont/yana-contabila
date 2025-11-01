@@ -108,11 +108,18 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   }, [chatMode, isOpen]);
 
   // Încarcă istoric balance când componenta se deschide
+  const [hasLoadedHistory, setHasLoadedHistory] = useState(false);
+  
   useEffect(() => {
-    if (chatMode === 'balance' && isOpen && messages.length <= 1 && !autoStart) {
+    // NU reîncărca istoricul dacă:
+    // 1. Am deja mai mult de 1 mesaj (conversație activă)
+    // 2. Am deja încărcat istoricul în această sesiune
+    // 3. Este autoStart (pornire automată)
+    if (chatMode === 'balance' && isOpen && messages.length <= 1 && !autoStart && !hasLoadedHistory) {
       loadBalanceConversationHistory();
+      setHasLoadedHistory(true);
     }
-  }, [isOpen, autoStart]);
+  }, [isOpen, autoStart, hasLoadedHistory]);
 
   const loadBalanceConversationHistory = async () => {
     try {
@@ -162,9 +169,25 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               };
             });
 
-          setMessages(lastMessages);
-          setConversationId(lastConvId);
-          console.log('✅ Încărcat istoric balance:', lastMessages.length, 'mesaje din conversația', lastConvId);
+          // Filtrează mesajele de "încărcare" care nu au răspuns imediat după
+          const filteredMessages = lastMessages.filter((msg, idx) => {
+            // Dacă mesajul conține "Aștept analiza" și următorul mesaj este tot de la user sau nu există
+            if (msg.content.includes('Aștept analiza') && 
+                (idx === lastMessages.length - 1 || lastMessages[idx + 1]?.role === 'user')) {
+              console.log('🗑️ Filtrare mesaj de încărcare fără răspuns:', msg.content.substring(0, 50));
+              return false;
+            }
+            return true;
+          });
+
+          if (filteredMessages.length > 0) {
+            setMessages(filteredMessages);
+            setConversationId(lastConvId);
+            console.log('✅ Încărcat istoric balance:', filteredMessages.length, 'mesaje din conversația', lastConvId);
+          } else {
+            // Dacă toate mesajele au fost filtrate, nu încărca nimic - lasă mesajul de bun venit
+            console.log('⚠️ Toate mesajele au fost filtrate - păstrare mesaj de bun venit');
+          }
         }
       }
     } catch (err) {
