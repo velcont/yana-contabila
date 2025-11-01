@@ -590,6 +590,7 @@ serve(async (req) => {
         
         // Strategie alternativă: caută conturi cunoscute (4111, 401, 5121, 7xx, 6xx) direct în celule
         let soldClienti = 0, soldFurnizori = 0, soldBanca = 0, soldCasa = 0;
+        let soldStocuri = 0, soldMateriiPrime = 0, soldMateriale = 0, costMarfaVanduta = 0;
         let totalVenituri = 0, totalCheltuieli = 0, reduceriComerciale = 0;
         
         console.log("🔧 [METADATA-EXTRACT-FALLBACK] Căutare conturi DIRECTE fără header...");
@@ -742,11 +743,23 @@ serve(async (req) => {
         deterministic_metadata.soldFurnizori = soldFurnizori;
         deterministic_metadata.soldBanca = soldBanca;
         deterministic_metadata.soldCasa = soldCasa;
+        deterministic_metadata.soldStocuri = soldStocuri;
+        deterministic_metadata.soldMateriiPrime = soldMateriiPrime;
+        deterministic_metadata.soldMateriale = soldMateriale;
         
         if (revenue > 0) deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
         if (expenses > 0) deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
+        
+        // Calculează DIO (Days Inventory Outstanding)
+        const totalStocuri = soldStocuri + soldMateriiPrime + soldMateriale;
+        if (costMarfaVanduta > 0 && totalStocuri > 0) {
+          deterministic_metadata.dio = Math.round((totalStocuri / costMarfaVanduta) * 365);
+        }
+        
+        // Recalculează CCC cu DIO
         if (deterministic_metadata.dso && deterministic_metadata.dpo) {
-          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso - deterministic_metadata.dpo;
+          const dioValue = deterministic_metadata.dio || 0;
+          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso + dioValue - deterministic_metadata.dpo;
         }
         
         console.log("✅ [METADATA-EXTRACT-FALLBACK] METADATA FINALĂ (fără header):", deterministic_metadata);
@@ -844,6 +857,10 @@ serve(async (req) => {
         let soldFurnizori = 0; // 401
         let soldBanca = 0; // 5121, 5124, 5125
         let soldCasa = 0; // 5311
+        let soldStocuri = 0; // 371
+        let soldMateriiPrime = 0; // 301
+        let soldMateriale = 0; // 302
+        let costMarfaVanduta = 0; // 607 pentru calculul DIO
         let totalVenituri = 0; // clasa 7 (Total sume Credit)
         let totalCheltuieli = 0; // clasa 6 (Total sume Debit)
         let reduceriComerciale = 0; // 709
@@ -872,6 +889,14 @@ serve(async (req) => {
           if (contCode === '5121' || contCode === '5124' || contCode === '5125') soldBanca += soldFinalDebit;
           if (contCode === '5311') soldCasa = soldFinalDebit;
           
+          // Stocuri (conturi 301, 302, 371)
+          if (contCode === '371') soldStocuri = soldFinalDebit;
+          if (contCode === '301') soldMateriiPrime = soldFinalDebit;
+          if (contCode === '302') soldMateriale = soldFinalDebit;
+          
+          // Cost marfă vândută (607) pentru calculul DIO
+          if (contCode === '607') costMarfaVanduta = totalSumeDebit;
+          
           // Venituri (clasa 7) - Total sume Credit
           if (contCode.startsWith('7') && contCode !== '709') {
             totalVenituri += totalSumeCredit;
@@ -899,6 +924,9 @@ serve(async (req) => {
         deterministic_metadata.soldFurnizori = soldFurnizori;
         deterministic_metadata.soldBanca = soldBanca;
         deterministic_metadata.soldCasa = soldCasa;
+        deterministic_metadata.soldStocuri = soldStocuri;
+        deterministic_metadata.soldMateriiPrime = soldMateriiPrime;
+        deterministic_metadata.soldMateriale = soldMateriale;
         
         // DSO: (Sold Clienți / CA perioadă) * 365
         if (revenue > 0) {
@@ -910,9 +938,16 @@ serve(async (req) => {
           deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
         }
         
-        // Cash Conversion Cycle: DSO + DIO - DPO (DIO = 0 dacă nu avem CMV)
+        // DIO: (Stocuri totale / Cost marfă vândută) * 365
+        const totalStocuri = soldStocuri + soldMateriiPrime + soldMateriale;
+        if (costMarfaVanduta > 0 && totalStocuri > 0) {
+          deterministic_metadata.dio = Math.round((totalStocuri / costMarfaVanduta) * 365);
+        }
+        
+        // Cash Conversion Cycle: DSO + DIO - DPO
         if (deterministic_metadata.dso && deterministic_metadata.dpo) {
-          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso - deterministic_metadata.dpo;
+          const dioValue = deterministic_metadata.dio || 0;
+          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso + dioValue - deterministic_metadata.dpo;
         }
         
         console.log("✅ [METADATA-EXTRACT] METADATA FINALĂ (cu header):", deterministic_metadata);

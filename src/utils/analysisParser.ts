@@ -3,6 +3,7 @@
 export interface FinancialIndicators {
   dso?: number;
   dpo?: number;
+  dio?: number; // ✅ ADĂUGAT - Days Inventory Outstanding
   cashConversionCycle?: number;
   ebitda?: number;
   revenue?: number;
@@ -16,6 +17,9 @@ export interface FinancialIndicators {
   soldClienti?: number;
   soldBanca?: number;
   soldCasa?: number;
+  soldStocuri?: number; // ✅ ADĂUGAT - Cont 371 Mărfuri
+  soldMateriiPrime?: number; // ✅ ADĂUGAT - Cont 301
+  soldMateriale?: number; // ✅ ADĂUGAT - Cont 302
   cheltuieli?: number; // Alias pentru expenses
 }
 
@@ -102,6 +106,21 @@ export const parseAnalysisText = (text: string): FinancialIndicators => {
   // 11. Sold Furnizori
   indicators.soldFurnizori = get(/(?:Sold\s*Furnizori|Furnizori|Datorii\s*furnizori)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
     ?? get(/401[^\d]*([0-9.,\s]+)/i); // Cont 401
+
+  // 12. Stocuri (Mărfuri)
+  indicators.soldStocuri = get(/(?:Stocuri|M[ăa]rfuri|Cont\s*371)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/371[^\d]*([0-9.,\s]+)/i);
+
+  // 13. Materii Prime
+  indicators.soldMateriiPrime = get(/(?:Materii\s*prime|Cont\s*301)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/301[^\d]*([0-9.,\s]+)/i);
+
+  // 14. Materiale
+  indicators.soldMateriale = get(/(?:Materiale|Cont\s*302)\s*[:=\-]?\s*(?:RON|lei)?\s*([0-9.,\s]+)/i)
+    ?? get(/302[^\d]*([0-9.,\s]+)/i);
+
+  // 15. DIO (Days Inventory Outstanding)
+  indicators.dio = get(/(?:DIO|Days\s*Inventory\s*Outstanding|Zile\s*stocuri|Rota[tț]ie\s*stocuri)\s*[:=\-]?\s*([0-9.,]+)\s*(?:zile|days)?/i);
 
   // Fallback EBITDA
   if (indicators.ebitda === undefined && indicators.revenue !== undefined && indicators.expenses !== undefined) {

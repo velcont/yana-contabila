@@ -543,7 +543,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             fileName: found?.[0]?.file_name
           });
 
-          if (!findErr && found && found.length > 0 && found[0]?.metadata) {
+            if (!findErr && found && found.length > 0 && found[0]?.metadata) {
             const md = found[0].metadata as any;
             let answer: string | null = null;
             if (/(cifra|venit|ca)/i.test(userMessage)) {
@@ -558,6 +558,26 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               const expenses = Number(md?.expenses || 0);
               console.log('[Chat] Răspund cu expenses:', expenses);
               answer = `Cheltuielile pentru ${detectedMonth} sunt ${expenses.toLocaleString('ro-RO')} RON.`;
+            } else if (/(stoc|inventar|marfuri|m[ăa]rfuri|materii\s*prime|materiale)/i.test(userMessage)) {
+              const stocuri = Number(md?.soldStocuri || 0);
+              const materiiPrime = Number(md?.soldMateriiPrime || 0);
+              const materiale = Number(md?.soldMateriale || 0);
+              const totalStocuri = stocuri + materiiPrime + materiale;
+              const dio = Number(md?.dio || 0);
+              
+              if (totalStocuri > 0) {
+                answer = `📦 **Stocuri pentru ${detectedMonth}:**\n\n`;
+                if (stocuri > 0) answer += `• Mărfuri (371): **${stocuri.toLocaleString('ro-RO')} RON**\n`;
+                if (materiiPrime > 0) answer += `• Materii prime (301): **${materiiPrime.toLocaleString('ro-RO')} RON**\n`;
+                if (materiale > 0) answer += `• Materiale (302): **${materiale.toLocaleString('ro-RO')} RON**\n`;
+                answer += `\n💰 **Total stocuri: ${totalStocuri.toLocaleString('ro-RO')} RON**\n`;
+                if (dio > 0) answer += `⏱️ **Rotație stocuri (DIO): ${dio} zile**\n`;
+                answer += `\n*Sursa: Balanța ${found[0].file_name}*`;
+                console.log('[Chat] Răspund cu stocuri:', { totalStocuri, dio });
+              } else {
+                answer = `Nu am găsit informații despre stocuri în balanța pentru ${detectedMonth}. Verifică dacă balanța conține conturile 301 (Materii prime), 302 (Materiale) sau 371 (Mărfuri).`;
+                console.log('[Chat] Nu există stocuri în metadata pentru', detectedMonth);
+              }
             }
             if (answer) {
               console.log('[Chat] ✅ Răspuns direct din DB:', answer.substring(0, 100));
