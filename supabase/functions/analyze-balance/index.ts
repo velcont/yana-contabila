@@ -1193,6 +1193,14 @@ serve(async (req) => {
           }
         } else {
           console.log("⏭️ [AI-COUNCIL] Validare dezactivată - necesită abonament activ");
+          
+          // Adaugă mesaj informativ în analiză pentru upgrade
+          if (validatedCount && validatedCount >= 6) {
+            councilValidation = {
+              needsSubscription: true,
+              message: "Validarea consiliului AI necesită abonament activ"
+            };
+          }
         }
       }
     } catch (councilError) {
@@ -1465,7 +1473,19 @@ serve(async (req) => {
     // Adaugă badge de validare consiliu AI la analiza finală
     let finalAnalysisText = analysis;
     if (councilValidation) {
-      if (councilValidation.validated && councilValidation.confidence >= 80) {
+      if (councilValidation.needsSubscription) {
+        // Mesaj pentru utilizatori fără abonament după 6 analize gratuite
+        finalAnalysisText += `\n\n---\n`;
+        finalAnalysisText += `💎 **Validare Consiliu AI disponibilă cu abonament**\n\n`;
+        finalAnalysisText += `Ai epuizat cele 6 analize gratuite cu validare consiliu AI. Pentru validare automată cu 3 AI-uri specializate (Contabil Expert, Auditor Financiar, CFO Strategic), upgrade la:\n\n`;
+        finalAnalysisText += `• **Plan Antreprenor** (49 RON/lună) - Validare consiliu AI inclusă pentru toate analizele\n`;
+        finalAnalysisText += `• **Plan Contabil** (199 RON/lună) - Validare premium pentru toți clienții tăi\n\n`;
+        finalAnalysisText += `**Beneficii validare consiliu:**\n`;
+        finalAnalysisText += `✓ Detecție automată anomalii cross-validate\n`;
+        finalAnalysisText += `✓ Verificare independentă de 3 AI-uri specializate\n`;
+        finalAnalysisText += `✓ Recomandări strategice personalizate\n`;
+        finalAnalysisText += `✓ Încredere sporită în acuratețea analizelor\n`;
+      } else if (councilValidation.validated && councilValidation.confidence >= 80) {
         finalAnalysisText += `\n\n---\n✅ **Validat de Consiliul AI** (Confidence: ${councilValidation.confidence}%)\n`;
         finalAnalysisText += `Această analiză a fost verificată de 3 AI-uri specializate (Contabil Expert, Auditor Financiar, CFO Strategic).\n`;
         
