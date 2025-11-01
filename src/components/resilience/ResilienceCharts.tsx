@@ -31,7 +31,7 @@ export const ResilienceCharts = ({ resilienceScore }: ResilienceChartsProps) => 
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Radar Chart - Dimensiuni Reziliență</CardTitle>
+          <CardTitle className="text-base break-words">Radar Chart - Dimensiuni Reziliență</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -48,13 +48,13 @@ export const ResilienceCharts = ({ resilienceScore }: ResilienceChartsProps) => 
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Distribuție pe Dimensiuni</CardTitle>
+          <CardTitle className="text-base break-words">Distribuție pe Dimensiuni</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} fontSize={10} />
               <YAxis domain={[0, 100]} />
               <Tooltip />
               <Bar dataKey="score" fill="#8884d8" />

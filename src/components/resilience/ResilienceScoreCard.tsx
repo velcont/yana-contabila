@@ -30,11 +30,11 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 flex-wrap break-words">
           {getScoreIcon(resilienceScore.overall)}
-          Scor Global Reziliență
+          <span className="break-words">Scor Global Reziliență</span>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="break-words">
           Metodologie academică bazată pe 7 dimensiuni validate științific
         </CardDescription>
       </CardHeader>
@@ -51,10 +51,10 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
           <Progress value={resilienceScore.overall} className="h-3" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Anticipare (15%)</span>
+              <span className="text-sm font-medium break-words">Anticipare (15%)</span>
               <span className={`text-sm ${getScoreColor(resilienceScore.anticipation)}`}>
                 {resilienceScore.anticipation}
               </span>
@@ -64,7 +64,7 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Coping (25%)</span>
+              <span className="text-sm font-medium break-words">Coping (25%)</span>
               <span className={`text-sm ${getScoreColor(resilienceScore.coping)}`}>
                 {resilienceScore.coping}
               </span>
@@ -74,7 +74,7 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Adaptare (20%)</span>
+              <span className="text-sm font-medium break-words">Adaptare (20%)</span>
               <span className={`text-sm ${getScoreColor(resilienceScore.adaptation)}`}>
                 {resilienceScore.adaptation}
               </span>
@@ -84,7 +84,7 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Robustețe (20%)</span>
+              <span className="text-sm font-medium break-words">Robustețe (20%)</span>
               <span className={`text-sm ${getScoreColor(resilienceScore.robustness)}`}>
                 {resilienceScore.robustness}
               </span>
@@ -94,7 +94,7 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Redundanță (10%)</span>
+              <span className="text-sm font-medium break-words">Redundanță (10%)</span>
               <span className={`text-sm ${getScoreColor(resilienceScore.redundancy)}`}>
                 {resilienceScore.redundancy}
               </span>
@@ -104,7 +104,7 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Resurse (5%)</span>
+              <span className="text-sm font-medium break-words">Resurse (5%)</span>
               <span className={`text-sm ${getScoreColor(resilienceScore.resourcefulness)}`}>
                 {resilienceScore.resourcefulness}
               </span>
@@ -114,8 +114,8 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
         </div>
 
         <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-primary/20">
-          <TrendingUp className="h-4 w-4 text-primary mt-0.5" />
-          <p className="text-xs text-muted-foreground">
+          <TrendingUp className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-muted-foreground break-words overflow-wrap-anywhere">
             Scorurile sunt calculate pe baza metodologiilor academice validate (Duchek, 2020; Linnenluecke, 2017)
           </p>
         </div>
