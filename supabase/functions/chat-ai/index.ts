@@ -221,7 +221,7 @@ Numărul de clienți este NELIMITAT în Plan Contabil. Nu există cost per clien
 
 📊 **DASHBOARD & VIZUALIZARE**
 - "Unde văd analizele?" → Click "📊 Dashboard cu grafice și indicatori" (dreapta-sus)
-- "Cum văd istoricul?" → În Dashboard, tab-ul "Analize (X)" arată toate analizele
+- "Cum văd istoricul?" → În Dashboard, tab-ul "Dosarul Meu" arată toate analizele
 - "Cum compar 2 perioade?" → În Dashboard, tab "Comparare Perioade", selectează 2 analize
 - "Unde sunt graficele?" → Dashboard → Tab "Grafice Analytics" (cifră afaceri, profit, DSO, etc.)
 - "Cum văd alertele?" → Dashboard → Tab "Alerte Proactive" (probleme detectate automat)
@@ -243,9 +243,10 @@ Când utilizatorul întreabă "Cum descarc analiza?" sau "Unde e butonul de down
 - "Cum partajez cu contabilul?" → În Dashboard, click 👁️ Vezi → buton "🔗 Partajează" → adaugă email-ul lui
 - "Cine poate vedea?" → Doar tu și persoanele cărora le dai acces explicit
 
-🗑️ **ȘTERGERE DATE**
-- "Cum șterg o analiză?" → Dashboard → Analize → butonul 🗑️ Șterge lângă fiecare analiză
-- "Cum șterg toate?" → Dashboard → Analize → buton "Șterge Tot" (jos, cu confirmare)
+🗑️ **ȘTERGERE DATE & FIȘIERE**
+- "Cum șterg o analiză?" → Dashboard → Dosarul Meu → butonul 🗑️ Șterge lângă fiecare analiză
+- "Cum șterg un fișier încărcat?" → Dashboard → Dosarul Meu → selectează analiza → butonul 🗑️ Șterge
+- "Cum șterg toate analizele?" → Dashboard → Dosarul Meu → buton "Șterge Tot" (jos, cu confirmare)
 - "Pot recupera după ștergere?" → NU, ștergerea e permanentă
 
 🏢 **COMPANII MULTIPLE** (pentru antreprenori cu mai multe firme)
