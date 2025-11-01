@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, BarChart3, Download, Share2, TrendingUp, Zap, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
+import { ContextualHelp } from './ContextualHelp';
 
 interface QuickStartGuideProps {
   onOpenChat: () => void;
@@ -87,11 +88,15 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
   ];
 
   return (
-    <Card className="shadow-lg border-primary/20 animate-fade-in">
+    <Card className="shadow-lg border-primary/20 animate-appear card-hover-scale">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Zap className="h-5 w-5 text-primary" />
           Funcții Principale
+          <ContextualHelp 
+            title="Funcții Rapide"
+            content="Aici găsești toate funcționalitățile cheie ale Yana. Click pe orice card pentru a începe imediat."
+          />
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -99,7 +104,7 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-accent/5 transition-all animate-fade-in hover-scale"
+              className="group p-4 rounded-lg border border-border hover:border-primary/50 hover:bg-accent/5 transition-all duration-300 animate-appear card-hover-scale"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex flex-col gap-3 h-full">
@@ -115,7 +120,7 @@ export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionT
                     onClick={feature.onClick}
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs hover-scale mt-auto"
+                    className="w-full text-xs btn-hover-lift mt-auto"
                   >
                     {feature.action}
                   </Button>

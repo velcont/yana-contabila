@@ -6,6 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield, Loader2 } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SkeletonCard, SkeletonChart, LoadingSpinner } from '@/components/ui/skeleton-loader';
+import { ContextualHelp, helpContent } from '@/components/ContextualHelp';
 import { format, subMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import CompareAnalyses from './CompareAnalyses';
@@ -537,11 +540,19 @@ INDICATORI OPERAȚIONALI:
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Se încarcă...</p>
+      <div className="container mx-auto px-4 py-8 max-w-7xl space-y-6">
+        <div className="flex justify-between items-center mb-8">
+          <div className="space-y-2">
+            <div className="h-8 w-64 skeleton-shimmer rounded" />
+            <div className="h-4 w-48 skeleton-shimmer rounded" />
+          </div>
         </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <SkeletonChart />
       </div>
     );
   }
@@ -578,9 +589,13 @@ INDICATORI OPERAȚIONALI:
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 animate-appear">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
+          <ContextualHelp 
+            title="Dashboard Financiar"
+            content={helpContent.dashboard.analyses.content}
+          />
           {isAdmin && (
             <>
               <TooltipProvider>
@@ -641,7 +656,7 @@ INDICATORI OPERAȚIONALI:
             variant="outline" 
             size="sm"
             onClick={loadDemoData}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 btn-hover-lift"
           >
             <Database className="h-4 w-4" />
             Încarcă Date Demo
@@ -750,9 +765,17 @@ INDICATORI OPERAȚIONALI:
           </CardHeader>
           <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
             {filteredAnalyses.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Nu ai analize salvate încă.
-              </p>
+              <EmptyState
+                icon={<FileText className="h-16 w-16" />}
+                title="Nicio analiză încă"
+                description="Încarcă prima ta balanță contabilă pentru a genera o analiză automată cu indicatori financiari și recomandări personalizate."
+                action={{
+                  label: "Încarcă Balanță",
+                  onClick: () => window.location.href = '/app',
+                  variant: "default"
+                }}
+                className="my-8"
+              />
             ) : (
               filteredAnalyses.map((analysis) => {
                 // Extract period from analysis text - try multiple patterns
@@ -765,10 +788,10 @@ INDICATORI OPERAȚIONALI:
                 return (
                   <div
                     key={analysis.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                    className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
                       selectedAnalysis?.id === analysis.id
-                        ? 'bg-primary/10 border-primary'
-                        : 'hover:bg-muted'
+                        ? 'bg-primary/10 border-primary scale-[1.02]'
+                        : 'hover:bg-muted hover:-translate-y-0.5'
                     }`}
                     onClick={() => setSelectedAnalysis(analysis)}
                   >

@@ -14,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Plus, Edit, Trash2, Filter } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonTable } from "@/components/ui/skeleton-loader";
+import { ContextualHelp, helpContent } from "@/components/ContextualHelp";
 
 // Validation schema for company data
 const companySchema = z.object({
@@ -317,23 +320,27 @@ export const CompanyManager = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-appear">
       {loading ? (
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
+        <SkeletonTable />
       ) : (
         <>
           <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold flex items-center gap-2">
-            <Building2 className="h-8 w-8" />
-            Gestionare Firme
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Administrează datele firmelor tale
-          </p>
-        </div>
+            <div className="flex items-center gap-2">
+              <div>
+                <h2 className="text-3xl font-bold flex items-center gap-2">
+                  <Building2 className="h-8 w-8" />
+                  Gestionare Firme
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  Administrează datele firmelor tale
+                </p>
+              </div>
+              <ContextualHelp 
+                title="Gestionare Clienți"
+                content={helpContent.crm.clients.content}
+              />
+            </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           console.log('[CompanyManager] Dialog onOpenChange:', open);
           if (!open && !loading) {
@@ -344,7 +351,7 @@ export const CompanyManager = () => {
           setIsDialogOpen(open);
         }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="btn-hover-lift">
               <Plus className="h-4 w-4 mr-2" />
               Adaugă Firmă
             </Button>
@@ -535,63 +542,70 @@ export const CompanyManager = () => {
       </Card>
 
       {/* Listă Firme */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredCompanies.map((company) => (
-          <Card key={company.id}>
-            <CardHeader>
-              <CardTitle className="text-lg">{company.company_name}</CardTitle>
-              <CardDescription>CIF: {company.cif || "N/A"}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex gap-2">
-                <Badge variant={company.vat_payer ? "default" : "secondary"}>
-                  {company.vat_payer ? "Plătitor TVA" : "Neplătitor TVA"}
-                </Badge>
-                <Badge variant="outline">{getTaxTypeLabel(company.tax_type)}</Badge>
-              </div>
-              {company.contact_person && (
-                <p className="text-sm text-muted-foreground">
-                  Contact: {company.contact_person}
-                </p>
-              )}
-              {company.phone && (
-                <p className="text-sm text-muted-foreground">Tel: {company.phone}</p>
-              )}
-              <div className="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    console.log('[CompanyManager] Edit button clicked for company:', company.id);
-                    openEditDialog(company);
-                  }}
-                  title="Editează firma"
-                >
-                  <Edit className="h-4 w-4 mr-1" />
-                  Editează
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setCompanyToDelete(company.id);
-                    setDeleteConfirmOpen(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredCompanies.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            Nu există firme înregistrate sau nicio firmă nu corespunde criteriilor de filtrare.
-          </CardContent>
-        </Card>
+      {filteredCompanies.length === 0 ? (
+        <EmptyState
+          icon={<Building2 className="h-16 w-16" />}
+          title="Nicio firmă înregistrată"
+          description="Începe prin a adăuga prima firmă în sistem. Vei putea gestiona date, documente și workflow-uri pentru fiecare client."
+          action={{
+            label: "Adaugă Prima Firmă",
+            onClick: () => setIsDialogOpen(true),
+            variant: "default"
+          }}
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredCompanies.map((company) => (
+            <Card key={company.id} className="card-hover-scale">
+              <CardHeader>
+                <CardTitle className="text-lg">{company.company_name}</CardTitle>
+                <CardDescription>CIF: {company.cif || "N/A"}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex gap-2">
+                  <Badge variant={company.vat_payer ? "default" : "secondary"} className="badge-pulse">
+                    {company.vat_payer ? "Plătitor TVA" : "Neplătitor TVA"}
+                  </Badge>
+                  <Badge variant="outline">{getTaxTypeLabel(company.tax_type)}</Badge>
+                </div>
+                {company.contact_person && (
+                  <p className="text-sm text-muted-foreground">
+                    Contact: {company.contact_person}
+                  </p>
+                )}
+                {company.phone && (
+                  <p className="text-sm text-muted-foreground">Tel: {company.phone}</p>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      console.log('[CompanyManager] Edit button clicked for company:', company.id);
+                      openEditDialog(company);
+                    }}
+                    title="Editează firma"
+                    className="btn-hover-lift"
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editează
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setCompanyToDelete(company.id);
+                      setDeleteConfirmOpen(true);
+                    }}
+                    className="btn-hover-lift"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
         </>
       )}

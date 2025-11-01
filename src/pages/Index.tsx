@@ -12,6 +12,7 @@ import UserCreditsAlert from "@/components/UserCreditsAlert";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AnalysisDisplay } from "@/components/AnalysisDisplay";
+import { ContextualHelp } from "@/components/ContextualHelp";
 import {
   DropdownMenu,
   DropdownMenuContent,
