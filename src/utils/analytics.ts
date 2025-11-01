@@ -14,7 +14,18 @@ export type AnalyticsEvent =
   | 'crm_first_client'
   | 'fiscal_chat_message'
   | 'subscription_started'
-  | 'error_occurred';
+  | 'subscription_cancelled'
+  | 'error_occurred'
+  | 'button_click'
+  | 'feature_used'
+  | 'search'
+  | 'download'
+  | 'share'
+  | 'form_submit'
+  | 'ai_query'
+  | 'email_sent'
+  | 'file_upload'
+  | 'navigation';
 
 interface TrackEventParams {
   eventName: AnalyticsEvent;
@@ -105,5 +116,60 @@ export const analytics = {
   subscriptionStarted: (planType: string, amount?: number) => trackEvent({
     eventName: 'subscription_started',
     eventData: { plan_type: planType, amount }
+  }),
+
+  subscriptionCancelled: (planType: string, reason?: string) => trackEvent({
+    eventName: 'subscription_cancelled',
+    eventData: { plan_type: planType, reason }
+  }),
+
+  buttonClick: (buttonName: string, location: string) => trackEvent({
+    eventName: 'button_click',
+    eventData: { button: buttonName, location }
+  }),
+
+  featureUsed: (featureName: string, duration?: number) => trackEvent({
+    eventName: 'feature_used',
+    eventData: { feature: featureName, duration }
+  }),
+
+  search: (query: string, resultsCount: number) => trackEvent({
+    eventName: 'search',
+    eventData: { query, results: resultsCount }
+  }),
+
+  download: (fileType: string, fileName: string) => trackEvent({
+    eventName: 'download',
+    eventData: { type: fileType, name: fileName }
+  }),
+
+  share: (contentType: string, method: string) => trackEvent({
+    eventName: 'share',
+    eventData: { type: contentType, method }
+  }),
+
+  formSubmit: (formName: string, success: boolean) => trackEvent({
+    eventName: 'form_submit',
+    eventData: { form: formName, success }
+  }),
+
+  aiQuery: (queryType: string, tokensUsed: number, cost: number) => trackEvent({
+    eventName: 'ai_query',
+    eventData: { type: queryType, tokens: tokensUsed, cost }
+  }),
+
+  emailSent: (emailType: string, recipientCount: number) => trackEvent({
+    eventName: 'email_sent',
+    eventData: { type: emailType, recipients: recipientCount }
+  }),
+
+  fileUpload: (fileType: string, fileSize: number, success: boolean) => trackEvent({
+    eventName: 'file_upload',
+    eventData: { type: fileType, size: fileSize, success }
+  }),
+
+  navigation: (from: string, to: string) => trackEvent({
+    eventName: 'navigation',
+    eventData: { from, to }
   }),
 };
