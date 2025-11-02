@@ -63,41 +63,41 @@ export const UpdateNotificationBanner = () => {
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-50 bg-primary text-primary-foreground shadow-lg transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm text-primary-foreground shadow-md border-b border-primary-foreground/10 transition-all duration-300 ${
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
       }`}
     >
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <RefreshCw className="h-5 w-5 animate-pulse" />
-          <div className="flex-1">
-            <p className="font-semibold">
-              Versiune nouă disponibilă: {currentVersion.version}
+      <div className="container mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5 flex-1">
+          <RefreshCw className="h-4 w-4 animate-pulse flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm truncate">
+              Versiune nouă: {currentVersion.version}
             </p>
-            <p className="text-sm opacity-90">
+            <p className="text-xs opacity-80 truncate">
               {currentVersion.title}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             onClick={handleRefresh}
             variant="secondary"
             size="sm"
-            className="font-semibold"
+            className="font-medium text-xs h-7 px-3"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizează Acum
+            <RefreshCw className="h-3 w-3 mr-1.5" />
+            Actualizează
           </Button>
           <Button
             onClick={() => setDismissed(true)}
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+            className="h-6 w-6 text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
             aria-label="Închide notificarea"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
