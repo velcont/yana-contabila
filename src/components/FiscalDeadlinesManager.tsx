@@ -322,19 +322,20 @@ export const FiscalDeadlinesManager = () => {
               Niciun termen fiscal găsit
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Declarație</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Data Scadentă</TableHead>
-                  <TableHead>Perioadă</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Prioritate</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Declarație</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Data Scadentă</TableHead>
+                    <TableHead>Perioadă</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Prioritate</TableHead>
+                    <TableHead className="text-right">Acțiuni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {deadlines.map((deadline) => (
                   <TableRow key={deadline.id}>
                     <TableCell className="font-medium">
@@ -364,6 +365,7 @@ export const FiscalDeadlinesManager = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

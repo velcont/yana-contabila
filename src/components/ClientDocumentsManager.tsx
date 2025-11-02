@@ -326,19 +326,20 @@ export const ClientDocumentsManager = () => {
               Niciun document găsit
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Tip</TableHead>
-                  <TableHead>Perioadă</TableHead>
-                  <TableHead>Mărime</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Document</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Tip</TableHead>
+                    <TableHead>Perioadă</TableHead>
+                    <TableHead>Mărime</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Acțiuni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {filteredDocuments.map((doc) => (
                   <TableRow key={doc.id}>
                     <TableCell className="font-medium">{doc.document_name}</TableCell>
@@ -366,6 +367,7 @@ export const ClientDocumentsManager = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

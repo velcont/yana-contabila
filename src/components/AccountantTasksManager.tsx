@@ -358,19 +358,20 @@ export const AccountantTasksManager = () => {
               Nicio sarcină găsită
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sarcină</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Tip</TableHead>
-                  <TableHead>Termen</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Prioritate</TableHead>
-                  <TableHead className="text-right">Acțiuni</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sarcină</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Tip</TableHead>
+                    <TableHead>Termen</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Prioritate</TableHead>
+                    <TableHead className="text-right">Acțiuni</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {filteredTasks.map((task) => (
                   <TableRow key={task.id}>
                     <TableCell className="font-medium">
@@ -422,6 +423,7 @@ export const AccountantTasksManager = () => {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
