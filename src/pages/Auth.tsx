@@ -69,6 +69,15 @@ const Auth = () => {
       setPasswordStrength(null);
     }
   }, [password, isLogin]);
+ 
+  const canRegister = isLogin ? true : (
+    fullName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    calculatePasswordStrength(password) !== 'weak' &&
+    !!accountType &&
+    termsAccepted
+  );
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -428,6 +437,7 @@ const Auth = () => {
                       placeholder="Ion Popescu"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
+                      onInput={(e) => setFullName((e.target as HTMLInputElement).value)}
                       required={!isLogin}
                       autoComplete="name"
                     />
@@ -534,10 +544,12 @@ const Auth = () => {
                 </label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="email@exemplu.ro"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
                   required
                   autoComplete="email"
                 />
@@ -564,10 +576,12 @@ const Auth = () => {
                 <div className="relative">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder={isLogin ? "••••••••" : "Min. 8 caractere: A-Z, a-z, 0-9"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
                     required
                     minLength={isLogin ? 6 : 8}
                     autoComplete={isLogin ? "current-password" : "new-password"}
@@ -644,15 +658,7 @@ const Auth = () => {
                 type="submit"
                 className="w-full"
                 disabled={
-                  isLoading ||
-                  (!isLogin && (
-                    !fullName.trim() ||
-                    !email.trim() ||
-                    !password ||
-                    !accountType ||
-                    !termsAccepted ||
-                    calculatePasswordStrength(password) === 'weak'
-                  ))
+                  isLoading || (!isLogin && !canRegister)
                 }
               >
                 {isLoading ? (
