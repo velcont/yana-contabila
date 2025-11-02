@@ -1475,8 +1475,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             )}
           </div>
 
-          {/* Grup dreapta - Controale */}
-          <div className="flex items-center gap-2">
+          {/* Grup dreapta - Controale unificate */}
+          <div className="flex items-center gap-1">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1484,11 +1484,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant={showHistory ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowHistory(!showHistory)}
-                    className="h-9 w-9 hidden md:flex relative"
+                    className="h-8 w-8 hidden md:flex relative"
                     aria-label="Istoric conversații"
                     data-tour="conversation-history"
                   >
-                    <History className="h-4 w-4" />
+                    <History className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Istoric Conversații</TooltipContent>
@@ -1500,11 +1500,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant={showVoice ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowVoice(!showVoice)}
-                    className="h-9 w-9"
+                    className="h-8 w-8"
                     aria-label="Conversație vocală"
                     data-tour="voice-button"
                   >
-                    <Mic className="h-4 w-4" />
+                    <Mic className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Conversație Vocală</TooltipContent>
@@ -1516,10 +1516,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant={showInsights ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setShowInsights(!showInsights)}
-                    className="h-9 w-9 relative"
+                    className="h-8 w-8 relative"
                     aria-label="Alerte"
                   >
-                    <Bell className="h-4 w-4" />
+                    <Bell className="h-3.5 w-3.5" />
                     {insights.length > 0 && (
                       <Badge 
                         variant="destructive" 
@@ -1539,10 +1539,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant={isReadingMode ? "secondary" : "ghost"}
                     size="icon"
                     onClick={() => setIsReadingMode(!isReadingMode)}
-                    className="h-9 w-9 hidden lg:flex"
+                    className="h-8 w-8 hidden lg:flex"
                     aria-label="Mod Lectură"
                   >
-                    <BookOpen className="h-4 w-4" />
+                    <BookOpen className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Mod Lectură</TooltipContent>
@@ -1554,10 +1554,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsMaximized((v) => !v)}
-                    className="h-9 w-9"
+                    className="h-8 w-8"
                     aria-label={isMaximized ? 'Minimizează' : 'Maximizează'}
                   >
-                    {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    {isMaximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{isMaximized ? 'Minimizează' : 'Maximizează'}</TooltipContent>
@@ -1566,13 +1566,13 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="destructive"
+                    variant="ghost"
                     size="icon"
                     onClick={() => setIsOpen(false)}
-                    className="h-9 w-9"
+                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
                     aria-label="Închide chat"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Închide Chat</TooltipContent>
