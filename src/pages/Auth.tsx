@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -682,18 +682,18 @@ const Auth = () => {
               <div className="text-center text-xs text-muted-foreground space-y-2">
                 <div>
                   Prin {isLogin ? 'autentificare' : 'înregistrare'}, ești de acord cu{' '}
-                  <a href="/terms" target="_blank" className="text-primary hover:underline">
+                  <Link to="/terms" target="_blank" className="text-primary hover:underline">
                     Termenii și Condițiile
-                  </a>
+                  </Link>
                   {' '}și{' '}
-                  <a href="/privacy" target="_blank" className="text-primary hover:underline">
+                  <Link to="/privacy" target="_blank" className="text-primary hover:underline">
                     Politica de Confidențialitate
-                  </a>
+                  </Link>
                 </div>
                 <div>
-                  <a href="/pricing" target="_blank" className="text-primary hover:underline font-medium">
+                  <Link to="/my-ai-costs" className="text-primary hover:underline font-medium">
                     📋 Vezi Politica de Tarife și Costuri
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
