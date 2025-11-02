@@ -4,9 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download } from 'lucide-react';
+import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download, User, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 
@@ -16,6 +17,7 @@ interface PaymentRecord {
   date: string;
   user_email: string;
   user_name: string;
+  user_id: string;
   amount_cents: number;
   currency: string;
   description: string;
@@ -24,6 +26,18 @@ interface PaymentRecord {
   invoice_series?: string;
   invoice_generated: boolean;
   metadata?: any;
+}
+
+interface UserBillingDetails {
+  full_name: string;
+  email: string;
+  phone?: string;
+  company_name?: string;
+  cif?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  stripe_customer_id?: string;
 }
 
 interface TotalStats {
@@ -43,6 +57,8 @@ export default function AdminRevenueMonitor() {
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'credits' | 'subscriptions'>('all');
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'week' | 'month' | 'year'>('all');
+  const [selectedUserDetails, setSelectedUserDetails] = useState<UserBillingDetails | null>(null);
+  const [showUserDetailsDialog, setShowUserDetailsDialog] = useState(false);
   const [totalStats, setTotalStats] = useState<TotalStats>({
     total_revenue: 0,
     credits_revenue: 0,
@@ -110,6 +126,7 @@ export default function AdminRevenueMonitor() {
           date: c.purchase_date,
           user_email: profile?.email || 'N/A',
           user_name: profile?.full_name || 'N/A',
+          user_id: c.user_id,
           amount_cents: c.amount_paid_cents,
           currency: 'RON',
           description: `Pachet ${c.credits_added} credite AI`,
@@ -130,6 +147,7 @@ export default function AdminRevenueMonitor() {
           date: s.payment_date,
           user_email: profile?.email || 'N/A',
           user_name: profile?.full_name || 'N/A',
+          user_id: s.user_id,
           amount_cents: s.amount_paid_cents,
           currency: s.currency,
           description: `Abonament ${s.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Cabinet Contabil'} (${format(new Date(s.period_start), 'MMM yyyy', { locale: ro })})`,
@@ -308,6 +326,53 @@ export default function AdminRevenueMonitor() {
     return `${(cents / 100).toFixed(2)} RON`;
   };
 
+  const handleViewUserDetails = async (payment: PaymentRecord) => {
+    try {
+      // Fetch user profile and company details
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', payment.user_id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Fetch company details if user has one
+      const { data: company } = await supabase
+        .from('companies')
+        .select('company_name, cif, cui, address, phone, contact_person, contact_email, stripe_customer_id')
+        .eq('user_id', payment.user_id)
+        .maybeSingle();
+
+      const userDetails: UserBillingDetails = {
+        full_name: profile?.full_name || 'N/A',
+        email: profile?.email || 'N/A',
+        phone: company?.phone,
+        company_name: company?.company_name,
+        cif: company?.cif || company?.cui,
+        address: company?.address,
+        stripe_customer_id: company?.stripe_customer_id || payment.metadata?.stripe_customer_id
+      };
+
+      setSelectedUserDetails(userDetails);
+      setShowUserDetailsDialog(true);
+    } catch (error: any) {
+      toast({
+        title: 'Eroare',
+        description: 'Nu s-au putut încărca datele utilizatorului',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: '✅ Copiat',
+      description: `${label} copiat în clipboard`
+    });
+  };
+
   // Filter payments
   const filteredPayments = allPayments.filter(payment => {
     // Filter by type
@@ -337,7 +402,164 @@ export default function AdminRevenueMonitor() {
   });
 
   return (
-    <div className="space-y-6">
+    <>
+      {/* User Details Dialog */}
+      <Dialog open={showUserDetailsDialog} onOpenChange={setShowUserDetailsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>👤 Date Client pentru Facturare</DialogTitle>
+            <DialogDescription>
+              Toate datele necesare pentru emiterea facturii manuale în SmartBill
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUserDetails && (
+            <div className="space-y-4">
+              {/* Personal Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Date Personale</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nume Complet</p>
+                      <p className="font-medium">{selectedUserDetails.full_name}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => copyToClipboard(selectedUserDetails.full_name, 'Nume')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{selectedUserDetails.email}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => copyToClipboard(selectedUserDetails.email, 'Email')}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {selectedUserDetails.phone && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Telefon</p>
+                        <p className="font-medium">{selectedUserDetails.phone}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(selectedUserDetails.phone!, 'Telefon')}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Company Details */}
+              {(selectedUserDetails.company_name || selectedUserDetails.cif) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Date Firmă</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {selectedUserDetails.company_name && (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Denumire Firmă</p>
+                          <p className="font-medium">{selectedUserDetails.company_name}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(selectedUserDetails.company_name!, 'Denumire')}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {selectedUserDetails.cif && (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">CIF/CUI</p>
+                          <p className="font-medium">{selectedUserDetails.cif}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(selectedUserDetails.cif!, 'CIF')}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {selectedUserDetails.address && (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Adresă</p>
+                          <p className="font-medium">{selectedUserDetails.address}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(selectedUserDetails.address!, 'Adresă')}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Stripe Details */}
+              {selectedUserDetails.stripe_customer_id && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Referințe Stripe</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Customer ID</p>
+                        <p className="font-mono text-xs">{selectedUserDetails.stripe_customer_id}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(selectedUserDetails.stripe_customer_id!, 'Stripe ID')}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <strong>💡 Notă:</strong> Copiază aceste date și emite factura manual în SmartBill pentru plățile cu ID-uri manuale.
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <div className="space-y-6">
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -511,6 +733,15 @@ export default function AdminRevenueMonitor() {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => handleViewUserDetails(payment)}
+                            title="Vezi date client pentru facturare"
+                          >
+                            <User className="h-3 w-3" />
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleSendPaymentEmail(payment)}
                             disabled={sendingEmail === payment.id}
                             title="Trimite Email"
@@ -547,6 +778,7 @@ export default function AdminRevenueMonitor() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
