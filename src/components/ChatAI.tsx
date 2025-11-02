@@ -1378,7 +1378,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       
       {/* Chat principal */}
       <Card className={`pointer-events-auto ${isMaximized ? 'w-full flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b bg-gradient-to-r from-background to-muted/30">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 border-b bg-gradient-to-r from-background to-muted/30">
           {/* Grup stânga - Branding + Actions */}
           <div className="flex items-center gap-3">
             <Sheet open={showHistory} onOpenChange={setShowHistory}>
@@ -1476,7 +1476,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           </div>
 
           {/* Grup dreapta - Controale */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2 pr-1">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
