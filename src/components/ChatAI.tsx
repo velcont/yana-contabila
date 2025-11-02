@@ -1331,7 +1331,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-4 right-4 flex items-center gap-3 animate-in fade-in slide-in-from-right-5 duration-500">
+      <div className="fixed bottom-4 left-4 flex items-center gap-3 animate-in fade-in slide-in-from-left-5 duration-500">
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg font-medium text-sm">
           💬 Chat Financiar Personal
         </div>
@@ -1365,7 +1365,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   }
 
   return (
-    <div className={`${isMaximized || showHistory || showInsights ? 'fixed inset-0 z-50 flex pointer-events-none' : 'fixed bottom-4 right-4 z-50 pointer-events-none'}`}>
+    <div className={`${isMaximized || showHistory || showInsights ? 'fixed inset-0 z-50 flex pointer-events-none' : 'fixed bottom-4 left-4 z-50 pointer-events-none'}`}>
       {/* Sidebar Istoric - doar când e deschis */}
       {showHistory && (
         <div className="pointer-events-auto w-80 h-full p-4">
