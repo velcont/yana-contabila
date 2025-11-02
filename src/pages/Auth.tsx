@@ -616,20 +616,27 @@ const Auth = () => {
                   <Checkbox 
                     id="terms" 
                     checked={termsAccepted}
-                    onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                    onCheckedChange={(checked) => setTermsAccepted(Boolean(checked))}
                     className="mt-1"
                   />
-                  <label
-                    htmlFor="terms"
-                    className="text-sm leading-relaxed cursor-pointer"
-                  >
-                    Accept <Link to="/terms" target="_blank" className="text-primary hover:underline font-semibold">Termenii și Condițiile</Link> și{' '}
-                    <Link to="/privacy" target="_blank" className="text-primary hover:underline font-semibold">Politica de Confidențialitate</Link>.
-                    {' '}
-                    <span className="text-xs text-muted-foreground block mt-1">
-                      (Prin acceptare, se va înregistra emailul, IP-ul și data acceptării în scopuri legale)
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="terms"
+                      className="text-sm leading-relaxed cursor-pointer select-none"
+                    >
+                      Accept termenii aplicației.
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Citește
+                      {' '}
+                      <Link to="/terms" target="_blank" rel="noopener" className="text-primary hover:underline font-semibold">Termenii și Condițiile</Link>
+                      {' '}și{' '}
+                      <Link to="/privacy" target="_blank" rel="noopener" className="text-primary hover:underline font-semibold">Politica de Confidențialitate</Link>.
+                    </p>
+                    <span className="text-[10px] text-muted-foreground block">
+                      (La acceptare, se înregistrează emailul, IP-ul și data, în scopuri legale)
                     </span>
-                  </label>
+                  </div>
                 </div>
               )}
 
