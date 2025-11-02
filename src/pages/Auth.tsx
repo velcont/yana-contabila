@@ -636,7 +636,10 @@ const Auth = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isLoading || (!isLogin && !termsAccepted) || (!isLogin && !accountType) || (!isLogin && passwordStrength === 'weak')}
+                disabled={
+                  isLoading || 
+                  (!isLogin && (!fullName.trim() || !email.trim() || !password || !accountType || !termsAccepted || passwordStrength === 'weak'))
+                }
               >
                 {isLoading ? (
                   <>
