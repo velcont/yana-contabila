@@ -70,14 +70,22 @@ const Auth = () => {
     }
   }, [password, isLogin]);
  
+  const fullNameOk = fullName.trim().length > 0;
+  const emailOk = email.trim().length > 0;
+  const passwordLenOk = password.length >= 8;
+  const passwordStrongEnough = calculatePasswordStrength(password) !== 'weak';
+  const accountTypeOk = !!accountType;
+  const termsOk = termsAccepted;
+
   const canRegister = isLogin ? true : (
-    fullName.trim().length > 0 &&
-    email.trim().length > 0 &&
-    password.length >= 8 &&
-    calculatePasswordStrength(password) !== 'weak' &&
-    !!accountType &&
-    termsAccepted
+    fullNameOk && emailOk && passwordLenOk && passwordStrongEnough && accountTypeOk && termsOk
   );
+
+  useEffect(() => {
+    if (!isLogin) {
+      console.log('[AUTH DEBUG] Flags', { fullNameOk, emailOk, passwordLenOk, passwordStrongEnough, accountTypeOk, termsOk, canRegister });
+    }
+  }, [isLogin, fullNameOk, emailOk, passwordLenOk, passwordStrongEnough, accountTypeOk, termsOk, canRegister]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -670,6 +678,17 @@ const Auth = () => {
                   isLogin ? 'Autentificare' : 'Înregistrare'
                 )}
               </Button>
+              {!isLogin && (
+                <div className="mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">
+                  <div className="grid grid-cols-2 gap-1">
+                    <div className={fullNameOk ? 'text-emerald-600' : 'text-red-500'}>Nume complet {fullNameOk ? '✓' : '—'}</div>
+                    <div className={emailOk ? 'text-emerald-600' : 'text-red-500'}>Email {emailOk ? '✓' : '—'}</div>
+                    <div className={(passwordLenOk && passwordStrongEnough) ? 'text-emerald-600' : 'text-red-500'}>Parolă validă {(passwordLenOk && passwordStrongEnough) ? '✓' : '—'}</div>
+                    <div className={accountTypeOk ? 'text-emerald-600' : 'text-red-500'}>Tip cont {accountTypeOk ? '✓' : '—'}</div>
+                    <div className={termsOk ? 'text-emerald-600' : 'text-red-500'}>Termeni acceptați {termsOk ? '✓' : '—'}</div>
+                  </div>
+                </div>
+              )}
             </form>
           )}
 
