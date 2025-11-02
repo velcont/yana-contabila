@@ -1377,7 +1377,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       )}
       
       {/* Chat principal */}
-      <Card className={`pointer-events-auto ${isMaximized ? 'w-full flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
+      <Card className={`pointer-events-auto ${isMaximized ? 'w-full flex-1 m-4 h-[calc(100vh-2rem)]' : 'w-[95vw] sm:w-[480px] md:w-[560px] lg:w-[640px] h-[70vh] md:h-[580px]'} bg-background/80 backdrop-blur-md shadow-2xl border border-primary/20 rounded-2xl overflow-hidden relative flex flex-col animate-in slide-in-from-bottom-5 duration-300`}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pr-4 border-b bg-gradient-to-r from-background to-muted/30">
           {/* Grup stânga - Branding + Actions */}
           <div className="flex items-center gap-3">
@@ -1412,7 +1412,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
             {/* Mode Switcher - Tabs cu separare vizuală îmbunătățită */}
             {!isAccountantModule && (
-              <div className="ml-4 flex flex-wrap items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20 max-w-full overflow-hidden">
+              <div className="ml-4 flex-1 min-w-0 flex flex-wrap items-center gap-2 bg-muted/50 rounded-lg p-2 border-2 border-primary/20 max-w-full overflow-hidden">
                 <span className="text-[10px] font-semibold text-muted-foreground px-2 whitespace-nowrap hidden sm:block">
                   Alege funcția:
                 </span>
@@ -1476,7 +1476,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           </div>
 
           {/* Grup dreapta - Controale unificate */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
