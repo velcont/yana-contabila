@@ -229,37 +229,54 @@ export default function StrategicAdvisor() {
     }
   };
 
-  // Generic credit deduction function
+  // Generic credit deduction function using the new AI usage system
   const deductCredit = async (amount: number): Promise<boolean> => {
     if (creditRemaining < amount) {
       toast.error(`Credit insuficient! Necesari ${amount.toFixed(2)} lei.`);
       return false;
     }
 
-    const newCredit = Math.max(0, creditRemaining - amount);
-    setCreditRemaining(newCredit);
+    try {
+      // Record usage in ai_usage table (amount in RON * 100 = cents)
+      const { error: trackError } = await supabase.functions.invoke('track-ai-usage', {
+        body: {
+          endpoint: 'strategic-advisor',
+          model: 'google/gemini-2.5-flash', // default model used
+          inputTokens: Math.floor(amount * 2000), // rough estimate: 1 RON ≈ 2000 tokens
+          outputTokens: Math.floor(amount * 2000),
+          success: true
+        }
+      });
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ trial_credit_remaining: newCredit })
-      .eq("id", user?.id);
+      if (trackError) {
+        console.error('Error tracking usage:', trackError);
+        // Don't fail the operation, just log the error
+      }
 
-    if (error) {
-      console.error('Error updating credit:', error);
+      // Refresh credit by re-fetching from get_monthly_ai_usage
+      const { data: usageData, error: usageError } = await supabase.rpc('get_monthly_ai_usage');
+      if (!usageError && usageData?.[0]) {
+        const usage = usageData[0];
+        const remainingCents = Math.max(0, (usage.budget_cents || 0) - (usage.total_cost_cents || 0));
+        const newCredit = Number((remainingCents / 100).toFixed(2));
+        setCreditRemaining(newCredit);
+
+        if (newCredit <= 2) {
+          toast.warning(`⚠️ Credit scăzut: ${newCredit.toFixed(2)} lei. Cumpără credite!`, {
+            action: {
+              label: "Cumpără",
+              onClick: () => navigate('/my-ai-costs')
+            }
+          });
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error in deductCredit:', error);
       toast.error('Eroare la deducerea creditelor');
       return false;
     }
-
-    if (newCredit <= 2) {
-      toast.warning(`⚠️ Credit scăzut: ${newCredit.toFixed(2)} lei. Cumpără credite!`, {
-        action: {
-          label: "Cumpără",
-          onClick: () => navigate('/my-ai-costs')
-        }
-      });
-    }
-
-    return true;
   };
 
   const sendMessage = async (textToSend?: string) => {
@@ -309,25 +326,46 @@ export default function StrategicAdvisor() {
         return;
       }
 
-      // Deduct cost (estimated 0.5 lei per message)
-      const messageCost = 0.5;
-      const newCredit = Math.max(0, creditRemaining - messageCost);
-      console.log(`💰 [CREDIT] Deducting ${messageCost} lei. New balance: ${newCredit} lei`);
-      setCreditRemaining(newCredit);
+      // Deduct cost using the new AI usage system
+      const messageCost = 0.5; // estimated 0.5 lei per message
+      console.log(`💰 [CREDIT] Recording usage of ${messageCost} lei`);
       
-      // Update in DB
-      await supabase
-        .from("profiles")
-        .update({ trial_credit_remaining: newCredit })
-        .eq("id", user?.id);
-      
-      if (newCredit <= 0) {
-        console.warn("⚠️ [CREDIT] Credit exhausted!");
-        toast.warning("Credit epuizat! Cumpără credite pentru a continua.");
-        setHasAccess(false);
-      } else if (newCredit <= 2) {
-        console.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
-        toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit!`);
+      try {
+        // Track usage in ai_usage table
+        const { error: trackError } = await supabase.functions.invoke('track-ai-usage', {
+          body: {
+            endpoint: 'strategic-advisor',
+            model: 'google/gemini-2.5-flash',
+            inputTokens: Math.floor(messageCost * 2000), // rough estimate
+            outputTokens: Math.floor(messageCost * 2000),
+            success: true
+          }
+        });
+
+        if (trackError) {
+          console.error('⚠️ [CREDIT] Error tracking usage:', trackError);
+        }
+
+        // Refresh credit from ai_budget_limits
+        const { data: usageData, error: usageError } = await supabase.rpc('get_monthly_ai_usage');
+        if (!usageError && usageData?.[0]) {
+          const usage = usageData[0];
+          const remainingCents = Math.max(0, (usage.budget_cents || 0) - (usage.total_cost_cents || 0));
+          const newCredit = Number((remainingCents / 100).toFixed(2));
+          console.log(`💰 [CREDIT] New balance after refresh: ${newCredit} lei`);
+          setCreditRemaining(newCredit);
+          
+          if (newCredit <= 0) {
+            console.warn("⚠️ [CREDIT] Credit exhausted!");
+            toast.warning("Credit epuizat! Cumpără credite pentru a continua.");
+            setHasAccess(false);
+          } else if (newCredit <= 2) {
+            console.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
+            toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit!`);
+          }
+        }
+      } catch (error) {
+        console.error('⚠️ [CREDIT] Error in credit deduction:', error);
       }
 
       const aiMessage: Message = {
