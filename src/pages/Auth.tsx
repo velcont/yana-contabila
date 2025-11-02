@@ -623,8 +623,8 @@ const Auth = () => {
                     htmlFor="terms"
                     className="text-sm leading-relaxed cursor-pointer"
                   >
-                    Accept <a href="/terms" target="_blank" className="text-primary hover:underline font-semibold">Termenii și Condițiile</a> și{' '}
-                    <a href="/privacy" target="_blank" className="text-primary hover:underline font-semibold">Politica de Confidențialitate</a>.
+                    Accept <Link to="/terms" target="_blank" className="text-primary hover:underline font-semibold">Termenii și Condițiile</Link> și{' '}
+                    <Link to="/privacy" target="_blank" className="text-primary hover:underline font-semibold">Politica de Confidențialitate</Link>.
                     {' '}
                     <span className="text-xs text-muted-foreground block mt-1">
                       (Prin acceptare, se va înregistra emailul, IP-ul și data acceptării în scopuri legale)
@@ -637,8 +637,15 @@ const Auth = () => {
                 type="submit"
                 className="w-full"
                 disabled={
-                  isLoading || 
-                  (!isLogin && (!fullName.trim() || !email.trim() || !password || !accountType || !termsAccepted || passwordStrength === 'weak'))
+                  isLoading ||
+                  (!isLogin && (
+                    !fullName.trim() ||
+                    !email.trim() ||
+                    !password ||
+                    !accountType ||
+                    !termsAccepted ||
+                    calculatePasswordStrength(password) === 'weak'
+                  ))
                 }
               >
                 {isLoading ? (
