@@ -101,9 +101,9 @@ serve(async (req) => {
     const { sessionId, paymentType } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
 
-    // 🔒 FIX MANUAL_FIX: Detectează ID-uri manuale care nu sunt valide în Stripe
-    if (sessionId.startsWith('manual_fix_')) {
-      logStep("⚠️ REJECTED: Manual fix ID detected", { sessionId });
+    // 🔒 SECURITY: Detectează ID-uri manuale/recovery care nu există în Stripe
+    if (sessionId.includes('manual') || sessionId.includes('recovery') || sessionId.includes('_fix_')) {
+      logStep("⚠️ REJECTED: Manual/recovery ID detected", { sessionId });
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -114,15 +114,21 @@ serve(async (req) => {
     }
 
     // Validate Stripe ID format
-    const isValidStripeId = (paymentType === 'subscription' && sessionId.startsWith('in_')) ||
-                           (paymentType === 'credits' && sessionId.startsWith('cs_'));
+    let isValidStripeId = false;
+    
+    if (paymentType === 'subscription') {
+      isValidStripeId = sessionId.startsWith('in_');
+    } else {
+      // Credits: cs_test_ or cs_live_
+      isValidStripeId = sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_');
+    }
     
     if (!isValidStripeId) {
       logStep("⚠️ REJECTED: Invalid Stripe ID format", { sessionId, paymentType });
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: `ID Stripe invalid: ${paymentType === 'subscription' ? 'trebuie să înceapă cu "in_"' : 'trebuie să înceapă cu "cs_"'}`
+          error: `ID Stripe invalid: ${paymentType === 'subscription' ? 'trebuie să înceapă cu "in_"' : 'trebuie să înceapă cu "cs_test_" sau "cs_live_"'}`
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );

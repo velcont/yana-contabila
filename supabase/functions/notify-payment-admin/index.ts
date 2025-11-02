@@ -23,6 +23,39 @@ serve(async (req) => {
     const { sessionId, paymentType } = await req.json();
     if (!sessionId) throw new Error("sessionId is required");
 
+    // 🔒 SECURITY: Detectează ID-uri manuale/recovery care nu există în Stripe
+    if (sessionId.includes('manual') || sessionId.includes('recovery') || sessionId.includes('_fix_')) {
+      logStep("⚠️ REJECTED: Manual/recovery ID detected", { sessionId });
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Acest ID de plată este manual și nu poate fi folosit pentru trimitere automată de email. Te rugăm să trimiți emailul manual."
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Validate Stripe ID format
+    let isValidStripeId = false;
+    
+    if (paymentType === 'subscription') {
+      isValidStripeId = sessionId.startsWith('in_');
+    } else {
+      // Credits: cs_test_ or cs_live_
+      isValidStripeId = sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_');
+    }
+    
+    if (!isValidStripeId) {
+      logStep("⚠️ REJECTED: Invalid Stripe ID format", { sessionId, paymentType });
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `ID Stripe invalid: ${paymentType === 'subscription' ? 'trebuie să înceapă cu "in_"' : 'trebuie să înceapă cu "cs_test_" sau "cs_live_"'}`
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     logStep("Processing session", { sessionId, paymentType });
 
     // Initialize Stripe

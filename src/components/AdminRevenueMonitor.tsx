@@ -175,16 +175,50 @@ export default function AdminRevenueMonitor() {
     loadAllPayments();
   }, []);
 
+  // Check if session ID is valid for Stripe API calls
+  const isValidStripeSession = (sessionId: string, paymentType: string) => {
+    if (!sessionId) return false;
+    
+    // Detect manual/recovery IDs that don't exist in Stripe
+    if (sessionId.includes('manual') || sessionId.includes('recovery') || sessionId.includes('_fix_')) {
+      return false;
+    }
+    
+    // Validate proper Stripe ID format
+    if (paymentType === 'subscription') {
+      return sessionId.startsWith('in_'); // Stripe invoice ID
+    } else {
+      return sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_'); // Stripe checkout session ID
+    }
+  };
+
   const handleSendPaymentEmail = async (payment: PaymentRecord) => {
+    // Validate session ID first
+    if (!isValidStripeSession(payment.stripe_reference, payment.payment_type)) {
+      toast({
+        title: '⚠️ ID Invalid',
+        description: 'Acest ID de plată este manual și nu poate fi procesat automat. Te rugăm să trimiți emailul manual.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setSendingEmail(payment.id);
     try {
-      const { error } = await supabase.functions.invoke('notify-payment-admin', {
+      const { data, error } = await supabase.functions.invoke('notify-payment-admin', {
         body: { 
           sessionId: payment.stripe_reference,
           paymentType: payment.payment_type 
         }
       });
+      
       if (error) throw error;
+      
+      // Check if the response indicates an error
+      if (data && !data.success) {
+        throw new Error(data.error || 'Eroare necunoscută');
+      }
+      
       toast({
         title: '✅ Email trimis',
         description: 'Detalii plată trimise la office@velcont.com'
@@ -201,6 +235,16 @@ export default function AdminRevenueMonitor() {
   };
 
   const handleGenerateInvoice = async (payment: PaymentRecord) => {
+    // Validate session ID first
+    if (!isValidStripeSession(payment.stripe_reference, payment.payment_type)) {
+      toast({
+        title: '⚠️ ID Invalid',
+        description: 'Acest ID de plată este manual și nu poate fi folosit pentru generare automată. Generează factura manual în SmartBill.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setGeneratingInvoice(payment.id);
     try {
       const { data, error } = await supabase.functions.invoke('admin-generate-invoice', {
@@ -209,7 +253,14 @@ export default function AdminRevenueMonitor() {
           paymentType: payment.payment_type
         }
       });
+      
       if (error) throw error;
+      
+      // Check if the response indicates an error
+      if (data && !data.success) {
+        throw new Error(data.error || data.message || 'Eroare necunoscută');
+      }
+      
       toast({
         title: '✅ Factură generată',
         description: `Factură SmartBill: ${data.invoice?.number || 'N/A'}`
@@ -438,7 +489,12 @@ export default function AdminRevenueMonitor() {
                         <p className="text-xs text-muted-foreground">{payment.currency}</p>
                       </TableCell>
                       <TableCell>
-                        {payment.invoice_generated ? (
+                        {!isValidStripeSession(payment.stripe_reference, payment.payment_type) ? (
+                          <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-700">
+                            <Clock className="w-3 h-3" />
+                            ID Manual
+                          </Badge>
+                        ) : payment.invoice_generated ? (
                           <Badge variant="outline" className="gap-1">
                             <FileCheck className="h-3 w-3 text-green-500" />
                             {payment.invoice_series}-{payment.invoice_number}
