@@ -216,7 +216,7 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+        <DialogHeader className="px-6 pt-6 pb-4 pr-16 border-b">
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Scale className="h-6 w-6 text-[#00B37E]" />
             🏛️ Yana Legislație - Expert Fiscal & Contabil
