@@ -83,7 +83,7 @@ export const RunwayCard = memo(({ runway, currentCash, isLoading, onRefresh, onS
 
   return (
     <Card className={cn("border-2 transition-all", status.borderColor, status.bgColor)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6">
         <div className="flex-1">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
             ⏳ Cash Runway

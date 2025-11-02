@@ -117,7 +117,7 @@ export const FavoriteAnalyses = () => {
       <div className="grid gap-4">
         {favorites.map((fav) => (
           <Card key={fav.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <CardTitle className="text-base flex items-center gap-2">

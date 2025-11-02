@@ -25,7 +25,7 @@ export const FinancialSnapshot = React.memo(({
 }: FinancialSnapshotProps) => {
   return (
     <Card className="border-primary/30">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 px-6">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />

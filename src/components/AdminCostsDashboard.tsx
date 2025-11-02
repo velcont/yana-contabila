@@ -103,7 +103,7 @@ export const AdminCostsDashboard = () => {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Cost Total Lunar</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -114,7 +114,7 @@ export const AdminCostsDashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Costuri AI</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -125,7 +125,7 @@ export const AdminCostsDashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Infrastructură</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -136,7 +136,7 @@ export const AdminCostsDashboard = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Utilizatori Activi</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>

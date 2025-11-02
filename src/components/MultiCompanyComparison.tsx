@@ -221,7 +221,7 @@ export const MultiCompanyComparison = () => {
       {aggregateStats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <CardDescription>Total Clienți</CardDescription>
               <CardTitle className="text-3xl">{aggregateStats.totalClients}</CardTitle>
             </CardHeader>
@@ -239,7 +239,7 @@ export const MultiCompanyComparison = () => {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <CardDescription>Profit Mediu</CardDescription>
               <CardTitle className="text-3xl">
                 {aggregateStats.avgProfit.toLocaleString('ro-RO', { 
@@ -255,7 +255,7 @@ export const MultiCompanyComparison = () => {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <CardDescription>DSO Mediu</CardDescription>
               <CardTitle className="text-3xl">{aggregateStats.avgDSO.toFixed(0)} zile</CardTitle>
             </CardHeader>

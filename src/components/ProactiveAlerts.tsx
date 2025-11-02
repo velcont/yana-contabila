@@ -113,7 +113,7 @@ export const ProactiveAlerts = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-4 px-6">
         <div className="flex-1 min-w-0">
           <CardTitle className="flex items-center gap-2 flex-wrap break-words">
             <AlertTriangle className="h-5 w-5 text-primary flex-shrink-0" />

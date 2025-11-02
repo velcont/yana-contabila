@@ -97,7 +97,7 @@ const HealthStatus = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between px-6">
         <CardTitle>Stare Sistem</CardTitle>
         <Button 
           onClick={runHealthCheck} 

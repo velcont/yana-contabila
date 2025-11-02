@@ -323,7 +323,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
     <div className="space-y-6">
       {/* Company Info Card */}
       <Card className="border-primary/20 shadow-lg animate-fade-in">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 px-6">
           <div className="space-y-3">
             <CardTitle className="text-2xl flex items-center gap-2">
               <Building className="h-6 w-6 text-primary animate-scale-in" />

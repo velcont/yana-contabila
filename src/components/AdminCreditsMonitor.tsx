@@ -256,7 +256,7 @@ export default function AdminCreditsMonitor() {
               {/* Summary Cards */}
               <div className="grid grid-cols-3 gap-4">
                 <Card>
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 px-4">
                     <CardTitle className="text-sm">Total Plătit</CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -270,7 +270,7 @@ export default function AdminCreditsMonitor() {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 px-4">
                     <CardTitle className="text-sm">Consum Luna Curentă</CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -284,7 +284,7 @@ export default function AdminCreditsMonitor() {
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 px-4">
                     <CardTitle className="text-sm">Credite Rămase</CardTitle>
                   </CardHeader>
                   <CardContent>

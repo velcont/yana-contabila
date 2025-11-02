@@ -3514,7 +3514,7 @@ const GlobalStatsTab = ({ analyses }: { analyses: Analysis[] }) => {
         {/* Statistici Descriptive */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Profit Mediu
               </CardTitle>
@@ -3529,7 +3529,7 @@ const GlobalStatsTab = ({ analyses }: { analyses: Analysis[] }) => {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Marjă Medie Profit
               </CardTitle>
@@ -3543,7 +3543,7 @@ const GlobalStatsTab = ({ analyses }: { analyses: Analysis[] }) => {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 px-6">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 EBITDA Mediu
               </CardTitle>

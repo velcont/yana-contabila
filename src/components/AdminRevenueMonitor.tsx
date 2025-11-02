@@ -563,7 +563,7 @@ export default function AdminRevenueMonitor() {
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Total Venituri</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -576,7 +576,7 @@ export default function AdminRevenueMonitor() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Credite AI</CardTitle>
             <Zap className="h-4 w-4 text-yellow-500" />
           </CardHeader>
@@ -587,7 +587,7 @@ export default function AdminRevenueMonitor() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Abonamente</CardTitle>
             <Repeat className="h-4 w-4 text-blue-500" />
           </CardHeader>
@@ -598,7 +598,7 @@ export default function AdminRevenueMonitor() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
             <CardTitle className="text-sm font-medium">Facturi</CardTitle>
             <FileCheck className="h-4 w-4 text-green-500" />
           </CardHeader>
