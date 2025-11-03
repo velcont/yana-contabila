@@ -1640,6 +1640,45 @@ export type Database = {
         }
         Relationships: []
       }
+      doctorate_chapter_files: {
+        Row: {
+          chapter_number: number
+          chapter_title: string
+          content: string | null
+          file_name: string
+          file_path: string
+          id: string
+          is_final_version: boolean | null
+          uploaded_at: string | null
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          chapter_number: number
+          chapter_title: string
+          content?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          is_final_version?: boolean | null
+          uploaded_at?: string | null
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          chapter_number?: number
+          chapter_title?: string
+          content?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          is_final_version?: boolean | null
+          uploaded_at?: string | null
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       doctorate_chapters: {
         Row: {
           chapter_number: number

@@ -24,6 +24,14 @@ interface ChapterStatus {
   status: 'completed' | 'draft' | 'missing';
 }
 
+interface ChapterFile {
+  id: string;
+  file_name: string;
+  word_count: number;
+  uploaded_at: string;
+  is_final_version: boolean;
+}
+
 const DOCTORATE_CHAPTERS: Omit<ChapterStatus, 'word_count' | 'status'>[] = [
   { chapter_number: 1, chapter_title: "Introducere", expected_words: "5.000-7.000" },
   { chapter_number: 2, chapter_title: "Fundamentare Teoretică", expected_words: "20.000-25.000" },
@@ -36,6 +44,7 @@ const DOCTORATE_CHAPTERS: Omit<ChapterStatus, 'word_count' | 'status'>[] = [
 export const DoctorateStructureView = () => {
   const [structure, setStructure] = useState<DoctorateStructure | null>(null);
   const [chapters, setChapters] = useState<ChapterStatus[]>([]);
+  const [chapterFiles, setChapterFiles] = useState<Map<number, ChapterFile[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [assembling, setAssembling] = useState(false);
   const { toast } = useToast();
@@ -58,7 +67,22 @@ export const DoctorateStructureView = () => {
 
       setStructure(structureData);
 
-      // Fetch chapters
+      // Fetch all chapter files
+      const { data: filesData } = await supabase
+        .from('doctorate_chapter_files')
+        .select('id, chapter_number, file_name, word_count, uploaded_at, is_final_version')
+        .eq('user_id', user.id)
+        .order('uploaded_at', { ascending: false });
+
+      // Group files by chapter
+      const filesMap = new Map<number, ChapterFile[]>();
+      (filesData || []).forEach(file => {
+        const existing = filesMap.get(file.chapter_number) || [];
+        filesMap.set(file.chapter_number, [...existing, file]);
+      });
+      setChapterFiles(filesMap);
+
+      // Fetch chapters for status
       const { data: chaptersData } = await supabase
         .from('doctorate_chapters')
         .select('chapter_number, chapter_title, word_count, status')
@@ -71,11 +95,14 @@ export const DoctorateStructureView = () => {
 
       const allChapters = DOCTORATE_CHAPTERS.map(base => {
         const existing = chapterStatusMap.get(base.chapter_number);
+        const files = filesMap.get(base.chapter_number) || [];
+        const hasFiles = files.length > 0;
+        
         return {
           ...base,
           word_count: existing?.word_count || 0,
-          status: existing
-            ? (existing.status === 'final' ? 'completed' : 'draft')
+          status: hasFiles 
+            ? (existing?.status === 'final' ? 'completed' : 'draft')
             : 'missing'
         } as ChapterStatus;
       });
@@ -273,22 +300,61 @@ export const DoctorateStructureView = () => {
         </CardContent>
       </Card>
 
-      {/* Upload Sections */}
+      {/* Upload Sections - ALL chapters always visible */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">📤 Încarcă Capitole</h3>
         <div className="grid gap-4 md:grid-cols-2">
           {DOCTORATE_CHAPTERS.map((chapter) => {
-            const existing = chapters.find(ch => ch.chapter_number === chapter.chapter_number);
-            if (existing && existing.status !== 'missing') return null;
-
+            const files = chapterFiles.get(chapter.chapter_number) || [];
+            
             return (
-              <DoctorateFileUploader
-                key={chapter.chapter_number}
-                chapterNumber={chapter.chapter_number}
-                chapterTitle={chapter.chapter_title}
-                expectedWordCount={chapter.expected_words}
-                onUploadComplete={fetchData}
-              />
+              <Card key={chapter.chapter_number} className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileText className="h-5 w-5" />
+                    Capitol {chapter.chapter_number}: {chapter.chapter_title}
+                  </CardTitle>
+                  <CardDescription>
+                    🎯 Obiectiv: {chapter.expected_words} cuvinte
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {files.length > 0 ? (
+                    <>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">✅ Fișiere Încărcate ({files.length}):</p>
+                        {files.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">📗 {file.file_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                ⚖️ {file.word_count.toLocaleString()} cuvinte | 📅 {new Date(file.uploaded_at).toLocaleDateString('ro-RO')}
+                                {file.is_final_version && ' ⭐ FINAL'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <DoctorateFileUploader
+                        chapterNumber={chapter.chapter_number}
+                        chapterTitle={chapter.chapter_title}
+                        expectedWordCount={chapter.expected_words}
+                        onUploadComplete={fetchData}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">⚠️ Niciun fișier încărcat</p>
+                      <DoctorateFileUploader
+                        chapterNumber={chapter.chapter_number}
+                        chapterTitle={chapter.chapter_title}
+                        expectedWordCount={chapter.expected_words}
+                        onUploadComplete={fetchData}
+                      />
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
         </div>

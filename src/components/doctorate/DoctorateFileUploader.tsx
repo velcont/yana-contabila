@@ -98,10 +98,26 @@ export const DoctorateFileUploader = ({
       if (uploadError) throw uploadError;
       setUploadProgress(70);
 
-      // Step 4: Insert chapter data into database
+      // Step 4: Insert into doctorate_chapter_files (allows multiple files)
       const { error: insertError } = await supabase
-        .from('doctorate_chapters')
+        .from('doctorate_chapter_files')
         .insert({
+          user_id: user.id,
+          chapter_number: chapterNumber,
+          chapter_title: chapterTitle,
+          file_name: file.name,
+          file_path: fileName,
+          content,
+          word_count: wordCount,
+          is_final_version: false
+        });
+
+      if (insertError) throw insertError;
+
+      // Also update doctorate_chapters if this is the first file or marked as final
+      await supabase
+        .from('doctorate_chapters')
+        .upsert({
           user_id: user.id,
           chapter_number: chapterNumber,
           chapter_title: chapterTitle,
@@ -111,9 +127,10 @@ export const DoctorateFileUploader = ({
           word_count: wordCount,
           status: 'draft',
           version: 1
+        }, { 
+          onConflict: 'user_id,chapter_number'
         });
 
-      if (insertError) throw insertError;
       setUploadProgress(90);
 
       // Step 5: Update doctorate structure
@@ -163,67 +180,58 @@ export const DoctorateFileUploader = ({
   };
 
   return (
-    <Card className="border-dashed">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <FileText className="h-5 w-5" />
-          Capitol {chapterNumber}: {chapterTitle}
-        </CardTitle>
-        <CardDescription>
-          Obiectiv: {expectedWordCount} cuvinte
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor={`file-${chapterNumber}`}>
-            Încarcă fișier Word (.docx)
-          </Label>
-          <Input
-            id={`file-${chapterNumber}`}
-            type="file"
-            accept=".docx,.doc"
-            onChange={handleFileSelect}
-            disabled={uploading}
-          />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor={`file-${chapterNumber}`} className="text-sm font-medium">
+          ➕ Încarcă Fișier Nou
+        </Label>
+        <Input
+          id={`file-${chapterNumber}`}
+          type="file"
+          accept=".docx,.doc"
+          onChange={handleFileSelect}
+          disabled={uploading}
+          className="cursor-pointer"
+        />
+      </div>
+
+      {file && (
+        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm flex-1">{file.name}</span>
+          <span className="text-xs text-muted-foreground">
+            {(file.size / 1024).toFixed(1)} KB
+          </span>
         </div>
+      )}
 
-        {file && (
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm flex-1">{file.name}</span>
-            <span className="text-xs text-muted-foreground">
-              {(file.size / 1024).toFixed(1)} KB
-            </span>
-          </div>
+      {uploading && (
+        <div className="space-y-2">
+          <Progress value={uploadProgress} />
+          <p className="text-xs text-muted-foreground text-center">
+            Procesare fișier... {uploadProgress}%
+          </p>
+        </div>
+      )}
+
+      <Button
+        onClick={handleUpload}
+        disabled={!file || uploading}
+        className="w-full"
+        size="sm"
+      >
+        {uploading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Se încarcă...
+          </>
+        ) : (
+          <>
+            <Upload className="mr-2 h-4 w-4" />
+            Încarcă Fișier
+          </>
         )}
-
-        {uploading && (
-          <div className="space-y-2">
-            <Progress value={uploadProgress} />
-            <p className="text-xs text-muted-foreground text-center">
-              Procesare fișier... {uploadProgress}%
-            </p>
-          </div>
-        )}
-
-        <Button
-          onClick={handleUpload}
-          disabled={!file || uploading}
-          className="w-full"
-        >
-          {uploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Se încarcă...
-            </>
-          ) : (
-            <>
-              <Upload className="mr-2 h-4 w-4" />
-              Încarcă Capitol
-            </>
-          )}
-        </Button>
-      </CardContent>
-    </Card>
+      </Button>
+    </div>
   );
 };
