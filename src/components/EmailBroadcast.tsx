@@ -136,14 +136,31 @@ export const EmailBroadcast = () => {
 
         if (broadcastError) throw broadcastError;
 
-        const { data, error } = await supabase.functions.invoke("send-broadcast-email", {
-          body: {
-            subject,
-            message,
-            companyIds: selectedCompanies,
-            broadcastId: broadcastData.id,
-          },
+        // Afișează toast că procesul a început
+        toast({
+          title: "Se procesează...",
+          description: `Se trimit emailuri către ${selectedCompanies.length} companii. Acest proces poate dura câteva momente.`,
         });
+
+        // Invocă cu timeout de 120 secunde (2 minute)
+        const invokeWithTimeout = async () => {
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Timeout - procesul durează prea mult")), 120000)
+          );
+
+          const invokePromise = supabase.functions.invoke("send-broadcast-email", {
+            body: {
+              subject,
+              message,
+              companyIds: selectedCompanies,
+              broadcastId: broadcastData.id,
+            },
+          });
+
+          return Promise.race([invokePromise, timeoutPromise]);
+        };
+
+        const { data, error } = await invokeWithTimeout() as any;
 
         if (error) throw error;
 
