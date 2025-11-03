@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, FileText, TrendingUp, Download } from "lucide-react";
+import { GraduationCap, FileText, TrendingUp, Download, Shield } from "lucide-react";
 import { DoctorateFileUploader } from "./DoctorateFileUploader";
 import { DoctorateChapterManager } from "./DoctorateChapterManager";
 import { generateDoctorateDocument } from "@/utils/generateDoctorateDocument";
+import { PlagiarismAnalyzer } from "./PlagiarismAnalyzer";
 
 interface DoctorateStructure {
   title: string;
@@ -364,6 +365,22 @@ export const DoctorateStructureView = () => {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">📚 Capitole Existente</h3>
         <DoctorateChapterManager />
+      </div>
+
+      {/* Anti-Plagiarism Analysis Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Shield className="h-5 w-5 text-primary" />
+          🔍 Analiză Anti-Plagiat
+        </h3>
+        <PlagiarismAnalyzer 
+          chapters={chapters.map(ch => ({
+            id: chapterFiles.get(ch.chapter_number)?.[0]?.id || '',
+            chapter_number: ch.chapter_number,
+            chapter_title: ch.chapter_title,
+          }))}
+          onAnalysisComplete={fetchData}
+        />
       </div>
     </div>
   );

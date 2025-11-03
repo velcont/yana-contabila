@@ -2519,6 +2519,62 @@ export type Database = {
           },
         ]
       }
+      plagiarism_analyses: {
+        Row: {
+          analysis_date: string
+          chapter_id: string | null
+          chapter_number: number
+          chapter_title: string
+          created_at: string
+          detailed_report: Json
+          id: string
+          overall_score: number
+          plagiarism_probability: number
+          recommendations: string[] | null
+          risk_level: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_date?: string
+          chapter_id?: string | null
+          chapter_number: number
+          chapter_title: string
+          created_at?: string
+          detailed_report: Json
+          id?: string
+          overall_score: number
+          plagiarism_probability: number
+          recommendations?: string[] | null
+          risk_level: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_date?: string
+          chapter_id?: string | null
+          chapter_number?: number
+          chapter_title?: string
+          created_at?: string
+          detailed_report?: Json
+          id?: string
+          overall_score?: number
+          plagiarism_probability?: number
+          recommendations?: string[] | null
+          risk_level?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plagiarism_analyses_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "doctorate_chapter_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_type_selected: boolean | null

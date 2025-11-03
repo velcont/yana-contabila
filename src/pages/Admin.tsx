@@ -811,6 +811,14 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="research">
+            <Alert className="mb-6 border-blue-500 bg-blue-50">
+              <Shield className="h-5 w-5 text-blue-600" />
+              <AlertDescription>
+                <strong>🔍 NOU!</strong> Sistemul de analiză anti-plagiat verifică automat 8 criterii profesionale:
+                variații tipografice, erori de traducere, stil incoerent, structură ilogică, inconsistențe de persoană,
+                inconsistențe citări, probleme bibliografice și erori de atribuire. Accesează tab-ul "Analiză Anti-Plagiat" în Asistentul Doctorat.
+              </AlertDescription>
+            </Alert>
             <Suspense fallback={<TabContentLoader />}>
               <AcademicThesisAssistant />
             </Suspense>
