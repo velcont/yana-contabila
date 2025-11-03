@@ -16,6 +16,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
+import { DoctorateStructureView } from "./doctorate/DoctorateStructureView";
 
 interface ResearchData {
   id: string;
@@ -1044,6 +1045,22 @@ IMPORTANT:
           <div className="text-sm text-muted-foreground text-center py-2">
             Date disponibile: {researchData.length} surse științifice
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Management Doctorat - NEW SECTION */}
+      <Card className="border-primary/20 bg-gradient-to-br from-background to-primary/5">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <CardTitle>📚 Management Doctorat</CardTitle>
+          </div>
+          <CardDescription>
+            Organizează, încarcă și asamblează capitolele doctoratului tău într-un document final
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DoctorateStructureView />
         </CardContent>
       </Card>
 

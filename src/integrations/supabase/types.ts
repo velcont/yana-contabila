@@ -1640,6 +1640,99 @@ export type Database = {
         }
         Relationships: []
       }
+      doctorate_chapters: {
+        Row: {
+          chapter_number: number
+          chapter_title: string
+          content: string | null
+          created_at: string | null
+          file_name: string | null
+          file_path: string | null
+          id: string
+          last_modified: string | null
+          metadata: Json | null
+          status: string | null
+          updated_at: string | null
+          uploaded_at: string | null
+          user_id: string
+          version: number | null
+          word_count: number | null
+        }
+        Insert: {
+          chapter_number: number
+          chapter_title: string
+          content?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          last_modified?: string | null
+          metadata?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          user_id: string
+          version?: number | null
+          word_count?: number | null
+        }
+        Update: {
+          chapter_number?: number
+          chapter_title?: string
+          content?: string | null
+          created_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          last_modified?: string | null
+          metadata?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          user_id?: string
+          version?: number | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
+      doctorate_structure: {
+        Row: {
+          abstract: string | null
+          completion_percent: number | null
+          created_at: string | null
+          id: string
+          keywords: string[] | null
+          last_compiled: string | null
+          title: string
+          total_word_count: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          abstract?: string | null
+          completion_percent?: number | null
+          created_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          last_compiled?: string | null
+          title?: string
+          total_word_count?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          abstract?: string | null
+          completion_percent?: number | null
+          created_at?: string | null
+          id?: string
+          keywords?: string[] | null
+          last_compiled?: string | null
+          title?: string
+          total_word_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_broadcasts: {
         Row: {
           created_at: string
