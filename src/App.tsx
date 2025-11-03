@@ -45,6 +45,7 @@ const HumanizeText = lazy(() => import("./pages/HumanizeText"));
 const ClientOnboardingWizard = lazy(() => import("./pages/ClientOnboardingWizard"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
+const GenerateCFOPresentation = lazy(() => import("./pages/GenerateCFOPresentation"));
 
 const queryClient = new QueryClient();
 
@@ -111,6 +112,7 @@ const App = () => (
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                       <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
                       <Route path="/humanize-text" element={<PrivateRoute><HumanizeText /></PrivateRoute>} />
+                      <Route path="/generate-cfo-presentation" element={<GenerateCFOPresentation />} />
                       <Route path="/install" element={<InstallPWA />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
