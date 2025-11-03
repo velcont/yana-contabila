@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Mail, Send, Loader2, CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
+import { useCRMSelection } from "@/contexts/CRMContext";
 
 type Company = {
   id: string;
@@ -36,9 +36,9 @@ export const EmailBroadcast = () => {
   const [filterByTaxType, setFilterByTaxType] = useState<"all" | "micro" | "profit" | "dividend" | "norma_venit">("all");
   const [filterByStatus, setFilterByStatus] = useState<"all" | "active" | "inactive">("all");
   
-  // Companii și selecție
+  // Companii din context
+  const { selectedCompanies, clearSelection } = useCRMSelection();
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
   
   // Programare
@@ -48,7 +48,7 @@ export const EmailBroadcast = () => {
   
   const { toast } = useToast();
 
-  // Încarcă companii când se schimbă filtrele
+  // Încarcă companii când se schimbă filtrele (doar pentru afișare informativă)
   useEffect(() => {
     fetchCompanies();
   }, [filterByVAT, filterByTaxType, filterByStatus, useFilters]);
@@ -80,29 +80,10 @@ export const EmailBroadcast = () => {
       if (error) throw error;
 
       setCompanies(data || []);
-      
-      // Resetează selecția când se schimbă filtrele
-      setSelectedCompanies([]);
     } catch (error) {
       console.error("Eroare la încărcare companii:", error);
     } finally {
       setLoadingCompanies(false);
-    }
-  };
-
-  const toggleCompanySelection = (companyId: string) => {
-    setSelectedCompanies(prev => 
-      prev.includes(companyId) 
-        ? prev.filter(id => id !== companyId)
-        : [...prev, companyId]
-    );
-  };
-
-  const selectAllCompanies = () => {
-    if (selectedCompanies.length === companies.length) {
-      setSelectedCompanies([]);
-    } else {
-      setSelectedCompanies(companies.map(c => c.id));
     }
   };
 
@@ -119,7 +100,7 @@ export const EmailBroadcast = () => {
     if (selectedCompanies.length === 0) {
       toast({
         title: "Eroare",
-        description: "Te rog selectează cel puțin o companie",
+        description: "Te rog selectează cel puțin o companie din tab-ul Clienți",
         variant: "destructive",
       });
       return;
@@ -201,7 +182,7 @@ export const EmailBroadcast = () => {
       setScheduleMode("now");
       setScheduledDate(undefined);
       setScheduledTime("08:00");
-      setSelectedCompanies([]);
+      clearSelection(); // Curăță selecția din context
       setUseFilters(false);
       setFilterByVAT("all");
       setFilterByTaxType("all");
@@ -226,7 +207,7 @@ export const EmailBroadcast = () => {
           Trimite Email Broadcast
         </h2>
         <p className="text-muted-foreground mt-1">
-          Trimite un email către toți utilizatorii sau către o categorie specifică
+          Trimite un email către companiile selectate din tab-ul "Clienți"
         </p>
       </div>
 
@@ -234,7 +215,7 @@ export const EmailBroadcast = () => {
         <CardHeader>
           <CardTitle>Compune Mesajul</CardTitle>
           <CardDescription>
-            Emailul va fi trimis către toți utilizatorii care îndeplinesc criteriile selectate
+            Emailul va fi trimis către companiile pe care le-ai bifat în tab-ul "Clienți"
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -314,121 +295,37 @@ export const EmailBroadcast = () => {
             )}
           </div>
 
-          {/* Filtre pentru companii */}
-          <div className="border-t pt-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <Switch
-                id="use-filters"
-                checked={useFilters}
-                onCheckedChange={setUseFilters}
-                disabled={loading}
-              />
-              <Label htmlFor="use-filters">Filtrează companiile după parametri fiscali</Label>
-            </div>
-
-            {useFilters && (
-              <div className="space-y-4 pl-6 border-l-2 border-primary/20">
-                <div className="space-y-2">
-                  <Label>Plătitor TVA</Label>
-                  <Select value={filterByVAT} onValueChange={(v) => setFilterByVAT(v as any)} disabled={loading}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toți</SelectItem>
-                      <SelectItem value="yes">Doar cu TVA</SelectItem>
-                      <SelectItem value="no">Doar fără TVA</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Regim Fiscal</Label>
-                  <Select value={filterByTaxType} onValueChange={(v: any) => setFilterByTaxType(v)} disabled={loading}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toți</SelectItem>
-                      <SelectItem value="micro">Microîntreprindere</SelectItem>
-                      <SelectItem value="profit">Impozit pe profit</SelectItem>
-                      <SelectItem value="dividend">Dividende</SelectItem>
-                      <SelectItem value="norma_venit">Normă de venit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Status Client</Label>
-                  <Select value={filterByStatus} onValueChange={(v) => setFilterByStatus(v as any)} disabled={loading}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toți</SelectItem>
-                      <SelectItem value="active">Doar activi</SelectItem>
-                      <SelectItem value="inactive">Doar inactivi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Lista cu companii și checkboxuri */}
+          {/* Companii selectate */}
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-4">
-              <Label>Selectează companiile destinatare ({selectedCompanies.length} / {companies.length})</Label>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={selectAllCompanies}
-                disabled={loading || loadingCompanies || companies.length === 0}
-              >
-                {selectedCompanies.length === companies.length ? "Deselectează tot" : "Selectează tot"}
-              </Button>
+              <Label>Companiile selectate din tab-ul "Clienți" ({selectedCompanies.length})</Label>
             </div>
 
-            {loadingCompanies ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-muted-foreground">Se încarcă companiile...</span>
-              </div>
-            ) : companies.length === 0 ? (
+            {selectedCompanies.length === 0 ? (
               <Card className="bg-muted/50">
                 <CardContent className="pt-6 text-center text-muted-foreground">
-                  <p>Nu există companii care îndeplinesc criteriile selectate</p>
-                  {useFilters && <p className="text-sm mt-2">Încearcă să modifici filtrele</p>}
+                  <p className="font-medium">Nicio companie selectată</p>
+                  <p className="text-sm mt-2">Mergi la tab-ul "Clienți" și bifează companiile cărora vrei să le trimiți email</p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="border rounded-lg max-h-64 overflow-y-auto">
-                <div className="divide-y">
-                  {companies.map((company) => (
-                    <div key={company.id} className="flex items-center space-x-3 p-3 hover:bg-muted/50 transition-colors">
-                      <Checkbox
-                        id={`company-${company.id}`}
-                        checked={selectedCompanies.includes(company.id)}
-                        onCheckedChange={() => toggleCompanySelection(company.id)}
-                        disabled={loading}
-                      />
-                      <Label 
-                        htmlFor={`company-${company.id}`} 
-                        className="flex-1 cursor-pointer font-normal"
-                      >
-                        <div className="font-medium">{company.company_name}</div>
-                        <div className="text-xs text-muted-foreground">{company.contact_email}</div>
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="pt-6">
+                  <p className="text-sm font-medium mb-2">Gata de trimitere către:</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCompanies.length} {selectedCompanies.length === 1 ? "companie selectată" : "companii selectate"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    💡 Tip: Poți schimba selecția în tab-ul "Clienți"
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
 
           <Button
             onClick={handleSend}
-            disabled={loading || !subject || !message}
+            disabled={loading || !subject || !message || selectedCompanies.length === 0}
             className="w-full"
           >
             {loading ? (
@@ -452,10 +349,10 @@ export const EmailBroadcast = () => {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            • Emailurile vor fi trimise doar către companiile selectate
+            • Emailurile vor fi trimise doar către companiile bifate în tab-ul "Clienți"
           </p>
           <p>
-            • Poți folosi filtrele pentru a găsi rapid companiile după criterii fiscale
+            • Selecțiile tale rămân salvate chiar dacă navighezi între pagini
           </p>
           <p>
             • Emailurile programate vor fi trimise automat la data și ora stabilite

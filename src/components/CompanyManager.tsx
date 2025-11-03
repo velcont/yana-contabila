@@ -17,6 +17,8 @@ import { z } from "zod";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SkeletonTable } from "@/components/ui/skeleton-loader";
 import { ContextualHelp, helpContent } from "@/components/ContextualHelp";
+import { useCRMSelection } from "@/contexts/CRMContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Validation schema for company data
 const companySchema = z.object({
@@ -88,6 +90,7 @@ export const CompanyManager = () => {
   const [filterVat, setFilterVat] = useState<string>("all");
   const [filterTaxType, setFilterTaxType] = useState<string>("all");
   const { toast } = useToast();
+  const { selectedCompanies, toggleCompany, selectAllCompanies } = useCRMSelection();
 
   const [formData, setFormData] = useState({
     company_name: "",
@@ -554,58 +557,82 @@ export const CompanyManager = () => {
           }}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCompanies.map((company) => (
-            <Card key={company.id} className="card-hover-scale">
-              <CardHeader>
-                <CardTitle className="text-lg">{company.company_name}</CardTitle>
-                <CardDescription>CIF: {company.cif || "N/A"}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-2">
-                  <Badge variant={company.vat_payer ? "default" : "secondary"} className="badge-pulse">
-                    {company.vat_payer ? "Plătitor TVA" : "Neplătitor TVA"}
-                  </Badge>
-                  <Badge variant="outline">{getTaxTypeLabel(company.tax_type)}</Badge>
-                </div>
-                {company.contact_person && (
-                  <p className="text-sm text-muted-foreground">
-                    Contact: {company.contact_person}
-                  </p>
-                )}
-                {company.phone && (
-                  <p className="text-sm text-muted-foreground">Tel: {company.phone}</p>
-                )}
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      console.log('[CompanyManager] Edit button clicked for company:', company.id);
-                      openEditDialog(company);
-                    }}
-                    title="Editează firma"
-                    className="btn-hover-lift"
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    Editează
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setCompanyToDelete(company.id);
-                      setDeleteConfirmOpen(true);
-                    }}
-                    className="btn-hover-lift"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              {selectedCompanies.length > 0 && `${selectedCompanies.length} companii selectate`}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectAllCompanies(filteredCompanies.map(c => c.id))}
+            >
+              {selectedCompanies.length === filteredCompanies.length ? "Deselectează tot" : "Selectează tot"}
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCompanies.map((company) => (
+              <Card key={company.id} className="card-hover-scale">
+                <CardHeader>
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id={`company-select-${company.id}`}
+                      checked={selectedCompanies.includes(company.id)}
+                      onCheckedChange={() => toggleCompany(company.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{company.company_name}</CardTitle>
+                      <CardDescription>CIF: {company.cif || "N/A"}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Badge variant={company.vat_payer ? "default" : "secondary"} className="badge-pulse">
+                      {company.vat_payer ? "Plătitor TVA" : "Neplătitor TVA"}
+                    </Badge>
+                    <Badge variant="outline">{getTaxTypeLabel(company.tax_type)}</Badge>
+                  </div>
+                  {company.contact_person && (
+                    <p className="text-sm text-muted-foreground">
+                      Contact: {company.contact_person}
+                    </p>
+                  )}
+                  {company.phone && (
+                    <p className="text-sm text-muted-foreground">Tel: {company.phone}</p>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        console.log('[CompanyManager] Edit button clicked for company:', company.id);
+                        openEditDialog(company);
+                      }}
+                      title="Editează firma"
+                      className="btn-hover-lift"
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editează
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setCompanyToDelete(company.id);
+                        setDeleteConfirmOpen(true);
+                      }}
+                      className="btn-hover-lift"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
         </>
       )}

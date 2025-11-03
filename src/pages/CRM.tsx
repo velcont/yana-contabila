@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContextualHelp } from "@/components/ContextualHelp";
+import { CRMProvider } from "@/contexts/CRMContext";
 
 // Lazy load CRM components
 const CompanyManager = lazy(() => import("@/components/CompanyManager").then(m => ({ default: m.CompanyManager })));
@@ -83,86 +84,88 @@ const CRM = () => {
     }
 
     return (
-      <div className="container mx-auto py-8 px-4 animate-appear">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold">CRM - Gestionare Clienți</h1>
-            <ContextualHelp
-              title="Modul CRM"
-              content="Gestionează clienții firmei tale de contabilitate. Adaugă clienți manual sau importă din CSV, gestionează utilizatori, workflows lunare și comunică prin email."
-            />
+      <CRMProvider>
+        <div className="container mx-auto py-8 px-4 animate-appear">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">CRM - Gestionare Clienți</h1>
+              <ContextualHelp
+                title="Modul CRM"
+                content="Gestionează clienții firmei tale de contabilitate. Adaugă clienți manual sau importă din CSV, gestionează utilizatori, workflows lunare și comunică prin email."
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => setCsvImportDialogOpen(true)} className="btn-hover-lift">
+                <FileUp className="mr-2 h-4 w-4" />
+                Import CSV
+              </Button>
+              <Button onClick={() => setManualClientDialogOpen(true)} className="btn-hover-lift">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Adaugă Client Manual
+              </Button>
+              <SubscriptionBadge />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={() => setCsvImportDialogOpen(true)} className="btn-hover-lift">
-              <FileUp className="mr-2 h-4 w-4" />
-              Import CSV
-            </Button>
-            <Button onClick={() => setManualClientDialogOpen(true)} className="btn-hover-lift">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Adaugă Client Manual
-            </Button>
-            <SubscriptionBadge />
-          </div>
+          
+          <Tabs defaultValue="clients" className="space-y-6">
+          <div className="flex items-center justify-between mb-6">
+              <TabsList className="grid w-full max-w-2xl grid-cols-4">
+                <TabsTrigger value="clients" className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Clienți
+                </TabsTrigger>
+                <TabsTrigger value="users" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Utilizatori
+                </TabsTrigger>
+                <TabsTrigger value="workflows" className="flex items-center gap-2">
+                  📅 Dosare Lunare
+                </TabsTrigger>
+                <TabsTrigger value="broadcast" className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="clients">
+              <Suspense fallback={<TabContentLoader />}>
+                <CompanyManager key={refreshKey} />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="users">
+              <Suspense fallback={<TabContentLoader />}>
+                <UsersList />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="workflows">
+              <Suspense fallback={<TabContentLoader />}>
+                <MonthlyWorkflowManager />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="broadcast">
+              <Suspense fallback={<TabContentLoader />}>
+                <EmailBroadcast />
+              </Suspense>
+            </TabsContent>
+          </Tabs>
+
+          <CRMManualClientDialog
+            open={manualClientDialogOpen}
+            onOpenChange={setManualClientDialogOpen}
+            onSuccess={() => setRefreshKey(prev => prev + 1)}
+          />
+          
+          <CRMCSVImport
+            open={csvImportDialogOpen}
+            onOpenChange={setCsvImportDialogOpen}
+            onSuccess={() => setRefreshKey(prev => prev + 1)}
+          />
         </div>
-        
-        <Tabs defaultValue="clients" className="space-y-6">
-        <div className="flex items-center justify-between mb-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-4">
-              <TabsTrigger value="clients" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Clienți
-              </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Utilizatori
-              </TabsTrigger>
-              <TabsTrigger value="workflows" className="flex items-center gap-2">
-                📅 Dosare Lunare
-              </TabsTrigger>
-              <TabsTrigger value="broadcast" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="clients">
-            <Suspense fallback={<TabContentLoader />}>
-              <CompanyManager key={refreshKey} />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="users">
-            <Suspense fallback={<TabContentLoader />}>
-              <UsersList />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="workflows">
-            <Suspense fallback={<TabContentLoader />}>
-              <MonthlyWorkflowManager />
-            </Suspense>
-          </TabsContent>
-
-          <TabsContent value="broadcast">
-            <Suspense fallback={<TabContentLoader />}>
-              <EmailBroadcast />
-            </Suspense>
-          </TabsContent>
-        </Tabs>
-
-        <CRMManualClientDialog
-          open={manualClientDialogOpen}
-          onOpenChange={setManualClientDialogOpen}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
-        />
-        
-        <CRMCSVImport
-          open={csvImportDialogOpen}
-          onOpenChange={setCsvImportDialogOpen}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
-        />
-      </div>
+      </CRMProvider>
     );
   };
 
