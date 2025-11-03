@@ -940,9 +940,9 @@ IMPORTANT:
         <CardHeader>
           <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            <CardTitle>Asistent Academic pentru Doctorat</CardTitle>
+            <CardTitle className="text-2xl">Asistent Academic pentru Doctorat</CardTitle>
           </div>
-          <CardDescription>
+          <CardDescription className="text-base mt-2">
             Organizează cercetarea și generează draft-uri preliminare pentru teză
           </CardDescription>
         </CardHeader>
