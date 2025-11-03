@@ -16,15 +16,6 @@ import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { useCRMSelection } from "@/contexts/CRMContext";
 
-type Company = {
-  id: string;
-  company_name: string;
-  contact_email: string | null;
-  vat_payer: boolean | null;
-  tax_type: string | null;
-  client_status: string | null;
-};
-
 export const EmailBroadcast = () => {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -38,8 +29,6 @@ export const EmailBroadcast = () => {
   
   // Companii din context
   const { selectedCompanies, clearSelection } = useCRMSelection();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
   
   // Programare
   const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
@@ -47,45 +36,6 @@ export const EmailBroadcast = () => {
   const [scheduledTime, setScheduledTime] = useState<string>("08:00");
   
   const { toast } = useToast();
-
-  // Încarcă companii când se schimbă filtrele (doar pentru afișare informativă)
-  useEffect(() => {
-    fetchCompanies();
-  }, [filterByVAT, filterByTaxType, filterByStatus, useFilters]);
-
-  const fetchCompanies = async () => {
-    try {
-      setLoadingCompanies(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      let query = supabase
-        .from("companies")
-        .select("id, company_name, contact_email, vat_payer, tax_type, client_status")
-        .eq("managed_by_accountant_id", user.id)
-        .not("contact_email", "is", null);
-
-      // Aplică filtre dacă sunt activate
-      if (useFilters) {
-        if (filterByVAT === "yes") query = query.eq("vat_payer", true);
-        if (filterByVAT === "no") query = query.eq("vat_payer", false);
-        
-        if (filterByTaxType !== "all") query = query.eq("tax_type", filterByTaxType);
-        
-        if (filterByStatus === "active") query = query.eq("client_status", "active");
-        if (filterByStatus === "inactive") query = query.eq("client_status", "inactive");
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      setCompanies(data || []);
-    } catch (error) {
-      console.error("Eroare la încărcare companii:", error);
-    } finally {
-      setLoadingCompanies(false);
-    }
-  };
 
   const handleSend = async () => {
     if (!subject || !message) {
