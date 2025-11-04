@@ -109,16 +109,66 @@ const extractRevenueFromAnalysisText = (analysisText: string): number => {
   return 0;
 };
 
-// Helper: Sum accounts in range (e.g., 7000-7999 for revenue)
-const sumAccountsInRange = (balanceData: any, startAccount: number, endAccount: number): number => {
+// Helper: Sum accounts in range for revenue/expenses (credit column)
+const sumAccountsInRange = (balanceData: any, startAccount: number, endAccount: number, useCredit: boolean = true): number => {
   if (!balanceData || !Array.isArray(balanceData)) return 0;
   
   let total = 0;
   for (const row of balanceData) {
-    const accountNumber = parseInt(row.cont || row.account || '0');
+    const accountNumber = parseInt(row.cont || row.account || row.Cont || '0');
     if (accountNumber >= startAccount && accountNumber <= endAccount) {
-      const credit = parseRoNumber(row.credit || row.Credit || 0);
-      total += credit;
+      if (useCredit) {
+        const credit = parseRoNumber(row.credit || row.Credit || row.Creditoare || 0);
+        total += credit;
+      } else {
+        const debit = parseRoNumber(row.debit || row.Debit || row.Debitoare || 0);
+        total += debit;
+      }
+    }
+  }
+  return total;
+};
+
+// Helper: Sum bank accounts (51xx) - debit final balance
+const sumBankAccounts = (balanceData: any): number => {
+  if (!balanceData || !Array.isArray(balanceData)) return 0;
+  
+  let total = 0;
+  for (const row of balanceData) {
+    const accountNumber = parseInt(row.cont || row.account || row.Cont || '0');
+    // Sum all accounts starting with 51 (bank accounts)
+    if (accountNumber >= 5100 && accountNumber <= 5199) {
+      // Look for "Solduri finale Debitoare" column
+      const finalDebit = parseRoNumber(
+        row['Solduri finale Debitoare'] || 
+        row['solduri_finale_debitoare'] ||
+        row.sold_final_debit ||
+        row.SolduriFinaleDebitoare ||
+        0
+      );
+      total += finalDebit;
+    }
+  }
+  return total;
+};
+
+// Helper: Sum cash accounts (53xx) - debit final balance  
+const sumCashAccounts = (balanceData: any): number => {
+  if (!balanceData || !Array.isArray(balanceData)) return 0;
+  
+  let total = 0;
+  for (const row of balanceData) {
+    const accountNumber = parseInt(row.cont || row.account || row.Cont || '0');
+    // Sum all accounts starting with 53 (cash accounts)
+    if (accountNumber >= 5300 && accountNumber <= 5399) {
+      const finalDebit = parseRoNumber(
+        row['Solduri finale Debitoare'] || 
+        row['solduri_finale_debitoare'] ||
+        row.sold_final_debit ||
+        row.SolduriFinaleDebitoare ||
+        0
+      );
+      total += finalDebit;
     }
   }
   return total;
@@ -240,6 +290,15 @@ export const getLatestFinancialData = async (
         'indicatori.soldBanca', 'indicatori.banca', 'indicatori.conturiBancare',
         'metrics.soldBanca', 'metrics.banca'
       ]);
+      
+      // FALLBACK: Sum ALL bank accounts (51xx) from balance_data
+      if (merged.soldBanca === 0 && m.balance_data) {
+        console.log('🔍 Fallback: Sumez TOATE conturile bancare (51xx) din balance_data');
+        merged.soldBanca = sumBankAccounts(m.balance_data);
+        if (merged.soldBanca > 0) {
+          console.log(`✅ Sold bancă calculat din balance_data: ${merged.soldBanca}`);
+        }
+      }
     }
 
     // Sold Casa
@@ -250,6 +309,15 @@ export const getLatestFinancialData = async (
         'indicatori.soldCasa', 'indicatori.casa', 'indicatori.numerar',
         'metrics.soldCasa', 'metrics.casa'
       ]);
+      
+      // FALLBACK: Sum ALL cash accounts (53xx) from balance_data
+      if (merged.soldCasa === 0 && m.balance_data) {
+        console.log('🔍 Fallback: Sumez TOATE conturile casă (53xx) din balance_data');
+        merged.soldCasa = sumCashAccounts(m.balance_data);
+        if (merged.soldCasa > 0) {
+          console.log(`✅ Sold casă calculat din balance_data: ${merged.soldCasa}`);
+        }
+      }
     }
 
     // Sold Clienti (creanțe)
@@ -293,9 +361,26 @@ export const getLatestFinancialData = async (
     }
   }
 
-  // Fallback: Calculate profit if not found but revenue & expenses exist
-  if (merged.profit === 0 && merged.revenue > 0 && merged.expenses > 0) {
-    merged.profit = merged.revenue - merged.expenses;
+  // Recalculate profit from revenue - expenses (ALWAYS, to fix incorrect saved values)
+  if (merged.revenue > 0 && merged.expenses > 0) {
+    const calculatedProfit = merged.revenue - merged.expenses;
+    
+    // If saved profit differs significantly from calculated, use calculated
+    if (Math.abs(merged.profit - calculatedProfit) > 1) {
+      console.log(`⚠️ Profit salvat (${merged.profit}) diferă de cel calculat (${calculatedProfit}). Folosim calculatul.`);
+      merged.profit = calculatedProfit;
+    }
+  }
+  
+  // Fallback to ebitda if profit is still 0
+  if (merged.profit === 0 && merged.revenue > 0) {
+    const ebitda = pickFirstNumber(data[0]?.metadata || {}, [
+      'ebitda', 'EBITDA', 'indicators.ebitda', 'indicatori.ebitda'
+    ]);
+    if (ebitda !== 0) {
+      console.log(`✅ Folosim EBITDA (${ebitda}) ca profit`);
+      merged.profit = ebitda;
+    }
   }
 
   console.log('✅ CFO - Parsed financial data:', merged);
