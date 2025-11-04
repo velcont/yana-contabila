@@ -90,6 +90,40 @@ const pickFirstNumber = (obj: any, candidates: string[]): number => {
   return 0;
 };
 
+// Helper: Extract revenue from AI analysis text (fallback)
+const extractRevenueFromAnalysisText = (analysisText: string): number => {
+  const patterns = [
+    /cifr[aă]\s+de\s+afaceri[:\s]+([0-9.,\s]+)\s*RON/i,
+    /venituri[:\s]+([0-9.,\s]+)\s*RON/i,
+    /CA[:\s]+([0-9.,\s]+)\s*RON/i,
+    /total\s+venituri[:\s]+([0-9.,\s]+)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = analysisText.match(pattern);
+    if (match) {
+      const value = parseRoNumber(match[1]);
+      if (value > 0) return value;
+    }
+  }
+  return 0;
+};
+
+// Helper: Sum accounts in range (e.g., 7000-7999 for revenue)
+const sumAccountsInRange = (balanceData: any, startAccount: number, endAccount: number): number => {
+  if (!balanceData || !Array.isArray(balanceData)) return 0;
+  
+  let total = 0;
+  for (const row of balanceData) {
+    const accountNumber = parseInt(row.cont || row.account || '0');
+    if (accountNumber >= startAccount && accountNumber <= endAccount) {
+      const credit = parseRoNumber(row.credit || row.Credit || 0);
+      total += credit;
+    }
+  }
+  return total;
+};
+
 // 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
 export const getLatestFinancialData = async (
   userId: string, 
@@ -158,6 +192,24 @@ export const getLatestFinancialData = async (
         'indicatori.ca', 'indicatori.cifraAfaceri', 'indicatori.venituri',
         'metrics.revenue', 'metrics.venituri', 'metrics.totalVenituri'
       ]);
+
+      // FALLBACK 1: Extract from analysis_result text
+      if (merged.revenue === 0 && m.analysis_result) {
+        console.log('🔍 Fallback 1: Extrag revenue din analysis_result text');
+        merged.revenue = extractRevenueFromAnalysisText(m.analysis_result);
+        if (merged.revenue > 0) {
+          console.log(`✅ Revenue găsit în text: ${merged.revenue}`);
+        }
+      }
+
+      // FALLBACK 2: Sum accounts 7000-7999 from balance_data
+      if (merged.revenue === 0 && m.balance_data) {
+        console.log('🔍 Fallback 2: Sumez conturile 70xx din balance_data');
+        merged.revenue = sumAccountsInRange(m.balance_data, 7000, 7999);
+        if (merged.revenue > 0) {
+          console.log(`✅ Revenue calculat din conturi: ${merged.revenue}`);
+        }
+      }
     }
 
     // Expenses

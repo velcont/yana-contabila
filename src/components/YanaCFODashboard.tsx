@@ -441,80 +441,41 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
       )}
 
 
-      {/* Mini Loading Banner - Feedback instant */}
-      {isLoading && (
-        <Alert className="border-blue-500/30 bg-blue-500/10">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <AlertTitle className="text-sm font-semibold">
-            🔍 Se încarcă datele CFO...
-          </AlertTitle>
-          <AlertDescription className="text-xs">
-            Analizăm balanțele tale pentru a genera dashboard-ul complet
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* CFO CHAT INTERFACE - Extracted Component */}
-      <CFOChatInterface
-        financialData={financialData}
-        cfoConversationHistory={cfoConversationHistory}
-        isLoading={isLoading}
-        onAskQuestion={askCFOQuestion}
-      />
-
-      {/* RUNWAY CARD - Extracted Component */}
-      <RunwayCard
-        runway={runway}
-        currentCash={currentCash}
-        isLoading={isLoading}
-        onRefresh={handleRefreshDashboard}
-        onScrollToChat={() => {
-          document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-        companyName={financialData?.companyName}
-      />
-
-      {/* Loading State - PRIORITATE 1 */}
+      {/* Loading Overlay - FULLSCREEN */}
       {isLoading && !financialData && (
-        <div className="flex-1 flex items-center justify-center py-20">
-          <div className="text-center">
-            <div className="inline-block w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <h3 className="text-xl font-semibold text-white mb-2">🔍 Se încarcă datele financiare...</h3>
-            <p className="text-sm text-gray-400 mb-4">Analizăm balanțele tale pentru a genera dashboard-ul CFO</p>
-            <div className="space-y-2 text-left max-w-md mx-auto">
-              <div className="flex items-center gap-2 text-sm text-gray-300">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                Citire balanțe din baza de date...
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                Calcul indicatori financiari...
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                Generare predicții și alerte...
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="p-8 max-w-lg border-primary/30">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-16 w-16 animate-spin text-primary" />
+              <h3 className="text-2xl font-bold text-center">
+                🔍 Se încarcă datele CFO...
+              </h3>
+              <p className="text-sm text-muted-foreground text-center">
+                Analizăm balanțele pentru a genera dashboard-ul financiar complet
+              </p>
+              <div className="w-full max-w-xs">
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    Citire date din baza de date...
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                    Calcul indicatori financiari...
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    Generare dashboard...
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-6">⏱️ Durează aproximativ 3-5 secunde</p>
-          </div>
+          </Card>
         </div>
       )}
 
-      {/* Skeleton Loading pentru tranziție smoothă */}
-      {isLoading && financialData && (
-        <div className="space-y-4 animate-pulse">
-          <div className="grid grid-cols-4 gap-4">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="bg-gray-800 rounded-lg h-24"></div>
-            ))}
-          </div>
-          <div className="bg-gray-800 rounded-xl h-64"></div>
-          <div className="bg-gray-800 rounded-xl h-96"></div>
-        </div>
-      )}
-
-      {/* FINANCIAL SNAPSHOT - Extracted Component */}
-      {financialData && (
+      {/* FINANCIAL SNAPSHOT - MOVE TO TOP */}
+      {financialData && !isLoading && (
         <FinancialSnapshot
           cash={currentCash}
           profit={financialData.profit}
@@ -527,18 +488,19 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
         />
       )}
 
+      {/* RUNWAY CARD */}
+      <RunwayCard
+        runway={runway}
+        currentCash={currentCash}
+        isLoading={isLoading}
+        onRefresh={handleRefreshDashboard}
+        onScrollToChat={() => {
+          document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+        companyName={financialData?.companyName}
+      />
 
-      {/* SOURCE DATA CARD - Extracted Component */}
-      {financialData && (
-        <SourceDataCard
-          financialData={financialData}
-          onScrollToChat={() => {
-            document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-        />
-      )}
-
-      {/* CASH FLOW CHART - Extracted Component */}
+      {/* CASH FLOW CHART - MOVE UP */}
       <Suspense fallback={<ChartLoader />}>
         <CashFlowChart
           cashFlowForecast={cashFlowForecast}
@@ -549,7 +511,28 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
         />
       </Suspense>
 
-      {/* WHAT-IF SIMULATOR - Extracted Component */}
+      {/* FINANCIAL ALERTS - MOVE UP */}
+      {financialData && (
+        <Suspense fallback={<ChartLoader />}>
+          <FinancialAlerts
+            alerts={alerts}
+            onScrollToChat={() => {
+              document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            companyName={financialData.companyName}
+          />
+        </Suspense>
+      )}
+
+      {/* CFO CHAT INTERFACE - NOW COLLAPSIBLE */}
+      <CFOChatInterface
+        financialData={financialData}
+        cfoConversationHistory={cfoConversationHistory}
+        isLoading={isLoading}
+        onAskQuestion={askCFOQuestion}
+      />
+
+      {/* WHAT-IF SIMULATOR */}
       {financialData && (
         <Suspense fallback={<ChartLoader />}>
           <WhatIfSimulator
@@ -570,16 +553,15 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
         </Suspense>
       )}
 
-      {/* FINANCIAL ALERTS - Extracted Component */}
-      <Suspense fallback={<ChartLoader />}>
-        <FinancialAlerts
-          alerts={alerts}
+      {/* SOURCE DATA CARD - AT BOTTOM */}
+      {financialData && (
+        <SourceDataCard
+          financialData={financialData}
           onScrollToChat={() => {
             document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
-          companyName={financialData?.companyName}
         />
-      </Suspense>
+      )}
 
       {/* 6. EMPTY STATE */}
       {!financialData && !isLoading && (

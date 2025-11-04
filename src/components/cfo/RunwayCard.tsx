@@ -79,6 +79,21 @@ export const RunwayCard = memo(({ runway, currentCash, isLoading, onRefresh, onS
     }
   };
 
+  const getZeroCashDate = () => {
+    if (!runway || runway.months === Infinity) return null;
+    
+    const today = new Date();
+    const zeroCashDate = new Date(today);
+    zeroCashDate.setMonth(today.getMonth() + Math.floor(runway.months));
+    zeroCashDate.setDate(today.getDate() + ((runway.months % 1) * 30));
+    
+    return zeroCashDate.toLocaleDateString('ro-RO', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
   const status = getStatusConfig(runway.status);
 
   return (
@@ -178,6 +193,18 @@ export const RunwayCard = memo(({ runway, currentCash, isLoading, onRefresh, onS
             </p>
           </div>
         </div>
+
+        {/* Estimare Zero Cash Date */}
+        {status.label !== 'SĂNĂTOS' && runway.months !== Infinity && (
+          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+            <p className="text-xs text-destructive font-medium">
+              📅 <strong>Estimare Zero Cash:</strong> {getZeroCashDate()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Dacă nu iei măsuri, cash-ul se va epuiza până în data estimată de mai sus.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

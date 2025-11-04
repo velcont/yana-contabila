@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Sparkles, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CFOChatInterfaceProps {
@@ -18,6 +19,7 @@ export const CFOChatInterface = memo(({
   onAskQuestion 
 }: CFOChatInterfaceProps) => {
   const [cfoQuestion, setCfoQuestion] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
   const chatHistoryRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll când se adaugă mesaje noi
@@ -43,102 +45,122 @@ export const CFOChatInterface = memo(({
   ];
 
   return (
-    <div 
-      id="cfo-chat" 
-      className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-6 border border-slate-700 scroll-mt-6"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <Sparkles className="h-5 w-5" />
-          💬 Întreabă CFO AI
-        </h3>
-        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-          💎 0.85 lei/întrebare
-        </Badge>
-      </div>
-
-      {/* Hint dacă nu există financial data */}
-      {!financialData && (
-        <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-          <p className="text-xs text-yellow-200">
-            💡 <strong>Tip:</strong> Pentru analiză CFO mai precisă, încarcă o balanță în tab-ul "Chat Strategist".
+    <Card id="cfo-chat" className="border-primary/20 scroll-mt-6">
+      <CardHeader 
+        className="cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            💬 CFO Chat - Întreabă despre finanțe
+            <Badge variant="outline" className="text-xs">
+              {cfoConversationHistory.length} conversații
+            </Badge>
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
+              💎 0.85 lei/întrebare
+            </Badge>
+            <Button variant="ghost" size="icon">
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        {!isExpanded && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Click pentru a deschide interfața de chat CFO
           </p>
-        </div>
-      )}
+        )}
+      </CardHeader>
 
-      {/* Istoric conversație */}
-      {cfoConversationHistory.length > 0 && (
-        <div 
-          ref={chatHistoryRef}
-          className="mb-4 space-y-3 max-h-[400px] overflow-y-auto bg-slate-950/50 rounded-lg p-4"
-        >
-          {cfoConversationHistory.map((msg, idx) => (
-            <div key={idx} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
-              <div className={cn(
-                "max-w-[80%] rounded-lg p-3",
-                msg.role === 'user' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-slate-700 text-slate-100'
-              )}>
-                {msg.role === 'assistant' ? (
-                  <div className="prose prose-invert prose-sm max-w-none">
-                    {msg.content.split('\n').map((line, i) => (
-                      <p key={i} className="mb-2 last:mb-0">{line}</p>
-                    ))}
-                  </div>
-                ) : (
-                  msg.content
-                )}
-              </div>
+      
+      {isExpanded && (
+        <CardContent className="pt-0">
+          {/* Hint dacă nu există financial data */}
+          {!financialData && (
+            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-xs text-yellow-200">
+                💡 <strong>Tip:</strong> Pentru analiză CFO mai precisă, încarcă o balanță în tab-ul "Chat Strategist".
+              </p>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Input pentru întrebare */}
-      <div className="flex gap-3 mb-4">
-        <input
-          type="text"
-          value={cfoQuestion}
-          onChange={(e) => setCfoQuestion(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleAskCFO()}
-          placeholder="Scrie orice întrebare despre afacerea ta..."
-          className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          disabled={isLoading}
-        />
-        <Button
-          onClick={handleAskCFO}
-          disabled={isLoading || !cfoQuestion.trim()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ⏳
-            </>
-          ) : (
-            '🚀 Întreabă'
           )}
-        </Button>
-      </div>
 
-      {/* Quick shortcuts */}
-      <div className="pt-4 border-t border-slate-700">
-        <p className="text-xs text-slate-400 mb-2">💡 Shortcuts rapide:</p>
-        <div className="flex flex-wrap gap-2">
-          {quickShortcuts.map((q, i) => (
-            <button 
-              key={i}
-              onClick={() => setCfoQuestion(q)}
-              className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
-              disabled={isLoading}
+          {/* Istoric conversație */}
+          {cfoConversationHistory.length > 0 && (
+            <div 
+              ref={chatHistoryRef}
+              className="mb-4 space-y-3 max-h-[400px] overflow-y-auto bg-slate-950/50 rounded-lg p-4"
             >
-              {q.split('?')[0].substring(0, 30)}...?
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+              {cfoConversationHistory.map((msg, idx) => (
+                <div key={idx} className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
+                  <div className={cn(
+                    "max-w-[80%] rounded-lg p-3",
+                    msg.role === 'user' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-slate-700 text-slate-100'
+                  )}>
+                    {msg.role === 'assistant' ? (
+                      <div className="prose prose-invert prose-sm max-w-none">
+                        {msg.content.split('\n').map((line, i) => (
+                          <p key={i} className="mb-2 last:mb-0">{line}</p>
+                        ))}
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Input pentru întrebare */}
+          <div className="flex gap-3 mb-4">
+            <input
+              type="text"
+              value={cfoQuestion}
+              onChange={(e) => setCfoQuestion(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAskCFO()}
+              placeholder="Scrie orice întrebare despre afacerea ta..."
+              className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={handleAskCFO}
+              disabled={isLoading || !cfoQuestion.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium disabled:opacity-50"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ⏳
+                </>
+              ) : (
+                '🚀 Întreabă'
+              )}
+            </Button>
+          </div>
+
+          {/* Quick shortcuts */}
+          <div className="pt-4 border-t border-slate-700">
+            <p className="text-xs text-slate-400 mb-2">💡 Shortcuts rapide:</p>
+            <div className="flex flex-wrap gap-2">
+              {quickShortcuts.map((q, i) => (
+                <button 
+                  key={i}
+                  onClick={() => setCfoQuestion(q)}
+                  className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-full transition-colors"
+                  disabled={isLoading}
+                >
+                  {q.split('?')[0].substring(0, 30)}...?
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 });
 
