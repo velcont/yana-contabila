@@ -47,6 +47,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateCFOPresentation = lazy(() => import("./pages/GenerateCFOPresentation"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
+const CFO = lazy(() => import("./pages/CFO"));
 
 const queryClient = new QueryClient();
 
@@ -110,6 +111,7 @@ const App = () => (
                       <Route path="/accept-invitation" element={<AcceptInvitation />} />
                       <Route path="/client-onboarding/:processId" element={<ClientOnboardingWizard />} />
                       <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
+                      <Route path="/cfo" element={<PrivateRoute><CFO /></PrivateRoute>} />
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                       <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
                       <Route path="/humanize-text" element={<PrivateRoute><HumanizeText /></PrivateRoute>} />

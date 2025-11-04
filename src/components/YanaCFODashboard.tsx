@@ -73,13 +73,14 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
       return null;
     }
     const currentCash = financialData.soldBanca + financialData.soldCasa;
-    const monthlyRevenue = financialData.revenue / 12;
-    const monthlyExpenses = financialData.expenses / 12;
-    const runwayData = calculateRunway(currentCash, monthlyRevenue, monthlyExpenses);
+    // financialData already contains normalized monthly values
+    const runwayData = calculateRunway(currentCash, financialData.revenue, financialData.expenses);
     console.log('🔍 CFO - Runway useMemo calculated:', { 
       currentCash, 
-      monthlyRevenue, 
-      monthlyExpenses,
+      monthlyRevenue: financialData.revenue, 
+      monthlyExpenses: financialData.expenses,
+      monthsInFile: financialData.monthsInFile,
+      periodLabel: financialData.periodLabel,
       runwayData 
     });
     return runwayData;
@@ -264,7 +265,8 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
       setFinancialData(data);
       
       const currentCash = data.soldBanca + data.soldCasa;
-      const forecastData = calculateCashFlowForecast(currentCash, data.revenue / 12, data.expenses / 12);
+      // data already contains normalized monthly values
+      const forecastData = calculateCashFlowForecast(currentCash, data.revenue, data.expenses);
       setCashFlowForecast(forecastData);
       
       console.log('✅ CFO - Financial data set, runway should recalculate automatically');
@@ -485,6 +487,8 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
             document.getElementById('cfo-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
           companyName={financialData.companyName}
+          periodLabel={financialData.periodLabel}
+          monthsInFile={financialData.monthsInFile}
         />
       )}
 

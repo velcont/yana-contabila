@@ -182,62 +182,51 @@ All colors MUST be HSL.
   }
 }
 
-/* Yana Strategica Aggressive Pulse Animation */
-@keyframes aggressivePulse {
+/* Elegant button animations */
+@keyframes subtleGlow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(217, 91, 50, 0.7),
-                0 0 0 0 rgba(245, 158, 11, 0.7),
-                0 0 0 0 rgba(239, 68, 68, 0.7);
-    transform: scale(1);
-  }
-  25% {
-    box-shadow: 0 0 0 8px rgba(217, 91, 50, 0),
-                0 0 20px 8px rgba(245, 158, 11, 0.5),
-                0 0 0 0 rgba(239, 68, 68, 0.7);
-    transform: scale(1.05);
+    box-shadow: 0 0 8px rgba(251, 146, 60, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 0 rgba(217, 91, 50, 0),
-                0 0 0 0 rgba(245, 158, 11, 0),
-                0 0 30px 12px rgba(239, 68, 68, 0.3);
-    transform: scale(1);
-  }
-  75% {
-    box-shadow: 0 0 25px 10px rgba(217, 91, 50, 0.4),
-                0 0 0 0 rgba(245, 158, 11, 0),
-                0 0 0 0 rgba(239, 68, 68, 0);
-    transform: scale(1.05);
+    box-shadow: 0 0 16px rgba(251, 146, 60, 0.7);
   }
 }
 
-@keyframes colorShift {
+@keyframes subtleGlowBlue {
   0%, 100% {
-    background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
   }
-  33% {
-    background: linear-gradient(135deg, #ef4444 0%, #d97706 100%);
-  }
-  66% {
-    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  50% {
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.7);
   }
 }
 
-.yana-strategic-button {
-  animation: aggressivePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite,
-             colorShift 3s ease-in-out infinite;
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-  color: white;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+/* Elegant button styles */
+.yana-button-elegant {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  font-weight: 600;
   transition: all 0.3s ease;
+  animation: subtleGlow 3s ease-in-out infinite;
+  border: none;
 }
 
-.yana-strategic-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 40px 15px rgba(245, 158, 11, 0.6),
-              0 0 60px 20px rgba(239, 68, 68, 0.4);
+.yana-button-elegant:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.8);
+}
+
+.cfo-button-elegant {
+  background: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(213, 94%, 68%));
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  animation: subtleGlowBlue 3s ease-in-out infinite;
+  border: none;
+}
+
+.cfo-button-elegant:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
 }
 
 /* Premium Micro-interactions */

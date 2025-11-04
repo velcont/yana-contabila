@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings, Building2 } from "lucide-react";
+import { Upload, FileText, Loader2, Download, LogOut, History, User, Phone, Info, Sparkles, Settings, Building2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -526,23 +526,44 @@ const Index = () => {
                       { /* Yana Strategica button moved below based on themeType */ }
                     </>
                   )}
-                  {themeType === 'entrepreneur' && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => navigate('/strategic-advisor')}
-                            className="yana-strategic-button"
-                          >
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Yana Strategică
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Consultant AI Strategic - Teoria Jocului în Business</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                   {themeType === 'entrepreneur' && (
+                    <>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => navigate('/strategic-advisor')}
+                              size="sm"
+                              className="yana-button-elegant gap-2"
+                            >
+                              <Sparkles className="h-4 w-4" />
+                              Yana Strategică
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Consultant AI Strategic - Teoria Jocului în Business</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => navigate('/cfo')}
+                              size="sm"
+                              className="cfo-button-elegant gap-2"
+                            >
+                              <TrendingUp className="h-4 w-4" />
+                              CFO Dashboard
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Dashboard Financiar Complet - Indicatori & Analiză</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
                   )}
                   {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}
                   {isAdmin && (

@@ -12,6 +12,8 @@ export interface FinancialData {
   dpo: number;
   companyId?: string;
   companyName?: string;
+  monthsInFile?: number;
+  periodLabel?: string;
 }
 
 export interface RunwayData {
@@ -172,6 +174,42 @@ const sumCashAccounts = (balanceData: any): number => {
     }
   }
   return total;
+};
+
+// Helper: Parse date range from filename (e.g., "Balanta - WOLF [01-10-2025 31-10-2025].xls")
+const parseFileDateRange = (fileName: string): { monthsInFile: number; periodLabel: string } => {
+  const datePattern = /\[(\d{2})-(\d{2})-(\d{4})\s+(\d{2})-(\d{2})-(\d{4})\]/;
+  const match = fileName.match(datePattern);
+  
+  if (match) {
+    const startDay = parseInt(match[1]);
+    const startMonth = parseInt(match[2]);
+    const startYear = parseInt(match[3]);
+    const endDay = parseInt(match[4]);
+    const endMonth = parseInt(match[5]);
+    const endYear = parseInt(match[6]);
+    
+    const startDate = new Date(startYear, startMonth - 1, startDay);
+    const endDate = new Date(endYear, endMonth - 1, endDay);
+    
+    // Calculate months difference
+    const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + 
+                      (endDate.getMonth() - startDate.getMonth()) + 1;
+    
+    let periodLabel = 'lunar';
+    if (monthsDiff > 1 && monthsDiff <= 12) {
+      periodLabel = `medie lunară pe ${monthsDiff} luni`;
+    } else if (monthsDiff > 12) {
+      periodLabel = 'anual';
+    }
+    
+    console.log(`📅 Perioada detectată: ${startDay}-${startMonth}-${startYear} → ${endDay}-${endMonth}-${endYear} (${monthsDiff} luni)`);
+    return { monthsInFile: monthsDiff, periodLabel };
+  }
+  
+  // Fallback: assume monthly
+  console.log('📅 Nu s-a detectat perioadă din nume, presupun lunar');
+  return { monthsInFile: 1, periodLabel: 'lunar' };
 };
 
 // 1. Extract latest financial data from user analyses (merge most recent non-null metrics)
@@ -396,9 +434,11 @@ export const getLatestFinancialData = async (
     dpo: merged.dpo
   });
 
-  // Get company info from the most recent analysis
+  // Get company info and period from the most recent analysis
   let foundCompanyId: string | undefined = undefined;
   let companyName: string | undefined = undefined;
+  let monthsInFile = 1;
+  let periodLabel = 'lunar';
   
   if (data[0]?.company_id) {
     foundCompanyId = data[0].company_id;
@@ -447,10 +487,39 @@ export const getLatestFinancialData = async (
     }
   }
 
+  // Parse period from file_name or metadata
+  const fileName = data[0]?.file_name || '';
+  const metadataObj = data[0]?.metadata as Record<string, any> | null;
+  
+  // Priority 1: metadata period
+  if (metadataObj?.period_start && metadataObj?.period_end) {
+    const start = new Date(metadataObj.period_start);
+    const end = new Date(metadataObj.period_end);
+    monthsInFile = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+    periodLabel = monthsInFile === 1 ? 'lunar' : monthsInFile <= 12 ? `medie lunară pe ${monthsInFile} luni` : 'anual';
+    console.log(`📅 Perioadă din metadata: ${monthsInFile} luni (${periodLabel})`);
+  } else if (metadataObj?.is_annual === true) {
+    monthsInFile = 12;
+    periodLabel = 'anual';
+    console.log('📅 Perioadă din metadata: is_annual=true, 12 luni');
+  } else {
+    // Priority 2: parse from filename
+    const parsed = parseFileDateRange(fileName);
+    monthsInFile = parsed.monthsInFile;
+    periodLabel = parsed.periodLabel;
+  }
+
+  // Normalize to monthly values
+  const monthlyRevenue = merged.revenue / monthsInFile;
+  const monthlyExpenses = merged.expenses / monthsInFile;
+  
+  console.log(`💰 Normalizare: revenue=${merged.revenue} / ${monthsInFile} = ${monthlyRevenue} lei/lună`);
+  console.log(`💰 Normalizare: expenses=${merged.expenses} / ${monthsInFile} = ${monthlyExpenses} lei/lună`);
+
   return {
-    revenue: merged.revenue,
-    expenses: merged.expenses,
-    profit: merged.profit,
+    revenue: monthlyRevenue,
+    expenses: monthlyExpenses,
+    profit: merged.profit / monthsInFile,
     soldBanca: merged.soldBanca,
     soldCasa: merged.soldCasa,
     soldClienti: merged.soldClienti,
@@ -458,7 +527,9 @@ export const getLatestFinancialData = async (
     dso: merged.dso,
     dpo: merged.dpo,
     companyId: foundCompanyId,
-    companyName
+    companyName,
+    monthsInFile,
+    periodLabel
   };
 };
 
@@ -599,7 +670,8 @@ export const simulateWhatIf = (
 export const detectFinancialAlerts = (data: FinancialData): Alert[] => {
   const alerts: Alert[] = [];
   const currentCash = data.soldBanca + data.soldCasa;
-  const runway = calculateRunway(currentCash, data.revenue / 12, data.expenses / 12);
+  // Data is already normalized to monthly, no need to divide
+  const runway = calculateRunway(currentCash, data.revenue, data.expenses);
   
   // Runway critical
   if (runway.months < 3 && runway.months !== Infinity) {

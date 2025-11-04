@@ -13,6 +13,8 @@ interface FinancialSnapshotProps {
   alertsCount: number;
   onScrollToChat: () => void;
   companyName?: string;
+  periodLabel?: string;
+  monthsInFile?: number;
 }
 
 export const FinancialSnapshot = React.memo(({ 
@@ -21,18 +23,30 @@ export const FinancialSnapshot = React.memo(({
   runway, 
   alertsCount,
   onScrollToChat,
-  companyName 
+  companyName,
+  periodLabel = 'lunar',
+  monthsInFile = 1
 }: FinancialSnapshotProps) => {
+  const getProfitLabel = () => {
+    if (monthsInFile === 1) return 'Profit lunar';
+    if (monthsInFile <= 12) return 'Profit mediu lunar';
+    return 'Profit anual';
+  };
   return (
     <Card className="border-primary/30 shadow-xl">
       <CardHeader className="pb-4 px-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl flex items-center gap-3">
+            <CardTitle className="text-2xl flex items-center gap-3 flex-wrap">
             <TrendingUp className="h-6 w-6 text-primary" />
             Snapshot Financiar Rapid
             {companyName && (
               <Badge variant="outline" className="text-xs font-normal">
                 {companyName}
+              </Badge>
+            )}
+            {periodLabel && (
+              <Badge variant="secondary" className="text-xs font-normal">
+                📅 Perioadă: {periodLabel}
               </Badge>
             )}
           </CardTitle>
@@ -65,7 +79,7 @@ export const FinancialSnapshot = React.memo(({
               : "bg-gradient-to-br from-red-500 via-rose-600 to-red-700"
           )}>
             <div className="text-sm opacity-90 mb-2 font-medium">
-              {profit >= 0 ? '✅ Profit Anual' : '🔴 Pierdere Anuală'}
+              {profit >= 0 ? `✅ ${getProfitLabel()}` : `🔴 Pierdere ${periodLabel}`}
             </div>
             <div className="text-3xl font-bold mb-1">
               {formatCurrency(Math.abs(profit))}
