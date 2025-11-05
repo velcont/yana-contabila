@@ -47,7 +47,7 @@ const EmailManager = lazy(() => import('@/components/EmailManager').then(m => ({
 const MonthlyWorkflowManager = lazy(() => import('@/components/yanacrm/MonthlyWorkflowManager').then(m => ({ default: m.MonthlyWorkflowManager })));
 const ClientDueDiligence = lazy(() => import('@/components/ClientDueDiligence').then(m => ({ default: m.ClientDueDiligence })));
 const FiscalChat = lazy(() => import('@/components/FiscalChat'));
-const BalanceConfirmation = lazy(() => import('@/components/BalanceConfirmation').then(m => ({ default: m.BalanceConfirmation })));
+const BalanceConfirmationHistory = lazy(() => import('@/components/BalanceConfirmationHistory').then(m => ({ default: m.BalanceConfirmationHistory })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -354,7 +354,7 @@ const AccountantDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="balance" data-tour="balance-tab">
               <FileCheck className="mr-2 h-4 w-4" />
-              Confirmare Balanță
+              Istoric Confirmări
             </TabsTrigger>
             <TabsTrigger value="due-diligence" data-tour="due-diligence-tab">
               <ShieldAlert className="mr-2 h-4 w-4" />
@@ -787,7 +787,7 @@ const AccountantDashboard = () => {
 
           <TabsContent value="balance">
             <Suspense fallback={<TabContentLoader />}>
-              <BalanceConfirmation />
+              <BalanceConfirmationHistory />
             </Suspense>
           </TabsContent>
 

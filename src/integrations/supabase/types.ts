@@ -743,6 +743,47 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_confirmations: {
+        Row: {
+          accounts_data: Json
+          company_id: string | null
+          company_name: string
+          created_at: string
+          cui: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accounts_data?: Json
+          company_id?: string | null
+          company_name: string
+          created_at?: string
+          cui?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accounts_data?: Json
+          company_id?: string | null
+          company_name?: string
+          created_at?: string
+          cui?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "balance_confirmations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           color_id: string | null
