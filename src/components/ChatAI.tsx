@@ -1443,6 +1443,18 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         accountsByClass[acc.accountClass].push(acc);
       });
       
+      // DEBUG: Verifică gruparea
+      console.log('📄 [WORD-GEN] Generare Word cu date:', {
+        cui: structuredData.cui,
+        company: structuredData.company,
+        totalAccounts: structuredData.accounts.length,
+        accountsByClass: Object.keys(accountsByClass).map(cls => ({
+          class: parseInt(cls),
+          count: accountsByClass[parseInt(cls)].length,
+          accounts: accountsByClass[parseInt(cls)].map(a => `${a.code} (D:${a.debit}, C:${a.credit})`)
+        }))
+      });
+      
       // Creare secțiuni document
       const sections: any[] = [];
       

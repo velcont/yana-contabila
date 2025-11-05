@@ -572,26 +572,31 @@ serve(async (req) => {
             // Clase 1-5: folosește solduri finale
             if (accountClass >= 1 && accountClass <= 5) {
               if (soldFinalDCol >= 0) {
-                const val = String(row[soldFinalDCol] || '0').replace(/[,\s]/g, '').replace('.', '');
-                debit = parseFloat(val) / 100 || 0; // Convertește din bani (1234567 = 12345.67)
+                // Elimină separatorul de mii (virgula) și parsează direct
+                const rawVal = String(row[soldFinalDCol] || '0').trim();
+                const val = rawVal.replace(/,/g, ''); // Elimină virgula (separator mii în format internațional)
+                debit = parseFloat(val) || 0;
               }
               if (soldFinalCCol >= 0) {
-                const val = String(row[soldFinalCCol] || '0').replace(/[,\s]/g, '').replace('.', '');
-                credit = parseFloat(val) / 100 || 0;
+                const rawVal = String(row[soldFinalCCol] || '0').trim();
+                const val = rawVal.replace(/,/g, '');
+                credit = parseFloat(val) || 0;
               }
             }
             // Clasa 6: rulaje debitoare
             else if (accountClass === 6) {
               if (rulajDCol >= 0) {
-                const val = String(row[rulajDCol] || '0').replace(/[,\s]/g, '').replace('.', '');
-                debit = parseFloat(val) / 100 || 0;
+                const rawVal = String(row[rulajDCol] || '0').trim();
+                const val = rawVal.replace(/,/g, '');
+                debit = parseFloat(val) || 0;
               }
             }
             // Clasa 7: rulaje creditoare
             else if (accountClass === 7) {
               if (rulajCCol >= 0) {
-                const val = String(row[rulajCCol] || '0').replace(/[,\s]/g, '').replace('.', '');
-                credit = parseFloat(val) / 100 || 0;
+                const rawVal = String(row[rulajCCol] || '0').trim();
+                const val = rawVal.replace(/,/g, '');
+                credit = parseFloat(val) || 0;
               }
             }
             
@@ -609,6 +614,15 @@ serve(async (req) => {
         }
         
         console.log(`📊 [STRUCTURED-DATA] Extrase ${accounts.length} conturi cu sold > 0`);
+        if (accounts.length > 0) {
+          console.log('📊 [STRUCTURED-DATA] Primele 3 conturi:', accounts.slice(0, 3).map(acc => ({
+            code: acc.code,
+            name: acc.name,
+            debit: acc.debit,
+            credit: acc.credit,
+            class: acc.accountClass
+          })));
+        }
         return { cui, company, accounts };
       } catch (error) {
         console.error('📊 [STRUCTURED-DATA] Eroare extragere:', error);
@@ -618,6 +632,14 @@ serve(async (req) => {
 
     const structuredData = extractStructuredData();
     console.log(`📊 [STRUCTURED-DATA] FINAL - CUI: ${structuredData.cui}, Companie: ${structuredData.company}, Conturi: ${structuredData.accounts.length}`);
+    if (structuredData.accounts.length > 0) {
+      console.log('📊 [STRUCTURED-DATA] Breakdown pe clase:', 
+        [1,2,3,4,5,6,7].map(c => ({ 
+          class: c, 
+          count: structuredData.accounts.filter(a => a.accountClass === c).length 
+        })).filter(x => x.count > 0)
+      );
+    }
 
     // CALCUL DETERMINIST AL INDICATORILOR DIN EXCEL
     console.log("📊 [METADATA-EXTRACT] START: Calcul determinist indicatori financiari din Excel...");
