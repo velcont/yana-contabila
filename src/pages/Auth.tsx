@@ -122,11 +122,54 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
+      // 1. Validate recovery session exists
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Sesiune expirată",
+          description: "Sesiunea de resetare a expirat sau nu a fost inițiată corect. Te rugăm să redeschizi linkul din email sau să ceri un nou link.",
+          variant: "destructive",
+        });
+        setIsResetMode(false);
+        setIsForgotPassword(true);
+        setIsLoading(false);
+        return;
+      }
 
-      if (error) throw error;
+      // 2. Validate password strength
+      const strength = calculatePasswordStrength(newPassword);
+      if (strength === 'weak') {
+        toast({
+          title: "Parolă prea slabă",
+          description: "Parola trebuie să aibă minim 8 caractere, să conțină litere mari, litere mici și cifre.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // 3. Implement timeout protection (15 seconds)
+      const updatePromise = supabase.auth.updateUser({ password: newPassword });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout la resetarea parolei. Verifică conexiunea și încearcă din nou.')), 15000)
+      );
+
+      const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
+
+      if (error) {
+        // Check if it's an expired link error
+        if (error.message?.toLowerCase().includes('expired') || error.message?.toLowerCase().includes('invalid')) {
+          toast({
+            title: "Link expirat",
+            description: "Linkul de resetare a expirat. Te rugăm să ceri un nou link de resetare.",
+            variant: "destructive",
+          });
+          setIsResetMode(false);
+          setIsForgotPassword(true);
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Parolă resetată!",
@@ -136,12 +179,22 @@ const Auth = () => {
       navigate('/app');
     } catch (error: any) {
       logError(error instanceof Error ? error : new Error('Update password error'), { context: 'reset_password' });
+      
+      // Provide clear error messages
+      let errorMessage = "Nu s-a putut reseta parola.";
+      if (error.message?.includes('Timeout')) {
+        errorMessage = "Operația a durat prea mult. Verifică conexiunea la internet și încearcă din nou.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Eroare",
-        description: error.message || "Nu s-a putut reseta parola.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
+      // 4. Guaranteed loading state reset
       setIsLoading(false);
     }
   };
