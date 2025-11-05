@@ -8,6 +8,7 @@ import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, Li
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
+import { extractCompanyNameFromFileName } from '@/utils/companyNameExtractor';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TypingIndicator } from './TypingIndicator';
 import { QuickReplySuggestions } from './QuickReplySuggestions';
@@ -1060,6 +1061,11 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               }
             }
             
+            // Extract company name: prioritate AI > file_name > null
+            const extractedCompanyName = data.company_name || 
+                                         extractCompanyNameFromFileName(file.name) || 
+                                         null;
+
             const { error: saveError } = await supabase
               .from('analyses')
               .insert({
@@ -1067,7 +1073,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                 analysis_text: data.analysis || '',
                 metadata: metadataToSave,
                 file_name: file.name,
-                company_name: data.company_name || null,
+                company_name: extractedCompanyName,
                 company_id: companyId
               });
 

@@ -23,6 +23,7 @@ import { AIPredictions } from './AIPredictions';
 import { ResilienceAnalysis } from './ResilienceAnalysis';
 import { EmailAnalysisDialog } from './EmailAnalysisDialog';
 import { ShareAnalysisDialog } from './ShareAnalysisDialog';
+import { extractCompanyNameFromFileName } from '@/utils/companyNameExtractor';
 import { AnalysisComments } from './AnalysisComments';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -1103,7 +1104,11 @@ INDICATORI OPERAȚIONALI:
           open={isEmailDialogOpen}
           onOpenChange={setIsEmailDialogOpen}
           companyId={undefined}
-          companyName={selectedAnalysis.company_name || 'Firmă'}
+          companyName={
+            selectedAnalysis.company_name || 
+            extractCompanyNameFromFileName(selectedAnalysis.file_name) ||
+            'Firmă'
+          }
           clientEmail=""
           clientName=""
           latestAnalysis={selectedAnalysis}
