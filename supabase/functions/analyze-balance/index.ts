@@ -535,6 +535,7 @@ serve(async (req) => {
         let contCol = -1, denumireCol = -1;
         let soldFinalDCol = -1, soldFinalCCol = -1;
         let rulajDCol = -1, rulajCCol = -1;
+        let totalSumeDCol = -1, totalSumeCCol = -1;
         
         // PASUL 1: Detectează header pe 2 rânduri (rând principal + sub-header)
         for (let i = 0; i < Math.min(15, data.length); i++) {
@@ -603,7 +604,25 @@ serve(async (req) => {
             }
           }
           
-          console.log(`📊 [HEADER-DETECT] Detectat din 2 rânduri: soldFinalStart=${soldFinalStartCol}, rulajStart=${rulajStartCol}`);
+          // Caută "Total sume" pentru clase 6-7
+          let totalSumeStartCol = -1;
+          
+          for (let j = 0; j < mainHeader.length; j++) {
+            const cell = String(mainHeader[j]).toLowerCase().trim();
+            if ((cell.includes('total') && cell.includes('sume')) && totalSumeStartCol < 0) {
+              totalSumeStartCol = j;
+            }
+          }
+          
+          if (totalSumeStartCol >= 0) {
+            for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 4, subHeader.length); j++) {
+              const cell = String(subHeader[j]).toLowerCase().trim();
+              if ((cell.includes('debit') || cell === 'd') && totalSumeDCol < 0) totalSumeDCol = j;
+              if ((cell.includes('credit') || cell === 'c') && totalSumeCCol < 0) totalSumeCCol = j;
+            }
+          }
+          
+          console.log(`📊 [HEADER-DETECT] Detectat din 2 rânduri: soldFinalStart=${soldFinalStartCol}, rulajStart=${rulajStartCol}, totalSumeStart=${totalSumeStartCol}`);
         }
         
         // PASUL 4: Fallback - header pe 1 rând (format vechi)
@@ -635,7 +654,9 @@ serve(async (req) => {
           soldFinalDebit: soldFinalDCol,
           soldFinalCredit: soldFinalCCol,
           rulajDebit: rulajDCol,
-          rulajCredit: rulajCCol
+          rulajCredit: rulajCCol,
+          totalSumeDebit: totalSumeDCol,
+          totalSumeCredit: totalSumeCCol
         });
         
         // 3. Parcurge rândurile de date
@@ -666,18 +687,18 @@ serve(async (req) => {
                 credit = parseFloat(val) || 0;
               }
             }
-            // Clasa 6: rulaje debitoare
+            // Clasa 6: Total sume debitoare (cheltuieli cumulate)
             else if (accountClass === 6) {
-              if (rulajDCol >= 0) {
-                const rawVal = String(row[rulajDCol] || '0').trim();
+              if (totalSumeDCol >= 0) {
+                const rawVal = String(row[totalSumeDCol] || '0').trim();
                 const val = rawVal.replace(/,/g, '');
                 debit = parseFloat(val) || 0;
               }
             }
-            // Clasa 7: rulaje creditoare
+            // Clasa 7: Total sume creditoare (venituri cumulate)
             else if (accountClass === 7) {
-              if (rulajCCol >= 0) {
-                const rawVal = String(row[rulajCCol] || '0').trim();
+              if (totalSumeCCol >= 0) {
+                const rawVal = String(row[totalSumeCCol] || '0').trim();
                 const val = rawVal.replace(/,/g, '');
                 credit = parseFloat(val) || 0;
               }
