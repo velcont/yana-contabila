@@ -119,8 +119,9 @@ export const BalanceConfirmation = () => {
         // Look for account numbers (starting with digits)
         if (row[0] && /^\d+/.test(row[0].toString())) {
           const accountCode = row[0].toString();
-          const debit = parseFloat(row[2]?.toString() || "0") || 0;
-          const credit = parseFloat(row[3]?.toString() || "0") || 0;
+          // Column 8 = Solduri finale Debitoare, Column 9 = Solduri finale Creditoare
+          const debit = parseFloat(row[8]?.toString() || "0") || 0;
+          const credit = parseFloat(row[9]?.toString() || "0") || 0;
           
           accounts[accountCode] = { debit, credit };
         }
@@ -169,7 +170,7 @@ export const BalanceConfirmation = () => {
             if (!explanation) return [];
 
             const displayValue = values.debit || values.credit || 0;
-            const valueType = values.debit ? "Rulaj debitoare" : "Rulaj creditoare";
+            const valueType = values.debit ? "(sold final debitor)" : values.credit ? "(sold final creditor)" : "";
 
             return [
               new Paragraph({
@@ -180,7 +181,7 @@ export const BalanceConfirmation = () => {
               new Paragraph({
                 children: [
                   new TextRun({ text: `Valoare (cont ${code}): `, bold: true }),
-                  new TextRun(`${displayValue.toFixed(2)} RON ${values.debit && values.credit ? `(${valueType})` : ""}`),
+                  new TextRun(`${displayValue.toFixed(2)} RON ${valueType}`),
                 ],
                 spacing: { after: 200 },
               }),
