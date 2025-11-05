@@ -1396,7 +1396,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     if (!structuredData) return;
     
     try {
-      const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = await import('docx');
+      const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer, BorderStyle } = await import('docx');
       const { saveAs } = await import('file-saver');
       
       // Explicații conturi complete și detaliate - TOATE CONTURILE
@@ -1621,6 +1621,198 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           );
         });
       }
+      
+      // ========== NOTĂ JURIDICĂ ȘI CONFIRMARE ==========
+      sections.push(
+        // Separator vizual
+        new Paragraph({
+          text: "",
+          spacing: { before: 600, after: 400 },
+          border: {
+            top: {
+              color: "CCCCCC",
+              space: 1,
+              style: BorderStyle.SINGLE,
+              size: 6
+            }
+          }
+        }),
+        
+        // Titlu Notă Juridică
+        new Paragraph({
+          text: "NOTĂ JURIDICĂ ȘI CONFIRMARE",
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 300 },
+          shading: {
+            fill: "F5F5F5"
+          }
+        }),
+        
+        // Paragraf 1 - Informare oficială
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "Prin prezentul document, cabinetul de contabilitate vă informează oficial cu privire la situația contabilă a societății dumneavoastră pentru perioada menționată.",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 200 },
+          alignment: AlignmentType.JUSTIFIED
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "În conformitate cu prevederile contractului de prestări servicii de contabilitate și cu legislația în vigoare, vă rugăm să analizați cu atenție informațiile prezentate în acest raport.",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 300 },
+          alignment: AlignmentType.JUSTIFIED
+        }),
+        
+        // Paragraf 2 - Termen de răspuns
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "TERMEN DE RĂSPUNS: ",
+              size: 20,
+              bold: true,
+              color: "D32F2F"
+            }),
+            new TextRun({
+              text: "Aveți la dispoziție 5 (cinci) zile lucrătoare de la primirea acestui document pentru a transmite eventuale obiecțiuni, completări sau solicitări de clarificări referitoare la datele prezentate.",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 300 },
+          alignment: AlignmentType.JUSTIFIED
+        }),
+        
+        // Paragraf 3 - Confirmare tacită
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "CONFIRMARE TACITĂ: ",
+              size: 20,
+              bold: true,
+              color: "1976D2"
+            }),
+            new TextRun({
+              text: "În absența oricărei comunicări scrise din partea dumneavoastră în termenul menționat mai sus, se consideră că:",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 100 },
+          alignment: AlignmentType.JUSTIFIED
+        }),
+        
+        // Lista - ce se confirmă tacit
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "  • Ați luat la cunoștință situația contabilă prezentată",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 100 },
+          indent: { left: 400 }
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "  • Confirmați corectitudinea datelor din punct de vedere al activității societății",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 100 },
+          indent: { left: 400 }
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "  • Luna/Perioada contabilă este încheiată și validată din punct de vedere contabil",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 300 },
+          indent: { left: 400 }
+        }),
+        
+        // Paragraf 4 - Responsabilitate
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "RESPONSABILITATE: ",
+              size: 20,
+              bold: true,
+              color: "F57C00"
+            }),
+            new TextRun({
+              text: "Vă reamintim că documentele justificative (facturi, chitanțe, extrase bancare) trebuie să fie transmise cabinetului nostru în termenele stabilite contractual. Orice documente transmise după încheierea perioadei vor fi înregistrate în luna/trimestrul următor, conform prevederilor legale.",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 300 },
+          alignment: AlignmentType.JUSTIFIED
+        }),
+        
+        // Paragraf 5 - Obiecțiuni
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "OBIECȚIUNI: ",
+              size: 20,
+              bold: true,
+              color: "7B1FA2"
+            }),
+            new TextRun({
+              text: "Eventualele obiecțiuni trebuie comunicate în scris (email sau scrisoare) la datele de contact menționate în contractul de prestări servicii.",
+              size: 20,
+              color: "595959"
+            })
+          ],
+          spacing: { after: 400 },
+          alignment: AlignmentType.JUSTIFIED
+        }),
+        
+        // Data și semnătură
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Data generării documentului: ${new Date().toLocaleDateString('ro-RO')}`,
+              size: 18,
+              italics: true,
+              color: "757575"
+            })
+          ],
+          spacing: { after: 100 },
+          alignment: AlignmentType.LEFT
+        }),
+        
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: "Cabinet de contabilitate / Contabil autorizat",
+              size: 18,
+              italics: true,
+              color: "757575"
+            })
+          ],
+          spacing: { after: 400 },
+          alignment: AlignmentType.LEFT
+        })
+      );
       
       // Footer
       sections.push(
