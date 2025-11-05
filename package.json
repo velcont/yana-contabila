@@ -83,6 +83,7 @@
     "vite-plugin-pwa": "^1.1.0",
     "vitest": "^4.0.6",
     "workbox-window": "^7.3.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
