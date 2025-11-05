@@ -528,32 +528,115 @@ serve(async (req) => {
         
         console.log(`📊 [STRUCTURED-DATA] CUI detectat: ${cui}, Companie: ${company}`);
         
-        // 2. Găsește header-ul
+        // 2. Găsește header-ul (suportă format pe 2 rânduri)
         let headerRow = -1;
+        let mainHeaderRow = -1;
+        let subHeaderRow = -1;
         let contCol = -1, denumireCol = -1;
         let soldFinalDCol = -1, soldFinalCCol = -1;
         let rulajDCol = -1, rulajCCol = -1;
         
+        // PASUL 1: Detectează header pe 2 rânduri (rând principal + sub-header)
         for (let i = 0; i < Math.min(15, data.length); i++) {
-          const row = data[i];
-          const rowStr = row.join('|').toLowerCase();
+          const rowStr = data[i].join('|').toLowerCase();
           
-          if (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')) || rowStr.includes('rulaj')) {
+          // Găsește rândul cu "Solduri finale" sau "Sold final"
+          if ((rowStr.includes('solduri finale') || rowStr.includes('sold final')) && mainHeaderRow < 0) {
+            mainHeaderRow = i;
+            subHeaderRow = i + 1;
+            headerRow = i; // Pentru compatibilitate cu cod existent
+            console.log(`📊 [HEADER-DETECT] Header pe 2 rânduri: main=${mainHeaderRow}, sub=${subHeaderRow}`);
+          }
+          
+          // Fallback: header simplu (toate pe un rând)
+          if (headerRow < 0 && (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')))) {
             headerRow = i;
-            for (let j = 0; j < row.length; j++) {
-              const cell = String(row[j]).toLowerCase().trim();
-              if ((cell.includes('cont') || cell.includes('simbol')) && contCol === -1) contCol = j;
-              if (cell.includes('denumire') && denumireCol === -1) denumireCol = j;
-              if (cell.includes('sold') && cell.includes('final') && cell.includes('debit')) soldFinalDCol = j;
-              if (cell.includes('sold') && cell.includes('final') && cell.includes('credit')) soldFinalCCol = j;
-              if (cell.includes('rulaj') && cell.includes('debit') && !cell.includes('sold')) rulajDCol = j;
-              if (cell.includes('rulaj') && cell.includes('credit') && !cell.includes('sold')) rulajCCol = j;
-            }
-            break;
+            console.log(`📊 [HEADER-DETECT] Header simplu pe 1 rând: ${headerRow}`);
           }
         }
         
-        console.log(`📊 [STRUCTURED-DATA] Header la rând ${headerRow}, coloane: cont=${contCol}, denumire=${denumireCol}, soldD=${soldFinalDCol}, soldC=${soldFinalCCol}, rulajD=${rulajDCol}, rulajC=${rulajCCol}`);
+        // PASUL 2: Detectează coloana cont și denumire din primul rând de header
+        if (headerRow >= 0) {
+          const row = data[headerRow];
+          for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j]).toLowerCase().trim();
+            if ((cell.includes('cont') || cell.includes('simbol')) && contCol === -1) contCol = j;
+            if ((cell.includes('denumire') || cell.includes('explicatii')) && denumireCol === -1) denumireCol = j;
+          }
+        }
+        
+        // PASUL 3: Detectează coloane solduri/rulaje
+        if (mainHeaderRow >= 0 && subHeaderRow < data.length) {
+          // Header pe 2 rânduri - caută "Solduri finale" în rând principal, apoi "Debitoare"/"Creditoare" în sub-header
+          const mainHeader = data[mainHeaderRow];
+          const subHeader = data[subHeaderRow];
+          
+          let soldFinalStartCol = -1;
+          let rulajStartCol = -1;
+          
+          // Găsește unde încep secțiunile "Solduri finale" și "Rulaje perioada"
+          for (let j = 0; j < mainHeader.length; j++) {
+            const cell = String(mainHeader[j]).toLowerCase().trim();
+            if ((cell.includes('solduri finale') || cell.includes('solduri finala') || cell.includes('sold final')) && soldFinalStartCol < 0) {
+              soldFinalStartCol = j;
+            }
+            if (cell.includes('rulaj') && rulajStartCol < 0) {
+              rulajStartCol = j;
+            }
+          }
+          
+          // Caută "Debitoare" / "Creditoare" în sub-header, în intervalul soldFinalStart...soldFinalStart+3
+          if (soldFinalStartCol >= 0) {
+            for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 4, subHeader.length); j++) {
+              const cell = String(subHeader[j]).toLowerCase().trim();
+              if ((cell.includes('debit') || cell === 'd') && soldFinalDCol < 0) soldFinalDCol = j;
+              if ((cell.includes('credit') || cell === 'c') && soldFinalCCol < 0) soldFinalCCol = j;
+            }
+          }
+          
+          // Similar pentru rulaje
+          if (rulajStartCol >= 0) {
+            for (let j = rulajStartCol; j < Math.min(rulajStartCol + 4, subHeader.length); j++) {
+              const cell = String(subHeader[j]).toLowerCase().trim();
+              if ((cell.includes('debit') || cell === 'd') && rulajDCol < 0) rulajDCol = j;
+              if ((cell.includes('credit') || cell === 'c') && rulajCCol < 0) rulajCCol = j;
+            }
+          }
+          
+          console.log(`📊 [HEADER-DETECT] Detectat din 2 rânduri: soldFinalStart=${soldFinalStartCol}, rulajStart=${rulajStartCol}`);
+        }
+        
+        // PASUL 4: Fallback - header pe 1 rând (format vechi)
+        if ((soldFinalDCol < 0 || soldFinalCCol < 0) && headerRow >= 0) {
+          console.log(`📊 [HEADER-DETECT] Fallback - detectare din 1 rând`);
+          const row = data[headerRow];
+          
+          for (let j = 0; j < row.length; j++) {
+            const cell = String(row[j]).toLowerCase().trim();
+            
+            // Solduri finale
+            if (cell.includes('sold') && cell.includes('final')) {
+              if (cell.includes('debit') && soldFinalDCol < 0) soldFinalDCol = j;
+              if (cell.includes('credit') && soldFinalCCol < 0) soldFinalCCol = j;
+            }
+            
+            // Rulaje
+            if (cell.includes('rulaj') && !cell.includes('sold')) {
+              if (cell.includes('debit') && rulajDCol < 0) rulajDCol = j;
+              if (cell.includes('credit') && rulajCCol < 0) rulajCCol = j;
+            }
+          }
+        }
+        
+        // DEBUGGING FINAL
+        console.log(`📊 [STRUCTURED-DATA] Header la rând ${headerRow}, coloane detectate:`, {
+          cont: contCol,
+          denumire: denumireCol,
+          soldFinalDebit: soldFinalDCol,
+          soldFinalCredit: soldFinalCCol,
+          rulajDebit: rulajDCol,
+          rulajCredit: rulajCCol
+        });
         
         // 3. Parcurge rândurile de date
         if (headerRow >= 0 && contCol >= 0) {
