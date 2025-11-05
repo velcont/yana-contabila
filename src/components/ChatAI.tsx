@@ -1399,39 +1399,285 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = await import('docx');
       const { saveAs } = await import('file-saver');
       
-      // Explicații conturi extinse
-      const accountExplanations: Record<string, string> = {
-        // Clasa 1
-        "121": "Profit sau pierdere - Rezultatul exercițiului curent (sold creditor = profit, sold debitor = pierdere).",
-        "1171": "Rezultat reportat - Profit/pierdere din anii anteriori reportată în anul curent.",
+      // Explicații conturi complete și detaliate
+      const getAccountExplanation = (acc: any): string => {
+        const amount = acc.debit > 0 ? acc.debit : acc.credit;
+        const soldType = acc.debit > 0 ? 'debitor' : 'creditor';
+        const code = acc.code;
         
-        // Clasa 4
-        "401": "Furnizori - Datorii către furnizori pentru bunuri/servicii primite și neplătite.",
-        "4111": "Clienți - Creanțe de încasat de la clienți pentru bunuri/servicii livrate.",
-        "4423": "TVA de plată - TVA colectată și nevirată încă la bugetul statului.",
-        "4424": "TVA de recuperat - TVA deductibilă care urmează să fie recuperată de la stat.",
-        "4551": "Asociați - conturi curente - Datorii sau creanțe față de asociați/acționari.",
+        // CLASA 1 - CAPITALURI
+        if (code === "121") {
+          const isLoss = acc.debit > 0;
+          return isLoss 
+            ? `⚠️ PIERDERE: Firma ta a pierdut ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON în această perioadă. Cheltuielile au depășit veniturile. Atenție: pierderi repetate pot atrage control ANAF - firma trebuie să genereze profit! Ce poți face: analizează unde cheltuielile sunt mari (clasa 6) și caută să crești veniturile (clasa 7).`
+            : `✅ PROFIT: Firma ta a câștigat ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON în această perioadă! Veniturile au depășit cheltuielile. Rezultat pozitiv înseamnă că afacerea merge bine.`;
+        }
         
-        // Clasa 5
-        "5121": "Conturi la bănci în lei - Disponibilități bănești în conturile bancare în RON.",
-        "5311": "Casa în lei - Numerar disponibil în casieria firmei.",
+        if (code === "1171") {
+          const isLoss = acc.debit > 0;
+          return `📊 Rezultat reportat: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON ${isLoss ? 'pierdere' : 'profit'} din anii trecuți reportată în anul curent.`;
+        }
         
-        // Clasa 6
-        "601": "Cheltuieli cu materiile prime - Cost achiziție materii prime folosite în producție.",
-        "602": "Cheltuieli cu materialele consumabile - Cost materiale auxiliare (consumabile, piese schimb).",
-        "6022": "Cheltuieli cu combustibilii - Total combustibil cumpărat în perioada analizată.",
-        "607": "Cheltuieli privind mărfurile - Preț achiziție mărfuri destinate revânzării.",
-        "611": "Cheltuieli cu întreținerea și reparațiile - Costuri mentenanță și reparații active.",
-        "621": "Cheltuieli cu colaboratorii - Plăți către colaboratori/freelanceri.",
-        "626": "Cheltuieli poștale și taxe telecomunicații - Costuri servicii poștale și telecomunicații.",
+        // CLASA 4 - TERȚI  
+        if (code === "401") return `💳 Datorii furnizori: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON datorați furnizorilor pentru bunuri/servicii primite și neachitate încă. Verifică scadențele - întârzierile pot aduce penalități!`;
+        if (code === "4111") return `💰 Clienți: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON pe care clienții îi datorează firmei pentru livrări efectuate. Urmărește-i activ pentru a încasa la timp!`;
+        if (code === "4423") return `🏛️ TVA de plată: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON TVA colectat care trebuie virat la stat până la 25 a lunii următoare. Nu întârzia - riști amenzi mari!`;
+        if (code === "4424") return `↩️ TVA de recuperat: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON TVA deductibil de recuperat de la ANAF. Depune decontul la timp.`;
+        if (code === "4551") {
+          const isDebt = acc.credit > 0;
+          return isDebt 
+            ? `🤝 Datorii asociați: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON datorați asociaților (împrumuturi de la ei). Poate fi rambursat când firma are lichidități.`
+            : `🤝 Creanțe asociați: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON pe care asociații îi datorează firmei. Recuperează-i pentru a nu bloca banii!`;
+        }
         
-        // Clasa 7
-        "704": "Venituri din lucrări executate - Încasări din prestări servicii/lucrări contractate.",
-        "707": "Venituri din vânzarea mărfurilor - Cifra de afaceri din comercializare produse/mărfuri.",
-        "758": "Alte venituri din exploatare - Venituri diverse din activitatea curentă.",
+        // CLASA 5 - TREZORERIE
+        if (code === "5121") return `🏦 Bani în bancă: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON disponibili efectiv în contul bancar. Compară cu extrasul de cont!`;
+        if (code === "5311") return `💵 Numerar în casă: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON cash în casierie. Verifică fizic că corespunde! Limită legală: 50.000 RON.`;
+        if (code === "371") return `📦 Mărfuri în stoc: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON mărfuri în depozit. Verifică fizic la inventar dacă corespunde cu realitatea!`;
         
-        // Fallback
-        "*": "Cont contabil cu sold în perioada analizată. Consultați contabilul pentru detalii."
+        // CLASA 6 - CHELTUIELI
+        if (code === "607") return `🛒 Cheltuieli cu mărfurile: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON - costul de achiziție al mărfurilor. Compară cu 707 pentru a vedea marja de profit!`;
+        if (code === "626") return `📞 Cheltuieli telecomunicații: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON telefonie și internet. Verifică dacă poți reduce costurile.`;
+        if (code === "628") return `🛎️ Alte servicii: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON servicii diverse (contabilitate, consultanță, IT). Verifică că toate au facturi.`;
+        if (code === "6022") return `⛽ Combustibil: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON. Ține evidența bonurilor - ANAF verifică strict!`;
+        if (code === "621") return `👥 Colaboratori: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON plăți către colaboratori. Asigură-te că ai contracte și facturi pentru toate!`;
+        if (code === "6231") return `🚗 Protocol și reclamă: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON. Limită deductibilitate: 2% din cifra de afaceri.`;
+        
+        // CLASA 7 - VENITURI
+        if (code === "704") return `💼 Venituri din servicii: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON încasări din servicii prestate. Motorul afacerii tale!`;
+        if (code === "707") return `🛒 Venituri din vânzări: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON - prețul de vânzare. Compară cu 607 pentru marja de profit!`;
+        if (code === "758" || code === "7588") return `➕ Alte venituri: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON venituri diverse. Asigură-te că sunt documentate corect.`;
+        
+        // Fallback pentru alte conturi
+        return `Cont ${code} - ${acc.name}: Sold ${soldType} de ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON în perioada analizată.`;
+      };
+        // CLASA 1 - CAPITALURI
+        "101": "💼 **Capital social subscris nevărsat**: Capitalul social promis de acționari dar nevirat încă în firmă. Trebuie plătit conform angajamentelor din actele constitutive.",
+        "1011": "💼 **Capital social subscris vărsat**: Banii pe care asociații/acționarii i-au pus efectiv în firmă când au înființat-o. Aceasta este suma înscrisă în actele firmei la Registrul Comerțului.",
+        "1012": "💼 **Capital social subscris nevărsat**: Capital promis dar neplătit încă de acționari. Datorie a acționarilor față de firmă.",
+        "104": "💰 **Prime de capital**: Sume suplimentare peste valoarea nominală primite la emisiunea de acțiuni. Bani aduși în firmă peste capitalul social de bază.",
+        "105": "💰 **Rezerve**: Partea din profiturile anilor trecuți care a fost păstrată ca rezervă de siguranță (obligatoriu legal cel puțin 5% din capital). Bani „puși deoparte" pentru situații neprevăzute.",
+        "1068": "💰 **Alte rezerve**: Rezerve suplimentare create din profit pentru protecție financiară sau investiții viitoare.",
+        "106": "💰 **Rezerve**: Fonduri acumulate din profituri pentru siguranță financiară sau investiții planificate.",
+        "117": "📊 **Rezultat reportat**: Profitul/pierderea din anii anteriori adusă în anul curent și nerezolvată încă (nedistribuită sau neacoperită).",
+        "1171": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          const isLoss = acc.debit > 0;
+          return `📊 **Rezultat reportat**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON ${isLoss ? 'PIERDERE' : 'PROFIT'} din anii trecuți care a fost adusă în anul curent. ${isLoss ? '⚠️ Pierdere veche neacoperită - trebuie acoperită din profituri viitoare sau prin majorarea capitalului social.' : '✅ Profit vechi păstrat în firmă (reinvestit, nu distribuit acționarilor).'}`;
+        },
+        "121": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          const isLoss = acc.debit > 0;
+          if (isLoss) {
+            return `⚠️ **PIERDERE**: Firma ta a pierdut ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON în această perioadă. Cheltuielile (clasa 6) au depășit veniturile (clasa 7). **ATENȚIE**: pierderi repetate pot atrage control ANAF - firma trebuie să genereze profit pentru a fi considerată viabilă! **Ce poți face**: analizează unde cheltuielile sunt prea mari și caută să crești veniturile prin mai multe vânzări sau servicii prestate.`;
+          } else {
+            return `✅ **PROFIT**: Firma ta a câștigat ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON în această perioadă! Veniturile (clasa 7) au depășit cheltuielile (clasa 6). Rezultat pozitiv înseamnă că afacerea merge bine. Continuă activitățile profitabile și păstrează controlul asupra cheltuielilor.`;
+          }
+        },
+        "129": "📊 **Repartizarea profitului**: Profit care urmează să fie distribuit către acționari sau reinvestit conform hotărârii adunării generale.",
+        
+        // CLASA 2 - IMOBILIZĂRI
+        "211": "🏢 **Terenuri**: Valoarea terenurilor deținute de firmă. Acestea sunt active fixe - NU se vând în cursul normal al afacerii, ci sunt folosite pentru activitate (sediu, fabrică, depozit).",
+        "212": "🏗️ **Amenajări de terenuri**: Investiții în îmbunătățirea terenurilor (împrejmuire, nivelări, sisteme de drenaj). Cresc valoarea și utilitatea terenului.",
+        "2131": "🏗️ **Construcții**: Valoarea clădirilor deținute de firmă (sedii, depozite, fabrici, hale). Se amortizează în timp - valoarea contabilă scade pe măsură ce clădirile îmbătrânesc.",
+        "2133": "🏭 **Instalații tehnice și mijloace de transport**: Echipamente tehnice complexe și vehicule folosite în activitate. Se amortizează lunar - pierdem valoare contabilă pe măsură ce se uzează.",
+        "2134": "🔧 **Aparate și instalații de măsurare**: Echipamente de precizie pentru măsurători tehnice. Active specifice producției sau serviciilor tehnice.",
+        "2135": "🏗️ **Amenajări la spații închiriate**: Investiții în îmbunătățirea spațiilor luate în chirie. Se amortizează pe durata contractului de închiriere.",
+        "214": "⚙️ **Mobilier, aparatură birotică și alte active corporale**: Mobilier de birou, calculatoare, imprimante, telefoane. Echipamente necesare operațiunilor zilnice.",
+        "2814": "📉 **Amortizare cumulată construcții**: Totalul amortizării acumulate pentru clădiri de la achiziție până acum. Cu cât crește, cu atât scade valoarea contabilă rămasă a clădirii.",
+        "2815": "📉 **Amortizare cumulată instalații și mijloace de transport**: Depreciere cumulată pentru echipamente și vehicule. Reflectă uzura normală în timp - nu e o cheltuială efectivă, ci doar ajustare contabilă.",
+        
+        // CLASA 3 - STOCURI
+        "301": "🏭 **Materii prime**: Materiale de bază din care produci produsele tale. Trebuie să fie suficiente pentru producție, dar nu excesive - altfel blochezi bani inutil în stoc.",
+        "302": "🔧 **Materiale consumabile**: Materiale auxiliare (piese, consumabile, lubrifianți) folosite în producție. Monitorizează consumul - creștere bruscă poate indica risipă sau furt.",
+        "303": "🎁 **Materiale de natura obiectelor de inventar**: Obiecte mici (unelte, ustensile) sub limita de capitalizare. Se consumă rapid și nu se amortizează.",
+        "345": "📦 **Produse finite**: Produsele pe care le-ai fabricat și sunt gata de vânzare. Cu cât stau mai mult în depozit, cu atât blochezi banii - vinde-le rapid!",
+        "346": "♻️ **Produse reziduale**: Deșeuri valorificabile rezultate din producție. Pot fi vândute sau refolosite - verifică dacă poți genera venit suplimentar din ele.",
+        "371": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `📦 **Mărfuri în stoc**: Ai ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON mărfuri în depozit. **VERIFICĂ FIZIC** la inventar dacă corespunde cu ce ai efectiv în realitate! Dacă lipsesc produse → risc de pierdere la inventar și probleme cu ANAF. Dacă sunt prea multe → bani blocați care ar putea fi folosiți mai bine. Ideal: mărfurile trebuie vândute rapid pentru a genera cash și nu sta în depozit luni de zile.`;
+        },
+        "381": "📦 **Mărfuri aflate la terți**: Mărfuri pe care le-ai trimis la terți (consignație, custodie) dar sunt încă proprietatea ta. Monitorizează-le - trebuie returnate sau vândute.",
+        
+        // CLASA 4 - TERȚI
+        "401": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `💳 **Datorii furnizori**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON datorați furnizorilor pentru bunuri/servicii primite și **NEACHITATE** încă. **VERIFICĂ SCADENȚELE** - dacă întârzii la plăți: riști penalități, dobânzi sau oprirea livrărilor! Planifică cash flow-ul pentru a achita la timp și păstrează relații bune cu furnizorii.`;
+        },
+        "404": "🏗️ **Furnizori de imobilizări**: Datorii pentru echipamente/utilaje cumpărate dar neplătite complet. De obicei contracte pe termen lung cu rate lunare. Verifică ratele și scadențele.",
+        "408": "💸 **Furnizori - facturi nesosite**: Ai primit bunuri/servicii dar nu ai primit încă factura de la furnizor. Datorie „în așteptare" - va fi mutată la contul 401 când vine factura oficială.",
+        "409": "📉 **Furnizori debitori - avansuri acordate**: Furnizori care ÎȚI DATOREAZĂ bani ție (avansuri plătite sau retururi nedecontate). Recuperează-i rapid - sunt banii tăi blocați!",
+        "4111": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `💰 **Clienți**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON pe care clienții ÎI DATOREAZĂ firmei tale pentru bunuri/servicii livrate. **URMĂREȘTE-I ACTIV!** Dacă nu plătesc la timp → cash-flow blocat și riști probleme de lichiditate. Sună-i, trimite reminder-uri, ia măsuri de recuperare sau măsuri legale dacă întârzie foarte mult. Banii ăștia TREBUIE încasați - sunt veniturile tale care așteaptă să intre în cont!`;
+        },
+        "4118": "🔮 **Clienți - facturi de întocmit**: Ai livrat bunuri/servicii dar nu ai emis încă factura. **EMITE-O RAPID** pentru a putea încasa legal! Fără factură nu poți primi banii.",
+        "411": "💰 **Clienți**: Sume de încasat de la clienți pentru livrări efectuate. Monitorizează încasările și urmărește plățile restante activ.",
+        "418": "🔮 **Clienți - facturi de întocmit**: Livrări efectuate pentru care factura nu a fost emisă încă. Emite urgent pentru a putea încasa.",
+        "419": "📉 **Clienți creditori - avansuri încasate**: Clienți care au plătit în avans sau cărora le-ai restituit bani. Datorie față de ei - va fi compensată cu livrări viitoare sau restituită.",
+        "421": "💼 **Personal - salarii datorate**: Salarii calculate dar neplatite încă angajaților. Datorie de onoare și legală - trebuie plătite la termen (de obicei până la data de 15 a lunii următoare).",
+        "423": "💸 **Personal - ajutoare materiale**: Ajutoare acordate angajaților (evenimente familiale, boli) care urmează să fie plătite.",
+        "4281": "🏢 **Alte datorii - debite pe cardul de credit**: Sume datorate pentru tranzacțiile efectuate cu cardul de credit al firmei. Verifică extrasele și achită la scadență.",
+        "4282": "🏦 **Alte datorii**: Datorii diverse către terți (chirie, utilități neachitate, alte servicii contractate). Verifică scadențele pentru fiecare și plătește la timp.",
+        "431": "🏛️ **Asigurări sociale**: CAS, CASS, șomaj, accidents de muncă datorate pentru salariile angajaților. **TERMEN DE PLATĂ: 25 a lunii următoare**. NU întârzia - amenzi mari și dobânzi la ANAF!",
+        "4311": "🏛️ **Contribuții asigurări sociale (CAS)**: Contribuția la pensii (25%) calculată pe salarii. Obligatoriu de virat lunar până la 25 a lunii următoare.",
+        "4312": "🏥 **Contribuții asigurări sociale de sănătate (CASS)**: Contribuția la sănătate (10%) calculată pe salarii. Termen: 25 a lunii următoare - întârzierile atrag penalități!",
+        "437": "👥 **Contribuții datorate de angajați**: Rețineri din salarii pentru CAS și CASS angajați. Suma se virează împreună cu contribuțiile angajatorului până la 25.",
+        "4423": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🏛️ **TVA de plată**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON TVA colectat de la clienți care **TREBUIE VIRAT** la bugetul de stat până la **25 a lunii următoare**! NU întârzia - riști amenzi foarte mari (0.01%-0.02% pe zi întârziere) și dobânzi. Asigură-te că ai banii disponibili în cont pentru plată - e o prioritate fiscală critică!`;
+        },
+        "4424": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `↩️ **TVA de recuperat**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON TVA deductibil din achizițiile tale, care urmează să fie **RECUPERAT de la ANAF**. Depune decontul de TVA la timp (până la 25) pentru a-ți recupera banii. **ATENȚIE**: Dacă suma e mare (peste 45.000 RON), procesul de restituire poate dura 2-6 luni - ANAF face verificări suplimentare. Pregătește toate facturile justificative!`;
+        },
+        "4426": "💼 **TVA deductibilă - imobilizări**: TVA pentru echipamente/utilaje cumpărate. Se recuperează de la ANAF conform acelorași reguli ca TVA-ul curent.",
+        "4427": "💼 **TVA colectată - imobilizări**: TVA încasat la vânzarea activelor fixe. Trebuie virat la stat conform termenelor legale.",
+        "4428": "🏦 **TVA neexigibil**: TVA pentru care termenul de plată nu a venit încă (încasare în avans sau livrare viitoare). Se transformă în 4423 când devine exigibil (la livrare sau încasare).",
+        "444": "💸 **Impozit pe profit de plată**: Impozit calculat pe profitul firmei (16% din profit), de plată trimestrial la stat. Verifică termenele - neplata atrage penalități.",
+        "446": "🏢 **Alte impozite, taxe și vărsăminte asimilate**: Taxe locale (teren, clădiri, autovehicule, publicitate), ecotaxă, taxe vamale. Verifică scadențele specifice fiecărei taxe.",
+        "4481": "🧾 **Impozit pe dividende reținut**: Impozit de 5% sau 8% reținut din dividende plătite acționarilor. Trebuie virat la buget până la 25 a lunii următoare.",
+        "4482": "🧾 **Impozit pe venit reținut la sursă**: Impozit reținut din plăți către colaboratori/PFA/drepturi de autor (10%). Virare obligatorie până la 25 a lunii următoare.",
+        "451": "🏛️ **Sume datorate acționarilor/asociaților**: Dividende sau alte sume datorate proprietarilor firmei. Se plătesc conform hotărârii AGA în 30-60 zile.",
+        "4551": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          const isDebt = acc.credit > 0;
+          if (isDebt) {
+            return `🤝 **Datorii asociați - conturi curente**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON datorați asociaților/acționarilor (împrumuturi primite de la ei sau avansuri pentru cheltuieli). NU sunt cheltuieli deductibile - e doar o „datorie internă" de la firmă către proprietari, care poate fi rambursată când firma are lichidități. De obicei nu există dobânzi sau scadențe stricte - flexibilitate mare, dar evidențiază lipsa de fonduri proprii.`;
+          } else {
+            return `🤝 **Creanțe de la asociați**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON pe care asociații îi datorează firmei (cheltuieli plătite de firmă în numele lor sau împrumuturi acordate). Urmează să fie recuperați în bani sau compensați cu dividende/salarii viitoare. Recuperează-i pentru a nu bloca banii firmei!`;
+          }
+        },
+        "4552": "👥 **Asociați - conturi de capital**: Datorie sau creanță legată de capitalul social. Poate fi capital nevărsat sau sume de restituit asociaților.",
+        "456": "💵 **Decontări cu asociații privind capitalul**: Operațiuni legate de mișcări în capitalul social (majorări, reduceri, vărsăminte).",
+        "4562": "💵 **Dividende de plată**: Profit distribuit asociaților/acționarilor care urmează să fie plătit. **TERMEN: 30-60 zile de la hotărârea AGA**. Reține 5% sau 8% impozit pe dividende.",
+        "461": "🏦 **Debitori diverși**: Alte persoane/firme care îți datorează bani (garanții, avansuri diverse, despăgubiri de primit). Urmărește recuperarea activă.",
+        "462": "🏦 **Creditori diverși**: Alte persoane/firme cărora le datorezi bani (garanții primite, avansuri de la parteneri). Verifică scadențele de restituire.",
+        "4662": "🏦 **Credite bancare pe termen lung**: Împrumuturi de la bancă cu scadență peste 1 an. Monitorizează ratele lunare (principal + dobândă) - neplata atrage executare silită și pierderea activelor gajate!",
+        "4661": "🏦 **Credite bancare pe termen scurt**: Împrumuturi de la bancă cu scadență sub 1 an. Verifică ratele lunare - asigură-te că ai cashflow pentru rambursare.",
+        "467": "💼 **Subvenții guvernamentale**: Subvenții/granturi primite de la stat sau UE. Verifică condițiile de utilizare - dacă nu le respecți, trebuie returnate cu dobânzi!",
+        
+        // CLASA 5 - TREZORERIE
+        "5121": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🏦 **Bani în bancă (RON)**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON disponibili **EFECTIV** în contul bancar ACUM. **COMPARĂ CU EXTRASUL DE CONT** să verifici că e corect și că nu sunt diferențe! Dacă ai prea puțin → risc de cash-flow (nu poți plăti furnizori/salarii/taxe la timp). Dacă ai foarte mult → poți investi, achita datorii mai repede sau economisi pentru rezerve de siguranță.`;
+        },
+        "5124": "💱 **Conturi la bănci în valută**: Disponibilități în euro/dolari/alte valute. **ATENȚIE LA CURSUL DE SCHIMB** - fluctuațiile pot genera câștiguri sau pierderi la reconversie. Bun pentru tranzacții internaționale.",
+        "5125": "💳 **Sume în curs de decontare cu bănci**: Plăți cu cardul sau cecuri care nu s-au încasat încă în cont (proces în curs, 1-3 zile). Banii vin, dar NU sunt disponibili încă - așteaptă finalizarea tranzacției.",
+        "5186": "💰 **Dobânzi de primit**: Dobânzi calculate dar neîncasate încă de la bancă (depozite) sau clienți. Vor intra în cont la scadență.",
+        "519": "💳 **Credite bancare pe termen scurt**: Descoperit de cont sau credit revolving. Atenție - dobânzile sunt mari! Folosește doar temporar pentru cash-flow urgent.",
+        "531": "💵 **Casa în lei**: Numerar efectiv în casieria firmei. Verifică la inventar dacă suma bate cu fizicul!",
+        "5311": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `💵 **Numerar în casă (RON)**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON cash efectiv în casieria firmei. **VERIFICĂ FIZIC** că banii din sertar/seif corespund exact cu suma asta! Dacă nu → risc de lipsă la inventar, furt sau erori de evidență - probleme grave cu ANAF la control. **LIMITĂ LEGALĂ MAXIMĂ**: 50.000 RON în casă. Dacă depășești → NELEGAL, riști amenzi mari! Depune excedentul în bancă urgent.`;
+        },
+        "5321": "💱 **Casa în valută**: Numerar în euro/dolari în casierie. Respectă aceleași reguli ca și pentru casa în lei (verificare fizică, limită 50.000 RON echivalent).",
+        "542": "💸 **Avansuri de trezorerie**: Bani dați în avans angajaților (deplasări, cheltuieli în interes de serviciu). Trebuie justificați cu documente (bonuri, facturi) și decontați rapid - maximum 5 zile de la întoarcerea din deplasare.",
+        
+        // CLASA 6 - CHELTUIELI (Total sume cumulate)
+        "601": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🏭 **Cheltuieli cu materiile prime**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON costul materiilor prime folosite în producție în această perioadă. Compară cu veniturile (clasa 7) - dacă cheltuielile cresc prea mult față de venituri, profitul scade! Caută furnizori cu prețuri mai bune sau optimizează consumul.`;
+        },
+        "602": "🔧 **Cheltuieli cu materialele consumabile**: Total costuri materiale auxiliare (piese de schimb, consumabile, lubrifianți). Verifică dacă sunt justificate - consum excesiv poate indica risipă, furt sau ineficiență.",
+        "603": "📦 **Cheltuieli cu alte materiale**: Obiecte mici (unelte, ustensile, mobilier mic) care se consumă rapid. Monitorizează să nu fie achiziții nejustificate sau personale trecute pe firmă.",
+        "6022": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `⛽ **Cheltuieli cu combustibilul**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON combustibil cumpărat. **ȚINE EVIDENȚA BONURILOR FISCALE** și foilor de parcurs - ANAF verifică STRICT dacă consumul corespunde cu activitatea (km parcurși raportați la tipul vehiculului, deplasări justificate). Consum excesiv sau lipsă documente = risc mare de respingere la deductibilitate și amenzi!`;
+        },
+        "6024": "💧 **Cheltuieli cu apa și energia**: Utilități (apă, curent, gaze, încălzire). Costuri fixe necesare - verifică consumul lunar să identifici posibile economii.",
+        "6028": "🛢️ **Alte materii consumabile**: Alte consumabile diverse (lubrifianți, materiale auxiliare specifice activității). Verifică să fie legate strict de activitatea firmei pentru deductibilitate.",
+        "607": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🛒 **Cheltuieli cu mărfurile**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON - acesta e prețul la care ai **CUMPĂRAT** mărfurile pentru revânzare (cost de achiziție). **COMPARĂ CU CONTUL 707** (venituri din vânzări) pentru a calcula **marja comercială brută**. Formula: Profit brut = 707 - 607. Cu cât diferența e mai mare, cu atât afacerea e mai profitabilă! Dacă 607 este aproape de 707 → marjă foarte mică, profit minim - trebuie să crești prețurile sau să găsești furnizori mai ieftini.`;
+        },
+        "609": "📉 **Reduceri comerciale primite**: Reduceri, rabate, discounturi primite de la furnizori. Reduce costul de achiziție - economie directă pentru firmă! Negociază cu furnizorii pentru mai multe reduceri.",
+        "611": "🛠️ **Cheltuieli cu întreținerea și reparațiile**: Costuri pentru mentenanță și reparații active fixe (clădiri, mașini, echipamente). Menține activele funcționale, dar dacă costurile devin prea mari → poate e mai rentabil să înlocuiești echipamentul vechi decât să îl tot repari.",
+        "612": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🔌 **Cheltuieli cu chiriile și redevențele**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON chirii plătite pentru spații închiriate (birouri, depozite, sedii), licențe software, redevențe pentru brevete/mărci. Costuri fixe recurente - verifică dacă sunt competitive față de piață - poate găsești spații mai ieftine sau poți negocia reducerea chiriei cu proprietarul.`;
+        },
+        "613": "📦 **Cheltuieli privind activele luate în leasing**: Rate de leasing pentru echipamente/vehicule contractate pe termen lung. Verifică dacă era mai avantajos să cumperi direct sau să iei credit bancar.",
+        "621": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `👥 **Cheltuieli cu colaboratorii**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON plăți către colaboratori/freelanceri/PFA (**NU angajați cu contract de muncă**). **ATENȚIE MAXIMĂ**: Asigură-te că ai **CONTRACTE DE COLABORARE** și **FACTURI** pentru TOATE plățile - ANAF verifică STRICT să nu fie „salarii mascate" (evaziune fiscală). Dacă plătești fără documente sau relația arată ca un angajat normal → riști amenzi URIAȘE și obligarea la plata tuturor taxelor și contribuțiilor retroactiv!`;
+        },
+        "6231": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🚗 **Cheltuieli de protocol și reclamă**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON cheltuieli de reprezentare, cadouri pentru clienți, materiale promoționale, reclame. **LIMITĂ DEDUCTIBILITATE FISCALĂ: 2% din cifra de afaceri anuală**. Suma peste această limită = NEDEDUCTIBILĂ fiscal (plătești impozit pe ea). Calculează cât îți permite legea și nu depăși!`;
+        },
+        "624": "🚚 **Cheltuieli de transport**: Costuri transport mărfuri/produse (curierat, transport rutier, logistică). Verifică ca toate să aibă documente justificative (AWB, CMR, facturi) - ANAF cere dovezi pentru deductibilitate.",
+        "625": "🏖️ **Cheltuieli privind deplasările, detașările și transferările**: Diurnă, cazare, transport pentru deplasări în interes de serviciu. **PĂSTREAZĂ TOATE BONURILE ȘI ORDINELE DE DEPLASARE** - ANAF verifică foarte strict justificarea! Fără documente = nedeductibil fiscal.",
+        "626": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `📞 **Cheltuieli poștale și de telecomunicații**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON telefonie (fixă, mobilă), internet, servicii poștale, curierat documente. Costuri recurente necesare pentru activitate - **verifică abonamentele** să nu plătești pentru servicii neutilizate (minute/GB nefolosite). Poți reduce costurile schimbând operatorul sau negociind planuri mai ieftine.`;
+        },
+        "627": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🏦 **Cheltuieli cu serviciile bancare**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON comisioane băncii (administrare cont curent, transferuri, carduri, extrase). Banii ăștia „se pierd" în comisioane bancare. **COMPARĂ OFERTELE DIFERITELOR BĂNCI** - poți economisi sute sau mii de RON pe an schimbând banca sau negociind comisioane mai mici pentru volumul tău de tranzacții!`;
+        },
+        "628": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🛎️ **Cheltuieli cu alte servicii executate de terți**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON servicii diverse de la terți - **contabilitate, consultanță juridică, marketing/publicitate, IT/web design, pază, curățenie, servicii profesionale**. Verifică ca **TOATE SĂ AIBĂ FACTURI** și contracte valide și să fie **JUSTIFICATE pentru activitatea firmei** - ANAF respinge cheltuielile nejustificate sau care par personale! Dacă cheltuielile sunt mari, verifică dacă primești valoare reală pentru banii plătiți.`;
+        },
+        "635": "🏢 **Cheltuieli cu alte impozite, taxe și vărsăminte asimilate**: Impozite locale (teren, clădiri, autovehicule), taxe vamale, ecotaxă, taxe speciale. Costuri obligatorii - asigură-te că sunt plătite la timp pentru a evita penalități și majorări.",
+        "641": "👷 **Cheltuieli cu salariile personalului**: Total salarii brute plătite angajaților. Cel mai mare cost pentru majoritatea firmelor. Verifică productivitatea - dacă output-ul justifică costurile salariale. Angajați neproductivi = bani aruncați.",
+        "6451": "🏥 **Cheltuieli cu asigurările și protecția socială - CAS**: Contribuția la pensii (25% din salariu brut) plătită de angajator pentru fiecare angajat. Obligatoriu legal - se virează lunar la bugetul de stat împreună cu reținerea CAS angajat.",
+        "6452": "💊 **Cheltuieli cu asigurările și protecția socială - CASS**: Contribuția la sănătate (10% din salariu brut) plătită de angajator. Obligatoriu - virare până la 25 a lunii următoare.",
+        "645": "🏥 **Cheltuieli cu asigurările și protecția socială**: Total contribuții sociale (CAS 25% + CASS 10% + șomaj, accidente de muncă) plătite pentru angajați. Cost fix suplimentar pe lângă salariile brute.",
+        "658": "📊 **Alte cheltuieli de exploatare**: Cheltuieli diverse care nu se încadrează în alte categorii (amenzi, despăgubiri, donații, sponsorizări, lipsuri de inventar). **Minimizează-le** - nu aduc valoare directă afacerii! Amenzile în special trebuie evitate - costă bani și arată probleme de conformitate.",
+        "6583": "🔄 **Cheltuieli din reevaluarea imobilizărilor corporale**: Pierderi din reevaluarea activelor fixe (imobile, echipamente scad în valoare la reevaluare). Depreciere contabilă - nu înseamnă ieșire efectivă de bani cash.",
+        "665": "💸 **Cheltuieli privind diferențele de curs valutar": Pierderi din fluctuația cursului de schimb pentru operațiunile/conturile în valută. Risc inevitabil pentru firmele cu tranzacții internaționale.",
+        "666": "💸 **Cheltuieli privind dobânzile**: Dobânzi plătite la credite bancare și împrumuturi. Cu cât ai mai multe credite și rata dobânzii e mai mare, cu atât dobânzile „mănâncă" din profitul firmei. Încearcă să rambursezi creditele scumpe mai repede sau să refinanțezi la dobândă mai mică.",
+        "667": "💰 **Cheltuieli aferente costurilor împrumuturilor": Comisioane, speze și alte costuri legate de luarea de credite (evaluări, garanții, dosare). Costuri ascunse ale creditării - adaugă la costul real al împrumutului.",
+        "681": "📉 **Cheltuieli de exploatare privind amortizările, provizioanele și ajustările pentru depreciere**: Amortizarea lunară/anuală a activelor fixe (clădiri, echipamente, vehicule) și constituirea de provizioane. **NU E IEȘIRE EFECTIVĂ DE BANI** - doar depreciere contabilă în timp care reduce valoarea activelor în bilanț.",
+        
+        // CLASA 7 - VENITURI (Total sume cumulate)
+        "701": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🏭 **Venituri din producția vândută**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON încasări (sau de încasat) din vânzarea produselor finite pe care le-ai fabricat. **Motorul afacerii tale dacă produci!** Compară cu cheltuielile de producție (601, 602, 603) pentru a vedea dacă produci profitabil. Dacă costurile sunt prea apropiate de venituri → eficiență scăzută, marjă mică.`;
+        },
+        "704": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `💼 **Venituri din servicii prestate**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON încasări din serviciile pe care le-ai prestat clienților. **ACESTA E MOTORUL AFACERII TALE dacă ești pe servicii!** Compară cu lunile/perioadele anterioare să vezi trendul - crești sau scazi? Dacă scade → trebuie să faci marketing mai agresiv, să aduci clienți noi sau să crești prețurile. Dacă crește → continua strategia actuală și caută să optimizezi și mai mult!`;
+        },
+        "706": "📦 **Venituri din redevențe, locații de gestiune și chirii**: Venituri pasive din închirieri de spații/echipamente sau redevențe pentru brevete/mărci. Bani care intră fără efort activ - foarte profitabil!",
+        "707": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `🛒 **Venituri din vânzarea mărfurilor**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON cifra de afaceri din comercializare produse/mărfuri - acesta e prețul la care ai **VÂNDUT** (nu costul de achiziție). **COMPARĂ OBLIGATORIU CU CONTUL 607** (cheltuieli cu mărfurile = cost de achiziție) pentru a calcula **marja brută comercială**. Formula simplă: **Profit brut = 707 - 607**. Exemplu: Dacă 707 = 10.000 RON și 607 = 7.000 RON → Profit = 3.000 RON (marjă 30%). Cu cât diferența e mai mare, cu atât afacerea e mai profitabilă! Dacă marja e sub 15-20% → profit prea mic, trebuie să crești prețurile sau să reduci costul de achiziție.`;
+        },
+        "708": "📦 **Venituri din activități diverse**: Venituri auxiliare (vânzare deșeuri, ambalaje returnabile, activități secundare). Bani „bonus" pe lângă activitatea principală - orice sursă suplimentară de venit e binevenită!",
+        "754": "🎁 **Venituri din subvenții de exploatare**: Subvenții/granturi primite de la stat sau UE pentru activitatea curentă. **Verifică condițiile de utilizare** din contract - dacă nu le respecți (nu folosești banii conform destinației, nu atingi obiectivele), trebuie returnate cu dobânzi!",
+        "758": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `➕ **Alte venituri din exploatare**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON venituri diverse din activitatea curentă - vânzare deșeuri valorificabile, chirii încasate de la subchiriași, diferențe de inventar favorabile, despăgubiri primite, amenzi încasate de la clienți. Bani „bonus" pe lângă activitatea principală care îmbunătățesc profitul. **Asigură-te că sunt documentate corect** cu facturi/contracte pentru justificare la ANAF - venituri nejustificate pot ridica suspiciuni („venituri din surse necunoscute").`;
+        },
+        "7588": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          return `➕ **Alte venituri din exploatare diverse**: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON încasări diverse care nu se încadrează în categoriile principale - amenzi primite, despăgubiri favorabile, venituri din lichidarea de active, câștiguri din operațiuni exceptionale. Venituri „surpriză" care cresc profitul. **CRITICAL**: Asigură-te că sunt **documentate impecabil** cu contracte/hotărâri judecătorești/acte oficiale pentru justificare la ANAF - venituri mari nejustificate pot fi considerate „venituri din surse necunoscute" și atrag control fiscal aprofundat!`;
+        },
+        "765": "💱 **Venituri din diferențe de curs valutar**: Câștiguri din fluctuația cursului de schimb pentru operațiunile în valută (euro/dolari). Dacă ai conturi/tranzacții în valută și cursul e favorabil → câștigi fără efort. Risc: cursul se poate întoarce și poți avea și pierderi (cont 665).",
+        "766": "💰 **Venituri din dobânzi**: Dobânzi primite de la bancă (depozite bancare) sau dobânzi de întârziere încasate de la clienți care au plătit târziu. Venit pasiv - banii „fac bani" fără efort din partea ta. Dacă ai excedent de lichidități, pune-le într-un depozit bancar pentru a genera venit suplimentar.",
+        "767": "📈 **Venituri din subvenții de exploatare aferente cifrei de afaceri nete": Subvenții pentru vânzări/cifră de afaceri (scheme de ajutor de stat). Verifică condițiile - trebuie respectate criteriile de eligibilitate.",
+        "7815": "🔄 **Venituri din reevaluarea imobilizărilor corporale**: Creșteri de valoare din reevaluarea activelor fixe (imobile, terenuri, echipamente cresc în valoare la reevaluare). Apreciere contabilă - **NU ÎNSEAMNĂ INTRARE EFECTIVĂ DE BANI** cash, ci doar ajustare în bilanț. Nu te poți baza pe aceste venituri pentru cash-flow.",
+        
+        // Fallback îmbunătățit pentru conturi rare
+        "*": (acc: any) => {
+          const amount = acc.debit > 0 ? acc.debit : acc.credit;
+          const soldType = acc.debit > 0 ? 'debitor' : 'creditor';
+          const accountClass = Math.floor(parseInt(acc.code)/100);
+          const classNames: Record<number, string> = {
+            1: "CAPITALURI (resurse proprii ale firmei)",
+            2: "IMOBILIZĂRI (active fixe: clădiri, echipamente)",
+            3: "STOCURI (mărfuri, materiale, produse)",
+            4: "TERȚI (clienți, furnizori, bănci, stat)",
+            5: "TREZORERIE (bani în cont și în casă)",
+            6: "CHELTUIELI (costuri de exploatare)",
+            7: "VENITURI (încasări din activitate)"
+          };
+          
+          return `📋 **Cont contabil ${acc.code}** - ${acc.name}: Sold ${soldType} de ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON. Acesta este un cont mai rar întâlnit în contabilitatea curentă, specific activității tale. **Context general:** Aparține clasei ${accountClass} = ${classNames[accountClass] || 'categorie specială'}. ${soldType === 'debitor' ? 'Sold debitor înseamnă de obicei un activ (ceva ce deții) sau o cheltuială.' : 'Sold creditor înseamnă de obicei o datorie (ceva ce datorezi) sau un venit.'} Pentru interpretare exactă în contextul specific al firmei tale, este util să verifici natura tranzacțiilor care au alimentat acest cont în registrul jurnal.`;
+        }
       };
       
       // Grupează conturile pe clase
