@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit, Scale, Loader2 } from 'lucide-react';
+import { Plus, Building2, Search, Mail, ArrowLeft, Eye, FileText, Palette, TrendingUp, ShieldAlert, Calendar, ListTodo, MessageSquare, UserPlus, FileUp, Handshake, UserCheck, Edit, Scale, Loader2, FileCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/contexts/SubscriptionContext';
@@ -47,6 +47,7 @@ const EmailManager = lazy(() => import('@/components/EmailManager').then(m => ({
 const MonthlyWorkflowManager = lazy(() => import('@/components/yanacrm/MonthlyWorkflowManager').then(m => ({ default: m.MonthlyWorkflowManager })));
 const ClientDueDiligence = lazy(() => import('@/components/ClientDueDiligence').then(m => ({ default: m.ClientDueDiligence })));
 const FiscalChat = lazy(() => import('@/components/FiscalChat'));
+const BalanceConfirmation = lazy(() => import('@/components/BalanceConfirmation').then(m => ({ default: m.BalanceConfirmation })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -330,7 +331,7 @@ const AccountantDashboard = () => {
           </div>
 
         <Tabs defaultValue="clients" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="clients" data-tour="clients-tab">
               <Building2 className="mr-2 h-4 w-4" />
               Clienți
@@ -350,6 +351,10 @@ const AccountantDashboard = () => {
             <TabsTrigger value="email" data-tour="email-tab">
               <Mail className="mr-2 h-4 w-4" />
               Email
+            </TabsTrigger>
+            <TabsTrigger value="balance" data-tour="balance-tab">
+              <FileCheck className="mr-2 h-4 w-4" />
+              Confirmare Balanță
             </TabsTrigger>
             <TabsTrigger value="due-diligence" data-tour="due-diligence-tab">
               <ShieldAlert className="mr-2 h-4 w-4" />
@@ -777,6 +782,12 @@ const AccountantDashboard = () => {
           <TabsContent value="email">
             <Suspense fallback={<TabContentLoader />}>
               <EmailManager />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="balance">
+            <Suspense fallback={<TabContentLoader />}>
+              <BalanceConfirmation />
             </Suspense>
           </TabsContent>
 
