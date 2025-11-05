@@ -72,6 +72,8 @@ export const BalanceConfirmation = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
+  const [previewData, setPreviewData] = useState<Array<{code: string, name: string, debit: number, credit: number}>>([]);
+  const [columnsDetected, setColumnsDetected] = useState<{debit: number, credit: number} | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,32 +103,97 @@ export const BalanceConfirmation = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
-      // Extract CUI and company name (assuming they're in specific cells)
       let cui = "";
       let companyName = "";
       const accounts: Record<string, { debit: number; credit: number }> = {};
 
-      // Parse the data - adapt this logic based on your Excel structure
-      for (let i = 0; i < jsonData.length; i++) {
+      // Step 1: Detect column indices for "Solduri finale"
+      let finalDebitColIndex = -1;
+      let finalCreditColIndex = -1;
+      
+      for (let i = 0; i < Math.min(15, jsonData.length); i++) {
         const row = jsonData[i];
-        if (row[0]?.toString().includes("CUI") || row[0]?.toString().includes("C.U.I")) {
-          cui = row[1]?.toString() || "";
+        if (!row) continue;
+
+        for (let j = 0; j < row.length; j++) {
+          const cellValue = row[j]?.toString().toLowerCase() || "";
+          
+          // Search for "Solduri finale" or "Sold final" headers
+          if (cellValue.includes("solduri finale") || cellValue.includes("sold final")) {
+            if (cellValue.includes("debitor")) finalDebitColIndex = j;
+            if (cellValue.includes("creditor")) finalCreditColIndex = j;
+          }
         }
-        if (row[0]?.toString().includes("Denumire") || row[0]?.toString().includes("DENUMIRE")) {
-          companyName = row[1]?.toString() || "";
+        
+        // If both columns found, stop searching
+        if (finalDebitColIndex !== -1 && finalCreditColIndex !== -1) break;
+      }
+      
+      // Fallback to columns 8-9 if headers not found
+      if (finalDebitColIndex === -1) finalDebitColIndex = 8;
+      if (finalCreditColIndex === -1) finalCreditColIndex = 9;
+
+      console.log(`📊 Coloane detectate - Debit: ${finalDebitColIndex}, Credit: ${finalCreditColIndex}`);
+      setColumnsDetected({ debit: finalDebitColIndex, credit: finalCreditColIndex });
+
+      // Extract CUI and Company Name
+      for (let i = 0; i < Math.min(20, jsonData.length); i++) {
+        const row = jsonData[i];
+        if (!row) continue;
+
+        // Extract CUI
+        for (let j = 0; j < row.length; j++) {
+          const cell = row[j]?.toString() || "";
+          if (cell.includes("CUI") || cell.includes("C.U.I")) {
+            const cuiMatch = cell.match(/\d{8,}/);
+            if (cuiMatch) cui = cuiMatch[0];
+          }
         }
 
-        // Look for account numbers (starting with digits)
-        if (row[0] && /^\d+/.test(row[0].toString())) {
-          const accountCode = row[0].toString();
-          // Column 8 = Solduri finale Debitoare, Column 9 = Solduri finale Creditoare
-          const debit = parseFloat(row[8]?.toString() || "0") || 0;
-          const credit = parseFloat(row[9]?.toString() || "0") || 0;
-          
-          accounts[accountCode] = { debit, credit };
+        // Extract Company Name
+        if (row[0]?.toString().includes("BALANTA") || row[0]?.toString().includes("Denumire")) {
+          const match = row[0].toString().match(/BALANTA\s+(.+?)\s+\d/);
+          if (match) {
+            companyName = match[1].trim();
+          } else if (row[0]?.toString().includes("Denumire")) {
+            companyName = row[1]?.toString() || "";
+          }
         }
       }
 
+      // Parse accounts data
+      const preview: Array<{code: string, name: string, debit: number, credit: number}> = [];
+      
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (!row) continue;
+
+        // Skip header rows
+        if (row[0]?.toString().toLowerCase().includes("cont")) continue;
+        
+        if (row.some((cell) => cell?.toString().toLowerCase().includes("total"))) {
+          break;
+        }
+
+        if (row.length > 1) {
+          // Look for account numbers (starting with digits)
+          if (row[0] && /^\d+/.test(row[0].toString())) {
+            const accountCode = row[0].toString();
+            const accountName = row[1]?.toString() || "";
+            const debit = parseFloat(row[finalDebitColIndex]?.toString() || "0") || 0;
+            const credit = parseFloat(row[finalCreditColIndex]?.toString() || "0") || 0;
+            
+            accounts[accountCode] = { debit, credit };
+            
+            // Add to preview (first 5 accounts only)
+            if (preview.length < 5 && (debit > 0 || credit > 0)) {
+              preview.push({ code: accountCode, name: accountName, debit, credit });
+            }
+          }
+        }
+      }
+
+      setPreviewData(preview);
       return { cui, companyName, accounts };
     } catch (error) {
       console.error("Error parsing Excel:", error);
@@ -261,7 +328,7 @@ export const BalanceConfirmation = () => {
         setBalanceData(data);
         toast({
           title: "Fișier procesat",
-          description: "Datele au fost extrase cu succes din fișierul Excel.",
+          description: "Verifică datele detectate înainte de generare.",
         });
       } else {
         toast({
@@ -269,6 +336,8 @@ export const BalanceConfirmation = () => {
           description: "Nu s-au putut extrage datele din fișier. Verificați formatul.",
           variant: "destructive",
         });
+        setPreviewData([]);
+        setColumnsDetected(null);
       }
     } catch (error) {
       toast({
@@ -276,6 +345,8 @@ export const BalanceConfirmation = () => {
         description: "A apărut o eroare la procesarea fișierului.",
         variant: "destructive",
       });
+      setPreviewData([]);
+      setColumnsDetected(null);
     } finally {
       setIsProcessing(false);
     }
@@ -322,24 +393,63 @@ export const BalanceConfirmation = () => {
           </div>
 
           {balanceData && (
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div>
-                    <span className="font-semibold">Companie: </span>
-                    <span>{balanceData.companyName}</span>
+            <div className="space-y-6">
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <div>
+                      <span className="font-semibold">Companie: </span>
+                      <span>{balanceData.companyName}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold">CUI: </span>
+                      <span>{balanceData.cui}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold">Conturi extrase: </span>
+                      <span>{Object.keys(balanceData.accounts).length}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-semibold">CUI: </span>
-                    <span>{balanceData.cui}</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Conturi extrase: </span>
-                    <span>{Object.keys(balanceData.accounts).length}</span>
+                  <FileText className="h-12 w-12 text-primary" />
+                </div>
+              </div>
+
+              {columnsDetected && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">✓ Coloane detectate automat:</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    Sold Debitor: Coloana {columnsDetected.debit + 1} | Sold Creditor: Coloana {columnsDetected.credit + 1}
+                  </p>
+                </div>
+              )}
+
+              {previewData.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <h3 className="font-semibold text-sm p-3 bg-muted">Preview date detectate (primele 5 conturi):</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="p-2 text-left">Cont</th>
+                          <th className="p-2 text-left">Denumire</th>
+                          <th className="p-2 text-right">Sold Debitor</th>
+                          <th className="p-2 text-right">Sold Creditor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewData.map((item, idx) => (
+                          <tr key={idx} className="border-t">
+                            <td className="p-2 font-mono">{item.code}</td>
+                            <td className="p-2">{item.name}</td>
+                            <td className="p-2 text-right font-mono">{item.debit.toFixed(2)}</td>
+                            <td className="p-2 text-right font-mono">{item.credit.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-                <FileText className="h-12 w-12 text-primary" />
-              </div>
+              )}
               
               <Button
                 onClick={generateWordDocument}
@@ -347,7 +457,7 @@ export const BalanceConfirmation = () => {
                 size="lg"
               >
                 <Download className="mr-2 h-5 w-5" />
-                Descarcă Document Word
+                Confirmă și Generează Document Word
               </Button>
             </div>
           )}
