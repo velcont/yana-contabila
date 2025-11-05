@@ -653,30 +653,7 @@ export default function StrategicAdvisor() {
         {/* CFO Dashboard Tab */}
         <TabsContent value="cfo" className="flex-1 m-0 overflow-y-auto p-4">
           <div className="container mx-auto max-w-6xl">
-            {/* Banner pentru full-screen CFO */}
-            <div className="mb-6 p-6 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/30 rounded-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-blue-500" />
-                    CFO Dashboard Complet
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Pentru experiență optimă, deschide CFO Dashboard în ecran complet cu toate graficele și funcționalitățile.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => navigate('/cfo')}
-                  size="lg"
-                  className="gap-2 cfo-button-elegant"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  Deschide în Ecran Complet
-                </Button>
-              </div>
-            </div>
-
-            {/* Preview scurt - doar Snapshot */}
+            {/* Preview CFO Dashboard */}
             <YanaCFODashboard
               userId={user?.id || ""}
               creditRemaining={creditRemaining}

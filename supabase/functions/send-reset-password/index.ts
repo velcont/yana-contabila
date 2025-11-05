@@ -22,8 +22,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Use the domain from the request or default
-    const redirectTo = 'https://yana-contabila.velcont.com/auth?reset=true';
+    // Dynamically determine the redirect URL from request headers
+    const origin = req.headers.get('origin') || req.headers.get('referer');
+    const baseUrl = origin ? new URL(origin).origin : 'https://yana-contabila.velcont.com';
+    const redirectTo = `${baseUrl}/auth?reset=true`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectTo,

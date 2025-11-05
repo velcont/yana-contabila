@@ -200,8 +200,8 @@ export default function CFO() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate('/strategic-advisor')}
-                aria-label="Înapoi la Strategic Advisor"
+                onClick={() => navigate('/app')}
+                aria-label="Înapoi la Pagina Principală"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
