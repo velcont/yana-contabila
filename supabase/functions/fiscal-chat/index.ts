@@ -141,6 +141,10 @@ serve(async (req) => {
       : Array.isArray(body.messages) ? (body.messages?.[0]?.content ?? '') : '';
     console.log('[FISCAL-CHAT] Parsed message:', message ? message.slice(0, 120) : '(empty)');
 
+    // Extract full messages array for conversation history
+    const messagesArray = Array.isArray(body.messages) ? body.messages : [{ role: 'user', content: message }];
+    console.log('[FISCAL-CHAT] Messages array length:', messagesArray.length);
+
     if (!message || typeof message !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Invalid message format' }),
@@ -209,10 +213,7 @@ serve(async (req) => {
               role: 'system',
               content: FISCAL_SYSTEM_PROMPT
             },
-            {
-              role: 'user',
-              content: message
-            }
+            ...messagesArray // ✅ Include tot istoricul conversației pentru context
           ],
           temperature: 0.2,
           max_tokens: 2000,

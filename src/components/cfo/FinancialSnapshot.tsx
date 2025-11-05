@@ -79,13 +79,13 @@ export const FinancialSnapshot = React.memo(({
               : "bg-gradient-to-br from-red-500 via-rose-600 to-red-700"
           )}>
             <div className="text-sm opacity-90 mb-2 font-medium">
-              {profit >= 0 ? `✅ ${getProfitLabel()}` : `🔴 Pierdere ${periodLabel}`}
+              {profit >= 0 ? `✅ ${getProfitLabel()}` : `🔴 PIERDERE ${periodLabel}`}
             </div>
             <div className="text-3xl font-bold mb-1">
               {formatCurrency(Math.abs(profit))}
             </div>
-            <div className="text-xs opacity-80">
-              {profit >= 0 ? 'Rentabil' : 'Necesită atenție'}
+            <div className="text-xs opacity-80 font-semibold">
+              {profit >= 0 ? 'Rentabil ✓' : '⚠️ Cheltuieli > Venituri'}
             </div>
           </div>
 

@@ -131,6 +131,24 @@ const sumAccountsInRange = (balanceData: any, startAccount: number, endAccount: 
   return total;
 };
 
+// Helper: Sum expenses from accounts 6000-6999 (debit column)
+const sumExpensesFromBalance = (balanceData: any): number => {
+  if (!balanceData || !Array.isArray(balanceData)) return 0;
+  
+  let total = 0;
+  for (const row of balanceData) {
+    const accountNumber = parseInt(row.cont || row.account || row.Cont || '0');
+    // Cheltuielile sunt în conturile 6000-6999 pe debit
+    if (accountNumber >= 6000 && accountNumber <= 6999) {
+      const debit = parseRoNumber(row.debit || row.Debit || row.Debitoare || 0);
+      total += debit;
+      console.log(`💰 Cont cheltuieli ${accountNumber}: ${debit} RON`);
+    }
+  }
+  console.log(`💰 Total cheltuieli din balance (conturi 6xxx): ${total} RON`);
+  return total;
+};
+
 // Helper: Sum bank accounts (51xx) - debit final balance
 const sumBankAccounts = (balanceData: any): number => {
   if (!balanceData || !Array.isArray(balanceData)) return 0;
@@ -308,6 +326,15 @@ export const getLatestFinancialData = async (
         'indicatori.cheltuieli', 'indicatori.totalCheltuieli', 'indicatori.costuri',
         'metrics.expenses', 'metrics.cheltuieli', 'metrics.totalCheltuieli'
       ]);
+      
+      // FALLBACK: Sum accounts 6000-6999 from balance_data
+      if (merged.expenses === 0 && m.balance_data) {
+        console.log('🔍 Fallback: Sumez conturile 6xxx (cheltuieli) din balance_data');
+        merged.expenses = sumExpensesFromBalance(m.balance_data);
+        if (merged.expenses > 0) {
+          console.log(`✅ Cheltuieli calculate din balance_data: ${merged.expenses}`);
+        }
+      }
     }
 
     // Profit
@@ -399,15 +426,23 @@ export const getLatestFinancialData = async (
     }
   }
 
-  // Recalculate profit from revenue - expenses (ALWAYS, to fix incorrect saved values)
-  if (merged.revenue > 0 && merged.expenses > 0) {
+  // CRITICAL FIX: ALWAYS recalculate profit from revenue - expenses
+  console.log('🔍 Calculare profit: revenue =', merged.revenue, ', expenses =', merged.expenses);
+  
+  if (merged.revenue > 0 && merged.expenses >= 0) {
     const calculatedProfit = merged.revenue - merged.expenses;
     
-    // If saved profit differs significantly from calculated, use calculated
-    if (Math.abs(merged.profit - calculatedProfit) > 1) {
-      console.log(`⚠️ Profit salvat (${merged.profit}) diferă de cel calculat (${calculatedProfit}). Folosim calculatul.`);
-      merged.profit = calculatedProfit;
+    console.log(`💰 Profit calculat: ${merged.revenue} - ${merged.expenses} = ${calculatedProfit}`);
+    
+    // ALWAYS use calculated profit (don't trust saved values)
+    if (merged.profit !== calculatedProfit) {
+      console.log(`⚠️ CORECTARE: Profit salvat (${merged.profit}) înlocuit cu calculatul (${calculatedProfit})`);
     }
+    merged.profit = calculatedProfit;
+  } else if (merged.revenue > 0 && merged.expenses === 0) {
+    // If no expenses found, profit = revenue
+    console.log(`⚠️ Nu s-au găsit cheltuieli. Profit = Revenue: ${merged.revenue}`);
+    merged.profit = merged.revenue;
   }
   
   // Fallback to ebitda if profit is still 0

@@ -126,11 +126,20 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         });
       }
 
-      console.log('[FISCAL-CHAT] Preparing request to fiscal-chat...');
+      // IMPORTANT: Trimitem ÎNTREG istoricul conversației pentru context
+      const conversationHistory = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+      
+      console.log('[FISCAL-CHAT] Preparing request with history:', conversationHistory.length, 'messages');
       const { data, error } = await supabase.functions.invoke('fiscal-chat', {
         body: {
           message: userMessageContent,
-          messages: [{ role: 'user', content: userMessageContent }]
+          messages: [
+            ...conversationHistory,
+            { role: 'user', content: userMessageContent }
+          ]
         }
       });
 

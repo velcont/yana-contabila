@@ -513,9 +513,8 @@ export default function StrategicAdvisor() {
 
           {/* Tabs Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="w-full">
               <TabsTrigger value="chat">💬 Chat Strategist</TabsTrigger>
-              <TabsTrigger value="cfo">📊 CFO Dashboard</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -647,19 +646,6 @@ export default function StrategicAdvisor() {
                 Apasă Enter pentru a trimite, Shift+Enter pentru linie nouă
               </p>
             </div>
-          </div>
-        </TabsContent>
-
-        {/* CFO Dashboard Tab */}
-        <TabsContent value="cfo" className="flex-1 m-0 overflow-y-auto p-4">
-          <div className="container mx-auto max-w-6xl">
-            {/* Preview CFO Dashboard */}
-            <YanaCFODashboard
-              userId={user?.id || ""}
-              creditRemaining={creditRemaining}
-              onCreditDeduct={deductCredit}
-              financialData={financialData}
-            />
           </div>
         </TabsContent>
       </Tabs>
