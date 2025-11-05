@@ -101,6 +101,17 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [fiscalMessages, setFiscalMessages] = useState<Message[]>([]);
   const [fiscalConversationId, setFiscalConversationId] = useState<string>(crypto.randomUUID());
   const [isLoading, setIsLoading] = useState(false);
+  const [balanceStructuredData, setBalanceStructuredData] = useState<{
+    cui: string;
+    company: string;
+    accounts: Array<{
+      code: string;
+      name: string;
+      debit: number;
+      credit: number;
+      accountClass: number;
+    }>;
+  } | null>(null);
   
   // Încarcă istoric fiscal când se schimbă pe modul fiscal
   useEffect(() => {
@@ -1024,6 +1035,16 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
 
+          // 📊 Salvează datele structurate pentru generare Word
+          if (data.structuredData) {
+            setBalanceStructuredData(data.structuredData);
+            logger.log('📊 [ChatAI] Date structurate salvate pentru Word:', {
+              cui: data.structuredData.cui,
+              company: data.structuredData.company,
+              accountsCount: data.structuredData.accounts?.length || 0
+            });
+          }
+
           // Save analysis to database
           const { data: { user } } = await supabase.auth.getUser();
           if (user && data) {
@@ -1369,6 +1390,218 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       </div>
     );
   }
+
+  // Funcție generare confirmare Word
+  const handleGenerateWordConfirmation = async (structuredData: typeof balanceStructuredData) => {
+    if (!structuredData) return;
+    
+    try {
+      const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = await import('docx');
+      const { saveAs } = await import('file-saver');
+      
+      // Explicații conturi extinse
+      const accountExplanations: Record<string, string> = {
+        // Clasa 1
+        "121": "Profit sau pierdere - Rezultatul exercițiului curent (sold creditor = profit, sold debitor = pierdere).",
+        "1171": "Rezultat reportat - Profit/pierdere din anii anteriori reportată în anul curent.",
+        
+        // Clasa 4
+        "401": "Furnizori - Datorii către furnizori pentru bunuri/servicii primite și neplătite.",
+        "4111": "Clienți - Creanțe de încasat de la clienți pentru bunuri/servicii livrate.",
+        "4423": "TVA de plată - TVA colectată și nevirată încă la bugetul statului.",
+        "4424": "TVA de recuperat - TVA deductibilă care urmează să fie recuperată de la stat.",
+        "4551": "Asociați - conturi curente - Datorii sau creanțe față de asociați/acționari.",
+        
+        // Clasa 5
+        "5121": "Conturi la bănci în lei - Disponibilități bănești în conturile bancare în RON.",
+        "5311": "Casa în lei - Numerar disponibil în casieria firmei.",
+        
+        // Clasa 6
+        "601": "Cheltuieli cu materiile prime - Cost achiziție materii prime folosite în producție.",
+        "602": "Cheltuieli cu materialele consumabile - Cost materiale auxiliare (consumabile, piese schimb).",
+        "6022": "Cheltuieli cu combustibilii - Total combustibil cumpărat în perioada analizată.",
+        "607": "Cheltuieli privind mărfurile - Preț achiziție mărfuri destinate revânzării.",
+        "611": "Cheltuieli cu întreținerea și reparațiile - Costuri mentenanță și reparații active.",
+        "621": "Cheltuieli cu colaboratorii - Plăți către colaboratori/freelanceri.",
+        "626": "Cheltuieli poștale și taxe telecomunicații - Costuri servicii poștale și telecomunicații.",
+        
+        // Clasa 7
+        "704": "Venituri din lucrări executate - Încasări din prestări servicii/lucrări contractate.",
+        "707": "Venituri din vânzarea mărfurilor - Cifra de afaceri din comercializare produse/mărfuri.",
+        "758": "Alte venituri din exploatare - Venituri diverse din activitatea curentă.",
+        
+        // Fallback
+        "*": "Cont contabil cu sold în perioada analizată. Consultați contabilul pentru detalii."
+      };
+      
+      // Grupează conturile pe clase
+      const accountsByClass: Record<number, typeof structuredData.accounts> = {};
+      structuredData.accounts.forEach(acc => {
+        if (!accountsByClass[acc.accountClass]) {
+          accountsByClass[acc.accountClass] = [];
+        }
+        accountsByClass[acc.accountClass].push(acc);
+      });
+      
+      // Creare secțiuni document
+      const sections: any[] = [];
+      
+      // Header
+      sections.push(
+        new Paragraph({
+          text: `CONFIRMARE SOLDURI BALANȚĂ CONTABILĂ`,
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `CUI: `, bold: true }),
+            new TextRun({ text: structuredData.cui })
+          ],
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `Companie: `, bold: true }),
+            new TextRun({ text: structuredData.company })
+          ],
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `Dată generare: `, bold: true }),
+            new TextRun({ text: new Date().toLocaleDateString('ro-RO') })
+          ],
+          spacing: { after: 400 }
+        })
+      );
+      
+      // Parcurge clasele 1-7
+      const classNames: Record<number, string> = {
+        1: 'CAPITALURI',
+        2: 'IMOBILIZĂRI',
+        3: 'STOCURI',
+        4: 'TERȚI (Clienți, Furnizori, etc.)',
+        5: 'TREZORERIE (Bănci, Casă)',
+        6: 'CHELTUIELI',
+        7: 'VENITURI'
+      };
+      
+      for (let classNum = 1; classNum <= 7; classNum++) {
+        const accounts = accountsByClass[classNum] || [];
+        if (accounts.length === 0) continue;
+        
+        sections.push(
+          new Paragraph({
+            text: `\nCLASA ${classNum}: ${classNames[classNum]}`,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 }
+          })
+        );
+        
+        accounts.forEach(acc => {
+          const sold = acc.debit > 0 ? acc.debit : acc.credit;
+          const soldType = acc.debit > 0 ? 'debitor' : 'creditor';
+          const explanation = accountExplanations[acc.code] || accountExplanations['*'];
+          
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${acc.code} - ${acc.name}`, bold: true })
+              ],
+              spacing: { before: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: `Sold ${soldType}: ` }),
+                new TextRun({ text: `${sold.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`, bold: true })
+              ]
+            }),
+            new Paragraph({
+              text: explanation,
+              spacing: { after: 200 }
+            })
+          );
+        });
+      }
+      
+      // Footer
+      sections.push(
+        new Paragraph({
+          text: `\n\n---`,
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 600 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Document generat automat de YanaCFO AI', italics: true })
+          ],
+          alignment: AlignmentType.CENTER
+        })
+      );
+      
+      // Creare document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: sections
+        }]
+      });
+      
+      // Generare și download
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `Confirmare_Balanta_${structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`);
+      
+      // Salvare în baza de date
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Încearcă să găsești company_id după CUI
+        let companyId = null;
+        if (structuredData.cui) {
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('cui', structuredData.cui)
+            .single();
+          
+          if (companyData) companyId = companyData.id;
+        }
+
+        const { error: saveError } = await supabase
+          .from('balance_confirmations')
+          .insert({
+            user_id: user.id,
+            company_id: companyId,
+            cui: structuredData.cui,
+            company_name: structuredData.company,
+            accounts_data: structuredData.accounts
+          });
+        
+        if (saveError) {
+          console.error('Eroare salvare confirmare:', saveError);
+        } else {
+          console.log('✅ Confirmare salvată în istoric');
+        }
+      }
+      
+      toast({
+        title: '✅ Document generat!',
+        description: 'Confirmarea balanței a fost descărcată și salvată în istoric.'
+      });
+      
+      // Reset state pentru următoarea analiză
+      setBalanceStructuredData(null);
+      
+    } catch (error) {
+      console.error('Eroare generare Word:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu am putut genera documentul Word.',
+        variant: 'destructive'
+      });
+    }
+  };
 
   return (
     <div className={`${isMaximized || showHistory || showInsights ? 'fixed inset-0 z-50 flex pointer-events-none' : 'fixed bottom-4 left-4 z-50 pointer-events-none'}`}>
@@ -1803,6 +2036,37 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                         <div className="text-xs text-muted-foreground px-2 flex items-center gap-1">
                           <Sparkles className="h-3 w-3" />
                           Mulțumim! AI învață din feedback-ul tău.
+                        </div>
+                      )}
+                      
+                      {/* Preview și buton generare Word (doar pentru analiză balanță) */}
+                      {msg.role === 'assistant' && chatMode === 'balance' && balanceStructuredData && idx === messages.length - 1 && (
+                        <div className="mt-3 p-3 bg-accent/5 rounded-lg border border-accent/20 space-y-3">
+                          <div className="text-sm space-y-1.5">
+                            <p className="flex items-center gap-2">
+                              <span className="font-semibold text-muted-foreground">CUI:</span>
+                              <span className="text-foreground">{balanceStructuredData.cui || 'N/A'}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="font-semibold text-muted-foreground">Companie:</span>
+                              <span className="text-foreground">{balanceStructuredData.company || 'N/A'}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="font-semibold text-muted-foreground">Conturi detectate:</span>
+                              <Badge variant="secondary" className="ml-1">
+                                {balanceStructuredData.accounts?.length || 0}
+                              </Badge>
+                            </p>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => handleGenerateWordConfirmation(balanceStructuredData)}
+                            className="w-full"
+                            variant="default"
+                            size="sm"
+                          >
+                            📄 Generează Confirmare Word
+                          </Button>
                         </div>
                       )}
                       

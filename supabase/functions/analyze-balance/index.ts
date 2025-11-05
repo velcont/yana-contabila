@@ -500,6 +500,125 @@ serve(async (req) => {
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
 
+    // 📊 EXTRAGERE DATE STRUCTURATE PENTRU GENERARE WORD
+    console.log("📊 [STRUCTURED-DATA] START: Extragere CUI, companie și conturi pentru Word...");
+    const extractStructuredData = () => {
+      try {
+        const excelBytes = Uint8Array.from(atob(excelBase64), c => c.charCodeAt(0));
+        const workbook = XLSX.read(excelBytes, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][];
+        
+        let cui = '';
+        let company = '';
+        const accounts: any[] = [];
+        
+        // 1. Extrage CUI și companie din primele rânduri
+        for (let i = 0; i < Math.min(10, data.length); i++) {
+          const firstCell = String(data[i][0] || '');
+          
+          // Caută CUI (8-10 cifre)
+          const cuiMatch = firstCell.match(/CUI:?\s*(\d{8,10})/i) || firstCell.match(/(\d{8,10})/);
+          if (cuiMatch && !cui) cui = cuiMatch[1];
+          
+          // Caută nume companie (înainte de | sau CUI)
+          const companyMatch = firstCell.split('|')[0].split(/CUI|CIF/i)[0].trim();
+          if (companyMatch && companyMatch.length > 3 && !company) company = companyMatch;
+        }
+        
+        console.log(`📊 [STRUCTURED-DATA] CUI detectat: ${cui}, Companie: ${company}`);
+        
+        // 2. Găsește header-ul
+        let headerRow = -1;
+        let contCol = -1, denumireCol = -1;
+        let soldFinalDCol = -1, soldFinalCCol = -1;
+        let rulajDCol = -1, rulajCCol = -1;
+        
+        for (let i = 0; i < Math.min(15, data.length); i++) {
+          const row = data[i];
+          const rowStr = row.join('|').toLowerCase();
+          
+          if (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')) || rowStr.includes('rulaj')) {
+            headerRow = i;
+            for (let j = 0; j < row.length; j++) {
+              const cell = String(row[j]).toLowerCase().trim();
+              if ((cell.includes('cont') || cell.includes('simbol')) && contCol === -1) contCol = j;
+              if (cell.includes('denumire') && denumireCol === -1) denumireCol = j;
+              if (cell.includes('sold') && cell.includes('final') && cell.includes('debit')) soldFinalDCol = j;
+              if (cell.includes('sold') && cell.includes('final') && cell.includes('credit')) soldFinalCCol = j;
+              if (cell.includes('rulaj') && cell.includes('debit') && !cell.includes('sold')) rulajDCol = j;
+              if (cell.includes('rulaj') && cell.includes('credit') && !cell.includes('sold')) rulajCCol = j;
+            }
+            break;
+          }
+        }
+        
+        console.log(`📊 [STRUCTURED-DATA] Header la rând ${headerRow}, coloane: cont=${contCol}, denumire=${denumireCol}, soldD=${soldFinalDCol}, soldC=${soldFinalCCol}, rulajD=${rulajDCol}, rulajC=${rulajCCol}`);
+        
+        // 3. Parcurge rândurile de date
+        if (headerRow >= 0 && contCol >= 0) {
+          for (let i = headerRow + 1; i < data.length; i++) {
+            const row = data[i];
+            const contCode = String(row[contCol] || '').trim();
+            
+            // Skip dacă nu e cod de cont valid
+            if (!contCode || !/^\d/.test(contCode) || contCode.length < 3) continue;
+            
+            const accountClass = parseInt(contCode[0]);
+            const denumire = denumireCol >= 0 ? String(row[denumireCol] || '').trim() : '';
+            
+            let debit = 0, credit = 0;
+            
+            // Clase 1-5: folosește solduri finale
+            if (accountClass >= 1 && accountClass <= 5) {
+              if (soldFinalDCol >= 0) {
+                const val = String(row[soldFinalDCol] || '0').replace(/[,\s]/g, '').replace('.', '');
+                debit = parseFloat(val) / 100 || 0; // Convertește din bani (1234567 = 12345.67)
+              }
+              if (soldFinalCCol >= 0) {
+                const val = String(row[soldFinalCCol] || '0').replace(/[,\s]/g, '').replace('.', '');
+                credit = parseFloat(val) / 100 || 0;
+              }
+            }
+            // Clasa 6: rulaje debitoare
+            else if (accountClass === 6) {
+              if (rulajDCol >= 0) {
+                const val = String(row[rulajDCol] || '0').replace(/[,\s]/g, '').replace('.', '');
+                debit = parseFloat(val) / 100 || 0;
+              }
+            }
+            // Clasa 7: rulaje creditoare
+            else if (accountClass === 7) {
+              if (rulajCCol >= 0) {
+                const val = String(row[rulajCCol] || '0').replace(/[,\s]/g, '').replace('.', '');
+                credit = parseFloat(val) / 100 || 0;
+              }
+            }
+            
+            // Adaugă doar conturile cu sold > 0
+            if (debit > 0 || credit > 0) {
+              accounts.push({
+                code: contCode,
+                name: denumire,
+                debit: Math.round(debit * 100) / 100, // 2 decimale
+                credit: Math.round(credit * 100) / 100,
+                accountClass
+              });
+            }
+          }
+        }
+        
+        console.log(`📊 [STRUCTURED-DATA] Extrase ${accounts.length} conturi cu sold > 0`);
+        return { cui, company, accounts };
+      } catch (error) {
+        console.error('📊 [STRUCTURED-DATA] Eroare extragere:', error);
+        return { cui: '', company: '', accounts: [] };
+      }
+    };
+
+    const structuredData = extractStructuredData();
+    console.log(`📊 [STRUCTURED-DATA] FINAL - CUI: ${structuredData.cui}, Companie: ${structuredData.company}, Conturi: ${structuredData.accounts.length}`);
+
     // CALCUL DETERMINIST AL INDICATORILOR DIN EXCEL
     console.log("📊 [METADATA-EXTRACT] START: Calcul determinist indicatori financiari din Excel...");
     const deterministic_metadata: Record<string, number> = {};
@@ -1559,7 +1678,8 @@ serve(async (req) => {
       JSON.stringify({ 
         analysis: finalAnalysisText,
         metadata: hasValidData ? finalMetadata : null,
-        councilValidation: councilValidation
+        councilValidation: councilValidation,
+        structuredData: structuredData
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
