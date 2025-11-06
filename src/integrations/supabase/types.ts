@@ -2138,6 +2138,51 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_documents: {
+        Row: {
+          bibliography_file_path: string | null
+          created_at: string
+          document_title: string
+          document_type: string
+          guide_file_path: string | null
+          id: string
+          main_file_path: string
+          metadata: Json | null
+          updated_at: string
+          user_id: string
+          word_count: number | null
+          zip_file_path: string | null
+        }
+        Insert: {
+          bibliography_file_path?: string | null
+          created_at?: string
+          document_title: string
+          document_type: string
+          guide_file_path?: string | null
+          id?: string
+          main_file_path: string
+          metadata?: Json | null
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+          zip_file_path?: string | null
+        }
+        Update: {
+          bibliography_file_path?: string | null
+          created_at?: string
+          document_title?: string
+          document_type?: string
+          guide_file_path?: string | null
+          id?: string
+          main_file_path?: string
+          metadata?: Json | null
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+          zip_file_path?: string | null
+        }
+        Relationships: []
+      }
       humanized_texts: {
         Row: {
           changes_percent: number | null

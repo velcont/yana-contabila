@@ -1,4 +1,6 @@
 import pptxgen from "pptxgenjs";
+import { saveDocumentToLibrary } from "./documentStorage";
+import { toast } from "sonner";
 
 export const generateCFOPresentation = async () => {
   const pptx = new pptxgen();
@@ -558,7 +560,27 @@ export const generateCFOPresentation = async () => {
   });
   
   // Generare și descărcare fișier
-  await pptx.writeFile({ fileName: "CFO_Dashboard_Yana_Prezentare.pptx" });
+  const fileName = "CFO_Dashboard_Yana_Prezentare.pptx";
+  await pptx.writeFile({ fileName });
   
-  return "CFO_Dashboard_Yana_Prezentare.pptx";
+  // Save to library
+  try {
+    const blob = await pptx.write({ outputType: "blob" }) as Blob;
+    await saveDocumentToLibrary({
+      documentType: "cfo_presentation",
+      documentTitle: "CFO Dashboard Yana - Prezentare Beneficii",
+      mainFileBlob: blob,
+      mainFileExtension: "pptx",
+      metadata: {
+        slides: 11,
+        version: "synthesia_ready"
+      }
+    });
+    toast.success("Prezentare salvată în biblioteca ta!");
+  } catch (error) {
+    console.error("Error saving to library:", error);
+    toast.error("Prezentarea a fost descărcată, dar nu a putut fi salvată în bibliotecă");
+  }
+  
+  return fileName;
 };

@@ -49,6 +49,7 @@ const GenerateCFOPresentation = lazy(() => import("./pages/GenerateCFOPresentati
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
 const GenerateConferencePaper = lazy(() => import("./pages/GenerateConferencePaper"));
 const CFO = lazy(() => import("./pages/CFO"));
+const MyDocuments = lazy(() => import("./pages/MyDocuments"));
 
 const queryClient = new QueryClient();
 
@@ -119,6 +120,7 @@ const App = () => (
                       <Route path="/generate-cfo-presentation" element={<GenerateCFOPresentation />} />
                       <Route path="/generate-literature-review" element={<GenerateLiteratureReview />} />
                       <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />
+                      <Route path="/my-documents" element={<PrivateRoute><MyDocuments /></PrivateRoute>} />
                       <Route path="/install" element={<InstallPWA />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />

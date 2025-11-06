@@ -13,6 +13,8 @@ import JSZip from "jszip";
 import { processDocumenter } from "@/lib/processDocumenter";
 import { generateProcessReport } from "./generateProcessReport";
 import { generateSourcesSpreadsheet, extractSourcesFromContent } from "./generateSourcesSpreadsheet";
+import { saveDocumentToLibrary } from "./documentStorage";
+import { toast } from "sonner";
 
 interface ChapterData {
   chapter_number: number;
@@ -217,12 +219,13 @@ export const generateDoctorateDocument = async (
   );
   
   // Generate sources spreadsheet
+  let sourcesBlob: Blob | undefined;
   const allSources = chapters.flatMap((chapter, idx) => 
     extractSourcesFromContent(chapter.content, idx + 1)
   );
   
   if (allSources.length > 0) {
-    const sourcesBlob = await generateSourcesSpreadsheet(allSources, chapters.length);
+    sourcesBlob = await generateSourcesSpreadsheet(allSources, chapters.length);
     zip.file(`${baseFileName}_BIBLIOGRAFIE.xlsx`, sourcesBlob);
     
     processDocumenter.logAction(
@@ -291,6 +294,29 @@ Versiune: 1.0
     `Export finalizat: ${zipFileName} cu toate dovezile incluse`,
     false
   );
+  
+  // Save to library
+  try {
+    const totalWords = chapters.reduce((sum, ch) => sum + (ch.word_count || 0), 0);
+    await saveDocumentToLibrary({
+      documentType: "doctorate",
+      documentTitle: title,
+      mainFileBlob: docBlob,
+      mainFileExtension: "docx",
+      guideFileBlob: processReportBlob,
+      bibliographyFileBlob: sourcesBlob,
+      zipFileBlob: zipBlob,
+      wordCount: totalWords,
+      metadata: {
+        chapters: chapters.length,
+        version: "complete_package"
+      }
+    });
+    toast.success("Teză salvată în biblioteca ta!");
+  } catch (error) {
+    console.error("Error saving to library:", error);
+    toast.error("Teza a fost descărcată, dar nu a putut fi salvată în bibliotecă");
+  }
   
   return zipFileName;
 };

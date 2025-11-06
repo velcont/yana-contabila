@@ -8,6 +8,8 @@ import {
   PageBreak
 } from "docx";
 import { saveAs } from "file-saver";
+import { saveDocumentToLibrary } from "./documentStorage";
+import { toast } from "sonner";
 
 export const generateLiteratureReviewDocument = async () => {
   const doc = new Document({
@@ -711,6 +713,24 @@ export const generateLiteratureReviewDocument = async () => {
   const blob = await Packer.toBlob(doc);
   const fileName = `Literature_Review_Rezilienta_Organizational_CORECTAT.docx`;
   saveAs(blob, fileName);
+  
+  // Save to library
+  try {
+    await saveDocumentToLibrary({
+      documentType: "literature_review",
+      documentTitle: "Reziliența Organizațională - Literature Review Complet",
+      mainFileBlob: blob,
+      mainFileExtension: "docx",
+      wordCount: 4500,
+      metadata: {
+        version: "extended_corrected"
+      }
+    });
+    toast.success("Document salvat în biblioteca ta!");
+  } catch (error) {
+    console.error("Error saving to library:", error);
+    toast.error("Documentul a fost descărcat, dar nu a putut fi salvat în bibliotecă");
+  }
   
   return fileName;
 };

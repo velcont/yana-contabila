@@ -7,6 +7,8 @@ import {
   HeadingLevel 
 } from "docx";
 import { saveAs } from "file-saver";
+import { saveDocumentToLibrary } from "./documentStorage";
+import { toast } from "sonner";
 
 export const generateCompressedLiteratureReview = async (
   authorName: string = "Nume Autor",
@@ -203,6 +205,26 @@ export const generateCompressedLiteratureReview = async (
   
   const blob = await Packer.toBlob(doc);
   saveAs(blob, "Literature_Review_COMPRESSED_Conference_4pages.docx");
+  
+  // Save to library
+  try {
+    await saveDocumentToLibrary({
+      documentType: "conference_paper",
+      documentTitle: "Reziliența organizațională - Literature Review (Conferință 4 pagini)",
+      mainFileBlob: blob,
+      mainFileExtension: "docx",
+      wordCount: 1100,
+      metadata: {
+        author: authorName,
+        affiliation: affiliation,
+        version: "compressed_4pages"
+      }
+    });
+    toast.success("Document salvat în biblioteca ta!");
+  } catch (error) {
+    console.error("Error saving to library:", error);
+    toast.error("Documentul a fost descărcat, dar nu a putut fi salvat în bibliotecă");
+  }
 };
 
 function createCompressedBibliography() {
