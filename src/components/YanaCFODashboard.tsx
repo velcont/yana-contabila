@@ -22,6 +22,7 @@ import { CFOChatInterface } from './cfo/CFOChatInterface';
 import { RunwayCard } from './cfo/RunwayCard';
 import { FinancialSnapshot } from './cfo/FinancialSnapshot';
 import { SourceDataCard } from './cfo/SourceDataCard';
+import { AccountsBreakdown } from './cfo/AccountsBreakdown';
 import { LoadingSpinner } from './ui/skeleton-loader';
 import { EmptyState } from './ui/empty-state';
 import { ContextualHelp } from './ContextualHelp';
@@ -53,6 +54,7 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
   const [cfoQuestion, setCfoQuestion] = useState('');
   const [cfoConversationHistory, setCfoConversationHistory] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
+  const [analysisMetadata, setAnalysisMetadata] = useState<any>(null); // Full metadata including account breakdown
   
   // Company selector state
   const [companies, setCompanies] = useState<Array<{id: string, company_name: string}>>([]);
@@ -252,6 +254,20 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
           variant: "default"
         });
         return;
+      }
+
+      // Load full metadata from latest analysis
+      const { data: latestAnalysis } = await supabase
+        .from('analyses')
+        .select('metadata')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestAnalysis?.metadata) {
+        console.log('✅ CFO Dashboard - Analysis metadata loaded:', Object.keys(latestAnalysis.metadata).length, 'keys');
+        setAnalysisMetadata(latestAnalysis.metadata);
       }
       
       console.log('🔍 CFO Dashboard - Sold Banca:', data?.soldBanca);
@@ -490,6 +506,11 @@ export const YanaCFODashboard = ({ userId, creditRemaining, onCreditDeduct, fina
           periodLabel={financialData.periodLabel}
           monthsInFile={financialData.monthsInFile}
         />
+      )}
+
+      {/* ACCOUNTS BREAKDOWN - DETAILED BALANCE STRUCTURE */}
+      {analysisMetadata && (
+        <AccountsBreakdown metadata={analysisMetadata} />
       )}
 
       {/* RUNWAY CARD */}

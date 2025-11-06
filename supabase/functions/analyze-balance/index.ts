@@ -67,7 +67,62 @@ La inceputul anlizei vei scrie urmatorul mesaj:
 
 Apoi treci la analiza balanța atașate urmând următoarele reguli și instrucțiuni, prezentând toate informațiile exclusiv sub formă de text, fără a utiliza tabele:
 
-Conturile din clasa 1, 2, 3, 4, 5 se analizează doar pe coloana Solduri finale Debitoare sau Creditoare. Conturile din clasa 6 și 7 se analizează doar pe coloana Total sume Debitoare și Creditoare. Conturile din clasa 1, 2, 3, 4, 5 trebuie să aibă ori Solduri finale Debitoare ori doar Solduri finale Creditoare, nu pot să aibă și una și alta. În schimb, conturile din clasa 6 și 7 în coloana Total sume Debitoare și în coloana Total sume Creditoare trebuie să aibă aceleași sume. Dacă nu este așa, înseamnă că sunt anomalii în balanță.
+🔴 **REGULĂ CRITICĂ - ANALIZĂ DIFERENȚIATĂ PE CLASE** 🔴
+
+**CLASE 1-5 (Bilanț - Active/Pasive/Capital):**
+• Analizează EXCLUSIV coloana "Solduri finale" (Debit și Credit)
+• Fiecare cont trebuie să aibă DOAR sold debitor SAU sold creditor, NU ambele
+• Dacă un cont are ambele solduri completate → ANOMALIE GRAVĂ (raportează-o în secțiunea "ANOMALII DETECTATE")
+• Conturile cu sold final 0.00 pe ambele coloane = INEXISTENTE (nu le raporta)
+
+**CLASE 6-7 (Profit & Pierdere - Cheltuieli/Venituri):**
+• Analizează EXCLUSIV coloana "Rulaje perioadă" SAU "Total sume" (Debit și Credit)
+• Pentru fiecare cont, rulajul DEBIT trebuie să fie EGAL cu rulajul CREDIT
+• Dacă Rulaj Debit ≠ Rulaj Credit → ANOMALIE (raportează diferența exactă în "ANOMALII DETECTATE")
+• Soldurile finale pentru conturile 6-7 trebuie să fie 0 (se închid lunar/anual)
+
+**SECȚIUNE OBLIGATORIE ÎN ANALIZĂ - VALIDARE STRUCTURĂ BALANȚĂ:**
+
+După secțiunea "INDICATORI FINANCIARI", adaugă obligatoriu:
+
+=== VALIDARE STRUCTURĂ BALANȚĂ ===
+
+**Conturi Clasa 1 (Imobilizări):**
+- Raportează toate conturile cu sold final > 0
+- Format: "Cont 212 - Echipamente: 50.000,00 RON (sold debitor)"
+
+**Conturi Clasa 2 (Stocuri):**
+- Raportează toate conturile cu sold final > 0
+- Format: "Cont 371 - Mărfuri: 12.500,00 RON (sold debitor)"
+
+**Conturi Clasa 3 (Cheltuieli în avans):**
+- Raportează toate conturile cu sold final > 0
+
+**Conturi Clasa 4 (Terți):**
+- 🔴 **CRITICE**: 4111 (Clienți), 401 (Furnizori), 4423 (TVA de plată), 4424 (TVA de recuperat)
+- Raportează TOATE conturile 4xxx cu sold > 0
+- Format: "Cont 4111 - Clienți: 25.000,00 RON (sold debitor)"
+
+**Conturi Clasa 5 (Trezorerie):**
+- 🔴 **CRITICE**: 5121 (Banca), 5311 (Casa)
+- Raportează TOATE conturile 5xxx cu sold > 0
+- Format: "Cont 5121 - Conturi la bănci în lei: 15.000,00 RON (sold debitor)"
+
+**Conturi Clasa 6 (Cheltuieli):**
+- Raportează TOP 10 cele mai mari cheltuieli (după rulaj total)
+- Format: "Cont 601 - Cheltuieli cu materiale: Rulaj 25.000,00 RON (debit = credit: ✓)"
+- 🔴 Dacă rulaj debit ≠ credit → **ANOMALIE**: "Cont 628: Rulaj Debit 5.000 ≠ Credit 4.800 (diferență: 200 RON)"
+
+**Conturi Clasa 7 (Venituri):**
+- Raportează TOP 10 cele mai mari venituri (după rulaj total)
+- Format: "Cont 707 - Venituri din vânzări: Rulaj 80.000,00 RON (debit = credit: ✓)"
+- 🔴 Dacă rulaj debit ≠ credit → **ANOMALIE**: "Cont 758: Rulaj Debit 2.000 ≠ Credit 2.100 (diferență: 100 RON)"
+
+**ANOMALII DETECTATE:**
+- Listează TOATE anomaliile structurale găsite:
+  • Solduri duble pe conturi 1-5 (ex: "Cont 411 are sold debitor ȘI creditor simultan")
+  • Rulaje debalansate pe conturi 6-7 (ex: "Cont 628: Debit ≠ Credit")
+  • Alte erori structurale în balanță
 
 Reguli generale:
 Specific pentru conturile din Balanta de verificare - sintetica atașată:
@@ -1519,6 +1574,126 @@ serve(async (req) => {
       return { finalBalance: exists ? finalBalance : null, exists };
     };
 
+    // Funcție pentru extragerea TUTUROR conturilor din balanță
+    const extractAllAccounts = (balanceText: string): {
+      class1to5: Array<{accountCode: string; accountName: string; finalBalanceDebit: number; finalBalanceCredit: number; netBalance: number; balanceType: 'debit' | 'credit'}>,
+      class6to7: Array<{accountCode: string; accountName: string; totalDebit: number; totalCredit: number; isBalanced: boolean}>,
+      anomalies: string[]
+    } => {
+      const class1to5: Array<{accountCode: string; accountName: string; finalBalanceDebit: number; finalBalanceCredit: number; netBalance: number; balanceType: 'debit' | 'credit'}> = [];
+      const class6to7: Array<{accountCode: string; accountName: string; totalDebit: number; totalCredit: number; isBalanced: boolean}> = [];
+      const anomalies: string[] = [];
+      
+      // Regex pentru linii de cont - flexibil pentru diverse formate
+      const lines = balanceText.split('\n');
+      
+      for (const line of lines) {
+        // Skip header lines și linii goale
+        if (!line.trim() || line.includes('Simbol') || line.includes('CLASE') || line.includes('===')) continue;
+        
+        // Extrage cod cont (3-4 cifre la început de linie)
+        const codeMatch = line.match(/^(\d{3,4})/);
+        if (!codeMatch) continue;
+        
+        const accountCode = codeMatch[1];
+        const accountClass = parseInt(accountCode.charAt(0));
+        
+        // Extrage nume cont (text între cod și prima valoare numerică)
+        const nameMatch = line.match(/^\d{3,4}\s*[|\s]*([^0-9|]+)/);
+        const accountName = nameMatch ? nameMatch[1].trim() : 'Cont necunoscut';
+        
+        // Extrage toate valorile numerice din linie
+        const numbers = line.match(/\d+\.\d{2}/g)?.map(v => parseFloat(v)) || [];
+        
+        if (numbers.length === 0) continue;
+        
+        if (accountClass >= 1 && accountClass <= 5) {
+          // Clase 1-5: Extrage solduri finale (ultimele 2 valori)
+          if (numbers.length >= 2) {
+            const finalDebit = numbers[numbers.length - 2] || 0;
+            const finalCredit = numbers[numbers.length - 1] || 0;
+            
+            // Skip conturi fără sold
+            if (finalDebit < 0.10 && finalCredit < 0.10) continue;
+            
+            // ANOMALIE: Sold dublu (ambele coloane completate)
+            if (finalDebit > 0.10 && finalCredit > 0.10) {
+              anomalies.push(
+                `🔴 ANOMALIE CONT ${accountCode}: Sold final DEBIT (${finalDebit.toFixed(2)} RON) ` +
+                `ȘI CREDIT (${finalCredit.toFixed(2)} RON) simultan! Conturile 1-5 trebuie să aibă DOAR un sold.`
+              );
+            }
+            
+            const netBalance = finalDebit - finalCredit;
+            const balanceType: 'debit' | 'credit' = Math.abs(finalDebit) > Math.abs(finalCredit) ? 'debit' : 'credit';
+            
+            class1to5.push({
+              accountCode,
+              accountName,
+              finalBalanceDebit: finalDebit,
+              finalBalanceCredit: finalCredit,
+              netBalance,
+              balanceType
+            });
+          }
+        } else if (accountClass === 6 || accountClass === 7) {
+          // Clase 6-7: Extrage rulaje totale
+          // Format tipic: [soldInitDebit, soldInitCredit, rulajDebit, rulajCredit, soldFinalDebit, soldFinalCredit]
+          // sau: [soldInitDebit, soldInitCredit, totalDebit, totalCredit, soldFinalDebit, soldFinalCredit]
+          
+          if (numbers.length >= 4) {
+            // Ia valorile din mijloc (rulajele sau total sume)
+            const totalDebit = numbers.length === 6 ? numbers[2] : numbers[0];
+            const totalCredit = numbers.length === 6 ? numbers[3] : numbers[1];
+            
+            // Skip conturi fără activitate
+            if (totalDebit < 0.10 && totalCredit < 0.10) continue;
+            
+            const isBalanced = Math.abs(totalDebit - totalCredit) < 0.10;
+            
+            if (!isBalanced) {
+              anomalies.push(
+                `⚠️ DEBALANSARE CONT ${accountCode} (${accountName}): Rulaje DEBIT (${totalDebit.toFixed(2)} RON) ` +
+                `≠ CREDIT (${totalCredit.toFixed(2)} RON). Diferență: ${Math.abs(totalDebit - totalCredit).toFixed(2)} RON`
+              );
+            }
+            
+            class6to7.push({
+              accountCode,
+              accountName,
+              totalDebit,
+              totalCredit,
+              isBalanced
+            });
+          }
+        }
+      }
+      
+      console.log(`✅ Extrase ${class1to5.length} conturi din clasele 1-5`);
+      console.log(`✅ Extrase ${class6to7.length} conturi din clasele 6-7`);
+      console.log(`⚠️ Detectate ${anomalies.length} anomalii`);
+      
+      return { class1to5, class6to7, anomalies };
+    };
+
+    // Funcție pentru gruparea conturilor pe clase
+    const groupAccountsByClass = (accounts: Array<{accountCode: string; accountName: string; finalBalanceDebit: number; finalBalanceCredit: number; netBalance: number; balanceType: 'debit' | 'credit'}>) => {
+      return {
+        class1: accounts.filter(a => a.accountCode.startsWith('1')),
+        class2: accounts.filter(a => a.accountCode.startsWith('2')),
+        class3: accounts.filter(a => a.accountCode.startsWith('3')),
+        class4: accounts.filter(a => a.accountCode.startsWith('4')),
+        class5: accounts.filter(a => a.accountCode.startsWith('5'))
+      };
+    };
+
+    const groupExpenseRevenueAccounts = (accounts: Array<{accountCode: string; accountName: string; totalDebit: number; totalCredit: number; isBalanced: boolean}>) => {
+      return {
+        class6: accounts.filter(a => a.accountCode.startsWith('6')),
+        class7: accounts.filter(a => a.accountCode.startsWith('7'))
+      };
+    };
+
     // Pornește cu metadata deterministă calculată din Excel
     const metadata: Record<string, number> = { ...deterministic_metadata };
     
@@ -1611,12 +1786,34 @@ serve(async (req) => {
       console.log("📊 Metadata fallback extrase:", Object.keys(metadata).length, "indicatori");
     }
     
+    // Extrage structura completă a balanței
+    console.log("🔍 Extragere structură completă balanță...");
+    const { class1to5, class6to7, anomalies: structuralAnomalies } = extractAllAccounts(balanceText);
+
+    const groupedBalance = groupAccountsByClass(class1to5);
+    const groupedActivity = groupExpenseRevenueAccounts(class6to7);
+
     // Prioritizează metadata deterministă peste cea extrasă din text
     // (păstrează doar valorile AI dacă nu există în deterministic)
-    const finalMetadata = { ...metadata, ...deterministic_metadata };
-    console.log("✅ Metadata final (prioritate determinist):", finalMetadata);
+    const finalMetadata = { 
+      ...metadata, 
+      ...deterministic_metadata,
+      // Adaugă structura completă
+      class1_FixedAssets: groupedBalance.class1,
+      class2_CurrentAssets: groupedBalance.class2,
+      class3_Inventory: groupedBalance.class3,
+      class4_ThirdParties: groupedBalance.class4,
+      class5_Treasury: groupedBalance.class5,
+      class6_Expenses: groupedActivity.class6,
+      class7_Revenue: groupedActivity.class7,
+      anomalies: structuralAnomalies.length > 0 ? structuralAnomalies : undefined
+    };
+    console.log("✅ Metadata final (prioritate determinist + structură completă):", Object.keys(finalMetadata).length, "chei");
     console.log(`   - Calculat determinist: ${Object.keys(deterministic_metadata).length} indicatori`);
     console.log(`   - Extras din AI: ${Object.keys(metadata).length - Object.keys(deterministic_metadata).length} indicatori`);
+    console.log(`   - Conturi clase 1-5: ${class1to5.length}`);
+    console.log(`   - Conturi clase 6-7: ${class6to7.length}`);
+    console.log(`   - Anomalii structurale: ${structuralAnomalies.length}`);
     
     // VALIDARE CRITICĂ: Verifică că valorile din alertele AI corespund cu balanța reală
     const analysisNumbers = analysis.match(/(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/g) || [];
