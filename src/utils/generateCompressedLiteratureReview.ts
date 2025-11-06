@@ -230,6 +230,8 @@ export const generateCompressedLiteratureReview = async (
   
   // ===== GENERARE GHID PEDAGOGIC + BIBLIOGRAFIE + ZIP =====
   
+  toast.info("📄 Generez documentul Word...");
+  
   // 1. Generează script pedagogic
   const scriptContent = processDocumenter.generatePedagogicalScript({
     thesisTopic,
@@ -237,6 +239,7 @@ export const generateCompressedLiteratureReview = async (
     keywords
   });
 
+  toast.info("📚 Generez ghidul pedagogic PDF...");
   // 2. Generează PDF ghid
   const guideBlob = await generatePedagogicalGuide({
     documentTitle: thesisTopic,
@@ -244,6 +247,7 @@ export const generateCompressedLiteratureReview = async (
     scriptContent: scriptContent
   });
 
+  toast.info("📊 Generez bibliografia Excel...");
   // 3. Generează Excel bibliografie
   const sources = processDocumenter.generateDetailedSources();
   const biblioBlob = await generateBibliographySpreadsheet(sources);
@@ -296,6 +300,8 @@ Generat: ${new Date().toLocaleString('ro-RO')}
 `;
 
   // 5. Creează ZIP cu toate fișierele
+  toast.info("📦 Împachetez toate fișierele în ZIP...");
+  
   const zip = new JSZip();
   zip.file('Literature_Review_4pages.docx', blob);
   zip.file('GHID_SUSTINERE.pdf', guideBlob);
@@ -303,6 +309,8 @@ Generat: ${new Date().toLocaleString('ro-RO')}
   zip.file('README.txt', readmeContent);
 
   const zipBlob = await zip.generateAsync({ type: 'blob' });
+  
+  toast.success("✅ Pachetul ZIP este gata! Verifică descărcările.");
   saveAs(zipBlob, 'Literatura_Review_PACHET_COMPLET_SUSTINERE.zip');
 
   // Salvează în bibliotecă
