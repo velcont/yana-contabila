@@ -98,13 +98,6 @@ const METHODOLOGIES = `
 
 **5. BLUE OCEAN (Kim & Mauborgne):**
 - Elimină: ce factori din industrie sunt de prisos?
-
-🔴 **INTERZIS ABSOLUT - NU ANALIZEZI BALANȚA AICI** 🔴
-• NU analizezi conturi contabile (4423, 4424, 4111, 401, 5121, 5311, 121, etc.)
-• NU menționezi profitabilitate/lichiditate/alerte critice din balanță
-• Dacă utilizatorul cere analiză contabilă → răspunde scurt: "Pentru analiză balanță folosește tab-ul CFO sau încarcă fișierul .xls în chat"
-• Strategic Advisor = doar strategie business, marketing, prețuri, concurență
-• Analiză financiară/contabilă = exclusiv în CFO Dashboard sau prin încărcare balanță
 - Reduce: ce să fie sub standard industrie?
 - Crește: ce să fie peste standard?
 - Creează: ce factori noi, inexistente?
@@ -531,51 +524,21 @@ serve(async (req) => {
       }
     }
 
-    // Get conversation history - ONLY strategic module conversations
+    // Get conversation history
     const { data: history } = await supabaseClient
       .from("conversation_history")
-      .select("role, content, metadata")
+      .select("*")
       .eq("conversation_id", conversationId)
       .eq("user_id", user.id)
-      .eq("metadata->>module", "strategic") // ✅ FIX: Filter only strategic conversations
-      .order("created_at", { ascending: true })
-      .limit(10);
-
-    // ✅ SECURITY FIX: History limits
-    const historyMessages = (history || [])
-      .slice(-10) // Max 10 messages
-      .map(msg => ({
-        role: msg.role,
-        content: msg.content.substring(0, 1000) // Max 1000 chars per message
-      }));
+      .order("created_at", { ascending: true });
 
     // Construiește mesajul cu context îmbogățit
     let enrichedMessage = message;
     
-    // ✅ FIX: Sanity check - dacă mesajul conține pattern de balanță, redirecționează
-    const balancePatterns = [
-      /\b(cont|conturi)\s*(4423|4424|4111|401|5121|5311|121|607|707)\b/i,
-      /\b(sold\s*final|solduri\s*finale)\b/i,
-      /\bprofit\s*net\s*=\s*[\d,\.]+\s*RON\b/i,
-      /\b(DSO|DPO|DIO|EBITDA|lichiditate|profitabilitate)\s*[:=]\s*[\d,\.]+/i
-    ];
-    
-    const hasBalancePattern = balancePatterns.some(pattern => pattern.test(enrichedMessage));
-    
-    if (hasBalancePattern) {
-      console.log("[STRATEGIC-ADVISOR] ⚠️ Balance analysis pattern detected - redirecting to CFO");
-      return new Response(
-        JSON.stringify({ 
-          response: "Pentru analiză contabilă și financiară, te rog folosește tab-ul **CFO** sau încarcă fișierul de balanță direct în chat.\n\nStrategic Advisor este dedicat exclusiv pentru strategie business, marketing, prețuri și concurență." 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-    
     if (validationWarnings.length > 0) {
       enrichedMessage = `[SYSTEM: Date incomplete sau invalide]\n${validationWarnings.join('\n')}\n\n[Mesaj utilizator]:\n${message}`;
     } else if (financialData) {
-      // Adaugă pre-analiză automată dacă datele sunt complete (doar cifre macro, fără conturi)
+      // Adaugă pre-analiză automată dacă datele sunt complete
       let preAnalysis = "\n\n📊 [PRE-ANALIZĂ AUTOMATĂ]:\n";
       
       if (financialData.cifra_afaceri && financialData.profit_net) {

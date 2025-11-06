@@ -27,10 +27,10 @@ export const FinancialSnapshot = React.memo(({
   periodLabel = 'lunar',
   monthsInFile = 1
 }: FinancialSnapshotProps) => {
-  const getPeriodSuffix = () => {
-    if (monthsInFile === 1) return 'lunar';
-    if (monthsInFile <= 12) return 'medie lunară';
-    return 'anual';
+  const getProfitLabel = () => {
+    if (monthsInFile === 1) return 'Profit lunar';
+    if (monthsInFile <= 12) return 'Profit mediu lunar';
+    return 'Profit anual';
   };
   return (
     <Card className="border-primary/30 shadow-xl">
@@ -64,11 +64,11 @@ export const FinancialSnapshot = React.memo(({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {/* Cash Total */}
           <div className="p-6 bg-gradient-to-br from-cyan-500 via-blue-600 to-blue-700 rounded-xl text-white shadow-lg hover:scale-105 transition-transform">
-            <div className="text-sm opacity-90 mb-2 font-medium">💰 Sold final (Bancă + Casă)</div>
+            <div className="text-sm opacity-90 mb-2 font-medium">💰 Cash Total</div>
             <div className="text-3xl font-bold mb-1">
               {formatCurrency(cash)}
             </div>
-            <div className="text-xs opacity-80">la sfârșitul perioadei</div>
+            <div className="text-xs opacity-80">Bank + Casă</div>
           </div>
 
           {/* Profit/Loss */}
@@ -79,7 +79,7 @@ export const FinancialSnapshot = React.memo(({
               : "bg-gradient-to-br from-red-500 via-rose-600 to-red-700"
           )}>
             <div className="text-sm opacity-90 mb-2 font-medium">
-              {profit >= 0 ? `✅ Profit ${getPeriodSuffix()}` : `🔴 Pierdere ${getPeriodSuffix()}`}
+              {profit >= 0 ? `✅ ${getProfitLabel()}` : `🔴 PIERDERE ${periodLabel}`}
             </div>
             <div className="text-3xl font-bold mb-1">
               {formatCurrency(Math.abs(profit))}

@@ -7,14 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const buildSystemPrompt = (isEntrepreneur: boolean) => {
-  const legalNote = isEntrepreneur 
-    ? '**Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.**'
-    : `**Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.**
-
-**Notă importantă:** Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.`;
-
-  return `Analizeaza balanta atasata urmand urmatoarele Instrucțiuni:
+const SYSTEM_PROMPT = `Analizeaza balanta atasata urmand urmatoarele Instrucțiuni:
 
 🔴 **REGULĂ CRITICĂ ABSOLUTĂ - ACURATEȚEA VALORILOR** 🔴
 
@@ -68,7 +61,9 @@ Dacă structura de coloane nu este conformă (lipsesc coloane obligatorii), men�
 
 La inceputul anlizei vei scrie urmatorul mesaj:
 
-${legalNote}
+**Acesta este o analiză managerială efectuată cu ajutorul inteligenței artificiale.**
+
+**Notă importantă:** Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.
 
 Apoi treci la analiza balanța atașate urmând următoarele reguli și instrucțiuni, prezentând toate informațiile exclusiv sub formă de text, fără a utiliza tabele:
 
@@ -347,7 +342,6 @@ Sold Banca: 50000.00
 Sold Casa: 5000.00
 
 REPETĂM: ACEASTĂ SECȚIUNE ESTE OBLIGATORIE! NU UITA SĂ O ADAUGI LA SFÂRȘIT!`;
-};
 
 // Parse Excel file with proper number formatting
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
@@ -439,14 +433,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { excelBase64, fileName, subscriptionType } = await req.json();
-    
-    // Determine if user is entrepreneur (exclude legal note)
-    const isEntrepreneur = subscriptionType?.trim() === 'entrepreneur';
-    console.log('🔍 [EDGE] Subscription type:', subscriptionType, 'Is entrepreneur:', isEntrepreneur);
-    
-    // Build system prompt based on user type
-    const SYSTEM_PROMPT = buildSystemPrompt(isEntrepreneur);
+    const { excelBase64, fileName } = await req.json();
     
     // ✅ SECURITY FIX: Validate file presence
     if (!excelBase64) {
