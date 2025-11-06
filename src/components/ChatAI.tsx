@@ -1024,11 +1024,24 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           setIsLoading(true);
           setThinkingMessage("Analizez balanța încărcată...");
 
+          // Get user's subscription type
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          let subscriptionType = null;
+          if (currentUser) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('subscription_type')
+              .eq('id', currentUser.id)
+              .single();
+            subscriptionType = profile?.subscription_type;
+          }
+
           // Call analyze-balance edge function
           const { data, error } = await supabase.functions.invoke('analyze-balance', {
             body: { 
               excelBase64: base64Data,
-              fileName: file.name 
+              fileName: file.name,
+              subscriptionType: subscriptionType
             }
           });
 

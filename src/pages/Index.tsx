@@ -225,8 +225,19 @@ const Index = () => {
           
           const excelBase64 = await convertExcelToBase64(file);
 
+          // Get user's subscription type
+          let subscriptionType = null;
+          if (user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('subscription_type')
+              .eq('id', user.id)
+              .single();
+            subscriptionType = profile?.subscription_type;
+          }
+
           const { data, error } = await supabase.functions.invoke("analyze-balance", {
-            body: { excelBase64, fileName: file.name },
+            body: { excelBase64, fileName: file.name, subscriptionType },
           });
 
           if (data?.error) throw new Error(data.error);
