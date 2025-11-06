@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { generateCompressedLiteratureReview } from "@/utils/generateCompressedLiteratureReview";
+import { generateDefenseScript } from "@/utils/generateDefenseScript";
 import { processDocumenter } from "@/lib/processDocumenter";
 import { toast } from "sonner";
 
@@ -209,24 +210,44 @@ const GenerateConferencePaper = () => {
           </p>
         </div>
 
-        <Button
-          onClick={handleGenerate}
-          disabled={isGenerating}
-          className="w-full"
-          size="lg"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Generez pachetul complet...
-            </>
-          ) : (
-            <>
-              <Download className="w-5 h-5 mr-2" />
-              Generează pachet complet (Document + Ghid + Bibliografie)
-            </>
-          )}
-        </Button>
+        <div className="grid gap-3">
+          <Button
+            onClick={handleGenerate}
+            disabled={isGenerating || !authorName || !affiliation || !thesisTopic}
+            className="w-full"
+            size="lg"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Generez pachetul complet...
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5 mr-2" />
+                Generează pachet complet (Document + Ghid + Bibliografie)
+              </>
+            )}
+          </Button>
+
+          <Button
+            onClick={async () => {
+              await generateDefenseScript({
+                thesisTopic,
+                authorName,
+                affiliation
+              });
+              toast.success("✅ Script de susținere generat!");
+            }}
+            disabled={!authorName || !affiliation || !thesisTopic}
+            variant="outline"
+            size="lg"
+            className="w-full"
+          >
+            <FileText className="w-5 h-5 mr-2" />
+            📋 Generează doar Script Susținere pentru Zoom
+          </Button>
+        </div>
 
         <div className="text-center space-y-2">
           <p className="text-xs text-muted-foreground">
