@@ -70,7 +70,7 @@ La inceputul anlizei vei scrie urmatorul mesaj:
 
 ${legalNote}
 
-Apoi treci la analiza balanța atașate urmând următoarele reguli și instrucțiuni, prezentând toate informațiile exclusiv sub formă de text, fără a utiliza tabele:`;
+Apoi treci la analiza balanța atașate urmând următoarele reguli și instrucțiuni, prezentând toate informațiile exclusiv sub formă de text, fără a utiliza tabele:
 
 Conturile din clasa 1, 2, 3, 4, 5 se analizează doar pe coloana Solduri finale Debitoare sau Creditoare. Conturile din clasa 6 și 7 se analizează doar pe coloana Total sume Debitoare și Creditoare. Conturile din clasa 1, 2, 3, 4, 5 trebuie să aibă ori Solduri finale Debitoare ori doar Solduri finale Creditoare, nu pot să aibă și una și alta. În schimb, conturile din clasa 6 și 7 în coloana Total sume Debitoare și în coloana Total sume Creditoare trebuie să aibă aceleași sume. Dacă nu este așa, înseamnă că sunt anomalii în balanță.
 
@@ -347,6 +347,7 @@ Sold Banca: 50000.00
 Sold Casa: 5000.00
 
 REPETĂM: ACEASTĂ SECȚIUNE ESTE OBLIGATORIE! NU UITA SĂ O ADAUGI LA SFÂRȘIT!`;
+};
 
 // Parse Excel file with proper number formatting
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
