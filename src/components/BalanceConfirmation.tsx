@@ -88,7 +88,9 @@ export const BalanceConfirmation = () => {
           .eq('id', user.id)
           .single();
         
-        setSubscriptionType(profile?.subscription_type || null);
+        const subType = profile?.subscription_type?.trim() || null;
+        console.log('🔍 DEBUG - subscription_type preluat:', subType);
+        setSubscriptionType(subType);
       }
     };
     
@@ -224,7 +226,8 @@ export const BalanceConfirmation = () => {
     if (!balanceData) return;
 
     // Check if user is an entrepreneur - exclude legal section for them
-    const isEntrepreneur = subscriptionType === 'entrepreneur';
+    const isEntrepreneur = subscriptionType?.trim() === 'entrepreneur';
+    console.log('🔍 DEBUG - Generare Word:', { subscriptionType, isEntrepreneur });
 
     const doc = new Document({
       sections: [{
