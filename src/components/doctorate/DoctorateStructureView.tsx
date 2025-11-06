@@ -9,6 +9,7 @@ import { DoctorateFileUploader } from "./DoctorateFileUploader";
 import { DoctorateChapterManager } from "./DoctorateChapterManager";
 import { generateDoctorateDocument } from "@/utils/generateDoctorateDocument";
 import { PlagiarismAnalyzer } from "./PlagiarismAnalyzer";
+import { processDocumenter } from "@/lib/processDocumenter";
 
 interface DoctorateStructure {
   title: string;
@@ -122,12 +123,24 @@ export const DoctorateStructureView = () => {
   };
 
   const handleAssemble = async () => {
+    processDocumenter.logAction(
+      'ASSEMBLY_INITIATED',
+      `Utilizator a inițiat asamblarea documentului: ${structure?.title}`,
+      true
+    );
+    
     try {
       setAssembling(true);
 
       // Check if all chapters are present
       const missingChapters = chapters.filter(ch => ch.status === 'missing');
       if (missingChapters.length > 0) {
+        processDocumenter.logAction(
+          'ASSEMBLY_FAILED',
+          `Lipsesc ${missingChapters.length} capitole: ${missingChapters.map(ch => `Capitol ${ch.chapter_number}`).join(', ')}`,
+          false
+        );
+        
         toast({
           title: "Capitole lipsă",
           description: `Te rog încarcă mai întâi: ${missingChapters.map(ch => `Capitol ${ch.chapter_number}`).join(', ')}`,
@@ -155,10 +168,25 @@ export const DoctorateStructureView = () => {
         return;
       }
 
-      // Generate document
-      await generateDoctorateDocument(
+      // Generate document with full evidence package
+      processDocumenter.logAction(
+        'ASSEMBLY_IN_PROGRESS',
+        `Generare pachet complet cu ${chaptersData.length} capitole și dovezi proces`,
+        false
+      );
+      
+      const fileName = await generateDoctorateDocument(
         structure?.title || "Teză de Doctorat",
-        chaptersData
+        chaptersData,
+        true // Export as ZIP with full evidence package
+      );
+      
+      const totalWords = chaptersData.reduce((sum, ch) => sum + ch.word_count, 0);
+      
+      processDocumenter.logAction(
+        'ASSEMBLY_COMPLETE',
+        `Pachet complet generat cu succes: ${totalWords} cuvinte, ${chaptersData.length} capitole + dovezi proces`,
+        false
       );
 
       // Update last_compiled timestamp
@@ -170,8 +198,8 @@ export const DoctorateStructureView = () => {
         }, { onConflict: 'user_id' });
 
       toast({
-        title: "✅ Doctorat asamblat cu succes!",
-        description: "Documentul Word a fost descărcat"
+        title: "✅ Pachet complet generat!",
+        description: `${fileName} conține documentul + jurnal de lucru + bibliografie + dovezi proces`
       });
 
       fetchData();
@@ -228,7 +256,7 @@ export const DoctorateStructureView = () => {
               ) : (
                 <>
                   <Download className="h-4 w-4" />
-                  🎓 Asamblează Doctorat Final
+                  📦 Asamblează Pachet Complet
                 </>
               )}
             </Button>

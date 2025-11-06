@@ -9,6 +9,10 @@ import {
   PageBreak
 } from "docx";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
+import { processDocumenter } from "@/lib/processDocumenter";
+import { generateProcessReport } from "./generateProcessReport";
+import { generateSourcesSpreadsheet, extractSourcesFromContent } from "./generateSourcesSpreadsheet";
 
 interface ChapterData {
   chapter_number: number;
@@ -19,8 +23,15 @@ interface ChapterData {
 
 export const generateDoctorateDocument = async (
   title: string,
-  chapters: ChapterData[]
+  chapters: ChapterData[],
+  exportAsZip: boolean = true
 ) => {
+  // Log document generation start
+  processDocumenter.logAction(
+    'DOCUMENT_ASSEMBLY',
+    `Începere asamblare document complet: ${title} (${chapters.length} capitole)`,
+    false
+  );
   const doc = new Document({
     creator: "Yana AI - Academic Assistant",
     title: title,
@@ -164,10 +175,122 @@ export const generateDoctorateDocument = async (
     }]
   });
   
-  // Generate blob and download
-  const blob = await Packer.toBlob(doc);
-  const fileName = `Doctorat_DRAFT_${new Date().toISOString().split('T')[0]}.docx`;
-  saveAs(blob, fileName);
+  // Generate main document blob
+  const docBlob = await Packer.toBlob(doc);
+  const baseFileName = `Doctorat_${title.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}`;
   
-  return fileName;
+  processDocumenter.logAction(
+    'DOCUMENT_GENERATED',
+    `Document principal generat: ${chapters.reduce((sum, c) => sum + c.word_count, 0)} cuvinte totale`,
+    false
+  );
+  
+  if (!exportAsZip) {
+    // Simple export - just the document
+    saveAs(docBlob, `${baseFileName}.docx`);
+    return `${baseFileName}.docx`;
+  }
+  
+  // Generate complete package with evidence
+  const zip = new JSZip();
+  
+  // Add main document
+  zip.file(`${baseFileName}.docx`, docBlob);
+  
+  // Generate process report
+  const stats = processDocumenter.getSessionStats();
+  const allLogs = processDocumenter.getAllLogs();
+  
+  const processReportBlob = await generateProcessReport({
+    thesisTitle: title,
+    chapterNumber: chapters.length,
+    logs: allLogs,
+    stats: stats
+  });
+  
+  zip.file(`${baseFileName}_PROCES_MUNCA.pdf`, processReportBlob);
+  
+  processDocumenter.logAction(
+    'PROCESS_REPORT_GENERATED',
+    `Raport proces generat: ${allLogs.length} acțiuni documentate, ${stats.totalDurationHours} ore`,
+    false
+  );
+  
+  // Generate sources spreadsheet
+  const allSources = chapters.flatMap((chapter, idx) => 
+    extractSourcesFromContent(chapter.content, idx + 1)
+  );
+  
+  if (allSources.length > 0) {
+    const sourcesBlob = await generateSourcesSpreadsheet(allSources, chapters.length);
+    zip.file(`${baseFileName}_BIBLIOGRAFIE.xlsx`, sourcesBlob);
+    
+    processDocumenter.logAction(
+      'SOURCES_SPREADSHEET_GENERATED',
+      `Fișier bibliografie generat: ${allSources.length} surse detectate`,
+      false
+    );
+  }
+  
+  // Add process logs as JSON for transparency
+  const logsJSON = processDocumenter.exportLogsJSON();
+  zip.file(`${baseFileName}_LOGS.json`, logsJSON);
+  
+  // Add README with instructions
+  const readme = `PACHET COMPLET TEZĂ DE DOCTORAT
+═══════════════════════════════════════
+
+Titlu: ${title}
+Data generare: ${new Date().toLocaleString('ro-RO')}
+Capitole incluse: ${chapters.length}
+Total cuvinte: ${chapters.reduce((sum, c) => sum + c.word_count, 0).toLocaleString()}
+
+CONȚINUT PACHET:
+════════════════
+
+1. ${baseFileName}.docx
+   → Documentul principal al tezei (format Word)
+   → Gata pentru citire și revizie
+
+2. ${baseFileName}_PROCES_MUNCA.pdf
+   → Jurnal detaliat de lucru (Process Documentation)
+   → Conține: timeline, metadata, statistici, dovezi autenticitate
+   → UTILIZARE: Demonstrează că lucrarea este realizată de tine
+
+3. ${baseFileName}_BIBLIOGRAFIE.xlsx
+   → Fișier Excel cu toate sursele detaliate
+   → Conține: surse, autori, ani, concepte folosite, timp lectură
+   → UTILIZARE: Verificare rapidă bibliografie
+
+4. ${baseFileName}_LOGS.json
+   → Export complet al log-urilor în format JSON
+   → UTILIZARE: Verificare tehnică, audit detaliat
+
+PENTRU SUSȚINERE:
+══════════════════
+
+La susținerea tezei, prezintă fișierul "${baseFileName}_PROCES_MUNCA.pdf" 
+pentru a demonstra procesul de lucru și originalitatea lucrării.
+
+Acest pachet oferă TRANSPARENȚĂ TOTALĂ și DOVEZI VERIFICABILE 
+ale procesului academic.
+
+Generat de: YANA Academic Assistant
+Versiune: 1.0
+`;
+  
+  zip.file('README.txt', readme);
+  
+  // Generate ZIP and download
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  const zipFileName = `${baseFileName}_PACHET_COMPLET.zip`;
+  saveAs(zipBlob, zipFileName);
+  
+  processDocumenter.logAction(
+    'ZIP_EXPORT_COMPLETE',
+    `Export finalizat: ${zipFileName} cu toate dovezile incluse`,
+    false
+  );
+  
+  return zipFileName;
 };
