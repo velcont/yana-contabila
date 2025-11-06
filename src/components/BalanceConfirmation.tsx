@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
@@ -74,7 +75,25 @@ export const BalanceConfirmation = () => {
   const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
   const [previewData, setPreviewData] = useState<Array<{code: string, name: string, debit: number, credit: number}>>([]);
   const [columnsDetected, setColumnsDetected] = useState<{debit: number, credit: number} | null>(null);
+  const [subscriptionType, setSubscriptionType] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_type')
+          .eq('id', user.id)
+          .single();
+        
+        setSubscriptionType(profile?.subscription_type || null);
+      }
+    };
+    
+    fetchUserProfile();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -204,6 +223,9 @@ export const BalanceConfirmation = () => {
   const generateWordDocument = async () => {
     if (!balanceData) return;
 
+    // Check if user is an entrepreneur - exclude legal section for them
+    const isEntrepreneur = subscriptionType === 'entrepreneur';
+
     const doc = new Document({
       sections: [{
         properties: {},
@@ -295,103 +317,107 @@ export const BalanceConfirmation = () => {
             spacing: { after: 400 },
           }),
 
-          // ========== NOTĂ JURIDICĂ ȘI CONFIRMARE ==========
-          new Paragraph({
-            text: "",
-            spacing: { before: 600, after: 400 },
-            border: {
-              top: {
-                color: "CCCCCC",
-                space: 1,
-                style: BorderStyle.SINGLE,
-                size: 6
+          // ========== NOTĂ JURIDICĂ - ONLY FOR ACCOUNTANTS ==========
+          // For entrepreneurs analyzing their own balance, we skip the legal section
+          ...(isEntrepreneur ? [] : [
+            new Paragraph({
+              text: "",
+              spacing: { before: 600, after: 400 },
+              border: {
+                top: {
+                  color: "CCCCCC",
+                  space: 1,
+                  style: BorderStyle.SINGLE,
+                  size: 6
+                }
               }
-            }
-          }),
-          new Paragraph({
-            text: "NOTĂ JURIDICĂ ȘI CONFIRMARE",
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 400, after: 300 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Prin prezentul document, cabinetul de contabilitate vă informează oficial cu privire la situația contabilă a societății dumneavoastră pentru perioada menționată.",
-                size: 20,
-              })
-            ],
-            spacing: { after: 200 },
-            alignment: AlignmentType.JUSTIFIED
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "În conformitate cu prevederile contractului de prestări servicii de contabilitate și cu legislația în vigoare, vă rugăm să analizați cu atenție informațiile prezentate în acest raport.",
-                size: 20,
-              })
-            ],
-            spacing: { after: 300 },
-            alignment: AlignmentType.JUSTIFIED
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "TERMEN DE RĂSPUNS: ", size: 20, bold: true }),
-              new TextRun({
-                text: "Aveți la dispoziție 5 (cinci) zile lucrătoare de la primirea acestui document pentru a transmite eventuale obiecțiuni, completări sau solicitări de clarificări referitoare la datele prezentate.",
-                size: 20,
-              })
-            ],
-            spacing: { after: 300 },
-            alignment: AlignmentType.JUSTIFIED
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "CONFIRMARE TACITĂ: ", size: 20, bold: true }),
-              new TextRun({
-                text: "În absența oricărei comunicări scrise din partea dumneavoastră în termenul menționat mai sus, se consideră că:",
-                size: 20,
-              })
-            ],
-            spacing: { after: 100 },
-            alignment: AlignmentType.JUSTIFIED
-          }),
-          new Paragraph({
-            children: [ new TextRun({ text: "  • Ați luat la cunoștință situația contabilă prezentată", size: 20 }) ],
-            spacing: { after: 100 },
-            indent: { left: 400 }
-          }),
-          new Paragraph({
-            children: [ new TextRun({ text: "  • Confirmați corectitudinea datelor din punct de vedere al activității societății", size: 20 }) ],
-            spacing: { after: 100 },
-            indent: { left: 400 }
-          }),
-          new Paragraph({
-            children: [ new TextRun({ text: "  • Luna/Perioada contabilă este încheiată și validată din punct de vedere contabil", size: 20 }) ],
-            spacing: { after: 300 },
-            indent: { left: 400 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "RESPONSABILITATE: ", size: 20, bold: true }),
-              new TextRun({
-                text: "Vă reamintim că documentele justificative (facturi, chitanțe, extrase bancare) trebuie să fie transmise cabinetului nostru în termenele stabilite contractual. Orice documente transmise după încheierea perioadei vor fi înregistrate în luna/trimestrul următor, conform prevederilor legale.",
-                size: 20,
-              })
-            ],
-            spacing: { after: 300 },
-            alignment: AlignmentType.JUSTIFIED
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "OBIECȚIUNI: ", size: 20, bold: true }),
-              new TextRun({
-                text: "Eventualele obiecțiuni trebuie comunicate în scris (email sau scrisoare) la datele de contact menționate în contractul de prestări servicii.",
-                size: 20,
-              })
-            ],
-            spacing: { after: 400 },
-            alignment: AlignmentType.JUSTIFIED
-          }),
+            }),
+            new Paragraph({
+              text: "NOTĂ JURIDICĂ ȘI CONFIRMARE",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 300 },
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Prin prezentul document, cabinetul de contabilitate vă informează oficial cu privire la situația contabilă a societății dumneavoastră pentru perioada menționată.",
+                  size: 20,
+                })
+              ],
+              spacing: { after: 200 },
+              alignment: AlignmentType.JUSTIFIED
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "În conformitate cu prevederile contractului de prestări servicii de contabilitate și cu legislația în vigoare, vă rugăm să analizați cu atenție informațiile prezentate în acest raport.",
+                  size: 20,
+                })
+              ],
+              spacing: { after: 300 },
+              alignment: AlignmentType.JUSTIFIED
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "TERMEN DE RĂSPUNS: ", size: 20, bold: true }),
+                new TextRun({
+                  text: "Aveți la dispoziție 5 (cinci) zile lucrătoare de la primirea acestui document pentru a transmite eventuale obiecțiuni, completări sau solicitări de clarificări referitoare la datele prezentate.",
+                  size: 20,
+                })
+              ],
+              spacing: { after: 300 },
+              alignment: AlignmentType.JUSTIFIED
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "CONFIRMARE TACITĂ: ", size: 20, bold: true }),
+                new TextRun({
+                  text: "În absența oricărei comunicări scrise din partea dumneavoastră în termenul menționat mai sus, se consideră că:",
+                  size: 20,
+                })
+              ],
+              spacing: { after: 100 },
+              alignment: AlignmentType.JUSTIFIED
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "  • Ați luat la cunoștință situația contabilă prezentată", size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "  • Confirmați corectitudinea datelor din punct de vedere al activității societății", size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "  • Luna/Perioada contabilă este încheiată și validată din punct de vedere contabil", size: 20 }) ],
+              spacing: { after: 300 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "RESPONSABILITATE: ", size: 20, bold: true }),
+                new TextRun({
+                  text: "Vă reamintim că documentele justificative (facturi, chitanțe, extrase bancare) trebuie să fie transmise cabinetului nostru în termenele stabilite contractual. Orice documente transmise după încheierea perioadei vor fi înregistrate în luna/trimestrul următor, conform prevederilor legale.",
+                  size: 20,
+                })
+              ],
+              spacing: { after: 300 },
+              alignment: AlignmentType.JUSTIFIED
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "OBIECȚIUNI: ", size: 20, bold: true }),
+                new TextRun({
+                  text: "Eventualele obiecțiuni trebuie comunicate în scris (email sau scrisoare) la datele de contact menționate în contractul de prestări servicii.",
+                  size: 20,
+                })
+              ],
+              spacing: { after: 400 },
+              alignment: AlignmentType.JUSTIFIED
+            }),
+          ]),
+
           new Paragraph({
             children: [ new TextRun({ text: `Data generării documentului: ${new Date().toLocaleDateString('ro-RO')}`, size: 18, italics: true }) ],
             spacing: { after: 100 },
