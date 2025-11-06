@@ -7,13 +7,36 @@ import {
   HeadingLevel 
 } from "docx";
 import { saveAs } from "file-saver";
+import JSZip from "jszip";
 import { saveDocumentToLibrary } from "./documentStorage";
 import { toast } from "sonner";
+import { processDocumenter } from "@/lib/processDocumenter";
+import { generatePedagogicalGuide } from "./generatePedagogicalGuide";
+import { generateBibliographySpreadsheet } from "./generateBibliographySpreadsheet";
+
+export interface LiteratureReviewConfig {
+  authorName: string;
+  affiliation: string;
+  thesisTopic?: string;
+  requirements?: string;
+  keywords?: string[];
+  academicStyle?: string;
+  pageCount?: number;
+  geographicFocus?: string;
+  apaVersion?: string;
+}
 
 export const generateCompressedLiteratureReview = async (
-  authorName: string = "Nume Autor",
-  affiliation: string = "Universitatea X, Facultatea Y"
+  config: LiteratureReviewConfig
 ) => {
+  const {
+    authorName = "Nume Autor",
+    affiliation = "Universitatea X, Facultatea Y",
+    thesisTopic = "Reziliența organizațională în contextul IMM-urilor din România: o sinteză a literaturii",
+    geographicFocus = "romania",
+    requirements,
+    keywords
+  } = config;
   const doc = new Document({
     creator: "Yana AI - Academic Conference Assistant",
     title: "Reziliența organizațională - Literature Review (Versiune Conferință)",
@@ -28,7 +51,7 @@ export const generateCompressedLiteratureReview = async (
       children: [
         // TITLU + AUTOR + AFILIERE
         new Paragraph({
-          text: "Reziliența organizațională în contextul IMM-urilor din România: o sinteză a literaturii",
+          text: thesisTopic,
           heading: HeadingLevel.TITLE,
           alignment: AlignmentType.CENTER,
           spacing: { before: 400, after: 200 }
@@ -53,7 +76,7 @@ export const generateCompressedLiteratureReview = async (
         new Paragraph({
           children: [
             new TextRun({
-              text: "Reziliența organizațională a evoluat de la capacitatea de supraviețuire la abordări transformative care integrează anticipare, adaptare și învățare continuă. Această sinteză analizează evoluția conceptului (de la fizică la științe organizaționale), dimensiunile rezilienței (cognitive, comportamentale, contextuale), cadrele teoretice principale (capacități dinamice - Teece et al., 1997; inovație sustenabilă - Bocken et al., 2014) și relevanța acestora pentru IMM-urile din România. Concluziile subliniază caracterul dinamic și multidimensional al rezilienței, evidențiind lacunele de cercetare specifice contextului românesc.",
+              text: `Reziliența organizațională a evoluat de la capacitatea de supraviețuire la abordări transformative care integrează anticipare, adaptare și învățare continuă. Această sinteză analizează evoluția conceptului (de la fizică la științe organizaționale), dimensiunile rezilienței (cognitive, comportamentale, contextuale), cadrele teoretice principale (capacități dinamice - Teece et al., 1997; inovație sustenabilă - Bocken et al., 2014) și relevanța acestora pentru ${geographicFocus === 'romania' ? 'IMM-urile din România' : geographicFocus === 'europa' ? 'contextul european' : 'mediul global de afaceri'}. Concluziile subliniază caracterul dinamic și multidimensional al rezilienței, evidențiind lacunele de cercetare specifice.`,
               font: "Times New Roman",
               size: 22
             })
@@ -204,26 +227,105 @@ export const generateCompressedLiteratureReview = async (
   });
   
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, "Literature_Review_COMPRESSED_Conference_4pages.docx");
   
-  // Save to library
+  // ===== GENERARE GHID PEDAGOGIC + BIBLIOGRAFIE + ZIP =====
+  
+  // 1. Generează script pedagogic
+  const scriptContent = processDocumenter.generatePedagogicalScript({
+    thesisTopic,
+    requirements,
+    keywords
+  });
+
+  // 2. Generează PDF ghid
+  const guideBlob = await generatePedagogicalGuide({
+    documentTitle: thesisTopic,
+    authorName: authorName,
+    scriptContent: scriptContent
+  });
+
+  // 3. Generează Excel bibliografie
+  const sources = processDocumenter.generateDetailedSources();
+  const biblioBlob = await generateBibliographySpreadsheet(sources);
+
+  // 4. Creează README
+  const readmeContent = `
+═══════════════════════════════════════════════════════════════
+📦 PACHET COMPLET PENTRU SUSȚINERE ACADEMICĂ
+═══════════════════════════════════════════════════════════════
+
+CONȚINUT:
+1. Literature_Review_4pages.docx - DOCUMENTUL ACADEMIC FINAL
+2. GHID_SUSTINERE.pdf - SCRIPT CU RĂSPUNSURI PENTRU PROFESOR
+3. BIBLIOGRAFIE_DETALIATA.xlsx - SURSE CU DETALII COMPLETE
+4. README.txt - Acest fișier cu instrucțiuni
+
+---
+
+🎯 INSTRUCȚIUNI PREGĂTIRE SUSȚINERE:
+
+PASUL 1 (20 min): Citește GHIDUL complet
+  - Memorează cele 4 răspunsuri principale
+  - Înțelege procesul descris pas cu pas
+
+PASUL 2 (10 min): Verifică dovezile
+  - Deschide BIBLIOGRAFIE_DETALIATA.xlsx
+  - Verifică că fiecare sursă are detalii complete
+  - Notează 2-3 concepte cheie din fiecare articol
+
+PASUL 3 (10 min): Citește documentul final de 2 ori
+  - Prima citire: pentru înțelegere generală
+  - A doua citire: pentru detalii și citări
+
+PASUL 4: La susținere
+  - Adu documentul Word + GHIDUL PDF + BIBLIOGRAFIE Excel
+  - La întrebări, ARATĂ dovezile concrete
+  - Explică calm și structurat, folosind scripturile din ghid
+
+---
+
+${requirements ? `📋 CERINȚE PROFESOR RESPECTATE:\n${requirements.split('\n').map(r => `✅ ${r}`).join('\n')}\n\n---\n\n` : ''}
+${keywords?.length ? `🔑 CUVINTE CHEIE INCLUSE:\n${keywords.map(k => `• ${k}`).join('\n')}\n\n---\n\n` : ''}
+⚠️ IMPORTANT:
+Acest pachet îți oferă TOATE dovezile că ai făcut munca academic corect.
+Profesorul poate verifica fiecare pas din procesul tău de lucru.
+
+✅ Succes la susținere!
+
+Generat: ${new Date().toLocaleString('ro-RO')}
+`;
+
+  // 5. Creează ZIP cu toate fișierele
+  const zip = new JSZip();
+  zip.file('Literature_Review_4pages.docx', blob);
+  zip.file('GHID_SUSTINERE.pdf', guideBlob);
+  zip.file('BIBLIOGRAFIE_DETALIATA.xlsx', biblioBlob);
+  zip.file('README.txt', readmeContent);
+
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  saveAs(zipBlob, 'Literatura_Review_PACHET_COMPLET_SUSTINERE.zip');
+
+  // Salvează în bibliotecă
   try {
     await saveDocumentToLibrary({
       documentType: "conference_paper",
-      documentTitle: "Reziliența organizațională - Literature Review (Conferință 4 pagini)",
-      mainFileBlob: blob,
-      mainFileExtension: "docx",
+      documentTitle: `${thesisTopic.substring(0, 100)} + Ghid Susținere`,
+      mainFileBlob: zipBlob,
+      mainFileExtension: "zip",
       wordCount: 1100,
       metadata: {
         author: authorName,
         affiliation: affiliation,
-        version: "compressed_4pages"
+        version: "compressed_with_guide",
+        includesGuide: true,
+        requirements: requirements,
+        keywords: keywords?.join(', ')
       }
     });
-    toast.success("Document salvat în biblioteca ta!");
+    toast.success("Pachet complet salvat în biblioteca ta!");
   } catch (error) {
     console.error("Error saving to library:", error);
-    toast.error("Documentul a fost descărcat, dar nu a putut fi salvat în bibliotecă");
+    toast.error("Pachetul a fost descărcat, dar nu a putut fi salvat în bibliotecă");
   }
 };
 

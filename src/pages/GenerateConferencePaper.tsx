@@ -3,29 +3,65 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { generateCompressedLiteratureReview } from "@/utils/generateCompressedLiteratureReview";
+import { processDocumenter } from "@/lib/processDocumenter";
 import { toast } from "sonner";
 
 const GenerateConferencePaper = () => {
   const [authorName, setAuthorName] = useState("");
   const [affiliation, setAffiliation] = useState("");
+  const [thesisTopic, setThesisTopic] = useState("");
+  const [requirements, setRequirements] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [academicStyle, setAcademicStyle] = useState("literature_review");
+  const [pageCount, setPageCount] = useState(4);
+  const [geographicFocus, setGeographicFocus] = useState("romania");
+  const [apaVersion, setApaVersion] = useState("7th");
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerate = async () => {
-    if (!authorName || !affiliation) {
-      toast.error("Completează numele și afilierea înainte de a genera documentul!");
+    if (!authorName || !affiliation || !thesisTopic) {
+      toast.error("Completează numele, afilierea și tema lucrării!");
       return;
     }
     
+    // START SESSION
+    processDocumenter.startSession(authorName, thesisTopic);
+    
+    // LOG INPUT
+    processDocumenter.logAction(
+      'USER_INPUT',
+      `Autor: ${authorName}, Afiliere: ${affiliation}, Tema: ${thesisTopic}`,
+      true
+    );
+    
     setIsGenerating(true);
     try {
-      await generateCompressedLiteratureReview(authorName, affiliation);
-      toast.success("Document pentru conferință generat cu succes! (4 pagini)");
+      processDocumenter.logAction('START_GENERATION', 'Început generare document + ghid pedagogic', false);
+      
+      await generateCompressedLiteratureReview({
+        authorName,
+        affiliation,
+        thesisTopic,
+        requirements,
+        keywords: keywords.split(',').map(k => k.trim()).filter(k => k),
+        academicStyle,
+        pageCount,
+        geographicFocus,
+        apaVersion
+      });
+      
+      processDocumenter.logAction('SUCCESS', 'Pachet complet generat: Document + Ghid + Bibliografie', false);
+      toast.success("Pachet complet generat! Verifică ZIP-ul descărcat (Document + Ghid + Bibliografie)");
     } catch (error) {
+      processDocumenter.logAction('ERROR', String(error), false);
       console.error("Error:", error);
       toast.error("Eroare la generare. Încearcă din nou.");
     } finally {
+      processDocumenter.endSession();
       setIsGenerating(false);
     }
   };
@@ -49,7 +85,7 @@ const GenerateConferencePaper = () => {
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="author">Nume autor (ex: Nume Prenume)</Label>
+            <Label htmlFor="author">Nume autor *</Label>
             <Input
               id="author"
               placeholder="Nume Prenume"
@@ -59,7 +95,7 @@ const GenerateConferencePaper = () => {
           </div>
           
           <div>
-            <Label htmlFor="affiliation">Afiliere (ex: Universitatea X, Facultatea Y)</Label>
+            <Label htmlFor="affiliation">Afiliere *</Label>
             <Input
               id="affiliation"
               placeholder="Universitatea X, Facultatea Y, Doctorand"
@@ -67,18 +103,110 @@ const GenerateConferencePaper = () => {
               onChange={(e) => setAffiliation(e.target.value)}
             />
           </div>
+
+          <div>
+            <Label htmlFor="topic">Tema Lucrării *</Label>
+            <Textarea
+              id="topic"
+              placeholder="Ex: Reziliența organizațională în contextul IMM-urilor din România: o sinteză a literaturii"
+              value={thesisTopic}
+              onChange={(e) => setThesisTopic(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="requirements">Cerințe Profesor (opțional)</Label>
+            <Textarea
+              id="requirements"
+              placeholder="Ex: 4 pagini maxim, minimum 10 surse din ultimii 5 ani, focus pe România, format APA 7th"
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              rows={4}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="keywords">Cuvinte Cheie Obligatorii (separate prin virgulă)</Label>
+            <Input
+              id="keywords"
+              placeholder="Ex: reziliență organizațională, IMM, capacități dinamice"
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="style">Stil Academic</Label>
+              <Select value={academicStyle} onValueChange={setAcademicStyle}>
+                <SelectTrigger id="style">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="literature_review">Literature Review</SelectItem>
+                  <SelectItem value="empirical">Articol Empiric</SelectItem>
+                  <SelectItem value="case_study">Studiu de Caz</SelectItem>
+                  <SelectItem value="meta_analysis">Meta-analiză</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="pages">Număr Pagini</Label>
+              <Input
+                id="pages"
+                type="number"
+                min={2}
+                max={10}
+                value={pageCount}
+                onChange={(e) => setPageCount(parseInt(e.target.value) || 4)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="focus">Focus Geografic</Label>
+              <Select value={geographicFocus} onValueChange={setGeographicFocus}>
+                <SelectTrigger id="focus">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="romania">România</SelectItem>
+                  <SelectItem value="europa">Europa</SelectItem>
+                  <SelectItem value="global">Global</SelectItem>
+                  <SelectItem value="comparat">Comparat (România + alte țări)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="apa">Format Bibliografie</Label>
+              <Select value={apaVersion} onValueChange={setApaVersion}>
+                <SelectTrigger id="apa">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7th">APA 7th Edition</SelectItem>
+                  <SelectItem value="6th">APA 6th Edition</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <div className="bg-success/10 border border-success/20 rounded-lg p-4 space-y-2">
-          <h3 className="font-semibold text-success">✅ Îmbunătățiri implementate:</h3>
+          <h3 className="font-semibold text-success">✅ Ce primești în pachetul complet:</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Comprimare text la 4 pagini (inclusiv abstract + bibliografie)</li>
-            <li>• Grupare autori pe idei (NU autor cu autor)</li>
-            <li>• Reducere paragrafe introductive la esențial</li>
-            <li>• Abstract RO (150-200 cuvinte)</li>
-            <li>• Bibliografie comprimată (doar 11 referințe esențiale)</li>
-            <li>• Format academic matur conform feedback profesor</li>
+            <li>📄 <strong>Document Word</strong> - lucrarea ta academică finală</li>
+            <li>📚 <strong>Ghid de Susținere PDF</strong> - scripturi cu răspunsuri pentru profesor</li>
+            <li>📊 <strong>Bibliografie Excel</strong> - surse detaliate cu concepte și timp lectură</li>
+            <li>📋 <strong>README</strong> - instrucțiuni complete pentru pregătirea susținerii</li>
           </ul>
+          <p className="text-xs text-muted-foreground mt-2 italic">
+            * Toate fișierele sunt împachetate într-un singur ZIP
+          </p>
         </div>
 
         <Button
@@ -90,18 +218,23 @@ const GenerateConferencePaper = () => {
           {isGenerating ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Generez documentul...
+              Generez pachetul complet...
             </>
           ) : (
             <>
               <Download className="w-5 h-5 mr-2" />
-              Generează document 4 pagini
+              Generează pachet complet (Document + Ghid + Bibliografie)
             </>
           )}
         </Button>
 
-        <div className="text-center text-xs text-muted-foreground">
-          📝 Verifică înainte de trimitere: Abstract (EN), format APA, diacritice
+        <div className="text-center space-y-2">
+          <p className="text-xs text-muted-foreground">
+            📦 Vei primi un ZIP cu: Document Word + Ghid PDF + Bibliografie Excel + README
+          </p>
+          <p className="text-xs text-muted-foreground font-semibold">
+            📝 Citește GHIDUL înainte de susținere pentru a ști ce să răspunzi profesorului!
+          </p>
         </div>
       </Card>
     </div>
