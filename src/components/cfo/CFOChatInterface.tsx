@@ -19,7 +19,7 @@ export const CFOChatInterface = memo(({
   onAskQuestion 
 }: CFOChatInterfaceProps) => {
   const [cfoQuestion, setCfoQuestion] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const chatHistoryRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll când se adaugă mesaje noi

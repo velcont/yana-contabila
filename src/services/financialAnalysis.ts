@@ -158,6 +158,8 @@ const sumBankAccounts = (balanceData: any): number => {
     const accountNumber = parseInt(row.cont || row.account || row.Cont || '0');
     // Sum all accounts starting with 51 (bank accounts)
     if (accountNumber >= 5100 && accountNumber <= 5199) {
+      console.log('🏦 Cont bancă găsit:', accountNumber, 'Coloane disponibile:', Object.keys(row));
+      
       // Look for "Solduri finale Debitoare" column
       const finalDebit = parseRoNumber(
         row['Solduri finale Debitoare'] || 
@@ -166,9 +168,12 @@ const sumBankAccounts = (balanceData: any): number => {
         row.SolduriFinaleDebitoare ||
         0
       );
+      
+      console.log(`🏦 Sold final debit pentru cont ${accountNumber} = ${finalDebit} RON`);
       total += finalDebit;
     }
   }
+  console.log(`🏦 Total sold bancă: ${total} RON`);
   return total;
 };
 
@@ -257,7 +262,7 @@ export const getLatestFinancialData = async (
   
   const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(1);
   
   console.log('🔍 getLatestFinancialData - Raw DB response:', { data, error });
   console.log('🔍 getLatestFinancialData - Number of analyses found:', data?.length || 0);
@@ -286,145 +291,126 @@ export const getLatestFinancialData = async (
     dpo: 0
   };
 
-  // Merge data from multiple analyses (prioritize non-zero values)
-  for (const row of data) {
-    const m: any = row.metadata || {};
+  // Extract data from the single latest analysis (no merge logic)
+  const row = data[0];
+  const m: any = row.metadata || {};
+  
+  console.log('🔍 ANALYSIS DATE:', row.created_at);
+  console.log('🔍 FILE NAME:', row.file_name);
+  console.log('🔍 METADATA KEYS:', Object.keys(m));
 
-    // Revenue (extended synonyms + nested paths)
-    if (merged.revenue === 0) {
-      merged.revenue = pickFirstNumber(m, [
-        'revenue', 'ca', 'cifraAfaceri', 'venituri', 'totalVenituri',
-        'indicators.ca', 'indicators.cifraAfaceri', 'indicators.venituri',
-        'indicatori.ca', 'indicatori.cifraAfaceri', 'indicatori.venituri',
-        'metrics.revenue', 'metrics.venituri', 'metrics.totalVenituri'
-      ]);
+  // Revenue (extended synonyms + nested paths)
+  merged.revenue = pickFirstNumber(m, [
+    'revenue', 'ca', 'cifraAfaceri', 'venituri', 'totalVenituri',
+    'indicators.ca', 'indicators.cifraAfaceri', 'indicators.venituri',
+    'indicatori.ca', 'indicatori.cifraAfaceri', 'indicatori.venituri',
+    'metrics.revenue', 'metrics.venituri', 'metrics.totalVenituri'
+  ]);
 
-      // FALLBACK 1: Extract from analysis_result text
-      if (merged.revenue === 0 && m.analysis_result) {
-        console.log('🔍 Fallback 1: Extrag revenue din analysis_result text');
-        merged.revenue = extractRevenueFromAnalysisText(m.analysis_result);
-        if (merged.revenue > 0) {
-          console.log(`✅ Revenue găsit în text: ${merged.revenue}`);
-        }
-      }
-
-      // FALLBACK 2: Sum accounts 7000-7999 from balance_data
-      if (merged.revenue === 0 && m.balance_data) {
-        console.log('🔍 Fallback 2: Sumez conturile 70xx din balance_data');
-        merged.revenue = sumAccountsInRange(m.balance_data, 7000, 7999);
-        if (merged.revenue > 0) {
-          console.log(`✅ Revenue calculat din conturi: ${merged.revenue}`);
-        }
-      }
-    }
-
-    // Expenses
-    if (merged.expenses === 0) {
-      merged.expenses = pickFirstNumber(m, [
-        'expenses', 'cheltuieli', 'totalCheltuieli', 'costuri',
-        'indicators.cheltuieli', 'indicators.totalCheltuieli', 'indicators.costuri',
-        'indicatori.cheltuieli', 'indicatori.totalCheltuieli', 'indicatori.costuri',
-        'metrics.expenses', 'metrics.cheltuieli', 'metrics.totalCheltuieli'
-      ]);
-      
-      // FALLBACK: Sum accounts 6000-6999 from balance_data
-      if (merged.expenses === 0 && m.balance_data) {
-        console.log('🔍 Fallback: Sumez conturile 6xxx (cheltuieli) din balance_data');
-        merged.expenses = sumExpensesFromBalance(m.balance_data);
-        if (merged.expenses > 0) {
-          console.log(`✅ Cheltuieli calculate din balance_data: ${merged.expenses}`);
-        }
-      }
-    }
-
-    // Profit
-    if (merged.profit === 0) {
-      merged.profit = pickFirstNumber(m, [
-        'profit', 'profitNet', 'profitBrut', 'rezultat',
-        'indicators.profit', 'indicators.profitNet', 'indicators.rezultat',
-        'indicatori.profit', 'indicatori.profitNet', 'indicatori.rezultat',
-        'metrics.profit', 'metrics.profitNet'
-      ]);
-    }
-
-    // Sold Banca
-    if (merged.soldBanca === 0) {
-      merged.soldBanca = pickFirstNumber(m, [
-        'soldBanca', 'cashBanca', 'banca', 'conturiBancare',
-        'indicators.soldBanca', 'indicators.banca', 'indicators.conturiBancare',
-        'indicatori.soldBanca', 'indicatori.banca', 'indicatori.conturiBancare',
-        'metrics.soldBanca', 'metrics.banca'
-      ]);
-      
-      // FALLBACK: Sum ALL bank accounts (51xx) from balance_data
-      if (merged.soldBanca === 0 && m.balance_data) {
-        console.log('🔍 Fallback: Sumez TOATE conturile bancare (51xx) din balance_data');
-        merged.soldBanca = sumBankAccounts(m.balance_data);
-        if (merged.soldBanca > 0) {
-          console.log(`✅ Sold bancă calculat din balance_data: ${merged.soldBanca}`);
-        }
-      }
-    }
-
-    // Sold Casa
-    if (merged.soldCasa === 0) {
-      merged.soldCasa = pickFirstNumber(m, [
-        'soldCasa', 'cashCasa', 'casa', 'numerar',
-        'indicators.soldCasa', 'indicators.casa', 'indicators.numerar',
-        'indicatori.soldCasa', 'indicatori.casa', 'indicatori.numerar',
-        'metrics.soldCasa', 'metrics.casa'
-      ]);
-      
-      // FALLBACK: Sum ALL cash accounts (53xx) from balance_data
-      if (merged.soldCasa === 0 && m.balance_data) {
-        console.log('🔍 Fallback: Sumez TOATE conturile casă (53xx) din balance_data');
-        merged.soldCasa = sumCashAccounts(m.balance_data);
-        if (merged.soldCasa > 0) {
-          console.log(`✅ Sold casă calculat din balance_data: ${merged.soldCasa}`);
-        }
-      }
-    }
-
-    // Sold Clienti (creanțe)
-    if (merged.soldClienti === 0) {
-      merged.soldClienti = pickFirstNumber(m, [
-        'soldClienti', 'creante', 'clienti', 'receivables',
-        'indicators.soldClienti', 'indicators.creante', 'indicators.clienti',
-        'indicatori.soldClienti', 'indicatori.creante', 'indicatori.clienti',
-        'metrics.soldClienti', 'metrics.creante'
-      ]);
-    }
-
-    // Sold Furnizori (datorii)
-    if (merged.soldFurnizori === 0) {
-      merged.soldFurnizori = pickFirstNumber(m, [
-        'soldFurnizori', 'datorii', 'furnizori', 'payables',
-        'indicators.soldFurnizori', 'indicators.datorii', 'indicators.furnizori',
-        'indicatori.soldFurnizori', 'indicatori.datorii', 'indicatori.furnizori',
-        'metrics.soldFurnizori', 'metrics.datorii'
-      ]);
-    }
-
-    // DSO (Days Sales Outstanding)
-    if (merged.dso === 0) {
-      merged.dso = pickFirstNumber(m, [
-        'dso', 'dso_zile', 'DSO', 'daysSalesOutstanding',
-        'indicators.dso', 'indicators.dso_zile',
-        'indicatori.dso', 'indicatori.dso_zile',
-        'metrics.dso'
-      ]);
-    }
-
-    // DPO (Days Payable Outstanding)
-    if (merged.dpo === 0) {
-      merged.dpo = pickFirstNumber(m, [
-        'dpo', 'dpo_zile', 'DPO', 'daysPayableOutstanding',
-        'indicators.dpo', 'indicators.dpo_zile',
-        'indicatori.dpo', 'indicatori.dpo_zile',
-        'metrics.dpo'
-      ]);
+  // FALLBACK 1: Extract from analysis_result text
+  if (merged.revenue === 0 && m.analysis_result) {
+    console.log('🔍 Fallback 1: Extrag revenue din analysis_result text');
+    merged.revenue = extractRevenueFromAnalysisText(m.analysis_result);
+    if (merged.revenue > 0) {
+      console.log(`✅ Revenue găsit în text: ${merged.revenue}`);
     }
   }
+
+  // FALLBACK 2: Sum accounts 7000-7999 from balance_data
+  if (merged.revenue === 0 && m.balance_data) {
+    console.log('🔍 Fallback 2: Sumez conturile 70xx din balance_data');
+    merged.revenue = sumAccountsInRange(m.balance_data, 7000, 7999);
+    if (merged.revenue > 0) {
+      console.log(`✅ Revenue calculat din conturi: ${merged.revenue}`);
+    }
+  }
+
+  // Expenses
+  merged.expenses = pickFirstNumber(m, [
+    'expenses', 'cheltuieli', 'totalCheltuieli', 'costuri',
+    'indicators.cheltuieli', 'indicators.totalCheltuieli', 'indicators.costuri',
+    'indicatori.cheltuieli', 'indicatori.totalCheltuieli', 'indicatori.costuri',
+    'metrics.expenses', 'metrics.cheltuieli', 'metrics.totalCheltuieli'
+  ]);
+  
+  // FALLBACK: Sum accounts 6000-6999 from balance_data
+  if (merged.expenses === 0 && m.balance_data) {
+    console.log('🔍 Fallback: Sumez conturile 6xxx (cheltuieli) din balance_data');
+    merged.expenses = sumExpensesFromBalance(m.balance_data);
+    if (merged.expenses > 0) {
+      console.log(`✅ Cheltuieli calculate din balance_data: ${merged.expenses}`);
+    }
+  }
+
+  // Profit
+  merged.profit = pickFirstNumber(m, [
+    'profit', 'profitNet', 'profitBrut', 'rezultat',
+    'indicators.profit', 'indicators.profitNet', 'indicators.rezultat',
+    'indicatori.profit', 'indicatori.profitNet', 'indicatori.rezultat',
+    'metrics.profit', 'metrics.profitNet'
+  ]);
+
+  // Sold Banca
+  merged.soldBanca = pickFirstNumber(m, [
+    'soldBanca', 'cashBanca', 'banca', 'conturiBancare',
+    'indicators.soldBanca', 'indicators.banca', 'indicators.conturiBancare',
+    'indicatori.soldBanca', 'indicatori.banca', 'indicatori.conturiBancare',
+    'metrics.soldBanca', 'metrics.banca'
+  ]);
+  
+  // FALLBACK: Sum ALL bank accounts (51xx) from balance_data
+  if (merged.soldBanca === 0 && m.balance_data) {
+    console.log('🔍 Fallback: Sumez TOATE conturile bancare (51xx) din balance_data');
+    merged.soldBanca = sumBankAccounts(m.balance_data);
+    console.log(`🏦 Sold bancă final: ${merged.soldBanca}`);
+  }
+
+  // Sold Casa
+  merged.soldCasa = pickFirstNumber(m, [
+    'soldCasa', 'cashCasa', 'casa', 'numerar',
+    'indicators.soldCasa', 'indicators.casa', 'indicators.numerar',
+    'indicatori.soldCasa', 'indicatori.casa', 'indicatori.numerar',
+    'metrics.soldCasa', 'metrics.casa'
+  ]);
+  
+  // FALLBACK: Sum ALL cash accounts (53xx) from balance_data
+  if (merged.soldCasa === 0 && m.balance_data) {
+    console.log('🔍 Fallback: Sumez TOATE conturile casă (53xx) din balance_data');
+    merged.soldCasa = sumCashAccounts(m.balance_data);
+    console.log(`💵 Sold casă final: ${merged.soldCasa}`);
+  }
+
+  // Sold Clienti (creanțe)
+  merged.soldClienti = pickFirstNumber(m, [
+    'soldClienti', 'creante', 'clienti', 'receivables',
+    'indicators.soldClienti', 'indicators.creante', 'indicators.clienti',
+    'indicatori.soldClienti', 'indicatori.creante', 'indicatori.clienti',
+    'metrics.soldClienti', 'metrics.creante'
+  ]);
+
+  // Sold Furnizori (datorii)
+  merged.soldFurnizori = pickFirstNumber(m, [
+    'soldFurnizori', 'datorii', 'furnizori', 'payables',
+    'indicators.soldFurnizori', 'indicators.datorii', 'indicators.furnizori',
+    'indicatori.soldFurnizori', 'indicatori.datorii', 'indicatori.furnizori',
+    'metrics.soldFurnizori', 'metrics.datorii'
+  ]);
+
+  // DSO (Days Sales Outstanding)
+  merged.dso = pickFirstNumber(m, [
+    'dso', 'dso_zile', 'DSO', 'daysSalesOutstanding',
+    'indicators.dso', 'indicators.dso_zile',
+    'indicatori.dso', 'indicatori.dso_zile',
+    'metrics.dso'
+  ]);
+
+  // DPO (Days Payable Outstanding)
+  merged.dpo = pickFirstNumber(m, [
+    'dpo', 'dpo_zile', 'DPO', 'daysPayableOutstanding',
+    'indicators.dpo', 'indicators.dpo_zile',
+    'indicatori.dpo', 'indicatori.dpo_zile',
+    'metrics.dpo'
+  ]);
 
   // CRITICAL FIX: ALWAYS recalculate profit from revenue - expenses
   console.log('🔍 Calculare profit: revenue =', merged.revenue, ', expenses =', merged.expenses);
