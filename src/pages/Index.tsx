@@ -546,23 +546,6 @@ const Index = () => {
                         </Tooltip>
                       </TooltipProvider>
 
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              onClick={() => navigate('/cfo')}
-                              size="sm"
-                              className="cfo-button-elegant gap-2"
-                            >
-                              <TrendingUp className="h-4 w-4" />
-                              CFO Dashboard
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Dashboard Financiar Complet - Indicatori & Analiză</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
                     </>
                   )}
                   {/* Dacă utilizatorul e contabil, nu afișăm badge sau buton contabil în /app */}

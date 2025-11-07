@@ -6,7 +6,6 @@
 type PreloadableComponent = 
   | 'chatAI'
   | 'dashboard'
-  | 'yanaCFO'
   | 'fiscalChat'
   | 'strategicCouncil'
   | 'analytics'
@@ -19,7 +18,6 @@ const preloadCache = new Set<PreloadableComponent>();
 const componentLoaders: Record<PreloadableComponent, () => Promise<any>> = {
   chatAI: () => import('@/components/ChatAI'),
   dashboard: () => import('@/components/Dashboard'),
-  yanaCFO: () => import('@/components/YanaCFODashboard'),
   fiscalChat: () => import('@/components/FiscalChat'),
   strategicCouncil: () => import('@/components/StrategicCouncil'),
   analytics: () => import('@/components/AnalyticsCharts'),
@@ -79,7 +77,7 @@ export const createPreloadHandler = (component: PreloadableComponent) => {
 export const preloadForRoute = (route: string): void => {
   const routePreloads: Record<string, PreloadableComponent[]> = {
     '/app': ['chatAI', 'dashboard'],
-    '/strategic-advisor': ['yanaCFO', 'strategicCouncil'],
+    '/strategic-advisor': ['strategicCouncil'],
     '/analytics': ['analytics'],
     '/crm': ['crmClient', 'emailManager'],
   };

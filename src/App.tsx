@@ -34,7 +34,7 @@ const PlatformCosts = lazy(() => import("./pages/PlatformCosts"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Pricing = lazy(() => import("./pages/Pricing"));
-const MyAICosts = lazy(() => import("./pages/MyAICosts"));
+
 const Subscription = lazy(() => import("./pages/Subscription"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const AccountantDashboard = lazy(() => import("./pages/AccountantDashboard"));
@@ -45,10 +45,8 @@ const HumanizeText = lazy(() => import("./pages/HumanizeText"));
 const ClientOnboardingWizard = lazy(() => import("./pages/ClientOnboardingWizard"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
-const GenerateCFOPresentation = lazy(() => import("./pages/GenerateCFOPresentation"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
 const GenerateConferencePaper = lazy(() => import("./pages/GenerateConferencePaper"));
-const CFO = lazy(() => import("./pages/CFO"));
 const MyDocuments = lazy(() => import("./pages/MyDocuments"));
 
 const queryClient = new QueryClient();
@@ -105,7 +103,7 @@ const App = () => (
                       <Route path="/terms" element={<Terms />} />
                       <Route path="/privacy" element={<Privacy />} />
                       <Route path="/pricing" element={<Pricing />} />
-                      <Route path="/my-ai-costs" element={<PrivateRoute><MyAICosts /></PrivateRoute>} />
+                      
                       <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                       <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
                       <Route path="/yanacrm" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
@@ -113,11 +111,11 @@ const App = () => (
                       <Route path="/accept-invitation" element={<AcceptInvitation />} />
                       <Route path="/client-onboarding/:processId" element={<ClientOnboardingWizard />} />
                       <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
-                      <Route path="/cfo" element={<PrivateRoute><CFO /></PrivateRoute>} />
+                      
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                       <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
                       <Route path="/humanize-text" element={<PrivateRoute><HumanizeText /></PrivateRoute>} />
-                      <Route path="/generate-cfo-presentation" element={<GenerateCFOPresentation />} />
+                      
                       <Route path="/generate-literature-review" element={<GenerateLiteratureReview />} />
                       <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />
                       <Route path="/my-documents" element={<PrivateRoute><MyDocuments /></PrivateRoute>} />

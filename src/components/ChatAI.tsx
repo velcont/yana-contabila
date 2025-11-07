@@ -1827,7 +1827,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: 'Document generat automat de YanaCFO AI', italics: true })
+            new TextRun({ text: 'Document generat automat de Yana AI', italics: true })
           ],
           alignment: AlignmentType.CENTER
         })

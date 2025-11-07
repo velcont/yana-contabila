@@ -16,11 +16,9 @@ import {
   MessageSquare,
   TrendingUp
 } from "lucide-react";
-import { YanaCFODashboard } from "@/components/YanaCFODashboard";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContextualHelp } from "@/components/ContextualHelp";
-import { getLatestFinancialData, type FinancialData } from "@/services/financialAnalysis";
 
 interface Message {
   role: "user" | "assistant";
@@ -193,41 +191,6 @@ export default function StrategicAdvisor() {
       isMounted = false;
     };
   }, [user, conversationId]);
-
-  // Load latest financial data when CFO tab is active
-  const [financialData, setFinancialData] = useState<FinancialData | null>(null);
-
-  useEffect(() => {
-    if (activeTab === 'cfo' && user) {
-      console.log('🔍 Strategic Advisor - CFO tab active');
-      console.log('🔍 Mounting YanaCFODashboard with props:', { 
-        userId: user?.id, 
-        creditRemaining 
-      });
-      loadLatestFinancialData();
-    }
-  }, [activeTab, user, creditRemaining]);
-
-  const loadLatestFinancialData = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('📊 Loading latest financial data for CFO...');
-      
-      const data = await getLatestFinancialData(user.id);
-
-      if (data) {
-        console.log('✅ Loaded financial data:', data);
-        setFinancialData(data);
-      } else {
-        console.log('⚠️ No financial data found');
-        setFinancialData(null);
-      }
-    } catch (err) {
-      console.error('Error loading financial data:', err);
-      setFinancialData(null);
-    }
-  };
 
   // Generic credit deduction function using the new AI usage system
   const deductCredit = async (amount: number): Promise<boolean> => {
@@ -447,12 +410,12 @@ export default function StrategicAdvisor() {
                 <div>
                   <h1 className="text-2xl font-bold">Yana Strategică</h1>
                   <p className="text-sm text-muted-foreground">
-                    Consultant AI Strategic & CFO Dashboard
+                    Consultant AI Strategic
                   </p>
                 </div>
                 <ContextualHelp
                   title="Yana Strategică"
-                  content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive, sau consultă CFO Dashboard pentru indicatori financiari."
+                  content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive sau oportunități de expansiune."
                 />
               </div>
             </div>
