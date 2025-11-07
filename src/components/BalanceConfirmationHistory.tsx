@@ -80,15 +80,411 @@ const accountExplanations: Record<string, { name: string; explanation: string; i
   }
 };
 
+// Helper functions for improved report
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('ro-RO', {
+    style: 'currency',
+    currency: 'RON',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+};
+
+const generateTopProblems = (data: {
+  totalCash: number;
+  totalPayables: number;
+  profitLoss: number;
+  totalReceivables: number;
+}): Paragraph[] => {
+  const problems: Paragraph[] = [];
+  let problemNumber = 1;
+
+  // Problem 1: Cash flow crisis
+  if (data.totalCash < data.totalPayables * 0.5 && data.totalPayables > 0) {
+    problems.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${problemNumber}. 🔴 CRIZĂ DE CASH FLOW (URGENT!)`, bold: true, size: 24 })
+        ],
+        spacing: { before: 200, after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   Ai doar ${formatCurrency(data.totalCash)} în bancă dar ${formatCurrency(data.totalPayables)} de plătit!`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → Lipsesc ~${formatCurrency(data.totalPayables - data.totalCash)} pentru a plăti datoriile`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → ACȚIUNE: Încasează URGENT de la clienți + reduce cheltuielile`,
+            size: 20
+          })
+        ],
+        spacing: { after: 200 },
+        indent: { left: 300 }
+      })
+    );
+    problemNumber++;
+  }
+
+  // Problem 2: Loss
+  if (data.profitLoss < 0) {
+    problems.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${problemNumber}. 🔴 PIERDERE DE ${formatCurrency(Math.abs(data.profitLoss))}`, bold: true, size: 24 })
+        ],
+        spacing: { before: 200, after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   Cheltuielile depășesc veniturile → firma pierde bani!`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → RISC: ANAF poate solicita explicații după 2+ ani de pierderi`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → ACȚIUNE: Crește vânzările SAU reduce cheltuielile cu min 15%`,
+            size: 20
+          })
+        ],
+        spacing: { after: 200 },
+        indent: { left: 300 }
+      })
+    );
+    problemNumber++;
+  }
+
+  // Problem 3: Low current ratio
+  const currentRatio = data.totalPayables > 0 ? (data.totalCash + data.totalReceivables) / data.totalPayables : 999;
+  if (currentRatio < 1.0 && data.totalPayables > 0) {
+    problems.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${problemNumber}. 🟡 LICHIDITATE SCĂZUTĂ`, bold: true, size: 24 })
+        ],
+        spacing: { before: 200, after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   Current Ratio: ${currentRatio.toFixed(2)} (sub 1.0 = pericol!)`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → ACȚIUNE: Negociază termene mai lungi cu furnizorii`,
+            size: 20
+          })
+        ],
+        spacing: { after: 200 },
+        indent: { left: 300 }
+      })
+    );
+  }
+
+  if (problems.length === 0) {
+    problems.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `✅ Nu s-au detectat probleme critice majore!`, bold: true, size: 24, color: "00AA00" })
+        ],
+        spacing: { before: 200, after: 200 }
+      })
+    );
+  }
+
+  return problems;
+};
+
+const generateTopOpportunities = (data: {
+  totalRevenue: number;
+  costOfGoods: number;
+  totalReceivables: number;
+  totalCash: number;
+}): Paragraph[] => {
+  const opportunities: Paragraph[] = [];
+  let oppNumber = 1;
+
+  // Opportunity 1: Good margin
+  const margin = data.totalRevenue > 0 ? ((data.totalRevenue - data.costOfGoods) / data.totalRevenue) * 100 : 0;
+  if (margin > 50) {
+    opportunities.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${oppNumber}. ✅ MARJA COMERCIALĂ BUNĂ: ${margin.toFixed(0)}%`, bold: true, size: 24, color: "00AA00" })
+        ],
+        spacing: { before: 200, after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   Vinzi cu ${formatCurrency(data.totalRevenue)} ce cumperi cu ${formatCurrency(data.costOfGoods)}`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → E BINE! Media industriei = 40-50%`,
+            size: 20
+          })
+        ],
+        spacing: { after: 200 },
+        indent: { left: 300 }
+      })
+    );
+    oppNumber++;
+  }
+
+  // Opportunity 2: Clients owe money
+  if (data.totalReceivables > 0) {
+    opportunities.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${oppNumber}. ✅ CLIENȚI DATOREAZĂ ${formatCurrency(data.totalReceivables)}`, bold: true, size: 24, color: "00AA00" })
+        ],
+        spacing: { before: 200, after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   Dacă îi faci să plătească rapid → cash flow rezolvat!`,
+            size: 20
+          })
+        ],
+        spacing: { after: 50 },
+        indent: { left: 300 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   → ACȚIUNE: Sună-i ASTĂZI și cere plata în max 7 zile`,
+            size: 20
+          })
+        ],
+        spacing: { after: 200 },
+        indent: { left: 300 }
+      })
+    );
+    oppNumber++;
+  }
+
+  // Opportunity 3: Positive cash position
+  if (data.totalCash > 10000) {
+    opportunities.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${oppNumber}. ✅ POZIȚIE SOLIDĂ DE CASH: ${formatCurrency(data.totalCash)}`, bold: true, size: 24, color: "00AA00" })
+        ],
+        spacing: { before: 200, after: 100 }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ 
+            text: `   Poți investi în creștere sau în echipamente noi`,
+            size: 20
+          })
+        ],
+        spacing: { after: 200 },
+        indent: { left: 300 }
+      })
+    );
+  }
+
+  if (opportunities.length === 0) {
+    opportunities.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: `💡 Focusează-te pe creșterea vânzărilor și îmbunătățirea marjei`, size: 24 })
+        ],
+        spacing: { before: 200, after: 200 }
+      })
+    );
+  }
+
+  return opportunities;
+};
+
+const generateLegalNoteSectionIfNeeded = (isAccountant: boolean): Paragraph[] => {
+  if (!isAccountant) {
+    console.log('🚫 User este ANTREPRENOR → NU generez notă juridică');
+    return [];
+  }
+
+  console.log('✅ User este CONTABIL → Generez notă juridică completă');
+
+  return [
+    new Paragraph({
+      text: "",
+      spacing: { before: 600, after: 400 },
+      border: {
+        top: {
+          color: "CCCCCC",
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
+    }),
+    new Paragraph({
+      text: "NOTĂ JURIDICĂ ȘI CONFIRMARE",
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 400, after: 300 },
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "Prin prezentul document, cabinetul de contabilitate vă informează oficial cu privire la situația contabilă a societății dumneavoastră pentru perioada menționată.",
+          size: 20,
+        })
+      ],
+      spacing: { after: 200 },
+      alignment: AlignmentType.JUSTIFIED
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "În conformitate cu prevederile contractului de prestări servicii de contabilitate și cu legislația în vigoare, vă rugăm să analizați cu atenție informațiile prezentate în acest raport.",
+          size: 20,
+        })
+      ],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "TERMEN DE RĂSPUNS: ", size: 20, bold: true }),
+        new TextRun({
+          text: "Aveți la dispoziție 5 (cinci) zile lucrătoare de la primirea acestui document pentru a transmite eventuale obiecțiuni, completări sau solicitări de clarificări referitoare la datele prezentate.",
+          size: 20,
+        })
+      ],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "CONFIRMARE TACITĂ: ", size: 20, bold: true }),
+        new TextRun({
+          text: "În absența oricărei comunicări scrise din partea dumneavoastră în termenul menționat mai sus, se consideră că:",
+          size: 20,
+        })
+      ],
+      spacing: { after: 100 },
+      alignment: AlignmentType.JUSTIFIED
+    }),
+    new Paragraph({
+      children: [ new TextRun({ text: "  • Ați luat la cunoștință situația contabilă prezentată", size: 20 }) ],
+      spacing: { after: 100 },
+      indent: { left: 400 }
+    }),
+    new Paragraph({
+      children: [ new TextRun({ text: "  • Confirmați corectitudinea datelor din punct de vedere al activității societății", size: 20 }) ],
+      spacing: { after: 100 },
+      indent: { left: 400 }
+    }),
+    new Paragraph({
+      children: [ new TextRun({ text: "  • Luna/Perioada contabilă este încheiată și validată din punct de vedere contabil", size: 20 }) ],
+      spacing: { after: 300 },
+      indent: { left: 400 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "RESPONSABILITATE: ", size: 20, bold: true }),
+        new TextRun({
+          text: "Vă reamintim că documentele justificative (facturi, chitanțe, extrase bancare) trebuie să fie transmise cabinetului nostru în termenele stabilite contractual. Orice documente transmise după încheierea perioadei vor fi înregistrate în luna/trimestrul următor, conform prevederilor legale.",
+          size: 20,
+        })
+      ],
+      spacing: { after: 300 },
+      alignment: AlignmentType.JUSTIFIED
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({ text: "OBIECȚIUNI: ", size: 20, bold: true }),
+        new TextRun({
+          text: "Eventualele obiecțiuni trebuie comunicate în scris (email sau scrisoare) la datele de contact menționate în contractul de prestări servicii.",
+          size: 20,
+        })
+      ],
+      spacing: { after: 400 },
+      alignment: AlignmentType.JUSTIFIED
+    }),
+    new Paragraph({
+      children: [ new TextRun({ text: `Data generării documentului: ${new Date().toLocaleDateString('ro-RO')}`, size: 18, italics: true }) ],
+      spacing: { after: 100 },
+    }),
+  ];
+};
+
 export const BalanceConfirmationHistory = () => {
   const [confirmations, setConfirmations] = useState<BalanceConfirmation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [userSubscriptionType, setUserSubscriptionType] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchConfirmations();
+    fetchUserSubscriptionType();
   }, []);
+
+  const fetchUserSubscriptionType = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('subscription_type')
+        .eq('id', user.id)
+        .single();
+
+      setUserSubscriptionType(data?.subscription_type || null);
+      console.log('🔍 User subscription type:', data?.subscription_type);
+    } catch (error) {
+      console.error('Error fetching user subscription type:', error);
+    }
+  };
 
   const fetchConfirmations = async () => {
     try {
@@ -120,6 +516,29 @@ export const BalanceConfirmationHistory = () => {
 
   const generateWordFromHistory = async (confirmation: BalanceConfirmation) => {
     try {
+      // Calculate key financial metrics
+      const totalRevenue = Object.entries(confirmation.accounts_data)
+        .filter(([code]) => code.startsWith('7'))
+        .reduce((sum, [_, values]) => sum + (values.credit || 0), 0);
+
+      const totalExpenses = Object.entries(confirmation.accounts_data)
+        .filter(([code]) => code.startsWith('6'))
+        .reduce((sum, [_, values]) => sum + (values.debit || 0), 0);
+
+      const costOfGoods = confirmation.accounts_data['607']?.debit || 0;
+      const profitLoss = totalRevenue - totalExpenses;
+      const totalCash = (confirmation.accounts_data['5121']?.debit || 0) + (confirmation.accounts_data['5311']?.debit || 0);
+      const totalPayables = confirmation.accounts_data['401']?.credit || 0;
+      const totalReceivables = confirmation.accounts_data['4111']?.debit || 0;
+
+      // Calculate financial indicators
+      const margin = totalRevenue > 0 ? ((totalRevenue - costOfGoods) / totalRevenue) * 100 : 0;
+      const currentRatio = totalPayables > 0 ? (totalCash + totalReceivables) / totalPayables : 999;
+      const dso = totalRevenue > 0 ? (totalReceivables / totalRevenue) * 365 : 0;
+      const dpo = totalExpenses > 0 ? (totalPayables / totalExpenses) * 365 : 0;
+
+      const isAccountant = userSubscriptionType === 'accounting_firm';
+
       const doc = new Document({
         sections: [{
           properties: {},
@@ -143,6 +562,146 @@ export const BalanceConfirmationHistory = () => {
                 new TextRun(confirmation.cui || "N/A"),
               ],
               spacing: { after: 400 },
+            }),
+
+            // ========== REZUMAT EXECUTIV ==========
+            new Paragraph({
+              text: "REZUMAT EXECUTIV - SĂNĂTATEA FINANCIARĂ ÎN 30 SECUNDE",
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 200 },
+              border: {
+                top: { color: "4472C4", space: 8, style: BorderStyle.SINGLE, size: 12 },
+                bottom: { color: "4472C4", space: 8, style: BorderStyle.SINGLE, size: 12 },
+              }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ 
+                  text: profitLoss < 0 ? "🔴 STATUS GENERAL: ATENȚIE - Situație financiară dificilă" : "✅ STATUS GENERAL: Situație financiară pozitivă",
+                  bold: true,
+                  size: 24
+                })
+              ],
+              spacing: { before: 200, after: 200 }
+            }),
+
+            new Paragraph({
+              children: [ new TextRun({ text: "CIFRELE CHEIE:", bold: true, size: 24 }) ],
+              spacing: { before: 200, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `💰 VENITURI (Vânzări):        ${formatCurrency(totalRevenue)}`, size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `💸 CHELTUIELI (Costuri):      ${formatCurrency(totalExpenses)}`, size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ 
+                new TextRun({ 
+                  text: `📉 PROFIT/PIERDERE:           ${formatCurrency(profitLoss)} ${profitLoss < 0 ? "(PIERDERE!)" : "(PROFIT)"}`,
+                  size: 20,
+                  bold: profitLoss < 0
+                })
+              ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `🏦 BANI DISPONIBILI:          ${formatCurrency(totalCash)}`, size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `💳 DATORII DE PLATĂ:          ${formatCurrency(totalPayables)}`, size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `💰 BANI DE ÎNCASAT:           ${formatCurrency(totalReceivables)}`, size: 20 }) ],
+              spacing: { after: 200 },
+              indent: { left: 200 }
+            }),
+
+            new Paragraph({
+              text: "🚨 CELE MAI MARI 3 PROBLEME ACUM:",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 150 }
+            }),
+            ...generateTopProblems({ totalCash, totalPayables, profitLoss, totalReceivables }),
+
+            new Paragraph({
+              text: "✅ CELE MAI MARI 3 OPORTUNITĂȚI:",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 150 }
+            }),
+            ...generateTopOpportunities({ totalRevenue, costOfGoods, totalReceivables, totalCash }),
+
+            new Paragraph({
+              text: "🎯 PLAN DE ACȚIUNE - URMĂTOARELE 7 ZILE:",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 150 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📅 ZIUA 1-2 (URGENT):", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Sună TOȚI clienții care datorează și cere plata în 3-7 zile", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Verifică scadențele furnizori - identifică pe cei cu penalități", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Plătește facturile cu scadență depășită (dacă ai bani)", size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📅 ZIUA 3-5:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Analizează cheltuielile mari - sunt toate necesare?", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Identifică servicii care pot fi REDUSE sau ELIMINATE", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Caută furnizori mai ieftini", size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📅 ZIUA 6-7:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Depune decontul TVA pentru recuperare", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Planifică strategia de creștere vânzări", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 400 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "☐ Stabilește TARGET: crește vânzările cu 15% luna viitoare", size: 20 }) ],
+              spacing: { after: 400 },
+              indent: { left: 400 }
             }),
 
             // Generate sections for each account
@@ -179,26 +738,407 @@ export const BalanceConfirmationHistory = () => {
                 }),
                 new Paragraph({
                   children: [
-                    new TextRun({ text: `Valoare (cont ${code}): `, bold: true }),
-                    new TextRun(`${displayValue.toFixed(2)} RON ${valueType}`),
+                    new TextRun({ text: `💰 SOLD: `, bold: true, size: 24 }),
+                    new TextRun({ text: `${formatCurrency(displayValue)}`, size: 24 })
                   ],
                   spacing: { after: 200 },
                 }),
                 new Paragraph({
-                  children: [
-                    new TextRun({ text: "Ce înseamnă: ", bold: true }),
-                    new TextRun(explanation.explanation),
-                  ],
-                  spacing: { after: 200 },
+                  children: [ new TextRun({ text: "📖 CE ÎNSEAMNĂ:", bold: true, size: 20 }) ],
+                  spacing: { before: 200, after: 100 }
                 }),
                 new Paragraph({
-                  children: [
-                    new TextRun({ text: "Implicații și recomandări: ", bold: true }),
-                    new TextRun(explanation.implications),
-                  ],
+                  children: [ new TextRun({ text: explanation.explanation, size: 20 }) ],
+                  spacing: { after: 200 },
+                  indent: { left: 300 },
+                  alignment: AlignmentType.JUSTIFIED
+                }),
+                new Paragraph({
+                  children: [ new TextRun({ text: "🎯 DE CE E IMPORTANT:", bold: true, size: 20 }) ],
+                  spacing: { before: 200, after: 100 }
+                }),
+                new Paragraph({
+                  children: [ new TextRun({ text: explanation.implications, size: 20 }) ],
+                  spacing: { after: 200 },
+                  indent: { left: 300 },
+                  alignment: AlignmentType.JUSTIFIED
+                }),
+                new Paragraph({
+                  children: [ new TextRun({ text: "✅ CE SĂ FACI ACUM:", bold: true, size: 20 }) ],
+                  spacing: { before: 200, after: 100 }
+                }),
+                new Paragraph({
+                  children: [ new TextRun({ 
+                    text: code === '401' ? "1. Verifică scadențele: sună fiecare furnizor și întreabă 'când trebuie să plătesc?'" :
+                          code === '4111' ? "1. Apelează fiecare client și stabilește o dată clară de plată (ideal în max 7 zile)" :
+                          code === '5121' ? "1. Monitorizează zilnic intrările și ieșirile de bani din cont" :
+                          code === '707' ? "1. Asigură-te că toate vânzările au factură fiscală emisă corect" :
+                          "1. Verifică lunar această poziție împreună cu contabilul tău",
+                    size: 20 
+                  }) ],
+                  spacing: { after: 50 },
+                  indent: { left: 300 }
+                }),
+                new Paragraph({
+                  children: [ new TextRun({ 
+                    text: code === '401' ? "2. Prioritizează: plătește URGENT pe cei cu scadență depășită" :
+                          code === '4111' ? "2. Oferă discount 5% pentru plată anticipată (îmbunătățește cash flow-ul)" :
+                          code === '5121' ? "2. Păstrează un buffer minim de siguranță (ideal 10-20% din cheltuieli lunare)" :
+                          code === '707' ? "2. Compară cu lunile anterioare - crește sau scade activitatea?" :
+                          "2. Analizează tendințele - se îmbunătățește sau se înrăutățește?",
+                    size: 20 
+                  }) ],
+                  spacing: { after: 50 },
+                  indent: { left: 300 }
+                }),
+                new Paragraph({
+                  children: [ new TextRun({ 
+                    text: code === '401' ? "3. Negociază: dacă nu ai bani, cere amânare 30 zile (mai bine decât penalități)" :
+                          code === '4111' ? "3. Pentru clienți întârziați >60 zile, ia în considerare proceduri de recuperare" :
+                          code === '5121' ? "3. Planifică mișcările mari de bani (salarii, furnizori) pentru când intră încasări" :
+                          code === '707' ? "3. Stabilește obiective clare: +15% creștere față de luna trecută" :
+                          "3. Consultă cu contabilul pentru strategii de optimizare",
+                    size: 20 
+                  }) ],
                   spacing: { after: 400 },
+                  indent: { left: 300 }
                 }),
               ];
+            }),
+
+            // ========== INDICATORI FINANCIARI ==========
+            new Paragraph({
+              text: "INDICATORI FINANCIARI - CE SPUN CIFRELE DESPRE AFACEREA TA",
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 600, after: 200 },
+              border: {
+                top: { color: "4472C4", space: 8, style: BorderStyle.SINGLE, size: 12 },
+                bottom: { color: "4472C4", space: 8, style: BorderStyle.SINGLE, size: 12 },
+              }
+            }),
+
+            // Indicator 1: Marja Comercială
+            new Paragraph({
+              text: "1. 💰 MARJA COMERCIALĂ (Profitabilitate)",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "FORMULA: (Venituri - Cost mărfuri) / Venituri × 100", size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `CALCULUL TĂU: (${formatCurrency(totalRevenue)} - ${formatCurrency(costOfGoods)}) / ${formatCurrency(totalRevenue)} × 100 = ${margin.toFixed(1)}%`,
+                size: 20 
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📖 CE ÎNSEAMNĂ:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `Din fiecare 100 RON vânzări, rămân ${margin.toFixed(1)} RON după ce scazi costul mărfii.`,
+                size: 20 
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📊 COMPARAȚIE:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `${margin > 60 ? "✅" : margin > 40 ? "🟡" : "🔴"} TU: ${margin.toFixed(1)}% → ${margin > 60 ? "FOARTE BINE!" : margin > 40 ? "ACCEPTABIL" : "SUB MEDIE"}`,
+                size: 20 
+              }) ],
+              spacing: { after: 30 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📍 Media industriei: 40-50%", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "🎯 Țintă optimă: 50-70%", size: 20 }) ],
+              spacing: { after: 200 },
+              indent: { left: 300 }
+            }),
+
+            // Indicator 2: Current Ratio
+            new Paragraph({
+              text: "2. 🏦 CURRENT RATIO (Capacitate de plată)",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "FORMULA: (Cash + Creanțe) / Datorii", size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `CALCULUL TĂU: (${formatCurrency(totalCash)} + ${formatCurrency(totalReceivables)}) / ${formatCurrency(totalPayables)} = ${currentRatio >= 999 ? "N/A" : currentRatio.toFixed(2)}`,
+                size: 20 
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📖 CE ÎNSEAMNĂ:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: currentRatio >= 999 ? "Nu ai datorii active (excelent!)" : `Pentru fiecare 1 RON datorie, ai ${currentRatio.toFixed(2)} RON disponibil (sau de încasat rapid).`,
+                size: 20 
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📊 COMPARAȚIE:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: currentRatio >= 999 ? "✅ N/A - Nicio datorie" : `${currentRatio >= 1.5 ? "✅" : currentRatio >= 1.0 ? "🟡" : "🔴"} TU: ${currentRatio.toFixed(2)} → ${currentRatio >= 1.5 ? "EXCELENT" : currentRatio >= 1.0 ? "ACCEPTABIL" : "PERICOL!"}`,
+                size: 20 
+              }) ],
+              spacing: { after: 30 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📍 Minim necesar: 1,0", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "🎯 Țintă optimă: 1,5-2,0", size: 20 }) ],
+              spacing: { after: 200 },
+              indent: { left: 300 }
+            }),
+
+            // Indicator 3: DSO
+            new Paragraph({
+              text: "3. 📅 DSO - Days Sales Outstanding (Zile încasare clienți)",
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "FORMULA: (Clienți / Venituri) × 365", size: 20 }) ],
+              spacing: { after: 50 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `CALCULUL TĂU: (${formatCurrency(totalReceivables)} / ${formatCurrency(totalRevenue)}) × 365 = ${dso.toFixed(0)} zile`,
+                size: 20 
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📖 CE ÎNSEAMNĂ:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `În medie, clienții plătesc după ${dso.toFixed(0)} de zile de la livrare.`,
+                size: 20 
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📊 COMPARAȚIE:", bold: true, size: 20 }) ],
+              spacing: { before: 100, after: 50 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `${dso <= 45 ? "✅" : dso <= 60 ? "🟡" : "🔴"} TU: ${dso.toFixed(0)} zile → ${dso <= 45 ? "EXCELENT" : dso <= 60 ? "ACCEPTABIL" : "PREA MULT"}`,
+                size: 20 
+              }) ],
+              spacing: { after: 30 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "📍 Best practice: 30-45 zile", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 300 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "🔴 Pericol: >90 zile", size: 20 }) ],
+              spacing: { after: 200 },
+              indent: { left: 300 }
+            }),
+
+            // ========== SCENARII "DACĂ..." ==========
+            new Paragraph({
+              text: "🎮 SCENARII - CE SE ÎNTÂMPLĂ DACĂ...",
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 600, after: 200 },
+              border: {
+                top: { color: "4472C4", space: 8, style: BorderStyle.SINGLE, size: 12 },
+                bottom: { color: "4472C4", space: 8, style: BorderStyle.SINGLE, size: 12 },
+              }
+            }),
+
+            // Scenariul #1
+            new Paragraph({
+              text: 'SCENARIUL #1: "Dacă încasez de la toți clienții ACUM"',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Cash disponibil ACUM:        ${formatCurrency(totalCash)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `+ Încasări clienți:          ${formatCurrency(totalReceivables)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "─────────────────────────────────────", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `= TOTAL cash:                ${formatCurrency(totalCash + totalReceivables)}`, bold: true, size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Datorii de plătit:           ${formatCurrency(totalPayables)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "─────────────────────────────────────", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `${(totalCash + totalReceivables) >= totalPayables ? "SURPLUS rămâne:" : "DEFICIT rămâne:"} ${formatCurrency(Math.abs((totalCash + totalReceivables) - totalPayables))}`,
+                bold: true,
+                size: 20
+              }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `✅ REZULTAT: ${(totalCash + totalReceivables) >= totalPayables ? "Cash flow rezolvat!" : "Mai bine, dar ÎNCĂ insuficient!"}`,
+                size: 20
+              }) ],
+              spacing: { after: 200 },
+              indent: { left: 200 }
+            }),
+
+            // Scenariul #2
+            new Paragraph({
+              text: 'SCENARIUL #2: "Dacă cresc vânzările cu 20% luna viitoare"',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Venituri actuale:            ${formatCurrency(totalRevenue)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `+ 20% creștere:              ${formatCurrency(totalRevenue * 0.2)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "─────────────────────────────────────", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `= Venituri noi:              ${formatCurrency(totalRevenue * 1.2)}`, bold: true, size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Cost mărfuri (+20%):         ${formatCurrency(costOfGoods * 1.2)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Alte cheltuieli (fixe):      ${formatCurrency(totalExpenses - costOfGoods)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "─────────────────────────────────────", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `PROFIT NET:                  ${formatCurrency((totalRevenue * 1.2) - (costOfGoods * 1.2) - (totalExpenses - costOfGoods))}`,
+                bold: true,
+                size: 20
+              }) ],
+              spacing: { after: 200 },
+              indent: { left: 200 }
+            }),
+
+            // Scenariul #3
+            new Paragraph({
+              text: 'SCENARIUL #3: "Dacă reduc cheltuielile cu 15%"',
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 100 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Cheltuieli actuale:          ${formatCurrency(totalExpenses)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `- 15% reducere:              ${formatCurrency(totalExpenses * 0.15)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "─────────────────────────────────────", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `= Cheltuieli noi:            ${formatCurrency(totalExpenses * 0.85)}`, bold: true, size: 20 }) ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: `Venituri:                    ${formatCurrency(totalRevenue)}`, size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ text: "─────────────────────────────────────", size: 20 }) ],
+              spacing: { after: 30 },
+              indent: { left: 200 }
+            }),
+            new Paragraph({
+              children: [ new TextRun({ 
+                text: `PROFIT NET:                  ${formatCurrency(totalRevenue - (totalExpenses * 0.85))}`,
+                bold: true,
+                size: 20
+              }) ],
+              spacing: { after: 200 },
+              indent: { left: 200 }
             }),
 
             new Paragraph({
@@ -227,107 +1167,8 @@ export const BalanceConfirmationHistory = () => {
               spacing: { after: 400 },
             }),
 
-            // ========== NOTĂ JURIDICĂ ȘI CONFIRMARE ==========
-            new Paragraph({
-              text: "",
-              spacing: { before: 600, after: 400 },
-              border: {
-                top: {
-                  color: "CCCCCC",
-                  space: 1,
-                  style: BorderStyle.SINGLE,
-                  size: 6
-                }
-              }
-            }),
-            new Paragraph({
-              text: "NOTĂ JURIDICĂ ȘI CONFIRMARE",
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 400, after: 300 },
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Prin prezentul document, cabinetul de contabilitate vă informează oficial cu privire la situația contabilă a societății dumneavoastră pentru perioada menționată.",
-                  size: 20,
-                })
-              ],
-              spacing: { after: 200 },
-              alignment: AlignmentType.JUSTIFIED
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "În conformitate cu prevederile contractului de prestări servicii de contabilitate și cu legislația în vigoare, vă rugăm să analizați cu atenție informațiile prezentate în acest raport.",
-                  size: 20,
-                })
-              ],
-              spacing: { after: 300 },
-              alignment: AlignmentType.JUSTIFIED
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "TERMEN DE RĂSPUNS: ", size: 20, bold: true }),
-                new TextRun({
-                  text: "Aveți la dispoziție 5 (cinci) zile lucrătoare de la primirea acestui document pentru a transmite eventuale obiecțiuni, completări sau solicitări de clarificări referitoare la datele prezentate.",
-                  size: 20,
-                })
-              ],
-              spacing: { after: 300 },
-              alignment: AlignmentType.JUSTIFIED
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "CONFIRMARE TACITĂ: ", size: 20, bold: true }),
-                new TextRun({
-                  text: "În absența oricărei comunicări scrise din partea dumneavoastră în termenul menționat mai sus, se consideră că:",
-                  size: 20,
-                })
-              ],
-              spacing: { after: 100 },
-              alignment: AlignmentType.JUSTIFIED
-            }),
-            new Paragraph({
-              children: [ new TextRun({ text: "  • Ați luat la cunoștință situația contabilă prezentată", size: 20 }) ],
-              spacing: { after: 100 },
-              indent: { left: 400 }
-            }),
-            new Paragraph({
-              children: [ new TextRun({ text: "  • Confirmați corectitudinea datelor din punct de vedere al activității societății", size: 20 }) ],
-              spacing: { after: 100 },
-              indent: { left: 400 }
-            }),
-            new Paragraph({
-              children: [ new TextRun({ text: "  • Luna/Perioada contabilă este încheiată și validată din punct de vedere contabil", size: 20 }) ],
-              spacing: { after: 300 },
-              indent: { left: 400 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "RESPONSABILITATE: ", size: 20, bold: true }),
-                new TextRun({
-                  text: "Vă reamintim că documentele justificative (facturi, chitanțe, extrase bancare) trebuie să fie transmise cabinetului nostru în termenele stabilite contractual. Orice documente transmise după încheierea perioadei vor fi înregistrate în luna/trimestrul următor, conform prevederilor legale.",
-                  size: 20,
-                })
-              ],
-              spacing: { after: 300 },
-              alignment: AlignmentType.JUSTIFIED
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "OBIECȚIUNI: ", size: 20, bold: true }),
-                new TextRun({
-                  text: "Eventualele obiecțiuni trebuie comunicate în scris (email sau scrisoare) la datele de contact menționate în contractul de prestări servicii.",
-                  size: 20,
-                })
-              ],
-              spacing: { after: 400 },
-              alignment: AlignmentType.JUSTIFIED
-            }),
-            new Paragraph({
-              children: [ new TextRun({ text: `Data generării documentului: ${new Date().toLocaleDateString('ro-RO')}`, size: 18, italics: true }) ],
-              spacing: { after: 100 },
-            }),
+            // ========== NOTĂ JURIDICĂ CONDIȚIONATĂ ==========
+            ...generateLegalNoteSectionIfNeeded(isAccountant),
 
             // Semnătură la final
             new Paragraph({
