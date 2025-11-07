@@ -209,7 +209,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: -30,
         newRevenue: revenue * 0.7,
         newProfit: (revenue * 0.7) - expenses,
-        cashRunway: expenses > 0 ? Math.floor(cash / (expenses / 12)) : 12,
+        cashRunway: expenses > 0 ? Math.floor(cash / expenses) : 12,
         severity: "high" as const,
         recommendations: [
           "Reduceți cheltuielile operaționale cu 20-25%",
@@ -224,7 +224,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: 0,
         newRevenue: revenue,
         newProfit: revenue - (expenses * 1.2),
-        cashRunway: expenses > 0 ? Math.floor(cash / ((expenses * 1.2) / 12)) : 12,
+        cashRunway: expenses > 0 ? Math.floor(cash / (expenses * 1.2)) : 12,
         severity: "medium" as const,
         recommendations: [
           "Investiți în eficiență energetică",
@@ -239,7 +239,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: -40,
         newRevenue: revenue * 0.6,
         newProfit: (revenue * 0.6) - expenses,
-        cashRunway: expenses > 0 ? Math.floor(cash / (expenses / 12)) : 12,
+        cashRunway: expenses > 0 ? Math.floor(cash / expenses) : 12,
         severity: "critical" as const,
         recommendations: [
           "Diversificați imediat portofoliul de clienți",
@@ -254,7 +254,7 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: 0,
         newRevenue: revenue,
         newProfit: revenue - (expenses * 1.15),
-        cashRunway: expenses > 0 ? Math.floor(cash / ((expenses * 1.15) / 12)) : 12,
+        cashRunway: expenses > 0 ? Math.floor(cash / (expenses * 1.15)) : 12,
         severity: "medium" as const,
         recommendations: [
           "Refinanțați datoriile existente",
