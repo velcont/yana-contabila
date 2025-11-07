@@ -1034,7 +1034,32 @@ serve(async (req) => {
         // Calculează indicatori din fallback
         const revenue = Math.max(0, totalVenituri - reduceriComerciale);
         const expenses = totalCheltuieli;
-        const profit = revenue - expenses;
+        
+        // Caută contul 121 pentru profit/pierdere CORECT
+        const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
+        let profit = 0;
+        
+        if (cont121) {
+          const debit = cont121.debit || 0;
+          const credit = cont121.credit || 0;
+          
+          if (credit > debit) {
+            // Sold CREDITOR = PROFIT
+            profit = credit - debit;
+            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold CREDITOR: +${profit} RON (PROFIT)`);
+          } else if (debit > credit) {
+            // Sold DEBITOR = PIERDERE (aplicăm MINUS!)
+            profit = -(debit - credit);
+            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold DEBITOR: ${profit} RON (PIERDERE)`);
+          } else {
+            profit = 0;
+            console.log(`⚖️ [PROFIT-EXTRACT] Cont 121 echilibrat: 0 RON`);
+          }
+        } else {
+          // FALLBACK: Dacă nu există cont 121, calculează din revenue - expenses
+          profit = revenue - expenses;
+          console.log(`⚠️ [PROFIT-EXTRACT] Cont 121 INEXISTENT - Calculat ca Revenue - Expenses: ${profit} RON`);
+        }
         
         deterministic_metadata.revenue = revenue;
         deterministic_metadata.expenses = expenses;
@@ -1214,7 +1239,32 @@ serve(async (req) => {
         // Calculează CA net
         const revenue = Math.max(0, totalVenituri - reduceriComerciale);
         const expenses = totalCheltuieli;
-        const profit = revenue - expenses;
+        
+        // Caută contul 121 pentru profit/pierdere CORECT
+        const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
+        let profit = 0;
+        
+        if (cont121) {
+          const debit = cont121.debit || 0;
+          const credit = cont121.credit || 0;
+          
+          if (credit > debit) {
+            // Sold CREDITOR = PROFIT
+            profit = credit - debit;
+            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold CREDITOR: +${profit} RON (PROFIT)`);
+          } else if (debit > credit) {
+            // Sold DEBITOR = PIERDERE (aplicăm MINUS!)
+            profit = -(debit - credit);
+            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold DEBITOR: ${profit} RON (PIERDERE)`);
+          } else {
+            profit = 0;
+            console.log(`⚖️ [PROFIT-EXTRACT] Cont 121 echilibrat: 0 RON`);
+          }
+        } else {
+          // FALLBACK: Dacă nu există cont 121, calculează din revenue - expenses
+          profit = revenue - expenses;
+          console.log(`⚠️ [PROFIT-EXTRACT] Cont 121 INEXISTENT - Calculat ca Revenue - Expenses: ${profit} RON`);
+        }
         
         // Calculează indicatori
         deterministic_metadata.revenue = revenue;
@@ -1591,15 +1641,15 @@ serve(async (req) => {
         // Skip header lines și linii goale
         if (!line.trim() || line.includes('Simbol') || line.includes('CLASE') || line.includes('===')) continue;
         
-        // Extrage cod cont (3-4 cifre la început de linie)
-        const codeMatch = line.match(/^(\d{3,4})/);
+        // Extrage cod cont (3-4 cifre la început de linie) - regex flexibil pentru CSV
+        const codeMatch = line.match(/^\s*(\d{3,4})[^\d]/);
         if (!codeMatch) continue;
         
         const accountCode = codeMatch[1];
         const accountClass = parseInt(accountCode.charAt(0));
         
-        // Extrage nume cont (text între cod și prima valoare numerică)
-        const nameMatch = line.match(/^\d{3,4}\s*[|\s]*([^0-9|]+)/);
+        // Extrage nume cont (text între cod și prima valoare numerică) - suport pentru virgulă
+        const nameMatch = line.match(/^\s*\d{3,4}[,|\s]+([^0-9,|]+)/);
         const accountName = nameMatch ? nameMatch[1].trim() : 'Cont necunoscut';
         
         // Extrage toate valorile numerice din linie
@@ -1788,7 +1838,65 @@ serve(async (req) => {
     
     // Extrage structura completă a balanței
     console.log("🔍 Extragere structură completă balanță...");
-    const { class1to5, class6to7, anomalies: structuralAnomalies } = extractAllAccounts(balanceText);
+    let { class1to5, class6to7, anomalies: structuralAnomalies } = extractAllAccounts(balanceText);
+
+    // FALLBACK: Dacă extractAllAccounts nu găsește conturi, folosește structuredData
+    if (class1to5.length === 0 && class6to7.length === 0 && structuredData.accounts.length > 0) {
+      console.log("⚠️ [FALLBACK] extractAllAccounts nu a găsit conturi - folosesc structuredData.accounts");
+      
+      // Convertește structuredData.accounts în format AccountBalance/AccountActivity
+      structuredData.accounts.forEach((acc: any) => {
+        const accountClass = parseInt(acc.code.charAt(0));
+        const finalDebit = acc.debit || 0;
+        const finalCredit = acc.credit || 0;
+        
+        if (accountClass >= 1 && accountClass <= 5) {
+          if (finalDebit > 0.10 || finalCredit > 0.10) {
+            // Detectează anomalii: sold dublu
+            if (finalDebit > 0.10 && finalCredit > 0.10) {
+              structuralAnomalies.push(
+                `🔴 ANOMALIE CONT ${acc.code}: Sold final DEBIT (${finalDebit.toFixed(2)} RON) ` +
+                `ȘI CREDIT (${finalCredit.toFixed(2)} RON) simultan!`
+              );
+            }
+            
+            class1to5.push({
+              accountCode: acc.code,
+              accountName: acc.name || `Cont ${acc.code}`,
+              finalBalanceDebit: finalDebit,
+              finalBalanceCredit: finalCredit,
+              netBalance: finalDebit - finalCredit,
+              balanceType: finalDebit > finalCredit ? 'debit' : 'credit'
+            });
+          }
+        } else if (accountClass === 6 || accountClass === 7) {
+          // Pentru clase 6-7, folosim totalDebit/totalCredit dacă sunt disponibile
+          const totalDebit = acc.totalDebit || finalDebit || 0;
+          const totalCredit = acc.totalCredit || finalCredit || 0;
+          
+          if (totalDebit > 0.10 || totalCredit > 0.10) {
+            const isBalanced = Math.abs(totalDebit - totalCredit) < 0.10;
+            
+            if (!isBalanced) {
+              structuralAnomalies.push(
+                `⚠️ DEBALANSARE CONT ${acc.code}: Rulaje DEBIT (${totalDebit.toFixed(2)} RON) ` +
+                `≠ CREDIT (${totalCredit.toFixed(2)} RON)`
+              );
+            }
+            
+            class6to7.push({
+              accountCode: acc.code,
+              accountName: acc.name || `Cont ${acc.code}`,
+              totalDebit,
+              totalCredit,
+              isBalanced
+            });
+          }
+        }
+      });
+      
+      console.log(`✅ [FALLBACK] Importate ${class1to5.length} conturi clase 1-5, ${class6to7.length} conturi clase 6-7`);
+    }
 
     const groupedBalance = groupAccountsByClass(class1to5);
     const groupedActivity = groupExpenseRevenueAccounts(class6to7);
@@ -1894,6 +2002,31 @@ serve(async (req) => {
     // Validare plafon casă folosind finalMetadata
     if (finalMetadata.soldCasa && finalMetadata.soldCasa > 50000) {
       validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit! Aveți ${finalMetadata.soldCasa.toLocaleString('ro-RO')} RON în casă. Maximum legal: 50.000 RON`);
+    }
+    
+    // Validare CRITICĂ: Verifică dacă profitul din metadata corespunde cu contul 121
+    if (finalMetadata.profit !== undefined && structuredData.accounts.length > 0) {
+      const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
+      
+      if (cont121) {
+        const debit = cont121.debit || 0;
+        const credit = cont121.credit || 0;
+        const soldCont121 = (credit > debit) ? (credit - debit) : -(debit - credit);
+        
+        // Verifică dacă metadata.profit se potrivește cu soldul contului 121
+        if (Math.abs(finalMetadata.profit - soldCont121) > 1) {
+          console.warn(`⚠️ [VALIDATION] DISCREPANȚĂ PROFIT: metadata=${finalMetadata.profit}, cont 121=${soldCont121}`);
+          
+          // Prioritizează soldul contului 121 (este sursa de adevăr!)
+          finalMetadata.profit = soldCont121;
+          console.log(`✅ [VALIDATION] Profitul CORECTAT la valoarea din cont 121: ${soldCont121} RON`);
+          
+          validationWarnings.push(
+            `🔴 **CORECȚIE AUTOMATĂ**: Profitul a fost corectat de la ${finalMetadata.profit} RON la ${soldCont121} RON ` +
+            `bazat pe soldul real al contului 121.`
+          );
+        }
+      }
     }
     
     // Validare CRITICĂ: Verifică dacă interpretarea profitului/pierderii este corectă
