@@ -2,6 +2,8 @@ export interface Analysis {
   id: string;
   created_at: string;
   company_name?: string;
+  analysis_text?: string;
+  file_name?: string;
   metadata: {
     ca?: number;
     profit?: number;
@@ -17,6 +19,7 @@ export interface Analysis {
     soldBanca?: number;
     soldClienti?: number;
     soldFurnizori?: number;
+    file_name?: string;
   };
 }
 

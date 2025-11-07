@@ -192,6 +192,108 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     };
   };
 
+  /**
+   * Detectează perioada balanței și returnează factorul de normalizare la lună
+   * @returns { months: number, monthlyExpenses: number, period: string, detected: boolean }
+   */
+  const detectBalancePeriod = (analysis: Analysis) => {
+    // Încercăm să detectăm perioada din metadata
+    const metadata = analysis.metadata;
+    
+    // Verifică dacă există informații despre perioada în metadata
+    let detectedMonths = 1; // Default: presupunem lunar
+    let detectedPeriod = "lunar (detectat automat)";
+    let isDetected = false;
+    
+    // Metodă 1: Caută în analysis_text după "Perioada:" sau "perioada:"
+    if (analysis.analysis_text) {
+      const periodMatch = analysis.analysis_text.match(/perioada[:\s]+(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\s*[-–]\s*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/i);
+      
+      if (periodMatch) {
+        const startDay = parseInt(periodMatch[1]);
+        const startMonth = parseInt(periodMatch[2]);
+        const startYear = parseInt(periodMatch[3]);
+        const endDay = parseInt(periodMatch[4]);
+        const endMonth = parseInt(periodMatch[5]);
+        const endYear = parseInt(periodMatch[6]);
+        
+        const startDate = new Date(startYear, startMonth - 1, startDay);
+        const endDate = new Date(endYear, endMonth - 1, endDay);
+        
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Detectăm perioada
+        if (diffDays >= 350 && diffDays <= 380) {
+          detectedMonths = 12;
+          detectedPeriod = "anual (detectat: 12 luni)";
+          isDetected = true;
+        } else if (diffDays >= 80 && diffDays <= 100) {
+          detectedMonths = 3;
+          detectedPeriod = "trimestrial (detectat: 3 luni)";
+          isDetected = true;
+        } else if (diffDays >= 170 && diffDays <= 190) {
+          detectedMonths = 6;
+          detectedPeriod = "semestrial (detectat: 6 luni)";
+          isDetected = true;
+        } else if (diffDays >= 25 && diffDays <= 35) {
+          detectedMonths = 1;
+          detectedPeriod = "lunar (detectat: 1 lună)";
+          isDetected = true;
+        } else if (diffDays > 0) {
+          detectedMonths = Math.max(1, Math.round(diffDays / 30));
+          detectedPeriod = `${detectedMonths} luni (detectat: ${diffDays} zile)`;
+          isDetected = true;
+        }
+      }
+    }
+    
+    // Metodă 2: Verifică în file_name dacă există
+    if (!isDetected && metadata.file_name) {
+      const fileMatch = metadata.file_name.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})[_\s]*[-–][_\s]*(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      
+      if (fileMatch) {
+        const startDay = parseInt(fileMatch[1]);
+        const startMonth = parseInt(fileMatch[2]);
+        const startYear = parseInt(fileMatch[3]);
+        const endDay = parseInt(fileMatch[4]);
+        const endMonth = parseInt(fileMatch[5]);
+        const endYear = parseInt(fileMatch[6]);
+        
+        const startDate = new Date(startYear, startMonth - 1, startDay);
+        const endDate = new Date(endYear, endMonth - 1, endDay);
+        
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays >= 350 && diffDays <= 380) {
+          detectedMonths = 12;
+          detectedPeriod = "anual (din nume fișier)";
+          isDetected = true;
+        } else if (diffDays >= 25 && diffDays <= 35) {
+          detectedMonths = 1;
+          detectedPeriod = "lunar (din nume fișier)";
+          isDetected = true;
+        } else if (diffDays > 0) {
+          detectedMonths = Math.max(1, Math.round(diffDays / 30));
+          detectedPeriod = `${detectedMonths} luni (din nume fișier)`;
+          isDetected = true;
+        }
+      }
+    }
+    
+    const expenses = metadata.cheltuieli || 0;
+    const monthlyExpenses = detectedMonths > 0 ? expenses / detectedMonths : expenses;
+    
+    return {
+      months: detectedMonths,
+      monthlyExpenses,
+      period: detectedPeriod,
+      detected: isDetected,
+      totalExpenses: expenses
+    };
+  };
+
   // Crisis scenarios
   const generateCrisisScenarios = () => {
     if (analyses.length === 0) return [];
@@ -202,6 +304,10 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
     const cash = (latestAnalysis.metadata.soldCasa || latestAnalysis.metadata.casa || 0) + 
                  (latestAnalysis.metadata.soldBanca || latestAnalysis.metadata.banca || 0);
 
+    // Detectăm automat perioada balanței
+    const balancePeriod = detectBalancePeriod(latestAnalysis);
+    const monthlyExpenses = balancePeriod.monthlyExpenses;
+
     return [
       {
         name: "Recesiune Economică",
@@ -209,8 +315,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: -30,
         newRevenue: revenue * 0.7,
         newProfit: (revenue * 0.7) - expenses,
-        cashRunway: expenses > 0 ? Math.floor(cash / expenses) : 12,
+        cashRunway: monthlyExpenses > 0 ? Math.floor(cash / monthlyExpenses) : 12,
         severity: "high" as const,
+        periodInfo: balancePeriod.period,
         recommendations: [
           "Reduceți cheltuielile operaționale cu 20-25%",
           "Negociați termene de plată mai lungi cu furnizorii",
@@ -224,8 +331,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: 0,
         newRevenue: revenue,
         newProfit: revenue - (expenses * 1.2),
-        cashRunway: expenses > 0 ? Math.floor(cash / (expenses * 1.2)) : 12,
+        cashRunway: monthlyExpenses > 0 ? Math.floor(cash / (monthlyExpenses * 1.2)) : 12,
         severity: "medium" as const,
+        periodInfo: balancePeriod.period,
         recommendations: [
           "Investiți în eficiență energetică",
           "Negociați contracte pe termen lung",
@@ -239,8 +347,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: -40,
         newRevenue: revenue * 0.6,
         newProfit: (revenue * 0.6) - expenses,
-        cashRunway: expenses > 0 ? Math.floor(cash / expenses) : 12,
+        cashRunway: monthlyExpenses > 0 ? Math.floor(cash / monthlyExpenses) : 12,
         severity: "critical" as const,
+        periodInfo: balancePeriod.period,
         recommendations: [
           "Diversificați imediat portofoliul de clienți",
           "Reduceți rapid cheltuielile fixe cu 30%",
@@ -254,8 +363,9 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
         revenueImpact: 0,
         newRevenue: revenue,
         newProfit: revenue - (expenses * 1.15),
-        cashRunway: expenses > 0 ? Math.floor(cash / (expenses * 1.15)) : 12,
+        cashRunway: monthlyExpenses > 0 ? Math.floor(cash / (monthlyExpenses * 1.15)) : 12,
         severity: "medium" as const,
+        periodInfo: balancePeriod.period,
         recommendations: [
           "Refinanțați datoriile existente",
           "Reduceți dependența de credite",
@@ -1646,6 +1756,11 @@ export const ResilienceAnalysis = ({ analyses }: ResilienceAnalysisProps) => {
                     <div className="text-xl font-bold">
                       {scenario.cashRunway} luni
                     </div>
+                    {scenario.periodInfo && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Perioadă balanță: {scenario.periodInfo}
+                      </div>
+                    )}
                   </div>
                 </div>
 
