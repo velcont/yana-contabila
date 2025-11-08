@@ -29,6 +29,7 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [hasCompanyData, setHasCompanyData] = useState(false);
   
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<JobPostingFormData>({
     defaultValues: {
@@ -46,26 +47,65 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
     const fetchCompanyData = async () => {
       if (!user?.id) return;
       
-      const { data: companies } = await supabase
-        .from('companies')
-        .select('company_name, cui')
-        .eq('user_id', user.id)
-        .limit(1)
-        .single();
-      
-      if (companies) {
-        setValue('company_name', companies.company_name || '');
-        setValue('cui', companies.cui || '');
+      try {
+        // Caută prima companie a user-ului
+        const { data: companies, error } = await supabase
+          .from('companies')
+          .select('company_name, cui')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(1);
+        
+        if (error) {
+          console.error('Error fetching company:', error);
+          toast({
+            title: "⚠️ Atenție",
+            description: "Nu am putut încărca datele companiei. Completează manual.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Dacă există companie, auto-populează
+        if (companies && companies.length > 0) {
+          setValue('company_name', companies[0].company_name || '');
+          setValue('cui', companies[0].cui || '');
+          setHasCompanyData(true); // Marchează că avem date
+          console.log('✅ Company data loaded:', companies[0]);
+        } else {
+          // Dacă nu există companii, notifică user-ul
+          toast({
+            title: "ℹ️ Completează datele",
+            description: "Nu ai nicio companie înregistrată. Adaugă datele manual.",
+          });
+          console.log('ℹ️ No company data found for user');
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
       }
     };
     
     fetchCompanyData();
-  }, [user, setValue]);
+  }, [user, setValue, toast]);
 
   const onSubmit = async (data: JobPostingFormData) => {
+    console.log('📝 Form data:', data);
+    console.log('👤 User ID:', user?.id);
+    
+    // Validare budget
+    if (data.budget_max < data.budget_min) {
+      toast({
+        title: "❌ Eroare validare",
+        description: "Bugetul maxim trebuie să fie mai mare decât minimul",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
+      console.log('📤 Inserting job posting...');
       const { error } = await supabase
         .from('job_postings')
         .insert({
@@ -75,7 +115,12 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
           offers_count: 0,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Job posted successfully');
 
       toast({
         title: "✅ Anunț postat cu succes!",
@@ -117,11 +162,21 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label>Companie</Label>
-          <Input {...register('company_name', { required: true })} disabled className="bg-muted" />
+          <Input 
+            {...register('company_name', { required: true })} 
+            disabled={hasCompanyData}
+            className={hasCompanyData ? "bg-muted" : ""}
+            placeholder="ex: SC EXEMPLU SRL"
+          />
         </div>
         <div>
           <Label>CUI</Label>
-          <Input {...register('cui', { required: true })} disabled className="bg-muted" />
+          <Input 
+            {...register('cui', { required: true })} 
+            disabled={hasCompanyData}
+            className={hasCompanyData ? "bg-muted" : ""}
+            placeholder="ex: RO12345678"
+          />
         </div>
       </div>
 
