@@ -61,6 +61,54 @@ export type Database = {
           },
         ]
       }
+      accountant_profiles: {
+        Row: {
+          created_at: string | null
+          firm_name: string
+          id: string
+          location: string | null
+          rating: number | null
+          response_time_hours: number | null
+          reviews_count: number | null
+          specializations: string[] | null
+          total_clients: number | null
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+          years_experience: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          firm_name: string
+          id?: string
+          location?: string | null
+          rating?: number | null
+          response_time_hours?: number | null
+          reviews_count?: number | null
+          specializations?: string[] | null
+          total_clients?: number | null
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+          years_experience?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          firm_name?: string
+          id?: string
+          location?: string | null
+          rating?: number | null
+          response_time_hours?: number | null
+          reviews_count?: number | null
+          specializations?: string[] | null
+          total_clients?: number | null
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
       accountant_tasks: {
         Row: {
           actual_hours: number | null
@@ -2225,6 +2273,119 @@ export type Database = {
           user_id?: string
           word_count_humanized?: number | null
           word_count_original?: number | null
+        }
+        Relationships: []
+      }
+      job_offers: {
+        Row: {
+          accountant_id: string
+          created_at: string | null
+          id: string
+          job_posting_id: string
+          message: string
+          price_per_month: number
+          responded_at: string | null
+          services_included: string[] | null
+          status: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string | null
+          id?: string
+          job_posting_id: string
+          message: string
+          price_per_month: number
+          responded_at?: string | null
+          services_included?: string[] | null
+          status?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string | null
+          id?: string
+          job_posting_id?: string
+          message?: string
+          price_per_month?: number
+          responded_at?: string | null
+          services_included?: string[] | null
+          status?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_offers_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_postings: {
+        Row: {
+          budget_max: number | null
+          budget_min: number | null
+          company_name: string
+          created_at: string | null
+          cui: string
+          documents_per_month: string | null
+          employees_count: string | null
+          expires_at: string | null
+          id: string
+          is_vat_payer: boolean | null
+          offers_count: number | null
+          prefer_email: boolean | null
+          prefer_phone: boolean | null
+          prefer_whatsapp: boolean | null
+          special_requirements: string | null
+          status: string | null
+          tax_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          budget_max?: number | null
+          budget_min?: number | null
+          company_name: string
+          created_at?: string | null
+          cui: string
+          documents_per_month?: string | null
+          employees_count?: string | null
+          expires_at?: string | null
+          id?: string
+          is_vat_payer?: boolean | null
+          offers_count?: number | null
+          prefer_email?: boolean | null
+          prefer_phone?: boolean | null
+          prefer_whatsapp?: boolean | null
+          special_requirements?: string | null
+          status?: string | null
+          tax_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          budget_max?: number | null
+          budget_min?: number | null
+          company_name?: string
+          created_at?: string | null
+          cui?: string
+          documents_per_month?: string | null
+          employees_count?: string | null
+          expires_at?: string | null
+          id?: string
+          is_vat_payer?: boolean | null
+          offers_count?: number | null
+          prefer_email?: boolean | null
+          prefer_phone?: boolean | null
+          prefer_whatsapp?: boolean | null
+          special_requirements?: string | null
+          status?: string | null
+          tax_type?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
