@@ -23,6 +23,8 @@ interface JobListing {
   budget_min: number;
   budget_max: number;
   special_requirements: string | null;
+  contact_email: string;
+  contact_phone: string;
   offers_count: number;
   created_at: string;
 }

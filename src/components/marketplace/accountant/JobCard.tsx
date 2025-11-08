@@ -17,6 +17,8 @@ interface JobCardProps {
     budget_min: number;
     budget_max: number;
     special_requirements: string | null;
+    contact_email: string;
+    contact_phone: string;
     offers_count: number;
     created_at: string;
   };
@@ -78,6 +80,30 @@ export const JobCard = ({ job, onSendOffer }: JobCardProps) => {
               </p>
             </div>
           )}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <h4 className="font-semibold text-blue-800 text-sm mb-2">📞 Contact Antreprenor</h4>
+            <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium min-w-[60px]">Email:</span>
+                <a 
+                  href={`mailto:${job.contact_email}`} 
+                  className="text-blue-600 underline hover:text-blue-800"
+                >
+                  {job.contact_email}
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium min-w-[60px]">Telefon:</span>
+                <a 
+                  href={`tel:${job.contact_phone}`} 
+                  className="text-blue-600 underline hover:text-blue-800"
+                >
+                  {job.contact_phone}
+                </a>
+              </div>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between pt-3 border-t">
             <span className="text-xs text-muted-foreground">

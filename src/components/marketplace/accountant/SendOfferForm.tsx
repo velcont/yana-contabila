@@ -17,6 +17,9 @@ interface SendOfferFormData {
   service_salarii: boolean;
   service_declaratii: boolean;
   service_consultanta: boolean;
+  contact_email: string;
+  contact_phone: string;
+  contact_whatsapp?: string;
 }
 
 interface SendOfferFormProps {
@@ -70,13 +73,24 @@ export const SendOfferForm = ({ job, onSuccess }: SendOfferFormProps) => {
           years_experience: 5,
           specializations: ['contabilitate', 'tva', 'salarii'],
         });
+        
+        // Pre-populate contact email
+        setValue('contact_email', profile?.email || '');
+      } else {
+        // Pre-populate contact email from profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .single();
+        setValue('contact_email', profile?.email || '');
       }
 
       setAccountantProfile(existing || { firm_name: 'Cabinet Contabilitate' });
     };
 
     checkOrCreateProfile();
-  }, [user]);
+  }, [user, setValue]);
 
   const onSubmit = async (data: SendOfferFormData) => {
     setLoading(true);
@@ -97,6 +111,9 @@ export const SendOfferForm = ({ job, onSuccess }: SendOfferFormProps) => {
           price_per_month: data.price_per_month,
           services_included: servicesIncluded,
           message: data.message,
+          contact_email: data.contact_email,
+          contact_phone: data.contact_phone,
+          contact_whatsapp: data.contact_whatsapp || null,
           status: 'pending',
         });
 
@@ -224,6 +241,71 @@ export const SendOfferForm = ({ job, onSuccess }: SendOfferFormProps) => {
             Mesajul trebuie să aibă minim 50 caractere
           </p>
         )}
+      </div>
+
+      <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+        <h4 className="font-semibold text-blue-900 mb-2">📞 Informații Contact (OBLIGATORIU)</h4>
+        <p className="text-sm text-blue-700 mb-4">
+          Antreprenorul va vedea aceste date în oferta ta.
+          <br />
+          <span className="font-medium">Poți folosi un email/telefon diferit de cel de login.</span>
+        </p>
+        
+        <div className="space-y-3">
+          <div>
+            <Label className="text-sm font-medium">Email contact *</Label>
+            <Input 
+              type="email"
+              {...register('contact_email', { 
+                required: "Email-ul este obligatoriu",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Email invalid"
+                }
+              })}
+              placeholder="ex: firma@contabilitate.ro"
+              className="mt-1"
+            />
+            {errors.contact_email && (
+              <p className="text-sm text-destructive mt-1">{errors.contact_email.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Preferat: email-ul firmei tale (nu cel personal)
+            </p>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">Telefon contact *</Label>
+            <Input 
+              type="tel"
+              {...register('contact_phone', { 
+                required: "Telefonul este obligatoriu",
+                pattern: {
+                  value: /^[0-9\s\+\-\(\)]{10,15}$/,
+                  message: "Număr invalid (10-15 cifre)"
+                }
+              })}
+              placeholder="ex: 0740123456"
+              className="mt-1"
+            />
+            {errors.contact_phone && (
+              <p className="text-sm text-destructive mt-1">{errors.contact_phone.message}</p>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium">WhatsApp (opțional)</Label>
+            <Input 
+              type="tel"
+              {...register('contact_whatsapp')}
+              placeholder="ex: 0740123456 (dacă e diferit de telefon)"
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Lasă gol dacă folosești același număr ca pentru telefon
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2">

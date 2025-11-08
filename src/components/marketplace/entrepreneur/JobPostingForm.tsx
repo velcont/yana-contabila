@@ -20,6 +20,8 @@ interface JobPostingFormData {
   budget_min: number;
   budget_max: number;
   special_requirements: string;
+  contact_email: string;
+  contact_phone: string;
   prefer_email: boolean;
   prefer_whatsapp: boolean;
   prefer_phone: boolean;
@@ -72,7 +74,20 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
           setValue('cui', companies[0].cui || '');
           setHasCompanyData(true); // Marchează că avem date
           console.log('✅ Company data loaded:', companies[0]);
-        } else {
+        }
+        
+        // Pre-populate contact email from profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.email) {
+          setValue('contact_email', profile.email);
+        }
+        
+        if (!companies || companies.length === 0) {
           // Dacă nu există companii, notifică user-ul
           toast({
             title: "ℹ️ Completează datele",
@@ -162,7 +177,20 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
         .from('job_postings')
         .insert({
           user_id: user.id,
-          ...data,
+          company_name: data.company_name,
+          cui: data.cui,
+          is_vat_payer: data.is_vat_payer,
+          tax_type: data.tax_type,
+          documents_per_month: data.documents_per_month,
+          employees_count: data.employees_count,
+          budget_min: data.budget_min,
+          budget_max: data.budget_max,
+          special_requirements: data.special_requirements,
+          contact_email: data.contact_email,
+          contact_phone: data.contact_phone,
+          prefer_email: data.prefer_email,
+          prefer_whatsapp: data.prefer_whatsapp,
+          prefer_phone: data.prefer_phone,
           status: 'active',
           offers_count: 0,
         })
@@ -387,32 +415,81 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
         />
       </div>
 
-      <div>
-        <Label>Prefer contact prin:</Label>
-        <div className="space-y-2 mt-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="email" 
-              checked={watch('prefer_email')}
-              onCheckedChange={(checked) => setValue('prefer_email', !!checked)}
+      <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
+        <h4 className="font-semibold text-green-900 mb-2">📞 Informații Contact (OBLIGATORIU)</h4>
+        <p className="text-sm text-green-700 mb-4">
+          Contabilii vor vedea aceste date în anunțul tău.
+          <br />
+          <span className="font-medium">Poți folosi un email/telefon diferit de cel de login.</span>
+        </p>
+        
+        <div className="space-y-3">
+          <div>
+            <Label className="text-sm font-medium">Email contact *</Label>
+            <Input 
+              type="email"
+              {...register('contact_email', { 
+                required: "Email-ul este obligatoriu",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Email invalid"
+                }
+              })}
+              placeholder="ex: director@firma.ro"
+              className="mt-1"
             />
-            <Label htmlFor="email">Email</Label>
+            {errors.contact_email && (
+              <p className="text-sm text-destructive mt-1">{errors.contact_email.message}</p>
+            )}
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="whatsapp"
-              checked={watch('prefer_whatsapp')}
-              onCheckedChange={(checked) => setValue('prefer_whatsapp', !!checked)}
+
+          <div>
+            <Label className="text-sm font-medium">Telefon contact *</Label>
+            <Input 
+              type="tel"
+              {...register('contact_phone', { 
+                required: "Telefonul este obligatoriu",
+                pattern: {
+                  value: /^[0-9\s\+\-\(\)]{10,15}$/,
+                  message: "Număr invalid (10-15 cifre)"
+                }
+              })}
+              placeholder="ex: 0740123456"
+              className="mt-1"
             />
-            <Label htmlFor="whatsapp">WhatsApp</Label>
+            {errors.contact_phone && (
+              <p className="text-sm text-destructive mt-1">{errors.contact_phone.message}</p>
+            )}
           </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="phone"
-              checked={watch('prefer_phone')}
-              onCheckedChange={(checked) => setValue('prefer_phone', !!checked)}
-            />
-            <Label htmlFor="phone">Telefon</Label>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-green-200">
+          <Label className="text-sm font-medium mb-2 block">Prefer să fiu contactat prin:</Label>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="email" 
+                checked={watch('prefer_email')}
+                onCheckedChange={(checked) => setValue('prefer_email', !!checked)}
+              />
+              <Label htmlFor="email">Email</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="whatsapp"
+                checked={watch('prefer_whatsapp')}
+                onCheckedChange={(checked) => setValue('prefer_whatsapp', !!checked)}
+              />
+              <Label htmlFor="whatsapp">WhatsApp</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="phone"
+                checked={watch('prefer_phone')}
+                onCheckedChange={(checked) => setValue('prefer_phone', !!checked)}
+              />
+              <Label htmlFor="phone">Telefon</Label>
+            </div>
           </div>
         </div>
       </div>

@@ -2279,6 +2279,9 @@ export type Database = {
       job_offers: {
         Row: {
           accountant_id: string
+          contact_email: string
+          contact_phone: string
+          contact_whatsapp: string | null
           created_at: string | null
           id: string
           job_posting_id: string
@@ -2291,6 +2294,9 @@ export type Database = {
         }
         Insert: {
           accountant_id: string
+          contact_email?: string
+          contact_phone?: string
+          contact_whatsapp?: string | null
           created_at?: string | null
           id?: string
           job_posting_id: string
@@ -2303,6 +2309,9 @@ export type Database = {
         }
         Update: {
           accountant_id?: string
+          contact_email?: string
+          contact_phone?: string
+          contact_whatsapp?: string | null
           created_at?: string | null
           id?: string
           job_posting_id?: string
@@ -2328,6 +2337,8 @@ export type Database = {
           budget_max: number | null
           budget_min: number | null
           company_name: string
+          contact_email: string
+          contact_phone: string
           created_at: string | null
           cui: string
           documents_per_month: string | null
@@ -2349,6 +2360,8 @@ export type Database = {
           budget_max?: number | null
           budget_min?: number | null
           company_name: string
+          contact_email?: string
+          contact_phone?: string
           created_at?: string | null
           cui: string
           documents_per_month?: string | null
@@ -2370,6 +2383,8 @@ export type Database = {
           budget_max?: number | null
           budget_min?: number | null
           company_name?: string
+          contact_email?: string
+          contact_phone?: string
           created_at?: string | null
           cui?: string
           documents_per_month?: string | null

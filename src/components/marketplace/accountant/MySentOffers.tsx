@@ -18,6 +18,8 @@ interface SentOffer {
   job_posting: {
     company_name: string;
     cui: string;
+    contact_email: string;
+    contact_phone: string;
   };
 }
 
@@ -45,7 +47,7 @@ export const MySentOffers = () => {
       const jobPostingIds = [...new Set(data?.map(o => o.job_posting_id) || [])];
       const { data: jobPostings } = await supabase
         .from('job_postings')
-        .select('id, company_name, cui')
+        .select('id, company_name, cui, contact_email, contact_phone')
         .in('id', jobPostingIds);
 
       const jobPostingsMap = new Map(jobPostings?.map(jp => [jp.id, jp]) || []);
@@ -54,7 +56,9 @@ export const MySentOffers = () => {
         ...offer,
         job_posting: jobPostingsMap.get(offer.job_posting_id) || {
           company_name: 'Companie',
-          cui: ''
+          cui: '',
+          contact_email: '',
+          contact_phone: ''
         }
       }));
 
@@ -133,6 +137,32 @@ export const MySentOffers = () => {
                     <p className="text-sm text-muted-foreground mt-1">{offer.message}</p>
                   </div>
                 </div>
+
+                {offer.job_posting.contact_email && offer.job_posting.contact_phone && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <h4 className="font-semibold text-blue-800 text-sm mb-2">📞 Contact Antreprenor</h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-start gap-2">
+                        <span className="font-medium min-w-[60px]">Email:</span>
+                        <a 
+                          href={`mailto:${offer.job_posting.contact_email}`} 
+                          className="text-blue-600 underline hover:text-blue-800 break-all"
+                        >
+                          {offer.job_posting.contact_email}
+                        </a>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-medium min-w-[60px]">Telefon:</span>
+                        <a 
+                          href={`tel:${offer.job_posting.contact_phone}`} 
+                          className="text-blue-600 underline hover:text-blue-800"
+                        >
+                          {offer.job_posting.contact_phone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-2 border-t">
                   <span className="text-xs text-muted-foreground">

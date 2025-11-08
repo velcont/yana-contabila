@@ -16,6 +16,9 @@ interface Offer {
   message: string;
   status: string;
   created_at: string;
+  contact_email: string;
+  contact_phone: string;
+  contact_whatsapp: string | null;
   accountant_profile: {
     firm_name: string;
     location: string;
@@ -184,6 +187,43 @@ export const ReceivedOffers = ({ userId }: { userId?: string }) => {
                   <div>
                     <span className="text-sm font-medium">Mesaj:</span>
                     <p className="text-sm text-muted-foreground mt-1">{offer.message}</p>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <h4 className="font-semibold text-green-800 text-sm mb-2">📞 Contact Contabil</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium min-w-[70px]">Email:</span>
+                      <a 
+                        href={`mailto:${offer.contact_email}`} 
+                        className="text-blue-600 underline hover:text-blue-800 break-all"
+                      >
+                        {offer.contact_email}
+                      </a>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium min-w-[70px]">Telefon:</span>
+                      <a 
+                        href={`tel:${offer.contact_phone}`} 
+                        className="text-blue-600 underline hover:text-blue-800"
+                      >
+                        {offer.contact_phone}
+                      </a>
+                    </div>
+                    {offer.contact_whatsapp && (
+                      <div className="flex items-start gap-2">
+                        <span className="font-medium min-w-[70px]">WhatsApp:</span>
+                        <a 
+                          href={`https://wa.me/${offer.contact_whatsapp.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 underline hover:text-green-800"
+                        >
+                          {offer.contact_whatsapp} 💬
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 
