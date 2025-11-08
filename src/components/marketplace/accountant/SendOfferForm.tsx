@@ -253,7 +253,7 @@ export const SendOfferForm = ({ job, onSuccess }: SendOfferFormProps) => {
         
         <div className="space-y-3">
           <div>
-            <Label className="text-sm font-medium">Email contact *</Label>
+            <Label className="text-sm font-medium text-blue-900">Email contact *</Label>
             <Input 
               type="email"
               {...register('contact_email', { 
@@ -275,7 +275,7 @@ export const SendOfferForm = ({ job, onSuccess }: SendOfferFormProps) => {
           </div>
 
           <div>
-            <Label className="text-sm font-medium">Telefon contact *</Label>
+            <Label className="text-sm font-medium text-blue-900">Telefon contact *</Label>
             <Input 
               type="tel"
               {...register('contact_phone', { 
@@ -294,7 +294,7 @@ export const SendOfferForm = ({ job, onSuccess }: SendOfferFormProps) => {
           </div>
 
           <div>
-            <Label className="text-sm font-medium">WhatsApp (opțional)</Label>
+            <Label className="text-sm font-medium text-blue-900">WhatsApp (opțional)</Label>
             <Input 
               type="tel"
               {...register('contact_whatsapp')}

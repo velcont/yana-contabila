@@ -464,7 +464,7 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
         </div>
 
         <div className="mt-4 pt-4 border-t border-green-200">
-          <Label className="text-sm font-medium mb-2 block">Prefer să fiu contactat prin:</Label>
+          <Label className="text-sm font-medium mb-2 block text-green-900">Prefer să fiu contactat prin:</Label>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <Checkbox 
@@ -472,7 +472,7 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 checked={watch('prefer_email')}
                 onCheckedChange={(checked) => setValue('prefer_email', !!checked)}
               />
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-green-900">Email</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox 
@@ -480,7 +480,7 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 checked={watch('prefer_whatsapp')}
                 onCheckedChange={(checked) => setValue('prefer_whatsapp', !!checked)}
               />
-              <Label htmlFor="whatsapp">WhatsApp</Label>
+              <Label htmlFor="whatsapp" className="text-green-900">WhatsApp</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox 
@@ -488,7 +488,7 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
                 checked={watch('prefer_phone')}
                 onCheckedChange={(checked) => setValue('prefer_phone', !!checked)}
               />
-              <Label htmlFor="phone">Telefon</Label>
+              <Label htmlFor="phone" className="text-green-900">Telefon</Label>
             </div>
           </div>
         </div>
