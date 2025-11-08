@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield, Loader2 } from 'lucide-react';
+import { FileText, Trash2, Eye, Download, BarChart3, Calendar, Newspaper, Info, TrendingUp, Rocket, AlertTriangle, Sparkles, Building2, Mail, Users, Bot, Database, Shield, Loader2, Briefcase } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard, SkeletonChart, LoadingSpinner } from '@/components/ui/skeleton-loader';
 import { ContextualHelp, helpContent } from '@/components/ContextualHelp';
@@ -31,6 +31,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 // Lazy load Recharts components (~100KB)
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 const MultiCompanyComparison = lazy(() => import('./MultiCompanyComparison').then(m => ({ default: m.MultiCompanyComparison })));
+const MarketplaceLayout = lazy(() => import('./marketplace/MarketplaceLayout').then(m => ({ default: m.MarketplaceLayout })));
 
 const ChartLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -688,7 +689,7 @@ INDICATORI OPERAȚIONALI:
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-5xl grid-cols-7">
+        <TabsList className="grid w-full max-w-5xl grid-cols-8">
           <TabsTrigger value="analytics" data-tour="tab-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
@@ -711,6 +712,10 @@ INDICATORI OPERAȚIONALI:
               Multi-Firmă
             </TabsTrigger>
           )}
+          <TabsTrigger value="marketplace" data-tour="tab-marketplace">
+            <Briefcase className="h-4 w-4 mr-2" />
+            Marketplace
+          </TabsTrigger>
           <TabsTrigger value="news" data-tour="tab-news">
             <Newspaper className="h-4 w-4 mr-2" />
             Știri
@@ -762,6 +767,12 @@ INDICATORI OPERAȚIONALI:
             </Suspense>
           </TabsContent>
         )}
+
+        <TabsContent value="marketplace" className="space-y-6">
+          <Suspense fallback={<ChartLoader />}>
+            <MarketplaceLayout />
+          </Suspense>
+        </TabsContent>
 
         <TabsContent value="news" className="space-y-6">
           <FiscalNews />
