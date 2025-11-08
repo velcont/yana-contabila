@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FileText } from 'lucide-react';
 import { UpgradeWall } from './shared/UpgradeWall';
 import { PostJobButton } from './entrepreneur/PostJobButton';
 import { MyJobPostings } from './entrepreneur/MyJobPostings';
 import { ReceivedOffers } from './entrepreneur/ReceivedOffers';
 import { JobListings } from './accountant/JobListings';
 import { MySentOffers } from './accountant/MySentOffers';
+import { Button } from '@/components/ui/button';
+import { generateMarketplacePowerPoint } from '@/utils/generateMarketplacePowerPoint';
+import { toast } from 'sonner';
 
 export const MarketplaceLayout = () => {
   const { user } = useAuth();
@@ -77,18 +80,38 @@ export const MarketplaceLayout = () => {
     );
   }
 
+  const handleDownloadPresentation = () => {
+    try {
+      generateMarketplacePowerPoint();
+      toast.success('Prezentarea PowerPoint se descarcă!');
+    } catch (error) {
+      toast.error('Eroare la generarea prezentării');
+      console.error(error);
+    }
+  };
+
   // Entrepreneur view - DOAR pentru antreprenori
   if (subscriptionType === 'entrepreneur') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-2xl font-bold">Găsește Contabil Perfect</h2>
             <p className="text-muted-foreground">
               Postează un anunț și primește oferte de la contabili verificați
             </p>
           </div>
-          <PostJobButton />
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleDownloadPresentation}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Descarcă Ghid PPT
+            </Button>
+            <PostJobButton />
+          </div>
         </div>
         
         <MyJobPostings userId={user?.id} />
@@ -101,11 +124,21 @@ export const MarketplaceLayout = () => {
   if (subscriptionType === 'accounting_firm') {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold">Clienți Noi</h2>
-          <p className="text-muted-foreground">
-            Browse anunțuri și trimite oferte pentru clienți potențiali
-          </p>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-2xl font-bold">Clienți Noi</h2>
+            <p className="text-muted-foreground">
+              Browse anunțuri și trimite oferte pentru clienți potențiali
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleDownloadPresentation}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Descarcă Ghid PPT
+          </Button>
         </div>
         
         <JobListings />
