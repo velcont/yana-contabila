@@ -92,7 +92,57 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
     console.log('📝 Form data:', data);
     console.log('👤 User ID:', user?.id);
     
-    // Validare budget
+    // 1. VERIFICARE USER LOGAT
+    if (!user?.id) {
+      toast({
+        title: "❌ Nu ești autentificat",
+        description: "Trebuie să te loghezi pentru a posta anunțuri.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // 2. VERIFICARE SUBSCRIPTION_TYPE din DB
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('subscription_type, subscription_status, email')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileError || !profile) {
+      console.error('❌ Profile fetch error:', profileError);
+      toast({
+        title: "❌ Eroare la verificare profil",
+        description: "Nu am putut verifica tipul de cont. Reîncearcă.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log('👤 Profile verified:', profile);
+    
+    // 3. VERIFICARE ANTREPRENOR
+    if (profile.subscription_type !== 'entrepreneur') {
+      toast({
+        title: "❌ Acces refuzat",
+        description: `Doar antreprenorii pot posta anunțuri. Contul tău (${profile.email}) este de tip: ${profile.subscription_type}`,
+        variant: "destructive",
+        duration: 10000,
+      });
+      return;
+    }
+    
+    // 4. VERIFICARE ABONAMENT ACTIV
+    if (profile.subscription_status !== 'active') {
+      toast({
+        title: "❌ Abonament inactiv",
+        description: "Trebuie să ai un abonament activ pentru a posta anunțuri.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // 5. VALIDARE BUDGET
     if (data.budget_max < data.budget_min) {
       toast({
         title: "❌ Eroare validare",
@@ -106,51 +156,112 @@ export const JobPostingForm = ({ onSuccess }: { onSuccess: () => void }) => {
     
     try {
       console.log('📤 Inserting job posting...');
-      const { error } = await supabase
+      
+      // 6. INSERT CU .select().single() PENTRU A PRIMI DATELE ÎNAPOI
+      const { data: newPosting, error } = await supabase
         .from('job_postings')
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           ...data,
           status: 'active',
           offers_count: 0,
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('❌ Supabase error:', error);
-        throw error;
+        console.error('❌ Supabase INSERT error:', error);
+        console.error('Error code:', error.code);
+        console.error('Error details:', error.details);
+        
+        // 7. DETECTARE RLS POLICY VIOLATION
+        if (error.code === '42501' || error.message.includes('policy')) {
+          toast({
+            title: "❌ Eroare permisiuni RLS",
+            description: `Nu ai permisiunea de a posta anunțuri. Verifică că ești logat ca ANTREPRENOR activ. Cod eroare: ${error.code}`,
+            variant: "destructive",
+            duration: 10000,
+          });
+          return;
+        }
+        
+        // 8. ALTE ERORI
+        toast({
+          title: "❌ Eroare la salvare",
+          description: `${error.message} (Cod: ${error.code || 'N/A'})`,
+          variant: "destructive",
+          duration: 8000,
+        });
+        return;
       }
       
-      console.log('✅ Job posted successfully');
+      if (!newPosting) {
+        toast({
+          title: "❌ Eroare necunoscută",
+          description: "Anunțul nu s-a salvat, dar nu există eroare.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('✅ Job posted successfully:', newPosting);
 
+      // 9. TOAST DE SUCCES
       toast({
         title: "✅ Anunț postat cu succes!",
         description: "Contabilii vor primi notificare și vor putea trimite oferte.",
+        duration: 5000,
       });
 
-      await supabase.functions.invoke('send-marketplace-notification', {
-        body: {
-          type: 'new_job_posting',
-          data: {
-            company_name: data.company_name,
-            cui: data.cui,
-            is_vat_payer: data.is_vat_payer,
-            tax_type: data.tax_type,
-            documents_per_month: data.documents_per_month,
-            employees_count: data.employees_count,
-            budget_min: data.budget_min,
-            budget_max: data.budget_max,
-            special_requirements: data.special_requirements,
+      // 10. NOTIFICARE CONTABILI - DOAR DUPĂ SUCCES
+      console.log('📧 Sending notifications to accountants...');
+      const { data: notifData, error: notifError } = await supabase.functions.invoke(
+        'send-marketplace-notification',
+        {
+          body: {
+            type: 'new_job_posting',
+            data: {
+              job_posting_id: newPosting.id,
+              company_name: data.company_name,
+              cui: data.cui,
+              is_vat_payer: data.is_vat_payer,
+              tax_type: data.tax_type,
+              documents_per_month: data.documents_per_month,
+              employees_count: data.employees_count,
+              budget_min: data.budget_min,
+              budget_max: data.budget_max,
+              special_requirements: data.special_requirements,
+            }
           }
         }
-      });
-
+      );
+      
+      if (notifError) {
+        console.error('❌ Notification error:', notifError);
+        toast({
+          title: "⚠️ Atenție",
+          description: "Anunțul s-a salvat, dar notificările către contabili au eșuat.",
+          variant: "default",
+        });
+      } else {
+        console.log('✅ Notifications sent:', notifData);
+        toast({
+          title: "📧 Notificări trimise",
+          description: `${notifData?.notified || 0} contabili au fost notificați.`,
+          duration: 5000,
+        });
+      }
+      
+      // 11. ÎNCHIDE DIALOG-UL
       onSuccess();
+      
     } catch (error: any) {
-      console.error('Error posting job:', error);
+      console.error('💥 Unexpected error:', error);
       toast({
-        title: "❌ Eroare",
-        description: error.message || "Nu s-a putut posta anunțul",
+        title: "❌ Eroare neașteptată",
+        description: error.message || "A apărut o eroare. Verifică consola.",
         variant: "destructive",
+        duration: 8000,
       });
     } finally {
       setLoading(false);

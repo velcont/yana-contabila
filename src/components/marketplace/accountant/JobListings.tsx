@@ -36,9 +36,10 @@ export const JobListings = () => {
 
   useEffect(() => {
     loadJobs();
-    
-    const subscription = supabase
-      .channel('job-postings-changes')
+
+    // Realtime subscription pentru job_postings NOI
+    const channel = supabase
+      .channel('marketplace-jobs')
       .on(
         'postgres_changes',
         {
@@ -48,11 +49,14 @@ export const JobListings = () => {
           filter: 'status=eq.active'
         },
         (payload) => {
-          setJobs(prev => [payload.new as JobListing, ...prev]);
+          console.log('🔔 New job posting received:', payload);
+          const newJob = payload.new as JobListing;
+          
+          setJobs(prev => [newJob, ...prev]);
           
           toast({
             title: "🔔 Anunț NOU!",
-            description: `${(payload.new as any).company_name} caută contabil`,
+            description: `${newJob.company_name} caută contabil`,
             duration: 10000,
           });
         }
@@ -60,9 +64,9 @@ export const JobListings = () => {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [toast]);
 
   const loadJobs = async () => {
     setLoading(true);

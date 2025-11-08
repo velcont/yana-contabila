@@ -77,7 +77,7 @@ export const MarketplaceLayout = () => {
     );
   }
 
-  // Entrepreneur view
+  // Entrepreneur view - DOAR pentru antreprenori
   if (subscriptionType === 'entrepreneur') {
     return (
       <div className="space-y-6">
@@ -97,7 +97,7 @@ export const MarketplaceLayout = () => {
     );
   }
 
-  // Accountant view
+  // Accountant view - DOAR pentru contabili
   if (subscriptionType === 'accounting_firm') {
     return (
       <div className="space-y-6">
