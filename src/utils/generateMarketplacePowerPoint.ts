@@ -50,220 +50,13 @@ export const generateMarketplacePowerPoint = () => {
     italic: true,
   });
 
-  // ========== PARTEA ANTREPRENORI (4 SLIDE-URI) ==========
+  // ========== PARTEA CONTABILI (3 SLIDE-URI) ==========
 
-  // SLIDE 2: Pentru Antreprenori - Introducere
+  // SLIDE 2: Pentru Contabili - Introducere
   const slide2 = pptx.addSlide();
-  slide2.background = { color: "F0FDF4" };
+  slide2.background = { color: "EFF6FF" };
   
-  slide2.addText("🚀 PENTRU ANTREPRENORI", {
-    x: 0.5,
-    y: 0.5,
-    w: 9,
-    h: 0.8,
-    fontSize: 40,
-    bold: true,
-    color: primaryGreen,
-    align: "center",
-  });
-
-  slide2.addText("Găsește Contabilul Perfect pentru Afacerea Ta", {
-    x: 0.5,
-    y: 1.5,
-    w: 9,
-    h: 0.6,
-    fontSize: 24,
-    color: darkGray,
-    align: "center",
-  });
-
-  const entrepreneurBenefits = [
-    "✓ Postezi GRATUIT cerințele tale specifice",
-    "✓ Primești oferte de la contabili verificați",
-    "✓ Compari prețuri și servicii într-un singur loc",
-    "✓ Chat direct cu candidații potriviți",
-    "✓ Economisești timp și bani în căutarea contabilului ideal",
-  ];
-
-  entrepreneurBenefits.forEach((benefit, index) => {
-    slide2.addText(benefit, {
-      x: 1,
-      y: 2.5 + index * 0.6,
-      w: 8,
-      h: 0.5,
-      fontSize: 20,
-      color: darkGray,
-      bullet: false,
-    });
-  });
-
-  // SLIDE 3: Cum Postezi un Anunț
-  const slide3 = pptx.addSlide();
-  slide3.background = { color: "FFFFFF" };
-  
-  slide3.addText("📝 CUM POSTEZI UN ANUNȚ", {
-    x: 0.5,
-    y: 0.5,
-    w: 9,
-    h: 0.8,
-    fontSize: 36,
-    bold: true,
-    color: primaryGreen,
-    align: "center",
-  });
-
-  const postingSteps = [
-    {
-      title: "1. Completează Detalii",
-      desc: "Nume companie, CUI, industrie, nr. angajați",
-    },
-    {
-      title: "2. Descrie Cerințele",
-      desc: "Servicii necesare, frecvență, situații speciale",
-    },
-    {
-      title: "3. Setează Bugetul",
-      desc: "Indică bugetul lunar pentru servicii contabile",
-    },
-    {
-      title: "4. Preferințe Contact",
-      desc: "Alege cum preferi să fii contactat: Email, WhatsApp, Telefon",
-    },
-  ];
-
-  postingSteps.forEach((step, index) => {
-    slide3.addText(step.title, {
-      x: 1,
-      y: 1.8 + index * 1.0,
-      w: 8,
-      h: 0.4,
-      fontSize: 22,
-      bold: true,
-      color: primaryGreen,
-    });
-
-    slide3.addText(step.desc, {
-      x: 1.5,
-      y: 2.2 + index * 1.0,
-      w: 7.5,
-      h: 0.4,
-      fontSize: 18,
-      color: darkGray,
-    });
-  });
-
-  // SLIDE 4: Cum Evaluezi Ofertele
-  const slide4 = pptx.addSlide();
-  slide4.background = { color: "F0FDF4" };
-  
-  slide4.addText("⭐ CUM EVALUEZI OFERTELE", {
-    x: 0.5,
-    y: 0.5,
-    w: 9,
-    h: 0.8,
-    fontSize: 36,
-    bold: true,
-    color: primaryGreen,
-    align: "center",
-  });
-
-  const evaluationTips = [
-    {
-      emoji: "💰",
-      title: "Compară Prețurile",
-      desc: "Vezi oferte de la mai mulți contabili și alege cel mai bun raport calitate-preț",
-    },
-    {
-      emoji: "📊",
-      title: "Verifică Experiența",
-      desc: "Citește despre expertiza și specialitățile fiecărui contabil",
-    },
-    {
-      emoji: "💬",
-      title: "Comunică Direct",
-      desc: "Chat integrat pentru clarificări și negocieri rapide",
-    },
-    {
-      emoji: "✅",
-      title: "Ia Decizia",
-      desc: "Acceptă oferta potrivită și începe colaborarea imediat",
-    },
-  ];
-
-  evaluationTips.forEach((tip, index) => {
-    slide4.addText(`${tip.emoji} ${tip.title}`, {
-      x: 1,
-      y: 1.8 + index * 0.9,
-      w: 8,
-      h: 0.4,
-      fontSize: 20,
-      bold: true,
-      color: primaryGreen,
-    });
-
-    slide4.addText(tip.desc, {
-      x: 1.5,
-      y: 2.15 + index * 0.9,
-      w: 7.5,
-      h: 0.4,
-      fontSize: 16,
-      color: darkGray,
-    });
-  });
-
-  // SLIDE 5: Beneficii pentru Antreprenori
-  const slide5 = pptx.addSlide();
-  slide5.background = { color: "FFFFFF" };
-  
-  slide5.addText("🎯 DE CE MARKETPLACE YANA?", {
-    x: 0.5,
-    y: 0.5,
-    w: 9,
-    h: 0.8,
-    fontSize: 36,
-    bold: true,
-    color: primaryGreen,
-    align: "center",
-  });
-
-  const whyYana = [
-    "⚡ Rapiditate: Primești oferte în maxim 24-48h",
-    "🔒 Siguranță: Contabili verificați și cu experiență",
-    "💡 Transparență: Vezi toate costurile înainte să te angajezi",
-    "🎁 Fără costuri ascunse sau comisioane pentru tine",
-    "📱 Totul într-o singură platformă - de la postare la contract",
-  ];
-
-  whyYana.forEach((reason, index) => {
-    slide5.addText(reason, {
-      x: 1,
-      y: 2.0 + index * 0.7,
-      w: 8,
-      h: 0.5,
-      fontSize: 20,
-      color: darkGray,
-    });
-  });
-
-  slide5.addText("Începe acum și găsește contabilul perfect! 🚀", {
-    x: 0.5,
-    y: 5.2,
-    w: 9,
-    h: 0.6,
-    fontSize: 22,
-    bold: true,
-    color: primaryGreen,
-    align: "center",
-    italic: true,
-  });
-
-  // ========== PARTEA CONTABILI (4 SLIDE-URI) ==========
-
-  // SLIDE 6: Pentru Contabili - Introducere
-  const slide6 = pptx.addSlide();
-  slide6.background = { color: "EFF6FF" };
-  
-  slide6.addText("💼 PENTRU CONTABILI", {
+  slide2.addText("💼 PENTRU CONTABILI", {
     x: 0.5,
     y: 0.5,
     w: 9,
@@ -274,7 +67,7 @@ export const generateMarketplacePowerPoint = () => {
     align: "center",
   });
 
-  slide6.addText("Găsește Clienți Noi și Dezvoltă-ți Portofoliul", {
+  slide2.addText("Găsește Clienți Noi și Dezvoltă-ți Portofoliul", {
     x: 0.5,
     y: 1.5,
     w: 9,
@@ -293,7 +86,7 @@ export const generateMarketplacePowerPoint = () => {
   ];
 
   accountantBenefits.forEach((benefit, index) => {
-    slide6.addText(benefit, {
+    slide2.addText(benefit, {
       x: 1,
       y: 2.5 + index * 0.6,
       w: 8,
@@ -303,11 +96,11 @@ export const generateMarketplacePowerPoint = () => {
     });
   });
 
-  // SLIDE 7: Cum Răspunzi la Anunțuri
-  const slide7 = pptx.addSlide();
-  slide7.background = { color: "FFFFFF" };
+  // SLIDE 3: Cum Răspunzi la Anunțuri
+  const slide3 = pptx.addSlide();
+  slide3.background = { color: "FFFFFF" };
   
-  slide7.addText("📬 CUM TRIMIȚI OFERTE", {
+  slide3.addText("📬 CUM TRIMIȚI OFERTE", {
     x: 0.5,
     y: 0.5,
     w: 9,
@@ -338,7 +131,7 @@ export const generateMarketplacePowerPoint = () => {
   ];
 
   offerSteps.forEach((step, index) => {
-    slide7.addText(step.title, {
+    slide3.addText(step.title, {
       x: 1,
       y: 1.8 + index * 1.0,
       w: 8,
@@ -348,7 +141,7 @@ export const generateMarketplacePowerPoint = () => {
       color: primaryBlue,
     });
 
-    slide7.addText(step.desc, {
+    slide3.addText(step.desc, {
       x: 1.5,
       y: 2.2 + index * 1.0,
       w: 7.5,
@@ -358,11 +151,11 @@ export const generateMarketplacePowerPoint = () => {
     });
   });
 
-  // SLIDE 8: Construiește Reputația
-  const slide8 = pptx.addSlide();
-  slide8.background = { color: "EFF6FF" };
+  // SLIDE 4: Construiește Reputația
+  const slide4 = pptx.addSlide();
+  slide4.background = { color: "EFF6FF" };
   
-  slide8.addText("🌟 CONSTRUIEȘTE REPUTAȚIA", {
+  slide4.addText("🌟 CONSTRUIEȘTE REPUTAȚIA", {
     x: 0.5,
     y: 0.5,
     w: 9,
@@ -397,7 +190,7 @@ export const generateMarketplacePowerPoint = () => {
   ];
 
   reputationTips.forEach((tip, index) => {
-    slide8.addText(`${tip.emoji} ${tip.title}`, {
+    slide4.addText(`${tip.emoji} ${tip.title}`, {
       x: 1,
       y: 1.8 + index * 0.9,
       w: 8,
@@ -407,7 +200,7 @@ export const generateMarketplacePowerPoint = () => {
       color: primaryBlue,
     });
 
-    slide8.addText(tip.desc, {
+    slide4.addText(tip.desc, {
       x: 1.5,
       y: 2.15 + index * 0.9,
       w: 7.5,
@@ -415,6 +208,213 @@ export const generateMarketplacePowerPoint = () => {
       fontSize: 16,
       color: darkGray,
     });
+  });
+
+  // ========== PARTEA ANTREPRENORI (4 SLIDE-URI) ==========
+
+  // SLIDE 5: Pentru Antreprenori - Introducere
+  const slide5 = pptx.addSlide();
+  slide5.background = { color: "F0FDF4" };
+  
+  slide5.addText("🚀 PENTRU ANTREPRENORI", {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.8,
+    fontSize: 40,
+    bold: true,
+    color: primaryGreen,
+    align: "center",
+  });
+
+  slide5.addText("Găsește Contabilul Perfect pentru Afacerea Ta", {
+    x: 0.5,
+    y: 1.5,
+    w: 9,
+    h: 0.6,
+    fontSize: 24,
+    color: darkGray,
+    align: "center",
+  });
+
+  const entrepreneurBenefits = [
+    "✓ Postezi GRATUIT cerințele tale specifice",
+    "✓ Primești oferte de la contabili verificați",
+    "✓ Compari prețuri și servicii într-un singur loc",
+    "✓ Chat direct cu candidații potriviți",
+    "✓ Economisești timp și bani în căutarea contabilului ideal",
+  ];
+
+  entrepreneurBenefits.forEach((benefit, index) => {
+    slide5.addText(benefit, {
+      x: 1,
+      y: 2.5 + index * 0.6,
+      w: 8,
+      h: 0.5,
+      fontSize: 20,
+      color: darkGray,
+      bullet: false,
+    });
+  });
+
+  // SLIDE 6: Cum Postezi un Anunț
+  const slide6 = pptx.addSlide();
+  slide6.background = { color: "FFFFFF" };
+  
+  slide6.addText("📝 CUM POSTEZI UN ANUNȚ", {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.8,
+    fontSize: 36,
+    bold: true,
+    color: primaryGreen,
+    align: "center",
+  });
+
+  const postingSteps = [
+    {
+      title: "1. Completează Detalii",
+      desc: "Nume companie, CUI, industrie, nr. angajați",
+    },
+    {
+      title: "2. Descrie Cerințele",
+      desc: "Servicii necesare, frecvență, situații speciale",
+    },
+    {
+      title: "3. Setează Bugetul",
+      desc: "Indică bugetul lunar pentru servicii contabile",
+    },
+    {
+      title: "4. Preferințe Contact",
+      desc: "Alege cum preferi să fii contactat: Email, WhatsApp, Telefon",
+    },
+  ];
+
+  postingSteps.forEach((step, index) => {
+    slide6.addText(step.title, {
+      x: 1,
+      y: 1.8 + index * 1.0,
+      w: 8,
+      h: 0.4,
+      fontSize: 22,
+      bold: true,
+      color: primaryGreen,
+    });
+
+    slide6.addText(step.desc, {
+      x: 1.5,
+      y: 2.2 + index * 1.0,
+      w: 7.5,
+      h: 0.4,
+      fontSize: 18,
+      color: darkGray,
+    });
+  });
+
+  // SLIDE 7: Cum Evaluezi Ofertele
+  const slide7 = pptx.addSlide();
+  slide7.background = { color: "F0FDF4" };
+  
+  slide7.addText("⭐ CUM EVALUEZI OFERTELE", {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.8,
+    fontSize: 36,
+    bold: true,
+    color: primaryGreen,
+    align: "center",
+  });
+
+  const evaluationTips = [
+    {
+      emoji: "💰",
+      title: "Compară Prețurile",
+      desc: "Vezi oferte de la mai mulți contabili și alege cel mai bun raport calitate-preț",
+    },
+    {
+      emoji: "📊",
+      title: "Verifică Experiența",
+      desc: "Citește despre expertiza și specialitățile fiecărui contabil",
+    },
+    {
+      emoji: "💬",
+      title: "Comunică Direct",
+      desc: "Chat integrat pentru clarificări și negocieri rapide",
+    },
+    {
+      emoji: "✅",
+      title: "Ia Decizia",
+      desc: "Acceptă oferta potrivită și începe colaborarea imediat",
+    },
+  ];
+
+  evaluationTips.forEach((tip, index) => {
+    slide7.addText(`${tip.emoji} ${tip.title}`, {
+      x: 1,
+      y: 1.8 + index * 0.9,
+      w: 8,
+      h: 0.4,
+      fontSize: 20,
+      bold: true,
+      color: primaryGreen,
+    });
+
+    slide7.addText(tip.desc, {
+      x: 1.5,
+      y: 2.15 + index * 0.9,
+      w: 7.5,
+      h: 0.4,
+      fontSize: 16,
+      color: darkGray,
+    });
+  });
+
+  // SLIDE 8: Beneficii pentru Antreprenori
+  const slide8 = pptx.addSlide();
+  slide8.background = { color: "FFFFFF" };
+  
+  slide8.addText("🎯 DE CE MARKETPLACE YANA?", {
+    x: 0.5,
+    y: 0.5,
+    w: 9,
+    h: 0.8,
+    fontSize: 36,
+    bold: true,
+    color: primaryGreen,
+    align: "center",
+  });
+
+  const whyYana = [
+    "⚡ Rapiditate: Primești oferte în maxim 24-48h",
+    "🔒 Siguranță: Contabili verificați și cu experiență",
+    "💡 Transparență: Vezi toate costurile înainte să te angajezi",
+    "🎁 Fără costuri ascunse sau comisioane pentru tine",
+    "📱 Totul într-o singură platformă - de la postare la contract",
+  ];
+
+  whyYana.forEach((reason, index) => {
+    slide8.addText(reason, {
+      x: 1,
+      y: 2.0 + index * 0.7,
+      w: 8,
+      h: 0.5,
+      fontSize: 20,
+      color: darkGray,
+    });
+  });
+
+  slide8.addText("Începe acum și găsește contabilul perfect! 🚀", {
+    x: 0.5,
+    y: 5.2,
+    w: 9,
+    h: 0.6,
+    fontSize: 22,
+    bold: true,
+    color: primaryGreen,
+    align: "center",
+    italic: true,
   });
 
   // SLIDE 9: Final - Call to Action
