@@ -52,18 +52,36 @@ export const parseStatisticsExcel = async (file: File): Promise<StatisticsData> 
         
         // Găsim coloanele pentru Perioada, Șomaj și PIB
         const headerRow = jsonData[0];
-        const periodCol = headerRow.findIndex((h: any) => 
-          h && h.toString().toLowerCase().includes('perioad')
-        );
-        const somajCol = headerRow.findIndex((h: any) => 
-          h && (h.toString().toLowerCase().includes('șomaj') || h.toString().toLowerCase().includes('somaj'))
-        );
-        const pibCol = headerRow.findIndex((h: any) => 
-          h && h.toString().toLowerCase().includes('pib')
-        );
+        
+        // Funcție helper pentru căutare mai flexibilă
+        const findColumn = (keywords: string[]) => {
+          return headerRow.findIndex((h: any) => {
+            if (!h) return false;
+            const cellValue = h.toString().toLowerCase()
+              .replace(/ș/g, 's')
+              .replace(/ț/g, 't')
+              .replace(/ă/g, 'a')
+              .replace(/î/g, 'i')
+              .replace(/â/g, 'a')
+              .trim();
+            return keywords.some(keyword => cellValue.includes(keyword));
+          });
+        };
+        
+        const periodCol = findColumn(['perioad', 'trimest', 'data', 'an', 'luna']);
+        const somajCol = findColumn(['somaj', 'unemployment', 'rata somaj', 'x']);
+        const pibCol = findColumn(['pib', 'gdp', 'produs intern brut', 'y']);
         
         if (periodCol === -1 || somajCol === -1 || pibCol === -1) {
-          throw new Error('Nu s-au găsit coloanele necesare (Perioada, Șomaj, PIB)');
+          const foundColumns = headerRow.map((h: any, i: number) => `${i}: "${h}"`).join(', ');
+          throw new Error(
+            `Nu s-au găsit coloanele necesare.\n\n` +
+            `Coloanele găsite în Excel: ${foundColumns}\n\n` +
+            `Te rog asigură-te că Excel-ul conține:\n` +
+            `- O coloană pentru perioadă/dată (ex: "Perioada", "Trimestrul")\n` +
+            `- O coloană pentru șomaj (ex: "Somaj", "Rata șomajului", "X")\n` +
+            `- O coloană pentru PIB (ex: "PIB", "Y")`
+          );
         }
         
         // Extragem observațiile (skip header)
