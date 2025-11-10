@@ -34,7 +34,16 @@ export interface StatisticsData {
   totalObservations: number;
 }
 
-export const parseStatisticsExcel = async (file: File): Promise<StatisticsData> => {
+export const parseStatisticsExcel = async (
+  file: File,
+  manualMapping?: {
+    sheetName: string;
+    headerRow: number;
+    periodCol: number;
+    somajCol: number;
+    pibCol: number;
+  }
+): Promise<StatisticsData> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -43,61 +52,158 @@ export const parseStatisticsExcel = async (file: File): Promise<StatisticsData> 
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: 'binary' });
         
-        // Presupunem că datele sunt în primul sheet
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        // Convertim la JSON - presupunem că prima linie este header
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
-        
-        // Găsim coloanele pentru Perioada, Șomaj și PIB
-        const headerRow = jsonData[0];
-        
-        // Funcție helper pentru căutare mai flexibilă
-        const findColumn = (keywords: string[]) => {
-          return headerRow.findIndex((h: any) => {
-            if (!h) return false;
-            const cellValue = h.toString().toLowerCase()
-              .replace(/ș/g, 's')
-              .replace(/ț/g, 't')
-              .replace(/ă/g, 'a')
-              .replace(/î/g, 'i')
-              .replace(/â/g, 'a')
-              .trim();
-            return keywords.some(keyword => cellValue.includes(keyword));
-          });
+        // Helper pentru normalizare diacritice
+        const normalize = (text: string) => {
+          return text.toString().toLowerCase()
+            .replace(/ș/g, 's')
+            .replace(/ț/g, 't')
+            .replace(/ă/g, 'a')
+            .replace(/î/g, 'i')
+            .replace(/â/g, 'a')
+            .trim();
         };
         
-        const periodCol = findColumn(['perioad', 'trimest', 'data', 'an', 'luna']);
-        const somajCol = findColumn(['somaj', 'unemployment', 'rata somaj', 'x']);
-        const pibCol = findColumn(['pib', 'gdp', 'produs intern brut', 'y']);
+        // Helper pentru conversie numerică tolerantă
+        const parseNumber = (val: any): number => {
+          if (typeof val === 'number') return val;
+          const str = val.toString().replace(/,/g, '.');
+          const num = parseFloat(str);
+          return isNaN(num) ? 0 : num;
+        };
         
-        if (periodCol === -1 || somajCol === -1 || pibCol === -1) {
-          const foundColumns = headerRow.map((h: any, i: number) => `${i}: "${h}"`).join(', ');
+        // Dacă avem mapping manual, folosim asta
+        if (manualMapping) {
+          const worksheet = workbook.Sheets[manualMapping.sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          
+          const observations = jsonData
+            .slice(manualMapping.headerRow + 1)
+            .filter(row => row[manualMapping.periodCol] && row[manualMapping.somajCol] && row[manualMapping.pibCol])
+            .map(row => ({
+              period: row[manualMapping.periodCol].toString(),
+              somaj: parseNumber(row[manualMapping.somajCol]),
+              pib: parseNumber(row[manualMapping.pibCol])
+            }))
+            .filter(o => !isNaN(o.somaj) && !isNaN(o.pib));
+          
+          if (observations.length === 0) {
+            throw new Error('Nu s-au găsit date valide cu mapping-ul specificat');
+          }
+          
+          const somajValues = observations.map(o => o.somaj);
+          const pibValues = observations.map(o => o.pib);
+          
+          const somajIndicators = calculateIndicators(somajValues);
+          const pibIndicators = calculateIndicators(pibValues);
+          
+          return resolve({
+            observations,
+            somajIndicators,
+            pibIndicators,
+            startPeriod: observations[0].period,
+            endPeriod: observations[observations.length - 1].period,
+            totalObservations: observations.length
+          });
+        }
+        
+        // Auto-detect: Scanăm toate sheet-urile
+        let bestMatch: {
+          sheetName: string;
+          headerRowIdx: number;
+          periodCol: number;
+          somajCol: number;
+          pibCol: number;
+          score: number;
+        } | null = null;
+        
+        for (const sheetName of workbook.SheetNames) {
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          
+          // Căutăm header în primele 50 de rânduri
+          for (let rowIdx = 0; rowIdx < Math.min(50, jsonData.length); rowIdx++) {
+            const row = jsonData[rowIdx];
+            if (!row || row.length < 3) continue;
+            
+            // Funcție pentru a găsi coloana
+            const findColumn = (keywords: string[]) => {
+              return row.findIndex((h: any) => {
+                if (!h) return false;
+                const cellValue = normalize(h.toString());
+                return keywords.some(keyword => cellValue.includes(keyword));
+              });
+            };
+            
+            const periodCol = findColumn(['perioad', 'trimest', 'data', 'an', 'luna']);
+            const somajCol = findColumn(['somaj', 'unemployment', 'rata somaj', 'x']);
+            const pibCol = findColumn(['pib', 'gdp', 'produs intern brut', 'y']);
+            
+            // Calculăm scor: câte coloane am găsit
+            let score = 0;
+            if (periodCol !== -1) score++;
+            if (somajCol !== -1) score++;
+            if (pibCol !== -1) score++;
+            
+            // Verificăm și că avem suficiente date după header
+            if (score === 3) {
+              const dataRows = jsonData.slice(rowIdx + 1).filter(r => 
+                r[periodCol] && r[somajCol] && r[pibCol]
+              );
+              score += Math.min(dataRows.length / 10, 5); // Bonus pentru date suficiente
+              
+              if (!bestMatch || score > bestMatch.score) {
+                bestMatch = {
+                  sheetName,
+                  headerRowIdx: rowIdx,
+                  periodCol,
+                  somajCol,
+                  pibCol,
+                  score
+                };
+              }
+            }
+          }
+        }
+        
+        if (!bestMatch) {
+          // Nu am găsit nimic - aruncăm eroare detaliată
+          const firstSheet = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheet];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+          
+          const sampleHeaders = jsonData.slice(0, 5).map((row: any[], idx) => 
+            `Rând ${idx}: ${row.slice(0, 10).map(h => `"${h}"`).join(', ')}`
+          ).join('\n');
+          
           throw new Error(
-            `Nu s-au găsit coloanele necesare.\n\n` +
-            `Coloanele găsite în Excel: ${foundColumns}\n\n` +
-            `Te rog asigură-te că Excel-ul conține:\n` +
-            `- O coloană pentru perioadă/dată (ex: "Perioada", "Trimestrul")\n` +
-            `- O coloană pentru șomaj (ex: "Somaj", "Rata șomajului", "X")\n` +
-            `- O coloană pentru PIB (ex: "PIB", "Y")`
+            `Nu s-au detectat automat coloanele necesare.\n\n` +
+            `Primele rânduri din sheet "${firstSheet}":\n${sampleHeaders}\n\n` +
+            `Cauze posibile:\n` +
+            `- Header-ul nu este în primele 50 de rânduri\n` +
+            `- Coloanele au nume neașteptate\n` +
+            `- Date lipsă sau format incorect\n\n` +
+            `Vei putea selecta manual coloanele.`
           );
         }
         
-        // Extragem observațiile (skip header)
-        const observations = jsonData.slice(1)
-          .filter(row => row[periodCol] && row[somajCol] && row[pibCol])
+        // Am găsit match - procesăm datele
+        const worksheet = workbook.Sheets[bestMatch.sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        const observations = jsonData
+          .slice(bestMatch.headerRowIdx + 1)
+          .filter(row => row[bestMatch.periodCol] && row[bestMatch.somajCol] && row[bestMatch.pibCol])
           .map(row => ({
-            period: row[periodCol].toString(),
-            somaj: parseFloat(row[somajCol].toString()),
-            pib: parseFloat(row[pibCol].toString())
-          }));
+            period: row[bestMatch.periodCol].toString(),
+            somaj: parseNumber(row[bestMatch.somajCol]),
+            pib: parseNumber(row[bestMatch.pibCol])
+          }))
+          .filter(o => !isNaN(o.somaj) && !isNaN(o.pib));
         
         if (observations.length === 0) {
           throw new Error('Nu s-au găsit date valide în fișierul Excel');
         }
         
-        // Calculăm indicatorii statistici
         const somajValues = observations.map(o => o.somaj);
         const pibValues = observations.map(o => o.pib);
         

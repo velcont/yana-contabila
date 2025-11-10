@@ -9,6 +9,21 @@ import { parseStatisticsExcel, StatisticsData } from '@/utils/parseStatisticsExc
 import { generateStatisticsCharts, ChartImage } from '@/utils/generateStatisticsCharts';
 import { generateAcademicStatisticsDoc } from '@/utils/generateAcademicStatisticsDoc';
 import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import * as XLSX from 'xlsx';
 
 export default function GenerateAcademicStatistics() {
   const [file, setFile] = useState<File | null>(null);
@@ -19,6 +34,17 @@ export default function GenerateAcademicStatistics() {
   const [data, setData] = useState<StatisticsData | null>(null);
   const [charts, setCharts] = useState<ChartImage[] | null>(null);
   const [generatedFileName, setGeneratedFileName] = useState<string | null>(null);
+  
+  // Manual mapping dialog
+  const [showManualMapping, setShowManualMapping] = useState(false);
+  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
+  const [selectedHeaderRow, setSelectedHeaderRow] = useState<number>(0);
+  const [availableColumns, setAvailableColumns] = useState<string[]>([]);
+  const [selectedPeriodCol, setSelectedPeriodCol] = useState<number>(-1);
+  const [selectedSomajCol, setSelectedSomajCol] = useState<number>(-1);
+  const [selectedPibCol, setSelectedPibCol] = useState<number>(-1);
+  const [previewRows, setPreviewRows] = useState<any[][]>([]);
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
@@ -32,35 +58,110 @@ export default function GenerateAcademicStatistics() {
     }
   };
   
-  const handleGenerate = async () => {
-    if (!file) {
-      toast.error('Vă rugăm să încărcați mai întâi fișierul Excel');
+  const openManualMappingDialog = async () => {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      
+      setAvailableSheets(workbook.SheetNames);
+      setSelectedSheet(workbook.SheetNames[0]);
+      
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+      
+      if (jsonData.length > 0) {
+        setAvailableColumns(jsonData[0].map((h: any, i: number) => `Col ${i}: ${h || '(gol)'}`));
+        setPreviewRows(jsonData.slice(0, 11)); // Header + 10 rows
+      }
+      
+      setShowManualMapping(true);
+    };
+    reader.readAsBinaryString(file);
+  };
+  
+  const handleSheetChange = (sheetName: string) => {
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      
+      setSelectedSheet(sheetName);
+      if (jsonData.length > 0) {
+        setAvailableColumns(jsonData[0].map((h: any, i: number) => `Col ${i}: ${h || '(gol)'}`));
+        setPreviewRows(jsonData.slice(0, 11));
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+  
+  const handleHeaderRowChange = (rowNum: number) => {
+    if (!file || !selectedSheet) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target?.result;
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const worksheet = workbook.Sheets[selectedSheet];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      
+      setSelectedHeaderRow(rowNum);
+      if (jsonData.length > rowNum) {
+        setAvailableColumns(jsonData[rowNum].map((h: any, i: number) => `Col ${i}: ${h || '(gol)'}`));
+        setPreviewRows(jsonData.slice(rowNum, rowNum + 11));
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+  
+  const applyManualMapping = async () => {
+    if (selectedPeriodCol === -1 || selectedSomajCol === -1 || selectedPibCol === -1) {
+      toast.error('Vă rugăm să selectați toate cele 3 coloane');
       return;
     }
     
-    if (!studentName.trim() || !studentGroup.trim()) {
-      toast.error('Vă rugăm să completați numele și grupa');
-      return;
-    }
-    
+    setShowManualMapping(false);
     setIsProcessing(true);
     setProgress(0);
     
     try {
-      // Pas 1: Parsare Excel
       setProgress(20);
-      toast.info('Parsare date din Excel...');
-      const parsedData = await parseStatisticsExcel(file);
+      toast.info('Parsare date cu mapping manual...');
+      
+      const parsedData = await parseStatisticsExcel(file!, {
+        sheetName: selectedSheet,
+        headerRow: selectedHeaderRow,
+        periodCol: selectedPeriodCol,
+        somajCol: selectedSomajCol,
+        pibCol: selectedPibCol
+      });
+      
       setData(parsedData);
       
-      // Validare date
       if (parsedData.totalObservations < 50) {
-        toast.warning(`Atenție: Doar ${parsedData.totalObservations} observații detectate. Se recomandă minimum 64 (2009-2024 trimestrial).`);
+        toast.warning(`Atenție: Doar ${parsedData.totalObservations} observații detectate.`);
       }
       
       setProgress(40);
-      toast.success(`✅ Date parseate: ${parsedData.totalObservations} observații (${parsedData.startPeriod} - ${parsedData.endPeriod})`);
+      toast.success(`✅ Date parseate: ${parsedData.totalObservations} observații`);
       
+      await continueGeneration(parsedData);
+    } catch (error: any) {
+      console.error('Eroare la parsare manuală:', error);
+      toast.error(`Eroare: ${error.message}`);
+      setProgress(0);
+      setIsProcessing(false);
+    }
+  };
+  
+  const continueGeneration = async (parsedData: StatisticsData) => {
+    try {
       // Pas 2: Generare grafice
       setProgress(60);
       toast.info('Generare grafice...');
@@ -86,7 +187,6 @@ export default function GenerateAcademicStatistics() {
       setGeneratedFileName(fileName);
       toast.success('✅ Document generat cu succes!');
       
-      // Raport final
       setTimeout(() => {
         toast.success(`
           📊 Raport Final:
@@ -97,13 +197,59 @@ export default function GenerateAcademicStatistics() {
           ✅ Corelație Word-Excel: 100%
         `, { duration: 8000 });
       }, 1000);
-      
     } catch (error: any) {
-      console.error('Eroare la generarea documentului:', error);
-      toast.error(`Eroare: ${error.message || 'A apărut o eroare la generarea documentului'}`);
+      console.error('Eroare la generare:', error);
+      toast.error(`Eroare: ${error.message}`);
       setProgress(0);
     } finally {
       setIsProcessing(false);
+    }
+  };
+  
+  const handleGenerate = async () => {
+    if (!file) {
+      toast.error('Vă rugăm să încărcați mai întâi fișierul Excel');
+      return;
+    }
+    
+    if (!studentName.trim() || !studentGroup.trim()) {
+      toast.error('Vă rugăm să completați numele și grupa');
+      return;
+    }
+    
+    setIsProcessing(true);
+    setProgress(0);
+    
+    try {
+      // Pas 1: Parsare Excel cu auto-detect
+      setProgress(20);
+      toast.info('Parsare date din Excel...');
+      const parsedData = await parseStatisticsExcel(file);
+      setData(parsedData);
+      
+      // Validare date
+      if (parsedData.totalObservations < 50) {
+        toast.warning(`Atenție: Doar ${parsedData.totalObservations} observații detectate. Se recomandă minimum 64 (2009-2024 trimestrial).`);
+      }
+      
+      setProgress(40);
+      toast.success(`✅ Date parseate: ${parsedData.totalObservations} observații (${parsedData.startPeriod} - ${parsedData.endPeriod})`);
+      
+      await continueGeneration(parsedData);
+    } catch (error: any) {
+      console.error('Eroare la generarea documentului:', error);
+      
+      // Dacă eroarea sugerează probleme de detectare, oferim opțiunea de mapping manual
+      if (error.message.includes('Nu s-au detectat automat')) {
+        toast.error('Auto-detectare eșuată. Poți selecta manual coloanele.', { duration: 5000 });
+        setIsProcessing(false);
+        setProgress(0);
+        openManualMappingDialog();
+      } else {
+        toast.error(`Eroare: ${error.message || 'A apărut o eroare la generarea documentului'}`);
+        setProgress(0);
+        setIsProcessing(false);
+      }
     }
   };
   
@@ -291,11 +437,131 @@ export default function GenerateAcademicStatistics() {
                     <li>✓ Creează document Word complet cu bibliografie REALĂ</li>
                     <li>✓ Verifică conformitatea cu toate cerințele academice</li>
                   </ul>
+                  <Button 
+                    onClick={openManualMappingDialog} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3"
+                    disabled={!file || isProcessing}
+                  >
+                    Selectare manuală coloane
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
         </Card>
+        
+        {/* Manual Mapping Dialog */}
+        <Dialog open={showManualMapping} onOpenChange={setShowManualMapping}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Selectare manuală coloane</DialogTitle>
+              <DialogDescription>
+                Alege sheet-ul, rândul cu header și coloanele corecte pentru Perioadă, Șomaj și PIB.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 mt-4">
+              {/* Sheet selection */}
+              <div>
+                <Label>Sheet</Label>
+                <Select value={selectedSheet} onValueChange={handleSheetChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selectează sheet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSheets.map(sheet => (
+                      <SelectItem key={sheet} value={sheet}>{sheet}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Header row */}
+              <div>
+                <Label>Rând Header (0-indexed)</Label>
+                <Input 
+                  type="number" 
+                  value={selectedHeaderRow} 
+                  onChange={(e) => handleHeaderRowChange(parseInt(e.target.value) || 0)}
+                  min={0}
+                />
+              </div>
+              
+              {/* Column selections */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Coloană Perioadă</Label>
+                  <Select value={selectedPeriodCol.toString()} onValueChange={(v) => setSelectedPeriodCol(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selectează" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableColumns.map((col, idx) => (
+                        <SelectItem key={idx} value={idx.toString()}>{col}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Coloană Șomaj (X)</Label>
+                  <Select value={selectedSomajCol.toString()} onValueChange={(v) => setSelectedSomajCol(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selectează" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableColumns.map((col, idx) => (
+                        <SelectItem key={idx} value={idx.toString()}>{col}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label>Coloană PIB (Y)</Label>
+                  <Select value={selectedPibCol.toString()} onValueChange={(v) => setSelectedPibCol(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selectează" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableColumns.map((col, idx) => (
+                        <SelectItem key={idx} value={idx.toString()}>{col}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {/* Preview */}
+              {previewRows.length > 0 && (
+                <div className="border rounded-lg p-4 bg-secondary/20">
+                  <p className="text-sm font-semibold mb-2">Previzualizare (primele 10 rânduri):</p>
+                  <div className="overflow-x-auto">
+                    <table className="text-xs w-full border-collapse">
+                      <tbody>
+                        {previewRows.slice(0, 11).map((row, rowIdx) => (
+                          <tr key={rowIdx} className={rowIdx === 0 ? 'font-bold bg-primary/10' : ''}>
+                            {row.slice(0, 10).map((cell: any, cellIdx: number) => (
+                              <td key={cellIdx} className="border border-border px-2 py-1">
+                                {cell?.toString() || '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              
+              <Button onClick={applyManualMapping} className="w-full">
+                Aplică și parsează
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
