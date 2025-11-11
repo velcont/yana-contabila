@@ -30,13 +30,41 @@ const Auth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we're in password reset mode
-    const resetMode = searchParams.get('reset') === 'true';
-    if (resetMode) {
-      setIsResetMode(true);
-      setIsLogin(false);
-      setIsForgotPassword(false);
-    }
+    const checkResetMode = async () => {
+      // Metodă 1: Verifică parametrul ?reset=true
+      const resetParam = searchParams.get('reset') === 'true';
+      
+      // Metodă 2: Verifică parametrul type=recovery (vine direct de la Supabase)
+      const recoveryType = searchParams.get('type') === 'recovery';
+      
+      // Metodă 3: Verifică dacă există o sesiune activă de recovery
+      const { data: { session } } = await supabase.auth.getSession();
+      const hasRecoverySession = session?.user?.aud === 'authenticated' && 
+                                  searchParams.get('type') === 'recovery';
+      
+      // Activăm reset mode dacă oricare dintre metode confirmă
+      if (resetParam || recoveryType || hasRecoverySession) {
+        console.log('🔐 [AUTH] Reset mode detected:', { 
+          resetParam, 
+          recoveryType, 
+          hasRecoverySession,
+          sessionUser: session?.user?.email 
+        });
+        setIsResetMode(true);
+        setIsLogin(false);
+        setIsForgotPassword(false);
+        
+        // Curățăm URL-ul de parametrii sensibili
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('type');
+        cleanUrl.searchParams.delete('token');
+        cleanUrl.searchParams.delete('token_hash');
+        cleanUrl.searchParams.set('reset', 'true');
+        window.history.replaceState({}, '', cleanUrl.toString());
+      }
+    };
+    
+    checkResetMode();
   }, [searchParams]);
 
   // UX-007: Password strength calculation with strict requirements
@@ -122,13 +150,30 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      console.log('🔐 [AUTH] Starting password reset...');
+      
       // 1. Validate recovery session exists
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 [AUTH] Current session:', session?.user?.email, 'Type:', searchParams.get('type'));
+      
       if (!session) {
+        console.error('🔴 [AUTH] No session found for password reset');
         toast({
-          title: "Sesiune expirată",
-          description: "Sesiunea de resetare a expirat sau nu a fost inițiată corect. Te rugăm să redeschizi linkul din email sau să ceri un nou link.",
+          title: "Link expirat sau invalid",
+          description: "Linkul de resetare a expirat (valabil 1 oră) sau nu a fost inițiat corect.",
           variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setIsResetMode(false);
+                setIsForgotPassword(true);
+              }}
+            >
+              Cere un nou link
+            </Button>
+          ),
         });
         setIsResetMode(false);
         setIsForgotPassword(true);
@@ -154,15 +199,32 @@ const Auth = () => {
         setTimeout(() => reject(new Error('Timeout la resetarea parolei. Verifică conexiunea și încearcă din nou.')), 15000)
       );
 
+      console.log('🔐 [AUTH] Updating password...');
       const { error } = await Promise.race([updatePromise, timeoutPromise]) as any;
 
       if (error) {
+        console.error('🔴 [AUTH] Password update error:', error.message);
+        
         // Check if it's an expired link error
-        if (error.message?.toLowerCase().includes('expired') || error.message?.toLowerCase().includes('invalid')) {
+        if (error.message?.toLowerCase().includes('expired') || 
+            error.message?.toLowerCase().includes('invalid') ||
+            error.message?.toLowerCase().includes('token')) {
           toast({
             title: "Link expirat",
-            description: "Linkul de resetare a expirat. Te rugăm să ceri un nou link de resetare.",
+            description: "Linkul de resetare a expirat (valabil 1 oră). Cere un nou link.",
             variant: "destructive",
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setIsResetMode(false);
+                  setIsForgotPassword(true);
+                }}
+              >
+                Cere un nou link
+              </Button>
+            ),
           });
           setIsResetMode(false);
           setIsForgotPassword(true);
@@ -171,6 +233,7 @@ const Auth = () => {
         throw error;
       }
 
+      console.log('✅ [AUTH] Password reset successful');
       toast({
         title: "Parolă resetată!",
         description: "Parola ta a fost schimbată cu succes.",
@@ -178,12 +241,16 @@ const Auth = () => {
       
       navigate('/app');
     } catch (error: any) {
+      console.error('🔴 [AUTH] Password reset error:', error);
       logError(error instanceof Error ? error : new Error('Update password error'), { context: 'reset_password' });
       
       // Provide clear error messages
       let errorMessage = "Nu s-a putut reseta parola.";
       if (error.message?.includes('Timeout')) {
         errorMessage = "Operația a durat prea mult. Verifică conexiunea la internet și încearcă din nou.";
+      } else if (error.message?.toLowerCase().includes('expired') || 
+                 error.message?.toLowerCase().includes('invalid')) {
+        errorMessage = "Linkul de resetare a expirat sau este invalid. Cere un nou link.";
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -192,6 +259,18 @@ const Auth = () => {
         title: "Eroare",
         description: errorMessage,
         variant: "destructive",
+        action: errorMessage.includes('expirat') ? (
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setIsResetMode(false);
+              setIsForgotPassword(true);
+            }}
+          >
+            Cere un nou link
+          </Button>
+        ) : undefined,
       });
     } finally {
       // 4. Guaranteed loading state reset

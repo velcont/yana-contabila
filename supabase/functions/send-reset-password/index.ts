@@ -15,8 +15,11 @@ serve(async (req) => {
     const { email } = await req.json();
 
     if (!email) {
+      console.error('🔴 [RESET-PASSWORD] No email provided');
       throw new Error('Email is required');
     }
+
+    console.log('🔐 [RESET-PASSWORD] Processing reset request for:', email);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -24,24 +27,29 @@ serve(async (req) => {
 
     // Dynamically determine the redirect URL from request headers
     const origin = req.headers.get('origin') || req.headers.get('referer');
-    const baseUrl = origin ? new URL(origin).origin : 'https://yana-contabila.velcont.com';
+    const baseUrl = origin ? new URL(origin).origin : 'https://yana-contabila.lovable.app';
     const redirectTo = `${baseUrl}/auth?reset=true`;
+
+    console.log('🔐 [RESET-PASSWORD] Redirect URL:', redirectTo);
+    console.log('🔐 [RESET-PASSWORD] Origin:', origin);
+    console.log('🔐 [RESET-PASSWORD] Base URL:', baseUrl);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectTo,
     });
 
     if (error) {
-      console.error('Error sending reset email:', error);
+      console.error('🔴 [RESET-PASSWORD] Supabase error:', error.message);
       throw error;
     }
 
-    console.log('Password reset email sent to:', email);
+    console.log('✅ [RESET-PASSWORD] Password reset email sent successfully to:', email);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: 'Password reset email sent successfully'
+        message: 'Password reset email sent successfully',
+        redirectUrl: redirectTo
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -49,7 +57,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in send-reset-password function:', error);
+    console.error('🔴 [RESET-PASSWORD] Function error:', error);
     
     return new Response(
       JSON.stringify({ 
