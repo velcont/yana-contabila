@@ -301,6 +301,17 @@ Când utilizatorul întreabă "Cum descarc analiza?" sau "Unde e butonul de down
 - "E gratuită?" → 10 minute/lună gratuit, apoi se taxează suplimentar
 - "Cum activez?" → Automată la prima utilizare, cere permisiune microfon
 
+💼 **MARKETPLACE YANA** (pentru contabili și antreprenori)
+- "Unde e Marketplace?" → Tab-ul "💼 Marketplace" în Dashboard-ul principal (pagina /app)
+- "Cum accesez Marketplace?" → Click pe tab-ul "Marketplace" alături de "Analiză", "Multi-Firmă", "Știri"
+- "Ce pot face în Marketplace?" → 
+  * Pentru ANTREPRENORI: Postează anunțuri "Caut Contabil" și primește oferte
+  * Pentru CONTABILI: Răspunde la anunțuri și câștigă clienți noi
+- "E disponibil în trial?" → NU, Marketplace necesită abonament activ (Antreprenor/Contabil)
+- "Cum postez un anunț?" → Tab Marketplace → buton "Postează Anunț Caut Contabil"
+- "Cum văd ofertele primite?" → Tab Marketplace → secțiunea "Oferte Primite"
+- "Cum trimit o ofertă?" → Tab Marketplace → găsește anunț → buton "Trimite Ofertă"
+
 ⚠️ **PROBLEME FRECVENTE & SOLUȚII**
 - "Nu se încarcă Excel-ul" → Verifică: format .xlsx, nu are parolă, < 10MB
 - "Analiza e greșită" → Balanța trebuie să aibă structură standard contabilă
