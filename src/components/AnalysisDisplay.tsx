@@ -70,8 +70,8 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         await supabase.from('analyses').update({
           analysis_text: data.analysis,
           metadata: {
-            ...data.metadata,
-            structuredData: data.structuredData // ✅ Include structuredData pentru Word
+            ...(data?.metadata ?? {}),
+            structuredData: data.structuredData // ✅ Include structuredData pentru Word + safe handling
           }
         }).eq('id', analysisId);
         
@@ -724,6 +724,75 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           <FileText className="h-5 w-5 mr-2" />
           📄 Generează Explicații Word (Document Confirmare Administrator)
         </Button>
+        
+        {/* Word Readiness Indicator */}
+        {(() => {
+          // Calculate accounts count
+          let accountsCount = 0;
+          let source = '';
+          
+          // Try structuredData first
+          if (metadata?.structuredData?.accounts?.length) {
+            accountsCount = metadata.structuredData.accounts.length;
+            source = 'structurat';
+          } else {
+            // Fallback: count from metadata classes 1-7
+            const meta = metadata || {};
+            let count = 0;
+            
+            // Classes 1-5: sold final > 0
+            for (let i = 1; i <= 5; i++) {
+              const accounts = meta[`class${i}_Accounts`];
+              if (accounts && typeof accounts === 'object') {
+                count += Object.values(accounts).filter((acc: any) => 
+                  (Number(acc?.soldFinalDebitor || 0) > 0) || 
+                  (Number(acc?.soldFinalCreditor || 0) > 0)
+                ).length;
+              }
+            }
+            
+            // Class 6: totalDebit > 0
+            const class6 = meta.class6_Expenses;
+            if (class6 && typeof class6 === 'object') {
+              count += Object.values(class6).filter((acc: any) => 
+                Number(acc?.totalDebit || 0) > 0
+              ).length;
+            }
+            
+            // Class 7: totalCredit > 0 (exclude 709)
+            const class7 = meta.class7_Income;
+            if (class7 && typeof class7 === 'object') {
+              count += Object.entries(class7).filter(([code, acc]: [string, any]) => 
+                !code.startsWith('709') && Number(acc?.totalCredit || 0) > 0
+              ).length;
+            }
+            
+            accountsCount = count;
+            source = 'fallback';
+          }
+          
+          const isReady = accountsCount > 0;
+          
+          return (
+            <div className={`mt-2 px-3 py-2 rounded-lg text-sm ${
+              isReady 
+                ? 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20' 
+                : 'bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20'
+            }`}>
+              {isReady ? (
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold">✓ Word Ready:</span>
+                  <span>{accountsCount} conturi detectate ({source})</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold">✗ Nu există date suficiente</span>
+                  <span className="text-xs">→ Reprocesează balanța</span>
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Auto-Scrolling Analysis Text */}
