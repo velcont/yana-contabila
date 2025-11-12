@@ -10,7 +10,8 @@ import {
   Briefcase,
   ChevronRight,
   Volume2,
-  VolumeX
+  VolumeX,
+  RefreshCw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,12 +20,15 @@ import { BalanceAuditViewer } from './BalanceAuditViewer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 interface AnalysisDisplayProps {
   analysisText: string;
   fileName?: string;
   createdAt?: string;
   metadata?: any;
+  analysisId?: string;
+  onReprocessComplete?: () => void;
 }
 
 interface AnalysisSection {
@@ -36,8 +40,49 @@ interface AnalysisSection {
   color: string;
 }
 
-export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata }: AnalysisDisplayProps) => {
+export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, analysisId, onReprocessComplete }: AnalysisDisplayProps) => {
   const [selectedSection, setSelectedSection] = useState<AnalysisSection | null>(null);
+  const [isReprocessing, setIsReprocessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const handleReprocess = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !analysisId) return;
+    
+    setIsReprocessing(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Data = event.target?.result as string;
+        const base64WithoutPrefix = base64Data.split(',')[1];
+        
+        const { data, error } = await supabase.functions.invoke('analyze-balance', {
+          body: { 
+            excelBase64: base64WithoutPrefix,
+            fileName: file.name,
+            forceReprocess: true
+          }
+        });
+        
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        
+        await supabase.from('analyses').update({
+          analysis_text: data.analysis,
+          metadata: data.metadata
+        }).eq('id', analysisId);
+        
+        toast.success('✅ Analiză reprocesată cu succes! Cache golit.');
+        onReprocessComplete?.();
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      toast.error('Eroare la reprocesare: ' + error.message);
+    } finally {
+      setIsReprocessing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // Extract month from filename
   const extractMonthFromFilename = (filename?: string): string => {
@@ -543,6 +588,38 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata }:
         <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
           <BalanceAuditViewer auditTrail={metadata.auditTrail} />
         </div>
+      )}
+      
+      {/* Reprocess Button */}
+      {analysisId && (
+        <Card className="border-primary/20 animate-fade-in" style={{ animationDelay: '250ms' }}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Reprocesare Analiză
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              Încarcă din nou fișierul Excel pentru a reanaliza balanța cu cache-ul golit și indexii coloanelor actualizați.
+            </p>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleReprocess}
+              accept=".xls,.xlsx"
+              className="hidden"
+            />
+            <Button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isReprocessing}
+              variant="outline"
+            >
+              {isReprocessing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              {isReprocessing ? 'Reprocesare...' : 'Reprocesează balanța'}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Word Document Generation Button */}

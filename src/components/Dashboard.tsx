@@ -1083,6 +1083,8 @@ INDICATORI OPERAȚIONALI:
                   fileName={selectedAnalysis.file_name}
                   createdAt={selectedAnalysis.created_at}
                   metadata={selectedAnalysis.metadata}
+                  analysisId={selectedAnalysis.id}
+                  onReprocessComplete={loadAnalyses}
                 />
                 
                 {/* Comments Section */}
