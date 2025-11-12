@@ -37,6 +37,17 @@ interface Message {
   feedbackGiven?: boolean; // 🧠 Marker pentru feedback dat
   sources?: Array<{ title: string; url: string; domain: string }>;
   related_questions?: string[];
+  structuredData?: {
+    cui: string;
+    company: string;
+    accounts: Array<{
+      code: string;
+      name: string;
+      debit: number;
+      credit: number;
+      accountClass: number;
+    }>;
+  };
 }
 
 interface Insight {
@@ -1126,7 +1137,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             role: 'assistant',
             content: data.analysis ? 
               `${data.analysis}\n\n✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?` :
-              "✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?"
+              "✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?",
+            structuredData: data.structuredData // 📊 Salvează datele structurate în mesaj
           };
           setMessages(prev => [...prev, aiMessage]);
           scrollToBottom();
@@ -2341,27 +2353,27 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                       )}
                       
                       {/* Preview și buton generare Word (doar pentru analiză balanță) */}
-                      {msg.role === 'assistant' && chatMode === 'balance' && balanceStructuredData && idx === messages.length - 1 && (
+                      {msg.role === 'assistant' && chatMode === 'balance' && msg.structuredData && (
                         <div className="mt-3 p-3 bg-accent/5 rounded-lg border border-accent/20 space-y-3">
                           <div className="text-sm space-y-1.5">
                             <p className="flex items-center gap-2">
                               <span className="font-semibold text-muted-foreground">CUI:</span>
-                              <span className="text-foreground">{balanceStructuredData.cui || 'N/A'}</span>
+                              <span className="text-foreground">{msg.structuredData.cui || 'N/A'}</span>
                             </p>
                             <p className="flex items-center gap-2">
                               <span className="font-semibold text-muted-foreground">Companie:</span>
-                              <span className="text-foreground">{balanceStructuredData.company || 'N/A'}</span>
+                              <span className="text-foreground">{msg.structuredData.company || 'N/A'}</span>
                             </p>
                             <p className="flex items-center gap-2">
                               <span className="font-semibold text-muted-foreground">Conturi detectate:</span>
                               <Badge variant="secondary" className="ml-1">
-                                {balanceStructuredData.accounts?.length || 0}
+                                {msg.structuredData.accounts?.length || 0}
                               </Badge>
                             </p>
                           </div>
                           
                           <Button 
-                            onClick={() => handleGenerateWordConfirmation(balanceStructuredData)}
+                            onClick={() => handleGenerateWordConfirmation(msg.structuredData)}
                             className="w-full"
                             variant="default"
                             size="sm"
