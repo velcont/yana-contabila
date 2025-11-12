@@ -69,7 +69,10 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         
         await supabase.from('analyses').update({
           analysis_text: data.analysis,
-          metadata: data.metadata
+          metadata: {
+            ...data.metadata,
+            structuredData: data.structuredData // ✅ Include structuredData pentru Word
+          }
         }).eq('id', analysisId);
         
         toast.success('✅ Analiză reprocesată cu succes! Cache golit.');

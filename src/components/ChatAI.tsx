@@ -1098,7 +1098,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               .insert({
                 user_id: user.id,
                 analysis_text: data.analysis || '',
-                metadata: metadataToSave,
+                metadata: {
+                  ...metadataToSave,
+                  structuredData: data.structuredData // ✅ Include structuredData pentru Word
+                },
                 file_name: file.name,
                 company_name: extractedCompanyName,
                 company_id: companyId
