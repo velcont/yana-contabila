@@ -412,7 +412,14 @@ serve(async (req) => {
       return aiResponse.json();
     }, 3, 1000);
 
-    const validationResult = JSON.parse(aiData.choices[0].message.content);
+    // Strip markdown code fence if present (```json ... ```)
+    let rawContent = aiData.choices[0].message.content;
+    const jsonMatch = rawContent.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (jsonMatch) {
+      rawContent = jsonMatch[1].trim();
+    }
+
+    const validationResult = JSON.parse(rawContent);
 
     console.log("[VALIDATOR] Validation result:", validationResult.validation_status);
 
