@@ -1,10 +1,44 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createHash } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Retry with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      if (i < maxRetries - 1) {
+        const delay = baseDelayMs * Math.pow(2, i);
+        console.log(`[VALIDATOR] Retry ${i + 1}/${maxRetries} after ${delay}ms`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  throw lastError!;
+}
+
+// Generate cache key from message
+function generateCacheKey(message: string, conversationId: string): string {
+  const normalized = message.toLowerCase().trim().replace(/\s+/g, ' ');
+  const hash = createHash("sha256");
+  hash.update(`${conversationId}:${normalized}`);
+  return hash.toString("hex");
+}
 
 // Load validator prompt
 const VALIDATOR_PROMPT_RAW = await Deno.readTextFile(
@@ -44,6 +78,46 @@ serve(async (req) => {
 
     console.log("[VALIDATOR] Processing message for conversation:", conversationId);
 
+    // ============================================================================
+    // CACHE CHECK - reduce cost pentru mesaje similare
+    // ============================================================================
+    const cacheKey = generateCacheKey(userMessage, conversationId);
+    
+    const { data: cachedResponse } = await supabaseClient
+      .from("ai_response_cache")
+      .select("*")
+      .eq("cache_key", cacheKey)
+      .eq("cache_type", "validation")
+      .gt("expires_at", new Date().toISOString())
+      .single();
+
+    if (cachedResponse) {
+      console.log("[VALIDATOR] 🎯 Cache HIT - reusing previous validation");
+      
+      // Update cache stats
+      await supabaseClient
+        .from("ai_response_cache")
+        .update({
+          hit_count: cachedResponse.hit_count + 1,
+          last_accessed_at: new Date().toISOString()
+        })
+        .eq("id", cachedResponse.id);
+
+      return new Response(
+        JSON.stringify({
+          ...cachedResponse.response_data,
+          cached: true,
+          cost_saved_ron: 0.25
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
+      );
+    }
+
+    console.log("[VALIDATOR] Cache MISS - calling AI");
+
     // 1. Fetch existing facts from DB
     const { data: existingFacts, error: factsError } = await supabaseClient
       .from("strategic_advisor_facts")
@@ -75,30 +149,39 @@ serve(async (req) => {
       factsContext += "Nu există fapte validate anterior în această conversație.\n";
     }
 
-    // 3. Call Lovable AI (Validator Agent - Gemini 2.5 Flash)
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: VALIDATOR_PROMPT + factsContext },
-          { role: "user", content: userMessage }
-        ],
-        response_format: { type: "json_object" }
-      }),
-    });
+    // 3. Call Lovable AI (Validator Agent - Gemini 2.5 Flash) with RETRY
+    const aiData = await retryWithBackoff(async () => {
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: VALIDATOR_PROMPT + factsContext },
+            { role: "user", content: userMessage }
+          ],
+          response_format: { type: "json_object" }
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("[VALIDATOR] AI API error:", aiResponse.status, errorText);
-      throw new Error(`AI API error: ${aiResponse.statusText}`);
-    }
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("[VALIDATOR] AI API error:", aiResponse.status, errorText);
+        
+        // Don't retry on 4xx errors (client errors)
+        if (aiResponse.status >= 400 && aiResponse.status < 500) {
+          throw new Error(`AI API client error: ${aiResponse.statusText}`);
+        }
+        
+        throw new Error(`AI API error: ${aiResponse.statusText}`);
+      }
 
-    const aiData = await aiResponse.json();
+      return aiResponse.json();
+    }, 3, 1000);
+
     const validationResult = JSON.parse(aiData.choices[0].message.content);
 
     console.log("[VALIDATOR] Validation result:", validationResult.validation_status);
@@ -153,9 +236,29 @@ serve(async (req) => {
       console.error("[VALIDATOR] Error saving validation log:", logError);
     }
 
-    // 6. Return validation result
+    // 6. Save to cache for future reuse
+    const costCents = Math.ceil((aiData.usage?.total_tokens || 0) / 2000 * 25);
+    await supabaseClient
+      .from("ai_response_cache")
+      .insert({
+        cache_key: cacheKey,
+        cache_type: "validation",
+        request_hash: cacheKey,
+        response_data: validationResult,
+        model_used: "google/gemini-2.5-flash",
+        tokens_used: aiData.usage?.total_tokens || 0,
+        cost_cents: costCents,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+      });
+
+    console.log(`[VALIDATOR] ✅ Response cached for future use`);
+
+    // 7. Return validation result
     return new Response(
-      JSON.stringify(validationResult),
+      JSON.stringify({
+        ...validationResult,
+        cached: false
+      }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200

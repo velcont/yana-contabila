@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +17,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const { type, data } = await req.json();
 
     if (type === 'new_job_posting') {
@@ -35,32 +34,39 @@ serve(async (req) => {
         });
       }
 
-      // Send email notifications
+      // Send email notifications via Resend API
       for (const accountant of accountants) {
-        await resend.emails.send({
-          from: Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@yana.ro',
-          to: accountant.email,
-          subject: `🔔 Anunț NOU: ${data.company_name} caută contabil`,
-          html: `
-            <h2>Anunț NOU în Marketplace YANA</h2>
-            <p>Bună ${accountant.full_name || 'Contabil'},</p>
-            <p><strong>${data.company_name}</strong> (CUI: ${data.cui}) caută servicii de contabilitate.</p>
-            
-            <h3>Detalii:</h3>
-            <ul>
-              <li>TVA: ${data.is_vat_payer ? 'DA' : 'NU'}</li>
-              <li>Regim impozitare: ${data.tax_type}</li>
-              <li>Documente/lună: ${data.documents_per_month}</li>
-              <li>Angajați: ${data.employees_count}</li>
-              <li>Buget: ${data.budget_min} - ${data.budget_max} RON/lună</li>
-            </ul>
-            
-            ${data.special_requirements ? `<p><strong>Cerințe speciale:</strong> ${data.special_requirements}</p>` : ''}
-            
-            <p><a href="https://yana.ro/dashboard?tab=marketplace">Trimite Ofertă →</a></p>
-            
-            <p>Cu stimă,<br>Echipa YANA</p>
-          `,
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@yana.ro',
+            to: accountant.email,
+            subject: `🔔 Anunț NOU: ${data.company_name} caută contabil`,
+            html: `
+              <h2>Anunț NOU în Marketplace YANA</h2>
+              <p>Bună ${accountant.full_name || 'Contabil'},</p>
+              <p><strong>${data.company_name}</strong> (CUI: ${data.cui}) caută servicii de contabilitate.</p>
+              
+              <h3>Detalii:</h3>
+              <ul>
+                <li>TVA: ${data.is_vat_payer ? 'DA' : 'NU'}</li>
+                <li>Regim impozitare: ${data.tax_type}</li>
+                <li>Documente/lună: ${data.documents_per_month}</li>
+                <li>Angajați: ${data.employees_count}</li>
+                <li>Buget: ${data.budget_min} - ${data.budget_max} RON/lună</li>
+              </ul>
+              
+              ${data.special_requirements ? `<p><strong>Cerințe speciale:</strong> ${data.special_requirements}</p>` : ''}
+              
+              <p><a href="https://yana.ro/dashboard?tab=marketplace">Trimite Ofertă →</a></p>
+              
+              <p>Cu stimă,<br>Echipa YANA</p>
+            `,
+          }),
         });
 
         // Create in-app notification
@@ -96,28 +102,35 @@ serve(async (req) => {
         throw new Error('Entrepreneur not found');
       }
 
-      // Send email
-      await resend.emails.send({
-        from: Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@yana.ro',
-        to: profile.email,
-        subject: `💼 Ai primit o ofertă de la ${data.accountant_name}`,
-        html: `
-          <h2>Ai primit o ofertă nouă!</h2>
-          <p>Bună ${profile.full_name || 'Antreprenor'},</p>
-          <p><strong>${data.accountant_name}</strong> ți-a trimis o ofertă pentru servicii de contabilitate.</p>
-          
-          <h3>Detalii ofertă:</h3>
-          <ul>
-            <li>Preț: ${data.price_per_month} RON/lună</li>
-            <li>Servicii incluse: ${data.services_included.join(', ')}</li>
-          </ul>
-          
-          <p><strong>Mesaj:</strong><br>${data.message}</p>
-          
-          <p><a href="https://yana.ro/dashboard?tab=marketplace">Vezi Oferta →</a></p>
-          
-          <p>Cu stimă,<br>Echipa YANA</p>
-        `,
+      // Send email via Resend API
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@yana.ro',
+          to: profile.email,
+          subject: `💼 Ai primit o ofertă de la ${data.accountant_name}`,
+          html: `
+            <h2>Ai primit o ofertă nouă!</h2>
+            <p>Bună ${profile.full_name || 'Antreprenor'},</p>
+            <p><strong>${data.accountant_name}</strong> ți-a trimis o ofertă pentru servicii de contabilitate.</p>
+            
+            <h3>Detalii ofertă:</h3>
+            <ul>
+              <li>Preț: ${data.price_per_month} RON/lună</li>
+              <li>Servicii incluse: ${data.services_included.join(', ')}</li>
+            </ul>
+            
+            <p><strong>Mesaj:</strong><br>${data.message}</p>
+            
+            <p><a href="https://yana.ro/dashboard?tab=marketplace">Vezi Oferta →</a></p>
+            
+            <p>Cu stimă,<br>Echipa YANA</p>
+          `,
+        }),
       });
 
       // Create in-app notification

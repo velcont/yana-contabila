@@ -222,6 +222,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_batch_queue: {
+        Row: {
+          batch_id: string | null
+          conversation_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          message: string
+          priority: number | null
+          processed_at: string | null
+          result: Json | null
+          similarity_hash: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          conversation_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message: string
+          priority?: number | null
+          processed_at?: string | null
+          result?: Json | null
+          similarity_hash?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message?: string
+          priority?: number | null
+          processed_at?: string | null
+          result?: Json | null
+          similarity_hash?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_budget_limits: {
         Row: {
           alert_at_percent: number
@@ -428,6 +473,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_response_cache: {
+        Row: {
+          cache_key: string
+          cache_type: string
+          cost_cents: number | null
+          created_at: string | null
+          expires_at: string | null
+          hit_count: number | null
+          id: string
+          last_accessed_at: string | null
+          model_used: string
+          request_hash: string
+          response_data: Json
+          tokens_used: number | null
+        }
+        Insert: {
+          cache_key: string
+          cache_type: string
+          cost_cents?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          last_accessed_at?: string | null
+          model_used: string
+          request_hash: string
+          response_data: Json
+          tokens_used?: number | null
+        }
+        Update: {
+          cache_key?: string
+          cache_type?: string
+          cost_cents?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          hit_count?: number | null
+          id?: string
+          last_accessed_at?: string | null
+          model_used?: string
+          request_hash?: string
+          response_data?: Json
+          tokens_used?: number | null
+        }
+        Relationships: []
       }
       ai_response_feedback: {
         Row: {
@@ -3879,6 +3969,7 @@ export type Database = {
         Returns: boolean
       }
       check_trial_expiration_notifications: { Args: never; Returns: undefined }
+      cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_old_data: { Args: never; Returns: undefined }
       extract_question_pattern: {
         Args: { question_text: string }

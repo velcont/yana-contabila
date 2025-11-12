@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createHash } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,15 +45,37 @@ async function retryWithBackoff<T>(
       return await fn();
     } catch (error: any) {
       lastError = error;
+      
+      console.log(`[STRATEGIST] Attempt ${i + 1}/${maxRetries} failed:`, error.message);
+
+      // Don't retry on 4xx errors (client errors like rate limits or auth)
+      if (error.message?.includes('429') || error.message?.includes('402') || 
+          error.message?.includes('401') || error.message?.includes('403')) {
+        console.log(`[STRATEGIST] Client error detected, not retrying`);
+        throw error;
+      }
 
       if (i < maxRetries - 1) {
         const delay = baseDelayMs * Math.pow(2, i);
+        console.log(`[STRATEGIST] Retrying after ${delay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }
 
   throw lastError!;
+}
+
+// Generate cache key for strategy responses
+function generateStrategyCacheKey(
+  message: string, 
+  conversationId: string, 
+  factsCount: number
+): string {
+  const normalized = message.toLowerCase().trim().replace(/\s+/g, ' ').slice(0, 200);
+  const hash = createHash("sha256");
+  hash.update(`strategy:${conversationId}:${normalized}:facts=${factsCount}`);
+  return hash.toString("hex");
 }
 
 // Load system prompt from external file
@@ -631,23 +654,6 @@ ${factSheet}
 
     console.log("[STRATEGIC-ADVISOR] Phase 3: Calling Strategist Agent (Claude Sonnet 4.5)");
 
-    // Check cache first
-    const cacheKey = `strategic_v2_${conversationId}_${strategistMessages.length}`;
-    const { data: cachedResponse } = await supabaseClient
-      .from("chat_cache")
-      .select("answer_text")
-      .eq("question_hash", cacheKey)
-      .gt("expires_at", new Date().toISOString())
-      .single();
-
-    if (cachedResponse) {
-      console.log("[STRATEGIC-ADVISOR] Using cached response");
-      return new Response(
-        JSON.stringify({ response: cachedResponse.answer_text }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
-    }
-
     // Rate limiting: max 10 requests per minute
     const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
       p_user_id: user.id,
@@ -662,13 +668,9 @@ ${factSheet}
       );
     }
 
-    // Call Strategist Agent (Claude Sonnet 4.5) with 60s timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-    
-    let response: Response;
-    try {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Call Strategist Agent (Claude Sonnet 4.5) with RETRY logic
+    const data = await retryWithBackoff(async () => {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
@@ -677,44 +679,28 @@ ${factSheet}
         body: JSON.stringify({
           model: "anthropic/claude-sonnet-4.5",
           messages: strategistMessages,
-          temperature: 0.3, // Lower = more consistent, less creative
+          temperature: 0.3,
           max_tokens: 2048,
         }),
-        signal: controller.signal
       });
-      clearTimeout(timeoutId);
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        return new Response(
-          JSON.stringify({ error: "Timeout: cererea a depășit 60 secunde. Încearcă să simplifici întrebarea." }),
-          { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw err;
-    }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[STRATEGIC-ADVISOR] AI Error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Limită de utilizare depășită. Te rog încearcă mai târziu." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[STRATEGIC-ADVISOR] AI Error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          throw new Error("429: Limită de utilizare depășită");
+        }
+        if (response.status === 402) {
+          throw new Error("402: Fonduri insuficiente");
+        }
+        
+        throw new Error(`AI API error: ${response.status} ${errorText}`);
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Fonduri insuficiente. Contactează suportul." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      
-      throw new Error(`AI API error: ${response.status}`);
-    }
 
-    const data = await response.json();
+      return response.json();
+    }, 3, 1500);
+
     const strategistResponse = data.choices[0]?.message?.content;
 
     if (!strategistResponse) {
@@ -767,14 +753,24 @@ ${factSheet}
       }
     ]);
 
-    // Cache the response for 1 hour
-    await supabaseClient.from("chat_cache").insert({
-      question_hash: cacheKey,
-      question_text: message,
-      answer_text: strategistResponse,
-      expires_at: new Date(Date.now() + 3600000).toISOString()
+    // Cache the strategist response in new cache system
+    const costCents = Math.ceil(
+      25 + // validator cost (0.25 RON)
+      ((data.usage?.total_tokens || 0) / 2000 * 100) // strategist cost (~0.5 RON)
+    );
+    
+    await supabaseClient.from("ai_response_cache").insert({
+      cache_key: strategyCacheKey,
+      cache_type: "strategy",
+      request_hash: strategyCacheKey,
+      response_data: { content: strategistResponse, facts_used: allFacts?.length || 0 },
+      model_used: "anthropic/claude-sonnet-4.5",
+      tokens_used: data.usage?.total_tokens || 0,
+      cost_cents: costCents,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
     });
 
+    console.log(`[STRATEGIC-ADVISOR] ✅ Strategy cached for future reuse`);
     console.log("[STRATEGIC-ADVISOR] Multi-agent pipeline complete");
 
     return new Response(
