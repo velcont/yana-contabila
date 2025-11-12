@@ -169,10 +169,12 @@ export default function StrategicAdvisor() {
       try {
         logger.log("📜 [HISTORY] Loading conversation history for:", conversationId);
         
+        // 🔴 CRITICAL FIX: Filter ONLY strategic conversations, exclude ChatAI balance/fiscal
         const { data, error } = await supabase
           .from('conversation_history')
           .select('*')
           .eq('conversation_id', conversationId)
+          .eq('metadata->>type', 'strategic')  // ✅ ONLY strategic conversations
           .order('created_at', { ascending: true });
 
         if (error) {

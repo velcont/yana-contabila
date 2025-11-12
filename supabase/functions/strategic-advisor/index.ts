@@ -814,20 +814,21 @@ Pentru o strategie concretă am nevoie de:
 **Cost validare:** 0.25 RON`;
 
       // Save user message and validator response to history
+      // 🔴 CRITICAL: Use type: "strategic" to separate from ChatAI (balance/fiscal)
       await supabaseClient.from("conversation_history").insert([
         {
           user_id: user.id,
           conversation_id: conversationId,
           role: "user",
           content: message,
-          metadata: { module: "strategic", phase: "validator" }
+          metadata: { type: "strategic", module: "strategic", phase: "validator" }
         },
         {
           user_id: user.id,
           conversation_id: conversationId,
           role: "assistant",
           content: responseText,
-          metadata: { module: "strategic", validation_status: "data_missing" }
+          metadata: { type: "strategic", module: "strategic", validation_status: "data_missing" }
         }
       ]);
 
@@ -863,20 +864,21 @@ ${validation.validation_notes?.join('\n\n') || ''}
 📊 **Cost economisit:** 0.5 RON (Strategist nu a fost apelat)
 **Cost validare:** 0.25 RON`;
 
+      // 🔴 CRITICAL: Use type: "strategic" to separate from ChatAI (balance/fiscal)
       await supabaseClient.from("conversation_history").insert([
         {
           user_id: user.id,
           conversation_id: conversationId,
           role: "user",
           content: message,
-          metadata: { module: "strategic", phase: "validator" }
+          metadata: { type: "strategic", module: "strategic", phase: "validator" }
         },
         {
           user_id: user.id,
           conversation_id: conversationId,
           role: "assistant",
           content: responseText,
-          metadata: { module: "strategic", validation_status: "conflict_detected" }
+          metadata: { type: "strategic", module: "strategic", validation_status: "conflict_detected" }
         }
       ]);
 
@@ -1034,13 +1036,14 @@ ${factSheet}
     console.log("[STRATEGIC-ADVISOR] Saving to conversation history");
 
     // Save user message and strategist response
+    // 🔴 CRITICAL: Use type: "strategic" to separate from ChatAI (balance/fiscal)
     await supabaseClient.from("conversation_history").insert([
       {
         user_id: user.id,
         conversation_id: conversationId,
         role: "user",
         content: message,
-        metadata: { module: "strategic", phase: "strategist" }
+        metadata: { type: "strategic", module: "strategic", phase: "strategist" }
       },
       {
         user_id: user.id,
@@ -1048,6 +1051,7 @@ ${factSheet}
         role: "assistant",
         content: strategistResponse,
         metadata: { 
+          type: "strategic",
           module: "strategic", 
           validation_status: "approved",
           facts_count: allFacts?.length || 0
