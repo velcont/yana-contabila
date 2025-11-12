@@ -134,3 +134,6 @@ verify_jwt = true
 
 [functions.import-crm-clients]
 verify_jwt = true
+
+[functions.validate-strategic-facts]
+verify_jwt = true
