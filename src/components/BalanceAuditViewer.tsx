@@ -6,6 +6,12 @@ import { Download, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 interface AuditTrail {
   timestamp: string;
   validationsRun: boolean;
+  columnsDetected?: {
+    soldDebit: number;
+    soldCredit: number;
+    totalDebit: number;
+    totalCredit: number;
+  };
   balanceValidation?: {
     totalActiv: number;
     totalPasiv: number;
@@ -244,40 +250,60 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
         )}
 
         {/* Columns Detected - Debugging Info */}
-        {(auditTrail as any).columnsDetected && (
+        {auditTrail.columnsDetected && (
           <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-blue-600" />
-              📊 Coloane detectate în Excel
+              📊 Coloane Detectate în Excel (Debug Info)
             </h4>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Rulaje/Total Debitoare:</span>
-                <Badge variant="outline" className="ml-2 font-mono">
-                  Col {(auditTrail as any).columnsDetected.totalDebit || "N/A"}
+                <Badge 
+                  variant={auditTrail.columnsDetected.totalDebit >= 0 ? "default" : "outline"} 
+                  className="ml-2 font-mono"
+                >
+                  {auditTrail.columnsDetected.totalDebit >= 0 
+                    ? `Col ${auditTrail.columnsDetected.totalDebit}` 
+                    : "Nedetectat"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Rulaje/Total Creditoare:</span>
-                <Badge variant="outline" className="ml-2 font-mono">
-                  Col {(auditTrail as any).columnsDetected.totalCredit || "N/A"}
+                <Badge 
+                  variant={auditTrail.columnsDetected.totalCredit >= 0 ? "default" : "outline"} 
+                  className="ml-2 font-mono"
+                >
+                  {auditTrail.columnsDetected.totalCredit >= 0 
+                    ? `Col ${auditTrail.columnsDetected.totalCredit}` 
+                    : "Nedetectat"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Sold Final Debitor:</span>
-                <Badge variant="outline" className="ml-2 font-mono">
-                  Col {(auditTrail as any).columnsDetected.soldDebit || "N/A"}
+                <Badge 
+                  variant={auditTrail.columnsDetected.soldDebit >= 0 ? "default" : "outline"} 
+                  className="ml-2 font-mono"
+                >
+                  {auditTrail.columnsDetected.soldDebit >= 0 
+                    ? `Col ${auditTrail.columnsDetected.soldDebit}` 
+                    : "Nedetectat"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Sold Final Creditor:</span>
-                <Badge variant="outline" className="ml-2 font-mono">
-                  Col {(auditTrail as any).columnsDetected.soldCredit || "N/A"}
+                <Badge 
+                  variant={auditTrail.columnsDetected.soldCredit >= 0 ? "default" : "outline"} 
+                  className="ml-2 font-mono"
+                >
+                  {auditTrail.columnsDetected.soldCredit >= 0 
+                    ? `Col ${auditTrail.columnsDetected.soldCredit}` 
+                    : "Nedetectat"}
                 </Badge>
               </div>
             </div>
             <p className="text-xs text-blue-700 dark:text-blue-400 mt-3">
-              ℹ️ Aceste coloane au fost identificate automat din structura balanței pentru extragerea corectă a datelor.
+              ℹ️ Indexii coloanelor Excel detectați automat pentru extragerea corectă a datelor (fallback pe 2 rânduri pentru Rulaje totale/Total sume).
             </p>
           </div>
         )}
