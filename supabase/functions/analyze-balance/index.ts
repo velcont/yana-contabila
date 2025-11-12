@@ -632,6 +632,26 @@ serve(async (req) => {
         let rulajDCol = -1, rulajCCol = -1;
         let totalSumeDCol = -1, totalSumeCCol = -1;
         
+        // Parser numeric robust (RO/EN) pentru valori din celule
+        const toNumber = (val: any): number => {
+          if (val === null || val === undefined) return 0;
+          let str = String(val).trim();
+          if (!str) return 0;
+          const lastDot = str.lastIndexOf('.');
+          const lastComma = str.lastIndexOf(',');
+          const lastSep = Math.max(lastDot, lastComma);
+          if (lastSep !== -1) {
+            let integerPart = str.substring(0, lastSep).replace(/[.,\s]/g, '').replace(/[^\d-]/g, '');
+            let decimalPart = str.substring(lastSep + 1).replace(/[^\d]/g, '');
+            const standard = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+            const num = parseFloat(standard);
+            return isNaN(num) ? 0 : num;
+          }
+          str = str.replace(/[^\d-]/g, '');
+          const num = parseFloat(str);
+          return isNaN(num) ? 0 : num;
+        };
+        
         // PASUL 1: Detectează header pe 2 rânduri (rând principal + sub-header)
         for (let i = 0; i < Math.min(15, data.length); i++) {
           const rowStr = data[i].join('|').toLowerCase();
@@ -772,31 +792,22 @@ serve(async (req) => {
             // Clase 1-5: folosește solduri finale
             if (accountClass >= 1 && accountClass <= 5) {
               if (soldFinalDCol >= 0) {
-                // Elimină separatorul de mii (virgula) și parsează direct
-                const rawVal = String(row[soldFinalDCol] || '0').trim();
-                const val = rawVal.replace(/,/g, ''); // Elimină virgula (separator mii în format internațional)
-                debit = parseFloat(val) || 0;
+                debit = toNumber(row[soldFinalDCol]);
               }
               if (soldFinalCCol >= 0) {
-                const rawVal = String(row[soldFinalCCol] || '0').trim();
-                const val = rawVal.replace(/,/g, '');
-                credit = parseFloat(val) || 0;
+                credit = toNumber(row[soldFinalCCol]);
               }
             }
             // Clasa 6: Total sume debitoare (cheltuieli cumulate)
             else if (accountClass === 6) {
               if (totalSumeDCol >= 0) {
-                const rawVal = String(row[totalSumeDCol] || '0').trim();
-                const val = rawVal.replace(/,/g, '');
-                debit = parseFloat(val) || 0;
+                debit = toNumber(row[totalSumeDCol]);
               }
             }
             // Clasa 7: Total sume creditoare (venituri cumulate)
             else if (accountClass === 7) {
               if (totalSumeCCol >= 0) {
-                const rawVal = String(row[totalSumeCCol] || '0').trim();
-                const val = rawVal.replace(/,/g, '');
-                credit = parseFloat(val) || 0;
+                credit = toNumber(row[totalSumeCCol]);
               }
             }
             
@@ -2068,6 +2079,12 @@ serve(async (req) => {
     const finalMetadata: any = { 
       ...metadata, 
       ...deterministic_metadata,
+      // Structură pentru Word
+      structuredData: {
+        cui: structuredData.cui,
+        company: structuredData.company,
+        accounts: structuredData.accounts
+      },
       // Adaugă structura completă
       class1_FixedAssets: groupedBalance.class1,
       class2_CurrentAssets: groupedBalance.class2,
