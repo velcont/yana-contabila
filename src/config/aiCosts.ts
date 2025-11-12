@@ -4,11 +4,15 @@
  */
 
 export const AI_COSTS = {
-  // Strategic Advisor costs (RON per message)
+  // Strategic Advisor costs (RON per message) - Multi-Agent System
   STRATEGIC_ADVISOR: {
-    MESSAGE_COST: 0.5,
+    MESSAGE_COST: 0.75, // 0.25 (validator) + 0.5 (strategist)
     WARNING_THRESHOLD: 2.0,
     CRITICAL_THRESHOLD: 0.0,
+    BREAKDOWN: {
+      VALIDATOR_COST: 0.25, // Gemini 2.5 Flash - fact extraction & validation
+      STRATEGIST_COST: 0.5, // Claude Sonnet 4.5 - strategy generation
+    }
   },
   
   // Chat AI costs (RON per message)

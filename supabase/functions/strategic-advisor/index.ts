@@ -435,10 +435,204 @@ serve(async (req) => {
       { role: "user", content: enrichedMessage }
     ];
 
-    console.log("[STRATEGIC-ADVISOR] Calling Lovable AI with", messages.length, "messages");
+    console.log("[STRATEGIC-ADVISOR] Starting multi-agent orchestration");
+
+    // ============================================================================
+    // PHASE 1: VALIDATOR AGENT (Fact Extraction & Validation)
+    // ============================================================================
+    console.log("[STRATEGIC-ADVISOR] Phase 1: Calling Validator Agent");
+    
+    const validatorResponse = await supabaseClient.functions.invoke('validate-strategic-facts', {
+      body: { 
+        userMessage: enrichedMessage,
+        conversationId 
+      }
+    });
+
+    if (validatorResponse.error) {
+      console.error("[STRATEGIC-ADVISOR] Validator error:", validatorResponse.error);
+      return new Response(
+        JSON.stringify({ error: "Eroare la validarea datelor. Te rog încearcă din nou." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const validation = validatorResponse.data;
+    console.log("[STRATEGIC-ADVISOR] Validator status:", validation.validation_status);
+
+    // ============================================================================
+    // PHASE 2: HANDLE VALIDATION RESULTS
+    // ============================================================================
+    
+    // Case 1: Missing Critical Data - Stop here, don't call strategist
+    if (validation.validation_status === 'data_missing') {
+      console.log("[STRATEGIC-ADVISOR] Data missing, stopping pipeline");
+      
+      const missingFieldsList = validation.missing_critical_fields
+        .map((f: string) => `- ${f.replace(/_/g, ' ')}`)
+        .join('\n');
+      
+      const responseText = `❌ **DATE LIPSĂ PENTRU STRATEGIE**
+
+Nu pot genera o strategie validă fără următoarele informații:
+
+${missingFieldsList}
+
+${validation.validation_notes?.join('\n\n') || ''}
+
+💡 **Ce trebuie să-mi furnizezi:**
+Pentru o strategie concretă am nevoie de:
+• Cifra de afaceri (ultimul an)
+• Profit net sau pierdere
+• Cash disponibil pentru investiții
+• Industria/domeniul de activitate
+• Minim 2 concurenți cu prețurile lor
+
+📊 **Cost economisit:** 0.5 RON (Strategist nu a fost apelat)
+**Cost validare:** 0.25 RON`;
+
+      // Save user message and validator response to history
+      await supabaseClient.from("conversation_history").insert([
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "user",
+          content: message,
+          metadata: { module: "strategic", phase: "validator" }
+        },
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "assistant",
+          content: responseText,
+          metadata: { module: "strategic", validation_status: "data_missing" }
+        }
+      ]);
+
+      return new Response(
+        JSON.stringify({ response: responseText }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Case 2: Conflict Detected - Stop here, ask for clarification
+    if (validation.validation_status === 'conflict_detected') {
+      console.log("[STRATEGIC-ADVISOR] Conflicts detected, stopping pipeline");
+      
+      const conflictsList = validation.conflicts
+        .map((c: any) => `**${c.field}:**
+- Valoare anterioară: ${c.old_value}
+- Valoare nouă: ${c.new_value}
+- Severitate: ${c.severity}
+
+${c.resolution_needed}`)
+        .join('\n\n');
+      
+      const responseText = `⚠️ **CONFLICT DETECTAT ÎN DATE**
+
+Am identificat următoarele discrepanțe:
+
+${conflictsList}
+
+${validation.validation_notes?.join('\n\n') || ''}
+
+💡 Te rog clarifică care sunt valorile corecte înainte să continui cu strategia.
+
+📊 **Cost economisit:** 0.5 RON (Strategist nu a fost apelat)
+**Cost validare:** 0.25 RON`;
+
+      await supabaseClient.from("conversation_history").insert([
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "user",
+          content: message,
+          metadata: { module: "strategic", phase: "validator" }
+        },
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "assistant",
+          content: responseText,
+          metadata: { module: "strategic", validation_status: "conflict_detected" }
+        }
+      ]);
+
+      return new Response(
+        JSON.stringify({ response: responseText, conflicts: validation.conflicts }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // ============================================================================
+    // PHASE 3: VALIDATION APPROVED - Fetch Facts & Call Strategist
+    // ============================================================================
+    console.log("[STRATEGIC-ADVISOR] Validation approved, fetching all facts");
+    
+    const { data: allFacts } = await supabaseClient
+      .from('strategic_advisor_facts')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .eq('status', 'validated')
+      .order('fact_category', { ascending: true });
+
+    // Build fact sheet for strategist
+    let factSheet = "\n\n📊 **BAZĂ DE DATE VALIDATĂ (FOLOSEȘTE OBLIGATORIU ACESTE CIFRE):**\n\n";
+
+    if (allFacts && allFacts.length > 0) {
+      const grouped = allFacts.reduce((acc: Record<string, any[]>, fact: any) => {
+        if (!acc[fact.fact_category]) acc[fact.fact_category] = [];
+        acc[fact.fact_category].push(fact);
+        return acc;
+      }, {});
+
+      const categoryLabels: Record<string, string> = {
+        financial: '💰 FINANCIAR',
+        company: '🏢 COMPANIE',
+        market: '📊 PIAȚĂ',
+        competition: '⚔️ CONCURENȚĂ'
+      };
+
+      Object.entries(grouped).forEach(([category, facts]) => {
+        factSheet += `**${categoryLabels[category] || category.toUpperCase()}:**\n`;
+        (facts as any[]).forEach(f => {
+          factSheet += `- ${f.fact_key.replace(/_/g, ' ')}: ${f.fact_value} ${f.fact_unit || ''}\n`;
+        });
+        factSheet += '\n';
+      });
+    } else {
+      factSheet += "Nu există fapte validate anterior (prima interacțiune).\n\n";
+    }
+
+    // Enhanced system prompt with validated facts
+    const enhancedSystemPrompt = `${SYSTEM_PROMPT}
+
+${factSheet}
+
+⚠️ **REGULI CRITICE PENTRU RĂSPUNS:**
+1. FOLOSEȘTE EXCLUSIV cifrele din "BAZĂ DE DATE VALIDATĂ"
+2. NICIODATĂ nu spune că "nu ai" o informație care e listată mai sus
+3. ÎN FIECARE RĂSPUNS, începe cu confirmarea cifrelor de bază:
+   📊 **Bază analiză:** CA: [X] RON, Profit: [Y] RON, Cash: [Z] RON, Industrie: [W]
+4. Dacă lipsește o dată critică din baza validată → cere-o explicit (NU continua fără ea)
+
+**Model curent:** Claude Sonnet 4.5 (cel mai puternic pentru strategic reasoning)
+**Cost acest mesaj:** ~0.5 RON (total cu validare: 0.75 RON)
+**Data:** ${new Date().toISOString().split('T')[0]}`;
+
+    const strategistMessages = [
+      { role: "system", content: enhancedSystemPrompt },
+      ...(history || []).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })),
+      { role: "user", content: message }
+    ];
+
+    console.log("[STRATEGIC-ADVISOR] Phase 3: Calling Strategist Agent (Claude Sonnet 4.5)");
 
     // Check cache first
-    const cacheKey = `strategic_${conversationId}_${messages.length}`;
+    const cacheKey = `strategic_v2_${conversationId}_${strategistMessages.length}`;
     const { data: cachedResponse } = await supabaseClient
       .from("chat_cache")
       .select("answer_text")
@@ -468,9 +662,9 @@ serve(async (req) => {
       );
     }
 
-    // FIX #17: Timeout 45s pentru API call
+    // Call Strategist Agent (Claude Sonnet 4.5) with 60s timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     
     let response: Response;
     try {
@@ -481,10 +675,10 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages,
-          temperature: 0.8,
-          max_tokens: 1024,
+          model: "anthropic/claude-sonnet-4.5",
+          messages: strategistMessages,
+          temperature: 0.3, // Lower = more consistent, less creative
+          max_tokens: 2048,
         }),
         signal: controller.signal
       });
@@ -493,7 +687,7 @@ serve(async (req) => {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
         return new Response(
-          JSON.stringify({ error: "Timeout: cererea a depășit 45 secunde" }),
+          JSON.stringify({ error: "Timeout: cererea a depășit 60 secunde. Încearcă să simplifici întrebarea." }),
           { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -521,42 +715,74 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0]?.message?.content;
+    const strategistResponse = data.choices[0]?.message?.content;
 
-    if (!aiResponse) {
-      throw new Error("No response from AI");
+    if (!strategistResponse) {
+      throw new Error("No response from Strategist");
     }
 
-    console.log("[STRATEGIC-ADVISOR] AI response received, saving to history");
+    console.log("[STRATEGIC-ADVISOR] Strategist response received, updating validation log");
 
-    // Save user message
-    await supabaseClient.from("conversation_history").insert({
-      user_id: user.id,
-      conversation_id: conversationId,
-      role: "user",
-      content: message,
-      metadata: { module: "strategic" }
-    });
+    // Update validation log with strategist response
+    const { error: updateError } = await supabaseClient
+      .from('strategic_advisor_validations')
+      .update({
+        strategist_response: strategistResponse,
+        strategist_model: "anthropic/claude-sonnet-4.5",
+        strategist_tokens_used: data.usage?.total_tokens || 0,
+        total_cost_cents: Math.ceil(
+          25 + // validator cost (0.25 RON)
+          ((data.usage?.total_tokens || 0) / 2000 * 100) // strategist cost (~0.5 RON)
+        )
+      })
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    // Save AI response
-    await supabaseClient.from("conversation_history").insert({
-      user_id: user.id,
-      conversation_id: conversationId,
-      role: "assistant",
-      content: aiResponse,
-      metadata: { module: "strategic" }
-    });
+    if (updateError) {
+      console.error("[STRATEGIC-ADVISOR] Error updating validation log:", updateError);
+    }
+
+    console.log("[STRATEGIC-ADVISOR] Saving to conversation history");
+
+    // Save user message and strategist response
+    await supabaseClient.from("conversation_history").insert([
+      {
+        user_id: user.id,
+        conversation_id: conversationId,
+        role: "user",
+        content: message,
+        metadata: { module: "strategic", phase: "strategist" }
+      },
+      {
+        user_id: user.id,
+        conversation_id: conversationId,
+        role: "assistant",
+        content: strategistResponse,
+        metadata: { 
+          module: "strategic", 
+          validation_status: "approved",
+          facts_count: allFacts?.length || 0
+        }
+      }
+    ]);
 
     // Cache the response for 1 hour
     await supabaseClient.from("chat_cache").insert({
       question_hash: cacheKey,
       question_text: message,
-      answer_text: aiResponse,
+      answer_text: strategistResponse,
       expires_at: new Date(Date.now() + 3600000).toISOString()
     });
 
+    console.log("[STRATEGIC-ADVISOR] Multi-agent pipeline complete");
+
     return new Response(
-      JSON.stringify({ response: aiResponse }),
+      JSON.stringify({ 
+        response: strategistResponse,
+        validation_status: "approved",
+        facts_used: allFacts?.length || 0
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200 
