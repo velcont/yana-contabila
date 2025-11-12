@@ -916,6 +916,46 @@ serve(async (req) => {
         }
       }
       
+      // Fallback 2-rânduri: dacă nu am găsit coloanele TOTAL/ RULAJE pe același rând,
+      // caută eticheta de grup pe rândul header și subcoloanele DEBIT/CREDIT pe rândul următor
+      if ((totalSumeDebitCol < 0 || totalSumeCreditCol < 0) && headerRowIndex >= 0 && headerRowIndex + 1 < data.length) {
+        const headerRow = (data[headerRowIndex] || []).map((v: any) => String(v).toLowerCase().trim());
+        const subHeaderRow = (data[headerRowIndex + 1] || []).map((v: any) => String(v).toLowerCase().trim());
+
+        // Încearcă să găsești începutul zonei "rulaje totale" sau "total sume"
+        let totalStartIdx = -1;
+        for (let j = 0; j < headerRow.length; j++) {
+          const c = headerRow[j] || '';
+          if ((c.includes('rulaj') && (c.includes('total') || c.includes('totale'))) || (c.includes('total') && c.includes('sume'))) {
+            totalStartIdx = j;
+            break;
+          }
+        }
+
+        if (totalStartIdx >= 0 && subHeaderRow.length > 0) {
+          for (let j = totalStartIdx; j < Math.min(totalStartIdx + 6, subHeaderRow.length); j++) {
+            const c = subHeaderRow[j] || '';
+            if ((c.includes('debit') || c === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
+            if ((c.includes('credit') || c === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
+          }
+        } else if (subHeaderRow.length > 0) {
+          // Alt fallback: orice subheader debit/credit aliniat sub o celulă din header cu 'rulaj' sau 'total sume'
+          for (let j = 0; j < subHeaderRow.length; j++) {
+            const parent = headerRow[j] || '';
+            const child = subHeaderRow[j] || '';
+            const parentLooksLikeTotals = (parent.includes('rulaj') || (parent.includes('total') && parent.includes('sume')));
+            if (parentLooksLikeTotals) {
+              if ((child.includes('debit') || child === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
+              if ((child.includes('credit') || child === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
+            }
+          }
+        }
+
+        if (totalSumeDebitCol >= 0 || totalSumeCreditCol >= 0) {
+          console.log(`✅ [METADATA-EXTRACT] Fallback 2-rânduri a găsit coloane: Total D=${totalSumeDebitCol}, C=${totalSumeCreditCol}`);
+        }
+      }
+
       console.log(`📍 [METADATA-EXTRACT] REZUMAT: Header=${headerRowIndex}, Cont=${contCol}, SF D/C=${soldFinalDebitCol}/${soldFinalCreditCol}, Total D/C=${totalSumeDebitCol}/${totalSumeCreditCol}`);
       
       // FALLBACK: Dacă NU am găsit header-uri, încearcă extragere FĂRĂ header
