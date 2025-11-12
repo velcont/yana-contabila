@@ -3212,6 +3212,127 @@ export type Database = {
         }
         Relationships: []
       }
+      strategic_advisor_facts: {
+        Row: {
+          confidence: number | null
+          conversation_id: string
+          created_at: string | null
+          fact_category: string
+          fact_key: string
+          fact_unit: string | null
+          fact_value: string
+          id: string
+          metadata: Json | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          validated_at: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          conversation_id: string
+          created_at?: string | null
+          fact_category: string
+          fact_key: string
+          fact_unit?: string | null
+          fact_value: string
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          validated_at?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          conversation_id?: string
+          created_at?: string | null
+          fact_category?: string
+          fact_key?: string
+          fact_unit?: string | null
+          fact_value?: string
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_advisor_facts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      strategic_advisor_validations: {
+        Row: {
+          conflicts: Json | null
+          conversation_id: string
+          created_at: string | null
+          id: string
+          missing_fields: Json | null
+          strategist_model: string | null
+          strategist_response: string | null
+          strategist_tokens_used: number | null
+          total_cost_cents: number
+          user_id: string
+          user_message: string
+          validation_status: string
+          validator_model: string | null
+          validator_response: Json
+          validator_tokens_used: number | null
+        }
+        Insert: {
+          conflicts?: Json | null
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          missing_fields?: Json | null
+          strategist_model?: string | null
+          strategist_response?: string | null
+          strategist_tokens_used?: number | null
+          total_cost_cents?: number
+          user_id: string
+          user_message: string
+          validation_status: string
+          validator_model?: string | null
+          validator_response: Json
+          validator_tokens_used?: number | null
+        }
+        Update: {
+          conflicts?: Json | null
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          missing_fields?: Json | null
+          strategist_model?: string | null
+          strategist_response?: string | null
+          strategist_tokens_used?: number | null
+          total_cost_cents?: number
+          user_id?: string
+          user_message?: string
+          validation_status?: string
+          validator_model?: string | null
+          validator_response?: Json
+          validator_tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_advisor_validations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       strategic_council_members: {
         Row: {
           created_at: string
@@ -3673,7 +3794,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      strategic_facts_summary: {
+        Row: {
+          avg_confidence: number | null
+          conflicted_count: number | null
+          conversation_id: string | null
+          fact_category: string | null
+          last_updated: string | null
+          outdated_count: number | null
+          total_facts: number | null
+          user_id: string | null
+          validated_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "strategic_advisor_facts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_admin_access_rate: { Args: never; Returns: boolean }
