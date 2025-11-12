@@ -51,7 +51,7 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
       rows.push(
         ['Total Activ', auditTrail.balanceValidation.totalActiv.toString(), ''],
         ['Total Pasiv', auditTrail.balanceValidation.totalPasiv.toString(), ''],
-        ['Diferență Bilanț', auditTrail.balanceValidation.diferenta.toString(), auditTrail.balanceValidation.status]
+        ['Diferență Balanță', auditTrail.balanceValidation.diferenta.toString(), auditTrail.balanceValidation.status]
       );
     }
     
@@ -126,12 +126,12 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Validare Bilanț */}
+        {/* Validare Balanță */}
         {auditTrail.balanceValidation && (
           <div className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50 dark:bg-blue-950/20 rounded-r">
             <div className="flex items-center gap-2 mb-2">
               {getStatusIcon(auditTrail.balanceValidation.status)}
-              <h3 className="font-semibold text-sm">Validare Echilibru Bilanț (Activ = Pasiv)</h3>
+              <h3 className="font-semibold text-sm">Validare Echilibru Balanță (Activ = Pasiv)</h3>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="text-muted-foreground">Total Activ:</div>
@@ -150,12 +150,12 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
             </div>
             {auditTrail.balanceValidation.status === 'OK' && (
               <p className="text-xs text-green-700 dark:text-green-400 mt-2">
-                ✅ Bilanțul este echilibrat conform standardelor contabile.
+                ✅ Balanța este echilibrată conform standardelor contabile.
               </p>
             )}
             {auditTrail.balanceValidation.status === 'ERROR' && (
               <p className="text-xs text-red-700 dark:text-red-400 mt-2">
-                🔴 ATENȚIE: Bilanțul este NEECHILIBRAT! Verificați înregistrările contabile.
+                🔴 ATENȚIE: Balanța este NEECHILIBRATĂ! Verificați înregistrările contabile.
               </p>
             )}
           </div>

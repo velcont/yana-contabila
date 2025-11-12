@@ -245,7 +245,7 @@ export const ClientDocumentsManager = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="balanta">Balanță</SelectItem>
-                    <SelectItem value="bilanț">Bilanț</SelectItem>
+                    <SelectItem value="balanta_anuala">Balanță Anuală</SelectItem>
                     <SelectItem value="declaratie">Declarație Fiscală</SelectItem>
                     <SelectItem value="factura">Factură</SelectItem>
                     <SelectItem value="contract">Contract</SelectItem>

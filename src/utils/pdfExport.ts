@@ -183,7 +183,7 @@ export const generateAnalysisPDF = async (data: ExportData): Promise<void> => {
 
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text(normalizeRomanianText('Evidențe Bilanț'), 15, yPos);
+  doc.text(normalizeRomanianText('Evidențe Balanță'), 15, yPos);
   yPos += 10;
 
   const balanceData = [

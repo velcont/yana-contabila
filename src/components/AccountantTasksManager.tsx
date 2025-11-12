@@ -240,7 +240,7 @@ export const AccountantTasksManager = () => {
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="ex: Pregătire bilanț trimestrial"
+                  placeholder="ex: Pregătire balanță trimestrială"
                 />
               </div>
 
