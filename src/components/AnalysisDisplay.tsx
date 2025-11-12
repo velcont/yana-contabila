@@ -14,7 +14,11 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { BalanceAuditViewer } from './BalanceAuditViewer';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { saveAs } from "file-saver";
+import { toast } from "sonner";
 
 interface AnalysisDisplayProps {
   analysisText: string;
@@ -182,6 +186,189 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata }:
 
   const companyInfo = extractCompanyInfo(analysisText);
   const sections = extractSections(analysisText);
+
+  // Generate Word document with account explanations
+  const generateWordExplanations = async () => {
+    if (!metadata?.structuredData?.accounts) {
+      toast.error("Nu există date structurate pentru generare document");
+      return;
+    }
+
+    try {
+      const { cui, company, accounts } = metadata.structuredData;
+      
+      // Account explanations map
+      const accountExplanations: Record<string, { name: string; explanation: string; implications: string }> = {
+        "121": {
+          name: "Profit sau Pierdere",
+          explanation: "Acest cont reflectă rezultatul anual al companiei. Un sold creditor indică profit (veniturile au depășit cheltuielile), în timp ce un sold debitor indică pierdere.",
+          implications: "Profitul poate fi reinvestit în companie sau distribuit către asociați. Pierderea trebuie acoperită din rezerve sau profit viitor."
+        },
+        "4111": {
+          name: "Clienți - Vânzări produse/servicii",
+          explanation: "Reprezintă sumele datorate de clienți pentru produse/servicii livrate dar nefacturate încă, sau facturi emise dar neîncasate.",
+          implications: "Sold mare = bani blocați în creanțe. Risc de neîncasare. Monitorizați termene de plată și urmăriți clienții restanți."
+        },
+        "401": {
+          name: "Furnizori - Datorii către furnizori",
+          explanation: "Reprezintă obligațiile de plată către furnizori pentru bunuri/servicii primite.",
+          implications: "Sold mare poate indica negocieri bune de termene, dar atenție la termenele de plată pentru a evita penalizări."
+        },
+        "4423": {
+          name: "TVA de plată",
+          explanation: "Diferența între TVA colectată (din vânzări) și TVA deductibilă (din achiziții), de plătit către ANAF.",
+          implications: "Asigurați-vă că aveți lichiditățile necesare pentru plata TVA-ului la termen (25 ale lunii următoare)."
+        },
+        "4424": {
+          name: "TVA de recuperat",
+          explanation: "TVA deductibilă mai mare decât TVA colectată - diferența se poate recupera de la ANAF sau compensa în lunile următoare.",
+          implications: "Reprezintă o creanță la stat. Puteți solicita rambursarea sau o puteți compensa cu TVA viitoare de plată."
+        },
+        "5121": {
+          name: "Conturi la bănci în lei",
+          explanation: "Disponibilități bănești în conturile bancare în RON.",
+          implications: "Asigură lichiditatea pentru plăți curente. Sold scăzut = risc de cash-flow. Monitorizați zilnic."
+        },
+        "5311": {
+          name: "Casa în lei",
+          explanation: "Numerar disponibil în casa companiei.",
+          implications: "Utilizat pentru plăți mici. Atenție la limitele legale de plăți în numerar (5.000 lei/zi)."
+        },
+        "371": {
+          name: "Mărfuri",
+          explanation: "Stocul de mărfuri destinate revânzării, evaluate la cost de achiziție.",
+          implications: "Sold mare poate indica suprastocuri sau mișcare lentă. Verificați rotația stocurilor și produsele cu mișcare lentă."
+        },
+        "512": {
+          name: "Conturi curente la bănci",
+          explanation: "Include toate conturile bancare curente (5121 în lei, 5124 în valută).",
+          implications: "Esențial pentru operațiunile zilnice. Diversificarea în mai multe bănci reduce riscul."
+        },
+        "531": {
+          name: "Casa",
+          explanation: "Numerarul disponibil în casa unității (5311 lei, 5314 valută).",
+          implications: "Respectați limita legală de 5.000 lei pentru plăți în numerar între profesionisti."
+        }
+      };
+
+      // Build document sections
+      const docSections: Paragraph[] = [
+        new Paragraph({
+          text: `EXPLICAȚII BALANȚĂ CONTABILĂ`,
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Companie: ", bold: true }),
+            new TextRun(company || "N/A")
+          ],
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "CUI: ", bold: true }),
+            new TextRun(cui || "N/A")
+          ],
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: "Explicații Conturi Principale",
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 300 }
+        })
+      ];
+
+      // Add explanations for accounts with balance > 0
+      Object.keys(accounts).forEach((accountCode) => {
+        const accountData = accounts[accountCode];
+        const soldFinal = accountData.soldFinalDebitor || accountData.soldFinalCreditor || 0;
+        
+        if (soldFinal > 0 && accountExplanations[accountCode]) {
+          const explanation = accountExplanations[accountCode];
+          
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `Contul ${accountCode} - ${explanation.name}`, bold: true, size: 24 })
+              ],
+              spacing: { before: 300, after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Ce reprezintă: ", bold: true }),
+                new TextRun(explanation.explanation)
+              ],
+              spacing: { after: 150 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Implicații pentru afacere: ", bold: true }),
+                new TextRun(explanation.implications)
+              ],
+              spacing: { after: 150 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Sold actual: ", bold: true }),
+                new TextRun(`${soldFinal.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`)
+              ],
+              spacing: { after: 300 }
+            })
+          );
+        }
+      });
+
+      // Add confirmation section
+      docSections.push(
+        new Paragraph({
+          text: "Declarație de Confirmare",
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 600, after: 300 }
+        }),
+        new Paragraph({
+          text: `Subsemnatul(a) _____________________, în calitate de administrator/director al ${company || "companiei"}, confirm prin prezenta că am luat la cunoștință de informațiile contabile prezentate mai sus și declar că acestea corespund cu realitatea situației financiare a companiei la data analizei.`,
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: "Data: ______________",
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: "Semnătura: ______________",
+          spacing: { after: 600 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Notă juridică: ", bold: true, italics: true }),
+            new TextRun({ 
+              text: "Acest document are valoare juridică și servește ca dovadă a luării la cunoștință a situației contabile de către administrator. Se recomandă păstrarea acestui document timp de 10 ani conform legislației contabile în vigoare. Termenul de confirmare este de maximum 5 zile lucrătoare de la primirea analizei.",
+              italics: true,
+              size: 20
+            })
+          ],
+          spacing: { after: 200 }
+        })
+      );
+
+      // Create document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: docSections
+        }]
+      });
+
+      // Generate and download
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `Explicatii_Balanta_${company}_${cui}.docx`);
+      toast.success("Document Word generat cu succes!");
+    } catch (error) {
+      console.error("Eroare generare Word:", error);
+      toast.error("Eroare la generarea documentului Word");
+    }
+  };
 
   const AutoScrollText = () => {
     const [isScrolling, setIsScrolling] = useState(true);
@@ -355,6 +542,21 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata }:
       {metadata?.auditTrail && (
         <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
           <BalanceAuditViewer auditTrail={metadata.auditTrail} />
+        </div>
+      )}
+
+      {/* Word Document Generation Button */}
+      {metadata?.structuredData && (
+        <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+          <Button 
+            onClick={generateWordExplanations} 
+            variant="outline"
+            className="w-full"
+            size="lg"
+          >
+            <FileText className="h-5 w-5 mr-2" />
+            📄 Generează Explicații Word (Document Confirmare Administrator)
+          </Button>
         </div>
       )}
 

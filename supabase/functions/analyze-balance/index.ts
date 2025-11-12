@@ -696,8 +696,9 @@ serve(async (req) => {
           
           for (let j = 0; j < mainHeader.length; j++) {
             const cell = String(mainHeader[j]).toLowerCase().trim();
-            if ((cell.includes('total') && cell.includes('sume')) && totalSumeStartCol < 0) {
+            if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj'))) && totalSumeStartCol < 0) {
               totalSumeStartCol = j;
+              console.log(`✅ [HEADER-DETECT] Coloană total/rulaj găsită la index ${j}: "${mainHeader[j]}"`);
             }
           }
           
@@ -895,20 +896,20 @@ serve(async (req) => {
               console.log(`✅ [METADATA-EXTRACT] Coloana SF CREDIT găsită la index ${j}: "${row[j]}"`);
             }
             
-            // Rulaj/Total Debitor
-            if ((cell.includes('total') && cell.includes('sume') && cell.includes('debit')) ||
-                (cell.includes('rulaj') && (cell.includes('debit') || cell.includes(' d'))) ||
+            // Rulaj/Total Debitor - recunoaște ambele variante: "Total sume" SAU "Rulaje totale"
+            if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj')) && cell.includes('debit')) ||
+                (cell.includes('rulaj') && cell.includes('debit')) ||
                 (cell === 'debit' || cell === 'd')) {
               totalSumeDebitCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloana TOTAL DEBIT găsită la index ${j}: "${row[j]}"`);
+              console.log(`✅ [METADATA-EXTRACT] Coloană TOTAL/RULAJ DEBIT găsită la index ${j}: "${row[j]}"`);
             }
             
-            // Rulaj/Total Creditor
-            if ((cell.includes('total') && cell.includes('sume') && cell.includes('credit')) ||
-                (cell.includes('rulaj') && (cell.includes('credit') || cell.includes(' c'))) ||
+            // Rulaj/Total Creditor - recunoaște ambele variante: "Total sume" SAU "Rulaje totale"
+            if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj')) && cell.includes('credit')) ||
+                (cell.includes('rulaj') && cell.includes('credit')) ||
                 (cell === 'credit' || cell === 'c')) {
               totalSumeCreditCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloana TOTAL CREDIT găsită la index ${j}: "${row[j]}"`);
+              console.log(`✅ [METADATA-EXTRACT] Coloană TOTAL/RULAJ CREDIT găsită la index ${j}: "${row[j]}"`);
             }
           }
           break;

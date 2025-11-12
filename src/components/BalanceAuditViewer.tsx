@@ -243,6 +243,45 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
           </div>
         )}
 
+        {/* Columns Detected - Debugging Info */}
+        {(auditTrail as any).columnsDetected && (
+          <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-blue-600" />
+              📊 Coloane detectate în Excel
+            </h4>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Rulaje/Total Debitoare:</span>
+                <Badge variant="outline" className="ml-2 font-mono">
+                  Col {(auditTrail as any).columnsDetected.totalDebit || "N/A"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Rulaje/Total Creditoare:</span>
+                <Badge variant="outline" className="ml-2 font-mono">
+                  Col {(auditTrail as any).columnsDetected.totalCredit || "N/A"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Sold Final Debitor:</span>
+                <Badge variant="outline" className="ml-2 font-mono">
+                  Col {(auditTrail as any).columnsDetected.soldDebit || "N/A"}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Sold Final Creditor:</span>
+                <Badge variant="outline" className="ml-2 font-mono">
+                  Col {(auditTrail as any).columnsDetected.soldCredit || "N/A"}
+                </Badge>
+              </div>
+            </div>
+            <p className="text-xs text-blue-700 dark:text-blue-400 mt-3">
+              ℹ️ Aceste coloane au fost identificate automat din structura balanței pentru extragerea corectă a datelor.
+            </p>
+          </div>
+        )}
+
         {/* Info timestamp */}
         <div className="text-xs text-muted-foreground border-t pt-3">
           <p>Validări executate la: {new Date(auditTrail.timestamp).toLocaleString('ro-RO')}</p>
