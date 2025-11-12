@@ -397,18 +397,37 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       ];
 
+      // Normalize accounts structure (array or map) and add explanations
+      const entries: Array<{ code: string; name?: string; soldFinal: number }> = [];
+
+      if (Array.isArray(accounts)) {
+        (accounts as any[]).forEach((a: any) => {
+          const d = Number(a?.debit || 0);
+          const c = Number(a?.credit || 0);
+          const soldFinal = d > 0 ? d : c;
+          if (soldFinal > 0 && a?.code) {
+            entries.push({ code: String(a.code), name: a.name, soldFinal });
+          }
+        });
+      } else if (accounts && typeof accounts === 'object') {
+        Object.keys(accounts as any).forEach((code) => {
+          const a: any = (accounts as any)[code];
+          const soldFinal = Number(a?.soldFinalDebitor || 0) || Number(a?.soldFinalCreditor || 0) || Number(a?.totalDebit || 0) || Number(a?.totalCredit || 0) || 0;
+          if (soldFinal > 0) {
+            entries.push({ code, name: a?.accountName, soldFinal });
+          }
+        });
+      }
+
       // Add explanations for accounts with balance > 0
-      Object.keys(accounts).forEach((accountCode) => {
-        const accountData = accounts[accountCode];
-        const soldFinal = accountData.soldFinalDebitor || accountData.soldFinalCreditor || 0;
-        
-        if (soldFinal > 0 && accountExplanations[accountCode]) {
-          const explanation = accountExplanations[accountCode];
-          
+      entries.forEach(({ code, soldFinal }) => {
+        if (soldFinal > 0 && accountExplanations[code]) {
+          const explanation = accountExplanations[code];
+
           docSections.push(
             new Paragraph({
               children: [
-                new TextRun({ text: `Contul ${accountCode} - ${explanation.name}`, bold: true, size: 24 })
+                new TextRun({ text: `Contul ${code} - ${explanation.name}`, bold: true, size: 24 })
               ],
               spacing: { before: 300, after: 200 }
             }),
