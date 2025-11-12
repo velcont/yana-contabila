@@ -963,6 +963,49 @@ serve(async (req) => {
           console.log(`✅ [METADATA-EXTRACT] Fallback 2-rânduri a găsit coloane: Total D=${totalSumeDebitCol}, C=${totalSumeCreditCol}`);
         }
       }
+      
+      // ✅ FALLBACK 2-RÂNDURI PENTRU SOLDURI FINALE (similar cu Rulaje totale)
+      if ((soldFinalDebitCol < 0 || soldFinalCreditCol < 0) && headerRowIndex >= 0 && headerRowIndex + 1 < data.length) {
+        const headerRow = (data[headerRowIndex] || []).map((v: any) => String(v).toLowerCase().trim());
+        const subHeaderRow = (data[headerRowIndex + 1] || []).map((v: any) => String(v).toLowerCase().trim());
+
+        // Caută eticheta "Solduri finale" sau "SF" sau "Sold final" în header
+        let soldStartIdx = -1;
+        for (let j = 0; j < headerRow.length; j++) {
+          const c = headerRow[j] || '';
+          if ((c.includes('sold') && c.includes('final')) || 
+              (c.includes('solduri') && c.includes('finale')) ||
+              c === 'sf' || 
+              (c.includes('sold') && !c.includes('rulaj'))) {
+            soldStartIdx = j;
+            break;
+          }
+        }
+
+        if (soldStartIdx >= 0 && subHeaderRow.length > 0) {
+          // Caută "Debitoare"/"Creditoare" sau "D"/"C" în intervalul următor
+          for (let j = soldStartIdx; j < Math.min(soldStartIdx + 6, subHeaderRow.length); j++) {
+            const c = subHeaderRow[j] || '';
+            if ((c.includes('debit') || c === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
+            if ((c.includes('credit') || c === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
+          }
+        } else if (subHeaderRow.length > 0) {
+          // Alt fallback: orice subheader debit/credit aliniat sub "sold" în header
+          for (let j = 0; j < subHeaderRow.length; j++) {
+            const parent = headerRow[j] || '';
+            const child = subHeaderRow[j] || '';
+            const parentLooksLikeSold = (parent.includes('sold') || parent === 'sf');
+            if (parentLooksLikeSold) {
+              if ((child.includes('debit') || child === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
+              if ((child.includes('credit') || child === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
+            }
+          }
+        }
+
+        if (soldFinalDebitCol >= 0 || soldFinalCreditCol >= 0) {
+          console.log(`✅ [METADATA-EXTRACT] Fallback 2-rânduri pentru SOLDURI: SF D=${soldFinalDebitCol}, C=${soldFinalCreditCol}`);
+        }
+      }
 
       console.log(`📍 [METADATA-EXTRACT] REZUMAT: Header=${headerRowIndex}, Cont=${contCol}, SF D/C=${soldFinalDebitCol}/${soldFinalCreditCol}, Total D/C=${totalSumeDebitCol}/${totalSumeCreditCol}`);
       
