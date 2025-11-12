@@ -621,7 +621,6 @@ export default function StrategicAdvisor() {
             <StrategicFactsPanel
               userId={user?.id}
               conversationId={conversationId}
-              onConflictClick={handleConflictClick}
             />
           </div>
         )}
