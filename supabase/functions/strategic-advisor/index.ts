@@ -550,7 +550,32 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Request diagnostics (redact auth)
+  const headersObj: Record<string, string> = {};
+  for (const [k, v] of req.headers.entries()) {
+    headersObj[k] = k.toLowerCase() === 'authorization' ? 'REDACTED' : v;
+  }
+  console.log('[STRATEGIC] Request received:', {
+    method: req.method,
+    hasBody: !!req.body,
+    headers: headersObj,
+  });
+
   try {
+    // Env checks
+    const missingEnv: string[] = [];
+    if (!Deno.env.get("SUPABASE_URL")) missingEnv.push("SUPABASE_URL");
+    if (!Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) missingEnv.push("SUPABASE_SERVICE_ROLE_KEY");
+    if (!Deno.env.get("LOVABLE_API_KEY")) missingEnv.push("LOVABLE_API_KEY");
+
+    if (missingEnv.length) {
+      console.error("[STRATEGIC-ADVISOR] Missing env vars:", missingEnv);
+      return new Response(
+        JSON.stringify({ error: "Config lipsă pe server", missing: missingEnv }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -739,6 +764,7 @@ serve(async (req) => {
     console.log("[STRATEGIC-ADVISOR] Phase 1: Calling Validator Agent");
     
     const validatorResponse = await supabaseClient.functions.invoke('validate-strategic-facts', {
+      headers: { Authorization: `Bearer ${token}` },
       body: { 
         userMessage: enrichedMessage,
         conversationId 
@@ -748,8 +774,8 @@ serve(async (req) => {
     if (validatorResponse.error) {
       console.error("[STRATEGIC-ADVISOR] Validator error:", validatorResponse.error);
       return new Response(
-        JSON.stringify({ error: "Eroare la validarea datelor. Te rog încearcă din nou." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Validator indisponibil sau a returnat eroare.", details: validatorResponse.error }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -1061,14 +1087,17 @@ ${factSheet}
       }
     );
 
-  } catch (error) {
-    // ✅ SECURITY FIX: Sanitize error messages - don't expose internal details
-    console.error("[STRATEGIC-ADVISOR] Error:", error);
+  } catch (error: any) {
+    console.error('[STRATEGIC] ERROR DETAILS:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return new Response(
-      JSON.stringify({ error: "A apărut o eroare tehnică. Te rog încearcă din nou." }),
+      JSON.stringify({ error: 'Eroare procesare strategie. Te rog încearcă din nou.' }),
       { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
