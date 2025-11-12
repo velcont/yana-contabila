@@ -99,8 +99,20 @@
 ### Important:
 **Numărul de clienți este NELIMITAT - 10 clienți sau 200 clienți = 199 lei/lună**
 
-### ❌ CE NU ESTE INCLUS:
-La fel ca la Plan Antreprenor, **Yana Strategică necesită achiziționarea de credite AI separate**, nu este inclusă în cei 199 lei/lună.
+### ⚠️ IMPORTANT: Yana Strategică EXCLUSIV pentru Plan Antreprenor
+
+**Yana Strategică (/strategic-advisor) este disponibilă DOAR pentru utilizatorii cu Plan Antreprenor (49 lei/lună).**
+
+**Planul Contabil (199 lei/lună) NU INCLUDE:**
+- ❌ Acces la Yana Strategică
+- ❌ Consilier Strategic AI
+- ❌ Conversații strategice avansate
+
+**Contabilii primesc:**
+- ✅ Chat AI General pentru întrebări financiare
+- ✅ Dashboard complet cu toate funcțiile
+- ✅ CRM pentru gestionare clienți
+- ✅ Marketplace pentru găsire clienți
 
 ---
 

@@ -12,6 +12,7 @@ import { logError } from '@/utils/sentry';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const isMarketplaceEntry = searchParams.get('ref') === 'marketplace';
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
@@ -28,6 +29,18 @@ const Auth = () => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Marketplace entry detection
+  useEffect(() => {
+    if (isMarketplaceEntry) {
+      localStorage.setItem('marketplace_entry', 'true');
+      toast({
+        title: "🎉 Bine ai venit la Marketplace!",
+        description: "Creează-ți cont pentru a accesa funcțiile Marketplace în perioada de trial gratuită.",
+        duration: 8000,
+      });
+    }
+  }, [isMarketplaceEntry, toast]);
 
   useEffect(() => {
     const checkResetMode = async () => {
@@ -292,9 +305,13 @@ const Auth = () => {
           description: "Bine ai revenit!",
         });
         
-        // TOȚI utilizatorii merg la /app indiferent de tip
-        // Pagina /app va decide ce modul să afișeze
-        navigate('/app');
+        // Redirect logic based on marketplace entry
+        const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
+        if (isMarketplace) {
+          navigate('/app?view=marketplace');
+        } else {
+          navigate('/app');
+        }
       } else {
         if (!fullName.trim()) {
           throw new Error("Te rog introdu numele complet");
@@ -436,9 +453,13 @@ const Auth = () => {
           (window as any).gtag_report_conversion();
         }
         
-        // TOȚI utilizatorii merg la /app indiferent de tip
-        // Pagina /app va decide ce modul să afișeze
-        navigate('/app');
+        // Redirect logic based on marketplace entry
+        const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
+        if (isMarketplace) {
+          navigate('/app?view=marketplace');
+        } else {
+          navigate('/app');
+        }
       }
     } catch (error: any) {
       logError(error instanceof Error ? error : new Error('Auth error'), { context: 'authentication' });
@@ -455,6 +476,14 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+      {/* Marketplace Entry Banner */}
+      {isMarketplaceEntry && (
+        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 px-4 text-center shadow-lg z-50">
+          <p className="text-sm font-medium">
+            🎉 Marketplace Yana - 30 zile gratuite! Creează-ți cont pentru a accesa toate funcțiile.
+          </p>
+        </div>
+      )}
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl text-center">

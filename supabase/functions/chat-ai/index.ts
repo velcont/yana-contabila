@@ -301,16 +301,37 @@ Când utilizatorul întreabă "Cum descarc analiza?" sau "Unde e butonul de down
 - "E gratuită?" → 10 minute/lună gratuit, apoi se taxează suplimentar
 - "Cum activez?" → Automată la prima utilizare, cere permisiune microfon
 
-💼 **MARKETPLACE YANA** (pentru contabili și antreprenori)
-- "Unde e Marketplace?" → Tab-ul "💼 Marketplace" în Dashboard-ul principal (pagina /app)
-- "Cum accesez Marketplace?" → Click pe tab-ul "Marketplace" alături de "Analiză", "Multi-Firmă", "Știri"
+📱 **NOUA INTERFAȚĂ /APP - 3 CARDURI PRINCIPALE**
+
+PENTRU ANTREPRENORI (3 carduri):
+- "Unde e Yana Strategică?" → Card violet "Strategic Advisor" din pagina /app
+- "Cum accesez Yana Strategică?" → Click pe cardul violet din /app (necesită credite AI)
+- "Unde e Marketplace?" → Card verde "Marketplace" din pagina /app
+- "Cum văd graficele?" → Card albastru "Analiză Balanței" → Dashboard tab
+- "Unde încărca balanța?" → Card "Analiză Balanței" → Chat AI cu buton agrafa
+
+PENTRU CONTABILI (3 carduri):
+- "Cum accesez CRM-ul?" → Card violet "Yana CRM" din pagina /app
+- "Unde e Chat AI?" → Card albastru "Chat AI" din pagina /app
+- "Unde e Marketplace?" → Card verde "Marketplace" din pagina /app  
+- "Cum gestionez clienții?" → Card "Yana CRM" → Tab "Clienți"
+- "NU AU ACCES la Strategic Advisor!" → Este exclusiv pentru antreprenori
+
+🚫 **IMPORTANT - Yana Strategică EXCLUSIV pentru Antreprenori**
+- "Pot folosi Yana Strategică ca și contabil?" → NU, este exclusiv pentru Plan Antreprenor (49 lei/lună)
+- "De ce nu am acces la Strategic Advisor?" → Yana Strategică este disponibilă doar în Planul Antreprenor
+- "Ce alternative am ca și contabil?" → Chat AI General pentru întrebări financiare (inclus în Plan Contabil)
+
+💼 **MARKETPLACE YANA**
+- "Unde e Marketplace?" → Card verde "Marketplace" din pagina /app
+- "Cum accesez Marketplace?" → Click pe cardul verde "Marketplace"
 - "Ce pot face în Marketplace?" → 
   * Pentru ANTREPRENORI: Postează anunțuri "Caut Contabil" și primește oferte
   * Pentru CONTABILI: Răspunde la anunțuri și câștigă clienți noi
-- "E disponibil în trial?" → NU, Marketplace necesită abonament activ (Antreprenor/Contabil)
-- "Cum postez un anunț?" → Tab Marketplace → buton "Postează Anunț Caut Contabil"
-- "Cum văd ofertele primite?" → Tab Marketplace → secțiunea "Oferte Primite"
-- "Cum trimit o ofertă?" → Tab Marketplace → găsește anunț → buton "Trimite Ofertă"
+- "E disponibil în trial?" → DA, Marketplace este disponibil în perioada de trial
+- "Cum postez un anunț?" → Cardul Marketplace → buton "Postează Anunț Caut Contabil"
+- "Cum văd ofertele primite?" → Cardul Marketplace → secțiunea "Oferte Primite"
+- "Cum trimit o ofertă?" → Cardul Marketplace → găsește anunț → buton "Trimite Ofertă"
 
 ⚠️ **PROBLEME FRECVENTE & SOLUȚII**
 - "Nu se încarcă Excel-ul" → Verifică: format .xlsx, nu are parolă, < 10MB
