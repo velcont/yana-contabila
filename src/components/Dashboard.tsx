@@ -1082,6 +1082,7 @@ INDICATORI OPERAȚIONALI:
                   analysisText={selectedAnalysis.analysis_text}
                   fileName={selectedAnalysis.file_name}
                   createdAt={selectedAnalysis.created_at}
+                  metadata={selectedAnalysis.metadata}
                 />
                 
                 {/* Comments Section */}

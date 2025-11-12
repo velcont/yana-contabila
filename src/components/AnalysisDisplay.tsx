@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { BalanceAuditViewer } from './BalanceAuditViewer';
 
 interface AnalysisDisplayProps {
   analysisText: string;
   fileName?: string;
   createdAt?: string;
+  metadata?: any;
 }
 
 interface AnalysisSection {
@@ -30,7 +32,7 @@ interface AnalysisSection {
   color: string;
 }
 
-export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisDisplayProps) => {
+export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata }: AnalysisDisplayProps) => {
   const [selectedSection, setSelectedSection] = useState<AnalysisSection | null>(null);
 
   // Extract month from filename
@@ -348,6 +350,13 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt }: AnalysisD
           </div>
         </CardHeader>
       </Card>
+
+      {/* Audit Trail - Validări Conformitate */}
+      {metadata?.auditTrail && (
+        <div className="animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <BalanceAuditViewer auditTrail={metadata.auditTrail} />
+        </div>
+      )}
 
       {/* Auto-Scrolling Analysis Text */}
       <div className="space-y-6">
