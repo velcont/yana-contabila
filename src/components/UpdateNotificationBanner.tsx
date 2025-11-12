@@ -24,12 +24,16 @@ export const UpdateNotificationBanner = () => {
         .eq('status', 'published')
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.warn('[UpdateNotificationBanner] Failed to fetch app updates:', error);
+        return null; // Return null instead of throwing - feature is optional
+      }
       return data;
     },
     refetchInterval: 30 * 60 * 1000, // 30 minutes - reduced from 5 to prevent UI flickering
     refetchOnWindowFocus: false, // Disable to reduce unnecessary checks
     staleTime: 10 * 60 * 1000, // 10 minutes - consider data fresh for 10 min
+    retry: false, // Don't retry if app_updates table doesn't exist or has permission issues
   });
 
   const hasNewVersion = currentVersion && 
