@@ -490,6 +490,14 @@ serve(async (req) => {
   try {
     const { excelBase64, fileName, forceReprocess = false } = await req.json();
     
+    // Obiect pentru persistarea indexilor detectați (folosit în auditTrail)
+    const detectedColumns = {
+      soldDebit: -1,
+      soldCredit: -1,
+      totalDebit: -1,
+      totalCredit: -1
+    };
+    
     // ✅ SECURITY FIX: Validate file presence
     if (!excelBase64) {
       return new Response(
@@ -1351,14 +1359,12 @@ serve(async (req) => {
         deterministic_metadata.soldStocuri = soldStocuri;
         deterministic_metadata.soldMateriiPrime = soldMateriiPrime;
         deterministic_metadata.soldMateriale = soldMateriale;
-
-        // Persistăm indicii detectați pentru debugging în UI
-        deterministic_metadata.columnsDetected = {
-          soldDebit: soldFinalDebitCol,
-          soldCredit: soldFinalCreditCol,
-          totalDebit: totalSumeDebitCol,
-          totalCredit: totalSumeCreditCol,
-        };
+        
+        // Actualizează obiectul cu indexii detectați
+        detectedColumns.soldDebit = soldFinalDebitCol;
+        detectedColumns.soldCredit = soldFinalCreditCol;
+        detectedColumns.totalDebit = totalSumeDebitCol;
+        detectedColumns.totalCredit = totalSumeCreditCol;
         
         // DSO: (Sold Clienți / CA perioadă) * 365
         if (revenue > 0) {
@@ -2203,6 +2209,7 @@ serve(async (req) => {
       finalMetadata.auditTrail = {
         timestamp: new Date().toISOString(),
         validationsRun: true,
+        columnsDetected: detectedColumns,
         balanceValidation: {
           totalActiv,
           totalPasiv,
