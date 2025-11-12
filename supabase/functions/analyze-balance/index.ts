@@ -488,7 +488,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { excelBase64, fileName } = await req.json();
+    const { excelBase64, fileName, forceReprocess = false } = await req.json();
     
     // ✅ SECURITY FIX: Validate file presence
     if (!excelBase64) {
@@ -1309,6 +1309,7 @@ serve(async (req) => {
           }
         }
         
+        
         // Calculează CA net
         const revenue = Math.max(0, totalVenituri - reduceriComerciale);
         const expenses = totalCheltuieli;
@@ -1350,6 +1351,14 @@ serve(async (req) => {
         deterministic_metadata.soldStocuri = soldStocuri;
         deterministic_metadata.soldMateriiPrime = soldMateriiPrime;
         deterministic_metadata.soldMateriale = soldMateriale;
+
+        // Persistăm indicii detectați pentru debugging în UI
+        deterministic_metadata.columnsDetected = {
+          soldDebit: soldFinalDebitCol,
+          soldCredit: soldFinalCreditCol,
+          totalDebit: totalSumeDebitCol,
+          totalCredit: totalSumeCreditCol,
+        };
         
         // DSO: (Sold Clienți / CA perioadă) * 365
         if (revenue > 0) {
@@ -1525,19 +1534,24 @@ serve(async (req) => {
     const cacheKey = `balance_${textHash.length}_${textHash.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)}`;
     
     if (user) {
-      const { data: cachedAnalysis } = await supabaseClient
-        .from("chat_cache")
-        .select("answer_text")
-        .eq("question_hash", cacheKey)
-        .gt("expires_at", new Date().toISOString())
-        .single();
-
-      if (cachedAnalysis?.answer_text) {
-        console.log("Folosesc analiză din cache");
-        return new Response(
-          JSON.stringify({ analysis: cachedAnalysis.answer_text }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      if (forceReprocess) {
+        console.log(`🧹 [CACHE] Forțez re-procesarea. Șterg cache pentru key=${cacheKey}`);
+        await supabaseClient.from("chat_cache").delete().eq("question_hash", cacheKey);
+      } else {
+        const { data: cachedAnalysis } = await supabaseClient
+          .from("chat_cache")
+          .select("answer_text")
+          .eq("question_hash", cacheKey)
+          .gt("expires_at", new Date().toISOString())
+          .maybeSingle();
+  
+        if (cachedAnalysis?.answer_text) {
+          console.log("Folosesc analiză din cache");
+          return new Response(
+            JSON.stringify({ analysis: cachedAnalysis.answer_text }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
     }
 
