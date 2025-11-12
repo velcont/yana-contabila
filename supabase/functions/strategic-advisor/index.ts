@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { createHash } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,15 +66,17 @@ async function retryWithBackoff<T>(
 }
 
 // Generate cache key for strategy responses
-function generateStrategyCacheKey(
+async function generateStrategyCacheKey(
   message: string, 
   conversationId: string, 
   factsCount: number
-): string {
+): Promise<string> {
   const normalized = message.toLowerCase().trim().replace(/\s+/g, ' ').slice(0, 200);
-  const hash = createHash("sha256");
-  hash.update(`strategy:${conversationId}:${normalized}:facts=${factsCount}`);
-  return hash.toString("hex");
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`strategy:${conversationId}:${normalized}:facts=${factsCount}`);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Load system prompt from external file
@@ -598,6 +599,9 @@ ${validation.validation_notes?.join('\n\n') || ''}
       .eq('conversation_id', conversationId)
       .eq('status', 'validated')
       .order('fact_category', { ascending: true });
+
+    // Generate cache key for strategist response
+    const strategyCacheKey = await generateStrategyCacheKey(message, conversationId, allFacts?.length || 0);
 
     // Build fact sheet for strategist
     let factSheet = "\n\n📊 **BAZĂ DE DATE VALIDATĂ (FOLOSEȘTE OBLIGATORIU ACESTE CIFRE):**\n\n";

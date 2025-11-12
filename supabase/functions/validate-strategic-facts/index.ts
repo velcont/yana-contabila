@@ -33,11 +33,13 @@ async function retryWithBackoff<T>(
 }
 
 // Generate cache key from message
-function generateCacheKey(message: string, conversationId: string): string {
+async function generateCacheKey(message: string, conversationId: string): Promise<string> {
   const normalized = message.toLowerCase().trim().replace(/\s+/g, ' ');
-  const hash = createHash("sha256");
-  hash.update(`${conversationId}:${normalized}`);
-  return hash.toString("hex");
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${conversationId}:${normalized}`);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // Load validator prompt
@@ -267,8 +269,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[VALIDATOR] Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Eroare necunoscută";
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500

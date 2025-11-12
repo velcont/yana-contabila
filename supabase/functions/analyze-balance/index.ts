@@ -498,6 +498,38 @@ serve(async (req) => {
       );
     }
 
+    // FAZA 1: Validare denumire fișier - trebuie să conțină lună/an
+    console.log("🔍 Validare denumire fișier:", fileName);
+    const hasDatePattern = 
+      /\d{2}[-\/]\d{2}[-\/]\d{4}/.test(fileName) || // 01-10-2025
+      /\d{4}[-\/]\d{2}[-\/]\d{2}/.test(fileName) || // 2025-10-01
+      /\d{2}[-\/]\d{4}/.test(fileName) ||           // 10-2025
+      /\d{4}[-\/]\d{2}/.test(fileName) ||           // 2025-10
+      /(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*\d{4}/i.test(fileName);
+
+    if (!hasDatePattern) {
+      console.warn("⚠️ Denumirea fișierului NU conține lună/an:", fileName);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: "invalid_filename",
+          message: "⚠️ Denumirea balanței trebuie să conțină luna și anul!\n\n" +
+                   "✅ Exemple corecte:\n" +
+                   "• Balanta octombrie 2025 - Compania Mea.xls\n" +
+                   "• Balanta - COMPANIE [01-10-2025 31-10-2025] 12345678.xls\n" +
+                   "• Balanta 10-2025.xls\n\n" +
+                   "❌ Greșit:\n" +
+                   "• Balanta.xls\n" +
+                   "• export_balanta.xls\n\n" +
+                   "👉 Redenumește fișierul și încearcă din nou!",
+          fileName: fileName
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("✅ Denumire fișier validă (conține lună/an)");
+
     // ✅ SECURITY FIX: File size validation (zip bomb protection)
     // Base64 encoding increases size by ~33%, so 10MB limit = ~7.5MB original
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in base64
@@ -1840,6 +1872,31 @@ serve(async (req) => {
     console.log("🔍 Extragere structură completă balanță...");
     let { class1to5, class6to7, anomalies: structuralAnomalies } = extractAllAccounts(balanceText);
 
+    // FAZA 2: Validare Plan Contabil General RO 2025 (LAYER SUPLIMENTAR)
+    // Import validation function
+    const { validateAccountCode } = await import('../_shared/planContabilGeneral.ts');
+    
+    console.log("🔍 [VALIDATION LAYER] Verificare Plan Contabil General...");
+    const invalidAccountsWarnings: string[] = [];
+
+    for (const acc of class1to5) {
+      const validation = validateAccountCode(acc.accountCode);
+      if (!validation.valid) {
+        invalidAccountsWarnings.push(
+          `⚠️ Cont ${acc.accountCode}: ${validation.error}`
+        );
+      }
+    }
+
+    // Adaugă warnings în structuralAnomalies (nu blochează analiza!)
+    if (invalidAccountsWarnings.length > 0) {
+      structuralAnomalies.push(
+        `\n📋 **VERIFICARE PLAN CONTABIL:**\n` +
+        invalidAccountsWarnings.slice(0, 5).join('\n') + // Maxim 5 pentru a nu polua
+        (invalidAccountsWarnings.length > 5 ? `\n... și încă ${invalidAccountsWarnings.length - 5} conturi invalide` : '')
+      );
+    }
+
     // FALLBACK: Dacă extractAllAccounts nu găsește conturi, folosește structuredData
     if (class1to5.length === 0 && class6to7.length === 0 && structuredData.accounts.length > 0) {
       console.log("⚠️ [FALLBACK] extractAllAccounts nu a găsit conturi - folosesc structuredData.accounts");
@@ -1901,9 +1958,10 @@ serve(async (req) => {
     const groupedBalance = groupAccountsByClass(class1to5);
     const groupedActivity = groupExpenseRevenueAccounts(class6to7);
 
+    // FAZA 0: Type assertion pentru a rezolva build errors
     // Prioritizează metadata deterministă peste cea extrasă din text
     // (păstrează doar valorile AI dacă nu există în deterministic)
-    const finalMetadata = { 
+    const finalMetadata: any = { 
       ...metadata, 
       ...deterministic_metadata,
       // Adaugă structura completă
@@ -1985,7 +2043,145 @@ serve(async (req) => {
       // Pentru useri normali, returnăm analiza fără corecții (dar cu metadata corectată)
     }
     
+    // FAZA 5: Feature flag pentru activare/dezactivare validări
+    const enableAdvancedValidations = Deno.env.get('ENABLE_ADVANCED_VALIDATIONS') !== 'false'; // default: true
+    
     const validationWarnings: string[] = [];
+    
+    // FAZA 3: Validări formule contabile (LAYER SUPLIMENTAR)
+    if (enableAdvancedValidations) {
+      console.log("🔍 [VALIDATION LAYER] Validări avansate ACTIVE");
+      
+      // VALIDARE 1: Total Activ = Total Pasiv
+      console.log("🔍 [VALIDATION LAYER] Verificare echilibru bilanț (Activ = Pasiv)...");
+      
+      const totalActiv = [
+        ...groupedBalance.class1.filter((a: any) => a.balanceType === 'debit'),
+        ...groupedBalance.class2.filter((a: any) => a.balanceType === 'debit'),
+        ...groupedBalance.class3.filter((a: any) => a.balanceType === 'debit'),
+        ...groupedBalance.class4.filter((a: any) => a.balanceType === 'debit'),
+        ...groupedBalance.class5.filter((a: any) => a.balanceType === 'debit')
+      ].reduce((sum: number, acc: any) => sum + acc.netBalance, 0);
+
+      const totalPasiv = [
+        ...groupedBalance.class1.filter((a: any) => 
+          (a.accountCode.startsWith('10') || a.accountCode.startsWith('11') || a.accountCode === '121') && 
+          a.balanceType === 'credit'
+        ),
+        ...groupedBalance.class4.filter((a: any) => a.balanceType === 'credit')
+      ].reduce((sum: number, acc: any) => sum + Math.abs(acc.netBalance), 0);
+
+      const diferentaBilant = Math.abs(totalActiv - totalPasiv);
+
+      if (diferentaBilant > 10) {
+        const bilantErrorWarning = 
+          `🔴 **EROARE CRITICĂ BILANȚ - NEECHILIBRAT!**\n\n` +
+          `• Total ACTIV: ${totalActiv.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Total PASIV: ${totalPasiv.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• **DIFERENȚĂ: ${diferentaBilant.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON** ⚠️\n\n` +
+          `**CAUZE POSIBILE:**\n` +
+          `1. Balanță NEVALIDATĂ din programul contabil\n` +
+          `2. Înregistrări contabile incomplete sau eronate\n` +
+          `3. Lipsă regularizări de inventar/amortizare\n` +
+          `4. Diferențe din evaluare la cursul valutar (dacă aveți tranzacții în valută)\n\n` +
+          `**ACȚIUNE URGENTĂ NECESARĂ:**\n` +
+          `✓ Verificați în programul contabil raportul "Balanță de verificare"\n` +
+          `✓ Asigurați-vă că Total Activ = Total Pasiv înainte de export\n` +
+          `✓ Validați toate înregistrările contabile din perioada curentă\n` +
+          `✓ Contactați un contabil autorizat pentru corectarea erorilor\n\n` +
+          `⛔ **ACEASTĂ BALANȚĂ NU POATE FI FOLOSITĂ PENTRU RAPORTĂRI OFICIALE!**`;
+        
+        validationWarnings.push(bilantErrorWarning);
+        console.error(`🔴 [VALIDATION] BILANȚ NEECHILIBRAT! Diferență: ${diferentaBilant} RON`);
+      }
+
+      // VALIDARE 2: Profit = Venituri - Cheltuieli
+      console.log("🔍 [VALIDATION LAYER] Verificare formulă Profit = Venituri - Cheltuieli...");
+
+      const totalVenituri = groupedActivity.class7.reduce((sum: number, acc: any) => sum + acc.totalCredit, 0);
+      const totalCheltuieli = groupedActivity.class6.reduce((sum: number, acc: any) => sum + acc.totalDebit, 0);
+      const rezultatCalculat = totalVenituri - totalCheltuieli;
+      const rezultatCont121 = groupedBalance.class1.find((a: any) => a.accountCode === '121')?.netBalance || 0;
+      const diferentaRezultat = Math.abs(rezultatCalculat - Math.abs(rezultatCont121));
+
+      if (diferentaRezultat > 10) {
+        const profitMismatchWarning = 
+          `⚠️ **NECONCORDANȚĂ REZULTAT FINANCIAR**\n\n` +
+          `• Total Venituri (clasa 7): ${totalVenituri.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Total Cheltuieli (clasa 6): ${totalCheltuieli.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Rezultat CALCULAT (7 - 6): ${rezultatCalculat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Sold Contul 121: ${Math.abs(rezultatCont121).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• **DIFERENȚĂ: ${diferentaRezultat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON** ⚠️\n\n` +
+          `**CAUZE POSIBILE:**\n` +
+          `1. Operațiuni de regularizare neînregistrate (amortizări, provizioane)\n` +
+          `2. Venituri/cheltuieli în avans (conturi 471/472) neluate în calcul\n` +
+          `3. Erori de înregistrare în conturile de venituri sau cheltuieli\n` +
+          `4. Reclasificări neefectuate la închiderea lunii/anului\n\n` +
+          `**RECOMANDARE:** Verificați concordanța între contul 121 și diferența clasa 7 - clasa 6 în programul contabil.`;
+        
+        validationWarnings.push(profitMismatchWarning);
+        console.warn(`⚠️ [VALIDATION] Rezultat neconcordant! Diferență: ${diferentaRezultat} RON`);
+      }
+
+      // VALIDARE 3: TVA (doar dacă firma este plătitoare de TVA)
+      console.log("🔍 [VALIDATION LAYER] Verificare formule TVA...");
+
+      const tvColectata = groupedBalance.class4.find((a: any) => a.accountCode === '4427')?.netBalance || 0;
+      const tvDeductibila = groupedBalance.class4.find((a: any) => a.accountCode === '4426')?.netBalance || 0;
+      const tvDePlata = groupedBalance.class4.find((a: any) => a.accountCode === '4423')?.netBalance || 0;
+
+      if (tvColectata > 0 || tvDeductibila > 0) {
+        const tvCalculat = Math.abs(tvColectata) - Math.abs(tvDeductibila);
+        if (Math.abs(Math.abs(tvDePlata) - Math.abs(tvCalculat)) > 1) {
+          const tvaWarning = 
+            `⚠️ **NECONCORDANȚĂ TVA**\n\n` +
+            `• TVA Colectată (4427): ${Math.abs(tvColectata).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+            `• TVA Deductibilă (4426): ${Math.abs(tvDeductibila).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+            `• TVA de plată (calculat): ${Math.abs(tvCalculat).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+            `• TVA de plată (cont 4423): ${Math.abs(tvDePlata).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`;
+          
+          validationWarnings.push(tvaWarning);
+        }
+      }
+
+      // FAZA 6: Audit Trail (adaugă în finalMetadata)
+      finalMetadata.auditTrail = {
+        timestamp: new Date().toISOString(),
+        validationsRun: true,
+        balanceValidation: {
+          totalActiv,
+          totalPasiv,
+          diferenta: diferentaBilant,
+          status: diferentaBilant <= 10 ? 'OK' : 'ERROR'
+        },
+        profitValidation: {
+          totalVenituri,
+          totalCheltuieli,
+          rezultatCalculat,
+          rezultatCont121: Math.abs(rezultatCont121),
+          diferenta: diferentaRezultat,
+          status: diferentaRezultat <= 10 ? 'OK' : 'WARNING'
+        },
+        tvaValidation: (tvColectata > 0 || tvDeductibila > 0) ? {
+          tvColectata: Math.abs(tvColectata),
+          tvDeductibila: Math.abs(tvDeductibila),
+          tvDePlata: Math.abs(tvDePlata),
+          tvCalculat: Math.abs(tvColectata) - Math.abs(tvDeductibila),
+          status: 'VERIFICAT'
+        } : null
+      };
+    } else {
+      console.log("⏭️ [VALIDATION LAYER] Validări avansate DEZACTIVATE");
+    }
+    
+    // Adaugă warnings în finalMetadata.anomalies (NU înlocuiește, adaugă)
+    if (validationWarnings.length > 0) {
+      const existingAnomalies = finalMetadata.anomalies || [];
+      finalMetadata.anomalies = [
+        ...existingAnomalies,
+        ...validationWarnings
+      ];
+    }
     
     // Validare DSO folosind finalMetadata
     if (finalMetadata.dso && finalMetadata.dso > 90) {
