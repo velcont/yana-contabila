@@ -6,6 +6,60 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper: Fetch with timeout
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout după ${timeoutMs}ms`);
+    }
+    throw error;
+  }
+}
+
+// Helper: Retry with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  let lastError: Error;
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+
+      if (i < maxRetries - 1) {
+        const delay = baseDelayMs * Math.pow(2, i);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
+// Load system prompt from external file
+const SYSTEM_PROMPT = await Deno.readTextFile(
+  new URL('../_shared/prompts/strategic-advisor-prompt.md', import.meta.url)
+).then(content => content.replace('{currentDate}', new Date().toISOString().split('T')[0]));
+
 // Context economic România 2025
 const ROMANIA_CONTEXT_2025 = {
   legislatie: {

@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { UpdateNotificationBanner } from "@/components/UpdateNotificationBanner";
 import { NotificationProvider } from "@/components/NotificationSystem";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -81,13 +82,14 @@ const App = () => (
         <Sonner />
         <UpdateNotificationBanner />
         <BrowserRouter>
-          <SubscriptionProvider>
-            <ThemeRoleProvider>
-              <AppThemeProvider>
-                <NotificationProvider>
-                  <TutorialProvider>
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Routes>
+          <ErrorBoundary>
+            <SubscriptionProvider>
+              <ThemeRoleProvider>
+                <AppThemeProvider>
+                  <NotificationProvider>
+                    <TutorialProvider>
+                    <Suspense fallback={<LoadingFallback />}>
+                      <Routes>
                       <Route path="/" element={<Landing />} />
                       <Route path="/landing" element={<Landing />} />
                       <Route path="/demo" element={<Demo />} />
@@ -132,6 +134,7 @@ const App = () => (
               </AppThemeProvider>
             </ThemeRoleProvider>
           </SubscriptionProvider>
+          </ErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

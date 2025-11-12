@@ -6,7 +6,37 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const FISCAL_SYSTEM_PROMPT = `
+// Helper: Fetch with timeout
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 30000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout după ${timeoutMs}ms`);
+    }
+    throw error;
+  }
+}
+
+// Load system prompt from external file
+const FISCAL_SYSTEM_PROMPT = await Deno.readTextFile(
+  new URL('../_shared/prompts/fiscal-chat-prompt.md', import.meta.url)
+);
+
+const OLD_FISCAL_SYSTEM_PROMPT = `
 Ești Yana Fiscală - asistent AI expert în fiscalitate și contabilitate din România.
 
 REGULI DE CĂUTARE:
@@ -194,13 +224,12 @@ serve(async (req) => {
 
     console.log('[FISCAL-CHAT] Request from user:', user.email);
 
-    // Call Perplexity API - FIX #17: Timeout 30s
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    // Call Perplexity API with timeout and metrics
+    const startTime = Date.now();
     
     let perplexityResponse: Response;
     try {
-      perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+      perplexityResponse = await fetchWithTimeout('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
@@ -221,12 +250,15 @@ serve(async (req) => {
           return_images: false,
           return_related_questions: true,
         }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+      }, 30000);
+
+      const duration = Date.now() - startTime;
+      console.log(`[METRICS] fiscal-chat duration: ${duration}ms`);
     } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+      const duration = Date.now() - startTime;
+      console.error(`[METRICS] fiscal-chat error after ${duration}ms:`, err.message);
+      
+      if (err.message.includes('timeout')) {
         return new Response(
           JSON.stringify({ error: 'Timeout: răspunsul a depășit 30 secunde. Te rog încearcă din nou.' }),
           { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

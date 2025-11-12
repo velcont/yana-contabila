@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Paperclip, Scale } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -20,8 +20,14 @@ import { Progress } from '@/components/ui/progress';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useThemeRole } from '@/contexts/ThemeRoleContext';
+import { generateUUID } from '@/utils/uuid';
+import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
+// Componente refactorizate
+import { BalanceUploader } from './chat-ai/BalanceUploader';
+import { ChatMessage } from './chat/ChatMessage';
+import { ChatInput } from './chat/ChatInput';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -99,7 +105,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   );
   const [input, setInput] = useState('');
   const [fiscalMessages, setFiscalMessages] = useState<Message[]>([]);
-  const [fiscalConversationId, setFiscalConversationId] = useState<string>(crypto.randomUUID());
+  const [fiscalConversationId, setFiscalConversationId] = useState<string>(generateUUID());
   const [isLoading, setIsLoading] = useState(false);
   const [balanceStructuredData, setBalanceStructuredData] = useState<{
     cui: string;
@@ -261,7 +267,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }
   };
   const [insights, setInsights] = useState<Insight[]>([]);
-  const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
+  const [conversationId, setConversationId] = useState<string>(generateUUID());
   const [summaryType, setSummaryType] = useState<SummaryType>('detailed');
   const [isMaximized, setIsMaximized] = useState(false);
   const [isReadingMode, setIsReadingMode] = useState(false);
