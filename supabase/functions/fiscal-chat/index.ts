@@ -31,12 +31,8 @@ async function fetchWithTimeout(
   }
 }
 
-// Load system prompt from external file
-const FISCAL_SYSTEM_PROMPT = await Deno.readTextFile(
-  new URL('../_shared/prompts/fiscal-chat-prompt.md', import.meta.url)
-);
-
-const OLD_FISCAL_SYSTEM_PROMPT = `
+// System prompt inline (external file read fails in Deno runtime)
+const FISCAL_SYSTEM_PROMPT = `
 Ești Yana Fiscală - asistent AI expert în fiscalitate și contabilitate din România.
 
 REGULI DE CĂUTARE:
@@ -122,6 +118,7 @@ IMPORTANTE:
 - NU pentru prima întrebare strategică
 - Menționăm că Yana Strategică e DOAR pentru antreprenori
 `;
+
 
 serve(async (req) => {
   console.log('[FISCAL-CHAT] New request received.');
