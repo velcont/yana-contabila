@@ -237,13 +237,82 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
 
   // Generate Word document with account explanations
   const generateWordExplanations = async () => {
-    if (!metadata?.structuredData?.accounts) {
-      toast.error("Nu există date structurate pentru generare document");
+    // Fallback: construiește date structurate din metadata dacă lipsesc
+    let sd: { cui: string; company: string; accounts: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> } | null = null;
+
+    if (metadata?.structuredData?.accounts && metadata.structuredData.accounts.length > 0) {
+      sd = metadata.structuredData;
+    } else {
+      const accs: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> = [];
+      const round2 = (n: number) => Math.round((n || 0) * 100) / 100;
+
+      const pushFromBalance = (items: any[] | undefined, cls: number) => {
+        items?.forEach((a) => {
+          const debit = a?.finalBalanceDebit ?? (a?.balanceType === 'debit' ? Math.abs(a?.netBalance || 0) : 0);
+          const credit = a?.finalBalanceCredit ?? (a?.balanceType === 'credit' ? Math.abs(a?.netBalance || 0) : 0);
+          const d = Number(debit) || 0;
+          const c = Number(credit) || 0;
+          if (d > 0 || c > 0) {
+            accs.push({
+              code: String(a.accountCode || '').trim(),
+              name: String(a.accountName || `Cont ${a.accountCode || ''}`).trim(),
+              debit: round2(d),
+              credit: round2(c),
+              accountClass: cls,
+            });
+          }
+        });
+      };
+
+      // Clase 1-5 din metadata
+      pushFromBalance((metadata as any)?.class1_FixedAssets, 1);
+      pushFromBalance((metadata as any)?.class2_CurrentAssets, 2);
+      pushFromBalance((metadata as any)?.class3_Inventory, 3);
+      pushFromBalance((metadata as any)?.class4_ThirdParties, 4);
+      pushFromBalance((metadata as any)?.class5_Treasury, 5);
+
+      // Clase 6 și 7 din rulaje totale
+      (metadata as any)?.class6_Expenses?.forEach((a: any) => {
+        const d = Number(a?.totalDebit || 0);
+        if (d > 0) {
+          accs.push({
+            code: String(a.accountCode || '').trim(),
+            name: String(a.accountName || `Cont ${a.accountCode || ''}`).trim(),
+            debit: round2(d),
+            credit: 0,
+            accountClass: 6,
+          });
+        }
+      });
+      (metadata as any)?.class7_Revenue?.forEach((a: any) => {
+        const c = Number(a?.totalCredit || 0);
+        if (c > 0) {
+          accs.push({
+            code: String(a.accountCode || '').trim(),
+            name: String(a.accountName || `Cont ${a.accountCode || ''}`).trim(),
+            debit: 0,
+            credit: round2(c),
+            accountClass: 7,
+          });
+        }
+      });
+
+      if (accs.length > 0) {
+        sd = {
+          cui: companyInfo.cui || '',
+          company: companyInfo.name || 'Firmă',
+          accounts: accs,
+        };
+      }
+    }
+
+    if (!sd) {
+      toast.error("Nu există date suficiente pentru generarea documentului Word. Reprocesează balanța.");
       return;
     }
 
     try {
-      const { cui, company, accounts } = metadata.structuredData;
+      const { cui, company, accounts } = sd;
       
       // Account explanations map
       const accountExplanations: Record<string, { name: string; explanation: string; implications: string }> = {
@@ -626,23 +695,17 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       )}
 
       {/* Word Document Generation Button */}
-      {metadata?.structuredData ? (
-        <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-          <Button 
-            onClick={generateWordExplanations} 
-            variant="outline"
-            className="w-full"
-            size="lg"
-          >
-            <FileText className="h-5 w-5 mr-2" />
-            📄 Generează Explicații Word (Document Confirmare Administrator)
-          </Button>
-        </div>
-      ) : (
-        <p className="text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: '300ms' }}>
-          ℹ️ Documentul Word devine disponibil după reprocesare cu succes (include structuredData complet).
-        </p>
-      )}
+      <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+        <Button 
+          onClick={generateWordExplanations} 
+          variant="outline"
+          className="w-full"
+          size="lg"
+        >
+          <FileText className="h-5 w-5 mr-2" />
+          📄 Generează Explicații Word (Document Confirmare Administrator)
+        </Button>
+      </div>
 
       {/* Auto-Scrolling Analysis Text */}
       <div className="space-y-6">
