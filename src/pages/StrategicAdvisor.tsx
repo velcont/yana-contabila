@@ -2,23 +2,26 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { 
-  Send, 
   Loader2, 
   Brain, 
   AlertCircle,
   ArrowLeft,
   MessageSquarePlus,
   MessageSquare,
-  TrendingUp
 } from "lucide-react";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContextualHelp } from "@/components/ContextualHelp";
+import { logger } from "@/lib/logger";
+import { generateUUID } from "@/utils/uuid";
+import { rateLimiter, RATE_LIMITS } from "@/utils/rateLimiter";
+import { AI_COSTS } from "@/config/aiCosts";
+import { ChatMessage } from "@/components/chat/ChatMessage";
+import { ChatInput } from "@/components/chat/ChatInput";
 
 interface Message {
   role: "user" | "assistant";
@@ -37,12 +40,12 @@ export default function StrategicAdvisor() {
   const [conversationId] = useState(() => {
     const stored = localStorage.getItem('yana_strategic_conversation_id');
     if (stored) {
-      console.log("📖 [CONVERSATION] Reusing existing conversation:", stored);
+      logger.log("📖 [CONVERSATION] Reusing existing conversation:", stored);
       return stored;
     }
-    const newId = crypto.randomUUID();
+    const newId = generateUUID();
     localStorage.setItem('yana_strategic_conversation_id', newId);
-    console.log("🆕 [CONVERSATION] Created new conversation:", newId);
+    logger.log("🆕 [CONVERSATION] Created new conversation:", newId);
     return newId;
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -80,7 +83,7 @@ export default function StrategicAdvisor() {
       }
 
       try {
-        console.log("🔐 [ACCESS-CHECK] Checking access for user:", user.id);
+        logger.log("🔐 [ACCESS-CHECK] Checking access for user:", user.id);
         
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
@@ -89,15 +92,15 @@ export default function StrategicAdvisor() {
           .single();
 
         if (profileError) {
-          console.error("❌ [ACCESS-CHECK] Profile error:", profileError);
+          logger.error("❌ [ACCESS-CHECK] Profile error:", profileError);
           throw profileError;
         }
 
-        console.log("📊 [ACCESS-CHECK] Profile data:", profile);
+        logger.log("📊 [ACCESS-CHECK] Profile data:", profile);
 
         // ✅ VERIFICARE: Doar utilizatorii cu planul Antreprenor au acces
         if (profile?.subscription_type !== 'entrepreneur') {
-          console.log("❌ [ACCESS-CHECK] Wrong subscription type - requires entrepreneur plan");
+          logger.log("❌ [ACCESS-CHECK] Wrong subscription type - requires entrepreneur plan");
           setHasAccess(false);
           setIsCheckingAccess(false);
           return;
@@ -110,7 +113,7 @@ export default function StrategicAdvisor() {
         try {
           const { data: usageData, error: usageError } = await supabase.rpc('get_monthly_ai_usage');
           if (usageError) {
-            console.warn('⚠️ [ACCESS-CHECK] get_monthly_ai_usage failed, falling back to profile trial credit:', usageError.message);
+            logger.warn('⚠️ [ACCESS-CHECK] get_monthly_ai_usage failed, falling back to profile trial credit:', usageError.message);
             creditLeft = profile?.trial_credit_remaining ?? 0;
           } else {
             const usage = usageData?.[0];
@@ -121,23 +124,23 @@ export default function StrategicAdvisor() {
               creditLeft = profile?.trial_credit_remaining ?? 0;
             }
           }
-        } catch (e) {
-          console.warn('⚠️ [ACCESS-CHECK] Usage check error, fallback to profile:', e);
+          } catch (e) {
+          logger.warn('⚠️ [ACCESS-CHECK] Usage check error, fallback to profile:', e);
           creditLeft = profile?.trial_credit_remaining ?? 0;
         }
         
-        console.log(`💰 [ACCESS-CHECK] Credit remaining (RON): ${creditLeft}`);
+        logger.log(`💰 [ACCESS-CHECK] Credit remaining (RON): ${creditLeft}`);
         setCreditRemaining(creditLeft);
         
         if (creditLeft > 0) {
-          console.log("✅ [ACCESS-CHECK] User has credit - access granted");
+          logger.log("✅ [ACCESS-CHECK] User has credit - access granted");
           setHasAccess(true);
         } else {
-          console.log("❌ [ACCESS-CHECK] No credit remaining - access denied");
+          logger.log("❌ [ACCESS-CHECK] No credit remaining - access denied");
           setHasAccess(false);
         }
       } catch (error) {
-        console.error("❌ [ACCESS-CHECK] Error:", error);
+        logger.error("❌ [ACCESS-CHECK] Error:", error);
         setHasAccess(false);
       } finally {
         setIsCheckingAccess(false);
@@ -155,7 +158,7 @@ export default function StrategicAdvisor() {
     
     const loadHistory = async () => {
       try {
-        console.log("📜 [HISTORY] Loading conversation history for:", conversationId);
+        logger.log("📜 [HISTORY] Loading conversation history for:", conversationId);
         
         const { data, error } = await supabase
           .from('conversation_history')
@@ -164,12 +167,12 @@ export default function StrategicAdvisor() {
           .order('created_at', { ascending: true });
 
         if (error) {
-          console.error("❌ [HISTORY] Error loading history:", error);
+          logger.error("❌ [HISTORY] Error loading history:", error);
           return;
         }
         
         if (isMounted && data && data.length > 0) {
-          console.log(`📜 [HISTORY] Loaded ${data.length} history records`);
+          logger.log(`📜 [HISTORY] Loaded ${data.length} history records`);
           const loadedMessages: Message[] = data.map(record => ({
             role: record.role as "user" | "assistant",
             content: record.content,
@@ -178,10 +181,10 @@ export default function StrategicAdvisor() {
           }));
           setMessages(loadedMessages);
         } else {
-          console.log("📜 [HISTORY] No history found");
+          logger.log("📜 [HISTORY] No history found");
         }
       } catch (error) {
-        console.error("❌ [HISTORY] Error:", error);
+        logger.error("❌ [HISTORY] Error:", error);
       }
     };
 
@@ -212,7 +215,7 @@ export default function StrategicAdvisor() {
       });
 
       if (trackError) {
-        console.error('Error tracking usage:', trackError);
+        logger.error('Error tracking usage:', trackError);
         // Don't fail the operation, just log the error
       }
 
@@ -236,7 +239,7 @@ export default function StrategicAdvisor() {
 
       return true;
     } catch (error) {
-      console.error('Error in deductCredit:', error);
+      logger.error('Error in deductCredit:', error);
       toast.error('Eroare la deducerea creditelor');
       return false;
     }
@@ -246,19 +249,25 @@ export default function StrategicAdvisor() {
     const messageText = textToSend || input.trim();
     
     if (!messageText || isLoading) {
-      console.log("⚠️ [SEND] Blocked: empty message or already loading");
+      logger.log("⚠️ [SEND] Blocked: empty message or already loading");
+      return;
+    }
+
+    // Rate limiting
+    if (!rateLimiter.check('strategic-advisor', RATE_LIMITS.STRATEGIC_ADVISOR)) {
+      toast.error('Prea multe cereri. Te rog așteaptă câteva secunde.');
       return;
     }
 
     // Check credit before sending
     if (creditRemaining <= 0) {
-      console.error("❌ [SEND] Credit exhausted");
+      logger.error("❌ [SEND] Credit exhausted");
       toast.error("Credit epuizat. Cumpără credite pentru a continua.");
       setHasAccess(false);
       return;
     }
 
-    console.log("📤 [SEND] Sending message:", messageText.substring(0, 50) + "...");
+    logger.log("📤 [SEND] Sending message:", messageText.substring(0, 50) + "...");
 
     const userMessage: Message = {
       role: "user",
@@ -271,7 +280,7 @@ export default function StrategicAdvisor() {
     setIsLoading(true);
 
     try {
-      console.log("📡 [SEND] Invoking edge function...");
+      logger.log("📡 [SEND] Invoking edge function...");
       
       const { data, error } = await supabase.functions.invoke("strategic-advisor", {
         body: {
@@ -281,7 +290,7 @@ export default function StrategicAdvisor() {
         }
       });
 
-      console.log("📡 [SEND] Edge function response:", { data, error });
+      logger.log("📡 [SEND] Edge function response received");
 
       if (error) throw error;
       if (data?.error) {
@@ -289,9 +298,9 @@ export default function StrategicAdvisor() {
         return;
       }
 
-      // Deduct cost using the new AI usage system
-      const messageCost = 0.5; // estimated 0.5 lei per message
-      console.log(`💰 [CREDIT] Recording usage of ${messageCost} lei`);
+      // Deduct cost using the centralized config
+      const messageCost = AI_COSTS.STRATEGIC_ADVISOR.MESSAGE_COST;
+      logger.log(`💰 [CREDIT] Recording usage of ${messageCost} lei`);
       
       try {
         // Track usage in ai_usage table
@@ -306,7 +315,7 @@ export default function StrategicAdvisor() {
         });
 
         if (trackError) {
-          console.error('⚠️ [CREDIT] Error tracking usage:', trackError);
+          logger.error('⚠️ [CREDIT] Error tracking usage:', trackError);
         }
 
         // Refresh credit from ai_budget_limits
@@ -315,20 +324,20 @@ export default function StrategicAdvisor() {
           const usage = usageData[0];
           const remainingCents = Math.max(0, (usage.budget_cents || 0) - (usage.total_cost_cents || 0));
           const newCredit = Number((remainingCents / 100).toFixed(2));
-          console.log(`💰 [CREDIT] New balance after refresh: ${newCredit} lei`);
+          logger.log(`💰 [CREDIT] New balance after refresh: ${newCredit} lei`);
           setCreditRemaining(newCredit);
           
           if (newCredit <= 0) {
-            console.warn("⚠️ [CREDIT] Credit exhausted!");
+            logger.warn("⚠️ [CREDIT] Credit exhausted!");
             toast.warning("Credit epuizat! Cumpără credite pentru a continua.");
             setHasAccess(false);
-          } else if (newCredit <= 2) {
-            console.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
+          } else if (newCredit <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD) {
+            logger.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
             toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit!`);
           }
         }
       } catch (error) {
-        console.error('⚠️ [CREDIT] Error in credit deduction:', error);
+        logger.error('⚠️ [CREDIT] Error in credit deduction:', error);
       }
 
       const aiMessage: Message = {
@@ -338,11 +347,11 @@ export default function StrategicAdvisor() {
         showFeedback: true
       };
 
-      console.log("✅ [SEND] AI response received, adding to messages");
+      logger.log("✅ [SEND] AI response received, adding to messages");
       setMessages(prev => [...prev, aiMessage]);
       
     } catch (error) {
-      console.error("❌ [SEND] Error:", error);
+      logger.error("❌ [SEND] Error:", error);
       toast.error("A apărut o eroare. Te rog încearcă din nou.");
     } finally {
       setIsLoading(false);
@@ -350,7 +359,7 @@ export default function StrategicAdvisor() {
   };
 
   const startNewConversation = () => {
-    console.log("🔄 [CONVERSATION] Starting new conversation");
+    logger.log("🔄 [CONVERSATION] Starting new conversation");
     localStorage.removeItem('yana_strategic_conversation_id');
     setMessages([]);
     window.location.reload();
@@ -435,7 +444,7 @@ export default function StrategicAdvisor() {
               
               {/* Credit indicator - arată creditul în RON */}
               <div className={`px-4 py-2 rounded-lg border-2 ${
-                creditRemaining <= 2 
+                creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
                   ? 'border-destructive bg-destructive/10' 
                   : creditRemaining <= 5 
                   ? 'border-yellow-500 bg-yellow-500/10'
@@ -443,7 +452,7 @@ export default function StrategicAdvisor() {
               }`}>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
-                    creditRemaining <= 2 
+                    creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
                       ? 'bg-destructive animate-pulse' 
                       : creditRemaining <= 5
                       ? 'bg-yellow-500 animate-pulse'
@@ -538,78 +547,38 @@ export default function StrategicAdvisor() {
               )}
 
               {/* Messages list */}
-              {messages.map((msg, idx) => (
-                <div
-                  key={`${msg.timestamp.getTime()}-${idx}`}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-4 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                    <p className={`text-xs mt-2 ${msg.role === "user" ? "opacity-70" : "text-muted-foreground"}`}>
-                      {msg.timestamp.toLocaleTimeString("ro-RO", { 
-                        hour: "2-digit", 
-                        minute: "2-digit" 
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              <div className="space-y-4">
+                {messages.map((msg, idx) => (
+                  <ChatMessage
+                    key={`${msg.timestamp.getTime()}-${idx}`}
+                    role={msg.role}
+                    content={msg.content}
+                  />
+                ))}
 
-              {/* Loading indicator */}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-lg p-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                {/* Loading indicator */}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted rounded-lg p-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Scroll anchor */}
-              <div ref={messagesEndRef} />
+                {/* Scroll anchor */}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
           </div>
 
           {/* Input Area */}
-          <div className="border-t bg-card/50 backdrop-blur p-4">
-            <div className="container mx-auto max-w-4xl">
-              <div className="flex gap-2">
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Descrie provocarea ta de business aici..."
-                  className="flex-1 min-h-[60px] resize-none"
-                  disabled={isLoading}
-                />
-                <Button
-                  onClick={() => sendMessage()}
-                  disabled={!input.trim() || isLoading}
-                  size="lg"
-                  className="shrink-0"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Apasă Enter pentru a trimite, Shift+Enter pentru linie nouă
-              </p>
-            </div>
-          </div>
+          <ChatInput
+            value={input}
+            onChange={setInput}
+            onSend={sendMessage}
+            isLoading={isLoading}
+            placeholder="Descrie provocarea ta de business aici..."
+          />
         </TabsContent>
       </Tabs>
     </div>

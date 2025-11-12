@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Scale, Send, Loader2, ExternalLink, FileText, Sparkles } from 'lucide-react';
+import { Scale, Sparkles, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
+import { generateUUID } from '@/utils/uuid';
+import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
+import { ChatMessage } from '@/components/chat/ChatMessage';
+import { ChatInput } from '@/components/chat/ChatInput';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -24,7 +28,7 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string>(crypto.randomUUID());
+  const [conversationId, setConversationId] = useState<string>(generateUUID());
   const { toast } = useToast();
 
   // Încarcă conversația anterioară când se deschide dialogul
@@ -49,7 +53,7 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         .limit(50);
 
       if (error) {
-        console.error('Error loading fiscal conversation:', error);
+        logger.error('Error loading fiscal conversation:', error);
         return;
       }
 
@@ -80,16 +84,26 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
 
           setMessages(lastMessages);
           setConversationId(lastConvId);
-          console.log('✅ Încărcat istoric fiscal:', lastMessages.length, 'mesaje');
+          logger.log('✅ Încărcat istoric fiscal:', lastMessages.length, 'mesaje');
         }
       }
     } catch (err) {
-      console.error('Error loading conversation:', err);
+      logger.error('Error loading conversation:', err);
     }
   };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Rate limiting
+    if (!rateLimiter.check('fiscal-chat', RATE_LIMITS.CHAT_MESSAGE)) {
+      toast({
+        title: 'Prea multe cereri',
+        description: 'Te rog așteaptă câteva secunde înainte să trimiți alt mesaj.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const userMessageContent = input.trim();
     const userMessage: Message = { role: 'user', content: userMessageContent };
@@ -98,13 +112,13 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
     setIsLoading(true);
 
     try {
-      console.log('[FISCAL-CHAT] START handleSend:', userMessageContent);
+      logger.log('[FISCAL-CHAT] START handleSend:', userMessageContent.substring(0, 50));
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('[FISCAL-CHAT] Session check:', { hasSession: !!session, sessionError });
+      logger.log('[FISCAL-CHAT] Session check:', { hasSession: !!session });
 
       if (!session) {
-        console.error('[FISCAL-CHAT] No active session!');
+        logger.error('[FISCAL-CHAT] No active session!');
         toast({
           title: 'Eroare de autentificare',
           description: 'Trebuie să fii logat pentru a folosi Yana Fiscală.',
@@ -132,7 +146,7 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         content: msg.content
       }));
       
-      console.log('[FISCAL-CHAT] Preparing request with history:', conversationHistory.length, 'messages');
+      logger.log('[FISCAL-CHAT] Preparing request with history:', conversationHistory.length, 'messages');
       const { data, error } = await supabase.functions.invoke('fiscal-chat', {
         body: {
           message: userMessageContent,
@@ -143,10 +157,10 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
         }
       });
 
-      console.log('[FISCAL-CHAT] Response:', { data, error });
+      logger.log('[FISCAL-CHAT] Response received');
 
       if (error) {
-        console.error('[FISCAL-CHAT] Error from invoke:', error);
+        logger.error('[FISCAL-CHAT] Error from invoke:', error);
         toast({
           title: 'Eroare API fiscal-chat',
           description: typeof error === 'string' ? error : (error?.message || 'Eroare necunoscută'),
@@ -158,7 +172,7 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
 
       const content = data?.message || data?.response;
       if (!content) {
-        console.error('[FISCAL-CHAT] Empty AI response');
+        logger.error('[FISCAL-CHAT] Empty AI response');
         toast({
           title: 'Eroare',
           description: 'Yana Fiscală nu a putut răspunde. Verifică edge function.',
@@ -190,10 +204,10 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
             related_questions: data.related_questions || []
           }
         });
-        console.log('✅ Conversație fiscală salvată în BD');
+        logger.log('✅ Conversație fiscală salvată în BD');
       }
     } catch (err) {
-      console.error('[FISCAL-CHAT] Fatal error:', err);
+      logger.error('[FISCAL-CHAT] Fatal error:', err);
       toast({
         title: 'Eroare',
         description: 'Nu am putut trimite mesajul. Te rog încearcă din nou.',
@@ -205,22 +219,6 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const getSourceIcon = (domain: string) => {
-    if (domain.includes('anaf') || domain.includes('mfinante') || domain.includes('legislatie')) {
-      return '🏛️'; // Official source
-    }
-    if (domain.includes('ceccar')) {
-      return '👔'; // Professional source
-    }
-    return '📄'; // Other source
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -295,64 +293,14 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
           )}
 
           {messages.map((msg, idx) => (
-            <div
+            <ChatMessage
               key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg p-4 ${
-                  msg.role === 'user'
-                    ? 'bg-[#00B37E] text-white'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm">{msg.content}</div>
-
-                {/* Sources */}
-                {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <p className="text-xs font-semibold mb-2 flex items-center gap-1">
-                      <ExternalLink className="h-3 w-3" />
-                      Surse verificate:
-                    </p>
-                    <div className="space-y-1">
-                      {msg.sources.map((source, sourceIdx) => (
-                        <a
-                          key={sourceIdx}
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs hover:underline flex items-start gap-1 text-[#00B37E] hover:text-[#00B37E]/80"
-                        >
-                          <span>{getSourceIcon(source.domain)}</span>
-                          <span className="flex-1">{source.title}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Related Questions */}
-                {msg.role === 'assistant' && msg.related_questions && msg.related_questions.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/50">
-                    <p className="text-xs font-semibold mb-2">Întrebări similare:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {msg.related_questions.slice(0, 3).map((q, qIdx) => (
-                        <Button
-                          key={qIdx}
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setInput(q)}
-                          className="text-xs h-auto py-1 px-2"
-                        >
-                          {q}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+              role={msg.role}
+              content={msg.content}
+              sources={msg.sources}
+              relatedQuestions={msg.related_questions}
+              onQuestionClick={setInput}
+            />
           ))}
 
           {isLoading && (
@@ -367,34 +315,13 @@ const FiscalChat: React.FC<FiscalChatProps> = ({ open, onOpenChange }) => {
           )}
         </div>
 
-        {/* Input Area */}
-        <div className="border-t px-6 py-4">
-          <div className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Întreabă despre legislație fiscală, proceduri ANAF, monografii contabile..."
-              className="min-h-[60px] resize-none"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="h-[60px] w-[60px] bg-[#00B37E] hover:bg-[#00B37E]/90"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Apasă Enter pentru a trimite, Shift+Enter pentru linie nouă
-          </p>
-        </div>
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSend={sendMessage}
+          isLoading={isLoading}
+          placeholder="Întreabă despre legislație fiscală, proceduri ANAF, monografii contabile..."
+        />
       </DialogContent>
     </Dialog>
   );
