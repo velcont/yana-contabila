@@ -595,6 +595,130 @@ serve(async (req) => {
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
 
+    // ✅ PARSER NUMERIC UNIVERSAL (RO/EN)
+    const toNumber = (val: any): number => {
+      if (val === null || val === undefined) return 0;
+      let str = String(val).trim();
+      if (!str) return 0;
+      const lastDot = str.lastIndexOf('.');
+      const lastComma = str.lastIndexOf(',');
+      const lastSep = Math.max(lastDot, lastComma);
+      if (lastSep !== -1) {
+        let integerPart = str.substring(0, lastSep).replace(/[.,\s]/g, '').replace(/[^\d-]/g, '');
+        let decimalPart = str.substring(lastSep + 1).replace(/[^\d]/g, '');
+        const standard = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
+        const num = parseFloat(standard);
+        return isNaN(num) ? 0 : num;
+      }
+      str = str.replace(/[^\d-]/g, '');
+      const num = parseFloat(str);
+      return isNaN(num) ? 0 : num;
+    };
+
+    // ✅ R1: FUNCȚIE UNIFICATĂ PENTRU DETECȚIA HEADER-URILOR (folosită de ambii extractori)
+    const detectHeaderIndices = (data: any[][]) => {
+      let headerRowIndex = -1;
+      let mainHeaderRow = -1;
+      let subHeaderRow = -1;
+      let contCol = -1, denumireCol = -1;
+      let soldFinalDebitCol = -1, soldFinalCreditCol = -1;
+      let totalSumeDebitCol = -1, totalSumeCreditCol = -1;
+      
+      // PASUL 1: Detectează header pe 2 rânduri
+      for (let i = 0; i < Math.min(15, data.length); i++) {
+        const rowStr = data[i].join('|').toLowerCase();
+        if ((rowStr.includes('solduri finale') || rowStr.includes('sold final')) && mainHeaderRow < 0) {
+          mainHeaderRow = i;
+          subHeaderRow = i + 1;
+          headerRowIndex = i;
+          console.log(`📊 [HEADER-DETECT-UNIFIED] Header pe 2 rânduri: main=${mainHeaderRow}, sub=${subHeaderRow}`);
+        }
+        if (headerRowIndex < 0 && (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')))) {
+          headerRowIndex = i;
+          console.log(`📊 [HEADER-DETECT-UNIFIED] Header simplu pe 1 rând: ${headerRowIndex}`);
+        }
+      }
+      
+      // PASUL 2: Detectează coloana cont și denumire
+      if (headerRowIndex >= 0) {
+        const row = data[headerRowIndex];
+        for (let j = 0; j < row.length; j++) {
+          const cell = String(row[j]).toLowerCase().trim();
+          if ((cell.includes('cont') || cell.includes('simbol')) && contCol === -1) contCol = j;
+          if ((cell.includes('denumire') || cell.includes('explicatii')) && denumireCol === -1) denumireCol = j;
+        }
+      }
+      
+      // PASUL 3: Detectează coloane solduri/rulaje (2 rânduri)
+      if (mainHeaderRow >= 0 && subHeaderRow < data.length) {
+        const mainHeader = data[mainHeaderRow];
+        const subHeader = data[subHeaderRow];
+        
+        let soldFinalStartCol = -1, rulajStartCol = -1, totalSumeStartCol = -1;
+        
+        for (let j = 0; j < mainHeader.length; j++) {
+          const cell = String(mainHeader[j]).toLowerCase().trim();
+          if ((cell.includes('solduri finale') || cell.includes('sold final')) && soldFinalStartCol < 0) soldFinalStartCol = j;
+          if (cell.includes('rulaj') && rulajStartCol < 0) rulajStartCol = j;
+          if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj'))) && totalSumeStartCol < 0) totalSumeStartCol = j;
+        }
+        
+        // Solduri finale
+        if (soldFinalStartCol >= 0) {
+          for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 4, subHeader.length); j++) {
+            const cell = String(subHeader[j]).toLowerCase().trim();
+            if ((cell.includes('debit') || cell === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
+            if ((cell.includes('credit') || cell === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
+          }
+        }
+        
+        // Total sume
+        if (totalSumeStartCol >= 0) {
+          for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 4, subHeader.length); j++) {
+            const cell = String(subHeader[j]).toLowerCase().trim();
+            if ((cell.includes('debit') || cell === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
+            if ((cell.includes('credit') || cell === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
+          }
+        }
+      }
+      
+      // PASUL 4: Fallback - header pe 1 rând
+      if ((soldFinalDebitCol < 0 || totalSumeDebitCol < 0) && headerRowIndex >= 0) {
+        const row = data[headerRowIndex];
+        for (let j = 0; j < row.length; j++) {
+          const cell = String(row[j]).toLowerCase().trim();
+          if (cell.includes('sold') && cell.includes('final')) {
+            if (cell.includes('debit') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
+            if (cell.includes('credit') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
+          }
+          if ((cell.includes('total') && cell.includes('sume')) || cell.includes('rulaj')) {
+            if (cell.includes('debit') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
+            if (cell.includes('credit') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
+          }
+        }
+      }
+      
+      console.log(`📊 [HEADER-DETECT-UNIFIED] REZULTAT:`, {
+        headerRow: headerRowIndex,
+        cont: contCol,
+        denumire: denumireCol,
+        soldFinalD: soldFinalDebitCol,
+        soldFinalC: soldFinalCreditCol,
+        totalSumeD: totalSumeDebitCol,
+        totalSumeC: totalSumeCreditCol
+      });
+      
+      return {
+        headerRowIndex,
+        contCol,
+        denumireCol,
+        soldFinalDebitCol,
+        soldFinalCreditCol,
+        totalSumeDebitCol,
+        totalSumeCreditCol
+      };
+    };
+
     // 📊 EXTRAGERE DATE STRUCTURATE PENTRU GENERARE WORD
     console.log("📊 [STRUCTURED-DATA] START: Extragere CUI, companie și conturi pentru Word...");
     const extractStructuredData = () => {
@@ -611,215 +735,59 @@ serve(async (req) => {
         // 1. Extrage CUI și companie din primele rânduri
         for (let i = 0; i < Math.min(10, data.length); i++) {
           const firstCell = String(data[i][0] || '');
-          
-          // Caută CUI (8-10 cifre)
           const cuiMatch = firstCell.match(/CUI:?\s*(\d{8,10})/i) || firstCell.match(/(\d{8,10})/);
           if (cuiMatch && !cui) cui = cuiMatch[1];
-          
-          // Caută nume companie (înainte de | sau CUI)
           const companyMatch = firstCell.split('|')[0].split(/CUI|CIF/i)[0].trim();
           if (companyMatch && companyMatch.length > 3 && !company) company = companyMatch;
         }
         
         console.log(`📊 [STRUCTURED-DATA] CUI detectat: ${cui}, Companie: ${company}`);
         
-        // 2. Găsește header-ul (suportă format pe 2 rânduri)
-        let headerRow = -1;
-        let mainHeaderRow = -1;
-        let subHeaderRow = -1;
-        let contCol = -1, denumireCol = -1;
-        let soldFinalDCol = -1, soldFinalCCol = -1;
-        let rulajDCol = -1, rulajCCol = -1;
-        let totalSumeDCol = -1, totalSumeCCol = -1;
+        // ✅ R1: Folosește detectHeaderIndices UNIFICAT
+        const indices = detectHeaderIndices(data);
         
-        // Parser numeric robust (RO/EN) pentru valori din celule
-        const toNumber = (val: any): number => {
-          if (val === null || val === undefined) return 0;
-          let str = String(val).trim();
-          if (!str) return 0;
-          const lastDot = str.lastIndexOf('.');
-          const lastComma = str.lastIndexOf(',');
-          const lastSep = Math.max(lastDot, lastComma);
-          if (lastSep !== -1) {
-            let integerPart = str.substring(0, lastSep).replace(/[.,\s]/g, '').replace(/[^\d-]/g, '');
-            let decimalPart = str.substring(lastSep + 1).replace(/[^\d]/g, '');
-            const standard = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
-            const num = parseFloat(standard);
-            return isNaN(num) ? 0 : num;
-          }
-          str = str.replace(/[^\d-]/g, '');
-          const num = parseFloat(str);
-          return isNaN(num) ? 0 : num;
-        };
-        
-        // PASUL 1: Detectează header pe 2 rânduri (rând principal + sub-header)
-        for (let i = 0; i < Math.min(15, data.length); i++) {
-          const rowStr = data[i].join('|').toLowerCase();
-          
-          // Găsește rândul cu "Solduri finale" sau "Sold final"
-          if ((rowStr.includes('solduri finale') || rowStr.includes('sold final')) && mainHeaderRow < 0) {
-            mainHeaderRow = i;
-            subHeaderRow = i + 1;
-            headerRow = i; // Pentru compatibilitate cu cod existent
-            console.log(`📊 [HEADER-DETECT] Header pe 2 rânduri: main=${mainHeaderRow}, sub=${subHeaderRow}`);
-          }
-          
-          // Fallback: header simplu (toate pe un rând)
-          if (headerRow < 0 && (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')))) {
-            headerRow = i;
-            console.log(`📊 [HEADER-DETECT] Header simplu pe 1 rând: ${headerRow}`);
-          }
-        }
-        
-        // PASUL 2: Detectează coloana cont și denumire din primul rând de header
-        if (headerRow >= 0) {
-          const row = data[headerRow];
-          for (let j = 0; j < row.length; j++) {
-            const cell = String(row[j]).toLowerCase().trim();
-            if ((cell.includes('cont') || cell.includes('simbol')) && contCol === -1) contCol = j;
-            if ((cell.includes('denumire') || cell.includes('explicatii')) && denumireCol === -1) denumireCol = j;
-          }
-        }
-        
-        // PASUL 3: Detectează coloane solduri/rulaje
-        if (mainHeaderRow >= 0 && subHeaderRow < data.length) {
-          // Header pe 2 rânduri - caută "Solduri finale" în rând principal, apoi "Debitoare"/"Creditoare" în sub-header
-          const mainHeader = data[mainHeaderRow];
-          const subHeader = data[subHeaderRow];
-          
-          let soldFinalStartCol = -1;
-          let rulajStartCol = -1;
-          
-          // Găsește unde încep secțiunile "Solduri finale" și "Rulaje perioada"
-          for (let j = 0; j < mainHeader.length; j++) {
-            const cell = String(mainHeader[j]).toLowerCase().trim();
-            if ((cell.includes('solduri finale') || cell.includes('solduri finala') || cell.includes('sold final')) && soldFinalStartCol < 0) {
-              soldFinalStartCol = j;
-            }
-            if (cell.includes('rulaj') && rulajStartCol < 0) {
-              rulajStartCol = j;
-            }
-          }
-          
-          // Caută "Debitoare" / "Creditoare" în sub-header, în intervalul soldFinalStart...soldFinalStart+3
-          if (soldFinalStartCol >= 0) {
-            for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 4, subHeader.length); j++) {
-              const cell = String(subHeader[j]).toLowerCase().trim();
-              if ((cell.includes('debit') || cell === 'd') && soldFinalDCol < 0) soldFinalDCol = j;
-              if ((cell.includes('credit') || cell === 'c') && soldFinalCCol < 0) soldFinalCCol = j;
-            }
-          }
-          
-          // Similar pentru rulaje
-          if (rulajStartCol >= 0) {
-            for (let j = rulajStartCol; j < Math.min(rulajStartCol + 4, subHeader.length); j++) {
-              const cell = String(subHeader[j]).toLowerCase().trim();
-              if ((cell.includes('debit') || cell === 'd') && rulajDCol < 0) rulajDCol = j;
-              if ((cell.includes('credit') || cell === 'c') && rulajCCol < 0) rulajCCol = j;
-            }
-          }
-          
-          // Caută "Total sume" pentru clase 6-7
-          let totalSumeStartCol = -1;
-          
-          for (let j = 0; j < mainHeader.length; j++) {
-            const cell = String(mainHeader[j]).toLowerCase().trim();
-            if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj'))) && totalSumeStartCol < 0) {
-              totalSumeStartCol = j;
-              console.log(`✅ [HEADER-DETECT] Coloană total/rulaj găsită la index ${j}: "${mainHeader[j]}"`);
-            }
-          }
-          
-          if (totalSumeStartCol >= 0) {
-            for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 4, subHeader.length); j++) {
-              const cell = String(subHeader[j]).toLowerCase().trim();
-              if ((cell.includes('debit') || cell === 'd') && totalSumeDCol < 0) totalSumeDCol = j;
-              if ((cell.includes('credit') || cell === 'c') && totalSumeCCol < 0) totalSumeCCol = j;
-            }
-          }
-          
-          console.log(`📊 [HEADER-DETECT] Detectat din 2 rânduri: soldFinalStart=${soldFinalStartCol}, rulajStart=${rulajStartCol}, totalSumeStart=${totalSumeStartCol}`);
-        }
-        
-        // PASUL 4: Fallback - header pe 1 rând (format vechi)
-        if ((soldFinalDCol < 0 || soldFinalCCol < 0) && headerRow >= 0) {
-          console.log(`📊 [HEADER-DETECT] Fallback - detectare din 1 rând`);
-          const row = data[headerRow];
-          
-          for (let j = 0; j < row.length; j++) {
-            const cell = String(row[j]).toLowerCase().trim();
-            
-            // Solduri finale
-            if (cell.includes('sold') && cell.includes('final')) {
-              if (cell.includes('debit') && soldFinalDCol < 0) soldFinalDCol = j;
-              if (cell.includes('credit') && soldFinalCCol < 0) soldFinalCCol = j;
-            }
-            
-            // Rulaje
-            if (cell.includes('rulaj') && !cell.includes('sold')) {
-              if (cell.includes('debit') && rulajDCol < 0) rulajDCol = j;
-              if (cell.includes('credit') && rulajCCol < 0) rulajCCol = j;
-            }
-          }
-        }
-        
-        // DEBUGGING FINAL
-        console.log(`📊 [STRUCTURED-DATA] Header la rând ${headerRow}, coloane detectate:`, {
-          cont: contCol,
-          denumire: denumireCol,
-          soldFinalDebit: soldFinalDCol,
-          soldFinalCredit: soldFinalCCol,
-          rulajDebit: rulajDCol,
-          rulajCredit: rulajCCol,
-          totalSumeDebit: totalSumeDCol,
-          totalSumeCredit: totalSumeCCol
-        });
+        console.log(`📊 [STRUCTURED-DATA] Indici folosiți:`, indices);
         
         // 3. Parcurge rândurile de date
-        if (headerRow >= 0 && contCol >= 0) {
-          for (let i = headerRow + 1; i < data.length; i++) {
+        if (indices.headerRowIndex >= 0 && indices.contCol >= 0) {
+          for (let i = indices.headerRowIndex + 1; i < data.length; i++) {
             const row = data[i];
-            const contCode = String(row[contCol] || '').trim();
+            const contCode = String(row[indices.contCol] || '').trim();
             
-            // Skip dacă nu e cod de cont valid
             if (!contCode || !/^\d/.test(contCode) || contCode.length < 3) continue;
             
             const accountClass = parseInt(contCode[0]);
-            const denumire = denumireCol >= 0 ? String(row[denumireCol] || '').trim() : '';
+            const denumire = indices.denumireCol >= 0 ? String(row[indices.denumireCol] || '').trim() : '';
             
             let debit = 0, credit = 0;
             
             // Clase 1-5: folosește solduri finale
             if (accountClass >= 1 && accountClass <= 5) {
-              if (soldFinalDCol >= 0) {
-                debit = toNumber(row[soldFinalDCol]);
-              }
-              if (soldFinalCCol >= 0) {
-                credit = toNumber(row[soldFinalCCol]);
-              }
+              if (indices.soldFinalDebitCol >= 0) debit = toNumber(row[indices.soldFinalDebitCol]);
+              if (indices.soldFinalCreditCol >= 0) credit = toNumber(row[indices.soldFinalCreditCol]);
             }
-            // Clasa 6: Total sume debitoare (cheltuieli cumulate)
+            // Clasa 6: Total sume debitoare
             else if (accountClass === 6) {
-              if (totalSumeDCol >= 0) {
-                debit = toNumber(row[totalSumeDCol]);
-              }
+              if (indices.totalSumeDebitCol >= 0) debit = toNumber(row[indices.totalSumeDebitCol]);
             }
-            // Clasa 7: Total sume creditoare (venituri cumulate)
+            // Clasa 7: Total sume creditoare
             else if (accountClass === 7) {
-              if (totalSumeCCol >= 0) {
-                credit = toNumber(row[totalSumeCCol]);
-              }
+              if (indices.totalSumeCreditCol >= 0) credit = toNumber(row[indices.totalSumeCreditCol]);
             }
             
-            // Adaugă doar conturile cu sold > 0
             if (debit > 0 || credit > 0) {
               accounts.push({
                 code: contCode,
                 name: denumire,
-                debit: Math.round(debit * 100) / 100, // 2 decimale
+                debit: Math.round(debit * 100) / 100,
                 credit: Math.round(credit * 100) / 100,
                 accountClass
               });
+              
+              // ✅ LOGGING DETALIAT pentru clasa 7
+              if (accountClass === 7 && credit > 0) {
+                console.log(`✅ [CL7] Cont ${contCode} (col ${indices.totalSumeCreditCol}): ${credit} RON`);
+              }
             }
           }
         }
@@ -850,6 +818,41 @@ serve(async (req) => {
           count: structuredData.accounts.filter(a => a.accountClass === c).length 
         })).filter(x => x.count > 0)
       );
+    }
+
+    // ✅ R2: PRIORITIZARE - Calculează revenue/expenses DIRECT din structuredData.accounts
+    console.log("💰 [R2-PRIORITY] Calcul revenue/expenses din structuredData.accounts...");
+    let revenue_from_structured = 0;
+    let expenses_from_structured = 0;
+    
+    structuredData.accounts.forEach((acc: any) => {
+      if (acc.accountClass === 7 && acc.code !== '709') {
+        revenue_from_structured += acc.credit || 0;
+        if (acc.credit > 0) {
+          console.log(`  ✅ [R2] CL7 ${acc.code}: +${acc.credit} RON → Total: ${revenue_from_structured}`);
+        }
+      }
+      if (acc.code === '709') {
+        revenue_from_structured -= acc.credit || 0; // Reduceri comerciale
+      }
+      if (acc.accountClass === 6) {
+        expenses_from_structured += acc.debit || 0;
+      }
+    });
+    
+    console.log(`💰 [R2-PRIORITY] REZULTAT: revenue=${revenue_from_structured}, expenses=${expenses_from_structured}`);
+    
+    // Găsește cont 121 pentru profit
+    const cont121_structured = structuredData.accounts.find((acc: any) => acc.code === '121');
+    let profit_from_structured = 0;
+    if (cont121_structured) {
+      const debit = cont121_structured.debit || 0;
+      const credit = cont121_structured.credit || 0;
+      profit_from_structured = (credit > debit) ? (credit - debit) : -(debit - credit);
+      console.log(`💰 [R2-PRIORITY] Profit din 121: ${profit_from_structured} RON`);
+    } else {
+      profit_from_structured = revenue_from_structured - expenses_from_structured;
+      console.log(`⚠️ [R2-PRIORITY] Cont 121 lipsă - calculat: ${profit_from_structured} RON`);
     }
 
     // CALCUL DETERMINIST AL INDICATORILOR DIN EXCEL
@@ -1166,9 +1169,12 @@ serve(async (req) => {
           }
         }
         
-        // Calculează indicatori din fallback
-        const revenue = Math.max(0, totalVenituri - reduceriComerciale);
-        const expenses = totalCheltuieli;
+        // ✅ R2: FOLOSEȘTE valori din structuredData dacă sunt disponibile
+        const revenue = revenue_from_structured > 0 ? revenue_from_structured : Math.max(0, totalVenituri - reduceriComerciale);
+        const expenses = expenses_from_structured > 0 ? expenses_from_structured : totalCheltuieli;
+        
+        console.log(`💰 [R2] Revenue final: ${revenue} (structured=${revenue_from_structured}, fallback=${totalVenituri - reduceriComerciale})`);
+        console.log(`💰 [R2] Expenses final: ${expenses} (structured=${expenses_from_structured}, fallback=${totalCheltuieli})`);
         
         // Caută contul 121 pentru profit/pierdere CORECT
         const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
@@ -1372,9 +1378,12 @@ serve(async (req) => {
         }
         
         
-        // Calculează CA net
-        const revenue = Math.max(0, totalVenituri - reduceriComerciale);
-        const expenses = totalCheltuieli;
+        // ✅ R2: FOLOSEȘTE valori din structuredData dacă sunt disponibile
+        const revenue = revenue_from_structured > 0 ? revenue_from_structured : Math.max(0, totalVenituri - reduceriComerciale);
+        const expenses = expenses_from_structured > 0 ? expenses_from_structured : totalCheltuieli;
+        
+        console.log(`💰 [R2] Revenue final: ${revenue} (structured=${revenue_from_structured}, fallback=${totalVenituri - reduceriComerciale})`);
+        console.log(`💰 [R2] Expenses final: ${expenses} (structured=${expenses_from_structured}, fallback=${totalCheltuieli})`);
         
         // Caută contul 121 pentru profit/pierdere CORECT
         const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
@@ -1419,6 +1428,12 @@ serve(async (req) => {
         detectedColumns.soldCredit = soldFinalCreditCol;
         detectedColumns.totalDebit = totalSumeDebitCol;
         detectedColumns.totalCredit = totalSumeCreditCol;
+        
+        // ✅ R3: LOGGING EXPLICIT pentru solduri nedetectate
+        if (soldFinalDebitCol < 0) console.warn(`⚠️ [R3] Sold Final DEBIT nedetectat (rămâne -1)`);
+        if (soldFinalCreditCol < 0) console.warn(`⚠️ [R3] Sold Final CREDIT nedetectat (rămâne -1)`);
+        if (totalSumeDebitCol < 0) console.warn(`⚠️ [R3] Total/Rulaj DEBIT nedetectat (rămâne -1)`);
+        if (totalSumeCreditCol < 0) console.warn(`⚠️ [R3] Total/Rulaj CREDIT nedetectat (rămâne -1)`);
         
         // DSO: (Sold Clienți / CA perioadă) * 365
         if (revenue > 0) {
@@ -2270,6 +2285,12 @@ serve(async (req) => {
         timestamp: new Date().toISOString(),
         validationsRun: true,
         columnsDetected: detectedColumns,
+        detectionWarnings: [ // ✅ R3: Marker explicit pentru coloane nedetectate
+          ...(detectedColumns.soldDebit < 0 ? ['⚠️ Sold Final DEBIT nedetectat - header non-standard sau lipsă'] : []),
+          ...(detectedColumns.soldCredit < 0 ? ['⚠️ Sold Final CREDIT nedetectat - header non-standard sau lipsă'] : []),
+          ...(detectedColumns.totalDebit < 0 ? ['⚠️ Total/Rulaj DEBIT nedetectat - verificați structura balanței'] : []),
+          ...(detectedColumns.totalCredit < 0 ? ['⚠️ Total/Rulaj CREDIT nedetectat - verificați structura balanței'] : [])
+        ],
         balanceValidation: {
           totalActiv,
           totalPasiv,

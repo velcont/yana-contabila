@@ -12,6 +12,7 @@ interface AuditTrail {
     totalDebit: number;
     totalCredit: number;
   };
+  detectionWarnings?: string[];
   balanceValidation?: {
     totalActiv: number;
     totalPasiv: number;
@@ -256,27 +257,39 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
               <CheckCircle2 className="h-4 w-4 text-blue-600" />
               📊 Coloane Detectate în Excel (Debug Info)
             </h4>
+            
+            {/* ✅ R3: Afișează warning-uri explicit */}
+            {auditTrail.detectionWarnings && auditTrail.detectionWarnings.length > 0 && (
+              <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-300 dark:border-yellow-700 rounded">
+                {auditTrail.detectionWarnings.map((warning, idx) => (
+                  <p key={idx} className="text-xs text-yellow-800 dark:text-yellow-300">
+                    {warning}
+                  </p>
+                ))}
+              </div>
+            )}
+            
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Rulaje/Total Debitoare:</span>
                 <Badge 
-                  variant={auditTrail.columnsDetected.totalDebit >= 0 ? "default" : "outline"} 
+                  variant={auditTrail.columnsDetected.totalDebit >= 0 ? "default" : "destructive"} 
                   className="ml-2 font-mono"
                 >
                   {auditTrail.columnsDetected.totalDebit >= 0 
                     ? `Col ${auditTrail.columnsDetected.totalDebit}` 
-                    : "Nedetectat"}
+                    : "NEDETECTAT"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Rulaje/Total Creditoare:</span>
                 <Badge 
-                  variant={auditTrail.columnsDetected.totalCredit >= 0 ? "default" : "outline"} 
+                  variant={auditTrail.columnsDetected.totalCredit >= 0 ? "default" : "destructive"} 
                   className="ml-2 font-mono"
                 >
                   {auditTrail.columnsDetected.totalCredit >= 0 
                     ? `Col ${auditTrail.columnsDetected.totalCredit}` 
-                    : "Nedetectat"}
+                    : "NEDETECTAT"}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
@@ -303,7 +316,7 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
               </div>
             </div>
             <p className="text-xs text-blue-700 dark:text-blue-400 mt-3">
-              ℹ️ Indexii coloanelor Excel detectați automat pentru extragerea corectă a datelor (fallback pe 2 rânduri pentru Rulaje totale/Total sume).
+              ℹ️ Indexii coloanelor Excel detectați automat pentru extragerea corectă a datelor (fallback pe 2 rânduri pentru Rulaje totale/Total sume ȘI Solduri finale).
             </p>
           </div>
         )}
