@@ -255,7 +255,7 @@ export default function StrategicAdvisor() {
   };
 
   const sendMessage = async (textToSend?: string) => {
-    const messageText = textToSend || input.trim();
+    const messageText = typeof textToSend === 'string' ? textToSend : input.trim();
     
     if (!messageText || isLoading) {
       logger.log("⚠️ [SEND] Blocked: empty message or already loading");
@@ -276,7 +276,8 @@ export default function StrategicAdvisor() {
       return;
     }
 
-    logger.log("📤 [SEND] Sending message:", messageText.substring(0, 50) + "...");
+    const safeMessagePreview = typeof messageText === 'string' ? messageText.substring(0, 50) : String(messageText).substring(0, 50);
+    logger.log("📤 [SEND] Sending message:", safeMessagePreview + "...");
 
     const userMessage: Message = {
       role: "user",
@@ -306,6 +307,13 @@ export default function StrategicAdvisor() {
         toast.error(data.error);
         return;
       }
+
+      // Ensure response is a string
+      const responseContent = typeof data.response === 'string' 
+        ? data.response 
+        : typeof data.response === 'object' 
+        ? JSON.stringify(data.response) 
+        : String(data.response || 'Răspuns lipsă de la server');
 
       // Deduct cost using the centralized config
       const messageCost = AI_COSTS.STRATEGIC_ADVISOR.MESSAGE_COST;
@@ -351,7 +359,7 @@ export default function StrategicAdvisor() {
 
       const aiMessage: Message = {
         role: "assistant",
-        content: data.response,
+        content: responseContent,
         timestamp: new Date(),
         showFeedback: true
       };

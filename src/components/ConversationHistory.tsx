@@ -51,10 +51,11 @@ export const ConversationHistory = ({
       
       data?.forEach((msg) => {
         if (!conversationMap.has(msg.conversation_id)) {
+          const content = typeof msg.content === 'string' ? msg.content : String(msg.content || '');
           conversationMap.set(msg.conversation_id, {
             conversation_id: msg.conversation_id,
             created_at: msg.created_at,
-            preview: msg.content.substring(0, 60) + (msg.content.length > 60 ? '...' : ''),
+            preview: content.substring(0, 60) + (content.length > 60 ? '...' : ''),
             message_count: 1
           });
         } else {
