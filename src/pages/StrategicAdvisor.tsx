@@ -12,6 +12,8 @@ import {
   ArrowLeft,
   MessageSquarePlus,
   MessageSquare,
+  PanelRightOpen,
+  PanelRightClose
 } from "lucide-react";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,6 +24,8 @@ import { rateLimiter, RATE_LIMITS } from "@/utils/rateLimiter";
 import { AI_COSTS } from "@/config/aiCosts";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { StrategicFactsPanel } from "@/components/StrategicFactsPanel";
+import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
 
 interface Message {
   role: "user" | "assistant";
@@ -55,6 +59,11 @@ export default function StrategicAdvisor() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const [creditRemaining, setCreditRemaining] = useState<number>(0);
+  
+  // Sidebar and conflict dialog states
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  const [selectedConflict, setSelectedConflict] = useState<any>(null);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -395,41 +404,50 @@ export default function StrategicAdvisor() {
     );
   }
 
+  const handleConflictClick = (fact: any) => {
+    setSelectedConflict(fact);
+    setConflictDialogOpen(true);
+  };
+
   // Main chat interface
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur p-4 animate-appear">
-        <div className="container mx-auto max-w-4xl">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/app')}
-                aria-label="Înapoi la aplicație"
-                className="btn-hover-lift"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
-                <Brain className="w-6 h-6 text-primary" />
-              </div>
-              <div className="flex items-center gap-2">
-                <div>
-                  <h1 className="text-2xl font-bold">Yana Strategică</h1>
-                  <p className="text-sm text-muted-foreground">
-                    Consultant AI Strategic
-                  </p>
+    <div className="flex h-screen w-full overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Chat Section */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Header */}
+          <header className="border-b bg-card/50 backdrop-blur p-4 animate-appear flex-shrink-0">
+            <div className="container mx-auto max-w-5xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/app')}
+                    aria-label="Înapoi la aplicație"
+                    className="btn-hover-lift"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </Button>
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
+                    <Brain className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <h1 className="text-2xl font-bold">Yana Strategică</h1>
+                      <p className="text-sm text-muted-foreground">
+                        Consultant AI Strategic
+                      </p>
+                    </div>
+                    <ContextualHelp
+                      title="Yana Strategică"
+                      content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive sau oportunități de expansiune."
+                    />
+                  </div>
                 </div>
-                <ContextualHelp
-                  title="Yana Strategică"
-                  content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive sau oportunități de expansiune."
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
+                
+                <div className="flex items-center gap-3">
               {/* Conversation activity indicator */}
               {activeTab === "chat" && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -469,118 +487,153 @@ export default function StrategicAdvisor() {
                 </div>
               </div>
 
-              {activeTab === "chat" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={startNewConversation}
-                  className="gap-2 btn-hover-lift"
-                >
-                  <MessageSquarePlus className="w-4 h-4" />
-                  Conversație Nouă
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Tabs Navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full">
-              <TabsTrigger value="chat">💬 Chat Strategist</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Credit warning banner */}
-          {creditRemaining <= 5 && creditRemaining > 0 && (
-            <div className={`border-l-4 p-3 rounded ${
-              creditRemaining <= 2 
-                ? 'bg-destructive/10 border-destructive' 
-                : 'bg-yellow-500/10 border-yellow-500'
-            }`}>
-              <div className="flex items-center gap-2">
-                <AlertCircle className={`w-5 h-5 ${
-                  creditRemaining <= 2 ? 'text-destructive' : 'text-yellow-600'
-                }`} />
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">
-                    {creditRemaining <= 2 
-                      ? `⚠️ Credit aproape epuizat: ${creditRemaining.toFixed(2)} lei`
-                      : `Credit scăzut: ${creditRemaining.toFixed(2)} lei`
-                    }
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Cumpără credite AI pentru a continua să folosești Yana Strategică.
-                  </p>
+                  {activeTab === "chat" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={startNewConversation}
+                      className="gap-2 btn-hover-lift"
+                    >
+                      <MessageSquarePlus className="w-4 h-4" />
+                      Conversație Nouă
+                    </Button>
+                  )}
+                  
+                  {/* Sidebar Toggle */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="btn-hover-lift"
+                  >
+                    {sidebarOpen ? (
+                      <PanelRightClose className="w-5 h-5" />
+                    ) : (
+                      <PanelRightOpen className="w-5 h-5" />
+                    )}
+                  </Button>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => navigate("/my-ai-costs")}
-                >
-                  Cumpără Credite
-                </Button>
               </div>
-            </div>
-          )}
-        </div>
-      </header>
 
-      {/* Main Content with Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        {/* Chat Tab */}
-        <TabsContent value="chat" className="flex-1 flex flex-col m-0 overflow-hidden">
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="container mx-auto max-w-4xl space-y-4">
-              {/* Welcome message */}
-              {messages.length === 0 && (
-                <div className="text-center p-8">
-                  <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
-                  <h2 className="text-xl font-semibold mb-2">
-                    Bun venit la Yana Strategică!
-                  </h2>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Sunt partenerul tău AI pentru decizii strategice de business bazate pe teoria jocurilor. 
-                    Pune-mi o întrebare sau descrie provocarea ta de business.
-                  </p>
-                </div>
-              )}
+              {/* Tabs Navigation */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="w-full">
+                  <TabsTrigger value="chat">💬 Chat Strategist</TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-              {/* Messages list */}
-              <div className="space-y-4">
-                {messages.map((msg, idx) => (
-                  <ChatMessage
-                    key={`${msg.timestamp.getTime()}-${idx}`}
-                    role={msg.role}
-                    content={msg.content}
-                  />
-                ))}
-
-                {/* Loading indicator */}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg p-4">
-                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              {/* Credit warning banner */}
+              {creditRemaining <= 5 && creditRemaining > 0 && (
+                <div className={`border-l-4 p-3 rounded ${
+                  creditRemaining <= 2 
+                    ? 'bg-destructive/10 border-destructive' 
+                    : 'bg-yellow-500/10 border-yellow-500'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className={`w-5 h-5 ${
+                      creditRemaining <= 2 ? 'text-destructive' : 'text-yellow-600'
+                    }`} />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">
+                        {creditRemaining <= 2 
+                          ? `⚠️ Credit aproape epuizat: ${creditRemaining.toFixed(2)} lei`
+                          : `Credit scăzut: ${creditRemaining.toFixed(2)} lei`
+                        }
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Cumpără credite AI pentru a continua să folosești Yana Strategică.
+                      </p>
                     </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => navigate("/my-ai-costs")}
+                    >
+                      Cumpără Credite
+                    </Button>
                   </div>
-                )}
-
-                {/* Scroll anchor */}
-                <div ref={messagesEndRef} />
-              </div>
+                </div>
+              )}
             </div>
-          </div>
+          </header>
 
-          {/* Input Area */}
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSend={sendMessage}
-            isLoading={isLoading}
-            placeholder="Descrie provocarea ta de business aici..."
-          />
-        </TabsContent>
-      </Tabs>
+          {/* Main Content with Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            {/* Chat Tab */}
+            <TabsContent value="chat" className="flex-1 flex flex-col m-0 overflow-hidden">
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="container mx-auto max-w-5xl space-y-4">
+                  {/* Welcome message */}
+                  {messages.length === 0 && (
+                    <div className="text-center p-8">
+                      <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
+                      <h2 className="text-xl font-semibold mb-2">
+                        Bun venit la Yana Strategică!
+                      </h2>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        Sunt partenerul tău AI pentru decizii strategice de business bazate pe teoria jocurilor. 
+                        Pune-mi o întrebare sau descrie provocarea ta de business.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Messages list */}
+                  <div className="space-y-4">
+                    {messages.map((msg, idx) => (
+                      <ChatMessage
+                        key={`${msg.timestamp.getTime()}-${idx}`}
+                        role={msg.role}
+                        content={msg.content}
+                      />
+                    ))}
+
+                    {/* Loading indicator */}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted rounded-lg p-4">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scroll anchor */}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Input Area */}
+              <ChatInput
+                value={input}
+                onChange={setInput}
+                onSend={sendMessage}
+                isLoading={isLoading}
+                placeholder="Descrie provocarea ta de business aici..."
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Sidebar Panel - Facts */}
+        {sidebarOpen && (
+          <div className="w-96 border-l bg-card flex-shrink-0 overflow-hidden">
+            <StrategicFactsPanel
+              userId={user?.id}
+              conversationId={conversationId}
+              onConflictClick={handleConflictClick}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Conflict Resolution Dialog */}
+      <ConflictResolutionDialog
+        open={conflictDialogOpen}
+        onOpenChange={setConflictDialogOpen}
+        conflicts={selectedConflict?.conflicts || []}
+        validationNotes={selectedConflict?.validation_notes}
+      />
     </div>
   );
 }

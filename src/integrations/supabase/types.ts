@@ -3375,6 +3375,51 @@ export type Database = {
         }
         Relationships: []
       }
+      strategic_facts: {
+        Row: {
+          conflicts: Json | null
+          conversation_id: string
+          created_at: string
+          extracted_facts: Json
+          id: string
+          missing_critical_fields: Json | null
+          ready_for_strategy: boolean
+          reason_not_ready: string | null
+          updated_at: string
+          user_id: string
+          validation_notes: string | null
+          validation_status: string
+        }
+        Insert: {
+          conflicts?: Json | null
+          conversation_id: string
+          created_at?: string
+          extracted_facts?: Json
+          id?: string
+          missing_critical_fields?: Json | null
+          ready_for_strategy?: boolean
+          reason_not_ready?: string | null
+          updated_at?: string
+          user_id: string
+          validation_notes?: string | null
+          validation_status: string
+        }
+        Update: {
+          conflicts?: Json | null
+          conversation_id?: string
+          created_at?: string
+          extracted_facts?: Json
+          id?: string
+          missing_critical_fields?: Json | null
+          ready_for_strategy?: boolean
+          reason_not_ready?: string | null
+          updated_at?: string
+          user_id?: string
+          validation_notes?: string | null
+          validation_status?: string
+        }
+        Relationships: []
+      }
       strategic_invitations: {
         Row: {
           created_at: string
