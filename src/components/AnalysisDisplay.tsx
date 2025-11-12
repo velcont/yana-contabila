@@ -623,7 +623,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       )}
 
       {/* Word Document Generation Button */}
-      {metadata?.structuredData && (
+      {metadata?.structuredData ? (
         <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
           <Button 
             onClick={generateWordExplanations} 
@@ -635,6 +635,10 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             📄 Generează Explicații Word (Document Confirmare Administrator)
           </Button>
         </div>
+      ) : (
+        <p className="text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: '300ms' }}>
+          ℹ️ Documentul Word devine disponibil după reprocesare cu succes (include structuredData complet).
+        </p>
       )}
 
       {/* Auto-Scrolling Analysis Text */}

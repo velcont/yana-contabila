@@ -93,12 +93,6 @@ export function BalanceAuditViewer({ auditTrail }: BalanceAuditViewerProps) {
     switch (status) {
       case 'OK':
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case 'WARNING':
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
-      case 'ERROR':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      default:
-        return <CheckCircle2 className="h-4 w-4 text-blue-600" />;
     }
   };
 

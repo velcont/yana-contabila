@@ -2238,14 +2238,27 @@ serve(async (req) => {
       const totalCheltuieli = groupedActivity.class6.reduce((sum: number, acc: any) => sum + acc.totalDebit, 0);
       const rezultatCalculat = totalVenituri - totalCheltuieli;
       const rezultatCont121 = groupedBalance.class1.find((a: any) => a.accountCode === '121')?.netBalance || 0;
-      const diferentaRezultat = Math.abs(rezultatCalculat - Math.abs(rezultatCont121));
+
+      // Use unified, prioritized revenue/expenses for validations (R2)
+      const revenueFinal = (typeof revenue_from_structured === 'number' && revenue_from_structured > 0)
+        ? revenue_from_structured
+        : (typeof deterministic_metadata.revenue === 'number' && deterministic_metadata.revenue > 0)
+          ? deterministic_metadata.revenue
+          : totalVenituri;
+      const expensesFinal = (typeof expenses_from_structured === 'number' && expenses_from_structured > 0)
+        ? expenses_from_structured
+        : (typeof deterministic_metadata.expenses === 'number' && deterministic_metadata.expenses > 0)
+          ? deterministic_metadata.expenses
+          : totalCheltuieli;
+      const rezultatCalculatFinal = revenueFinal - expensesFinal;
+      const diferentaRezultat = Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121));
 
       if (diferentaRezultat > 10) {
         const profitMismatchWarning = 
           `⚠️ **NECONCORDANȚĂ REZULTAT FINANCIAR**\n\n` +
-          `• Total Venituri (clasa 7): ${totalVenituri.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Total Cheltuieli (clasa 6): ${totalCheltuieli.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Rezultat CALCULAT (7 - 6): ${rezultatCalculat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Total Venituri (clasa 7): ${revenueFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Total Cheltuieli (clasa 6): ${expensesFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Rezultat CALCULAT (7 - 6): ${rezultatCalculatFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
           `• Sold Contul 121: ${Math.abs(rezultatCont121).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
           `• **DIFERENȚĂ: ${diferentaRezultat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON** ⚠️\n\n` +
           `**CAUZE POSIBILE:**\n` +
@@ -2298,12 +2311,12 @@ serve(async (req) => {
           status: diferentaBilant <= 10 ? 'OK' : 'ERROR'
         },
         profitValidation: {
-          totalVenituri,
-          totalCheltuieli,
-          rezultatCalculat,
+          totalVenituri: revenueFinal,
+          totalCheltuieli: expensesFinal,
+          rezultatCalculat: rezultatCalculatFinal,
           rezultatCont121: Math.abs(rezultatCont121),
-          diferenta: diferentaRezultat,
-          status: diferentaRezultat <= 10 ? 'OK' : 'WARNING'
+          diferenta: Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121)),
+          status: Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121)) <= 10 ? 'OK' : 'WARNING'
         },
         tvaValidation: (tvColectata > 0 || tvDeductibila > 0) ? {
           tvColectata: Math.abs(tvColectata),
