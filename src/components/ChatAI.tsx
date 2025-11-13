@@ -22,6 +22,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useThemeRole } from '@/contexts/ThemeRoleContext';
 import { generateUUID } from '@/utils/uuid';
 import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
+import { useNavigate } from 'react-router-dom';
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
 // Componente refactorizate
@@ -79,6 +80,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
+  const navigate = useNavigate();
   
   const [isOpen, setIsOpen] = useState(openOnLoad);
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
@@ -160,7 +162,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     // 🆕 Marchează că sugestia a fost afișată
     setPremiumSuggestionShown(true);
     
-    const premiumSuggestion = `\n\n---\n\n📄 **Raport Financiar Premium Disponibil!**\n\nDacă îți e greu să citești tot aici în chat, am pregătit pentru tine un **Raport Financiar Premium** complet în format Word (12-20 pagini cu grafice și recomandări detaliate).\n\n**Cum accesezi raportul:**\n1. 🏠 Mergi la **Dashboard**\n2. 📁 Selectează tab-ul **"Dosarul Meu"**\n3. 📊 Selectează analiza din lista din stânga\n4. ⬇️ Scroll down în panoul de detalii\n5. 📄 Apasă pe butonul **"Generează Raport Financiar Premium"**\n6. 💾 Descarcă fișierul \`Raport_Financiar_{CUI}_{DATA}.docx\`\n\n💡 **Ce găsești în raport:**\n✅ Tot ce am discutat aici, dar mult mai detaliat\n✅ Zone de risc identificate automat\n✅ Soluții concrete de optimizare\n✅ Checklist lunar de verificări\n✅ Grafice și indicatori vizuali\n\n🔄 **După ce citești raportul, hai înapoi cu întrebări! Te aștept!** 😊\n\n**Cu ce te pot ajuta acum?**`;
+    const premiumSuggestion = `\n\n---\n\n📄 **Raport Financiar Premium Disponibil!**\n\nDacă îți e greu să citești tot aici în chat, am pregătit pentru tine un **Raport Financiar Premium** complet în format Word (12-20 pagini cu grafice și recomandări detaliate).\n\n**Acces rapid:** Apasă butonul "🚀 Deschide Dosarul Meu" de mai jos pentru a accesa raportul imediat!\n\n**Sau urmează pașii:**\n1. 🏠 Mergi la **Dashboard**\n2. 📁 Selectează tab-ul **"Dosarul Meu"**\n3. 📊 Selectează analiza din lista din stânga\n4. ⬇️ Scroll down în panoul de detalii\n5. 📄 Apasă pe butonul **"Generează Raport Financiar Premium"**\n6. 💾 Descarcă fișierul \`Raport_Financiar_{CUI}_{DATA}.docx\`\n\n💡 **Ce găsești în raport:**\n✅ Tot ce am discutat aici, dar mult mai detaliat\n✅ Zone de risc identificate automat\n✅ Soluții concrete de optimizare\n✅ Checklist lunar de verificări\n✅ Grafice și indicatori vizuali\n\n🔄 **După ce citești raportul, hai înapoi cu întrebări! Te aștept!** 😊\n\n**Cu ce te pot ajuta acum?**`;
     
     return content + premiumSuggestion;
   };
@@ -995,6 +997,12 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         sendMessage();
       }
     }
+  };
+
+  // 🆕 Handler pentru navigare rapidă la Dashboard
+  const handleNavigateToDocuments = () => {
+    setIsOpen(false); // Închide chat-ul
+    navigate('/'); // Navighează la Dashboard
   };
 
   // Încarcă o conversație anterioară
@@ -2994,6 +3002,20 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
               </Button>
             </div>
             
+            {/* 🆕 Buton rapid pentru acces la Dosarul Meu - apare doar când sugestia premium a fost afișată */}
+            {premiumSuggestionShown && chatMode === 'balance' && subscriptionType === 'entrepreneur' && (
+              <div className="pt-2">
+                <Button
+                  onClick={handleNavigateToDocuments}
+                  variant="default"
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  🚀 Deschide Dosarul Meu
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
