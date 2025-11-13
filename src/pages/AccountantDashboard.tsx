@@ -352,11 +352,10 @@ const AccountantDashboard = () => {
               <Mail className="mr-2 h-4 w-4" />
               Email
             </TabsTrigger>
-            {/* ASCUNS - Tab Istoric Confirmări - Feature nefolosit, utilizatorii folosesc "Dosarul Meu" */}
-            {/* <TabsTrigger value="balance" data-tour="balance-tab">
+            <TabsTrigger value="balance" data-tour="balance-tab">
               <FileCheck className="mr-2 h-4 w-4" />
               Istoric Confirmări
-            </TabsTrigger> */}
+            </TabsTrigger>
             <TabsTrigger value="due-diligence" data-tour="due-diligence-tab">
               <ShieldAlert className="mr-2 h-4 w-4" />
               Verificare Clienți
@@ -786,12 +785,11 @@ const AccountantDashboard = () => {
             </Suspense>
           </TabsContent>
 
-          {/* ASCUNS - Tab Istoric Confirmări - Feature nefolosit, utilizatorii folosesc "Dosarul Meu" */}
-          {/* <TabsContent value="balance">
+          <TabsContent value="balance">
             <Suspense fallback={<TabContentLoader />}>
               <BalanceConfirmationHistory />
             </Suspense>
-          </TabsContent> */}
+          </TabsContent>
 
           <TabsContent value="due-diligence">
             <Suspense fallback={<TabContentLoader />}>

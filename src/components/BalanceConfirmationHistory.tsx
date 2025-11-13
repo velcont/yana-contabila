@@ -27,56 +27,174 @@ interface BalanceConfirmation {
   created_at: string;
 }
 
-const accountExplanations: Record<string, { name: string; explanation: string; implications: string }> = {
+const accountExplanations: Record<string, { name: string; explanation: string; implications: string; accountantDescription: string }> = {
   "1012": {
     name: "Capital social subscris și vărsat",
     explanation: "Reprezintă valoarea capitalului social pe care asociații/acționarii s-au angajat să-l aducă în societate și care a fost efectiv vărsat.",
-    implications: "Capitalul social trebuie să corespundă cu cel înscris în actul constitutiv și în Registrul Comerțului."
+    implications: "Capitalul social trebuie să corespundă cu cel înscris în actul constitutiv și în Registrul Comerțului.",
+    accountantDescription: "banii pe care asociații i-au pus efectiv în firmă la înființare, înscriși la Registrul Comerțului."
   },
-  "21": {
-    name: "Imobilizări corporale",
-    explanation: "Bunuri tangibile pe care firma le deține și le folosește pe termen lung (clădiri, mașini, echipamente, mobilier).",
-    implications: "Valoarea zero indică că firma nu deține active fixe proprii sau acestea au fost deja amortizate complet."
-  },
-  "371": {
-    name: "Mărfuri în stoc",
-    explanation: "Produse pe care firma le cumpără pentru revânzare, aflate în depozit la sfârșitul perioadei.",
-    implications: "Dacă valoarea este zero, înseamnă că firma nu deține stocuri de mărfuri la momentul respectiv."
-  },
-  "5311": {
-    name: "Casa (numerar cash)",
-    explanation: "Bani lichizi deținuți fizic în casieria firmei.",
-    implications: "Valoarea trebuie să corespundă cu registrul de casă și cu realitatea. ANAF verifică cu atenție fluxurile de casă."
-  },
-  "5121": {
-    name: "Conturi bancare",
-    explanation: "Banii deținuți în conturile bancare ale firmei. Rulajul debitor reprezintă intrările de bani.",
-    implications: "Rulajul arată activitatea financiară a companiei. Intrări mari indică venituri sănătoase."
-  },
-  "401": {
-    name: "Datorii către furnizori",
-    explanation: "Sume pe care firma le datorează furnizorilor pentru bunuri/servicii primite dar neachitate încă.",
-    implications: "Aceste datorii trebuie plătite la scadență. Întârzieri pot afecta relațiile comerciale."
-  },
-  "4111": {
-    name: "Creanțe de la clienți",
-    explanation: "Sume pe care clienții le datorează firmei pentru bunuri/servicii livrate dar neîncasate încă.",
-    implications: "Pentru sănătatea financiară, este ideal să se mențină termenele de încasare cât mai scurte."
-  },
-  "6022": {
-    name: "Cheltuieli cu combustibil și carburanți",
-    explanation: "Costuri cu combustibil pentru vehiculele firmei în perioada respectivă (pe total rulaje).",
-    implications: "Aceste cheltuieli sunt deductibile fiscal dacă sunt justificate corespunzător."
-  },
-  "707": {
-    name: "Venituri din vânzări de mărfuri",
-    explanation: "Încasări din vânzarea produselor către clienți. Rulajul creditor reprezintă totalul vânzărilor.",
-    implications: "Veniturile trebuie să fie declarate corect la ANAF. Toate vânzările necesită facturi fiscale."
+  "1171": {
+    name: "Rezultat reportat",
+    explanation: "Profitul sau pierderea din anii anteriori care nu a fost distribuită sau acoperită.",
+    implications: "Pierderile reportate trebuie acoperite din profiturile viitoare pentru a îmbunătăți situația financiară.",
+    accountantDescription: "profit sau pierdere din anii trecuți reportată în anul curent. Pierdere veche neacoperită - trebuie acoperită din profituri viitoare."
   },
   "121": {
     name: "Profit sau pierdere",
     explanation: "Rezultatul financiar al perioadei: diferența dintre venituri și cheltuieli.",
-    implications: "Un profit pozitiv este supus impozitării (16% impozit pe profit sau 1-3% pentru micro)."
+    implications: "Un profit pozitiv este supus impozitării (16% impozit pe profit sau 1-3% pentru micro).",
+    accountantDescription: "rezultat curent - cheltuielile (clasa 6) au depășit/fost mai mici decât veniturile (clasa 7). Pierderi repetate pot atrage control ANAF."
+  },
+  "21": {
+    name: "Imobilizări corporale",
+    explanation: "Bunuri tangibile pe care firma le deține și le folosește pe termen lung (clădiri, mașini, echipamente, mobilier).",
+    implications: "Valoarea zero indică că firma nu deține active fixe proprii sau acestea au fost deja amortizate complet.",
+    accountantDescription: "clădiri, mașini, echipamente, mobilier deținute pe termen lung."
+  },
+  "357": {
+    name: "Stocuri",
+    explanation: "Mărfuri, materii prime sau alte stocuri deținute pentru activitate.",
+    implications: "Stocurile trebuie gestionate eficient pentru optimizarea capitalului de lucru.",
+    accountantDescription: "mărfuri și materiale pentru activitate."
+  },
+  "371": {
+    name: "Mărfuri în stoc",
+    explanation: "Produse pe care firma le cumpără pentru revânzare, aflate în depozit la sfârșitul perioadei.",
+    implications: "Dacă valoarea este zero, înseamnă că firma nu deține stocuri de mărfuri la momentul respectiv.",
+    accountantDescription: "produse pentru revânzare aflate în depozit."
+  },
+  "401": {
+    name: "Datorii către furnizori",
+    explanation: "Sume pe care firma le datorează furnizorilor pentru bunuri/servicii primite dar neachitate încă.",
+    implications: "Aceste datorii trebuie plătite la scadență. Întârzieri pot afecta relațiile comerciale.",
+    accountantDescription: "datorii pentru bunuri/servicii primite și NEACHITATE. VERIFICĂ SCADENȚELE - întârzieri = penalități!"
+  },
+  "4111": {
+    name: "Creanțe de la clienți",
+    explanation: "Sume pe care clienții le datorează firmei pentru bunuri/servicii livrate dar neîncasate încă.",
+    implications: "Pentru sănătatea financiară, este ideal să se mențină termenele de încasare cât mai scurte.",
+    accountantDescription: "sume pe care clienții LE DATOREAZĂ pentru livrări efectuate. URMĂREȘTE-I ACTIV! Cash-flow blocat dacă nu plătesc."
+  },
+  "4424": {
+    name: "TVA de recuperat",
+    explanation: "TVA deductibil care urmează a fi recuperat de la ANAF prin decontul de TVA.",
+    implications: "Depune decontul la timp. Sume mari pot necesita verificări suplimentare de la ANAF.",
+    accountantDescription: "TVA deductibil de RECUPERAT de la ANAF. Depune decontul la timp (până la 25)."
+  },
+  "4426": {
+    name: "TVA deductibilă - imobilizări",
+    explanation: "TVA aferentă achizițiilor de imobilizări care se poate deduce.",
+    implications: "TVA-ul pentru imobilizări se recuperează conform regulilor fiscale.",
+    accountantDescription: "TVA pentru echipamente/utilaje. Aceleași reguli ca TVA-ul curent."
+  },
+  "4427": {
+    name: "TVA colectată",
+    explanation: "TVA încasat de la clienți care trebuie virat la bugetul de stat.",
+    implications: "TVA colectată trebuie declarată și plătită lunar/trimestrial conform regimului fiscal.",
+    accountantDescription: "TVA încasat de la clienți, de virat la ANAF."
+  },
+  "4428": {
+    name: "TVA neexigibilă",
+    explanation: "TVA pentru care termenul de exigibilitate nu a survenit încă.",
+    implications: "Devine TVA exigibilă la data scadenței conform facturii.",
+    accountantDescription: "TVA pentru care termenul de plată nu a venit. Devine 4427 la scadență."
+  },
+  "4551": {
+    name: "Conturi curente ale asociaților",
+    explanation: "Împrumuturi acordate de asociați către firmă sau datorii ale firmei către asociați.",
+    implications: "Datoria poate fi rambursată când firma are lichidități, fără dobânzi sau scadențe stricte de obicei.",
+    accountantDescription: "împrumuturi de la asociați. NU sunt cheltuieli - datorie internă care poate fi rambursată când firma are lichidități."
+  },
+  "5121": {
+    name: "Conturi bancare",
+    explanation: "Banii deținuți în conturile bancare ale firmei. Rulajul debitor reprezintă intrările de bani.",
+    implications: "Rulajul arată activitatea financiară a companiei. Intrări mari indică venituri sănătoase.",
+    accountantDescription: "bani disponibili EFECTIV în cont ACUM. Compară cu extrasul! Dacă prea puțin → risc cash-flow."
+  },
+  "5124": {
+    name: "Conturi în valută",
+    explanation: "Disponibilități în conturi bancare în valută (EUR, USD, etc.).",
+    implications: "Diferențele de curs valutar pot genera câștiguri sau pierderi.",
+    accountantDescription: "echivalent în euro/dolari. Atenție la cursul de schimb - fluctuații pot genera câștiguri/pierderi."
+  },
+  "5311": {
+    name: "Casa (numerar cash)",
+    explanation: "Bani lichizi deținuți fizic în casieria firmei.",
+    implications: "Valoarea trebuie să corespundă cu registrul de casă și cu realitatea. ANAF verifică cu atenție fluxurile de casă.",
+    accountantDescription: "numerar în casierie. Trebuie să corespundă cu registrul de casă."
+  },
+  "6022": {
+    name: "Cheltuieli cu combustibil și carburanți",
+    explanation: "Costuri cu combustibil pentru vehiculele firmei în perioada respectivă (pe total rulaje).",
+    implications: "Aceste cheltuieli sunt deductibile fiscal dacă sunt justificate corespunzător.",
+    accountantDescription: "combustibil pentru vehicule. Deductibile fiscal dacă justificate."
+  },
+  "6028": {
+    name: "Cheltuieli cu materialele consumabile",
+    explanation: "Costuri cu materiale auxiliare necesare activității (rechizite, consumabile).",
+    implications: "Verifică justificarea - consum excesiv poate indica risipă.",
+    accountantDescription: "materiale auxiliare. Verifică dacă sunt justificate - consum excesiv = risipă sau furt."
+  },
+  "607": {
+    name: "Cheltuieli privind mărfurile",
+    explanation: "Costul de achiziție al mărfurilor vândute în perioada respectivă.",
+    implications: "Se compară cu veniturile din vânzări (707) pentru a calcula marja comercială.",
+    accountantDescription: "prețul de ACHIZIȚIE al mărfurilor. COMPARĂ cu 707 (venituri) pentru marja comercială."
+  },
+  "624": {
+    name: "Cheltuieli de transport",
+    explanation: "Costuri cu transportul mărfurilor (curierat, transport rutier, etc.).",
+    implications: "Verifică documentele justificative (AWB, CMR).",
+    accountantDescription: "transport mărfuri (curierat, rutier). Verifică documente justificative (AWB, CMR)."
+  },
+  "627": {
+    name: "Cheltuieli cu serviciile bancare",
+    explanation: "Comisioane bancare, costuri administrare cont, etc.",
+    implications: "Compară ofertele diferitelor bănci pentru a reduce costurile.",
+    accountantDescription: "comisioane băncii. COMPARĂ ofertele băncilor - poți reduce costurile!"
+  },
+  "628": {
+    name: "Alte cheltuieli cu serviciile executate de terți",
+    explanation: "Servicii diverse: consultanță, contabilitate, juridic, marketing, IT, curățenie, etc.",
+    implications: "Toate trebuie să aibă facturi și să fie justificate - ANAF respinge cheltuielile nejustificate.",
+    accountantDescription: "servicii diverse (consultanță, contabilitate, juridic, marketing, IT). Verifică că TOATE au facturi!"
+  },
+  "635": {
+    name: "Cheltuieli cu alte impozite și taxe",
+    explanation: "Taxe locale (teren, clădiri, autovehicule), ecotaxă, etc.",
+    implications: "Costuri obligatorii care trebuie plătite la timp.",
+    accountantDescription: "taxe locale (teren, clădiri, auto), ecotaxă. Costuri obligatorii - plătește la timp."
+  },
+  "6651": {
+    name: "Cheltuieli din diferențe de curs valutar",
+    explanation: "Pierderi generate de modificările cursului valutar.",
+    implications: "Pot fi semnificative în cazul tranzacțiilor în valută.",
+    accountantDescription: "pierderi din fluctuații curs valutar."
+  },
+  "6811": {
+    name: "Cheltuieli de exploatare privind amortizările",
+    explanation: "Amortizarea lunară/anuală a mijloacelor fixe.",
+    implications: "Cheltuială contabilă care reduce profitul impozabil.",
+    accountantDescription: "amortizare mijloace fixe - cheltuială contabilă care reduce profitul impozabil."
+  },
+  "707": {
+    name: "Venituri din vânzări de mărfuri",
+    explanation: "Încasări din vânzarea produselor către clienți. Rulajul creditor reprezintă totalul vânzărilor.",
+    implications: "Veniturile trebuie să fie declarate corect la ANAF. Toate vânzările necesită facturi fiscale.",
+    accountantDescription: "prețul de VÂNZARE al mărfurilor. COMPARĂ cu 607 (cost achiziție) pentru marja brută."
+  },
+  "7651": {
+    name: "Venituri din diferențe de curs valutar",
+    explanation: "Câștiguri generate de modificările cursului valutar.",
+    implications: "Pot contribui pozitiv la rezultatul financiar.",
+    accountantDescription: "câștiguri din fluctuații favorabile curs valutar."
+  },
+  "766": {
+    name: "Venituri din dobânzi",
+    explanation: "Dobânzi primite de la bancă (depozite) sau de la clienți (pentru întârzieri la plată).",
+    implications: "Venit financiar pasiv.",
+    accountantDescription: "dobânzi de la bancă (depozite) sau clienți (întârzieri). Venit pasiv."
   }
 };
 
@@ -456,6 +574,99 @@ const generateLegalNoteSectionIfNeeded = (isAccountant: boolean): Paragraph[] =>
   ];
 };
 
+// Generate accountant-specific sections (concise professional format)
+const generateAccountantSections = (
+  accounts_data: Record<string, { debit: number; credit: number }>,
+  cui: string | null,
+  companyName: string,
+  date: string
+): Paragraph[] => {
+  const sections: Paragraph[] = [];
+  
+  // Header
+  sections.push(
+    new Paragraph({
+      text: "CONFIRMARE SOLDURI BALANȚĂ CONTABILĂ",
+      heading: HeadingLevel.HEADING_1,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 300 }
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: `CUI: ${cui || 'N/A'}`, size: 22 })],
+      spacing: { after: 100 }
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: `Companie: ${companyName}`, size: 22 })],
+      spacing: { after: 100 }
+    }),
+    new Paragraph({
+      children: [new TextRun({ text: `Dată generare: ${date}`, size: 22 })],
+      spacing: { after: 400 }
+    })
+  );
+  
+  // Group accounts by class
+  const accountsByClass: Record<string, Array<[string, any]>> = {
+    '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '7': []
+  };
+  
+  Object.entries(accounts_data).forEach(([code, values]) => {
+    const firstDigit = code[0];
+    if (accountsByClass[firstDigit]) {
+      accountsByClass[firstDigit].push([code, values]);
+    }
+  });
+  
+  const classNames: Record<string, string> = {
+    '1': 'CLASA 1: CAPITALURI',
+    '2': 'CLASA 2: IMOBILIZĂRI',
+    '3': 'CLASA 3: STOCURI',
+    '4': 'CLASA 4: TERȚI (Clienți, Furnizori, etc.)',
+    '5': 'CLASA 5: TREZORERIE (Bănci, Casă)',
+    '6': 'CLASA 6: CHELTUIELI',
+    '7': 'CLASA 7: VENITURI'
+  };
+  
+  Object.entries(accountsByClass).forEach(([classNum, accounts]) => {
+    if (accounts.length === 0) return;
+    
+    sections.push(
+      new Paragraph({
+        children: [new TextRun({ text: `█ ${classNames[classNum]}`, bold: true, size: 24 })],
+        spacing: { before: 400, after: 200 }
+      })
+    );
+    
+    accounts.forEach(([code, values]) => {
+      const balance = values.debit - values.credit;
+      const shortCode = code.substring(0, 4);
+      const accountInfo = accountExplanations[shortCode] || accountExplanations[code.substring(0, 2)];
+      
+      if (!accountInfo) return;
+      
+      const emoji = balance >= 0 ? '💼' : balance < 0 ? '⚠️' : '📋';
+      const description = accountInfo.accountantDescription || `Sold ${balance >= 0 ? 'debitor' : 'creditor'}: ${formatCurrency(Math.abs(balance))}`;
+      
+      sections.push(
+        new Paragraph({
+          children: [new TextRun({ text: `${code} - `, size: 20 })],
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `${emoji} `, size: 20 }),
+            new TextRun({ text: `${accountInfo.name}: ${formatCurrency(Math.abs(balance))} RON - ${description}`, size: 20 })
+          ],
+          spacing: { after: 200 },
+          indent: { left: 200 }
+        })
+      );
+    });
+  });
+  
+  return sections;
+};
+
 export const BalanceConfirmationHistory = () => {
   const [confirmations, setConfirmations] = useState<BalanceConfirmation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -539,12 +750,24 @@ export const BalanceConfirmationHistory = () => {
 
       const isAccountant = userSubscriptionType === 'accounting_firm';
 
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            new Paragraph({
-              text: "CONFIRMARE DATE FINANCIARE",
+      let documentSections: Paragraph[];
+      
+      if (isAccountant) {
+        // ✅ VERSIUNE CONTABIL - Concisă, profesională
+        documentSections = [
+          ...generateAccountantSections(
+            confirmation.accounts_data,
+            confirmation.cui,
+            confirmation.company_name,
+            new Date(confirmation.created_at).toLocaleDateString('ro-RO')
+          ),
+          ...generateLegalNoteSectionIfNeeded(true)
+        ];
+      } else {
+        // ✅ VERSIUNE ANTREPRENOR - Detaliată, educațională
+        documentSections = [
+          new Paragraph({
+            text: "CONFIRMARE DATE FINANCIARE",
               heading: HeadingLevel.HEADING_1,
               alignment: AlignmentType.CENTER,
               spacing: { after: 400 },
