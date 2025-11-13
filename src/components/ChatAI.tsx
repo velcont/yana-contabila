@@ -129,12 +129,18 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       accountClass: number;
     }>;
   } | null>(null);
+  const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
   const addPremiumReportSuggestion = (
     content: string, 
     hasStructuredData: boolean
   ): string => {
+    // 🆕 VERIFICARE PRIORITARĂ: Dacă sugestia a fost deja afișată în această conversație
+    if (premiumSuggestionShown) {
+      return content; // Returnează conținutul nemodificat
+    }
+    
     // Verificări:
     // 1. Modul trebuie să fie 'balance' (nu fiscal)
     // 2. Utilizatorul trebuie să fie antreprenor (nu contabil)
@@ -150,6 +156,9 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     const shouldSuggest = (isLongResponse && containsFinancialKeywords) || hasStructuredData;
     
     if (!shouldSuggest) return content;
+    
+    // 🆕 Marchează că sugestia a fost afișată
+    setPremiumSuggestionShown(true);
     
     const premiumSuggestion = `\n\n---\n\n📄 **Raport Financiar Premium Disponibil!**\n\nDacă îți e greu să citești tot aici în chat, am pregătit pentru tine un **Raport Financiar Premium** complet în format Word (12-20 pagini cu grafice și recomandări detaliate).\n\n**Cum accesezi raportul:**\n1. 🏠 Mergi la **Dashboard**\n2. 📁 Selectează tab-ul **"Dosarul Meu"**\n3. 📊 Selectează analiza din lista din stânga\n4. ⬇️ Scroll down în panoul de detalii\n5. 📄 Apasă pe butonul **"Generează Raport Financiar Premium"**\n6. 💾 Descarcă fișierul \`Raport_Financiar_{CUI}_{DATA}.docx\`\n\n💡 **Ce găsești în raport:**\n✅ Tot ce am discutat aici, dar mult mai detaliat\n✅ Zone de risc identificate automat\n✅ Soluții concrete de optimizare\n✅ Checklist lunar de verificări\n✅ Grafice și indicatori vizuali\n\n🔄 **După ce citești raportul, hai înapoi cu întrebări! Te aștept!** 😊\n\n**Cu ce te pot ajuta acum?**`;
     
@@ -1037,6 +1046,9 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 🆕 Resetează flag-ul pentru noua analiză
+    setPremiumSuggestionShown(false);
 
     // Validate file type
     const validTypes = [
