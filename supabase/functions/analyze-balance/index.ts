@@ -2432,7 +2432,8 @@ serve(async (req) => {
         JSON.stringify({ 
           analysis: finalAnalysisWithWarnings,
           metadata: hasValidData ? finalMetadata : null,
-          councilValidation: councilValidation
+          councilValidation: councilValidation,
+          structuredData: structuredData
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
