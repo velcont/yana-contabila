@@ -2247,7 +2247,9 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       
       // Generare și download
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `Raport_Financiar_${structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`);
+      const fileName = `Raport_Financiar_${structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`;
+      console.log('📄 Salvare document cu numele:', fileName);
+      saveAs(blob, fileName);
       
       // Salvare în baza de date
       const { data: { user } } = await supabase.auth.getUser();
