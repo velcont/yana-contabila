@@ -1543,7 +1543,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           7: 'Venituri - încasări din vânzări și alte surse'
         };
         
-        return `📋 Cont ${code} (${acc.name}) cu sold ${soldType} de ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON. Acest cont face parte din Clasa ${classNum}: ${classNames[classNum] || 'cont contabil'}. Pentru interpretare detaliată specifică acestui cont, verifică cu specialistul contabil doar pentru acest cont particular.`;
+        return `📋 ${acc.name.toUpperCase()}\n\nCE REPREZINTĂ:\nContul ${code} aparține Clasei ${classNum}: ${classNames[classNum] || 'cont contabil'}.\n\nSOLD ACTUAL: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON (${soldType})\n\n📌 Pentru interpretare specifică detaliată a acestui cont particular, consultă specialistul contabil.`;
       };
       
       // Grupează conturile pe clase
@@ -1573,8 +1573,15 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       // Header
       sections.push(
         new Paragraph({
-          text: `CONFIRMARE SOLDURI BALANȚĂ CONTABILĂ`,
+          text: `RAPORT DE ANALIZĂ FINANCIARĂ COMPLETĂ`,
           heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `Analiză detaliată a tuturor conturilor contabile cu recomandări de optimizare`, italics: true })
+          ],
           alignment: AlignmentType.CENTER,
           spacing: { after: 400 }
         }),
@@ -1597,6 +1604,131 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             new TextRun({ text: `Dată generare: `, bold: true }),
             new TextRun({ text: new Date().toLocaleDateString('ro-RO') })
           ],
+          spacing: { after: 400 }
+        })
+      );
+      
+      // DISCLAIMER JURIDIC
+      sections.push(
+        new Paragraph({
+          text: "NOTĂ IMPORTANTĂ - INFORMAȚII LEGALE",
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 300, after: 200 },
+          shading: { fill: "FFF3CD" }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ 
+              text: `Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.`,
+              italics: true
+            })
+          ],
+          spacing: { after: 400 },
+          alignment: AlignmentType.JUSTIFIED,
+          border: {
+            top: { color: "FFC107", size: 6, style: BorderStyle.SINGLE },
+            bottom: { color: "FFC107", size: 6, style: BorderStyle.SINGLE },
+            left: { color: "FFC107", size: 6, style: BorderStyle.SINGLE },
+            right: { color: "FFC107", size: 6, style: BorderStyle.SINGLE }
+          }
+        })
+      );
+      
+      // REZUMAT EXECUTIV - Calcul automat
+      const bank = structuredData.accounts.find(a => a.code === '5121')?.credit || 0;
+      const cash = structuredData.accounts.find(a => a.code === '5311')?.credit || 0;
+      const profit = structuredData.accounts.find(a => a.code === '121')?.credit || 0;
+      const loss = structuredData.accounts.find(a => a.code === '121')?.debit || 0;
+      const clients = structuredData.accounts.find(a => a.code === '411')?.debit || 0;
+      const suppliers = structuredData.accounts.find(a => a.code === '401')?.credit || 0;
+      const stocks = structuredData.accounts.find(a => a.code === '371')?.debit || 0;
+      
+      const totalCash = bank + cash;
+      const netProfitLoss = profit - loss;
+      
+      let healthStatus = 'MEDIE';
+      let alerts = 0;
+      if (totalCash < 1000) {
+        healthStatus = 'SLABĂ';
+        alerts++;
+      } else if (totalCash > 10000 && netProfitLoss > 0) {
+        healthStatus = 'BUNĂ';
+      }
+      if (netProfitLoss < 0) alerts++;
+      if (suppliers > clients * 1.5) alerts++;
+      
+      sections.push(
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: "📊 REZUMAT EXECUTIV - SITUAȚIA TA FINANCIARĂ",
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "BANII TĂI ACUM:", bold: true })],
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({
+          text: `💰 În bancă: ${bank.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: `💵 În casă: ${cash.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `📊 TOTAL DISPONIBILITĂȚI: ${totalCash.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`, bold: true })
+          ],
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "SITUAȚIA GENERALĂ:", bold: true })],
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({
+          text: `📈 Cât ai câștigat (Profit/Pierdere): ${netProfitLoss.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: `👥 Cine îți datorează bani (Clienți): ${clients.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: `💸 Cui le datorezi bani (Furnizori): ${suppliers.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: `📦 Valoare stocuri: ${stocks.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`,
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "INDICATORI CHEIE:", bold: true })],
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({
+          text: `✅ Sănătate financiară: ${healthStatus}`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: `⚠️ Alerte identificate: ${alerts}`,
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: `🎯 Recomandări prioritare: Vezi secțiunile "Zone de Risc" și "Soluții de Optimizare"`,
           spacing: { after: 400 }
         })
       );
@@ -1642,6 +1774,208 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           );
         });
       }
+      
+      // ========== ZONE DE RISC ȘI ALERTE ==========
+      const critical: string[] = [];
+      const warnings: string[] = [];
+      const vat = structuredData.accounts.find(a => a.code === '4427')?.credit || 0;
+      
+      if (totalCash < 1000) {
+        critical.push('🔴 Sold bancă + casă FOARTE SCĂZUT (<1000 RON) - risc URGENT de cash-flow! Prioritizează încasările sau caută finanțare.');
+      }
+      if (vat > 500) {
+        critical.push(`🔴 TVA de plată neachitat: ${vat.toLocaleString('ro-RO')} RON - risc de BLOCARE cont ANAF! Plătește URGENT până la scadență.`);
+      }
+      if (suppliers > 10000) {
+        critical.push(`🔴 Furnizori neplătiți: ${suppliers.toLocaleString('ro-RO')} RON - risc de penalități și pierdere furnizori! Stabilește plan de plată.`);
+      }
+      
+      if (loss > 0) {
+        warnings.push(`🟡 Pierdere înregistrată: ${loss.toLocaleString('ro-RO')} RON - reduce cheltuielile sau crește veniturile!`);
+      }
+      if (cash > 5000) {
+        warnings.push(`🟡 Numerar în casă mare: ${cash.toLocaleString('ro-RO')} RON - depune în bancă pentru siguranță (limită legală 50.000 RON).`);
+      }
+      
+      sections.push(
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 600, after: 100 }
+        }),
+        new Paragraph({
+          text: "⚠️ ZONE DE RISC IDENTIFICATE",
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        })
+      );
+      
+      if (critical.length > 0) {
+        sections.push(
+          new Paragraph({
+            children: [new TextRun({ text: "ALERTE CRITICE (Acționează URGENT):", bold: true })],
+            shading: { fill: "FFEBEE" },
+            spacing: { before: 200, after: 100 }
+          })
+        );
+        critical.forEach(alert => {
+          sections.push(new Paragraph({ text: alert, spacing: { after: 100 } }));
+        });
+      }
+      
+      if (warnings.length > 0) {
+        sections.push(
+          new Paragraph({
+            children: [new TextRun({ text: "\nAVERTISMENTE (Monitorizează):", bold: true })],
+            shading: { fill: "FFF9C4" },
+            spacing: { before: 300, after: 100 }
+          })
+        );
+        warnings.forEach(warning => {
+          sections.push(new Paragraph({ text: warning, spacing: { after: 100 } }));
+        });
+      }
+      
+      sections.push(
+        new Paragraph({
+          children: [new TextRun({ text: "\nRECOMANDĂRI GENERALE:", bold: true })],
+          spacing: { before: 300, after: 100 }
+        }),
+        new Paragraph({ text: "✓ Verifică lunar balanța cu contabilul", spacing: { after: 50 } }),
+        new Paragraph({ text: "✓ Reconciliază conturile bancare săptămânal", spacing: { after: 50 } }),
+        new Paragraph({ text: "✓ Monitorizează cash-flow-ul zilnic", spacing: { after: 50 } }),
+        new Paragraph({ text: "✓ Păstrează TOATE documentele justificative (facturi, chitanțe)", spacing: { after: 400 } })
+      );
+      
+      // ========== SOLUȚII DE OPTIMIZARE ==========
+      sections.push(
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 600, after: 100 }
+        }),
+        new Paragraph({
+          text: "💡 SOLUȚII DE OPTIMIZARE FINANCIARĂ",
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "OPTIMIZĂRI IMEDIATE (poți face ACUM):", bold: true })],
+          shading: { fill: "E8F5E9" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "✅ Reduce cheltuieli bancare - negociază sau schimbă banca", spacing: { after: 50 } }),
+        new Paragraph({ text: "✅ Automatizează plățile recurente - economisești timp", spacing: { after: 50 } }),
+        new Paragraph({ text: "✅ Solicită discounturi de la furnizori pentru plată anticipată", spacing: { after: 50 } }),
+        new Paragraph({ text: "✅ Monitorizează consumul de combustibil/utilități - reduce risipa", spacing: { after: 300 } }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "OPTIMIZĂRI PE TERMEN MEDIU (1-3 luni):", bold: true })],
+          shading: { fill: "E3F2FD" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "📈 Crește prețurile sau volumul vânzărilor", spacing: { after: 50 } }),
+        new Paragraph({ text: "📉 Renegociază contractele cu furnizorii", spacing: { after: 50 } }),
+        new Paragraph({ text: "💰 Implementează sistem de recuperare creanțe (clienți restanți)", spacing: { after: 50 } }),
+        new Paragraph({ text: "📦 Optimizează stocurile - vinde sau returnează produsele stagnante", spacing: { after: 300 } }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "OPTIMIZĂRI STRATEGICE (3-12 luni):", bold: true })],
+          shading: { fill: "F3E5F5" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "🎯 Diversifică sursele de venit", spacing: { after: 50 } }),
+        new Paragraph({ text: "💼 Externalizează activități non-core (contabilitate, IT, curățenie)", spacing: { after: 50 } }),
+        new Paragraph({ text: "🏦 Refinanțează creditele scumpe", spacing: { after: 50 } }),
+        new Paragraph({ text: "📊 Implementează software de management financiar", spacing: { after: 300 } }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "ECONOMII ESTIMATE:", bold: true })],
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "→ Reduce comisioanele bancare: 100-300 RON/lună", spacing: { after: 50 } }),
+        new Paragraph({ text: "→ Optimizează consumuri: 200-500 RON/lună", spacing: { after: 50 } }),
+        new Paragraph({ text: `→ Recuperează creanțe: ${clients.toLocaleString('ro-RO')} RON`, spacing: { after: 50 } }),
+        new Paragraph({ 
+          children: [new TextRun({ text: "→ TOTAL POTENȚIAL: 300-800 RON/lună = 3.600-9.600 RON/an", bold: true })],
+          spacing: { after: 400 } 
+        })
+      );
+      
+      // ========== CHECKLIST DE VERIFICARE ==========
+      sections.push(
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 600, after: 100 }
+        }),
+        new Paragraph({
+          text: "✅ CHECKLIST LUNAR DE VERIFICARE",
+          heading: HeadingLevel.HEADING_2,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "VERIFICĂRI OBLIGATORII (fă LUNAR):", bold: true })],
+          shading: { fill: "FFEBEE" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "□ Compară soldul băncii (5121) cu extrasul bancar", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Compară soldul casei (5311) cu registrul de casă", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Verifică clienții restanți (411) - contactează-i", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Verifică scadențele furnizorilor (401) - plătește la timp", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Verifică TVA de plată (4427) - nu rata scadența!", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Verifică salarii și contribuții (421, 431, 437) - plătește în termen", spacing: { after: 300 } }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "VERIFICĂRI FINANCIARE:", bold: true })],
+          shading: { fill: "E3F2FD" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "□ Analizează profitul/pierderea (121) - evoluție pozitivă?", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Compară veniturile cu luna anterioară - creștere sau scădere?", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Compară cheltuielile cu veniturile - sunt sub control?", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Calculează marja comercială (707-607) - e suficientă?", spacing: { after: 300 } }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "VERIFICĂRI FISCALE:", bold: true })],
+          shading: { fill: "FFF9C4" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "□ Toate facturile au TVA corect calculat", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Toate cheltuielile au documente justificative", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Colaboratorii (621) au contract și factură", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Deplasările (625) au bon fiscal și ordin de deplasare", spacing: { after: 300 } }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "VERIFICĂRI LEGALE:", bold: true })],
+          shading: { fill: "E8F5E9" },
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({ text: "□ Toate documentele sunt arhivate corect", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Contractele cu furnizorii sunt valabile", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Licențele și autorizațiile sunt în termen", spacing: { after: 50 } }),
+        new Paragraph({ text: "□ Asigurările (RCA, CASCO, etc.) sunt la zi", spacing: { after: 400 } })
+      );
       
       // ========== NOTĂ JURIDICĂ ȘI CONFIRMARE ==========
       // DOAR pentru cabinete de contabilitate (accounting_firm)
@@ -1842,15 +2176,64 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       // Footer
       sections.push(
         new Paragraph({
-          text: `\n\n---`,
+          text: "═══════════════════════════════════════════",
           alignment: AlignmentType.CENTER,
-          spacing: { before: 600 }
+          spacing: { before: 600, after: 100 }
         }),
         new Paragraph({
-          children: [
-            new TextRun({ text: 'Document generat automat de Yana AI', italics: true })
-          ],
-          alignment: AlignmentType.CENTER
+          text: "📄 INFORMAȚII DOCUMENT",
+          heading: HeadingLevel.HEADING_3,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        new Paragraph({
+          text: "═══════════════════════════════════════════",
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: `Document generat automat de: Yana AI - Platformă de analiză financiară`, italics: true })],
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: `Data generării: ${new Date().toLocaleDateString('ro-RO', { day: '2-digit', month: 'long', year: 'numeric' })}`, italics: true })],
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: `Versiune raport: 2.0 (Premium - Analiză Completă)`, italics: true })],
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: `Sursa datelor: Balanță de verificare contabilă`, italics: true })],
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "ASISTENȚĂ ȘI SUPORT:", bold: true })],
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({
+          text: "→ Pentru întrebări despre conturi specifice, contactează contabilul",
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: "→ Pentru optimizări personalizate, accesează Consilier Strategic în platformă",
+          spacing: { after: 50 }
+        }),
+        new Paragraph({
+          text: "→ Pentru alertele ANAF și legislație fiscală, vezi secțiunea Știri Fiscale",
+          spacing: { after: 300 }
+        }),
+        
+        new Paragraph({
+          children: [new TextRun({ text: "IMPORTANT:", bold: true })],
+          spacing: { before: 200, after: 100 }
+        }),
+        new Paragraph({
+          children: [new TextRun({ text: "Acest raport este generat automat pe baza datelor din balanță. Recomandăm verificarea și validarea cu un contabil autorizat înainte de luarea deciziilor financiare majore.", italics: true })],
+          spacing: { after: 400 },
+          alignment: AlignmentType.JUSTIFIED
         })
       );
       
@@ -1864,7 +2247,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       
       // Generare și download
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `Confirmare_Balanta_${structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`);
+      saveAs(blob, `Raport_Financiar_${structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`);
       
       // Salvare în baza de date
       const { data: { user } } = await supabase.auth.getUser();
