@@ -1899,8 +1899,9 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       }
       
       toast({
-        title: '✅ Document generat!',
-        description: 'Confirmarea balanței a fost descărcată și salvată în istoric.'
+        title: '✅ Document Word generat!',
+        description: 'Găsești toate analizele tale salvate în tab-ul "Dosarul Meu" 📂',
+        duration: 6000
       });
       
       // Reset state pentru următoarea analiză
@@ -2380,6 +2381,22 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                           >
                             📄 Generează Confirmare Word
                           </Button>
+                          
+                          {/* Banner informativ - Redirecționare către "Dosarul Meu" */}
+                          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 dark:border-blue-700 rounded">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-shrink-0 text-lg">📂</div>
+                              <div className="flex-1 text-xs">
+                                <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-1">
+                                  Toate analizele sunt salvate automat
+                                </h4>
+                                <p className="text-blue-700 dark:text-blue-400 leading-relaxed">
+                                  Găsești istoricul complet al analizelor în tab-ul <span className="font-bold">"Dosarul Meu"</span>. 
+                                  Poți revedea oricând datele și regenera rapoarte.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                       
