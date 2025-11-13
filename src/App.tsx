@@ -25,6 +25,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const AdvancedAnalytics = lazy(() => import("./pages/AdvancedAnalytics"));
 const Admin = lazy(() => import("./pages/Admin"));
 const UpdatesManager = lazy(() => import("./pages/UpdatesManager"));
+const MarketingMaterials = lazy(() => import("./pages/MarketingMaterials"));
 const CRM = lazy(() => import("./pages/CRM"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Landing = lazy(() => import("./pages/Landing"));
@@ -101,6 +102,7 @@ const App = () => (
                       <Route path="/advanced-analytics" element={<PrivateRoute><AdvancedAnalytics /></PrivateRoute>} />
                       <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
                       <Route path="/admin/platform-costs" element={<PrivateRoute><PlatformCosts /></PrivateRoute>} />
+                      <Route path="/marketing-materials" element={<PrivateRoute><MarketingMaterials /></PrivateRoute>} />
                       <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
                       <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
                       <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
