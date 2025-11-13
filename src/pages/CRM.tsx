@@ -6,7 +6,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CRMManualClientDialog } from "@/components/CRMManualClientDialog";
 import { CRMCSVImport } from "@/components/CRMCSVImport";
-import { Loader2, Building2, Mail, Users, UserPlus, FileUp } from "lucide-react";
+import { Loader2, Building2, Mail, Users, UserPlus, FileUp, FileCheck } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,7 @@ const CompanyManager = lazy(() => import("@/components/CompanyManager").then(m =
 const EmailBroadcast = lazy(() => import("@/components/EmailBroadcast").then(m => ({ default: m.EmailBroadcast })));
 const UsersList = lazy(() => import("@/components/UsersList").then(m => ({ default: m.UsersList })));
 const MonthlyWorkflowManager = lazy(() => import("@/components/yanacrm/MonthlyWorkflowManager").then(m => ({ default: m.MonthlyWorkflowManager })));
+const BalanceConfirmationHistory = lazy(() => import("@/components/BalanceConfirmationHistory").then(m => ({ default: m.BalanceConfirmationHistory })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -108,25 +109,29 @@ const CRM = () => {
           </div>
           
           <Tabs defaultValue="clients" className="space-y-6">
-          <div className="flex items-center justify-between mb-6">
-              <TabsList className="grid w-full max-w-3xl grid-cols-4">
-                <TabsTrigger value="clients" className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Clienți
-                </TabsTrigger>
-                <TabsTrigger value="users" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Utilizatori
-                </TabsTrigger>
-                <TabsTrigger value="workflows" className="flex items-center gap-2">
-                  📅 Dosare Lunare
-                </TabsTrigger>
-                <TabsTrigger value="broadcast" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            <div className="flex items-center justify-between mb-6">
+                <TabsList className="grid w-full max-w-3xl grid-cols-5">
+                  <TabsTrigger value="clients" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Clienți
+                  </TabsTrigger>
+                  <TabsTrigger value="users" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Utilizatori
+                  </TabsTrigger>
+                  <TabsTrigger value="workflows" className="flex items-center gap-2">
+                    📅 Dosare Lunare
+                  </TabsTrigger>
+                  <TabsTrigger value="broadcast" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </TabsTrigger>
+                  <TabsTrigger value="balance" className="flex items-center gap-2">
+                    <FileCheck className="h-4 w-4" />
+                    Istoric Confirmări
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
             <TabsContent value="clients">
               <Suspense fallback={<TabContentLoader />}>
@@ -149,6 +154,12 @@ const CRM = () => {
             <TabsContent value="broadcast">
               <Suspense fallback={<TabContentLoader />}>
                 <EmailBroadcast />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="balance">
+              <Suspense fallback={<TabContentLoader />}>
+                <BalanceConfirmationHistory />
               </Suspense>
             </TabsContent>
           </Tabs>
