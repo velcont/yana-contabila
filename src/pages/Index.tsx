@@ -107,17 +107,11 @@ const Index = () => {
     checkAccountType();
   }, [user, loading]);
 
-  // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la prima logare (antreprenori + contabili)
+  // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
   useEffect(() => {
     if (user && !loading) {
-      // Verifică dacă este prima vizită în această sesiune
-      const hasOpenedChatInSession = sessionStorage.getItem('chatai_opened_in_session');
-      
-      if (!hasOpenedChatInSession) {
-        logger.log('🤖 [INDEX] Auto-deschidere ChatAI - prima logare în sesiune');
-        setShouldOpenChatAI(true);
-        sessionStorage.setItem('chatai_opened_in_session', 'true');
-      }
+      logger.log('🤖 [INDEX] Auto-deschidere ChatAI la logare');
+      setShouldOpenChatAI(true);
     }
   }, [user, loading]);
 
