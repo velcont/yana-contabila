@@ -45,7 +45,7 @@ const StrategicAdvisor = lazy(() => import("./pages/StrategicAdvisor"));
 const HumanizeText = lazy(() => import("./pages/HumanizeText"));
 const ClientOnboardingWizard = lazy(() => import("./pages/ClientOnboardingWizard"));
 const Settings = lazy(() => import("./pages/Settings"));
-const BalanceHistory = lazy(() => import("./pages/BalanceHistory"));
+
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
 const GenerateConferencePaper = lazy(() => import("./pages/GenerateConferencePaper"));
@@ -124,7 +124,7 @@ const App = () => (
                       <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />
                       <Route path="/generate-academic-statistics" element={<PrivateRoute><GenerateAcademicStatistics /></PrivateRoute>} />
                       <Route path="/my-documents" element={<PrivateRoute><MyDocuments /></PrivateRoute>} />
-                      <Route path="/balance-history" element={<PrivateRoute><BalanceHistory /></PrivateRoute>} />
+                      
                       <Route path="/install" element={<InstallPWA />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />

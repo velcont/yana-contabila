@@ -47,7 +47,7 @@ const EmailManager = lazy(() => import('@/components/EmailManager').then(m => ({
 const MonthlyWorkflowManager = lazy(() => import('@/components/yanacrm/MonthlyWorkflowManager').then(m => ({ default: m.MonthlyWorkflowManager })));
 const ClientDueDiligence = lazy(() => import('@/components/ClientDueDiligence').then(m => ({ default: m.ClientDueDiligence })));
 const FiscalChat = lazy(() => import('@/components/FiscalChat'));
-const BalanceConfirmationHistory = lazy(() => import('@/components/BalanceConfirmationHistory').then(m => ({ default: m.BalanceConfirmationHistory })));
+
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">

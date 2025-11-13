@@ -277,21 +277,6 @@ const Index = () => {
                   </CardHeader>
                 </Card>
 
-                {/* Card 4: Istoric Confirmări Balanță (DOAR pentru antreprenori) */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-amber-500/10 to-amber-600/10 border-amber-500/20"
-                  onClick={() => navigate('/balance-history')}
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-amber-500 flex items-center justify-center mb-2">
-                      <FileText className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Istoric Confirmări</CardTitle>
-                    <CardDescription>
-                      Toate confirmările de balanță generate din Chat AI
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
               </>
             ) : (
               <>
