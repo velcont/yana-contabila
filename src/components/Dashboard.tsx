@@ -723,6 +723,7 @@ INDICATORI OPERAȚIONALI:
           <TabsTrigger 
             value="history"
             className="data-[state=active]:bg-orange-500 data-[state=active]:text-white hover:bg-orange-100 dark:hover:bg-orange-950"
+            style={{ animation: 'pulse-orange 2s ease-in-out infinite' }}
           >
             <FileText className="h-4 w-4 mr-2" />
             Dosarul Meu
