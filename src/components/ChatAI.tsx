@@ -137,30 +137,50 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
   const addPremiumReportSuggestion = (
     content: string, 
-    hasStructuredData: boolean
+    hasStructuredData: boolean,
+    userQuestion: string = '' // 🆕 PARAMETRU NOU pentru context întrebare
   ): string => {
     // 🆕 VERIFICARE PRIORITARĂ: Dacă sugestia a fost deja afișată în această conversație
     if (premiumSuggestionShown) {
+      console.log('🚫 [Premium Suggestion] Sugestie deja afișată în conversație');
       return content; // Returnează conținutul nemodificat
     }
     
-    // Verificări:
+    // Verificări preliminare:
     // 1. Modul trebuie să fie 'balance' (nu fiscal)
     // 2. Utilizatorul trebuie să fie antreprenor (nu contabil)
-    // 3. Răspunsul trebuie să fie lung (> 500 caractere) SAU să existe date structurate
-    // 4. Răspunsul conține cuvinte cheie financiare
     
     if (chatMode !== 'balance') return content;
     if (subscriptionType !== 'entrepreneur') return content;
     
+    // 🆕 VERIFICARE CONTEXTUALĂ: Exclude întrebările META despre platformă
+    const metaQuestions = /ce (po[tț]i|[sș]tii|faci|este|[îi]nseamn[aă])|cum (func[tț]ioneaz[aă]|te folosesc|s[aă]|[îi]ncarc)|unde ([îi]ncarc|g[aă]sesc|este)|ajutor|help|explica|tutorial|ghid/i;
+    
+    if (metaQuestions.test(userQuestion)) {
+      console.log('🚫 [Premium Suggestion] Întrebare META detectată - skip sugestie:', userQuestion);
+      return content; // Nu adăuga sugestia pentru întrebări despre platformă
+    }
+    
+    // 🆕 VERIFICARE CALCULE: Răspunsul trebuie să conțină EFECTIV calcule/indicatori financiari
+    const hasFinancialCalculations = /\d+.*RON|\d+.*lei|DSO.*\d+|DPO.*\d+|lichiditate.*\d+|sold.*\d+|profit.*\d+|pierdere.*\d+/i.test(content);
+    
+    if (!hasFinancialCalculations && !hasStructuredData) {
+      console.log('🚫 [Premium Suggestion] Fără calcule financiare concrete - skip sugestie');
+      return content; // Nu adăuga sugestia dacă nu există calcule concrete
+    }
+    
     const isLongResponse = content.length > 500;
-    const containsFinancialKeywords = /anali[zs]|balan[țt]|indicat|finan[țt]iar|profit|pierdere|cash.?flow|DSO|DPO|risc|lichiditate|solvabilitate/i.test(content);
     
-    const shouldSuggest = (isLongResponse && containsFinancialKeywords) || hasStructuredData;
+    // Logica actualizată: trebuie să existe balanță ȘI (răspuns lung SAU calcule concrete)
+    const shouldSuggest = hasStructuredData && (isLongResponse || hasFinancialCalculations);
     
-    if (!shouldSuggest) return content;
+    if (!shouldSuggest) {
+      console.log('🚫 [Premium Suggestion] Condiții nesatisfăcute - skip sugestie');
+      return content;
+    }
     
     // 🆕 Marchează că sugestia a fost afișată
+    console.log('✅ [Premium Suggestion] Afișare sugestie premium relevantă contextual');
     setPremiumSuggestionShown(true);
     
     const premiumSuggestion = `\n\n---\n\n📄 **Raport Financiar Premium Disponibil!**\n\nDacă vrei să citești analiza într-un format mai structurat (12-20 pagini cu grafice), am pregătit un raport Word complet pentru tine.\n\n**Îl găsești în:** Dashboard → "Dosarul Meu" → Selectează analiza → "Generează Raport Premium"\n\n💡 **Ce găsești în raport:**\n✅ Tot ce am discutat aici, dar mult mai detaliat\n✅ Zone de risc identificate automat\n✅ Soluții concrete de optimizare\n✅ Checklist lunar de verificări\n✅ Grafice și indicatori vizuali\n\n🔄 **Dar hai să continuăm discuția aici! Cu ce te pot ajuta acum?** 😊`;
@@ -841,7 +861,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
       const originalContent = assistantContent;
       assistantContent = addPremiumReportSuggestion(
         assistantContent,
-        balanceStructuredData !== null
+        balanceStructuredData !== null,
+        userMessage // 🆕 Transmitem întrebarea utilizatorului pentru verificare contextuală
       );
 
       // Update mesajul final doar dacă s-a adăugat sugestia
@@ -1199,7 +1220,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           // 🆕 Adaugă sugestie premium dacă e cazul (folosind helper-ul reutilizabil)
           aiContent = addPremiumReportSuggestion(
             aiContent, 
-            data.structuredData !== null && data.structuredData !== undefined
+            data.structuredData !== null && data.structuredData !== undefined,
+            'upload balanță' // 🆕 La upload, considerăm că este acțiune relevantă financiar
           );
 
           // Add AI response
