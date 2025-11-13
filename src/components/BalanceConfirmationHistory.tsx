@@ -23,7 +23,13 @@ interface BalanceConfirmation {
   id: string;
   cui: string | null;
   company_name: string;
-  accounts_data: Record<string, { debit: number; credit: number }>;
+  accounts_data: Array<{ 
+    code: string; 
+    name: string; 
+    debit: number; 
+    credit: number; 
+    accountClass: number;
+  }>;
   created_at: string;
 }
 
@@ -711,7 +717,13 @@ export const BalanceConfirmationHistory = () => {
       if (error) throw error;
       setConfirmations((data || []).map(item => ({
         ...item,
-        accounts_data: item.accounts_data as Record<string, { debit: number; credit: number }>
+        accounts_data: item.accounts_data as Array<{ 
+          code: string; 
+          name: string; 
+          debit: number; 
+          credit: number; 
+          accountClass: number;
+        }>
       })));
     } catch (error) {
       console.error('Error fetching confirmations:', error);
@@ -750,13 +762,31 @@ export const BalanceConfirmationHistory = () => {
 
       const isAccountant = userSubscriptionType === 'accounting_firm';
 
+      // 🔍 Validare și logging pentru debugging
+      console.log('📊 [BalanceConfirmationHistory] Tip user:', isAccountant ? 'CONTABIL' : 'ANTREPRENOR');
+      console.log('📊 [BalanceConfirmationHistory] Structură accounts_data:', {
+        isArray: Array.isArray(confirmation.accounts_data),
+        length: Array.isArray(confirmation.accounts_data) ? confirmation.accounts_data.length : 'N/A',
+        firstAccount: Array.isArray(confirmation.accounts_data) ? confirmation.accounts_data[0] : confirmation.accounts_data
+      });
+
       let documentSections: Paragraph[];
       
       if (isAccountant) {
         // ✅ VERSIUNE CONTABIL - Concisă, profesională
+        
+        // Convertim array-ul din DB într-un Record pentru generateAccountantSections
+        const accountsRecord: Record<string, { debit: number; credit: number }> = confirmation.accounts_data.reduce((acc, account) => {
+          acc[account.code] = { 
+            debit: account.debit || 0, 
+            credit: account.credit || 0 
+          };
+          return acc;
+        }, {} as Record<string, { debit: number; credit: number }>);
+        
         documentSections = [
           ...generateAccountantSections(
-            confirmation.accounts_data,
+            accountsRecord, // ✅ Trimitem RECORD, nu ARRAY
             confirmation.cui,
             confirmation.company_name,
             new Date(confirmation.created_at).toLocaleDateString('ro-RO')
