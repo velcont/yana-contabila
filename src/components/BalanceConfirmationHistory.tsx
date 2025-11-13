@@ -1393,13 +1393,20 @@ export const BalanceConfirmationHistory = () => {
             // ========== NOTĂ JURIDICĂ CONDIȚIONATĂ ==========
             ...generateLegalNoteSectionIfNeeded(isAccountant),
 
-            // Semnătură la final
-            new Paragraph({
-              text: "Semnătura: _________________________     Data: _________________",
-              spacing: { before: 400 },
-            }),
-          ],
-        }],
+          // Semnătură la final
+          new Paragraph({
+            text: "Semnătura: _________________________     Data: _________________",
+            spacing: { before: 400 },
+          }),
+        ];
+      }
+
+      // Create Word document (same for both versions)
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: documentSections
+        }]
       });
 
       const blob = await Packer.toBlob(doc);
