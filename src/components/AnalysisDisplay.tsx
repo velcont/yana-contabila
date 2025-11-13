@@ -1141,8 +1141,14 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         <Button 
           onClick={generateWordExplanations} 
           variant="outline"
-          className="w-full"
+          className="w-full relative overflow-hidden"
           size="lg"
+          style={{
+            animation: 'subtle-glow 2s ease-in-out infinite',
+            background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(251, 191, 36, 0.1))',
+            borderColor: 'rgb(251, 146, 60)',
+            fontWeight: 600
+          }}
         >
           <FileText className="h-5 w-5 mr-2" />
           📄 Generează Raport Financiar Premium

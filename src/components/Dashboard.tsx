@@ -720,7 +720,10 @@ INDICATORI OPERAȚIONALI:
             <Newspaper className="h-4 w-4 mr-2" />
             Știri
           </TabsTrigger>
-          <TabsTrigger value="history">
+          <TabsTrigger 
+            value="history"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white hover:bg-orange-100 dark:hover:bg-orange-950"
+          >
             <FileText className="h-4 w-4 mr-2" />
             Dosarul Meu
           </TabsTrigger>
