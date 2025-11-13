@@ -468,7 +468,7 @@ const generateTopOpportunities = (data: {
   return opportunities;
 };
 
-const generateLegalNoteSectionIfNeeded = (isAccountant: boolean): Paragraph[] => {
+export const generateLegalNoteSectionIfNeeded = (isAccountant: boolean): Paragraph[] => {
   if (!isAccountant) {
     console.log('🚫 User este ANTREPRENOR → NU generez notă juridică');
     return [];
@@ -581,7 +581,7 @@ const generateLegalNoteSectionIfNeeded = (isAccountant: boolean): Paragraph[] =>
 };
 
 // Generate accountant-specific sections (concise professional format)
-const generateAccountantSections = (
+export const generateAccountantSections = (
   accounts_data: Record<string, { debit: number; credit: number }>,
   cui: string | null,
   companyName: string,
@@ -683,6 +683,18 @@ export const BalanceConfirmationHistory = () => {
   useEffect(() => {
     fetchConfirmations();
     fetchUserSubscriptionType();
+
+    // 🔄 Listener pentru refetch după adăugare nouă confirmare
+    const handleBalanceConfirmationAdded = () => {
+      console.log('🔄 [BalanceConfirmationHistory] Event received - refetch confirmations');
+      fetchConfirmations();
+    };
+
+    window.addEventListener('balanceConfirmationAdded', handleBalanceConfirmationAdded);
+
+    return () => {
+      window.removeEventListener('balanceConfirmationAdded', handleBalanceConfirmationAdded);
+    };
   }, []);
 
   const fetchUserSubscriptionType = async () => {
