@@ -43,6 +43,7 @@ const Index = () => {
   const { setThemeOverride, themeOverride } = useTheme();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+  const [shouldOpenChatAI, setShouldOpenChatAI] = useState(false);
 
   // Check if user needs to select account type
   useEffect(() => {
@@ -105,6 +106,20 @@ const Index = () => {
 
     checkAccountType();
   }, [user, loading]);
+
+  // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la prima vizită în sesiune
+  useEffect(() => {
+    if (user && !loading && (activeView === 'analiza-balanta' || activeView === 'chat-ai')) {
+      // Verifică dacă este prima vizită în această sesiune
+      const hasOpenedChatInSession = sessionStorage.getItem('chatai_opened_in_session');
+      
+      if (!hasOpenedChatInSession) {
+        logger.log('🤖 [INDEX] Auto-deschidere ChatAI - prima vizită în sesiune');
+        setShouldOpenChatAI(true);
+        sessionStorage.setItem('chatai_opened_in_session', 'true');
+      }
+    }
+  }, [user, loading, activeView]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -345,7 +360,7 @@ const Index = () => {
       
       {/* ChatAI disponibil global pentru analiza-balanta și chat-ai views */}
       {(activeView === 'analiza-balanta' || activeView === 'chat-ai') && (
-        <ChatAI />
+        <ChatAI openOnLoad={shouldOpenChatAI} />
       )}
       
       <AccountTypeSelector 
