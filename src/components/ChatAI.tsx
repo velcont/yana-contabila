@@ -130,6 +130,32 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }>;
   } | null>(null);
   
+  // 🆕 Helper function pentru verificare și adăugare sugestie premium
+  const addPremiumReportSuggestion = (
+    content: string, 
+    hasStructuredData: boolean
+  ): string => {
+    // Verificări:
+    // 1. Modul trebuie să fie 'balance' (nu fiscal)
+    // 2. Utilizatorul trebuie să fie antreprenor (nu contabil)
+    // 3. Răspunsul trebuie să fie lung (> 500 caractere) SAU să existe date structurate
+    // 4. Răspunsul conține cuvinte cheie financiare
+    
+    if (chatMode !== 'balance') return content;
+    if (subscriptionType !== 'entrepreneur') return content;
+    
+    const isLongResponse = content.length > 500;
+    const containsFinancialKeywords = /anali[zs]|balan[țt]|indicat|finan[țt]iar|profit|pierdere|cash.?flow|DSO|DPO|risc|lichiditate|solvabilitate/i.test(content);
+    
+    const shouldSuggest = (isLongResponse && containsFinancialKeywords) || hasStructuredData;
+    
+    if (!shouldSuggest) return content;
+    
+    const premiumSuggestion = `\n\n---\n\n📄 **Raport Financiar Premium Disponibil!**\n\nDacă îți e greu să citești tot aici în chat, am pregătit pentru tine un **Raport Financiar Premium** complet în format Word (12-20 pagini cu grafice și recomandări detaliate).\n\n**Cum accesezi raportul:**\n1. 🏠 Mergi la **Dashboard**\n2. 📁 Selectează tab-ul **"Dosarul Meu"**\n3. 📊 Selectează analiza din lista din stânga\n4. ⬇️ Scroll down în panoul de detalii\n5. 📄 Apasă pe butonul **"Generează Raport Financiar Premium"**\n6. 💾 Descarcă fișierul \`Raport_Financiar_{CUI}_{DATA}.docx\`\n\n💡 **Ce găsești în raport:**\n✅ Tot ce am discutat aici, dar mult mai detaliat\n✅ Zone de risc identificate automat\n✅ Soluții concrete de optimizare\n✅ Checklist lunar de verificări\n✅ Grafice și indicatori vizuali\n\n🔄 **După ce citești raportul, hai înapoi cu întrebări! Te aștept!** 😊\n\n**Cu ce te pot ajuta acum?**`;
+    
+    return content + premiumSuggestion;
+  };
+  
   // Încarcă istoric fiscal când se schimbă pe modul fiscal
   useEffect(() => {
     if (chatMode === 'fiscal' && isOpen && fiscalMessages.length <= 1) {
@@ -799,30 +825,15 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         });
       }
 
-      // 🆕 SUGESTIE RAPORT PREMIUM - DOAR pentru antreprenori
-      const shouldSuggestPremiumReport = () => {
-        // Verificări:
-        // 1. Modul trebuie să fie 'balance' (nu fiscal)
-        // 2. Utilizatorul trebuie să fie antreprenor (nu contabil)
-        // 3. Răspunsul trebuie să fie lung (> 500 caractere) SAU să existe date structurate
-        // 4. Răspunsul conține cuvinte cheie financiare
-        
-        if (chatMode !== 'balance') return false;
-        if (subscriptionType !== 'entrepreneur') return false;
-        
-        const isLongResponse = assistantContent.length > 500;
-        const hasStructuredData = balanceStructuredData !== null;
-        const containsFinancialKeywords = /anali[zs]|balan[țt]|indicat|finan[țt]iar|profit|pierdere|cash.?flow|DSO|DPO|risc|lichiditate|solvabilitate/i.test(assistantContent);
-        
-        return (isLongResponse && containsFinancialKeywords) || hasStructuredData;
-      };
+      // 🆕 Adaugă sugestie premium dacă e cazul (folosind helper-ul reutilizabil)
+      const originalContent = assistantContent;
+      assistantContent = addPremiumReportSuggestion(
+        assistantContent,
+        balanceStructuredData !== null
+      );
 
-      if (shouldSuggestPremiumReport()) {
-        const premiumSuggestion = `\n\n---\n\n📄 **Raport Financiar Premium Disponibil!**\n\nDacă îți e greu să citești tot aici în chat, am pregătit pentru tine un **Raport Financiar Premium** complet în format Word (12-20 pagini cu grafice și recomandări detaliate).\n\n**Cum accesezi raportul:**\n1. 🏠 Mergi la **Dashboard**\n2. 📁 Selectează tab-ul **"Dosarul Meu"**\n3. 📊 Selectează analiza din lista din stânga\n4. ⬇️ Scroll down în panoul de detalii\n5. 📄 Apasă pe butonul **"Generează Raport Financiar Premium"**\n6. 💾 Descarcă fișierul \`Raport_Financiar_{CUI}_{DATA}.docx\`\n\n💡 **Ce găsești în raport:**\n✅ Tot ce am discutat aici, dar mult mai detaliat\n✅ Zone de risc identificate automat\n✅ Soluții concrete de optimizare\n✅ Checklist lunar de verificări\n✅ Grafice și indicatori vizuali\n\n🔄 **După ce citești raportul, hai înapoi cu întrebări! Te aștept!** 😊\n\n**Cu ce te pot ajuta acum?**`;
-        
-        assistantContent += premiumSuggestion;
-        
-        // Update mesajul final
+      // Update mesajul final doar dacă s-a adăugat sugestia
+      if (assistantContent !== originalContent) {
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
@@ -1164,13 +1175,22 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             }
           }
 
+          // Construiește conținutul mesajului
+          let aiContent = data.analysis ? 
+            `${data.analysis}\n\n✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?` :
+            "✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?";
+
+          // 🆕 Adaugă sugestie premium dacă e cazul (folosind helper-ul reutilizabil)
+          aiContent = addPremiumReportSuggestion(
+            aiContent, 
+            data.structuredData !== null && data.structuredData !== undefined
+          );
+
           // Add AI response
           const aiMessage: Message = {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: data.analysis ? 
-              `${data.analysis}\n\n✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?` :
-              "✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?",
+            content: aiContent,
             structuredData: data.structuredData // 📊 Salvează datele structurate în mesaj
           };
           setMessages(prev => [...prev, aiMessage]);
