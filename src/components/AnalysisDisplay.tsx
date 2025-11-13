@@ -235,7 +235,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
   const companyInfo = extractCompanyInfo(analysisText);
   const sections = extractSections(analysisText);
 
-  // Generate Word document with account explanations
+  // Generate Premium Financial Report Word document
   const generateWordExplanations = async () => {
     // Fallback: construiește date structurate din metadata dacă lipsesc
     let sd: { cui: string; company: string; accounts: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> } | null = null;
@@ -314,176 +314,579 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     try {
       const { cui, company, accounts } = sd;
       
-      // Account explanations map
-      const accountExplanations: Record<string, { name: string; explanation: string; implications: string }> = {
-        "121": {
-          name: "Profit sau Pierdere",
-          explanation: "Acest cont reflectă rezultatul anual al companiei. Un sold creditor indică profit (veniturile au depășit cheltuielile), în timp ce un sold debitor indică pierdere.",
-          implications: "Profitul poate fi reinvestit în companie sau distribuit către asociați. Pierderea trebuie acoperită din rezerve sau profit viitor."
-        },
-        "4111": {
-          name: "Clienți - Vânzări produse/servicii",
-          explanation: "Reprezintă sumele datorate de clienți pentru produse/servicii livrate dar nefacturate încă, sau facturi emise dar neîncasate.",
-          implications: "Sold mare = bani blocați în creanțe. Risc de neîncasare. Monitorizați termene de plată și urmăriți clienții restanți."
-        },
-        "401": {
-          name: "Furnizori - Datorii către furnizori",
-          explanation: "Reprezintă obligațiile de plată către furnizori pentru bunuri/servicii primite.",
-          implications: "Sold mare poate indica negocieri bune de termene, dar atenție la termenele de plată pentru a evita penalizări."
-        },
-        "4423": {
-          name: "TVA de plată",
-          explanation: "Diferența între TVA colectată (din vânzări) și TVA deductibilă (din achiziții), de plătit către ANAF.",
-          implications: "Asigurați-vă că aveți lichiditățile necesare pentru plata TVA-ului la termen (25 ale lunii următoare)."
-        },
-        "4424": {
-          name: "TVA de recuperat",
-          explanation: "TVA deductibilă mai mare decât TVA colectată - diferența se poate recupera de la ANAF sau compensa în lunile următoare.",
-          implications: "Reprezintă o creanță la stat. Puteți solicita rambursarea sau o puteți compensa cu TVA viitoare de plată."
-        },
-        "5121": {
-          name: "Conturi la bănci în lei",
-          explanation: "Disponibilități bănești în conturile bancare în RON.",
-          implications: "Asigură lichiditatea pentru plăți curente. Sold scăzut = risc de cash-flow. Monitorizați zilnic."
-        },
-        "5311": {
-          name: "Casa în lei",
-          explanation: "Numerar disponibil în casa companiei.",
-          implications: "Utilizat pentru plăți mici. Atenție la limitele legale de plăți în numerar (5.000 lei/zi)."
-        },
-        "371": {
-          name: "Mărfuri",
-          explanation: "Stocul de mărfuri destinate revânzării, evaluate la cost de achiziție.",
-          implications: "Sold mare poate indica suprastocuri sau mișcare lentă. Verificați rotația stocurilor și produsele cu mișcare lentă."
-        },
-        "512": {
-          name: "Conturi curente la bănci",
-          explanation: "Include toate conturile bancare curente (5121 în lei, 5124 în valută).",
-          implications: "Esențial pentru operațiunile zilnice. Diversificarea în mai multe bănci reduce riscul."
-        },
-        "531": {
-          name: "Casa",
-          explanation: "Numerarul disponibil în casa unității (5311 lei, 5314 valută).",
-          implications: "Respectați limita legală de 5.000 lei pentru plăți în numerar între profesionisti."
-        }
+      // Helper functions
+      const fmt = (n: number) => n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      
+      const get = (code: string) => {
+        const acc = accounts.find(a => a.code === code);
+        if (!acc) return { debit: 0, credit: 0, sold: 0 };
+        const sold = acc.debit > 0 ? acc.debit : (acc.credit > 0 ? acc.credit : 0);
+        return { debit: acc.debit, credit: acc.credit, sold };
       };
-
+      
+      // Calculate key indicators
+      const bank = get('5121').sold;
+      const cash = get('5311').sold;
+      const clients411 = get('411').debit;
+      const clients4111 = get('4111').debit;
+      const totalClients = clients411 + clients4111;
+      const suppliers = get('401').credit;
+      const stocks = get('371').debit;
+      const profit121credit = get('121').credit;
+      const profit121debit = get('121').debit;
+      const profitOrLoss = profit121credit - profit121debit;
+      const totalCash = bank + cash;
+      
+      // Sum revenues (class 7) and expenses (class 6)
+      const totalRevenue = accounts.filter(a => a.accountClass === 7).reduce((sum, a) => sum + a.credit, 0);
+      const totalExpenses = accounts.filter(a => a.accountClass === 6).reduce((sum, a) => sum + a.debit, 0);
+      
+      // Health status
+      let healthStatus = 'EXCELENT';
+      let healthColor = 'verde';
+      if (totalCash < 10000 || profitOrLoss < 0) {
+        healthStatus = 'CRITIC';
+        healthColor = 'roșu';
+      } else if (totalCash < 50000 || profitOrLoss < 10000) {
+        healthStatus = 'ATENȚIE';
+        healthColor = 'portocaliu';
+      } else if (totalCash < 100000) {
+        healthStatus = 'BINE';
+        healthColor = 'galben';
+      }
+      
+      // Count alerts
+      let alertsCount = 0;
+      if (totalCash < 20000) alertsCount++;
+      if (profitOrLoss < 0) alertsCount++;
+      if (suppliers > bank * 2) alertsCount++;
+      if (totalClients > bank * 3) alertsCount++;
+      if (cash > 10000) alertsCount++;
+      
       // Build document sections
-      const docSections: Paragraph[] = [
+      const docSections: Paragraph[] = [];
+      
+      // === HEADER ===
+      docSections.push(
         new Paragraph({
-          text: `EXPLICAȚII BALANȚĂ CONTABILĂ`,
+          text: 'RAPORT DE ANALIZĂ FINANCIARĂ COMPLETĂ',
           heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: 'Analiză detaliată a tuturor conturilor cu recomandări de optimizare',
           alignment: AlignmentType.CENTER,
           spacing: { after: 400 }
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: "Companie: ", bold: true }),
-            new TextRun(company || "N/A")
+            new TextRun({ text: 'Companie: ', bold: true }),
+            new TextRun(company || 'N/A')
           ],
-          spacing: { after: 200 }
+          spacing: { after: 150 }
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: "CUI: ", bold: true }),
-            new TextRun(cui || "N/A")
+            new TextRun({ text: 'CUI: ', bold: true }),
+            new TextRun(cui || 'N/A')
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Data generării: ', bold: true }),
+            new TextRun(new Date().toLocaleDateString('ro-RO'))
+          ],
+          spacing: { after: 600 }
+        })
+      );
+      
+      // === DISCLAIMER ===
+      docSections.push(
+        new Paragraph({
+          text: '⚠️ NOTĂ LEGALĂ IMPORTANTĂ',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({
+          text: 'Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.',
+          spacing: { after: 600 }
+        })
+      );
+      
+      // === REZUMAT EXECUTIV ===
+      docSections.push(
+        new Paragraph({
+          text: '📊 REZUMAT EXECUTIV - Situația Ta Financiară pe Scurt',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 400, after: 300 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '💰 Banii firmei tale în bancă: ', bold: true }),
+            new TextRun(`${fmt(bank)} RON`)
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '💵 Banii în numerar (la casă): ', bold: true }),
+            new TextRun(`${fmt(cash)} RON`)
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '📈 Cât ai câștigat (Profit/Pierdere): ', bold: true }),
+            new TextRun(`${profitOrLoss >= 0 ? '+' : ''}${fmt(profitOrLoss)} RON ${profitOrLoss >= 0 ? '✅ PROFIT' : '❌ PIERDERE'}`)
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '👥 Cine îți datorează bani (Clienți): ', bold: true }),
+            new TextRun(`${fmt(totalClients)} RON`)
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '🏢 Cui datorezi (Furnizori): ', bold: true }),
+            new TextRun(`${fmt(suppliers)} RON`)
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '📦 Valoare stocuri: ', bold: true }),
+            new TextRun(`${fmt(stocks)} RON`)
           ],
           spacing: { after: 400 }
         }),
         new Paragraph({
-          text: "Explicații Conturi Principale",
+          text: '🎯 INDICATORI CHEIE',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 300, after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `• Sănătate financiară: ${healthStatus} (${healthColor})`, bold: true })
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: `• Număr alerte identificate: ${alertsCount}`, bold: true })
+          ],
+          spacing: { after: 150 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '• Direcție recomandată: ', bold: true }),
+            new TextRun(alertsCount > 2 ? 'Acțiune URGENTĂ necesară' : alertsCount > 0 ? 'Monitorizare atentă' : 'Continuă astfel')
+          ],
+          spacing: { after: 600 }
+        })
+      );
+      
+      // === EXPLICAȚII CONTURI CHEIE ===
+      docSections.push(
+        new Paragraph({
+          text: '💡 EXPLICAȚII PE LIMBA TA - Ce Înseamnă Conturile Tale',
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 400, after: 300 }
         })
+      );
+      
+      // Key accounts with simple explanations
+      const keyAccounts = [
+        {
+          code: '5121',
+          title: '🏦 Banii firmei tale în bancă (Cont 5121)',
+          what: `Ai în cont bancar: ${fmt(bank)} RON`,
+          why: 'Acestea sunt banii disponibili imediat pentru plăți. Îi poți folosi oricând ai nevoie.',
+          check: 'Verifică lunar: Are firma suficienți bani pentru furnizori și salarii? Dacă nu, trebuie să încasezi urgent de la clienți.',
+          optimize: bank < 50000 ? 'IMPORTANT: Sold scăzut! Concentrează-te pe încasări rapide de la clienți.' : 'Bine! Ai lichiditate suficientă.'
+        },
+        {
+          code: '5311',
+          title: '💵 Banii firmei tale în numerar - la casă (Cont 5311)',
+          what: `Ai în casă: ${fmt(cash)} RON`,
+          why: 'Bani cash pentru plăți mici zilnice. Legal, nu poți plăti peste 5.000 lei/zi în numerar între firme.',
+          check: 'Verifică zilnic casa și ține evidența clară. Emite chitanțe pentru toate intrările/ieșirile.',
+          optimize: cash > 10000 ? 'ATENȚIE: Prea mulți bani în casă = risc de furt. Depune la bancă!' : 'OK.'
+        },
+        {
+          code: '411',
+          title: '👥 Banii pe care trebuie să-i încasezi de la clienți (Cont 411/4111)',
+          what: `Clienții îți datorează: ${fmt(totalClients)} RON`,
+          why: 'Sunt bani blocați - tu ai livrat produse/servicii, dar nu i-ai primit încă. Risc: clientul poate să nu plătească.',
+          check: 'Verifică lunar: Cine îți datorează? De cât timp? Sună clienții cu întârzieri! Trimite notificări la 30 zile.',
+          optimize: totalClients > bank * 2 ? 'ATENȚIE: Ai prea mulți bani în clienți! Risc mare de cash-flow. Încearcă: discount 2% pentru plată imediată.' : 'OK, nivel acceptabil.'
+        },
+        {
+          code: '401',
+          title: '🏢 Banii pe care îi datorezi furnizorilor (Cont 401)',
+          what: `Datorezi furnizorilor: ${fmt(suppliers)} RON`,
+          why: 'Ai primit produse/servicii, dar nu ai plătit încă. Atenție la termene - întârzierea = penalități!',
+          check: 'Verifică săptămânal: Ce facturi expirăîn curând? Prioritizează plățile importante (utilități, chirii).',
+          optimize: suppliers > bank * 1.5 ? 'ATENȚIE CRITICĂ: Datorezi mai mult decât ai în bancă! Urgență: negociază termene cu furnizorii.' : 'OK.'
+        },
+        {
+          code: '4423',
+          title: '💸 TVA de plată către stat (Cont 4423)',
+          what: `Datorezi TVA: ${fmt(get('4423').credit)} RON`,
+          why: 'TVA colectat de la clienți minus TVA plătit la furnizori. Termen: 25 ale lunii următoare.',
+          check: 'OBLIGATORIU: Verifică că ai bani pentru TVA înainte de 25! Întârzierea = penalități 0.02%/zi.',
+          optimize: get('4423').credit > bank * 0.3 ? 'RISC: TVA-ul e mare față de lichidități. Păstrează banii deoparte!' : 'OK.'
+        },
+        {
+          code: '4424',
+          title: '💰 TVA de recuperat de la stat (Cont 4424)',
+          what: `Ai de recuperat TVA: ${fmt(get('4424').debit)} RON`,
+          why: 'Ai plătit mai mult TVA la achiziții decât ai colectat de la clienți. Poți recupera diferența de la stat.',
+          check: 'Poți cere rambursare sau compensa în lunile următoare când vei avea TVA de plată.',
+          optimize: 'Bine! Reprezintă o creanță la stat.'
+        },
+        {
+          code: '371',
+          title: '📦 Valoarea stocurilor (Cont 371)',
+          what: `Ai stocuri de: ${fmt(stocks)} RON`,
+          why: 'Produse/mărfuri în depozit. Bani blocați până vinzi produsele.',
+          check: 'Lunar: Care produse stau mult în stoc? Fă inventar fizic trimestrial.',
+          optimize: stocks > bank ? 'ATENȚIE: Prea multe stocuri! Banii tăi stau în depozit. Încearcă: promoții pentru produse slow-moving.' : 'OK.'
+        },
+        {
+          code: '121',
+          title: '📈 Rezultatul tău - Profit sau Pierdere (Cont 121)',
+          what: `Rezultat: ${profitOrLoss >= 0 ? 'PROFIT' : 'PIERDERE'} de ${fmt(Math.abs(profitOrLoss))} RON`,
+          why: profitOrLoss >= 0 ? 'Bravo! Veniturile au depășit cheltuielile. Poți reinvesti sau distribui dividende.' : 'Atenție! Cheltuielile au depășit veniturile. Trebuie acoperită pierderea.',
+          check: 'Compară cu anul trecut. Crește profitul? Scade? De ce?',
+          optimize: profitOrLoss < 0 ? 'URGENT: Pierdere! Analizează: Care cheltuieli pot fi reduse? Cum creșți vânzările?' : profitOrLoss < 10000 ? 'Profit mic. Caută oportunități de creștere.' : 'Excelent! Continuă strategia actuală.'
+        }
       ];
-
-      // Normalize accounts structure (array or map) and add explanations
-      const entries: Array<{ code: string; name?: string; soldFinal: number }> = [];
-
-      if (Array.isArray(accounts)) {
-        (accounts as any[]).forEach((a: any) => {
-          const d = Number(a?.debit || 0);
-          const c = Number(a?.credit || 0);
-          const soldFinal = d > 0 ? d : c;
-          if (soldFinal > 0 && a?.code) {
-            entries.push({ code: String(a.code), name: a.name, soldFinal });
-          }
-        });
-      } else if (accounts && typeof accounts === 'object') {
-        Object.keys(accounts as any).forEach((code) => {
-          const a: any = (accounts as any)[code];
-          const soldFinal = Number(a?.soldFinalDebitor || 0) || Number(a?.soldFinalCreditor || 0) || Number(a?.totalDebit || 0) || Number(a?.totalCredit || 0) || 0;
-          if (soldFinal > 0) {
-            entries.push({ code, name: a?.accountName, soldFinal });
-          }
-        });
-      }
-
-      // Add explanations for accounts with balance > 0
-      entries.forEach(({ code, soldFinal }) => {
-        if (soldFinal > 0 && accountExplanations[code]) {
-          const explanation = accountExplanations[code];
-
+      
+      keyAccounts.forEach(acc => {
+        const accountData = get(acc.code);
+        if (accountData.sold > 0 || acc.code === '121' || acc.code === '4423' || acc.code === '4424') {
           docSections.push(
             new Paragraph({
-              children: [
-                new TextRun({ text: `Contul ${code} - ${explanation.name}`, bold: true, size: 24 })
-              ],
-              spacing: { before: 300, after: 200 }
+              text: acc.title,
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 400, after: 200 }
             }),
             new Paragraph({
               children: [
-                new TextRun({ text: "Ce reprezintă: ", bold: true }),
-                new TextRun(explanation.explanation)
-              ],
-              spacing: { after: 150 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Implicații pentru afacere: ", bold: true }),
-                new TextRun(explanation.implications)
+                new TextRun({ text: '📌 Ce ai: ', bold: true }),
+                new TextRun(acc.what)
               ],
               spacing: { after: 150 }
             }),
             new Paragraph({
               children: [
-                new TextRun({ text: "Sold actual: ", bold: true }),
-                new TextRun(`${soldFinal.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`)
+                new TextRun({ text: '🔍 De ce contează: ', bold: true }),
+                new TextRun(acc.why)
+              ],
+              spacing: { after: 150 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: '✅ Ce să verifici: ', bold: true }),
+                new TextRun(acc.check)
+              ],
+              spacing: { after: 150 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: '⚡ Optimizări posibile: ', bold: true }),
+                new TextRun(acc.optimize)
               ],
               spacing: { after: 300 }
             })
           );
         }
       });
-
-      // Add confirmation section
+      
+      // === ZONE DE RISC ===
       docSections.push(
         new Paragraph({
-          text: "Declarație de Confirmare",
+          text: '⚠️ ZONE DE RISC ȘI ALERTE IDENTIFICATE',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 600, after: 300 }
+        })
+      );
+      
+      const risks: Array<{ type: string; message: string; severity: string }> = [];
+      
+      if (totalCash < 20000) {
+        risks.push({
+          type: '🔴 CRICTIC',
+          message: `Lichiditate foarte scăzută (${fmt(totalCash)} RON). Risc de incapacitate de plată.`,
+          severity: 'URGENT'
+        });
+      }
+      
+      if (get('4423').credit > bank * 0.5) {
+        risks.push({
+          type: '🔴 CRITIC',
+          message: `TVA de plată (${fmt(get('4423').credit)} RON) este peste 50% din banii din bancă. Risc de neplată la termen.`,
+          severity: 'URGENT'
+        });
+      }
+      
+      if (suppliers > bank * 1.5) {
+        risks.push({
+          type: '🔴 CRITIC',
+          message: `Datorii furnizori (${fmt(suppliers)} RON) depășesc semnificativ disponibilitățile bancare.`,
+          severity: 'URGENT'
+        });
+      }
+      
+      if (profitOrLoss < 0) {
+        risks.push({
+          type: '🟡 AVERTISMENT',
+          message: `Pierdere în cont 121: ${fmt(Math.abs(profitOrLoss))} RON. Revizuiește structura de costuri.`,
+          severity: 'MEDIU'
+        });
+      }
+      
+      if (cash > 10000) {
+        risks.push({
+          type: '🟡 AVERTISMENT',
+          message: `Numerar prea mare în casă (${fmt(cash)} RON). Risc de furt/pierdere.`,
+          severity: 'MEDIU'
+        });
+      }
+      
+      if (stocks > bank * 2) {
+        risks.push({
+          type: '🟡 AVERTISMENT',
+          message: `Stocuri mari (${fmt(stocks)} RON) față de lichidități. Posibilă rotație slabă.`,
+          severity: 'MEDIU'
+        });
+      }
+      
+      if (risks.length === 0) {
+        docSections.push(
+          new Paragraph({
+            text: '✅ Felicitări! Nu au fost identificate zone critice de risc.',
+            spacing: { after: 300 }
+          })
+        );
+      } else {
+        risks.forEach(risk => {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${risk.type} - `, bold: true }),
+                new TextRun({ text: `${risk.message}`, bold: false })
+              ],
+              spacing: { after: 200 }
+            })
+          );
+        });
+      }
+      
+      docSections.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: `TOTAL ALERTE: ${risks.length}`, bold: true })
+          ],
+          spacing: { before: 300, after: 600 }
+        })
+      );
+      
+      // === SOLUȚII DE OPTIMIZARE ===
+      docSections.push(
+        new Paragraph({
+          text: '💡 SOLUȚII DE OPTIMIZARE - Pașii Următori',
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 600, after: 300 }
         }),
         new Paragraph({
-          text: `Subsemnatul(a) _____________________, în calitate de administrator/director al ${company || "companiei"}, confirm prin prezenta că am luat la cunoștință de informațiile contabile prezentate mai sus și declar că acestea corespund cu realitatea situației financiare a companiei la data analizei.`,
+          text: '🚀 ACȚIUNI IMEDIATE (0-7 zile)',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 300, after: 200 }
+        }),
+        new Paragraph({
+          text: '• Contactează clienții cu facturi restante peste 30 zile',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Verifică scadențele furnizori și prioritizează plățile critice',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Asigură-te că ai bani pentru TVA până pe 25',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Depune numerarul peste 5.000 lei la bancă',
           spacing: { after: 400 }
         }),
         new Paragraph({
-          text: "Data: ______________",
+          text: '📅 ACȚIUNI PE TERMEN MEDIU (1-3 luni)',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 300, after: 200 }
+        }),
+        new Paragraph({
+          text: '• Implementează sistem de monitorizare clienți (alerte automate la 30/60/90 zile)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Negociază termene mai bune cu furnizorii principali',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Analizează stocurile cu mișcare lentă și fă promoții',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Creează un buffer de siguranță = 3 luni de cheltuieli fixe',
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: '🎯 STRATEGIE PE TERMEN LUNG (3-12 luni)',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 300, after: 200 }
+        }),
+        new Paragraph({
+          text: '• Diversifică clienții (risc concentrare)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Optimizează structura de costuri (target: cheltuieli < 70% din venituri)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Automatizează procesele contabile pentru reducerea erorilor',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '• Implementează dashboard financiar pentru monitorizare în timp real',
+          spacing: { after: 600 }
+        })
+      );
+      
+      // === CHECKLIST LUNAR ===
+      docSections.push(
+        new Paragraph({
+          text: '✅ CHECKLIST LUNAR - Nu Uita!',
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 600, after: 300 }
+        }),
+        new Paragraph({
+          text: '📋 OBLIGATORII (Legal)',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 200, after: 150 }
+        }),
+        new Paragraph({
+          text: '□ Depune declarația de TVA (până pe 25)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Plătește TVA-ul datorat (până pe 25)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Verifică și plătește contribuțiile sociale (CAS, CASS)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Depune D112 (declarația privind obligațiile de plată)',
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: '💰 FINANCIARE (Recomandate)',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 200, after: 150 }
+        }),
+        new Paragraph({
+          text: '□ Reconciliază conturile bancare cu evidența contabilă',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Verifică casa și fă inventarul numerarului',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Analizează facturile neîncasate de la clienți',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Verifică scadențele facturilor către furnizori',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Calculează indicatorii cheie (lichiditate, profitabilitate)',
+          spacing: { after: 400 }
+        }),
+        new Paragraph({
+          text: '🔍 ANALIZĂ STRATEGICĂ (Lunar)',
+          heading: HeadingLevel.HEADING_3,
+          spacing: { before: 200, after: 150 }
+        }),
+        new Paragraph({
+          text: '□ Compară rezultatele cu luna precedentă',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Identifică tendințele (venituri/cheltuieli în creștere/scădere)',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Analizează rentabilitatea pe produse/servicii',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '□ Revizuiește prognoza de cash-flow pentru luna următoare',
+          spacing: { after: 600 }
+        })
+      );
+      
+      // === FOOTER ===
+      docSections.push(
+        new Paragraph({
+          text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 600, after: 300 }
+        }),
+        new Paragraph({
+          text: '📄 Informații Document',
+          heading: HeadingLevel.HEADING_3,
+          alignment: AlignmentType.CENTER,
           spacing: { after: 200 }
         }),
         new Paragraph({
-          text: "Semnătura: ______________",
-          spacing: { after: 600 }
+          children: [
+            new TextRun({ text: 'Data generării: ', bold: true }),
+            new TextRun(`${new Date().toLocaleString('ro-RO')}`)
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 100 }
         }),
         new Paragraph({
           children: [
-            new TextRun({ text: "Notă juridică: ", bold: true, italics: true }),
-            new TextRun({ 
-              text: "Acest document are valoare juridică și servește ca dovadă a luării la cunoștință a situației contabile de către administrator. Se recomandă păstrarea acestui document timp de 10 ani conform legislației contabile în vigoare. Termenul de confirmare este de maximum 5 zile lucrătoare de la primirea analizei.",
-              italics: true,
-              size: 20
-            })
+            new TextRun({ text: 'Versiune raport: ', bold: true }),
+            new TextRun('Premium v2.0')
           ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Sursă date: ', bold: true }),
+            new TextRun('Balanță de verificare contabilă')
+          ],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Pentru suport: contact@yana.ro', italics: true })
+          ],
+          alignment: AlignmentType.CENTER,
           spacing: { after: 200 }
         })
       );
@@ -496,13 +899,33 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         }]
       });
 
-      // Generate and download
+      // Generate and download with proper filename
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `Explicatii_Balanta_${company}_${cui}.docx`);
-      toast.success("Document Word generat cu succes!");
+      const fileName = `Raport_Financiar_${cui}_${new Date().toISOString().split('T')[0]}.docx`;
+      
+      console.log('📄 Generare raport premium cu numele:', fileName);
+      
+      // Try primary download method
+      try {
+        saveAs(blob, fileName);
+        toast.success('✅ Raport Financiar Premium generat cu succes!');
+      } catch (saveError) {
+        // Fallback: force download via link
+        console.warn('saveAs failed, using fallback download method');
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('✅ Raport Financiar Premium generat (download forțat)!');
+      }
+      
     } catch (error) {
-      console.error("Eroare generare Word:", error);
-      toast.error("Eroare la generarea documentului Word");
+      console.error('Eroare generare Raport Premium:', error);
+      toast.error('Eroare la generarea raportului financiar');
     }
   };
 
@@ -722,7 +1145,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           size="lg"
         >
           <FileText className="h-5 w-5 mr-2" />
-          📄 Generează Explicații Word (Document Confirmare Administrator)
+          📄 Generează Raport Financiar Premium
         </Button>
         
         {/* Word Readiness Indicator */}
