@@ -551,16 +551,22 @@ INDICATORI OPERAȚIONALI:
     if (!selectedAnalysis) return;
     
     const metadata = selectedAnalysis.metadata as any || {};
-    const structuredData = metadata.structuredData;
+    
+    // Încearcă multiple surse pentru date structurate
+    let structuredData = metadata.structuredData || metadata;
+    let accounts = structuredData?.accounts || [];
     
     console.log('📊 [DASHBOARD] Metadata pentru Word:', metadata);
     console.log('📊 [DASHBOARD] StructuredData:', structuredData);
+    console.log('📊 [DASHBOARD] Accounts găsite:', accounts.length);
     
-    if (!structuredData?.accounts || structuredData.accounts.length === 0) {
+    // Dacă nu avem conturi, încearcă să le extragi din analysis_text
+    if (!accounts || accounts.length === 0) {
       toast({
         title: "⚠️ Date insuficiente",
-        description: "Nu există conturi structurate disponibile pentru a genera raportul Word. Încarcă din nou balanța sau contactează suportul.",
-        variant: "destructive"
+        description: "Pentru raportul Word, te rugăm să reîncarci balanța folosind butonul 🔄 Reprocesează Balanță din secțiunea de detalii analiză.",
+        variant: "destructive",
+        duration: 6000
       });
       return;
     }
@@ -611,7 +617,7 @@ INDICATORI OPERAȚIONALI:
       
       // Convert accounts array to record format
       const accountsRecord: Record<string, any> = {};
-      structuredData.accounts.forEach((acc: any) => {
+      accounts.forEach((acc: any) => {
         accountsRecord[acc.code] = acc;
       });
       
