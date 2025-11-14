@@ -237,6 +237,15 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
 
   // Generate Premium Financial Report Word document
   const generateWordExplanations = async () => {
+    // === FIX #6: DEBUG LOGGING START ===
+    console.log('\n' + '='.repeat(80));
+    console.log('🚀 START GENERARE RAPORT PREMIUM');
+    console.log('='.repeat(80));
+    console.log(`📅 Data: ${new Date().toLocaleString('ro-RO')}`);
+    console.log(`🏢 Companie: ${companyInfo.name || 'N/A'}`);
+    console.log(`🆔 CUI: ${companyInfo.cui || 'N/A'}`);
+    console.log('='.repeat(80));
+
     // Fallback: construiește date structurate din metadata dacă lipsesc
     let sd: { cui: string; company: string; accounts: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> } | null = null;
 
@@ -517,7 +526,122 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           spacing: { after: 600 }
         })
       );
-      
+
+      // === FIX #3: PROFIL COMPANIE ===
+      docSections.push(
+        new Paragraph({
+          text: '📋 PROFILUL COMPANIEI',
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 600, after: 400 }
+        })
+      );
+
+      const are_stocuri = getClassSum(3, 'debit') > 0;
+      const are_salariati = getAccountValue('641', 'debit') > 0;
+      const creante_minime = getAccountsSum(/^411/, 'debit') < 1000;
+      const marja_foarte_mare = marjaNet > 90;
+
+      let tip_business = '';
+      let caracteristici: string[] = [];
+
+      if (marja_foarte_mare && !are_stocuri && creante_minime) {
+        tip_business = 'Software/Consultanță IT cu marje foarte mari';
+        caracteristici = [
+          '✅ Marje extraordinare (profit 90%+ din venituri)',
+          '✅ Model asset-light (fără stocuri, fără active mari)',
+          '✅ Încasări rapide (clienți = minim)',
+          are_salariati ? '⚠️ Cheltuieli salariale minime pentru IT' : '✅ Outsourcing complet sau freelancing'
+        ];
+      } else if (!are_stocuri && creante_minime) {
+        tip_business = 'Servicii (consultanță, intermediere, resale)';
+        caracteristici = [
+          '✅ Business fără stocuri (normal pentru servicii)',
+          '✅ Încasări rapide',
+          marjaNet > 20 ? '✅ Marje bune' : '⚠️ Marje sub medie'
+        ];
+      } else {
+        tip_business = 'Comerț/Producție';
+        caracteristici = [
+          are_stocuri ? '📦 Business cu stocuri' : '✅ Fără stocuri',
+          creante_minime ? '✅ Încasări rapide' : '⚠️ Creanțe semnificative la clienți'
+        ];
+      }
+
+      docSections.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Tip business identificat: ', bold: true }),
+            new TextRun({ text: tip_business, color: '0066CC' })
+          ],
+          spacing: { after: 200 }
+        })
+      );
+
+      caracteristici.forEach(c => {
+        docSections.push(new Paragraph({ text: `   ${c}`, spacing: { after: 100 } }));
+      });
+
+      if (marja_foarte_mare && total_cash < 10000) {
+        docSections.push(
+          new Paragraph({ text: '', spacing: { before: 200 } }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '⚠️ ALERTĂ SPECIFICĂ BUSINESS-ULUI TĂU:', bold: true, color: 'FF0000' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({ text: 'Model cu marje foarte mari dar cash EXTREM de scăzut!', spacing: { after: 200 } }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '🎯 PRIORITATE MAXIMĂ: ', bold: true, color: 'FF8C00' }),
+              new TextRun({ text: 'Citește secțiunea "Unde Sunt Banii?" pentru investigație detaliată!' })
+            ],
+            spacing: { after: 400 }
+          })
+        );
+      }
+
+      // === FIX #1: NOTĂ VENITURI RECONSTITUITE + FIX #2: UNDE SUNT BANII ===
+      if (venituri_reconstituite) {
+        docSections.push(
+          new Paragraph({ text: '', spacing: { before: 200 } }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '⚠️ NOTĂ TEHNICĂ: ', bold: true, color: 'FF8C00' }),
+              new TextRun({ text: 'Veniturile au fost reconstituite matematic: ' }),
+              new TextRun({ text: 'Venituri = Profit + Cheltuieli', italics: true, bold: true }),
+              new TextRun({ text: ` → ${fmt(venituri)} RON` })
+            ],
+            spacing: { after: 400 }
+          })
+        );
+      }
+
+      docSections.push(
+        new Paragraph({ text: '', pageBreakBefore: true }),
+        new Paragraph({ text: '🔍 ANALIZA CRITICĂ: Unde Sunt Banii?', heading: HeadingLevel.HEADING_1, spacing: { after: 400 } }),
+        new Paragraph({ text: 'Aceasta este cea mai importantă secțiune!', spacing: { after: 400 } })
+      );
+
+      const asociati_total = getAccountValue('4551', 'credit') + getAccountValue('456', 'credit') + getAccountValue('4582', 'credit');
+      const imobilizari = getClassSum(2, 'debit');
+      const creante_clienti = getAccountsSum(/^411/, 'debit');
+
+      docSections.push(
+        new Paragraph({ children: [new TextRun({ text: 'DISCREPANȚA PROFIT vs CASH:', bold: true, size: 28 })], spacing: { after: 200 } }),
+        new Paragraph({ children: [new TextRun('Profit (cont 121): '), new TextRun({ text: `${fmt(profitNet)} RON ✅`, bold: true, color: '008000' })], spacing: { after: 100 } }),
+        new Paragraph({ children: [new TextRun('Cash real: '), new TextRun({ text: `${fmt(total_cash)} RON ⚠️`, bold: true, color: 'FF0000' })], spacing: { after: 100 } }),
+        new Paragraph({ text: '─'.repeat(70), spacing: { after: 100 } }),
+        new Paragraph({ children: [new TextRun('DIFERENȚĂ: '), new TextRun({ text: `${fmt(diferenta_profit_cash)} RON ❓`, bold: true, size: 32, color: 'FF0000' })], spacing: { after: 400 } })
+      );
+
+      if (asociati_total > 0) {
+        docSections.push(
+          new Paragraph({ children: [new TextRun({ text: '1️⃣ BANII LA ASOCIAȚI: ', bold: true, color: 'FF8C00' }), new TextRun({ text: `${fmt(asociati_total)} RON`, bold: true })], spacing: { after: 200 } }),
+          new Paragraph({ text: '💡 Banii au fost retrași de asociați (normal dacă firma are cash minim)', spacing: { after: 400 } })
+        );
+      }
+
       // === EXPLICAȚII CONTURI CHEIE ===
       docSections.push(
         new Paragraph({
@@ -1050,12 +1174,42 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       );
       
-      const venituri = getClassSum(7, 'credit');
+      // === FIX #1: CALCUL CORECT VENITURI & MARJA ===
+      let venituri = getClassSum(7, 'credit');
       const cheltuieli = getClassSum(6, 'debit');
       const { profitNet, isProfit } = calculateProfitLoss();
       
+      // Cash pentru analiza "Unde sunt banii?"
+      const cash_banca = getAccountValue('5121', 'debit');
+      const cash_casa = getAccountValue('5311', 'debit');
+      const total_cash = cash_banca + cash_casa;
+      const diferenta_profit_cash = profitNet - total_cash;
+      
+      // Reconstitui venituri dacă lipsesc din balanță
+      let venituri_reconstituite = false;
+      if (venituri === 0 && profitNet !== 0) {
+        venituri = profitNet + cheltuieli;
+        venituri_reconstituite = true;
+        console.log(`⚠️ Venituri reconstituite: ${fmt(venituri)} RON (Profit ${fmt(profitNet)} + Cheltuieli ${fmt(cheltuieli)})`);
+      }
+      
+      // === FIX #6: DEBUG LOGGING - CALCULE FINANCIARE ===
+      console.log('\n' + '='.repeat(60));
+      console.log('💰 CALCULE FINANCIARE:');
+      console.log('='.repeat(60));
+      console.log(`  Venituri clasa 7: ${fmt(venituri)} RON`);
+      if (venituri_reconstituite) {
+        console.log(`  ⚠️ VENITURI RECONSTITUITE din Profit + Cheltuieli`);
+      }
+      console.log(`  Cheltuieli clasa 6: ${fmt(cheltuieli)} RON`);
+      console.log(`  Profit cont 121: ${fmt(profitNet)} RON`);
+      console.log(`  Cash total (bancă + casă): ${fmt(total_cash)} RON`);
+      console.log(`  Diferență profit-cash: ${fmt(diferenta_profit_cash)} RON`);
+      console.log('='.repeat(60));
+      
       // 1. Marja Netă
       const marjaNet = venituri > 0 ? (profitNet / venituri) * 100 : 0;
+      console.log(`  Marja netă: ${marjaNet.toFixed(2)}%`);
       const statusMN = marjaNet >= 8 ? '🟢 EXCELENT' : marjaNet >= 0 ? '🟡 SLAB' : '🔴 PIERDERE';
       
       docSections.push(
@@ -1324,6 +1478,107 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         // Lista categorii
         expensesSorted.forEach(([categorie, valoare], index) => {
           const procent = (valoare / cheltuieliTotale) * 100;
+
+          // === FIX #5: RECOMANDĂRI SPECIFICE PENTRU DIFERENȚE CURS (6651) ===
+          if (categorie.includes('6651') || (categorie.toLowerCase().includes('diferențe') && categorie.toLowerCase().includes('curs'))) {
+            docSections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `${index + 1}. ${categorie}: `, bold: true }),
+                  new TextRun({ text: `${fmt(valoare)} RON (${procent.toFixed(1)}%)`, bold: true, color: 'FF0000' })
+                ],
+                spacing: { before: 200, after: 200 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: '⚡ DESPRE ACEASTĂ CHELTUIALĂ:', bold: true })
+                ],
+                spacing: { after: 200 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: 'ℹ️ IMPORTANT: ', bold: true, color: '0066CC' }),
+                  new TextRun({ text: 'Diferențele de curs valutar NU sunt cheltuieli controlabile direct.' })
+                ],
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: 'Acestea apar automat din fluctuațiile RON vs EUR/USD/etc.',
+                spacing: { after: 300 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: '💡 CE POȚI FACE:', bold: true })
+                ],
+                spacing: { after: 200 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: '1. HEDGING VALUTAR:', bold: true })
+                ],
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Dacă ai tranzacții mari în EUR (>10.000/lună)',
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Vorbește cu banca despre contracte forward/futures',
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Fixezi cursul pe 3-6 luni → zero surprize',
+                spacing: { after: 300 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: '2. CONTURI ÎN VALUTĂ:', bold: true })
+                ],
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Deschide cont EUR la bancă',
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Încasezi în EUR, plătești în EUR → elimini conversiile',
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Convertești la curs favorabil când tu decizi',
+                spacing: { after: 300 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: '3. CLAUZE CONTRACTUALE:', bold: true })
+                ],
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → În contracte noi: "Preț în RON echivalent EUR la cursul BNR din ziua plății"',
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: '   → Transferi riscul valutar la client/furnizor',
+                spacing: { after: 300 }
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: '⚠️ NU încerca să "reduci" această cheltuială direct - ',
+                    color: 'FF8C00'
+                  }),
+                  new TextRun({ text: 'e rezultatul pieței valutare!' })
+                ],
+                spacing: { after: 100 }
+              }),
+              new Paragraph({
+                text: 'Focus pe strategiile de management risc de mai sus.',
+                spacing: { after: 600 }
+              })
+            );
+            return; // Skip recomandările generice pentru 6651
+          }
           const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
           
           docSections.push(
@@ -1344,10 +1599,11 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           );
         });
         
-        // Simulare -15%
+        // === FIX #4: SIMULARE CORECTĂ REDUCERE CHELTUIELI ===
         const reducere15 = top3Value * 0.15;
         const cheltuieliNoi = cheltuieliTotale - reducere15;
-        const profitNou = venituri - cheltuieliNoi;
+        // CALCUL CORECT: Profit NOU = Profit ACTUAL + Reducere
+        const profitNou = profitNet + reducere15;  // ✅ CORECT!
         const deltaProfit = profitNou - profitNet;
         
         docSections.push(
@@ -1370,8 +1626,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             spacing: { after: 100 }
           }),
           new Paragraph({
+            text: ' '.repeat(20) + '─'.repeat(30),
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
             text: `Cheltuieli NOI:       ${fmt(cheltuieliNoi)} RON`,
-            spacing: { after: 200 }
+            spacing: { after: 300 }
           }),
           new Paragraph({
             text: `Profit ACTUAL:        ${fmt(profitNet)} RON`,
@@ -1382,12 +1642,46 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             spacing: { after: 100 }
           }),
           new Paragraph({
+            text: ' '.repeat(20) + '─'.repeat(30),
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
             children: [
-              new TextRun({ text: `ÎMBUNĂTĂȚIRE:        +${fmt(deltaProfit)} RON 🚀`, bold: true })
+              new TextRun({ text: `ÎMBUNĂTĂȚIRE:        +${fmt(deltaProfit)} RON  🚀`, bold: true, size: 32, color: '008000' })
             ],
-            spacing: { after: 600 }
+            spacing: { after: 300 }
           })
         );
+
+        // Impact pe marjă
+        if (venituri > 0) {
+          const marja_noua = (profitNou / venituri) * 100;
+          const delta_marja = marja_noua - marjaNet;
+          
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: '📊 IMPACT PE MARJĂ:', bold: true })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: `Marja actuală:  ${marjaNet.toFixed(2)}%`,
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: `Marja nouă:     ${marja_noua.toFixed(2)}%  ` }),
+                new TextRun({
+                  text: `(+${delta_marja.toFixed(2)} puncte procentuale!)`,
+                  bold: true,
+                  color: '008000'
+                })
+              ],
+              spacing: { after: 600 }
+            })
+          );
+        }
       }
       
       // === PLAN ACȚIUNE 90 ZILE ===
@@ -1807,6 +2101,19 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       );
 
       // Create document
+      // === FIX #6: DEBUG LOGGING FINAL ===
+      console.log('\n' + '='.repeat(80));
+      console.log('✅ RAPORT GENERAT CU SUCCES');
+      console.log('='.repeat(80));
+      console.log('📊 VERIFICARE FINALĂ:');
+      console.log(`   Secțiuni generate: ${docSections.length}`);
+      console.log(`   Venituri: ${fmt(venituri)} RON ${venituri_reconstituite ? '(reconstituite)' : ''}`);
+      console.log(`   Cheltuieli: ${fmt(cheltuieli)} RON`);
+      console.log(`   Profit: ${fmt(profitNet)} RON`);
+      console.log(`   Marja: ${marjaNet.toFixed(2)}%`);
+      console.log(`   Cash: ${fmt(total_cash)} RON`);
+      console.log('='.repeat(80) + '\n');
+
       const doc = new Document({
         sections: [{
           properties: {},
