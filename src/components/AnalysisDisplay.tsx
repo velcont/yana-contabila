@@ -1706,7 +1706,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           children: [
             new TextRun({ text: '🌐 Website: ', bold: true }),
-            new TextRun({ text: 'yana.ro' })
+            new TextRun({ text: 'yana-contabila.velcont.com' })
           ],
           alignment: AlignmentType.CENTER,
           spacing: { after: 400 }
