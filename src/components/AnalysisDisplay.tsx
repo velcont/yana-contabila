@@ -527,6 +527,43 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       );
 
+      // === CALCULE FINANCIARE (folosite în mai multe secțiuni) ===
+      let venituri = getClassSum(7, 'credit');
+      const cheltuieli = getClassSum(6, 'debit');
+      const { profitNet, isProfit } = calculateProfitLoss();
+      
+      // Cash pentru analiza "Unde sunt banii?"
+      const cash_banca = getAccountValue('5121', 'debit');
+      const cash_casa = getAccountValue('5311', 'debit');
+      const total_cash = cash_banca + cash_casa;
+      const diferenta_profit_cash = profitNet - total_cash;
+      
+      // Reconstitui venituri dacă lipsesc din balanță
+      let venituri_reconstituite = false;
+      if (venituri === 0 && profitNet !== 0) {
+        venituri = profitNet + cheltuieli;
+        venituri_reconstituite = true;
+        console.log(`⚠️ Venituri reconstituite: ${fmt(venituri)} RON (Profit ${fmt(profitNet)} + Cheltuieli ${fmt(cheltuieli)})`);
+      }
+      
+      // Calculează marja netă
+      const marjaNet = venituri > 0 ? (profitNet / venituri) * 100 : 0;
+      
+      // === FIX #6: DEBUG LOGGING - CALCULE FINANCIARE ===
+      console.log('\n' + '='.repeat(60));
+      console.log('💰 CALCULE FINANCIARE:');
+      console.log('='.repeat(60));
+      console.log(`  Venituri clasa 7: ${fmt(venituri)} RON`);
+      if (venituri_reconstituite) {
+        console.log(`  ⚠️ VENITURI RECONSTITUITE din Profit + Cheltuieli`);
+      }
+      console.log(`  Cheltuieli clasa 6: ${fmt(cheltuieli)} RON`);
+      console.log(`  Profit cont 121: ${fmt(profitNet)} RON`);
+      console.log(`  Marja netă: ${marjaNet.toFixed(2)}%`);
+      console.log(`  Cash total (bancă + casă): ${fmt(total_cash)} RON`);
+      console.log(`  Diferență profit-cash: ${fmt(diferenta_profit_cash)} RON`);
+      console.log('='.repeat(60));
+
       // === FIX #3: PROFIL COMPANIE ===
       docSections.push(
         new Paragraph({
@@ -1174,42 +1211,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       );
       
-      // === FIX #1: CALCUL CORECT VENITURI & MARJA ===
-      let venituri = getClassSum(7, 'credit');
-      const cheltuieli = getClassSum(6, 'debit');
-      const { profitNet, isProfit } = calculateProfitLoss();
-      
-      // Cash pentru analiza "Unde sunt banii?"
-      const cash_banca = getAccountValue('5121', 'debit');
-      const cash_casa = getAccountValue('5311', 'debit');
-      const total_cash = cash_banca + cash_casa;
-      const diferenta_profit_cash = profitNet - total_cash;
-      
-      // Reconstitui venituri dacă lipsesc din balanță
-      let venituri_reconstituite = false;
-      if (venituri === 0 && profitNet !== 0) {
-        venituri = profitNet + cheltuieli;
-        venituri_reconstituite = true;
-        console.log(`⚠️ Venituri reconstituite: ${fmt(venituri)} RON (Profit ${fmt(profitNet)} + Cheltuieli ${fmt(cheltuieli)})`);
-      }
-      
-      // === FIX #6: DEBUG LOGGING - CALCULE FINANCIARE ===
-      console.log('\n' + '='.repeat(60));
-      console.log('💰 CALCULE FINANCIARE:');
-      console.log('='.repeat(60));
-      console.log(`  Venituri clasa 7: ${fmt(venituri)} RON`);
-      if (venituri_reconstituite) {
-        console.log(`  ⚠️ VENITURI RECONSTITUITE din Profit + Cheltuieli`);
-      }
-      console.log(`  Cheltuieli clasa 6: ${fmt(cheltuieli)} RON`);
-      console.log(`  Profit cont 121: ${fmt(profitNet)} RON`);
-      console.log(`  Cash total (bancă + casă): ${fmt(total_cash)} RON`);
-      console.log(`  Diferență profit-cash: ${fmt(diferenta_profit_cash)} RON`);
-      console.log('='.repeat(60));
+      // Variabilele venituri, cheltuieli, profitNet, marjaNet, etc. sunt calculate mai sus
       
       // 1. Marja Netă
-      const marjaNet = venituri > 0 ? (profitNet / venituri) * 100 : 0;
-      console.log(`  Marja netă: ${marjaNet.toFixed(2)}%`);
       const statusMN = marjaNet >= 8 ? '🟢 EXCELENT' : marjaNet >= 0 ? '🟡 SLAB' : '🔴 PIERDERE';
       
       docSections.push(
