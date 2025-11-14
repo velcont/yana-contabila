@@ -21,6 +21,8 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } fro
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { ro } from 'date-fns/locale';
 
 interface AnalysisDisplayProps {
   analysisText: string;
@@ -245,6 +247,58 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     console.log(`🏢 Companie: ${companyInfo.name || 'N/A'}`);
     console.log(`🆔 CUI: ${companyInfo.cui || 'N/A'}`);
     console.log('='.repeat(80));
+
+    // === FIX #3: PRELUARE RAPORT PRECEDENT DIN DB ===
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Utilizator neautentificat');
+      return;
+    }
+
+    // Extrage CUI și date din metadata/companyInfo
+    const cui = companyInfo.cui || metadata?.cui || '';
+    const endDate = metadata?.endDate || new Date().toISOString().split('T')[0];
+    const startDate = metadata?.startDate || endDate;
+
+    // Funcție preluare raport precedent
+    async function getPreviousReport(
+      userId: string, 
+      cui: string, 
+      currentEndDate: string
+    ): Promise<any | null> {
+      try {
+        const { data, error } = await supabase
+          .from('rapoarte_metadata')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('cui', cui)
+          .lt('perioada_end', currentEndDate)
+          .order('perioada_end', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (error) {
+          console.log('⚠️ Eroare preluare raport precedent:', error.message);
+          return null;
+        }
+        
+        if (!data) {
+          console.log('📊 Nu există raport precedent pentru comparație');
+          return null;
+        }
+        
+        console.log(`✅ Găsit raport precedent: ${format(new Date(data.perioada_end), 'MMMM yyyy', { locale: ro })}`);
+        console.log(`   Profit precedent: ${data.profit_net} RON`);
+        console.log(`   Cash precedent: ${(data.cash_banca || 0) + (data.cash_casa || 0)} RON`);
+        
+        return data;
+      } catch (error) {
+        console.error('❌ Eroare excepție preluare raport:', error);
+        return null;
+      }
+    }
+
+    const previousReport = await getPreviousReport(user.id, cui, endDate);
 
     // Fallback: construiește date structurate din metadata dacă lipsesc
     let sd: { cui: string; company: string; accounts: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> } | null = null;
@@ -1365,6 +1419,320 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       );
       
+      // === FIX #5: COMPARAȚIE CU LUNA PRECEDENTĂ ===
+      if (previousReport) {
+        console.log('\n🔍 Generez secțiune COMPARAȚIE cu luna precedentă...');
+        
+        // Calculează evoluții procentuale
+        const prev_total_cash = (previousReport.cash_banca || 0) + (previousReport.cash_casa || 0);
+        
+        const evol_profit = previousReport.profit_net !== 0 
+          ? ((profitNet - previousReport.profit_net) / Math.abs(previousReport.profit_net)) * 100 
+          : 0;
+          
+        const evol_cash = prev_total_cash !== 0
+          ? ((total_cash - prev_total_cash) / prev_total_cash) * 100
+          : 0;
+          
+        const evol_venituri = previousReport.venituri_totale !== 0
+          ? ((venituri - previousReport.venituri_totale) / previousReport.venituri_totale) * 100
+          : 0;
+          
+        const evol_cheltuieli = previousReport.cheltuieli_totale !== 0
+          ? ((cheltuieli - previousReport.cheltuieli_totale) / previousReport.cheltuieli_totale) * 100
+          : 0;
+          
+        const evol_marja = marjaNet - (previousReport.marja_neta || 0);
+        
+        // Funcție helper pentru emoji evoluție
+        const getEvolEmoji = (value: number, invers = false) => {
+          const val = invers ? -value : value;
+          if (val > 10) return '🟢';
+          if (val > 0) return '🟡';
+          if (val > -10) return '🟠';
+          return '🔴';
+        };
+        
+        // Header secțiune
+        docSections.push(
+          new Paragraph({ text: '', pageBreakBefore: true }),
+          new Paragraph({
+            text: '📊 COMPARAȚIE CU LUNA PRECEDENTĂ',
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `${format(new Date(endDate), 'MMMM yyyy', { locale: ro })} vs ${format(new Date(previousReport.perioada_end), 'MMMM yyyy', { locale: ro })}`,
+                italics: true,
+                size: 24
+              })
+            ],
+            spacing: { after: 400 }
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: 'INDICATOR', bold: true })],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '━'.repeat(70),
+            spacing: { after: 200 }
+          })
+        );
+        
+        // Linie 1: Profit
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '💰 PROFIT\n', bold: true, size: 24 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: `   Actual:    ${fmt(profitNet)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            text: `   Precedent: ${fmt(previousReport.profit_net)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `   Evoluție:  ` }),
+              new TextRun({
+                text: `${evol_profit > 0 ? '+' : ''}${evol_profit.toFixed(1)}% ${getEvolEmoji(evol_profit)}`,
+                bold: true,
+                color: evol_profit > 0 ? '008000' : 'FF0000'
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+        
+        // Linie 2: Cash
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '💵 CASH (bancă + casă)\n', bold: true, size: 24 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: `   Actual:    ${fmt(total_cash)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            text: `   Precedent: ${fmt(prev_total_cash)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `   Evoluție:  ` }),
+              new TextRun({
+                text: `${evol_cash > 0 ? '+' : ''}${evol_cash.toFixed(1)}% ${getEvolEmoji(evol_cash)}`,
+                bold: true,
+                color: evol_cash > 0 ? '008000' : 'FF0000'
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+        
+        // Linie 3: Venituri
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '📈 VENITURI\n', bold: true, size: 24 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: `   Actual:    ${fmt(venituri)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            text: `   Precedent: ${fmt(previousReport.venituri_totale)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `   Evoluție:  ` }),
+              new TextRun({
+                text: `${evol_venituri > 0 ? '+' : ''}${evol_venituri.toFixed(1)}% ${getEvolEmoji(evol_venituri)}`,
+                bold: true,
+                color: evol_venituri > 0 ? '008000' : 'FF0000'
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+        
+        // Linie 4: Cheltuieli
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '💸 CHELTUIELI\n', bold: true, size: 24 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: `   Actual:    ${fmt(cheltuieli)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            text: `   Precedent: ${fmt(previousReport.cheltuieli_totale)} RON`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `   Evoluție:  ` }),
+              new TextRun({
+                text: `${evol_cheltuieli > 0 ? '+' : ''}${evol_cheltuieli.toFixed(1)}% ${getEvolEmoji(evol_cheltuieli, true)}`,
+                bold: true,
+                color: evol_cheltuieli < 0 ? '008000' : 'FF0000'
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+        
+        // Linie 5: Marja
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '📊 MARJA NETĂ\n', bold: true, size: 24 })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: `   Actual:    ${marjaNet.toFixed(1)}%`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            text: `   Precedent: ${(previousReport.marja_neta || 0).toFixed(1)}%`,
+            spacing: { after: 50 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `   Evoluție:  ` }),
+              new TextRun({
+                text: `${evol_marja > 0 ? '+' : ''}${evol_marja.toFixed(1)}pp ${getEvolEmoji(evol_marja)}`,
+                bold: true,
+                color: evol_marja > 0 ? '008000' : 'FF0000'
+              })
+            ],
+            spacing: { after: 400 }
+          })
+        );
+        
+        // INSIGHTS AUTOMATE
+        docSections.push(
+          new Paragraph({
+            text: '━'.repeat(70),
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '🎯 INSIGHTS CHEIE:', bold: true, size: 28, color: '0066CC' })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+        
+        // Îmbunătățiri detectate
+        const imbunatatiri: string[] = [];
+        if (evol_profit > 5) imbunatatiri.push(`✅ Profit crescut cu ${fmt(profitNet - previousReport.profit_net)} (+${evol_profit.toFixed(1)}%)`);
+        if (evol_cheltuieli < -5) imbunatatiri.push(`✅ Cheltuieli reduse cu ${fmt(previousReport.cheltuieli_totale - cheltuieli)} (${evol_cheltuieli.toFixed(1)}%)`);
+        if (evol_marja > 2) imbunatatiri.push(`✅ Marja îmbunătățită cu ${evol_marja.toFixed(1)} puncte procentuale`);
+        if (evol_venituri > 5) imbunatatiri.push(`✅ Venituri crescute cu ${fmt(venituri - previousReport.venituri_totale)} (+${evol_venituri.toFixed(1)}%)`);
+        if (evol_cash > 10) imbunatatiri.push(`✅ Cash crescut cu ${fmt(total_cash - prev_total_cash)} (+${evol_cash.toFixed(1)}%)`);
+        
+        if (imbunatatiri.length > 0) {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: '✅ ÎMBUNĂTĂȚIRI FAŢ DE LUNA PRECEDENTĂ:', bold: true, color: '008000', size: 24 })
+              ],
+              spacing: { after: 200 }
+            })
+          );
+          imbunatatiri.forEach(i => {
+            docSections.push(
+              new Paragraph({
+                text: `   ${i}`,
+                spacing: { after: 100 }
+              })
+            );
+          });
+        }
+        
+        // Deteriorări detectate
+        const deteriorari: string[] = [];
+        if (evol_cash < -10) deteriorari.push(`⚠️ Cash scăzut cu ${fmt(prev_total_cash - total_cash)} (${evol_cash.toFixed(1)}%)`);
+        if (evol_profit < -5) deteriorari.push(`⚠️ Profit scăzut cu ${fmt(previousReport.profit_net - profitNet)} (${evol_profit.toFixed(1)}%)`);
+        if (evol_venituri < -5) deteriorari.push(`⚠️ Venituri scăzute cu ${fmt(previousReport.venituri_totale - venituri)} (${evol_venituri.toFixed(1)}%)`);
+        if (evol_marja < -2) deteriorari.push(`⚠️ Marja scăzută cu ${Math.abs(evol_marja).toFixed(1)} puncte procentuale`);
+        if (evol_cheltuieli > 15) deteriorari.push(`⚠️ Cheltuieli crescute cu ${fmt(cheltuieli - previousReport.cheltuieli_totale)} (+${evol_cheltuieli.toFixed(1)}%)`);
+        
+        if (deteriorari.length > 0) {
+          docSections.push(
+            new Paragraph({ text: '', spacing: { before: 300 } }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: '⚠️ DETERIORĂRI FAŢ DE LUNA PRECEDENTĂ:', bold: true, color: 'FF0000', size: 24 })
+              ],
+              spacing: { after: 200 }
+            })
+          );
+          deteriorari.forEach(d => {
+            docSections.push(
+              new Paragraph({
+                text: `   ${d}`,
+                spacing: { after: 100 }
+              })
+            );
+          });
+        }
+        
+        // CONCLUZIE AUTOMATĂ
+        docSections.push(
+          new Paragraph({ text: '', spacing: { before: 400, after: 200 } }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '💡 CONCLUZIE:', bold: true, color: '0066CC', size: 28 })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+        
+        let concluzie = '';
+        if (evol_profit > 10 && evol_cash > 0) {
+          concluzie = '🚀 Business în CREȘTERE SĂNĂTOASĂ! Atât profitul cât și cash-ul cresc. Continuă strategia actuală și reinvestește în creștere.';
+        } else if (evol_profit > 10 && evol_cash < -10) {
+          concluzie = '⚡ Business PROFITABIL dar cu PROBLEME de LICHIDITATE! Profit mare dar cash scăzut. PRIORITATE: Îmbunătățește cash flow-ul (încasează mai repede, plătește mai târziu).';
+        } else if (evol_profit < -10 && evol_venituri < 0) {
+          concluzie = '🔴 ATENȚIE: Profitabilitate ȘI venituri în SCĂDERE! Situație critică. Ia măsuri URGENTE: crește vânzările sau reducere drastică cheltuieli.';
+        } else if (evol_profit < -10 && evol_cheltuieli > 15) {
+          concluzie = '🔴 ALERTĂ: Profit în scădere din cauza CREȘTERII RAPIDE a cheltuielilor! Analizează URGENT breakdown-ul cheltuielilor și elimină costuri inutile.';
+        } else if (evol_cheltuieli < -10 && evol_profit > 5) {
+          concluzie = '✅ OPTIMIZARE EXCELENTĂ! Ai redus cheltuielile și ai crescut profitul. Acesta este modelul perfect de eficientizare!';
+        } else if (Math.abs(evol_profit) < 5 && Math.abs(evol_venituri) < 5) {
+          concluzie = '📊 Evoluție STABILĂ. Business predictibil, fără schimbări majore. Monitorizează constant indicatorii pentru a detecta timpuriu tendințele.';
+        } else {
+          concluzie = '📈 Evoluție MIXTĂ. Unii indicatori în creștere, alții în scădere. Analizează în detaliu breakdown-ul cheltuielilor și secțiunea "Unde Sunt Banii?" pentru a înțelege dinamica.';
+        }
+        
+        docSections.push(
+          new Paragraph({
+            text: concluzie,
+            spacing: { after: 600 }
+          })
+        );
+        
+        console.log('✅ Secțiune COMPARAȚIE generată cu succes!');
+      }
+      
       // === NEW SECTION: INDICATORI FINANCIARI CHEIE ===
       docSections.push(
         new Paragraph({
@@ -2455,6 +2823,82 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           children: docSections
         }]
       });
+
+      // === SALVARE METADATA ÎN DB (pentru comparații viitoare) ===
+      async function saveReportMetadata() {
+        try {
+          console.log('\n💾 Salvez metadata raport în DB...');
+          
+          // Calculează indicatori
+          const activeCurente = getClassSum(3, 'debit') + getAccountsSum(/^411/, 'debit') + total_cash;
+          const datoriiCurente = getAccountsSum(/^401/, 'credit') + getAccountValue('4423', 'credit');
+          const lichiditate_gen = datoriiCurente > 0 ? activeCurente / datoriiCurente : 0;
+          const lichiditate_rapida = datoriiCurente > 0 ? (activeCurente - getClassSum(3, 'debit')) / datoriiCurente : 0;
+          const capital_lucru = activeCurente - datoriiCurente;
+          
+          // Top 3 cheltuieli (verifică dacă expensesDict există în scope)
+          const top_cheltuieli_obj = typeof expensesDict !== 'undefined' 
+            ? Object.fromEntries(
+                Object.entries(expensesDict)
+                  .filter(([_, val]) => val > 0)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 3)
+              )
+            : {};
+          
+          const { error } = await supabase
+            .from('rapoarte_metadata')
+            .upsert({
+              user_id: user.id,
+              cui: cui,
+              company_name: companyInfo.name || '',
+              perioada_start: startDate,
+              perioada_end: endDate,
+              profit_net: profitNet,
+              cash_banca: cash_banca,
+              cash_casa: cash_casa,
+              venituri_totale: venituri,
+              cheltuieli_totale: cheltuieli,
+              marja_neta: marjaNet,
+              lichiditate_generala: lichiditate_gen,
+              lichiditate_rapida: lichiditate_rapida,
+              capital_lucru: capital_lucru,
+              dso_zile: 0, // TODO: calculează din cod dacă există
+              dpo_zile: 0,
+              ccc_zile: 0,
+              rotatie_stocuri_zile: 0,
+              top_cheltuieli: top_cheltuieli_obj
+            }, {
+              onConflict: 'user_id,cui,perioada_end'
+            });
+          
+          if (error) {
+            console.error('❌ Eroare salvare metadata:', error.message);
+          } else {
+            console.log('✅ Metadata raport salvată cu succes!');
+            console.log(`   → ${Object.keys(top_cheltuieli_obj).length} categorii top cheltuieli salvate`);
+          }
+        } catch (error) {
+          console.error('❌ Excepție salvare metadata:', error);
+        }
+      }
+
+      // Apel funcție (asincron, nu așteaptă)
+      saveReportMetadata().catch(err => console.error('Eroare save metadata:', err));
+
+      // === DEBUG LOGGING FINAL ===
+      console.log('\n' + '='.repeat(80));
+      console.log('✅ RAPORT PREMIUM GENERAT CU SUCCES');
+      console.log('='.repeat(80));
+      console.log('📊 VERIFICARE FINALĂ:');
+      console.log(`   Venituri: ${fmt(venituri)} RON ${venituri_reconstituite ? '(reconstituite)' : ''}`);
+      console.log(`   Cheltuieli: ${fmt(cheltuieli)} RON`);
+      console.log(`   Profit: ${fmt(profitNet)} RON`);
+      console.log(`   Marja: ${marjaNet.toFixed(2)}%`);
+      console.log(`   Cash: ${fmt(total_cash)} RON`);
+      console.log(`   Comparație cu precedent: ${previousReport ? '✅ DA' : '❌ NU (prim raport)'}`);
+      console.log(`   Metadata salvată: ${user ? '✅ DA' : '❌ NU (user lipsă)'}`);
+      console.log('='.repeat(80) + '\n');
 
       // Generate and download with proper filename
       const blob = await Packer.toBlob(doc);
