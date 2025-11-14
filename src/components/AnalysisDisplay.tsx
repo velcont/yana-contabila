@@ -638,6 +638,337 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         );
       }
 
+      // === RECOMANDĂRI PERSONALIZATE (bazate pe profilul companiei) ===
+      docSections.push(
+        new Paragraph({ text: '', spacing: { before: 400 } }),
+        new Paragraph({
+          text: '🎯 RECOMANDĂRI PERSONALIZATE',
+          heading: HeadingLevel.HEADING_1,
+          spacing: { before: 200, after: 400 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: 'Bazate pe profilul tău de business: ', bold: true }),
+            new TextRun({ text: tip_business, color: '0066CC', bold: true })
+          ],
+          spacing: { after: 400 }
+        })
+      );
+
+      // Recomandări specifice în funcție de tip business
+      if (marja_foarte_mare && !are_stocuri && creante_minime) {
+        // SOFTWARE/IT cu marje foarte mari
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '1️⃣ SCALING RAPID (prioritate maximă):', bold: true, size: 28, color: '008000' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: `Cu marje de ${marjaNet.toFixed(1)}%, ai cea mai profitabilă industrie din România! Fiecare client nou = aproape 100% profit.`,
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '⚡ ACȚIUNI CONCRETE:', bold: true })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Investește MASIV în marketing (Google Ads, LinkedIn): 1 client nou = câștig instant',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Automatizează tot ce poți: onboarding clienți, rapoarte, facturare',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Creează pachete recurente (SaaS, mentenanță): venit predictibil',
+            spacing: { after: 400 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '2️⃣ DIVERSIFICARE PORTOFOLIU CLIENȚI:', bold: true, size: 28, color: 'FF8C00' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: '⚠️ RISC: Ești vulnerabil dacă pierzi un client mare.',
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '🎯 TARGET:', bold: true })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Niciun client să nu reprezinte >30% din venituri',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Minim 5-10 clienți activi simultan',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Contracte pe minim 6-12 luni (stabilitate)',
+            spacing: { after: 400 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '3️⃣ OPTIMIZARE FISCALĂ AGRESIVĂ:', bold: true, size: 28, color: '0066CC' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: `Cu profit de ${fmt(profitNet)} RON la marje de ${marjaNet.toFixed(1)}%, impozitarea e critică!`,
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: '   → Micro-întreprindere (1% sau 3% pe venit): salvează ENORM la taxe',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Dividende (8%) vs salarii (45%+ taxe): diferență URIAȘĂ',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Consultă specialist fiscal pentru setup optim',
+            spacing: { after: 400 }
+          })
+        );
+
+        if (total_cash < profitNet * 0.5) {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: '⚠️ ALERTĂ CASH MANAGEMENT:', bold: true, size: 28, color: 'FF0000' })
+              ],
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              text: `Profit ${fmt(profitNet)} RON dar cash doar ${fmt(total_cash)} RON → Banii au fost retrași.`,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              text: '🎯 RECOMANDARE: Păstrează minim 20-30% din profit în firmă ca "buffer urgențe"',
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: '   → Echipamente noi, server crash, oportunitate mare: ai nevoie de cash instant',
+              spacing: { after: 400 }
+            })
+          );
+        }
+
+      } else if (!are_stocuri && creante_minime) {
+        // SERVICII (consultanță, intermediere)
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '1️⃣ CREȘTERE MARJĂ PROFIT:', bold: true, size: 28, color: '008000' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: `Marja actuală: ${marjaNet.toFixed(1)}%. ${marjaNet < 20 ? 'Sub standardul industriei (20-30%)!' : 'Bună, dar poate fi mai mare!'}`,
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '⚡ TACTICI RAPIDE:', bold: true })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → UP-SELLING: oferă pachete premium (+30-50% preț pentru "servicii VIP")',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → CROSS-SELLING: vinde servicii adiționale clienților existenți',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → EFICIENTIZARE: automatizează procese repetitive → mai mult timp pentru clienți noi',
+            spacing: { after: 400 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '2️⃣ STANDARDIZARE SERVICII:', bold: true, size: 28, color: 'FF8C00' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: 'Transformă servicii "bespoke" în pachete fixe:',
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: '   ✅ AVANTAJE: vânzare mai rapidă, delivery mai rapid, predictibilitate',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   ✅ EXEMPLU: În loc de "consultanță personalizată", oferă "Audit Standard" + "Audit Premium"',
+            spacing: { after: 400 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '3️⃣ RECURENȚĂ & RETENȚIE:', bold: true, size: 28, color: '0066CC' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: '🎯 OBIECTIV: Transformă clienți one-time în clienți recurenți',
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: '   → Contracte lunare/anuale cu plată recurentă',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Pachete mentenanță/suport ongoing',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Follow-up automat: verifică satisfacție → oportunități de re-vânzare',
+            spacing: { after: 400 }
+          })
+        );
+
+      } else {
+        // COMERȚ/PRODUCȚIE
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '1️⃣ OPTIMIZARE COST MARFĂ/PRODUCȚIE:', bold: true, size: 28, color: '008000' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: 'În comerț/producție, marja se face la ACHIZIȚIE, nu la vânzare!',
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '⚡ TACTICI AGRESIVE:', bold: true })
+            ],
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → RENEGOCIAZĂ cu furnizori: cere discount 5-10% pentru volume mari sau plată rapidă',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → SCHIMBĂ furnizori: testează 2-3 alternative → compară calitate/preț',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → IMPORT DIRECT: dacă volume mari, elimină intermediari',
+            spacing: { after: 400 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '2️⃣ MANAGEMENT STOCURI:', bold: true, size: 28, color: 'FF8C00' })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+
+        if (are_stocuri) {
+          const stocuri_valoare = getClassSum(3, 'debit');
+          docSections.push(
+            new Paragraph({
+              text: `Ai ${fmt(stocuri_valoare)} RON în stocuri → bani "înghețați" care nu generează profit!`,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: '🎯 ACȚIUNI:', bold: true })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: '   → Identifică stocuri "moarte" (>90 zile fără mișcare): LICHIDEAZĂ urgent',
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: '   → Comandă just-in-time: doar ce vinzi rapid → eliberează cash',
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: '   → Negociază cu furnizori: plată la 30-60 zile → cash flow îmbunătățit',
+              spacing: { after: 400 }
+            })
+          );
+        } else {
+          docSections.push(
+            new Paragraph({
+              text: '✅ Bine că nu ai stocuri mari! Păstrează acest model lean.',
+              spacing: { after: 400 }
+            })
+          );
+        }
+
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: '3️⃣ CREȘTERE MARJĂ BRUTĂ:', bold: true, size: 28, color: '0066CC' })
+            ],
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: `Marja actuală: ${marjaNet.toFixed(1)}%. ${marjaNet < 15 ? 'PREA MIC pentru comerț!' : marjaNet < 30 ? 'Medie, dar poate crește!' : 'Excelent!'}`,
+            spacing: { after: 200 }
+          }),
+          new Paragraph({
+            text: '   → Crește prețuri cu 5-10%: majoritatea clienților nu pleacă pentru diferențe mici',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Adaugă servicii conexe: instalare, suport, garanții extinse → marjă mare',
+            spacing: { after: 100 }
+          }),
+          new Paragraph({
+            text: '   → Focus pe produse cu marjă mare: elimină treptat produse low-margin',
+            spacing: { after: 400 }
+          })
+        );
+      }
+
+      // Recomandare generală finală pentru toate tipurile de business
+      docSections.push(
+        new Paragraph({
+          text: '─'.repeat(70),
+          spacing: { before: 400, after: 200 }
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: '💬 ÎNTREBĂRI DESPRE RECOMANDĂRILE DE MAI SUS?', bold: true, size: 28, color: '0066CC' })
+          ],
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: 'Întreabă Chat AI YANA pentru strategii personalizate pentru business-ul tău specific!',
+          spacing: { after: 200 }
+        }),
+        new Paragraph({
+          text: 'Exemple:',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: `  • "Cum pot crește marja de la ${marjaNet.toFixed(1)}% la 30%?"`,
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '  • "Care sunt cei mai buni furnizori pentru industria mea?"',
+          spacing: { after: 100 }
+        }),
+        new Paragraph({
+          text: '  • "Cum automatizez procesele repetitive?"',
+          spacing: { after: 600 }
+        })
+      );
+
       // === FIX #1: NOTĂ VENITURI RECONSTITUITE + FIX #2: UNDE SUNT BANII ===
       if (venituri_reconstituite) {
         docSections.push(
