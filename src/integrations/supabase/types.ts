@@ -2990,6 +2990,78 @@ export type Database = {
         }
         Relationships: []
       }
+      rapoarte_metadata: {
+        Row: {
+          capital_lucru: number | null
+          cash_banca: number | null
+          cash_casa: number | null
+          ccc_zile: number | null
+          cheltuieli_totale: number | null
+          company_name: string | null
+          created_at: string | null
+          cui: string
+          dpo_zile: number | null
+          dso_zile: number | null
+          id: string
+          lichiditate_generala: number | null
+          lichiditate_rapida: number | null
+          marja_neta: number | null
+          perioada_end: string
+          perioada_start: string
+          profit_net: number | null
+          rotatie_stocuri_zile: number | null
+          top_cheltuieli: Json | null
+          user_id: string | null
+          venituri_totale: number | null
+        }
+        Insert: {
+          capital_lucru?: number | null
+          cash_banca?: number | null
+          cash_casa?: number | null
+          ccc_zile?: number | null
+          cheltuieli_totale?: number | null
+          company_name?: string | null
+          created_at?: string | null
+          cui: string
+          dpo_zile?: number | null
+          dso_zile?: number | null
+          id?: string
+          lichiditate_generala?: number | null
+          lichiditate_rapida?: number | null
+          marja_neta?: number | null
+          perioada_end: string
+          perioada_start: string
+          profit_net?: number | null
+          rotatie_stocuri_zile?: number | null
+          top_cheltuieli?: Json | null
+          user_id?: string | null
+          venituri_totale?: number | null
+        }
+        Update: {
+          capital_lucru?: number | null
+          cash_banca?: number | null
+          cash_casa?: number | null
+          ccc_zile?: number | null
+          cheltuieli_totale?: number | null
+          company_name?: string | null
+          created_at?: string | null
+          cui?: string
+          dpo_zile?: number | null
+          dso_zile?: number | null
+          id?: string
+          lichiditate_generala?: number | null
+          lichiditate_rapida?: number | null
+          marja_neta?: number | null
+          perioada_end?: string
+          perioada_start?: string
+          profit_net?: number | null
+          rotatie_stocuri_zile?: number | null
+          top_cheltuieli?: Json | null
+          user_id?: string | null
+          venituri_totale?: number | null
+        }
+        Relationships: []
+      }
       research_data: {
         Row: {
           case_studies: Json
