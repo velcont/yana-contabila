@@ -586,11 +586,20 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       const cheltuieli = getClassSum(6, 'debit');
       const { profitNet, isProfit } = calculateProfitLoss();
       
-      // Cash pentru analiza "Unde sunt banii?"
-      const cash_banca = getAccountValue('5121', 'debit');
+      // Cash pentru analiza "Unde sunt banii?" - INCLUDE VALUTĂ!
+      const cash_banca_lei = getAccountValue('5121', 'debit');
+      const cash_banca_valuta = getAccountValue('5124', 'debit'); // FIX: EUR/USD
       const cash_casa = getAccountValue('5311', 'debit');
-      const total_cash = cash_banca + cash_casa;
+      const total_cash = cash_banca_lei + cash_banca_valuta + cash_casa;
       const diferenta_profit_cash = profitNet - total_cash;
+      
+      // Debug logging pentru cash detaliat
+      console.log('💰 CASH TOTAL DETALIAT:');
+      console.log(`   Bancă LEI (5121): ${fmt(cash_banca_lei)} RON`);
+      console.log(`   Bancă VALUTĂ (5124): ${fmt(cash_banca_valuta)} RON`);
+      console.log(`   Casă (5311): ${fmt(cash_casa)} RON`);
+      console.log(`   ${'━'.repeat(30)}`);
+      console.log(`   TOTAL: ${fmt(total_cash)} RON`);
       
       // Reconstitui venituri dacă lipsesc din balanță
       let venituri_reconstituite = false;
@@ -784,8 +793,18 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             spacing: { after: 100 }
           }),
           new Paragraph({
-            text: '   → Dividende (8%) vs salarii (45%+ taxe): diferență URIAȘĂ',
+            text: '   → Dividende (10% impozit FINAL) vs salarii (45%+ taxe): diferență URIAȘĂ',
             spacing: { after: 100 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: '      📌 Detalii impozitare dividende 2025:\n', bold: true, italics: true, size: 20 }),
+              new TextRun({ text: '      • Impozit: 10% (reținut la sursă de firmă, final)\n', italics: true }),
+              new TextRun({ text: '      • Termen plată: până pe 25 a lunii următoare\n', italics: true }),
+              new TextRun({ text: '      • CASS 10% adițional DOAR dacă venituri totale >24.300 lei/an\n', italics: true }),
+              new TextRun({ text: '        (dividende + PFA + chirii + drepturi autor)\n', italics: true, size: 18 })
+            ],
+            spacing: { after: 200 }
           }),
           new Paragraph({
             text: '   → Consultă specialist fiscal pentru setup optim',
@@ -1077,11 +1096,23 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       const keyAccounts = [
         {
           code: '5121',
-          title: '🏦 Banii firmei tale în bancă (Cont 5121)',
-          what: `Ai în cont bancar: ${fmt(bank)} RON`,
+          title: '🏦 Banii firmei tale în bancă (Cont 5121 - LEI)',
+          what: `Ai în cont bancar LEI: ${fmt(cash_banca_lei)} RON`,
           why: 'Acestea sunt banii disponibili imediat pentru plăți. Îi poți folosi oricând ai nevoie.',
           check: 'Verifică lunar: Are firma suficienți bani pentru furnizori și salarii? Dacă nu, trebuie să încasezi urgent de la clienți.',
-          optimize: bank < 50000 ? 'IMPORTANT: Sold scăzut! Concentrează-te pe încasări rapide de la clienți.' : 'Bine! Ai lichiditate suficientă.'
+          optimize: cash_banca_lei < 50000 ? 'IMPORTANT: Sold scăzut! Concentrează-te pe încasări rapide de la clienți.' : 'Bine! Ai lichiditate suficientă.'
+        },
+        {
+          code: '5124',
+          title: '💶 Banii firmei în VALUTĂ (Cont 5124 - EUR/USD)',
+          what: `Ai în cont bancar în valută: ${fmt(cash_banca_valuta)} RON (echivalent)`,
+          why: 'Conturi în EUR/USD pentru tranzacții internaționale. Protejează împotriva fluctuațiilor de curs.',
+          check: 'Verifică lunar: Cursul EUR/RON a evoluat favorabil? Convertești în RON sau păstrezi?',
+          optimize: cash_banca_valuta > 100000 
+            ? '⚠️ Sume mari în valută - consideră hedging valutar (contracte forward cu banca)' 
+            : cash_banca_valuta > 0 
+              ? '✅ Bine! Ai diversificare valutară pentru plăți internaționale.'
+              : 'N/A - Nu ai conturi în valută active.'
         },
         {
           code: '5311',
@@ -2855,7 +2886,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
               perioada_start: startDate,
               perioada_end: endDate,
               profit_net: profitNet,
-              cash_banca: cash_banca,
+              cash_banca: cash_banca_lei + cash_banca_valuta, // Include valută!
               cash_casa: cash_casa,
               venituri_totale: venituri,
               cheltuieli_totale: cheltuieli,
