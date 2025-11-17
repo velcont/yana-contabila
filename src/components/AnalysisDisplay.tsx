@@ -2942,10 +2942,6 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 250, after: 150 }
         }),
-...
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 250, after: 150 }
-        }),
         new Paragraph({
           children: [
             new TextRun({ text: '🎯 OBIECTIV: ', bold: true }),
