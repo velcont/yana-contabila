@@ -50,7 +50,7 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
       new Paragraph({
         text: "🚀 AI-ul YANA te așteaptă!",
         heading: HeadingLevel.HEADING_2,
-        spacing: { before: 300, after: 200 },
+        spacing: { before: 150, after: 100 },
         alignment: AlignmentType.CENTER,
         shading: { fill: "FFA500", type: ShadingType.SOLID }
       }),
@@ -101,7 +101,7 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
           new TextRun({ text: 'Poți folosi și funcția "🏛️ Legislație Fiscală" pentru confirmări în lege!' })
         ],
         alignment: AlignmentType.CENTER,
-        spacing: { after: 400 },
+        spacing: { after: 200 },
         shading: { fill: "FFA500", type: ShadingType.SOLID }
       })
     ];
@@ -111,7 +111,7 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
     return [
       new Paragraph({
         text: "💬 Ai întrebări despre această secțiune?",
-        spacing: { before: 200, after: 100 },
+        spacing: { before: 100, after: 50 },
         shading: { fill: "E0E0E0", type: ShadingType.SOLID }
       }),
       new Paragraph({
@@ -135,7 +135,7 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
       new Paragraph({
         text: "⚡ NU mai aștepta răspuns de la contabil 3 zile!",
         heading: HeadingLevel.HEADING_2,
-        spacing: { before: 300, after: 200 },
+        spacing: { before: 150, after: 100 },
         alignment: AlignmentType.CENTER,
         shading: { fill: "FF0000", type: ShadingType.SOLID }
       }),
@@ -159,7 +159,7 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
           new TextRun({ text: 'Folosește și funcția "🏛️ Legislație Fiscală" din chat pentru verificări rapide în lege!' })
         ],
         alignment: AlignmentType.CENTER,
-        spacing: { after: 400 },
+        spacing: { after: 200 },
         shading: { fill: "FF0000", type: ShadingType.SOLID }
       })
     ];
@@ -685,7 +685,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '⚠️ NOTĂ LEGALĂ IMPORTANTĂ',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 200 }
+          spacing: { before: 200, after: 100 }
         }),
         new Paragraph({
           text: 'Această analiză a fost generată automat cu ajutorul unui sistem de inteligență artificială (AI), pe baza datelor contabile furnizate (balanță de verificare). Autorul aplicației nu își asumă responsabilitatea pentru corectitudinea interpretării contabile sau fiscale prezentate de AI. Recomandăm ca toate concluziile și observațiile generate să fie revizuite de un contabil autorizat sau expert contabil, înainte de a fi utilizate în luarea deciziilor sau în relația cu autoritățile fiscale. Analiza are caracter informativ și orientativ, nu reprezintă un document oficial sau o opinie fiscală validată.',
@@ -705,7 +705,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
                 color: 'FFA500' // Orange
               })
             ],
-            spacing: { before: 400, after: 200 },
+            spacing: { before: 200, after: 100 },
             shading: { fill: 'FFF4E6' } // Light orange background
           }),
           new Paragraph({
@@ -730,20 +730,16 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             }),
             new Paragraph({
               text: `💡 Recomandare: ${anomaly.recommendation}`,
-              spacing: { after: 300 }
+              spacing: { after: 150 }
             })
           );
         });
         
+        // Separator după avertismente
         docSections.push(
           new Paragraph({
-            children: [
-              new TextRun({ 
-                text: '⚠️ Aceste avertismente nu blochează raportul, dar necesită atenție din partea contabilului.',
-                italics: true
-              })
-            ],
-            spacing: { after: 400 }
+            text: '',
+            spacing: { after: 200 }
           })
         );
       }
@@ -751,9 +747,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       // === REZUMAT EXECUTIV ===
       docSections.push(
         new Paragraph({
-          text: '📊 REZUMAT EXECUTIV - Situația Ta Financiară pe Scurt',
+          text: '📊 REZUMAT EXECUTIV - Situația Ta în 30 Secunde',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 300 }
+          spacing: { before: 200, after: 150 }
         }),
         new Paragraph({
           children: [
@@ -803,7 +799,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '🎯 INDICATORI CHEIE',
           heading: HeadingLevel.HEADING_3,
-          spacing: { before: 300, after: 200 }
+          spacing: { before: 150, after: 100 }
         }),
         new Paragraph({
           children: [
@@ -900,7 +896,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           new Paragraph({
             text: '⚠️ ANOMALII DETECTATE ÎN BALANȚĂ',
             heading: HeadingLevel.HEADING_1,
-            spacing: { before: 600, after: 400 }
+            spacing: { before: 250, after: 200 }
           }),
           new Paragraph({
             children: [
@@ -953,7 +949,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '📋 PROFILUL COMPANIEI',
           heading: HeadingLevel.HEADING_1,
-          spacing: { before: 600, after: 400 }
+          spacing: { before: 250, after: 200 }
         })
       );
 
@@ -1056,7 +1052,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
 
       // === RECOMANDĂRI PERSONALIZATE (bazate pe profilul companiei) ===
       docSections.push(
-        new Paragraph({ text: '', spacing: { before: 400 } }),
+        new Paragraph({ text: '', spacing: { before: 200 } }),
         new Paragraph({
           text: '🎯 RECOMANDĂRI PERSONALIZATE',
           heading: HeadingLevel.HEADING_1,
@@ -1374,7 +1370,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       docSections.push(
         new Paragraph({
           text: '─'.repeat(70),
-          spacing: { before: 400, after: 200 }
+          spacing: { before: 200, after: 100 }
         }),
         new Paragraph({
           children: [
@@ -1488,7 +1484,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '💡 EXPLICAȚII PE LIMBA TA - Ce Înseamnă Conturile Tale',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 300 }
+          spacing: { before: 200, after: 150 }
         })
       );
       
@@ -1579,7 +1575,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             new Paragraph({
               text: acc.title,
               heading: HeadingLevel.HEADING_3,
-              spacing: { before: 400, after: 200 }
+              spacing: { before: 200, after: 100 }
             }),
             new Paragraph({
               children: [
@@ -1607,18 +1603,18 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
                 new TextRun({ text: '⚡ Optimizări posibile: ', bold: true }),
                 new TextRun(acc.optimize)
               ],
-              spacing: { after: 300 }
+              spacing: { after: 150 }
             })
           );
         }
       });
       
-      // === ZONE DE RISC ===
+      // === SECȚIUNE RISCURI ===
       docSections.push(
         new Paragraph({
-          text: '⚠️ ZONE DE RISC ȘI ALERTE IDENTIFICATE',
+          text: '⚠️ ZONE DE RISC IDENTIFICATE',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 600, after: 300 }
+          spacing: { before: 250, after: 150 }
         })
       );
       
@@ -1699,7 +1695,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           children: [
             new TextRun({ text: `TOTAL ALERTE: ${risks.length}`, bold: true })
           ],
-          spacing: { before: 300, after: 600 }
+          spacing: { before: 150, after: 250 }
         })
       );
       
@@ -1737,26 +1733,13 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '📅 ACȚIUNI PE TERMEN MEDIU (1-3 luni)',
           heading: HeadingLevel.HEADING_3,
-          spacing: { before: 300, after: 200 }
+          spacing: { before: 150, after: 100 }
         }),
         new Paragraph({
-          text: '• Implementează sistem de monitorizare clienți (alerte automate la 30/60/90 zile)',
+          text: '• Maximizează cashflow-ul (încasări rapide)',
           spacing: { after: 100 }
         }),
         new Paragraph({
-          text: '• Negociază termene mai bune cu furnizorii principali',
-          spacing: { after: 100 }
-        }),
-        new Paragraph({
-          text: '• Analizează stocurile cu mișcare lentă și fă promoții',
-          spacing: { after: 100 }
-        }),
-        new Paragraph({
-          text: '• Creează un buffer de siguranță = 3 luni de cheltuieli fixe',
-          spacing: { after: 400 }
-        }),
-        new Paragraph({
-          text: '🎯 STRATEGIE PE TERMEN LUNG (3-12 luni)',
           heading: HeadingLevel.HEADING_3,
           spacing: { before: 300, after: 200 }
         }),
@@ -1783,7 +1766,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '✅ CHECKLIST LUNAR - Nu Uita!',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 600, after: 300 }
+          spacing: { before: 250, after: 150 }
         }),
         new Paragraph({
           text: '📋 OBLIGATORII (Legal)',
@@ -2112,7 +2095,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         
         if (deteriorari.length > 0) {
           docSections.push(
-            new Paragraph({ text: '', spacing: { before: 300 } }),
+            new Paragraph({ text: '', spacing: { before: 150 } }),
             new Paragraph({
               children: [
                 new TextRun({ text: '⚠️ DETERIORĂRI FAŢ DE LUNA PRECEDENTĂ:', bold: true, color: 'FF0000', size: 24 })
@@ -2132,7 +2115,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         
         // CONCLUZIE AUTOMATĂ
         docSections.push(
-          new Paragraph({ text: '', spacing: { before: 400, after: 200 } }),
+          new Paragraph({ text: '', spacing: { before: 200, after: 100 } }),
           new Paragraph({
             children: [
               new TextRun({ text: '💡 CONCLUZIE:', bold: true, color: '0066CC', size: 28 })
@@ -2173,7 +2156,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '📊 INDICATORI FINANCIARI CHEIE',
           heading: HeadingLevel.HEADING_1,
-          spacing: { before: 800, after: 400 },
+          spacing: { before: 300, after: 200 },
           pageBreakBefore: true
         })
       );
@@ -2183,7 +2166,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '💧 Indicatori de Lichiditate',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 300 }
+          spacing: { before: 200, after: 150 }
         })
       );
       
@@ -2420,7 +2403,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '🔄 Indicatori de Eficiență Operațională',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 600, after: 300 }
+          spacing: { before: 250, after: 150 }
         })
       );
       
@@ -2747,7 +2730,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         docSections.push(
           new Paragraph({
             text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-            spacing: { before: 400, after: 200 }
+            spacing: { before: 200, after: 100 }
           }),
           new Paragraph({
             children: [
@@ -2827,7 +2810,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '🎯 PLAN DE ACȚIUNE EXECUTIV - NEXT 90 DAYS',
           heading: HeadingLevel.HEADING_1,
-          spacing: { before: 800, after: 400 },
+          spacing: { before: 300, after: 200 },
           pageBreakBefore: true
         }),
         new Paragraph({
@@ -2844,7 +2827,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '📅 LUNA 1: STABILIZARE & QUICK WINS (Zile 1-30)',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 400, after: 300 }
+          spacing: { before: 200, after: 150 }
         }),
         new Paragraph({
           children: [
@@ -2957,72 +2940,11 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '📅 LUNA 2: OPTIMIZARE & EFICIENȚĂ (Zile 31-60)',
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 600, after: 300 }
+          spacing: { before: 250, after: 150 }
         }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: '🎯 OBIECTIV: ', bold: true }),
-            new TextRun({ text: 'Crește profitabilitatea și optimizează operațiunile' })
-          ],
-          spacing: { after: 300 }
-        })
-      );
-      
-      // Prioritizare pe bază de marjă
-      if (marjaNet < 5 || !isProfit) {
-        docSections.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: '⚠️ PRIORITATE: REDUCERE AGRESIVĂ CHELTUIELI', bold: true })
-            ],
-            spacing: { before: 200, after: 200 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'SĂPTĂMÂNA 5-6: Deep Dive Categorii Cheltuieli', bold: true })
-            ],
-            spacing: { after: 100 }
-          }),
-          new Paragraph({
-            text: '   [ ] Analizează TOP 3 categorii cheltuieli',
-            spacing: { after: 100 }
-          }),
-          new Paragraph({
-            text: '   [ ] Implementează reduceri: target -15% per categorie',
-            spacing: { after: 300 }
-          })
-        );
-      } else {
-        docSections.push(
-          new Paragraph({
-            children: [
-              new TextRun({ text: '✅ PRIORITATE: CREȘTERE VENITURI', bold: true })
-            ],
-            spacing: { before: 200, after: 200 }
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'SĂPTĂMÂNA 5-6: Optimizare Prețuri', bold: true })
-            ],
-            spacing: { after: 100 }
-          }),
-          new Paragraph({
-            text: '   [ ] Test A/B +10% pe 20% produse',
-            spacing: { after: 100 }
-          }),
-          new Paragraph({
-            text: '   [ ] Implementează upsell/cross-sell',
-            spacing: { after: 300 }
-          })
-        );
-      }
-      
-      // LUNA 3
-      docSections.push(
-        new Paragraph({
-          text: '📅 LUNA 3: SCALARE & CREȘTERE (Zile 61-90)',
+...
           heading: HeadingLevel.HEADING_2,
-          spacing: { before: 600, after: 300 }
+          spacing: { before: 250, after: 150 }
         }),
         new Paragraph({
           children: [
@@ -3065,7 +2987,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       docSections.push(
         new Paragraph({
           text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-          spacing: { before: 400, after: 200 }
+          spacing: { before: 200, after: 100 }
         }),
         new Paragraph({
           children: [
@@ -3111,7 +3033,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({
           text: '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
           alignment: AlignmentType.CENTER,
-          spacing: { before: 800, after: 300 },
+          spacing: { before: 300, after: 150 },
           pageBreakBefore: true
         }),
         new Paragraph({
