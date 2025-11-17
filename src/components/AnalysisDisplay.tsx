@@ -89,7 +89,16 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
       }),
       new Paragraph({
         children: [
-          new TextRun({ text: "→ Deschide Chat AI acum!", bold: true })
+          new TextRun({ text: "→ Mergi la chatboxul de la început și întreabă orice!", bold: true })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "💡 TIP: ", bold: true }),
+          new TextRun({ text: 'Poți folosi și funcția "🏛️ Legislație Fiscală" pentru confirmări în lege!' })
         ],
         alignment: AlignmentType.CENTER,
         spacing: { after: 400 },
@@ -106,7 +115,15 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
         shading: { fill: "E0E0E0", type: ShadingType.SOLID }
       }),
       new Paragraph({
-        text: "Scrie direct Chat AI-ului YANA → răspunde instant!",
+        text: "Scrie direct în chatboxul de la început (unde ai încărcat balanța) → Chat AI-ul YANA răspunde instant!",
+        spacing: { after: 100 },
+        shading: { fill: "E0E0E0", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "💡 BONUS: ", bold: true }),
+          new TextRun({ text: 'Alege funcția "🏛️ Legislație Fiscală" din chat pentru a căuta confirmări în legislație românească!' })
+        ],
         spacing: { after: 200 },
         shading: { fill: "E0E0E0", type: ShadingType.SOLID }
       })
@@ -131,6 +148,15 @@ const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph
       new Paragraph({
         children: [
           new TextRun({ text: "Click aici și întreabă orice vrei!", bold: true })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+        shading: { fill: "FF0000", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "💡 BONUS: ", bold: true }),
+          new TextRun({ text: 'Folosește și funcția "🏛️ Legislație Fiscală" din chat pentru verificări rapide în lege!' })
         ],
         alignment: AlignmentType.CENTER,
         spacing: { after: 400 },
