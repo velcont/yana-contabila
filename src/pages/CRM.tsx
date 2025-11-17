@@ -65,23 +65,8 @@ const CRM = () => {
     console.log('[CRM] Access check:', { isAdmin, subscriptionType, hasAccess, roleLoading, subscriptionLoading });
 
     if (!roleLoading && !subscriptionLoading && !hasAccess) {
-      return (
-        <div className="flex items-center justify-center min-h-screen p-4">
-          <EmptyState
-            icon={<Building2 className="w-16 h-16" />}
-            title="Acces Restricționat"
-            description="Modulul CRM este disponibil EXCLUSIV pentru firme de contabilitate cu Planul Contabil activ (199 lei/lună). Include: gestionare clienți nelimitați, management documente, calendar termene fiscale, task management, email marketing integrat și branding personalizat."
-            action={{
-              label: "Activează Planul Contabil",
-              onClick: () => navigate("/subscription")
-            }}
-            secondaryAction={{
-              label: "Înapoi la Dashboard",
-              onClick: () => navigate("/app")
-            }}
-          />
-        </div>
-      );
+      navigate("/app");
+      return null;
     }
 
     return (
