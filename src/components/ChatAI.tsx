@@ -2709,16 +2709,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                 {msg.structuredData.accounts?.length || 0}
                               </Badge>
                             </p>
-                          </div>
-                          
-                          <Button 
-                            onClick={() => handleGenerateWordConfirmation(msg.structuredData)}
-                            className="w-full"
-                            variant="default"
-                            size="sm"
-                          >
-                            📄 Generează Confirmare Word
-                          </Button>
+                        </div>
                           
                           {/* Banner VIZIBIL - Dosarul Meu */}
                           <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-2 border-blue-500 dark:border-blue-400 rounded-lg shadow-lg">
@@ -2738,7 +2729,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   size="sm"
                                   className="bg-blue-600 hover:bg-blue-700 text-white"
                                 >
-                                  📂 Vezi Dosarul Meu
+                                  📁 Toate Analizele Mele
                                 </Button>
                               </div>
                             </div>

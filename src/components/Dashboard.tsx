@@ -1106,7 +1106,8 @@ INDICATORI OPERAȚIONALI:
                   👋 Salut! Sunt Yana
                 </h3>
                 <p className="text-muted-foreground animate-fade-in">
-                  Alege o balanță din listă ca să încep analiza.
+                  Selectează o balanță din listă de mai sus, apoi <strong>scrollează jos</strong> și apasă butonul{' '}
+                  <span className="text-primary font-semibold">📄 Validează cu Grok & Generează Raport Premium</span> pentru a genera raportul Word detaliat.
                 </p>
               </div>
             )}
