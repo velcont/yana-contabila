@@ -586,6 +586,35 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       const cheltuieli = getClassSum(6, 'debit');
       const { profitNet, isProfit } = calculateProfitLoss();
       
+      // FIX #4: VALIDARE ANOMALII - Verifică integritatea balanței
+      const anomalii: string[] = [];
+      
+      // Verificare 1: Conturile 1-5 nu trebuie să aibă simultan sold debitor și creditor
+      for (let classNum = 1; classNum <= 5; classNum++) {
+        const conturi_clasa = accounts.filter(a => a.accountClass === classNum);
+        conturi_clasa.forEach(cont => {
+          if (cont.debit > 0 && cont.credit > 0) {
+            anomalii.push(`⚠️ Cont ${cont.code}: Sold DEBIT (${fmt(cont.debit)}) și CREDIT (${fmt(cont.credit)}) simultan - INCORECT pentru clase 1-5!`);
+          }
+        });
+      }
+      
+      // Verificare 2: Total Debit = Total Credit pentru clasele 6-7
+      const total_debit_67 = getClassSum(6, 'debit') + getClassSum(7, 'debit');
+      const total_credit_67 = getClassSum(6, 'credit') + getClassSum(7, 'credit');
+      const diferenta_67 = Math.abs(total_debit_67 - total_credit_67);
+      
+      if (diferenta_67 > 1) { // Toleranță 1 RON pentru rotunjiri
+        anomalii.push(`⚠️ Clase 6-7: Total DEBIT (${fmt(total_debit_67)}) ≠ Total CREDIT (${fmt(total_credit_67)}) - Diferență: ${fmt(diferenta_67)} RON - Balanța este NEBALANSATĂ!`);
+      }
+      
+      // Verificare 3: Cont 121 (Profit/Pierdere) - nu poate avea simultan debit și credit
+      const profit_debit = getAccountValue('121', 'debit');
+      const profit_credit = getAccountValue('121', 'credit');
+      if (profit_debit > 0 && profit_credit > 0) {
+        anomalii.push(`⚠️ Cont 121 (Profit/Pierdere): Sold DEBIT (${fmt(profit_debit)}) și CREDIT (${fmt(profit_credit)}) simultan - IMPOSIBIL! Firma nu poate avea simultan profit și pierdere.`);
+      }
+      
       // Cash pentru analiza "Unde sunt banii?" - INCLUDE VALUTĂ!
       const cash_banca_lei = getAccountValue('5121', 'debit');
       const cash_banca_valuta = getAccountValue('5124', 'debit'); // FIX: EUR/USD
@@ -627,6 +656,60 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       console.log(`  Diferență profit-cash: ${fmt(diferenta_profit_cash)} RON`);
       console.log('='.repeat(60));
 
+      // FIX #4: AFIȘARE ANOMALII DETECTATE (dacă există)
+      if (anomalii.length > 0) {
+        docSections.push(
+          new Paragraph({
+            text: '⚠️ ANOMALII DETECTATE ÎN BALANȚĂ',
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 600, after: 400 }
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: '🔴 ATENȚIE: Balanța ta conține erori care trebuie corectate!', 
+                bold: true, 
+                color: 'FF0000',
+                size: 28
+              })
+            ],
+            spacing: { after: 300 }
+          }),
+          new Paragraph({
+            text: 'Următoarele anomalii au fost detectate automat și necesită atenție:',
+            spacing: { after: 300 }
+          })
+        );
+        
+        anomalii.forEach((anomalie, index) => {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${index + 1}. `, bold: true, color: 'FF0000' }),
+                new TextRun({ text: anomalie })
+              ],
+              spacing: { after: 200 }
+            })
+          );
+        });
+        
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: '💡 Recomandare: ', 
+                bold: true, 
+                color: 'FF8C00' 
+              }),
+              new TextRun({ 
+                text: 'Corectează aceste erori în contabilitate înainte de a lua decizii pe baza acestui raport. Contactează contabilul pentru clarificări.' 
+              })
+            ],
+            spacing: { after: 600 }
+          })
+        );
+      }
+
       // === FIX #3: PROFIL COMPANIE ===
       docSections.push(
         new Paragraph({
@@ -641,29 +724,61 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       const creante_minime = getAccountsSum(/^411/, 'debit') < 1000;
       const marja_foarte_mare = marjaNet > 90;
 
+      // FIX #2: PROFIL BUSINESS - Prioritizează natura veniturilor (704/707/701)
+      const venituri_servicii = getAccountValue('704', 'credit');   // Servicii
+      const venituri_marfuri = getAccountValue('707', 'credit');    // Mărfuri  
+      const venituri_productie = getAccountValue('701', 'credit');  // Producție
+      const total_venituri_identificate = venituri_servicii + venituri_marfuri + venituri_productie;
+
       let tip_business = '';
       let caracteristici: string[] = [];
 
-      if (marja_foarte_mare && !are_stocuri && creante_minime) {
-        tip_business = 'Software/Consultanță IT cu marje foarte mari';
+      // Prioritate #1: Natura veniturilor (cel mai fiabil indicator!)
+      if (venituri_servicii > 0 && venituri_marfuri === 0 && venituri_productie === 0) {
+        tip_business = '✅ Prestări servicii (cont 704)';
         caracteristici = [
-          '✅ Marje extraordinare (profit 90%+ din venituri)',
-          '✅ Model asset-light (fără stocuri, fără active mari)',
-          '✅ Încasări rapide (clienți = minim)',
-          are_salariati ? '⚠️ Cheltuieli salariale minime pentru IT' : '✅ Outsourcing complet sau freelancing'
+          `✅ 100% venituri din servicii (${fmt(venituri_servicii)} RON)`,
+          '✅ Fără stocuri (normal pentru servicii)',
+          creante_minime ? '✅ Încasări rapide' : '⚠️ Creanțe mari - monitorizează DSO',
+          marja_foarte_mare ? '🚀 Marje excepționale (90%+)' : `📊 Marja netă: ${marjaNet.toFixed(1)}%`
         ];
-      } else if (!are_stocuri && creante_minime) {
-        tip_business = 'Servicii (consultanță, intermediere, resale)';
+      } else if (venituri_marfuri > venituri_productie && venituri_marfuri > venituri_servicii) {
+        tip_business = '📦 Comerț mărfuri (cont 707)';
         caracteristici = [
-          '✅ Business fără stocuri (normal pentru servicii)',
+          `📦 Venituri mărfuri: ${fmt(venituri_marfuri)} RON`,
+          are_stocuri ? '✅ Stocuri prezente (cont 371)' : '⚠️ Lipsă stocuri - neobișnuit pentru comerț!',
+          `📊 Marja netă: ${marjaNet.toFixed(1)}%`,
+          creante_minime ? '✅ Încasări rapide' : '⚠️ Creanțe mari'
+        ];
+      } else if (venituri_productie > 0) {
+        tip_business = '🏭 Producție (cont 701)';
+        caracteristici = [
+          `🏭 Venituri producție: ${fmt(venituri_productie)} RON`,
+          are_stocuri ? '✅ Stocuri materii prime + produse finite' : '⚠️ Lipsă stocuri - verifică!',
+          `📊 Marja netă: ${marjaNet.toFixed(1)}%`
+        ];
+      } else if (total_venituri_identificate > 0) {
+        tip_business = '🔄 Activitate mixtă';
+        caracteristici = [];
+        if (venituri_servicii > 0) caracteristici.push(`Servicii (704): ${fmt(venituri_servicii)} RON`);
+        if (venituri_marfuri > 0) caracteristici.push(`Mărfuri (707): ${fmt(venituri_marfuri)} RON`);
+        if (venituri_productie > 0) caracteristici.push(`Producție (701): ${fmt(venituri_productie)} RON`);
+        caracteristici.push(`📊 Marja netă: ${marjaNet.toFixed(1)}%`);
+      } else if (marja_foarte_mare && !are_stocuri && creante_minime) {
+        // Fallback pentru cazuri speciale (IT fără cont 704, consultanță)
+        tip_business = '💻 Software/IT (marje foarte mari, fără cont 704 identificat)';
+        caracteristici = [
+          '✅ Marje extraordinare (90%+)',
+          '✅ Model asset-light',
           '✅ Încasări rapide',
-          marjaNet > 20 ? '✅ Marje bune' : '⚠️ Marje sub medie'
+          '⚠️ Verifică încadrarea corectă a veniturilor în cont 704'
         ];
       } else {
-        tip_business = 'Comerț/Producție';
+        tip_business = '❓ Neidentificat (lipsesc conturile de venituri 70x)';
         caracteristici = [
-          are_stocuri ? '📦 Business cu stocuri' : '✅ Fără stocuri',
-          creante_minime ? '✅ Încasări rapide' : '⚠️ Creanțe semnificative la clienți'
+          are_stocuri ? '📦 Are stocuri' : '✅ Fără stocuri',
+          `📊 Marja netă: ${marjaNet.toFixed(1)}%`,
+          '⚠️ IMPORTANT: Verifică încadrarea corectă a veniturilor în conturile 701/704/707'
         ];
       }
 
@@ -1064,7 +1179,15 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({ text: 'Aceasta este cea mai importantă secțiune!', spacing: { after: 400 } })
       );
 
-      const asociati_total = getAccountValue('4551', 'credit') + getAccountValue('456', 'credit') + getAccountValue('4582', 'credit');
+      // FIX #1: CONT 4551 - Separă BĂGAT (credit) vs RETRAS (debit)
+      const asociati_bagat = getAccountValue('4551', 'credit') + 
+                             getAccountValue('456', 'credit') + 
+                             getAccountValue('4582', 'credit');
+      
+      const asociati_retras = getAccountValue('4551', 'debit') + 
+                              getAccountValue('456', 'debit') + 
+                              getAccountValue('4582', 'debit');
+      
       const imobilizari = getClassSum(2, 'debit');
       const creante_clienti = getAccountsSum(/^411/, 'debit');
 
@@ -1076,10 +1199,37 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({ children: [new TextRun('DIFERENȚĂ: '), new TextRun({ text: `${fmt(diferenta_profit_cash)} RON ❓`, bold: true, size: 32, color: 'FF0000' })], spacing: { after: 400 } })
       );
 
-      if (asociati_total > 0) {
+      // Afișează BĂGAT (sold creditoare = investiție în firmă)
+      if (asociati_bagat > 0) {
         docSections.push(
-          new Paragraph({ children: [new TextRun({ text: '1️⃣ BANII LA ASOCIAȚI: ', bold: true, color: 'FF8C00' }), new TextRun({ text: `${fmt(asociati_total)} RON`, bold: true })], spacing: { after: 200 } }),
-          new Paragraph({ text: '💡 Banii au fost retrași de asociați (normal dacă firma are cash minim)', spacing: { after: 400 } })
+          new Paragraph({ 
+            children: [
+              new TextRun({ text: '1️⃣ BANII BĂGAȚI DE ASOCIAȚI: ', bold: true, color: '008000' }), 
+              new TextRun({ text: `${fmt(asociati_bagat)} RON`, bold: true })
+            ], 
+            spacing: { after: 200 } 
+          }),
+          new Paragraph({ 
+            text: '💡 Asociații au INVESTIT în firmă (sold creditoare 4551/456/4582) - firma datorează asociaților acești bani. Îi poți returna prin dividende sau rambursare.',
+            spacing: { after: 400 } 
+          })
+        );
+      }
+      
+      // Afișează RETRAS (sold debitoare = retragere din firmă)
+      if (asociati_retras > 0) {
+        docSections.push(
+          new Paragraph({ 
+            children: [
+              new TextRun({ text: '1️⃣ BANII RETRAȘI DE ASOCIAȚI: ', bold: true, color: 'FF8C00' }), 
+              new TextRun({ text: `${fmt(asociati_retras)} RON`, bold: true })
+            ], 
+            spacing: { after: 200 } 
+          }),
+          new Paragraph({ 
+            text: '💡 Asociații au RETRAS bani din firmă (sold debitoare 4551/456/4582) - asociații datorează firmei. Trebuie regularizat prin dividende sau returnare bani.',
+            spacing: { after: 400 } 
+          })
         );
       }
 
@@ -1264,10 +1414,11 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         });
       }
       
+      // FIX #3: Elimină limbaj speculativ - doar fapte concrete
       if (stocks > bank * 2) {
         risks.push({
           type: '🟡 AVERTISMENT',
-          message: `Stocuri mari (${fmt(stocks)} RON) față de lichidități. Posibilă rotație slabă.`,
+          message: `Stocuri mari (${fmt(stocks)} RON) depășesc de 2x lichiditatea bancară. Verifică rotația stocurilor (DIO) pentru a confirma eficiența.`,
           severity: 'MEDIU'
         });
       }
