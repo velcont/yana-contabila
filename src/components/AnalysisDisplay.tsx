@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Volume2,
   VolumeX,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -46,6 +47,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
   const [selectedSection, setSelectedSection] = useState<AnalysisSection | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Grok validation state
+  const [grokValidation, setGrokValidation] = useState<any>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   
   const handleReprocess = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,8 +244,62 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
   const companyInfo = extractCompanyInfo(analysisText);
   const sections = extractSections(analysisText);
 
+  // Validate with Grok before generating report
+  const validateWithGrok = async () => {
+    setIsValidating(true);
+    setGrokValidation(null);
+    
+    try {
+      toast.info('🔍 Validare Grok în curs... (10-15 secunde)', { duration: 15000 });
+      
+      const { data, error } = await supabase.functions.invoke('validate-balance-with-grok', {
+        body: { 
+          structuredData: metadata?.structuredData,
+          companyInfo: {
+            name: companyInfo.name,
+            cui: metadata?.structuredData?.metadata?.cui,
+            period: metadata?.structuredData?.metadata?.perioada
+          },
+          analysisText: analysisText
+        }
+      });
+      
+      if (error) throw error;
+      
+      console.log('[Grok] Validation received:', data);
+      setGrokValidation(data);
+      setShowValidationDialog(true);
+      
+      // LOGICA DE BLOCARE STRICTĂ
+      if (data.validation_status === 'CRITICAL' || !data.ready_for_report) {
+        toast.error('🚨 Validare FAILED! Generarea raportului este BLOCATĂ!', { duration: 10000 });
+        setIsValidating(false);
+        return; // STOP - nu permite generare
+      }
+      
+      if (data.validation_status === 'WARNING') {
+        toast.warning('⚠️ Avertismente detectate - raportul va include secțiunea Validare Grok', { duration: 5000 });
+        // Continuă cu generarea, dar va include banner-ul galben
+        await generateWordExplanations(data);
+        setIsValidating(false);
+        return;
+      }
+      
+      // VALID → generează raportul automat
+      toast.success('✅ Validare Grok OK! Generez raportul...', { duration: 3000 });
+      await generateWordExplanations(data);
+      setIsValidating(false);
+      
+    } catch (error: any) {
+      console.error('[Grok] Validation error:', error);
+      toast.error(`Eroare validare Grok: ${error.message}`, { duration: 5000 });
+      setIsValidating(false);
+    }
+  };
+
   // Generate Premium Financial Report Word document
-  const generateWordExplanations = async () => {
+  const generateWordExplanations = async (grokValidationData?: any) => {
+    setIsGeneratingWord(true);
     // === FIX #6: DEBUG LOGGING START ===
     console.log('\n' + '='.repeat(80));
     console.log('🚀 START GENERARE RAPORT PREMIUM');
@@ -246,6 +307,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     console.log(`📅 Data: ${new Date().toLocaleString('ro-RO')}`);
     console.log(`🏢 Companie: ${companyInfo.name || 'N/A'}`);
     console.log(`🆔 CUI: ${companyInfo.cui || 'N/A'}`);
+    console.log(`✅ Grok Validation: ${grokValidationData?.validation_status || 'N/A'}`);
     console.log('='.repeat(80));
 
     // === FIX #3: PRELUARE RAPORT PRECEDENT DIN DB ===
@@ -505,6 +567,61 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           spacing: { after: 600 }
         })
       );
+      
+      // === GROK VALIDATION WARNINGS (if any) ===
+      if (grokValidationData?.validation_status === 'WARNING' && grokValidationData?.anomalies?.length > 0) {
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: '⚠️ AVERTISMENTE DETECTATE DE GROK AI', 
+                bold: true, 
+                size: 32, 
+                color: 'FFA500' // Orange
+              })
+            ],
+            spacing: { before: 400, after: 200 },
+            shading: { fill: 'FFF4E6' } // Light orange background
+          }),
+          new Paragraph({
+            text: `Grok AI (cel mai puternic model contabil) a detectat ${grokValidationData.anomalies.length} avertisment(e) în balanță:`,
+            spacing: { after: 200 }
+          })
+        );
+        
+        // Afișează fiecare avertisment
+        grokValidationData.anomalies.forEach((anomaly: any, index: number) => {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: `${index + 1}. ${anomaly.type}: `, bold: true }),
+                new TextRun({ text: anomaly.account ? `Cont ${anomaly.account}` : 'General' })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: `📋 ${anomaly.message}`,
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              text: `💡 Recomandare: ${anomaly.recommendation}`,
+              spacing: { after: 300 }
+            })
+          );
+        });
+        
+        docSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: '⚠️ Aceste avertismente nu blochează raportul, dar necesită atenție din partea contabilului.',
+                italics: true
+              })
+            ],
+            spacing: { after: 400 }
+          })
+        );
+      }
       
       // === REZUMAT EXECUTIV ===
       docSections.push(
@@ -3322,7 +3439,8 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       {/* Word Document Generation Button */}
       <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
         <Button 
-          onClick={generateWordExplanations} 
+          onClick={validateWithGrok}
+          disabled={isGeneratingWord || isValidating || !metadata?.structuredData}
           variant="outline"
           className="w-full relative overflow-hidden"
           size="lg"
@@ -3333,8 +3451,22 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     fontWeight: 600
   }}
         >
-          <FileText className="h-5 w-5 mr-2" />
-          📄 Generează Raport Financiar Premium
+          {isValidating ? (
+            <>
+              <RefreshCw className="animate-spin mr-2 h-5 w-5" />
+              Validare Grok în curs... (10-15s)
+            </>
+          ) : isGeneratingWord ? (
+            <>
+              <FileText className="mr-2 h-5 w-5" />
+              Se generează raportul...
+            </>
+          ) : (
+            <>
+              <FileText className="h-5 w-5 mr-2" />
+              📄 Validează cu Grok & Generează Raport Premium
+            </>
+          )}
         </Button>
         
         {/* Word Readiness Indicator */}
@@ -3405,7 +3537,162 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             </div>
           );
         })()}
+        
+        {/* Grok Info Text */}
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          ✨ Validat automat de Grok AI (cel mai puternic model contabil din România)
+          <br />
+          Cost validare: 0.75 RON (inclus în prețul raportului premium)
+        </p>
       </div>
+
+      {/* Grok Validation Dialog */}
+      <Dialog open={showValidationDialog} onOpenChange={setShowValidationDialog}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              {grokValidation?.validation_status === 'VALID' && '✅ Validare Grok PASSED'}
+              {grokValidation?.validation_status === 'WARNING' && '⚠️ Avertismente Detectate'}
+              {grokValidation?.validation_status === 'CRITICAL' && '🚨 Validare FAILED'}
+              {grokValidation?.validation_status === 'ERROR' && '❌ Eroare Validare'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Confidence Score */}
+            {grokValidation?.grok_confidence_score && (
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200">
+                  Încredere Grok: {(grokValidation.grok_confidence_score * 100).toFixed(0)}%
+                </p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full" 
+                    style={{ width: `${grokValidation.grok_confidence_score * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Anomalii CRITICAL */}
+            {grokValidation?.anomalies?.filter((a: any) => a.severity === 'CRITICAL').length > 0 && (
+              <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg border-2 border-red-300 dark:border-red-700">
+                <h3 className="font-bold text-red-800 dark:text-red-200 text-lg mb-3">
+                  🚨 Anomalii CRITICE (blochează raportul):
+                </h3>
+                {grokValidation.anomalies
+                  .filter((a: any) => a.severity === 'CRITICAL')
+                  .map((anomaly: any, idx: number) => (
+                    <div key={idx} className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-red-200 dark:border-red-800">
+                      <p className="font-semibold text-red-700 dark:text-red-300">
+                        {anomaly.type}: {anomaly.account && `Cont ${anomaly.account}`}
+                      </p>
+                      <p className="text-sm mt-1">{anomaly.message}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 bg-yellow-50 dark:bg-yellow-900 p-2 rounded">
+                        💡 {anomaly.recommendation}
+                      </p>
+                    </div>
+                  ))}
+                <p className="mt-4 text-sm text-red-700 dark:text-red-300 font-semibold">
+                  ⛔ Raportul NU poate fi generat până când aceste erori sunt corectate în balanță!
+                </p>
+              </div>
+            )}
+            
+            {/* Anomalii WARNING */}
+            {grokValidation?.anomalies?.filter((a: any) => a.severity === 'WARNING').length > 0 && (
+              <div className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg border border-yellow-300 dark:border-yellow-700">
+                <h3 className="font-bold text-yellow-800 dark:text-yellow-200 text-lg mb-3">
+                  ⚠️ Avertismente (permit generare):
+                </h3>
+                {grokValidation.anomalies
+                  .filter((a: any) => a.severity === 'WARNING')
+                  .map((anomaly: any, idx: number) => (
+                    <div key={idx} className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-yellow-200 dark:border-yellow-800">
+                      <p className="font-semibold text-yellow-700 dark:text-yellow-300">
+                        {anomaly.type}: {anomaly.account && `Cont ${anomaly.account}`}
+                      </p>
+                      <p className="text-sm mt-1">{anomaly.message}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 bg-blue-50 dark:bg-blue-900 p-2 rounded">
+                        💡 {anomaly.recommendation}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            )}
+            
+            {/* Interpretări Validate */}
+            {grokValidation?.interpretations_validated && (
+              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                <h3 className="font-bold text-green-800 dark:text-green-200 mb-2">✅ Interpretări Validate:</h3>
+                <div className="space-y-1 text-sm">
+                  {Object.entries(grokValidation.interpretations_validated).map(([key, value]: [string, any]) => (
+                    <p key={key} className="text-gray-700 dark:text-gray-300">• {value}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Verificări Matematice */}
+            {grokValidation?.mathematical_checks && (
+              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                <h3 className="font-bold text-blue-800 dark:text-blue-200 mb-2">🔢 Verificări Matematice:</h3>
+                <div className="space-y-1 text-sm">
+                  {Object.entries(grokValidation.mathematical_checks).map(([key, value]: [string, any]) => (
+                    <p key={key} className="text-gray-700 dark:text-gray-300">• {value}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Blocked Reasons */}
+            {grokValidation?.blocked_reasons?.length > 0 && (
+              <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg">
+                <h4 className="font-bold text-red-800 dark:text-red-200 mb-2">⛔ Motive blocare:</h4>
+                <ul className="list-disc pl-5 text-sm text-red-700 dark:text-red-300">
+                  {grokValidation.blocked_reasons.map((reason: string, idx: number) => (
+                    <li key={idx}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          {/* Footer Actions */}
+          <div className="flex gap-3 mt-6">
+            {grokValidation?.validation_status === 'CRITICAL' || !grokValidation?.ready_for_report ? (
+              <Button 
+                onClick={() => setShowValidationDialog(false)}
+                variant="destructive"
+                className="flex-1"
+              >
+                Închide - Corectează Balanța
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  onClick={() => setShowValidationDialog(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Anulează
+                </Button>
+                {grokValidation?.validation_status === 'WARNING' && (
+                  <Button 
+                    onClick={async () => {
+                      setShowValidationDialog(false);
+                      await generateWordExplanations(grokValidation);
+                    }}
+                    className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Generează cu Avertismente
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Auto-Scrolling Analysis Text */}
       <div className="space-y-6">
