@@ -49,6 +49,8 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
+        skipWaiting: true,        // Service Worker se activează IMEDIAT
+        clientsClaim: true,       // Preia controlul tuturor paginilor INSTANT
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         runtimeCaching: [
           {
@@ -78,6 +80,10 @@ export default defineConfig(({ mode }) => ({
     // Optimize chunk splitting
     rollupOptions: {
       output: {
+        // Hash-uri unice pentru fiecare build → forțează re-download
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
         manualChunks: {
           // Vendor chunks for better caching
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
