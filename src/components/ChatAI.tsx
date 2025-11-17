@@ -1530,6 +1530,126 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         isAccountantMode: isAccountantMode ? 'DA - CONTABIL' : 'NU - ANTREPRENOR'
       });
 
+      // Helper function pentru chenarele call-to-action Chat AI
+      const createChatAICallToAction = (type: 'hero' | 'section' | 'final') => {
+        if (type === 'hero') {
+          return [
+            new Paragraph({
+              text: "🚀 AI-ul YANA te așteaptă!",
+              heading: HeadingLevel.HEADING_2,
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 400, after: 200 },
+              shading: { fill: "FF6B35" }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ 
+                  text: "Ai întrebări despre raport? Pune-le acum Chat AI-ului care știe EXACT situația firmei tale!\n\n",
+                  bold: true,
+                  size: 24
+                }),
+                new TextRun({ 
+                  text: "Exemple reale:\n",
+                  bold: true,
+                  size: 22
+                }),
+                new TextRun({ 
+                  text: "• \"De ce am pierdere dacă am încasat bine?\"\n",
+                  size: 22
+                }),
+                new TextRun({ 
+                  text: "• \"Cât pot să-mi scot dividende fără să rămân fără cash?\"\n",
+                  size: 22
+                }),
+                new TextRun({ 
+                  text: "• \"Ce furnizor să plătesc primul luna asta?\"\n",
+                  size: 22
+                }),
+                new TextRun({ 
+                  text: "• \"Cum reduc cheltuielile cu 10.000 RON/lună?\"\n\n",
+                  size: 22
+                }),
+                new TextRun({ 
+                  text: "→ Deschide Chat AI acum!",
+                  bold: true,
+                  size: 26,
+                  color: "FF6B35"
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 },
+              border: {
+                top: { color: "FF6B35", size: 12, style: BorderStyle.SINGLE },
+                bottom: { color: "FF6B35", size: 12, style: BorderStyle.SINGLE },
+                left: { color: "FF6B35", size: 12, style: BorderStyle.SINGLE },
+                right: { color: "FF6B35", size: 12, style: BorderStyle.SINGLE }
+              },
+              shading: { fill: "FFF3E0" }
+            })
+          ];
+        } else if (type === 'section') {
+          return [
+            new Paragraph({
+              children: [
+                new TextRun({ 
+                  text: "💬 Ai întrebări despre această secțiune?\n",
+                  bold: true,
+                  size: 22
+                }),
+                new TextRun({ 
+                  text: "Scrie direct Chat AI-ului YANA → răspunde instant!",
+                  size: 20
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 300, after: 300 },
+              border: {
+                top: { color: "9E9E9E", size: 6, style: BorderStyle.SINGLE },
+                bottom: { color: "9E9E9E", size: 6, style: BorderStyle.SINGLE },
+                left: { color: "9E9E9E", size: 6, style: BorderStyle.SINGLE },
+                right: { color: "9E9E9E", size: 6, style: BorderStyle.SINGLE }
+              },
+              shading: { fill: "F5F5F5" }
+            })
+          ];
+        } else { // final
+          return [
+            new Paragraph({
+              text: "⚡ NU mai aștepta răspuns de la contabil 3 zile!",
+              heading: HeadingLevel.HEADING_2,
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 600, after: 200 },
+              shading: { fill: "D32F2F" }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ 
+                  text: "Chat AI YANA știe deja totul despre firma ta și îți răspunde în 5 secunde.\n\n",
+                  bold: true,
+                  size: 26,
+                  color: "FFFFFF"
+                }),
+                new TextRun({ 
+                  text: "Click aici și întreabă orice vrei!",
+                  bold: true,
+                  size: 28,
+                  color: "FFEB3B"
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 600 },
+              border: {
+                top: { color: "D32F2F", size: 12, style: BorderStyle.SINGLE },
+                bottom: { color: "D32F2F", size: 12, style: BorderStyle.SINGLE },
+                left: { color: "D32F2F", size: 12, style: BorderStyle.SINGLE },
+                right: { color: "D32F2F", size: 12, style: BorderStyle.SINGLE }
+              },
+              shading: { fill: "FFCDD2" }
+            })
+          ];
+        }
+      };
+
       let sections: any[];
 
       if (isAccountantMode) {
@@ -1744,7 +1864,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             new TextRun({ text: new Date().toLocaleDateString('ro-RO') })
           ],
           spacing: { after: 400 }
-        })
+        }),
+        
+        // CHENAR PORTOCALIU MARE - HERO CALL TO ACTION
+        ...createChatAICallToAction('hero')
       );
       
       // DISCLAIMER JURIDIC
@@ -1869,7 +1992,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         new Paragraph({
           text: `🎯 Recomandări prioritare: Vezi secțiunile "Zone de Risc" și "Soluții de Optimizare"`,
           spacing: { after: 400 }
-        })
+        }),
+        
+        // CHENAR GRI - Call to Action după REZUMAT EXECUTIV
+        ...createChatAICallToAction('section')
       );
       
       // Parcurge clasele 1-7
@@ -1912,6 +2038,9 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             })
           );
         });
+        
+        // CHENAR GRI - Call to Action după fiecare clasă
+        sections.push(...createChatAICallToAction('section'));
       }
       
       // ========== ZONE DE RISC ȘI ALERTE ==========
@@ -1989,7 +2118,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         new Paragraph({ text: "✓ Verifică lunar balanța cu contabilul", spacing: { after: 50 } }),
         new Paragraph({ text: "✓ Reconciliază conturile bancare săptămânal", spacing: { after: 50 } }),
         new Paragraph({ text: "✓ Monitorizează cash-flow-ul zilnic", spacing: { after: 50 } }),
-        new Paragraph({ text: "✓ Păstrează TOATE documentele justificative (facturi, chitanțe)", spacing: { after: 400 } })
+        new Paragraph({ text: "✓ Păstrează TOATE documentele justificative (facturi, chitanțe)", spacing: { after: 400 } }),
+        
+        // CHENAR GRI - Call to Action după ZONE DE RISC
+        ...createChatAICallToAction('section')
       );
       
       // ========== SOLUȚII DE OPTIMIZARE ==========
@@ -2051,7 +2183,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         new Paragraph({ 
           children: [new TextRun({ text: "→ TOTAL POTENȚIAL: 300-800 RON/lună = 3.600-9.600 RON/an", bold: true })],
           spacing: { after: 400 } 
-        })
+        }),
+        
+        // CHENAR GRI - Call to Action după SOLUȚII DE OPTIMIZARE
+        ...createChatAICallToAction('section')
       );
       
       // ========== CHECKLIST DE VERIFICARE ==========
@@ -2113,7 +2248,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
         new Paragraph({ text: "□ Toate documentele sunt arhivate corect", spacing: { after: 50 } }),
         new Paragraph({ text: "□ Contractele cu furnizorii sunt valabile", spacing: { after: 50 } }),
         new Paragraph({ text: "□ Licențele și autorizațiile sunt în termen", spacing: { after: 50 } }),
-        new Paragraph({ text: "□ Asigurările (RCA, CASCO, etc.) sunt la zi", spacing: { after: 400 } })
+        new Paragraph({ text: "□ Asigurările (RCA, CASCO, etc.) sunt la zi", spacing: { after: 400 } }),
+        
+        // CHENAR GRI - Call to Action după CHECKLIST LUNAR
+        ...createChatAICallToAction('section')
       );
       
       // Footer comun pentru ANTREPRENOR
@@ -2177,7 +2315,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           children: [new TextRun({ text: "Acest raport este generat automat pe baza datelor din balanță. Recomandăm verificarea și validarea cu un contabil autorizat înainte de luarea deciziilor financiare majore.", italics: true })],
           spacing: { after: 400 },
           alignment: AlignmentType.JUSTIFIED
-        })
+        }),
+        
+        // CHENAR ROȘU MARE - FINAL CALL TO ACTION
+        ...createChatAICallToAction('final')
       );
       } // ✅ Sfârșit ELSE block pentru ANTREPRENOR
       
