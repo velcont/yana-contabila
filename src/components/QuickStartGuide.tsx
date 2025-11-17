@@ -14,10 +14,9 @@ interface QuickStartGuideProps {
 
 export const QuickStartGuide = ({ onOpenChat, onOpenDashboard, userSubscriptionType, isAccountant }: QuickStartGuideProps) => {
   const navigate = useNavigate();
-  const { themeType } = useTheme();
   
-  // Verificăm dacă utilizatorul este contabil SAU dacă adminul este în modul contabil
-  const isAccountantUser = userSubscriptionType === 'accounting_firm' || isAccountant || themeType === 'accountant';
+  // DOAR contabilii reali (cu subscription accounting_firm) văd YanaCRM
+  const isAccountantUser = userSubscriptionType === 'accounting_firm' || isAccountant;
 
   // Primul card diferă în funcție de tipul de utilizator
   const firstFeature = isAccountantUser ? {
