@@ -3226,6 +3226,8 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     } catch (error) {
       console.error('Eroare generare Raport Premium:', error);
       toast.error('Eroare la generarea raportului financiar');
+    } finally {
+      setIsGeneratingWord(false);
     }
   };
 
