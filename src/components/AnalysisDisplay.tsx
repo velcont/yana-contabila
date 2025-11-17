@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BalanceAuditViewer } from './BalanceAuditViewer';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ShadingType } from "docx";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +42,105 @@ interface AnalysisSection {
   summary: string;
   color: string;
 }
+
+// 🚀 HELPER FUNCTION pentru Call-to-Action Chat AI boxes
+const createChatAICallToAction = (type: 'hero' | 'section' | 'final'): Paragraph[] => {
+  if (type === 'hero') {
+    return [
+      new Paragraph({
+        text: "🚀 AI-ul YANA te așteaptă!",
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 200 },
+        alignment: AlignmentType.CENTER,
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: "Ai întrebări despre raport? Pune-le acum Chat AI-ului care știe EXACT situația firmei tale!",
+        spacing: { after: 200 },
+        alignment: AlignmentType.CENTER,
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Exemple reale:", bold: true })
+        ],
+        spacing: { after: 100 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: '• "De ce am pierdere dacă am încasat bine?"',
+        spacing: { after: 50 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: '• "Cât pot să-mi scot dividende fără să rămân fără cash?"',
+        spacing: { after: 50 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: '• "Ce furnizor să plătesc primul luna asta?"',
+        spacing: { after: 50 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: '• "Cum reduc cheltuielile cu 10.000 RON/lună?"',
+        spacing: { after: 200 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "→ Deschide Chat AI acum!", bold: true })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
+        shading: { fill: "FFA500", type: ShadingType.SOLID }
+      })
+    ];
+  }
+  
+  if (type === 'section') {
+    return [
+      new Paragraph({
+        text: "💬 Ai întrebări despre această secțiune?",
+        spacing: { before: 200, after: 100 },
+        shading: { fill: "E0E0E0", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: "Scrie direct Chat AI-ului YANA → răspunde instant!",
+        spacing: { after: 200 },
+        shading: { fill: "E0E0E0", type: ShadingType.SOLID }
+      })
+    ];
+  }
+  
+  if (type === 'final') {
+    return [
+      new Paragraph({
+        text: "⚡ NU mai aștepta răspuns de la contabil 3 zile!",
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 300, after: 200 },
+        alignment: AlignmentType.CENTER,
+        shading: { fill: "FF0000", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        text: "Chat AI YANA știe deja totul despre firma ta și îți răspunde în 5 secunde.",
+        spacing: { after: 200 },
+        alignment: AlignmentType.CENTER,
+        shading: { fill: "FF0000", type: ShadingType.SOLID }
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({ text: "Click aici și întreabă orice vrei!", bold: true })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
+        shading: { fill: "FF0000", type: ShadingType.SOLID }
+      })
+    ];
+  }
+  
+  return [];
+};
 
 export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, analysisId, onReprocessComplete }: AnalysisDisplayProps) => {
   const [selectedSection, setSelectedSection] = useState<AnalysisSection | null>(null);
@@ -672,6 +771,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           ],
           spacing: { after: 400 }
         }),
+        // 💬 CALL-TO-ACTION #2: După Rezumat Executiv
+        ...createChatAICallToAction('section'),
+        
         new Paragraph({
           text: '🎯 INDICATORI CHEIE',
           heading: HeadingLevel.HEADING_3,
@@ -716,14 +818,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         });
       }
       
-      // Verificare 2: Total Debit = Total Credit pentru clasele 6-7
-      const total_debit_67 = getClassSum(6, 'debit') + getClassSum(7, 'debit');
-      const total_credit_67 = getClassSum(6, 'credit') + getClassSum(7, 'credit');
-      const diferenta_67 = Math.abs(total_debit_67 - total_credit_67);
-      
-      if (diferenta_67 > 1) { // Toleranță 1 RON pentru rotunjiri
-        anomalii.push(`⚠️ Clase 6-7: Total DEBIT (${fmt(total_debit_67)}) ≠ Total CREDIT (${fmt(total_credit_67)}) - Diferență: ${fmt(diferenta_67)} RON - Balanța este NEBALANSATĂ!`);
-      }
+      // ✅ HOTFIX #1: ELIMINAT verificarea "Balanță nebalansată" - diferența profit/loss nu înseamnă balanță nebalansată!
       
       // Verificare 3: Cont 121 (Profit/Pierdere) - nu poate avea simultan debit și credit
       const profit_debit = getAccountValue('121', 'debit');
@@ -950,9 +1045,15 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       );
 
+      // ✅ HOTFIX #2: DETECTARE CORECTĂ SERVICII bazată pe cont 704
+      const procent_servicii = total_venituri_identificate > 0 
+        ? (venituri_servicii / total_venituri_identificate) * 100 
+        : 0;
+      const este_predominant_servicii = procent_servicii >= 90;
+
       // Recomandări specifice în funcție de tip business
-      if (marja_foarte_mare && !are_stocuri && creante_minime) {
-        // SOFTWARE/IT cu marje foarte mari
+      if (este_predominant_servicii) {
+        // ✅ SERVICII (peste 90% venituri din cont 704)
         docSections.push(
           new Paragraph({
             children: [
@@ -1240,6 +1341,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         );
       }
 
+      // 💬 CALL-TO-ACTION #4: După Recomandări Personalizate
+      docSections.push(...createChatAICallToAction('section'));
+      
       // Recomandare generală finală pentru toate tipurile de business
       docSections.push(
         new Paragraph({
@@ -1295,6 +1399,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         new Paragraph({ text: '🔍 ANALIZA CRITICĂ: Unde Sunt Banii?', heading: HeadingLevel.HEADING_1, spacing: { after: 400 } }),
         new Paragraph({ text: 'Aceasta este cea mai importantă secțiune!', spacing: { after: 400 } })
       );
+      
+      // 💬 CALL-TO-ACTION #3: După "Unde sunt banii?"
+      docSections.push(...createChatAICallToAction('section'));
 
       // FIX #1: CONT 4551 - Separă BĂGAT (credit) vs RETRAS (debit)
       const asociati_bagat = getAccountValue('4551', 'credit') + 
@@ -1569,6 +1676,9 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           spacing: { before: 300, after: 600 }
         })
       );
+      
+      // 💬 CALL-TO-ACTION #7: După ZONE DE RISC
+      docSections.push(...createChatAICallToAction('section'));
       
       // === SOLUȚII DE OPTIMIZARE ===
       docSections.push(
@@ -2963,6 +3073,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
           spacing: { after: 600 }
         })
       );
+      
+      // 💬 CALL-TO-ACTION #5: După Checklist 90 zile
+      docSections.push(...createChatAICallToAction('section'));
+      
+      // 🚀 CALL-TO-ACTION #6: FINAL (roșu mare înainte de footer)
+      docSections.push(...createChatAICallToAction('final'));
       
       // === FOOTER UPDATED ===
       docSections.push(
