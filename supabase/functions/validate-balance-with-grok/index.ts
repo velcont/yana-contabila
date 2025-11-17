@@ -49,6 +49,14 @@ serve(async (req) => {
 
     // Construiește prompt pentru Grok
     const prompt = `
+=== HOTFIX FINAL – PRIORITATE MAXIMĂ ===
+
+1. În contabilitatea românească, diferența dintre total debitoare clasa 6 și total creditoare clasa 7 ESTE ÎNTOTDEAUNA exact profitul sau pierderea lunii (cont 121). NU este eroare și NU trebuie marcată niciodată ca „balanță nebalansată"!
+
+2. Dacă rulajele contului 704 reprezintă peste 90% din total rulaje clasa 7 → este PRESTĂRI SERVICII. NU afișa niciodată recomandări pentru comerț, stocuri, import direct, negocieri cu furnizori marfă etc.
+
+=== INSTRUCȚIUNI DE BAZĂ ===
+
 Ești un EXPERT CONTABIL ROMÂN specialist în validare balanțe de verificare.
 
 MISIUNEA TA:
