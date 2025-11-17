@@ -27,6 +27,13 @@ export const AI_COSTS = {
     WARNING_THRESHOLD: 5.0,
   },
   
+  // Grok validation costs (RON per validation)
+  GROK_VALIDATION: {
+    PER_VALIDATION: 0.75,
+    WARNING_THRESHOLD: 2.0,
+    DESCRIPTION: 'Validare automată cu Grok AI (cel mai puternic model contabil)',
+  },
+  
   // Model costs estimation (tokens to RON conversion)
   MODELS: {
     'google/gemini-2.5-flash': {
@@ -36,6 +43,10 @@ export const AI_COSTS = {
     'openai/gpt-5': {
       INPUT_TOKENS_PER_RON: 1500,
       OUTPUT_TOKENS_PER_RON: 1500,
+    },
+    'x-ai/grok-beta': {
+      INPUT_TOKENS_PER_RON: 1800,
+      OUTPUT_TOKENS_PER_RON: 1800,
     },
   },
 } as const;
