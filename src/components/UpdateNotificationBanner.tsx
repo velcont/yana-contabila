@@ -49,12 +49,49 @@ export const UpdateNotificationBanner = () => {
     }
   }, [hasNewVersion, dismissed]);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     if (currentVersion) {
       localStorage.setItem('yana_app_version', currentVersion.version);
-      window.location.reload();
+      
+      // STEP 1: Șterge tot cache-ul Service Worker
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      
+      // STEP 2: Șterge cache-ul browser-ului
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }
+      
+      // STEP 3: HARD REFRESH (șterge și cache-ul memoriei)
+      window.location.href = window.location.href + '?v=' + Date.now();
     }
   };
+
+  // Detectează când Service Worker-ul se actualizează
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated' && !dismissed) {
+                // Afișează banner-ul automat când SW se actualizează
+                setIsVisible(true);
+              }
+            });
+          }
+        });
+      });
+    }
+  }, [dismissed]);
 
   useEffect(() => {
     if (currentVersion && !localVersion) {
@@ -92,7 +129,7 @@ export const UpdateNotificationBanner = () => {
             className="font-medium text-xs h-7 px-3"
           >
             <RefreshCw className="h-3 w-3 mr-1.5" />
-            Actualizează
+            Actualizează (curăță cache)
           </Button>
           <Button
             onClick={() => setDismissed(true)}
