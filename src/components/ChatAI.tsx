@@ -2733,7 +2733,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   Poți revedea datele și regenera rapoarte oricând dorești.
                                 </p>
                                 <Button
-                                  onClick={() => window.location.href = '/crm?tab=my-files'}
+                                  onClick={() => window.location.href = '/app'}
                                   variant="default"
                                   size="sm"
                                   className="bg-blue-600 hover:bg-blue-700 text-white"
