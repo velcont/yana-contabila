@@ -44,7 +44,7 @@ export const AI_COSTS = {
       INPUT_TOKENS_PER_RON: 1500,
       OUTPUT_TOKENS_PER_RON: 1500,
     },
-    'x-ai/grok-beta': {
+    'x-ai/grok-3': {
       INPUT_TOKENS_PER_RON: 1800,
       OUTPUT_TOKENS_PER_RON: 1800,
     },
