@@ -2951,6 +2951,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
+                          data-tour="file-upload"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isLoading || isUploadingFile}
                           variant="outline"
