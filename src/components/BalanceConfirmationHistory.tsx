@@ -1549,6 +1549,7 @@ export const BalanceConfirmationHistory = () => {
                     </div>
                     <div className="flex gap-2">
                       <Button
+                        data-tour="download-word-button"
                         size="sm"
                         variant="default"
                         onClick={() => generateWordFromHistory(confirmation)}

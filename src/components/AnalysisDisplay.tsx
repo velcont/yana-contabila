@@ -3501,6 +3501,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       {/* Word Document Generation Button */}
       <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
         <Button 
+          data-tour="generate-report-button"
           onClick={validateWithGrok}
           disabled={isGeneratingWord || isValidating || !metadata?.structuredData}
           variant="outline"
