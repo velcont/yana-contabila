@@ -328,3 +328,34 @@ All colors MUST be HSL.
 .fade-exit {
   animation: fade-out 0.3s ease-out;
 }
+
+/* Quick Start Tutorial Confetti Animation */
+@keyframes confetti-fall {
+  0% { 
+    transform: translateY(-100vh) rotate(0deg); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translateY(100vh) rotate(720deg); 
+    opacity: 0; 
+  }
+}
+
+.quickstart-confetti::before,
+.quickstart-confetti::after {
+  content: '🎉';
+  position: fixed;
+  top: 0;
+  left: 50%;
+  font-size: 3rem;
+  animation: confetti-fall 3s ease-out;
+  pointer-events: none;
+  z-index: 99999;
+}
+
+.quickstart-confetti::after {
+  content: '🎊';
+  left: 30%;
+  animation-delay: 0.2s;
+}
+

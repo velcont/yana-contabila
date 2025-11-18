@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Sparkles, Settings, LogOut, User, Building2, MessageSquare, Briefcase, TrendingUp, FileText } from "lucide-react";
+import { Sparkles, Settings, LogOut, User, Building2, MessageSquare, Briefcase, TrendingUp, FileText, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { ChatAI } from "@/components/ChatAI";
 import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { QuickStartTutorial } from "@/components/QuickStartTutorial";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ const Index = () => {
   const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
   const [userSubscriptionType, setUserSubscriptionType] = useState<string | null>(null);
+  const [runQuickStart, setRunQuickStart] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
@@ -124,6 +126,15 @@ const Index = () => {
     });
   };
 
+  const handleQuickStartComplete = () => {
+    setRunQuickStart(false);
+    localStorage.setItem('yana-quickstart-completed', 'true');
+    toast({
+      title: "🎉 Tutorial Finalizat!",
+      description: "Acum știi să folosești funcțiile principale ale aplicației!",
+    });
+  };
+
   const handleCardClick = (view: string) => {
     if (view === 'strategic-advisor' || view === 'yanacrm') {
       navigate(`/${view}`);
@@ -189,6 +200,17 @@ const Index = () => {
               {userSubscriptionType === 'entrepreneur' && (
                 <CreditAndTrialIndicator />
               )}
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setRunQuickStart(true)}
+                className="hidden md:flex gap-2"
+                title="Tutorial Rapid - 4 Pași"
+              >
+                <PlayCircle className="h-4 w-4" />
+                Tutorial Rapid
+              </Button>
               
               <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
                 <Settings className="h-5 w-5" />
@@ -362,6 +384,11 @@ const Index = () => {
         onComplete={() => {
           setShowAccountTypeSelector(false);
         }}
+      />
+      
+      <QuickStartTutorial 
+        run={runQuickStart} 
+        onComplete={handleQuickStartComplete}
       />
     </>
   );
