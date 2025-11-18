@@ -44,16 +44,57 @@ const Auth = () => {
 
   useEffect(() => {
     const checkResetMode = async () => {
-      // Metodă 1: Verifică parametrul ?reset=true
+      // Metodă 1: Verifică dacă există access_token în hash (vine de la link-ul din email)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      // Dacă avem token de recovery în hash, setăm sesiunea
+      if (accessToken && type === 'recovery') {
+        console.log('🔐 [AUTH] Recovery tokens found in URL hash, setting session...');
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+          
+          if (error) {
+            console.error('🔴 [AUTH] Error setting recovery session:', error);
+            toast({
+              title: "Link invalid sau expirat",
+              description: "Linkul de resetare nu mai este valabil. Cere un nou link.",
+              variant: "destructive",
+            });
+            setIsForgotPassword(true);
+            return;
+          }
+          
+          console.log('✅ [AUTH] Recovery session set successfully:', data.session?.user?.email);
+          setIsResetMode(true);
+          setIsLogin(false);
+          setIsForgotPassword(false);
+          
+          // Curățăm URL-ul complet
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.hash = '';
+          cleanUrl.searchParams.set('reset', 'true');
+          window.history.replaceState({}, '', cleanUrl.toString());
+          return;
+        } catch (error) {
+          console.error('🔴 [AUTH] Exception setting recovery session:', error);
+        }
+      }
+      
+      // Metodă 2: Verifică parametrul ?reset=true
       const resetParam = searchParams.get('reset') === 'true';
       
-      // Metodă 2: Verifică parametrul type=recovery (vine direct de la Supabase)
+      // Metodă 3: Verifică parametrul type=recovery
       const recoveryType = searchParams.get('type') === 'recovery';
       
-      // Metodă 3: Verifică dacă există o sesiune activă de recovery
+      // Metodă 4: Verifică dacă există deja o sesiune activă de recovery
       const { data: { session } } = await supabase.auth.getSession();
-      const hasRecoverySession = session?.user?.aud === 'authenticated' && 
-                                  searchParams.get('type') === 'recovery';
+      const hasRecoverySession = session?.user && (resetParam || recoveryType);
       
       // Activăm reset mode dacă oricare dintre metode confirmă
       if (resetParam || recoveryType || hasRecoverySession) {
@@ -69,6 +110,7 @@ const Auth = () => {
         
         // Curățăm URL-ul de parametrii sensibili
         const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = '';
         cleanUrl.searchParams.delete('type');
         cleanUrl.searchParams.delete('token');
         cleanUrl.searchParams.delete('token_hash');
@@ -78,7 +120,7 @@ const Auth = () => {
     };
     
     checkResetMode();
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   // UX-007: Password strength calculation with strict requirements
   const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {
