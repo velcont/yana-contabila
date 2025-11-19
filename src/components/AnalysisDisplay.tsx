@@ -3499,7 +3499,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       )}
 
       {/* Word Document Generation Button */}
-      <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
+      <div className="animate-fade-in" style={{ animationDelay: '300ms' }} data-tour="scroll-hint">
         <Button 
           data-tour="generate-report-button"
           onClick={validateWithGrok}
@@ -3728,6 +3728,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
                 onClick={() => setShowValidationDialog(false)}
                 variant="destructive"
                 className="flex-1"
+                data-tour="close-confirmation-dialog"
               >
                 Închide - Corectează Balanța
               </Button>
@@ -3737,6 +3738,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
                   onClick={() => setShowValidationDialog(false)}
                   variant="outline"
                   className="flex-1"
+                  data-tour="close-confirmation-dialog"
                 >
                   Anulează
                 </Button>
@@ -3747,6 +3749,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
                       await generateWordExplanations(grokValidation);
                     }}
                     className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                    data-tour="close-confirmation-dialog"
                   >
                     Generează cu Avertismente
                   </Button>
