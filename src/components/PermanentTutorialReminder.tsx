@@ -18,6 +18,18 @@ export const PermanentTutorialReminder = ({ run, onComplete }: Props) => {
         classes: 'yana-tutorial-step',
         scrollTo: { behavior: 'auto', block: 'center' },
         cancelIcon: { enabled: true },
+        canClickTarget: false, // ← FIX #1: previne click pe element să închidă tour-ul
+      }
+    });
+
+    // ← FIX #1: event listener pentru a preveni închiderea la click pe overlay
+    tour.on('show', () => {
+      const modalOverlay = document.querySelector('.shepherd-modal-overlay-container');
+      if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        });
       }
     });
 
@@ -90,13 +102,33 @@ export const PermanentTutorialReminder = ({ run, onComplete }: Props) => {
       buttons: createButtons(tour)
     });
 
-    // Pas 5: Alege ultima balanță
-    tour.addStep({
-      id: 'step-5',
-      text: '<h3>👆 Alege ultima balanță încărcată</h3><p>Click pe primul rând din listă pentru a deschide analiza</p>',
-      attachTo: { element: '[data-tour="select-analysis"]', on: 'right' },
-      buttons: createButtons(tour)
-    });
+    // Pas 5: Alege ultima balanță (doar dacă există!) - FIX #2
+    const hasAnalyses = document.querySelector('[data-tour="select-analysis"]');
+
+    if (hasAnalyses) {
+      tour.addStep({
+        id: 'step-5',
+        text: '<h3>👆 Alege ultima balanță încărcată</h3><p>Click pe primul rând din listă pentru a deschide analiza</p>',
+        attachTo: { element: '[data-tour="select-analysis"]', on: 'right' },
+        buttons: createButtons(tour)
+      });
+    } else {
+      // Skip pasul 5 și mergi direct la mesajul final
+      tour.addStep({
+        id: 'step-5-skip',
+        text: '<h3>📂 Nu ai balanțe salvate</h3><p>Mai întâi încarcă o balanță în ChatAI și analizează-o, apoi revezi tutorialul pentru a vedea cum să generezi rapoarte!</p>',
+        attachTo: { element: '[data-tour="my-folder-button"]', on: 'bottom' },
+        buttons: createButtons(tour, true) // ultimul pas
+      });
+      
+      tour.on('complete', onComplete);
+      tour.on('cancel', onComplete);
+      tour.start();
+      
+      return () => {
+        tour.cancel();
+      };
+    }
 
     // Pas 6: Scroll și apasă Generare Raport (scroll INSTANT)
     tour.addStep({
@@ -116,18 +148,10 @@ export const PermanentTutorialReminder = ({ run, onComplete }: Props) => {
       }
     });
 
-    // Pas 7: Închide confirmarea
+    // Pas 7: Mesaj final (raportul se descarcă automat) - FIX #3: șters pas 7 (dialog validare)
     tour.addStep({
       id: 'step-7',
-      text: '<h3>✅ Închide confirmarea</h3><p>După validare, apasă butonul pentru a închide dialogul</p>',
-      attachTo: { element: '[data-tour="close-confirmation-dialog"]', on: 'top' },
-      buttons: createButtons(tour)
-    });
-
-    // Pas 8: Mesaj final (raportul se descarcă automat)
-    tour.addStep({
-      id: 'step-8',
-      text: '<h3>🎉 Felicitări!</h3><p>Raportul Word se va descărca automat! Acum citește raportul și întreabă ChatAI orice nu înțelegi! 🎊</p>',
+      text: '<h3>🎉 Felicitări!</h3><p>Raportul Word se va descărca automat după validare! Acum citește raportul și întreabă ChatAI orice nu înțelegi! 🎊</p>',
       attachTo: { element: '[data-tour="generate-report-button"]', on: 'top' },
       buttons: createButtons(tour, true)
     });

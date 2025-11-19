@@ -109,16 +109,27 @@ const Index = () => {
     checkAccountType();
   }, [user, loading]);
 
-  // 🎓 Pornește Reminder Tutorial Permanent (dacă nu e hidden pentru totdeauna)
+  // 🎓 Pornește Reminder Tutorial Permanent (dacă nu e hidden pentru totdeauna ȘI ChatAI e deschis) - FIX #4
   useEffect(() => {
     if (user && !loading) {
       const permanentlyHidden = localStorage.getItem('yana-tutorial-permanently-hidden');
       
       if (permanentlyHidden !== 'true') {
-        const timer = setTimeout(() => {
-          logger.log('🎓 [INDEX] Auto-pornire Reminder Tutorial Permanent');
-          setRunTutorial(true);
-        }, 1500);
+        // Verificăm dacă ChatAI e deschis (există elementul cu data-tour="file-upload")
+        const checkAndStartTutorial = () => {
+          const chatAIOpen = document.querySelector('[data-tour="file-upload"]');
+          
+          if (chatAIOpen) {
+            logger.log('🎓 [INDEX] ChatAI deschis - pornire Tutorial');
+            setRunTutorial(true);
+          } else {
+            logger.log('🎓 [INDEX] ChatAI închis - așteptăm să fie deschis');
+            // Reîncercăm după 2s
+            setTimeout(checkAndStartTutorial, 2000);
+          }
+        };
+        
+        const timer = setTimeout(checkAndStartTutorial, 1500);
         
         return () => clearTimeout(timer);
       }
