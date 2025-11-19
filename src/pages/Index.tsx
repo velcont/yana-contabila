@@ -109,12 +109,15 @@ const Index = () => {
     checkAccountType();
   }, [user, loading]);
 
-  // 🎓 Pornește Reminder Tutorial Permanent (dacă nu e hidden pentru totdeauna ȘI ChatAI e deschis) - FIX #4
+  // 🎓 Pornește Reminder Tutorial Permanent (dacă nu e hidden pentru totdeauna ȘI ChatAI e deschis) - FIX #3
   useEffect(() => {
     if (user && !loading) {
       const permanentlyHidden = localStorage.getItem('yana-tutorial-permanently-hidden');
       
       if (permanentlyHidden !== 'true') {
+        let retryCount = 0;
+        const MAX_RETRIES = 10; // Maxim 10 reîncercări = 20 secunde
+        
         // Verificăm dacă ChatAI e deschis (există elementul cu data-tour="file-upload")
         const checkAndStartTutorial = () => {
           const chatAIOpen = document.querySelector('[data-tour="file-upload"]');
@@ -122,10 +125,12 @@ const Index = () => {
           if (chatAIOpen) {
             logger.log('🎓 [INDEX] ChatAI deschis - pornire Tutorial');
             setRunTutorial(true);
-          } else {
-            logger.log('🎓 [INDEX] ChatAI închis - așteptăm să fie deschis');
-            // Reîncercăm după 2s
+          } else if (retryCount < MAX_RETRIES) {
+            retryCount++;
+            logger.log(`🎓 [INDEX] ChatAI închis - reîncercare ${retryCount}/${MAX_RETRIES}`);
             setTimeout(checkAndStartTutorial, 2000);
+          } else {
+            logger.log('🎓 [INDEX] Timeout - tutorialul nu pornește (ChatAI nu e deschis după 20s)');
           }
         };
         
@@ -402,7 +407,7 @@ const Index = () => {
       
       {/* ChatAI disponibil global pentru analiza-balanta și chat-ai views */}
       {(activeView === 'analiza-balanta' || activeView === 'chat-ai') && (
-        <ChatAI openOnLoad={shouldOpenChatAI} />
+        <ChatAI openOnLoad={shouldOpenChatAI} forceTutorialMode={runTutorial} />
       )}
       
       <AccountTypeSelector 
