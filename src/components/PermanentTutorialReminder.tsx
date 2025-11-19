@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css';
 import confetti from 'canvas-confetti';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   run: boolean;
@@ -50,22 +51,22 @@ export const PermanentTutorialReminder = ({ run, onComplete }: Props) => {
 
       return [
         { 
-          text: 'Skip acest pas', 
-          action: () => tourInstance.next(),
-          classes: 'shepherd-button-skip'
-        },
-        { 
-          text: 'Next →', 
-          action: () => tourInstance.next(), 
-          classes: 'shepherd-button-primary' 
-        },
-        { 
           text: 'Nu mai arăta', 
           action: () => {
             localStorage.setItem('yana-tutorial-permanently-hidden', 'true');
             tourInstance.complete();
           }, 
-          classes: 'shepherd-button-warning' 
+          classes: 'shepherd-button-secondary'
+        },
+        { 
+          text: 'Skip acest pas', 
+          action: () => tourInstance.next(),
+          classes: 'shepherd-button-secondary'
+        },
+        { 
+          text: 'Next →', 
+          action: () => tourInstance.next(), 
+          classes: 'shepherd-button-primary' 
         }
       ];
     };
@@ -99,36 +100,33 @@ export const PermanentTutorialReminder = ({ run, onComplete }: Props) => {
       id: 'step-4',
       text: '<h3>📂 Click pe Dosarul Meu</h3><p>Deschide tab-ul "Dosarul Meu" pentru a vedea balanțele tale</p>',
       attachTo: { element: '[data-tour="my-folder-button"]', on: 'bottom' },
-      buttons: createButtons(tour)
+      buttons: createButtons(tour),
+      when: {
+        hide: () => {
+          // FIX #1: DUPĂ ce utilizatorul apasă pe "Dosarul Meu", așteptăm ca DOM-ul să se randeze
+          setTimeout(() => {
+            const hasAnalyses = document.querySelector('[data-tour="select-analysis"]');
+            
+            if (!hasAnalyses) {
+              // Dacă nu există analize, oprim tutorialul și afișăm mesaj
+              tour.cancel();
+              toast({
+                title: "📂 Nu ai balanțe salvate",
+                description: "Mai întâi încarcă o balanță în ChatAI și analizează-o!",
+              });
+            }
+          }, 800); // Așteptăm 800ms ca tab-ul să se deschidă și să se randeze lista
+        }
+      }
     });
 
-    // Pas 5: Alege ultima balanță (doar dacă există!) - FIX #2
-    const hasAnalyses = document.querySelector('[data-tour="select-analysis"]');
-
-    if (hasAnalyses) {
-      tour.addStep({
-        id: 'step-5',
-        text: '<h3>👆 Alege ultima balanță încărcată</h3><p>Click pe primul rând din listă pentru a deschide analiza</p>',
-        attachTo: { element: '[data-tour="select-analysis"]', on: 'right' },
-        buttons: createButtons(tour)
-      });
-    } else {
-      // Skip pasul 5 și mergi direct la mesajul final
-      tour.addStep({
-        id: 'step-5-skip',
-        text: '<h3>📂 Nu ai balanțe salvate</h3><p>Mai întâi încarcă o balanță în ChatAI și analizează-o, apoi revezi tutorialul pentru a vedea cum să generezi rapoarte!</p>',
-        attachTo: { element: '[data-tour="my-folder-button"]', on: 'bottom' },
-        buttons: createButtons(tour, true) // ultimul pas
-      });
-      
-      tour.on('complete', onComplete);
-      tour.on('cancel', onComplete);
-      tour.start();
-      
-      return () => {
-        tour.cancel();
-      };
-    }
+    // Pas 5: Alege ultima balanță (verificarea dinamică se face în pasul 4)
+    tour.addStep({
+      id: 'step-5',
+      text: '<h3>👆 Alege ultima balanță încărcată</h3><p>Click pe primul rând din listă pentru a deschide analiza</p>',
+      attachTo: { element: '[data-tour="select-analysis"]', on: 'right' },
+      buttons: createButtons(tour)
+    });
 
     // Pas 6: Scroll și apasă Generare Raport (scroll INSTANT)
     tour.addStep({

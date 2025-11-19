@@ -75,9 +75,10 @@ interface ChatAIProps {
   onAutoStartComplete?: () => void;
   onOpenDashboard?: () => void;
   openOnLoad?: boolean;
+  forceTutorialMode?: boolean; // FIX #2: forțează modul 'balance' când tutorialul e activ
 }
 
-export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
+export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false, forceTutorialMode = false }: ChatAIProps = {}) => {
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
@@ -87,6 +88,14 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
   const [showModeSwitchBanner, setShowModeSwitchBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
+  
+  // FIX #2: Forțează modul 'balance' când tutorialul e activ
+  useEffect(() => {
+    if (forceTutorialMode && chatMode !== 'balance') {
+      setChatMode('balance');
+      logger.log('🎓 [ChatAI] Forțat modul balance pentru tutorial');
+    }
+  }, [forceTutorialMode, chatMode]);
   
   const [messages, setMessages] = useState<Message[]>(
     autoStart ? [] : [
