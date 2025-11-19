@@ -128,9 +128,15 @@ export const QuickStartTutorial = ({ run, onComplete }: QuickStartTutorialProps)
           .limit(1);
 
         if (!error && data && data.length > 0) {
+          // Dacă există analize, sărim pasul 1 (încărcare balanță)
           setSkipFirstStep(true);
           setStepIndex(1);
           setActualSteps(steps.slice(1));
+        } else {
+          // Utilizator nou - arată TOȚI pașii
+          setSkipFirstStep(false);
+          setStepIndex(0);
+          setActualSteps(steps);
         }
       } catch (error) {
         console.error('Error checking analyses:', error);
