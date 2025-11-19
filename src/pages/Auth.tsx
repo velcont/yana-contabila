@@ -371,8 +371,12 @@ const Auth = () => {
         
         const signUpResult = await signUp(email, password, fullName, accountType || undefined);
         if (signUpResult.error) {
+          console.error('🔴 [AUTH] Signup error:', signUpResult.error);
           const msg = (signUpResult.error.message || '').toLowerCase();
-          const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;
+          const isAlreadyReg =
+            msg.includes('already registered') ||
+            msg.includes('user already registered') ||
+            msg.includes('user already exists');
 
           if (isAlreadyReg) {
             // 1) Încearcă autentificarea cu parola introdusă
