@@ -379,66 +379,17 @@ const Auth = () => {
             msg.includes('user already exists');
 
           if (isAlreadyReg) {
-            // 1) Încearcă autentificarea cu parola introdusă
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
+            // Emailul este deja înregistrat - nu încercăm login sau reset automat
+            toast({
+              title: 'Email deja înregistrat',
+              description:
+                'Există deja un cont cu acest email. Folosește butonul „Ai uitat parola?” pentru a reseta parola și a intra în cont.',
             });
 
-            if (!signInError && signInData?.user) {
-              // 2) Am autentificat – aplicăm aceleași update-uri de profil și tracking termeni
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                try {
-                  await supabase.functions.invoke('track-terms-acceptance', {
-                    body: {
-                      userId: user.id,
-                      email: user.email,
-                      termsVersion: '1.0'
-                    }
-                  });
-                } catch (trackError) {
-                  logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_existing_user' });
-                }
-
-                await supabase
-                  .from('profiles')
-                  .update({
-                    subscription_type: accountType,
-                    account_type_selected: true,
-                    terms_accepted: true,
-                    terms_accepted_at: new Date().toISOString()
-                  })
-                  .eq('id', user.id);
-              }
-
-              toast({
-                title: 'Cont existent – autentificat',
-                description: accountType === 'entrepreneur'
-                  ? 'Te-am autentificat și ți-am păstrat tipul de cont.'
-                  : 'Te-am autentificat și ți-am setat contul ca „Contabil”.',
-              });
-
-              navigate('/app');
-              return;
-            } else {
-              // 3) Parola nu e corectă – trimitem automat email de resetare
-              try {
-                await supabase.functions.invoke('send-reset-password', { body: { email } });
-              } catch (e) {
-                logError(e instanceof Error ? e : new Error('Auto reset email error'), { context: 'auto_password_reset', email });
-              }
-
-              toast({
-                title: 'Email deja înregistrat',
-                description: 'Ți-am trimis un link de resetare a parolei. După autentificare, vom seta contul conform selecției tale.',
-              });
-
-              // Comută la login după reset
-              setIsForgotPassword(false);
-              setIsLogin(true);
-              return;
-            }
+            // Comutăm interfața pe login ca utilizatorul să poată folosi fluxul de resetare
+            setIsForgotPassword(false);
+            setIsLogin(true);
+            return;
           }
 
           // Alte erori – propagă
