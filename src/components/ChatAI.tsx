@@ -2988,32 +2988,34 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                   </TooltipProvider>
                 </div>
               )}
-              <Input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-                placeholder={
-                  isUploadingFile 
-                    ? "Încărcare..." 
-                    : chatMode === 'fiscal'
-                    ? "Întreabă despre legislație fiscală, proceduri ANAF, monografii..."
-                    : "Întreabă despre analizele tale sau încarcă o balanță..."
-                }
-                disabled={isLoading || isUploadingFile}
-                className="flex-1"
-              />
-              <Button
-                onClick={chatMode === 'fiscal' ? sendFiscalMessage : sendMessage}
-                disabled={isLoading || !input.trim() || isUploadingFile}
-                size="icon"
-                className="shrink-0"
-                aria-label="Trimite mesaj"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+              <div className="flex-1 flex gap-2" data-tour="chat-input-area">
+                <Input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+                  placeholder={
+                    isUploadingFile 
+                      ? "Încărcare..." 
+                      : chatMode === 'fiscal'
+                      ? "Întreabă despre legislație fiscală, proceduri ANAF, monografii..."
+                      : "Întreabă despre analizele tale sau încarcă o balanță..."
+                  }
+                  disabled={isLoading || isUploadingFile}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={chatMode === 'fiscal' ? sendFiscalMessage : sendMessage}
+                  disabled={isLoading || !input.trim() || isUploadingFile}
+                  size="icon"
+                  className="shrink-0"
+                  aria-label="Trimite mesaj"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

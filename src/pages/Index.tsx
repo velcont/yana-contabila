@@ -11,7 +11,7 @@ import { ChatAI } from "@/components/ChatAI";
 import { Dashboard } from "@/components/Dashboard";
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { QuickStartTutorial } from "@/components/QuickStartTutorial";
+import { PermanentTutorialReminder } from "@/components/PermanentTutorialReminder";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ const Index = () => {
   const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
   const [userSubscriptionType, setUserSubscriptionType] = useState<string | null>(null);
-  const [runQuickStart, setRunQuickStart] = useState(false);
+  const [runTutorial, setRunTutorial] = useState(false);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
@@ -109,16 +109,19 @@ const Index = () => {
     checkAccountType();
   }, [user, loading]);
 
-  // 🎓 Pornește automat tutorialul la FIECARE autentificare
+  // 🎓 Pornește Reminder Tutorial Permanent (dacă nu e hidden pentru totdeauna)
   useEffect(() => {
     if (user && !loading) {
-      // Așteaptă 1.5 secunde ca UI-ul să se încarce complet
-      const timer = setTimeout(() => {
-        logger.log('🎓 [INDEX] Auto-pornire tutorial la fiecare logare');
-        setRunQuickStart(true);
-      }, 1500);
+      const permanentlyHidden = localStorage.getItem('yana-tutorial-permanently-hidden');
       
-      return () => clearTimeout(timer);
+      if (permanentlyHidden !== 'true') {
+        const timer = setTimeout(() => {
+          logger.log('🎓 [INDEX] Auto-pornire Reminder Tutorial Permanent');
+          setRunTutorial(true);
+        }, 1500);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [user, loading]);
 
@@ -139,9 +142,8 @@ const Index = () => {
     });
   };
 
-  const handleQuickStartComplete = () => {
-    setRunQuickStart(false);
-    // NU mai salvăm în localStorage - tutorialul pornește mereu
+  const handleTutorialComplete = () => {
+    setRunTutorial(false);
     toast({
       title: "Tutorial închis",
       description: "Poți reporni tutorialul oricând din butonul 🎯 Tutorial Rapid",
@@ -217,9 +219,9 @@ const Index = () => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => setRunQuickStart(true)}
+              onClick={() => setRunTutorial(true)}
               className="flex gap-2"
-              title="Tutorial Rapid - Ghid complet pas-cu-pas"
+              title="Tutorial Rapid - 8 Pași Rapizi"
             >
               <PlayCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Tutorial Rapid</span>
@@ -399,9 +401,9 @@ const Index = () => {
         }}
       />
       
-      <QuickStartTutorial 
-        run={runQuickStart} 
-        onComplete={handleQuickStartComplete}
+      <PermanentTutorialReminder 
+        run={runTutorial} 
+        onComplete={handleTutorialComplete}
       />
     </>
   );
