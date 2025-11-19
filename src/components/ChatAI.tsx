@@ -2603,6 +2603,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     onClick={() => setIsOpen(false)}
                     className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
                     aria-label="Închide chat"
+                    data-tour="close-chatai"
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>

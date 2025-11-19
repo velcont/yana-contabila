@@ -804,7 +804,7 @@ INDICATORI OPERAȚIONALI:
                 className="my-8"
               />
             ) : (
-              filteredAnalyses.map((analysis) => {
+              filteredAnalyses.map((analysis, index) => {
                 // Extract period from analysis text - try multiple patterns
                 const periodMatch = analysis.analysis_text.match(/Perioad[aă][:\s]+([^\n]+)/i) || 
                                   analysis.analysis_text.match(/Pentru perioad[aă][:\s]+([^\n]+)/i) ||
@@ -821,6 +821,7 @@ INDICATORI OPERAȚIONALI:
                         : 'hover:bg-muted hover:-translate-y-0.5'
                     }`}
                     onClick={() => setSelectedAnalysis(analysis)}
+                    data-tour={index === 0 ? "select-analysis" : undefined}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">

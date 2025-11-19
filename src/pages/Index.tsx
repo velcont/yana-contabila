@@ -109,6 +109,23 @@ const Index = () => {
     checkAccountType();
   }, [user, loading]);
 
+  // 🎓 Pornește automat tutorialul pentru utilizatori care nu l-au văzut
+  useEffect(() => {
+    if (user && !loading) {
+      const tutorialCompleted = localStorage.getItem('yana-quickstart-completed');
+      
+      if (!tutorialCompleted) {
+        // Așteaptă 1.5 secunde ca UI-ul să se încarce complet
+        const timer = setTimeout(() => {
+          logger.log('🎓 [INDEX] Auto-pornire tutorial pentru utilizator');
+          setRunQuickStart(true);
+        }, 1500);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user, loading]);
+
   // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
   useEffect(() => {
     if (user && !loading) {
@@ -201,16 +218,16 @@ const Index = () => {
                 <CreditAndTrialIndicator />
               )}
               
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setRunQuickStart(true)}
-                className="hidden md:flex gap-2"
-                title="Tutorial Rapid - 4 Pași"
-              >
-                <PlayCircle className="h-4 w-4" />
-                Tutorial Rapid
-              </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setRunQuickStart(true)}
+              className="flex gap-2"
+              title="Tutorial Rapid - Ghid complet pas-cu-pas"
+            >
+              <PlayCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Tutorial Rapid</span>
+            </Button>
               
               <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
                 <Settings className="h-5 w-5" />
