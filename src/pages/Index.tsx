@@ -109,20 +109,16 @@ const Index = () => {
     checkAccountType();
   }, [user, loading]);
 
-  // 🎓 Pornește automat tutorialul pentru utilizatori care nu l-au văzut
+  // 🎓 Pornește automat tutorialul la FIECARE autentificare
   useEffect(() => {
     if (user && !loading) {
-      const tutorialCompleted = localStorage.getItem('yana-quickstart-completed');
+      // Așteaptă 1.5 secunde ca UI-ul să se încarce complet
+      const timer = setTimeout(() => {
+        logger.log('🎓 [INDEX] Auto-pornire tutorial la fiecare logare');
+        setRunQuickStart(true);
+      }, 1500);
       
-      if (!tutorialCompleted) {
-        // Așteaptă 1.5 secunde ca UI-ul să se încarce complet
-        const timer = setTimeout(() => {
-          logger.log('🎓 [INDEX] Auto-pornire tutorial pentru utilizator');
-          setRunQuickStart(true);
-        }, 1500);
-        
-        return () => clearTimeout(timer);
-      }
+      return () => clearTimeout(timer);
     }
   }, [user, loading]);
 
@@ -145,10 +141,10 @@ const Index = () => {
 
   const handleQuickStartComplete = () => {
     setRunQuickStart(false);
-    localStorage.setItem('yana-quickstart-completed', 'true');
+    // NU mai salvăm în localStorage - tutorialul pornește mereu
     toast({
-      title: "🎉 Tutorial Finalizat!",
-      description: "Acum știi să folosești funcțiile principale ale aplicației!",
+      title: "Tutorial închis",
+      description: "Poți reporni tutorialul oricând din butonul 🎯 Tutorial Rapid",
     });
   };
 
