@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { openExternalLink, EXTERNAL_LINKS } from '@/config/externalLinks';
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -972,7 +973,7 @@ IMPORTANT:
             </Button>
 
             <Button 
-              onClick={() => window.open("https://www.springer.com/gp/computer-science", "_blank")}
+              onClick={() => openExternalLink(EXTERNAL_LINKS.SPRINGER)}
               variant="outline"
               className="h-auto py-4 flex-col items-start"
             >
