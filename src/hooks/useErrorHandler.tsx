@@ -40,6 +40,7 @@ export function useErrorHandler() {
           title: customTitle || `Eroare la ${context}`,
           description: customDescription || errorMessage,
           variant: 'destructive',
+          duration: 7000, // 7 seconds for errors to give users time to read
         });
       }
 

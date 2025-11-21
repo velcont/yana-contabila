@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ListTodo, Plus, Play, Check, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonTable } from "@/components/ui/skeleton-loader";
 
 interface Task {
   id: string;
@@ -352,11 +354,17 @@ export const AccountantTasksManager = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Se încarcă...</div>
+            <SkeletonTable />
           ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nicio sarcină găsită
-            </div>
+            <EmptyState
+              icon={<ListTodo className="h-12 w-12" />}
+              title="Nicio sarcină găsită"
+              description="Adaugă prima ta sarcină contabilă pentru a începe organizarea muncii."
+              action={{
+                label: "Adaugă Sarcină",
+                onClick: () => setDialogOpen(true),
+              }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
