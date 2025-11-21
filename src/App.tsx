@@ -1,10 +1,11 @@
 import './App.css';
+import './App.css';
 import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { TutorialProvider } from "@/contexts/TutorialContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -66,9 +67,16 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
     );
   }
   if (!user) {
-    return <LandingNew />;
+    return <Navigate to="/auth" replace />;
   }
   return children;
+};
+
+const Home = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingFallback />;
+  if (user) return <Navigate to="/app" replace />;
+  return <LandingNew />;
 };
 
 const LoadingFallback = () => (
@@ -93,7 +101,7 @@ const App = () => (
                     <TutorialProvider>
                     <Suspense fallback={<LoadingFallback />}>
                       <Routes>
-                      <Route path="/" element={<LandingNew />} />
+                      <Route path="/" element={<Home />} />
                       <Route path="/landing" element={<Landing />} />
                       <Route path="/demo" element={<Demo />} />
                       <Route path="/industry-demos" element={<PrivateRoute><IndustryDemos /></PrivateRoute>} />

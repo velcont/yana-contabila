@@ -193,12 +193,6 @@ const Index = () => {
      );
    }
 
-  // Dacă utilizatorul NU este autentificat, afișează Landing page
-  if (!user) {
-    logger.log('User is not authenticated, showing Landing page');
-    return <Landing />;
-  }
-
   logger.log('User is authenticated:', user.email);
 
   // Render content based on activeView
@@ -460,6 +454,10 @@ const Index = () => {
         run={runTutorial} 
         onComplete={handleTutorialComplete}
       />
+      
+      <p className="fixed bottom-4 right-4 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded border border-border/40">
+        Build: 2025‑11‑21 13:45 – Layout Google AI Studio
+      </p>
     </>
   );
 };
