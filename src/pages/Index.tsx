@@ -212,106 +212,151 @@ const Index = () => {
     <>
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-12">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-semibold text-foreground">
-                Yana
-              </h1>
-              {userSubscriptionType === 'accounting_firm' && (
-                <CompanySwitcher 
-                  currentCompanyId={currentCompanyId}
-                  onCompanyChange={setCurrentCompanyId}
-                  onAddCompany={() => navigate('/crm')}
-                />
-              )}
-            </div>
-            
-            <div className="flex gap-2 items-center">
-              {/* AI Credits indicator DOAR pentru antreprenori */}
-              {userSubscriptionType === 'entrepreneur' && (
-                <CreditAndTrialIndicator />
-              )}
-              
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setRunTutorial(true)}
-              className="flex gap-2"
-              title="Tutorial Rapid - 8 Pași Rapizi"
-            >
-              <PlayCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Tutorial Rapid</span>
-            </Button>
-              
-              <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
-                <Settings className="h-5 w-5" />
-              </Button>
-              
-              <NotificationBell />
-              <ThemeToggle />
-              <SubscriptionBadge />
-              
-              {isAdmin && <AdminRoleSwitcher />}
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <User className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate('/settings')}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Setări Cont
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/subscription')}>
-                    Abonament
-                  </DropdownMenuItem>
-                  {!isAccountant && (
-                    <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
-                      Credite AI
+          {/* Header + hero în stil Google AI Studio */}
+          <header className="mb-10 space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Yana
+                  </span>
+                  <span className="text-xs md:text-sm text-muted-foreground">
+                    AI financiar pentru antreprenori și contabili
+                  </span>
+                </div>
+                {userSubscriptionType === 'accounting_firm' && (
+                  <CompanySwitcher
+                    currentCompanyId={currentCompanyId}
+                    onCompanyChange={setCurrentCompanyId}
+                    onAddCompany={() => navigate('/crm')}
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* AI Credits indicator DOAR pentru antreprenori */}
+                {userSubscriptionType === 'entrepreneur' && <CreditAndTrialIndicator />}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRunTutorial(true)}
+                  className="hidden sm:inline-flex gap-2"
+                  title="Tutorial Rapid - 8 Pași Rapizi"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  <span className="hidden md:inline">Tutorial Rapid</span>
+                </Button>
+
+                <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+                  <Settings className="h-5 w-5" />
+                </Button>
+
+                <NotificationBell />
+                <ThemeToggle />
+                <SubscriptionBadge />
+
+                {isAdmin && <AdminRoleSwitcher />}
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <User className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Setări Cont
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Deconectare
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem onClick={() => navigate('/subscription')}>
+                      Abonament
+                    </DropdownMenuItem>
+                    {!isAccountant && (
+                      <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
+                        Credite AI
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Deconectare
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </div>
+
+            <section
+              aria-labelledby="app-hero-title"
+              className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"
+            >
+              <div className="space-y-3">
+                <Badge variant="secondary" className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs">
+                  <Sparkles className="h-3 w-3 text-primary" />
+                  <span>Tablou de bord inteligent pentru balanță și strategie</span>
+                </Badge>
+                <h1
+                  id="app-hero-title"
+                  className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground"
+                >
+                  Alege modulul potrivit pentru următoarea ta decizie financiară
+                </h1>
+                <p className="max-w-2xl text-sm md:text-base text-muted-foreground">
+                  Pornește de la analiza balanței, continuă cu Yana Strategică sau găsește rapid parteneri potriviți
+                  direct din Marketplace.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 md:justify-end">
+                <div className="hidden md:flex flex-col items-end text-xs text-muted-foreground">
+                  <span>Rol activ</span>
+                  <span className="font-medium text-foreground">
+                    {userSubscriptionType === 'accounting_firm' ? 'Cabinet contabil' : 'Antreprenor'}
+                  </span>
+                </div>
+              </div>
+            </section>
+          </header>
 
           {/* 3 Card Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 gap-6 mb-12 md:grid-cols-2 lg:grid-cols-3">
             {userSubscriptionType === 'entrepreneur' ? (
               <>
                 {/* Card 1: Analiză Balanței */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-blue-500/40"
+                <Card
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border border-border/40 hover:border-primary/40"
                   onClick={() => handleCardClick('analiza-balanta')}
                   data-tour="card-analiza-balanta"
                 >
                   <CardHeader className="space-y-4">
-                    <TrendingUp className="h-10 w-10 text-blue-500" />
+                    <TrendingUp className="h-10 w-10 text-primary" />
                     <CardTitle className="text-xl">Analiză Balanței</CardTitle>
                     <CardDescription className="text-base leading-relaxed">
-                      Chat AI pentru întrebări despre balanță + Dashboard complet cu grafice, alerte, predicții și rapoarte
+                      Chat AI pentru întrebări despre balanță + Dashboard complet cu grafice, alerte, predicții și
+                      rapoarte
                     </CardDescription>
                   </CardHeader>
                 </Card>
 
                 {/* Card 2: Strategic Advisor */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-blue-500/40"
+                <Card
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border border-border/40 hover:border-primary/40"
                   onClick={() => handleCardClick('strategic-advisor')}
                   data-tour="card-strategic-advisor"
                 >
                   <CardHeader className="space-y-4">
-                    <Sparkles className="h-10 w-10 text-blue-500" />
+                    <Sparkles className="h-10 w-10 text-primary" />
                     <div className="space-y-2">
                       <CardTitle className="text-xl">Yana Strategică</CardTitle>
-                      <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">💎 AI Premium</Badge>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-primary/5 text-primary border border-primary/20"
+                      >
+                        💎 AI Premium
+                      </Badge>
                     </div>
                     <CardDescription className="text-base leading-relaxed">
                       Consultanță strategică AI avansată pentru decizii de business complexe (necesită credite AI)
@@ -320,31 +365,30 @@ const Index = () => {
                 </Card>
 
                 {/* Card 3: Marketplace */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-blue-500/40"
+                <Card
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border border-border/40 hover:border-primary/40"
                   onClick={() => handleCardClick('marketplace')}
                   data-tour="card-marketplace"
                 >
                   <CardHeader className="space-y-4">
-                    <Briefcase className="h-10 w-10 text-blue-500" />
+                    <Briefcase className="h-10 w-10 text-primary" />
                     <CardTitle className="text-xl">Marketplace</CardTitle>
                     <CardDescription className="text-base leading-relaxed">
                       Găsește contabilul perfect pentru firma ta și primește oferte personalizate
                     </CardDescription>
                   </CardHeader>
                 </Card>
-
               </>
             ) : (
               <>
                 {/* Card 1: Chat AI (pentru contabili) */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-green-500/40"
+                <Card
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border border-border/40 hover:border-primary/40"
                   onClick={() => handleCardClick('chat-ai')}
                   data-tour="card-chat-ai"
                 >
                   <CardHeader className="space-y-4">
-                    <MessageSquare className="h-10 w-10 text-green-500" />
+                    <MessageSquare className="h-10 w-10 text-primary" />
                     <CardTitle className="text-xl">Chat AI</CardTitle>
                     <CardDescription className="text-base leading-relaxed">
                       Chat AI general + Dashboard complet cu grafice, multi-firmă, alerte și rapoarte pentru clienți
@@ -353,13 +397,13 @@ const Index = () => {
                 </Card>
 
                 {/* Card 2: Yana CRM */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-green-500/40"
+                <Card
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border border-border/40 hover:border-primary/40"
                   onClick={() => handleCardClick('yanacrm')}
                   data-tour="card-yanacrm"
                 >
                   <CardHeader className="space-y-4">
-                    <Building2 className="h-10 w-10 text-green-500" />
+                    <Building2 className="h-10 w-10 text-primary" />
                     <CardTitle className="text-xl">Yana CRM</CardTitle>
                     <CardDescription className="text-base leading-relaxed">
                       CRM complet pentru gestionarea clienților, workflows lunare și email marketing
@@ -368,13 +412,13 @@ const Index = () => {
                 </Card>
 
                 {/* Card 3: Marketplace */}
-                <Card 
-                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-green-500/40"
+                <Card
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border border-border/40 hover:border-primary/40"
                   onClick={() => handleCardClick('marketplace')}
                   data-tour="card-marketplace"
                 >
                   <CardHeader className="space-y-4">
-                    <Briefcase className="h-10 w-10 text-green-500" />
+                    <Briefcase className="h-10 w-10 text-primary" />
                     <CardTitle className="text-xl">Marketplace</CardTitle>
                     <CardDescription className="text-base leading-relaxed">
                       Găsește clienți noi și răspunde la anunțurile antreprenorilor
