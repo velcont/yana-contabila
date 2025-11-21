@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,7 @@ import { generateUUID } from '@/utils/uuid';
 import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
 import { generateAccountantSections, generateLegalNoteSectionIfNeeded } from './BalanceConfirmationHistory';
 import { safeParseFloat } from '@/lib/finance';
+import { useWordGenerator } from '@/hooks/useWordGenerator';
 
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
@@ -82,6 +83,9 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
+  
+  // 🆕 Hook pentru generare raport Word
+  const { generate: generateWordReport, isGenerating: isGeneratingWord } = useWordGenerator();
   
   
   const [isOpen, setIsOpen] = useState(openOnLoad);
@@ -2859,6 +2863,51 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                               </Badge>
                             </p>
                         </div>
+
+                          {/* 🆕 BUTON RAPORT WORD PREMIUM */}
+                          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-base mb-1 flex items-center gap-2">
+                                    <FileText className="h-5 w-5 text-primary" />
+                                    📊 Raport Word Premium
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    Descarcă analiza financiară detaliată, validată de Grok AI
+                                  </p>
+                                </div>
+                                <Button 
+                                  onClick={() => {
+                                    const structData = msg.structuredData as any;
+                                    const cui = structData?.cui || structData?.metadata?.cui || 'N/A';
+                                    const company = structData?.company || 'Firmă';
+                                    const period = structData?.metadata?.perioada || new Date().toLocaleDateString('ro-RO');
+
+                                    generateWordReport({
+                                      structuredData: structData,
+                                      companyInfo: {
+                                        name: company,
+                                        cui: cui,
+                                        period: period
+                                      },
+                                      isAccountantMode: isAccountantModule
+                                    });
+                                  }}
+                                  disabled={isGeneratingWord}
+                                  size="default"
+                                  className="gap-2"
+                                >
+                                  {isGeneratingWord ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Download className="h-4 w-4" />
+                                  )}
+                                  {isGeneratingWord ? 'Generare...' : 'Descarcă'}
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
                           
                           {/* Banner VIZIBIL - Dosarul Meu */}
                           <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-2 border-blue-500 dark:border-blue-400 rounded-lg shadow-lg">
