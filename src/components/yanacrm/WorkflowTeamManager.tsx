@@ -382,8 +382,9 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
             </div>
           ) : teamMembers && teamMembers.length > 0 ? (
             <Card>
-              <Table>
-                <TableHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
                   <TableRow>
                     <TableHead>Nume</TableHead>
                     <TableHead>Email</TableHead>
@@ -429,6 +430,7 @@ export const WorkflowTeamManager = ({ selectedCompanyId = "all" }: WorkflowTeamM
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </Card>
           ) : (
             <Card className="p-12">

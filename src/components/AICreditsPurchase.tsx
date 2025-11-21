@@ -73,8 +73,7 @@ export const AICreditsPurchase = () => {
       });
 
       if (data?.url) {
-        window.open(data.url, "_blank");
-        handleSuccess('Checkout deschis', 'Finalizează plata în fereastra nouă');
+        window.location.href = data.url;
       }
     } catch (error) {
       handleError(error, 'crearea checkout-ului');
