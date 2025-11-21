@@ -1311,7 +1311,7 @@ Relevanță pentru teză: Oferă date empirice din context românesc despre rezi
                         variant="outline" 
                         size="sm" 
                         className="w-full"
-                        onClick={() => window.open(video.url, '_blank')}
+                        onClick={() => openExternalLink(video.url)}
                       >
                         <ExternalLink className="h-3 w-3 mr-2" />
                         Vezi pe YouTube
@@ -1379,7 +1379,7 @@ Relevanță pentru teză: Oferă date empirice din context românesc despre rezi
                                           key={linkIdx}
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => window.open(link.url, '_blank')}
+                                          onClick={() => openExternalLink(link.url)}
                                           className="text-xs"
                                         >
                                           <ExternalLink className="h-3 w-3 mr-1" />

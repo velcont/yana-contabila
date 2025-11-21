@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { openExternalLink } from '@/config/externalLinks';
+import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface AdvertisementPopupProps {
@@ -119,7 +121,7 @@ const AdvertisementPopup = ({ intervalMinutes = 10 }: AdvertisementPopupProps) =
 
         <div className="flex flex-col gap-3 mt-4">
           <Button 
-            onClick={() => window.open('/contact', '_blank')}
+            onClick={() => openExternalLink('/contact', '_blank')}
             className="w-full"
           >
             Solicită o Ofertă Gratuită

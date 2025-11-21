@@ -213,7 +213,7 @@ export const ClientVerificationDialog = ({
                             variant="link"
                             size="sm"
                             className="h-auto p-0 ml-2"
-                            onClick={() => window.open(finding.link, '_blank')}
+                            onClick={() => openExternalLink(finding.link || '#')}
                           >
                             <ExternalLink className="h-3 w-3 mr-1" />
                             Vezi detalii

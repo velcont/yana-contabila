@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { openExternalLink } from '@/config/externalLinks';
 import { Newspaper, RefreshCw, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -145,7 +146,7 @@ export const FiscalNews = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => window.open(item.link, '_blank')}
+                      onClick={() => openExternalLink(item.link)}
                     >
                       <ExternalLink className="h-3 w-3 mr-1" />
                       Citește
