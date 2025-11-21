@@ -59,7 +59,18 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
-      if (error) throw error;
+      if (error) {
+        // Handle authentication errors gracefully (expired/invalid session)
+        if (error.message?.includes('Authentication error') || error.message?.includes('invalid claim')) {
+          console.warn('Invalid session detected, user needs to re-authenticate');
+          setSubscriptionStatus('inactive');
+          setLoading(false);
+          // Sign out the user to clear invalid session
+          await supabase.auth.signOut();
+          return;
+        }
+        throw error;
+      }
 
       console.log('Subscription data:', data);
 
