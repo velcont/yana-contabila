@@ -28,6 +28,7 @@ import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useTheme as useNextTheme } from "next-themes";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationSystem";
 import { MarketplaceLayout } from "@/components/marketplace/MarketplaceLayout";
@@ -44,6 +45,7 @@ const Index = () => {
   const { user, signOut, loading } = useAuth();
   const { isAccountant } = useSubscription();
   const { setThemeOverride, themeOverride } = useTheme();
+  const { setTheme } = useNextTheme();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const [shouldOpenChatAI, setShouldOpenChatAI] = useState(false);
@@ -144,9 +146,8 @@ const Index = () => {
  
   // Forțează tema luminoasă pe /app pentru un look de tip Google AI Studio
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove('dark');
-  }, []);
+    setTheme("light");
+  }, [setTheme]);
  
    // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
    useEffect(() => {
