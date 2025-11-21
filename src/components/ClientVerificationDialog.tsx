@@ -10,6 +10,8 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Info, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { openExternalLink, EXTERNAL_LINKS } from '@/config/externalLinks';
+import type { ClientVerificationFindings } from '@/types/shared';
 
 interface Finding {
   type: "critical" | "warning" | "info";
@@ -241,7 +243,7 @@ export const ClientVerificationDialog = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open('https://www.anaf.ro/PortalBilant/', '_blank')}
+                onClick={() => openExternalLink(EXTERNAL_LINKS.ANAF_BILANT)}
               >
                 <ExternalLink className="h-3 w-3 mr-1" />
                 Portal ANAF
@@ -249,7 +251,7 @@ export const ClientVerificationDialog = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open('https://portal.just.ro/', '_blank')}
+                onClick={() => openExternalLink(EXTERNAL_LINKS.JUST_PORTAL)}
               >
                 <ExternalLink className="h-3 w-3 mr-1" />
                 Portal Instanțe
@@ -257,7 +259,7 @@ export const ClientVerificationDialog = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open('https://www.termene.ro/', '_blank')}
+                onClick={() => openExternalLink(EXTERNAL_LINKS.TERMENE_RO)}
               >
                 <ExternalLink className="h-3 w-3 mr-1" />
                 Termene.ro
