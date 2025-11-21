@@ -24,7 +24,7 @@ import { generateUUID } from '@/utils/uuid';
 import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
 import { generateAccountantSections, generateLegalNoteSectionIfNeeded } from './BalanceConfirmationHistory';
 import { safeParseFloat } from '@/lib/finance';
-import { useWordGenerator } from '@/hooks/useWordGenerator';
+import { useNavigate } from 'react-router-dom';
 
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
@@ -83,9 +83,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
-  
-  // 🆕 Hook pentru generare raport Word
-  const { generate: generateWordReport, isGenerating: isGeneratingWord } = useWordGenerator();
+  const navigate = useNavigate();
   
   
   const [isOpen, setIsOpen] = useState(openOnLoad);
@@ -2871,39 +2869,22 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-base mb-1 flex items-center gap-2">
                                     <FileText className="h-5 w-5 text-primary" />
-                                    📊 Raport Word Premium
+                                    📂 Raport Word Premium
                                   </h4>
                                   <p className="text-xs text-muted-foreground">
-                                    Descarcă analiza financiară detaliată, validată de Grok AI
+                                    Vezi raportul complet în Dashboard → Dosarul Meu
                                   </p>
                                 </div>
                                 <Button 
                                   onClick={() => {
-                                    const structData = msg.structuredData as any;
-                                    const cui = structData?.cui || structData?.metadata?.cui || 'N/A';
-                                    const company = structData?.company || 'Firmă';
-                                    const period = structData?.metadata?.perioada || new Date().toLocaleDateString('ro-RO');
-
-                                    generateWordReport({
-                                      structuredData: structData,
-                                      companyInfo: {
-                                        name: company,
-                                        cui: cui,
-                                        period: period
-                                      },
-                                      isAccountantMode: isAccountantModule
-                                    });
+                                    navigate('/app?action=scroll-to-report');
+                                    setIsOpen(false);
                                   }}
-                                  disabled={isGeneratingWord}
                                   size="default"
                                   className="gap-2"
                                 >
-                                  {isGeneratingWord ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Download className="h-4 w-4" />
-                                  )}
-                                  {isGeneratingWord ? 'Generare...' : 'Descarcă'}
+                                  <ExternalLink className="h-4 w-4" />
+                                  Mergi la Raportul Detaliat
                                 </Button>
                               </div>
                             </CardContent>
