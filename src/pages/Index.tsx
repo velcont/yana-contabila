@@ -141,51 +141,57 @@ const Index = () => {
       }
     }
   }, [user, loading]);
-
-  // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
+ 
+  // Forțează tema luminoasă pe /app pentru un look de tip Google AI Studio
   useEffect(() => {
-    if (user && !loading) {
-      logger.log('🤖 [INDEX] Auto-deschidere ChatAI la logare');
-      setShouldOpenChatAI(true);
-    }
-  }, [user, loading]);
-
-  const handleSignOut = async () => {
-    await signOut();
-    setThemeOverride(null);
-    toast({
-      title: "Deconectat",
-      description: "Te-ai deconectat cu succes.",
-    });
-  };
-
-  const handleTutorialComplete = () => {
-    setRunTutorial(false);
-    toast({
-      title: "Tutorial închis",
-      description: "Poți reporni tutorialul oricând din butonul 🎯 Tutorial Rapid",
-    });
-  };
-
-  const handleCardClick = (view: string) => {
-    if (view === 'strategic-advisor' || view === 'yanacrm') {
-      navigate(`/${view}`);
-    } else {
-      setSearchParams({ view });
-    }
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin mx-auto text-primary rounded-full border-4 border-primary border-t-transparent" />
-          <p className="mt-4 text-muted-foreground">Se încarcă...</p>
-        </div>
-      </div>
-    );
-  }
+    const root = document.documentElement;
+    root.classList.remove('dark');
+  }, []);
+ 
+   // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
+   useEffect(() => {
+     if (user && !loading) {
+       logger.log('🤖 [INDEX] Auto-deschidere ChatAI la logare');
+       setShouldOpenChatAI(true);
+     }
+   }, [user, loading]);
+  
+   const handleSignOut = async () => {
+     await signOut();
+     setThemeOverride(null);
+     toast({
+       title: "Deconectat",
+       description: "Te-ai deconectat cu succes.",
+     });
+   };
+  
+   const handleTutorialComplete = () => {
+     setRunTutorial(false);
+     toast({
+       title: "Tutorial închis",
+       description: "Poți reporni tutorialul oricând din butonul 🎯 Tutorial Rapid",
+     });
+   };
+  
+   const handleCardClick = (view: string) => {
+     if (view === 'strategic-advisor' || view === 'yanacrm') {
+       navigate(`/${view}`);
+     } else {
+       setSearchParams({ view });
+     }
+   };
+  
+   // Loading state
+   if (loading) {
+     return (
+       <div className="flex items-center justify-center min-h-screen">
+         <div className="text-center">
+           <div className="h-12 w-12 animate-spin mx-auto text-primary rounded-full border-4 border-primary border-t-transparent" />
+           <p className="mt-4 text-muted-foreground">Se încarcă...</p>
+         </div>
+       </div>
+     );
+   }
 
   // Dacă utilizatorul NU este autentificat, afișează Landing page
   if (!user) {
