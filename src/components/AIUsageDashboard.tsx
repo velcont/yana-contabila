@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { DollarSign, TrendingUp, AlertTriangle, Activity, ShoppingCart, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AICreditsPurchase } from "@/components/AICreditsPurchase";
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { getCurrentUser } from '@/lib/supabaseHelpers';
+import { supabase } from "@/integrations/supabase/client";
 
 interface MonthlyUsage {
   user_id: string;
@@ -26,6 +27,8 @@ export const AIUsageDashboard = () => {
   const [showPurchase, setShowPurchase] = useState(false);
 
   // Check for success/cancel params and verify purchase
+  const { handleError, handleSuccess, handleWarning } = useErrorHandler();
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
@@ -34,7 +37,7 @@ export const AIUsageDashboard = () => {
       // Verify and process the purchase
       const verifyPurchase = async () => {
         try {
-          toast.loading("Se verifică plata...", { id: "verify-purchase" });
+          handleWarning("Se verifică plata...");
           
           const { data, error } = await supabase.functions.invoke("verify-credits-purchase", {
             body: { sessionId },
@@ -43,23 +46,14 @@ export const AIUsageDashboard = () => {
           if (error) throw error;
 
           if (data?.success) {
-            toast.success("✅ Credite adăugate cu succes!", {
-              id: "verify-purchase",
-              description: data.message || `${data.credits_added} credite adăugate`,
-            });
+            handleSuccess("✅ Credite adăugate cu succes!", 
+              data.message || `${data.credits_added} credite adăugate`);
             fetchUsage();
           } else {
-            toast.error("Verificare eșuată", {
-              id: "verify-purchase",
-              description: data?.message || "Te rugăm să încerci din nou",
-            });
+            handleError(data?.message || "Verificare eșuată", 'verificare credite');
           }
-        } catch (error: any) {
-          console.error("Error verifying purchase:", error);
-          toast.error("Eroare la verificare", {
-            id: "verify-purchase",
-            description: error.message,
-          });
+        } catch (error) {
+          handleError(error, 'verificare', { customTitle: "Eroare la verificare" });
         } finally {
           window.history.replaceState({}, "", window.location.pathname);
         }
@@ -67,9 +61,7 @@ export const AIUsageDashboard = () => {
       
       verifyPurchase();
     } else if (params.get("credits_cancel") === "true") {
-      toast.info("Achiziție anulată", {
-        description: "Poți cumpăra credite oricând.",
-      });
+      handleWarning("Achiziție anulată", "Poți cumpăra credite oricând.");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

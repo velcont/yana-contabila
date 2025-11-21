@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Loader2, Sparkles, Zap, Rocket, Crown } from "lucide-react";
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { invokeEdgeFunction, getCurrentUser } from '@/lib/supabaseHelpers';
+import type { IconProps } from '@/types/shared';
 
 interface CreditPackage {
   id: string;
@@ -13,7 +14,7 @@ interface CreditPackage {
   price: number;
   priceId: string;
   popular?: boolean;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   description: string;
 }
 
@@ -60,23 +61,23 @@ const creditPackages: CreditPackage[] = [
 export const AICreditsPurchase = () => {
   const [loading, setLoading] = useState<string | null>(null);
 
+  const { handleError, handleSuccess } = useErrorHandler();
+
   const handlePurchase = async (priceId: string, packageId: string) => {
     setLoading(packageId);
     try {
-      const { data, error } = await supabase.functions.invoke("create-credits-checkout", {
-        body: { priceId },
-      });
+      await getCurrentUser();
 
-      if (error) throw error;
+      const data = await invokeEdgeFunction<any, { url?: string }>("create-credits-checkout", {
+        priceId,
+      });
 
       if (data?.url) {
         window.open(data.url, "_blank");
+        handleSuccess('Checkout deschis', 'Finalizează plata în fereastra nouă');
       }
-    } catch (error: any) {
-      console.error("Error creating checkout:", error);
-      toast.error("Eroare la crearea checkout-ului", {
-        description: error.message,
-      });
+    } catch (error) {
+      handleError(error, 'crearea checkout-ului');
     } finally {
       setLoading(null);
     }

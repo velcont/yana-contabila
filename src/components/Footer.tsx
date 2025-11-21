@@ -2,6 +2,7 @@ import { Mail, MessageCircle, FileText, Building2, Sparkles } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { getWhatsAppLink, openExternalLink, EXTERNAL_LINKS } from '@/config/externalLinks';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,7 @@ export const Footer = () => {
 
   const handleWhatsAppClick = () => {
     const encodedMessage = encodeURIComponent(whatsappMessage);
-    window.open(`https://wa.me/${whatsapp.replace(/\+/g, '')}?text=${encodedMessage}`, '_blank');
+    openExternalLink(getWhatsAppLink(whatsapp, whatsappMessage));
   };
 
   return (
@@ -178,7 +179,7 @@ export const Footer = () => {
                           După ce ai semnat fișierul (indiferent de tipul lui), urmează depunerea efectivă:
                         </p>
                         <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
-                          <li>Accesează site-ul: <a href="https://www.e-guvernare.ro" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.e-guvernare.ro</a></li>
+                          <li>Accesează site-ul: <a href={EXTERNAL_LINKS.E_GUVERNARE} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{EXTERNAL_LINKS.E_GUVERNARE}</a></li>
                           <li>În dreapta sus, apasă pe "Prezentare certificat".</li>
                           <li>Se va deschide o fereastră unde:
                             <ul className="list-disc list-inside ml-6 mt-1">
