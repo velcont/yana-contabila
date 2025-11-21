@@ -265,6 +265,263 @@ const convertTextToParagraphs = (text: string, options: any = {}): Paragraph[] =
   });
 };
 
+// ==================== TABLE HELPERS ====================
+
+interface ExecutiveSummaryData {
+  bank: number;
+  cash: number;
+  profitOrLoss: number;
+  totalClients: number;
+  suppliers: number;
+  stocks: number;
+}
+
+const createExecutiveSummaryTable = (data: ExecutiveSummaryData): Table => {
+  const fmt = (n: number) => n.toLocaleString('ro-RO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [
+              new Paragraph({ text: "Indicator", alignment: AlignmentType.CENTER }),
+            ],
+            shading: { fill: "F0F0F0" },
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({ text: "Valoare", alignment: AlignmentType.CENTER }),
+            ],
+            shading: { fill: "F0F0F0" },
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("💰 Bani în bancă")] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.bank)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("💵 Bani în numerar (casă)")] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.cash)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("📈 Profit/Pierdere netă")]}),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${data.profitOrLoss >= 0 ? '+' : ''}${fmt(data.profitOrLoss)} RON ${
+                  data.profitOrLoss >= 0 ? '✅ PROFIT' : '❌ PIERDERE'
+                }`,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("👥 Clienți (cât ai de încasat)")] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.totalClients)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("🏢 Furnizori (cât ai de plată)")] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.suppliers)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph("📦 Valoare stocuri")] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.stocks)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+};
+
+interface ComparisonTableData {
+  currentProfit: number;
+  prevProfit: number;
+  currentCA: number;
+  prevCA: number;
+}
+
+const createComparisonTable = (data: ComparisonTableData): Table => {
+  const fmt = (n: number) => n.toLocaleString('ro-RO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  const createBar = (value: number, max: number, length = 12): string => {
+    if (max <= 0) return ''.padEnd(length, '░');
+    const ratio = Math.min(Math.abs(value) / max, 1);
+    const filled = Math.max(1, Math.round(ratio * length));
+    return '█'.repeat(filled) + '░'.repeat(Math.max(0, length - filled));
+  };
+
+  const profitDiff = data.currentProfit - data.prevProfit;
+  const caDiff = data.currentCA - data.prevCA;
+
+  const maxProfit = Math.max(Math.abs(data.currentProfit), Math.abs(data.prevProfit), 1);
+  const maxCA = Math.max(Math.abs(data.currentCA), Math.abs(data.prevCA), 1);
+
+  const profitTrendEmoji = profitDiff > 0 ? '🟢' : profitDiff < 0 ? '🔴' : '🟡';
+  const caTrendEmoji = caDiff > 0 ? '🟢' : caDiff < 0 ? '🔴' : '🟡';
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ text: 'Indicator', alignment: AlignmentType.CENTER })],
+            shading: { fill: 'F0F0F0' },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: 'Perioadă curentă', alignment: AlignmentType.CENTER })],
+            shading: { fill: 'F0F0F0' },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: 'Perioadă anterioară', alignment: AlignmentType.CENTER })],
+            shading: { fill: 'F0F0F0' },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: 'Diferență', alignment: AlignmentType.CENTER })],
+            shading: { fill: 'F0F0F0' },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: 'Evoluție vizuală', alignment: AlignmentType.CENTER })],
+            shading: { fill: 'F0F0F0' },
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph('Profit net')] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.currentProfit)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.prevProfit)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${profitDiff >= 0 ? '+' : ''}${fmt(profitDiff)} RON ${profitTrendEmoji}`,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `Curent: ${createBar(data.currentProfit, maxProfit)}\nAnter.: ${createBar(data.prevProfit, maxProfit)}`,
+              }),
+            ],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph('Cifră de afaceri')] }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.currentCA)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${fmt(data.prevCA)} RON`,
+                alignment: AlignmentType.RIGHT,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `${caDiff >= 0 ? '+' : ''}${fmt(caDiff)} RON ${caTrendEmoji}`,
+              }),
+            ],
+          }),
+          new TableCell({
+            children: [
+              new Paragraph({
+                text: `Curent: ${createBar(data.currentCA, maxCA)}\nAnter.: ${createBar(data.prevCA, maxCA)}`,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+};
+
 // ==================== MAIN FUNCTION ====================
 
 /**
@@ -338,6 +595,43 @@ export async function generateFinancialReport(options: GenerateReportOptions): P
       ],
       spacing: { after: 200 }
     })
+  );
+
+  // ==================== REZUMAT EXECUTIV (TABEL) ====================
+  const accounts = structuredData.accounts || [];
+
+  const get = (code: string) => {
+    const acc = accounts.find((a) => a.code === code);
+    if (!acc) return { debit: 0, credit: 0, sold: 0 };
+    const sold = acc.debit > 0 ? acc.debit : acc.credit > 0 ? acc.credit : 0;
+    return { debit: acc.debit, credit: acc.credit, sold };
+  };
+
+  const bank = get('5121').sold;
+  const cash = get('5311').sold;
+  const totalClients = get('411').debit + get('4111').debit;
+  const suppliers = get('401').credit;
+  const stocks = get('371').debit;
+  const profit121credit = get('121').credit;
+  const profit121debit = get('121').debit;
+  const profitOrLoss = profit121credit - profit121debit;
+
+  const executiveSummaryTable = createExecutiveSummaryTable({
+    bank,
+    cash,
+    profitOrLoss,
+    totalClients,
+    suppliers,
+    stocks,
+  });
+
+  sections.push(
+    new Paragraph({
+      text: "📊 REZUMAT EXECUTIV - Situația Financiară pe Scurt",
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 200, after: 100 },
+    }),
+    executiveSummaryTable,
   );
 
   // ==================== VALIDARE GROK (dacă există) ====================
@@ -464,10 +758,19 @@ export async function generateFinancialReport(options: GenerateReportOptions): P
   // ==================== COMPARAȚIE CU RAPORT PRECEDENT ====================
   if (previousReport?.metadata) {
     const currentProfit = structuredData.accounts.find(a => a.code === '121')?.credit || 0;
-    const currentCA = structuredData.accounts.filter(a => a.accountClass === 7).reduce((sum, a) => sum + a.credit, 0);
+    const currentCA = structuredData.accounts
+      .filter(a => a.accountClass === 7)
+      .reduce((sum, a) => sum + a.credit, 0);
     
     const prevProfit = previousReport.metadata.profit || 0;
     const prevCA = previousReport.metadata.ca || 0;
+
+    const comparisonTable = createComparisonTable({
+      currentProfit,
+      prevProfit,
+      currentCA,
+      prevCA,
+    });
 
     sections.push(
       new Paragraph({
@@ -475,20 +778,7 @@ export async function generateFinancialReport(options: GenerateReportOptions): P
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 200, after: 100 }
       }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Profit: ", bold: true }),
-          new TextRun({ text: `${currentProfit.toLocaleString('ro-RO')} RON (anterior: ${prevProfit.toLocaleString('ro-RO')} RON)` })
-        ],
-        spacing: { after: 50 }
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({ text: "Cifră de afaceri: ", bold: true }),
-          new TextRun({ text: `${currentCA.toLocaleString('ro-RO')} RON (anterior: ${prevCA.toLocaleString('ro-RO')} RON)` })
-        ],
-        spacing: { after: 100 }
-      })
+      comparisonTable,
     );
   }
 
