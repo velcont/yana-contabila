@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Sparkles, Settings, LogOut, User, Building2, MessageSquare, Briefcase, TrendingUp, FileText, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -209,12 +210,12 @@ const Index = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-12">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl font-semibold text-foreground">
                 Yana
               </h1>
               {userSubscriptionType === 'accounting_firm' && (
@@ -282,21 +283,19 @@ const Index = () => {
           </div>
 
           {/* 3 Card Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {userSubscriptionType === 'entrepreneur' ? (
               <>
                 {/* Card 1: Analiză Balanței */}
                 <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20"
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-blue-500/40"
                   onClick={() => handleCardClick('analiza-balanta')}
                   data-tour="card-analiza-balanta"
                 >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center mb-2">
-                      <TrendingUp className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Analiză Balanței</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="space-y-4">
+                    <TrendingUp className="h-10 w-10 text-blue-500" />
+                    <CardTitle className="text-xl">Analiză Balanței</CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
                       Chat AI pentru întrebări despre balanță + Dashboard complet cu grafice, alerte, predicții și rapoarte
                     </CardDescription>
                   </CardHeader>
@@ -304,19 +303,17 @@ const Index = () => {
 
                 {/* Card 2: Strategic Advisor */}
                 <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/20"
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-blue-500/40"
                   onClick={() => handleCardClick('strategic-advisor')}
                   data-tour="card-strategic-advisor"
                 >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center mb-2">
-                      <Sparkles className="h-6 w-6 text-white" />
+                  <CardHeader className="space-y-4">
+                    <Sparkles className="h-10 w-10 text-blue-500" />
+                    <div className="space-y-2">
+                      <CardTitle className="text-xl">Yana Strategică</CardTitle>
+                      <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">💎 AI Premium</Badge>
                     </div>
-                    <CardTitle className="flex items-center gap-2">
-                      Yana Strategică
-                      <span className="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full">💎 AI Premium</span>
-                    </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-base leading-relaxed">
                       Consultanță strategică AI avansată pentru decizii de business complexe (necesită credite AI)
                     </CardDescription>
                   </CardHeader>
@@ -324,16 +321,14 @@ const Index = () => {
 
                 {/* Card 3: Marketplace */}
                 <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20"
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-blue-500/40"
                   onClick={() => handleCardClick('marketplace')}
                   data-tour="card-marketplace"
                 >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mb-2">
-                      <Briefcase className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Marketplace</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="space-y-4">
+                    <Briefcase className="h-10 w-10 text-blue-500" />
+                    <CardTitle className="text-xl">Marketplace</CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
                       Găsește contabilul perfect pentru firma ta și primește oferte personalizate
                     </CardDescription>
                   </CardHeader>
@@ -344,16 +339,14 @@ const Index = () => {
               <>
                 {/* Card 1: Chat AI (pentru contabili) */}
                 <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20"
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-green-500/40"
                   onClick={() => handleCardClick('chat-ai')}
                   data-tour="card-chat-ai"
                 >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center mb-2">
-                      <MessageSquare className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Chat AI</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="space-y-4">
+                    <MessageSquare className="h-10 w-10 text-green-500" />
+                    <CardTitle className="text-xl">Chat AI</CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
                       Chat AI general + Dashboard complet cu grafice, multi-firmă, alerte și rapoarte pentru clienți
                     </CardDescription>
                   </CardHeader>
@@ -361,16 +354,14 @@ const Index = () => {
 
                 {/* Card 2: Yana CRM */}
                 <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/20"
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-green-500/40"
                   onClick={() => handleCardClick('yanacrm')}
                   data-tour="card-yanacrm"
                 >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center mb-2">
-                      <Building2 className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Yana CRM</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="space-y-4">
+                    <Building2 className="h-10 w-10 text-green-500" />
+                    <CardTitle className="text-xl">Yana CRM</CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
                       CRM complet pentru gestionarea clienților, workflows lunare și email marketing
                     </CardDescription>
                   </CardHeader>
@@ -378,16 +369,14 @@ const Index = () => {
 
                 {/* Card 3: Marketplace */}
                 <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20"
+                  className="group cursor-pointer transition-all hover:shadow-md bg-card border-border/40 hover:border-green-500/40"
                   onClick={() => handleCardClick('marketplace')}
                   data-tour="card-marketplace"
                 >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mb-2">
-                      <Briefcase className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Marketplace</CardTitle>
-                    <CardDescription>
+                  <CardHeader className="space-y-4">
+                    <Briefcase className="h-10 w-10 text-green-500" />
+                    <CardTitle className="text-xl">Marketplace</CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
                       Găsește clienți noi și răspunde la anunțurile antreprenorilor
                     </CardDescription>
                   </CardHeader>
