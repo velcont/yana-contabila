@@ -227,8 +227,9 @@ const getAccountExplanation = (acc: ReportAccount): string => {
   if (code === "5121") return `💵 Cont curent bancă: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON - disponibil în contul bancar principal. Banii efectivi pe care îi ai ACUM pentru plăți. Monitorizează zilnic pentru a evita surprize neplăcute.`;
   if (code === "531") return `💰 Casa: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON în numerar. ATENȚIE: Plafon legal 50.000 RON! Depășiri = risc ANAF. Păstrează bonurile pentru toate intrările/ieșirile.`;
 
-  // Default
-  return `${acc.name}: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
+  // Default - cu fallback pentru nume lipsă
+  const accountName = acc.name && acc.name.length > 2 ? acc.name : `Cont ${acc.code}`;
+  return `${accountName}: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
 };
 
 /**
@@ -744,8 +745,16 @@ export async function generateFinancialReport(options: GenerateReportOptions): P
       );
 
       accounts.forEach(acc => {
-        const explanation = getAccountExplanation(acc);
-        sections.push(...convertTextToParagraphs(explanation));
+        // Fallback pentru nume lipsă + formatare cu bullet point
+        const accountName = acc.name && acc.name.length > 2 ? acc.name : `Cont ${acc.code}`;
+        const amount = acc.debit > 0 ? acc.debit : acc.credit;
+        const explanation = `${accountName}: ${amount.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON`;
+        
+        sections.push(new Paragraph({
+          text: explanation,
+          bullet: { level: 0 },
+          spacing: { after: 50 }
+        }));
       });
 
       // Call-to-action după fiecare clasă
@@ -755,16 +764,18 @@ export async function generateFinancialReport(options: GenerateReportOptions): P
     });
   }
 
-  // ==================== COMPARAȚIE CU RAPORT PRECEDENT ====================
+  // ==================== COMPARAȚIE CU RAPORT PRECEDENT (OBLIGATORIU) ====================
   if (previousReport?.metadata) {
     const currentProfit = structuredData.accounts.find(a => a.code === '121')?.credit || 0;
+    // Calcul corect CA: suma conturilor de clasa 7 (venituri)
     const currentCA = structuredData.accounts
-      .filter(a => a.accountClass === 7)
-      .reduce((sum, a) => sum + a.credit, 0);
+      .filter(a => a.code.startsWith('7'))
+      .reduce((sum, a) => sum + (a.credit || 0), 0);
     
     const prevProfit = previousReport.metadata.profit || 0;
     const prevCA = previousReport.metadata.ca || 0;
 
+    // Generăm tabelul folosind helper-ul existent
     const comparisonTable = createComparisonTable({
       currentProfit,
       prevProfit,
@@ -776,9 +787,10 @@ export async function generateFinancialReport(options: GenerateReportOptions): P
       new Paragraph({
         text: "📊 Comparație cu Perioada Precedentă",
         heading: HeadingLevel.HEADING_2,
-        spacing: { before: 200, after: 100 }
+        spacing: { before: 400, after: 200 },
+        pageBreakBefore: true // Fortăm pagină nouă pentru vizibilitate
       }),
-      comparisonTable,
+      comparisonTable
     );
   }
 
