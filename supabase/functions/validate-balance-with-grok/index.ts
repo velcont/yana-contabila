@@ -49,21 +49,6 @@ serve(async (req) => {
 
     // Construiește prompt pentru Grok
     const prompt = `
-=== VALIDARE SOLDURI BANCĂ vs CASĂ – REGULA FINALĂ (PRIORITATE MAXIMĂ) ===
-
-1. Conturi bănci (5121, 5124, 5125, 5126, 5128, 5129):
-   - Sold NEGATIV (debitor minus sau creditor pozitiv) → ESTE NORMAL în România!
-   Spare: overdraft / credit revolving pe cont curent.
-   → Validează ca OK + doar WARNING: "Sold bancă minus = credit overdraft X RON – monitorizează dobânzi și limite."
-   → ready_for_report: true
-
-2. Cont casă (5311, 5314):
-   - Sold NEGATIV → ANOMALIE GRAVĂ! Nu ai voie să ai numerar negativ.
-   → Blochează raportul + CRITICAL ERROR: "Sold casă 5311 negativ – eroare contabilă! Corectează înainte de raport!"
-
-3. Toate celelalte conturi de trezorerie (581, 519 etc.):
-   - Aplică regula clasică (negativ = anomalie).
-
 === HOTFIX FINAL – PRIORITATE MAXIMĂ ===
 
 1. În contabilitatea românească, diferența dintre total debitoare clasa 6 și total creditoare clasa 7 ESTE ÎNTOTDEAUNA exact profitul sau pierderea lunii (cont 121). NU este eroare și NU trebuie marcată niciodată ca „balanță nebalansată"!

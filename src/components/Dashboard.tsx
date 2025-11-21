@@ -601,9 +601,9 @@ INDICATORI OPERAȚIONALI:
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-12 animate-appear">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 animate-appear">
         <div className="flex items-center gap-3">
-          <h1 className="text-4xl md:text-5xl font-semibold">Dashboard Financiar</h1>
+          <h1 className="text-3xl font-bold">Dashboard Financiar</h1>
           <ContextualHelp 
             title="Dashboard Financiar"
             content={helpContent.dashboard.analyses.content}
@@ -722,7 +722,6 @@ INDICATORI OPERAȚIONALI:
           </TabsTrigger>
           <TabsTrigger 
             value="history"
-            data-tour="my-folder-button"
             className="data-[state=active]:bg-orange-500 data-[state=active]:text-white hover:bg-orange-100 dark:hover:bg-orange-950"
             style={{ animation: 'pulse-orange 2s ease-in-out infinite' }}
           >
@@ -731,10 +730,10 @@ INDICATORI OPERAȚIONALI:
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="analytics" className="space-y-8">
-          <Card className="bg-card border-border">
-            <CardContent className="py-6">
-              <p className="text-base leading-relaxed">
+        <TabsContent value="analytics" className="space-y-6">
+          <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+            <CardContent className="py-4">
+              <p className="text-sm">
                 <strong>Tab "Grafice":</strong> Analiză detaliată a companiei selectate în filtru.{' '}
                 {isAccountantMode && (
                   <span className="text-muted-foreground">
@@ -784,13 +783,13 @@ INDICATORI OPERAȚIONALI:
         </TabsContent>
 
         <TabsContent value="history">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6">
         {/* Lista analizelor */}
-        <Card className="md:col-span-1 border-border">
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle className="text-xl">Analizele Tale</CardTitle>
+            <CardTitle>Analizele Tale</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+          <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
             {filteredAnalyses.length === 0 ? (
               <EmptyState
                 icon={<FileText className="h-16 w-16" />}
@@ -804,7 +803,7 @@ INDICATORI OPERAȚIONALI:
                 className="my-8"
               />
             ) : (
-              filteredAnalyses.map((analysis, index) => {
+              filteredAnalyses.map((analysis) => {
                 // Extract period from analysis text - try multiple patterns
                 const periodMatch = analysis.analysis_text.match(/Perioad[aă][:\s]+([^\n]+)/i) || 
                                   analysis.analysis_text.match(/Pentru perioad[aă][:\s]+([^\n]+)/i) ||
@@ -815,13 +814,12 @@ INDICATORI OPERAȚIONALI:
                 return (
                   <div
                     key={analysis.id}
-                    className={`p-4 rounded-lg border transition-all duration-200 ${
+                    className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
                       selectedAnalysis?.id === analysis.id
-                        ? 'bg-accent/50 border-primary'
-                        : 'hover:bg-accent/30 cursor-pointer'
+                        ? 'bg-primary/10 border-primary scale-[1.02]'
+                        : 'hover:bg-muted hover:-translate-y-0.5'
                     }`}
                     onClick={() => setSelectedAnalysis(analysis)}
-                    data-tour={index === 0 ? "select-analysis" : undefined}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -829,16 +827,16 @@ INDICATORI OPERAȚIONALI:
                           {analysis.file_name}
                         </p>
                         {analysis.company_name && (
-                          <p className="text-xs font-semibold text-primary truncate mt-1">
+                          <p className="text-xs font-semibold text-primary truncate">
                             {analysis.company_name}
                           </p>
                         )}
                         {period && (
-                          <p className="text-xs font-medium text-foreground mt-1">
+                          <p className="text-xs font-medium text-foreground">
                             {period}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-xs text-muted-foreground">
                           {format(new Date(analysis.created_at), 'dd MMM yyyy', { locale: ro })}
                         </p>
                       </div>
@@ -852,10 +850,10 @@ INDICATORI OPERAȚIONALI:
         </Card>
 
         {/* Detalii analiză */}
-        <Card className="md:col-span-2 border-border">
+        <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between px-6">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">
+              <CardTitle>
                 {selectedAnalysis ? 'Detalii Analiză' : 'Selectează o analiză'}
               </CardTitle>
               {selectedAnalysis && (

@@ -44,57 +44,16 @@ const Auth = () => {
 
   useEffect(() => {
     const checkResetMode = async () => {
-      // Metodă 1: Verifică dacă există access_token în hash (vine de la link-ul din email)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
-      
-      // Dacă avem token de recovery în hash, setăm sesiunea
-      if (accessToken && type === 'recovery') {
-        console.log('🔐 [AUTH] Recovery tokens found in URL hash, setting session...');
-        try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || ''
-          });
-          
-          if (error) {
-            console.error('🔴 [AUTH] Error setting recovery session:', error);
-            toast({
-              title: "Link invalid sau expirat",
-              description: "Linkul de resetare nu mai este valabil. Cere un nou link.",
-              variant: "destructive",
-            });
-            setIsForgotPassword(true);
-            return;
-          }
-          
-          console.log('✅ [AUTH] Recovery session set successfully:', data.session?.user?.email);
-          setIsResetMode(true);
-          setIsLogin(false);
-          setIsForgotPassword(false);
-          
-          // Curățăm URL-ul complet
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.hash = '';
-          cleanUrl.searchParams.set('reset', 'true');
-          window.history.replaceState({}, '', cleanUrl.toString());
-          return;
-        } catch (error) {
-          console.error('🔴 [AUTH] Exception setting recovery session:', error);
-        }
-      }
-      
-      // Metodă 2: Verifică parametrul ?reset=true
+      // Metodă 1: Verifică parametrul ?reset=true
       const resetParam = searchParams.get('reset') === 'true';
       
-      // Metodă 3: Verifică parametrul type=recovery
+      // Metodă 2: Verifică parametrul type=recovery (vine direct de la Supabase)
       const recoveryType = searchParams.get('type') === 'recovery';
       
-      // Metodă 4: Verifică dacă există deja o sesiune activă de recovery
+      // Metodă 3: Verifică dacă există o sesiune activă de recovery
       const { data: { session } } = await supabase.auth.getSession();
-      const hasRecoverySession = session?.user && (resetParam || recoveryType);
+      const hasRecoverySession = session?.user?.aud === 'authenticated' && 
+                                  searchParams.get('type') === 'recovery';
       
       // Activăm reset mode dacă oricare dintre metode confirmă
       if (resetParam || recoveryType || hasRecoverySession) {
@@ -110,7 +69,6 @@ const Auth = () => {
         
         // Curățăm URL-ul de parametrii sensibili
         const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = '';
         cleanUrl.searchParams.delete('type');
         cleanUrl.searchParams.delete('token');
         cleanUrl.searchParams.delete('token_hash');
@@ -120,7 +78,7 @@ const Auth = () => {
     };
     
     checkResetMode();
-  }, [searchParams, toast]);
+  }, [searchParams]);
 
   // UX-007: Password strength calculation with strict requirements
   const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {
@@ -371,25 +329,70 @@ const Auth = () => {
         
         const signUpResult = await signUp(email, password, fullName, accountType || undefined);
         if (signUpResult.error) {
-          console.error('🔴 [AUTH] Signup error:', signUpResult.error);
           const msg = (signUpResult.error.message || '').toLowerCase();
-          const isAlreadyReg =
-            msg.includes('already registered') ||
-            msg.includes('user already registered') ||
-            msg.includes('user already exists');
+          const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;
 
           if (isAlreadyReg) {
-            // Emailul este deja înregistrat - nu încercăm login sau reset automat
-            toast({
-              title: 'Email deja înregistrat',
-              description:
-                'Există deja un cont cu acest email. Folosește butonul „Ai uitat parola?” pentru a reseta parola și a intra în cont.',
+            // 1) Încearcă autentificarea cu parola introdusă
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
             });
 
-            // Comutăm interfața pe login ca utilizatorul să poată folosi fluxul de resetare
-            setIsForgotPassword(false);
-            setIsLogin(true);
-            return;
+            if (!signInError && signInData?.user) {
+              // 2) Am autentificat – aplicăm aceleași update-uri de profil și tracking termeni
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                try {
+                  await supabase.functions.invoke('track-terms-acceptance', {
+                    body: {
+                      userId: user.id,
+                      email: user.email,
+                      termsVersion: '1.0'
+                    }
+                  });
+                } catch (trackError) {
+                  logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_existing_user' });
+                }
+
+                await supabase
+                  .from('profiles')
+                  .update({
+                    subscription_type: accountType,
+                    account_type_selected: true,
+                    terms_accepted: true,
+                    terms_accepted_at: new Date().toISOString()
+                  })
+                  .eq('id', user.id);
+              }
+
+              toast({
+                title: 'Cont existent – autentificat',
+                description: accountType === 'entrepreneur'
+                  ? 'Te-am autentificat și ți-am păstrat tipul de cont.'
+                  : 'Te-am autentificat și ți-am setat contul ca „Contabil”.',
+              });
+
+              navigate('/app');
+              return;
+            } else {
+              // 3) Parola nu e corectă – trimitem automat email de resetare
+              try {
+                await supabase.functions.invoke('send-reset-password', { body: { email } });
+              } catch (e) {
+                logError(e instanceof Error ? e : new Error('Auto reset email error'), { context: 'auto_password_reset', email });
+              }
+
+              toast({
+                title: 'Email deja înregistrat',
+                description: 'Ți-am trimis un link de resetare a parolei. După autentificare, vom seta contul conform selecției tale.',
+              });
+
+              // Comută la login după reset
+              setIsForgotPassword(false);
+              setIsLogin(true);
+              return;
+            }
           }
 
           // Alte erori – propagă

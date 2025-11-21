@@ -75,10 +75,9 @@ interface ChatAIProps {
   onAutoStartComplete?: () => void;
   onOpenDashboard?: () => void;
   openOnLoad?: boolean;
-  forceTutorialMode?: boolean; // FIX #2: forțează modul 'balance' când tutorialul e activ
 }
 
-export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false, forceTutorialMode = false }: ChatAIProps = {}) => {
+export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
@@ -88,14 +87,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
   const [showModeSwitchBanner, setShowModeSwitchBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
-  
-  // FIX #2: Forțează modul 'balance' când tutorialul e activ
-  useEffect(() => {
-    if (forceTutorialMode && chatMode !== 'balance') {
-      setChatMode('balance');
-      logger.log('🎓 [ChatAI] Forțat modul balance pentru tutorial');
-    }
-  }, [forceTutorialMode, chatMode]);
   
   const [messages, setMessages] = useState<Message[]>(
     autoStart ? [] : [
@@ -1277,78 +1268,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             title: "Succes!",
             description: "Balanța a fost analizată și salvată în dosarul tău."
           });
-
-          // 📄 DESCĂRCARE AUTOMATĂ RAPORT WORD PREMIUM
-          if (data.structuredData) {
-            setTimeout(async () => {
-              try {
-                toast({
-                  title: "📄 Generare Raport Premium...",
-                  description: "Raportul Word se descarcă automat în câteva secunde."
-                });
-
-                // Generare simplificată Word Premium automat
-                const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = await import('docx');
-                const { saveAs } = await import('file-saver');
-                
-                const doc = new Document({
-                  sections: [{
-                    properties: {},
-                    children: [
-                      new Paragraph({
-                        text: "RAPORT FINANCIAR PREMIUM",
-                        heading: HeadingLevel.HEADING_1,
-                        alignment: AlignmentType.CENTER,
-                        spacing: { after: 400 }
-                      }),
-                      new Paragraph({
-                        children: [
-                          new TextRun({ text: `Companie: ${data.structuredData.company}`, bold: true, size: 28 })
-                        ],
-                        spacing: { after: 200 }
-                      }),
-                      new Paragraph({
-                        children: [
-                          new TextRun({ text: `CUI: ${data.structuredData.cui}`, size: 24 })
-                        ],
-                        spacing: { after: 400 }
-                      }),
-                      new Paragraph({
-                        text: "ANALIZA FINANCIARĂ",
-                        heading: HeadingLevel.HEADING_2,
-                        spacing: { before: 400, after: 200 }
-                      }),
-                      new Paragraph({
-                        text: data.analysis || 'Analiză indisponibilă',
-                        spacing: { after: 400 }
-                      }),
-                      new Paragraph({
-                        text: `Generat automat de YANA la ${new Date().toLocaleString('ro-RO')}`,
-                        alignment: AlignmentType.CENTER,
-                        spacing: { before: 600 }
-                      })
-                    ]
-                  }]
-                });
-
-                const blob = await Packer.toBlob(doc);
-                const fileName = `Raport_Premium_${data.structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`;
-                saveAs(blob, fileName);
-
-                toast({
-                  title: "✅ Raport Premium Descărcat!",
-                  description: `Fișierul ${fileName} a fost salvat automat.`
-                });
-              } catch (error) {
-                console.error('Eroare generare Word automat:', error);
-                toast({
-                  title: "⚠️ Raport disponibil în Dashboard",
-                  description: "Pentru raportul complet, mergi la Dashboard → selectează analiza.",
-                  variant: "default"
-                });
-              }
-            }, 1500);
-          }
         } catch (error) {
           console.error('Error analyzing balance:', error);
           const errorMessage = error instanceof Error ? error.message : "Nu am putut analiza balanța. Te rog încearcă din nou.";
@@ -2684,7 +2603,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     onClick={() => setIsOpen(false)}
                     className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
                     aria-label="Închide chat"
-                    data-tour="close-chatai"
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>
@@ -3033,7 +2951,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          data-tour="file-upload"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={isLoading || isUploadingFile}
                           variant="outline"
@@ -3069,34 +2986,32 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                   </TooltipProvider>
                 </div>
               )}
-              <div className="flex-1 flex gap-2" data-tour="chat-input-area">
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
-                  placeholder={
-                    isUploadingFile 
-                      ? "Încărcare..." 
-                      : chatMode === 'fiscal'
-                      ? "Întreabă despre legislație fiscală, proceduri ANAF, monografii..."
-                      : "Întreabă despre analizele tale sau încarcă o balanță..."
-                  }
-                  disabled={isLoading || isUploadingFile}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={chatMode === 'fiscal' ? sendFiscalMessage : sendMessage}
-                  disabled={isLoading || !input.trim() || isUploadingFile}
-                  size="icon"
-                  className="shrink-0"
-                  aria-label="Trimite mesaj"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+              <Input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onFocus={() => input.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder={
+                  isUploadingFile 
+                    ? "Încărcare..." 
+                    : chatMode === 'fiscal'
+                    ? "Întreabă despre legislație fiscală, proceduri ANAF, monografii..."
+                    : "Întreabă despre analizele tale sau încarcă o balanță..."
+                }
+                disabled={isLoading || isUploadingFile}
+                className="flex-1"
+              />
+              <Button
+                onClick={chatMode === 'fiscal' ? sendFiscalMessage : sendMessage}
+                disabled={isLoading || !input.trim() || isUploadingFile}
+                size="icon"
+                className="shrink-0"
+                aria-label="Trimite mesaj"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>

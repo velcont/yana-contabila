@@ -23,9 +23,6 @@ export default defineConfig(({ mode }) => ({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: {
-        enabled: false, // Dezactivat în Preview pentru a evita cache-ul service worker-ului
-      },
       includeAssets: ['icon-512.png', 'icon-192.png'],
       manifest: {
         name: 'YANA - Asistent Financiar AI',

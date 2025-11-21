@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Footer } from '@/components/Footer';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
-import { GoogleCalendarConnect } from '@/components/GoogleCalendarConnect';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -89,8 +88,6 @@ const Settings = () => {
                 </p>
               </CardContent>
             </Card>
-
-            <GoogleCalendarConnect />
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-6">

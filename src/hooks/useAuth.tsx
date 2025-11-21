@@ -43,20 +43,13 @@ export const useAuth = () => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
-    // Setăm imediat utilizatorul pentru a evita "scoaterea" din cont până vine evenimentul onAuthStateChange
-    if (!error && data?.session) {
-      setSession(data.session);
-      setUser(data.session.user);
-      setLoading(false);
-    }
-
     return { error };
   };
+
   const signUp = async (
     email: string,
     password: string,
@@ -67,11 +60,6 @@ export const useAuth = () => {
     
     console.log('🔵 [SIGN UP] Starting signup with accountType:', accountType);
     
-    // CRITICAL: accountType trebuie să existe pentru signup valid
-    if (!accountType) {
-      return { error: new Error('Account type is required') };
-    }
-    
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -79,8 +67,9 @@ export const useAuth = () => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          // Setăm tipul de cont direct în metadata pentru a fi folosit de trigger-ul handle_new_user
           subscription_type: accountType,
-          account_type_selected: true,
+          account_type_selected: !!accountType,
           terms_accepted: true
         }
       }
@@ -88,7 +77,7 @@ export const useAuth = () => {
     
     console.log('🔵 [SIGN UP] Metadata sent:', {
       subscription_type: accountType,
-      account_type_selected: true,
+      account_type_selected: !!accountType,
       terms_accepted: true
     });
     
@@ -97,14 +86,9 @@ export const useAuth = () => {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-
-    if (!error) {
-      setSession(null);
-      setUser(null);
-    }
-
     return { error };
   };
+
   return {
     user,
     session,

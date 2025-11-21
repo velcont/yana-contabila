@@ -211,25 +211,6 @@ export const Footer = () => {
         </div>
 
         <div className="border-t mt-8 pt-6 text-center text-sm text-muted-foreground">
-          <div style={{
-            background: '#ff4444',
-            color: '#ffffff',
-            padding: '12px',
-            margin: '0 auto 16px',
-            borderRadius: '8px',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            maxWidth: '600px'
-          }}>
-            🔴 VERSIUNE BUILD: {new Date().toLocaleString('ro-RO', { 
-              year: 'numeric', 
-              month: '2-digit', 
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit'
-            })} 🔴
-          </div>
           <p>© {new Date().getFullYear()} Yana. Toate drepturile rezervate.</p>
           <p className="mt-2 text-xs">
             Analizele generate sunt informative și trebuie revizuite de un contabil autorizat.
