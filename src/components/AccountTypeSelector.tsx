@@ -68,14 +68,14 @@ export const AccountTypeSelector = ({ open, onComplete }: AccountTypeSelectorPro
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <Card 
-            className="cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all bg-blue-50 dark:bg-blue-950/20"
+            className="cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all bg-primary/10"
             onClick={() => !isLoading && selectAccountType('entrepreneur')}
           >
             <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center mb-2">
-                <Briefcase className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mb-2">
+                <Briefcase className="h-6 w-6 text-primary-foreground" />
               </div>
-              <CardTitle className="text-blue-600 dark:text-blue-400">Antreprenor</CardTitle>
+              <CardTitle className="text-primary">Antreprenor</CardTitle>
               <CardDescription>
                 Pentru afaceri și companii
               </CardDescription>
@@ -88,7 +88,7 @@ export const AccountTypeSelector = ({ open, onComplete }: AccountTypeSelectorPro
                 <li>✓ Rapoarte și predicții</li>
               </ul>
               <Button 
-                className="w-full mt-4 bg-blue-500 hover:bg-blue-600"
+                className="w-full mt-4 bg-primary hover:bg-primary/90"
                 disabled={isLoading}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -101,14 +101,14 @@ export const AccountTypeSelector = ({ open, onComplete }: AccountTypeSelectorPro
           </Card>
 
           <Card 
-            className="cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all bg-green-50 dark:bg-green-950/20"
+            className="cursor-pointer border-2 hover:border-primary hover:shadow-lg transition-all bg-primary/10"
             onClick={() => !isLoading && selectAccountType('accounting_firm')}
           >
             <CardHeader>
-              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mb-2">
-                <Building2 className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center mb-2">
+                <Building2 className="h-6 w-6 text-primary-foreground" />
               </div>
-              <CardTitle className="text-green-600 dark:text-green-400">Contabil</CardTitle>
+              <CardTitle className="text-primary">Contabil</CardTitle>
               <CardDescription>
                 Pentru firme de contabilitate
               </CardDescription>
@@ -121,7 +121,7 @@ export const AccountTypeSelector = ({ open, onComplete }: AccountTypeSelectorPro
                 <li>✓ Alerte proactive pentru clienți</li>
               </ul>
               <Button 
-                className="w-full mt-4 bg-green-500 hover:bg-green-600"
+                className="w-full mt-4 bg-primary hover:bg-primary/90"
                 disabled={isLoading}
                 onClick={(e) => {
                   e.stopPropagation();

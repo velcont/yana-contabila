@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
+const LandingNew = lazy(() => import("./pages/LandingNew"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Analytics = lazy(() => import("./pages/Analytics"));
@@ -65,7 +66,7 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
     );
   }
   if (!user) {
-    return <Landing />;
+    return <LandingNew />;
   }
   return children;
 };
@@ -92,7 +93,7 @@ const App = () => (
                     <TutorialProvider>
                     <Suspense fallback={<LoadingFallback />}>
                       <Routes>
-                      <Route path="/" element={<Landing />} />
+                      <Route path="/" element={<LandingNew />} />
                       <Route path="/landing" element={<Landing />} />
                       <Route path="/demo" element={<Demo />} />
                       <Route path="/industry-demos" element={<PrivateRoute><IndustryDemos /></PrivateRoute>} />
