@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Plus, Check, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonTable } from "@/components/ui/skeleton-loader";
 
 interface FiscalDeadline {
   id: string;
@@ -316,11 +318,17 @@ export const FiscalDeadlinesManager = () => {
       <Card>
         <CardContent className="pt-6">
           {loading ? (
-            <div className="text-center py-8">Se încarcă...</div>
+            <SkeletonTable />
           ) : deadlines.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Niciun termen fiscal găsit
-            </div>
+            <EmptyState
+              icon={<Calendar className="h-12 w-12" />}
+              title="Niciun termen fiscal găsit"
+              description="Adaugă primul termen pentru declarații și obligații fiscale."
+              action={{
+                label: "Adaugă Termen",
+                onClick: () => setDialogOpen(true),
+              }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>

@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download, User, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
+import { SkeletonTable } from '@/components/ui/skeleton-loader';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface PaymentRecord {
   id: string;
@@ -662,7 +664,13 @@ export default function AdminRevenueMonitor() {
 
           {/* Payments Table */}
           {loading ? (
-            <div className="text-center py-8">Se încarcă...</div>
+            <SkeletonTable />
+          ) : filteredPayments.length === 0 ? (
+            <EmptyState
+              icon={<DollarSign className="h-12 w-12" />}
+              title="Nicio plată înregistrată"
+              description="Plățile pentru credite și abonamente vor apărea aici."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -677,14 +685,7 @@ export default function AdminRevenueMonitor() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPayments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      Nu există plăți înregistrate
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPayments.map((payment) => (
+                {filteredPayments.map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell className="font-mono text-xs">
                         {format(new Date(payment.date), 'dd MMM yyyy HH:mm', { locale: ro })}
@@ -771,8 +772,7 @@ export default function AdminRevenueMonitor() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
+                  ))}
               </TableBody>
             </Table>
           )}

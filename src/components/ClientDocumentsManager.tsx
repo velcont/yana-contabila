@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileText, Upload, Download, Trash2, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SkeletonTable } from "@/components/ui/skeleton-loader";
 
 interface ClientDocument {
   id: string;
@@ -320,11 +322,17 @@ export const ClientDocumentsManager = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Se încarcă...</div>
+            <SkeletonTable />
           ) : filteredDocuments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Niciun document găsit
-            </div>
+            <EmptyState
+              icon={<FileText className="h-12 w-12" />}
+              title="Niciun document găsit"
+              description="Încarcă primul document financiar-contabil pentru clientul tău."
+              action={{
+                label: "Încarcă Document",
+                onClick: () => setUploadDialogOpen(true),
+              }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
