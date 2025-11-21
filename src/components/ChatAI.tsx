@@ -23,6 +23,7 @@ import { useThemeRole } from '@/contexts/ThemeRoleContext';
 import { generateUUID } from '@/utils/uuid';
 import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
 import { generateAccountantSections, generateLegalNoteSectionIfNeeded } from './BalanceConfirmationHistory';
+import { safeParseFloat } from '@/lib/finance';
 
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
@@ -1349,24 +1350,31 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           
           autoMessage = `👋 Bună! Am analizat balanța companiei **${analysis.company_name || 'dvs.'}** din **${period}**.\n\n`;
           
+          // ✅ VALIDARE SIGURĂ: folosim safeParseFloat care returnează null pentru valori invalide
           // Indicatori critici
           const criticalIssues = [];
-          if (metadata?.profit && parseFloat(metadata.profit) < 0) {
+          const profitValue = safeParseFloat(metadata?.profit);
+          const ebitdaValue = safeParseFloat(metadata?.ebitda);
+          const casaValue = safeParseFloat(metadata?.casa);
+          const dsoValue = safeParseFloat(metadata?.dso);
+          const dioValue = safeParseFloat(metadata?.dio);
+          
+          if (profitValue !== null && profitValue < 0) {
             criticalIssues.push(`🔴 **Profit negativ**: ${metadata.profit} RON`);
           }
-          if (metadata?.ebitda && parseFloat(metadata.ebitda) < 0) {
+          if (ebitdaValue !== null && ebitdaValue < 0) {
             criticalIssues.push(`🔴 **EBITDA negativ**: ${metadata.ebitda} RON`);
           }
-          if (metadata?.casa && parseFloat(metadata.casa) > 50000) {
+          if (casaValue !== null && casaValue > 50000) {
             criticalIssues.push(`⛔ **Casa depășește plafonul legal**: ${metadata.casa} RON (max 50.000 RON)`);
           }
           
           // Avertismente
           const warnings = [];
-          if (metadata?.dso && parseFloat(metadata.dso) > 60) {
+          if (dsoValue !== null && dsoValue > 60) {
             warnings.push(`⚠️ **DSO ridicat**: ${metadata.dso} zile (banii sunt blocați)`);
           }
-          if (metadata?.dio && parseFloat(metadata.dio) > 90) {
+          if (dioValue !== null && dioValue > 90) {
             warnings.push(`⚠️ **Stocuri cu rotație lentă**: ${metadata.dio} zile`);
           }
           
@@ -1375,7 +1383,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           if (metadata?.ca) {
             positives.push(`✅ **Cifră de afaceri**: ${metadata.ca} RON`);
           }
-          if (metadata?.profit && parseFloat(metadata.profit) > 0) {
+          if (profitValue !== null && profitValue > 0) {
             positives.push(`✅ **Profit net**: ${metadata.profit} RON`);
           }
           

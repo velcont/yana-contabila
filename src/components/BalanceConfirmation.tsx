@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
+import { safeParseDecimal, toNumber } from "@/lib/finance";
 
 interface BalanceData {
   cui: string;
@@ -180,8 +181,25 @@ export const BalanceConfirmation = () => {
           if (row[0] && /^\d+/.test(row[0].toString())) {
             const accountCode = row[0].toString();
             const accountName = row[1]?.toString() || "";
-            const debit = parseFloat(row[finalDebitColIndex]?.toString() || "0") || 0;
-            const credit = parseFloat(row[finalCreditColIndex]?.toString() || "0") || 0;
+            
+            // ✅ VALIDARE STRICTĂ: Verificăm dacă celulele conțin valori numerice valide
+            const debitValue = row[finalDebitColIndex]?.toString() || "0";
+            const creditValue = row[finalCreditColIndex]?.toString() || "0";
+            
+            // Folosim safeParseDecimal pentru a detecta litere/caractere invalide
+            const debitDecimal = safeParseDecimal(debitValue);
+            const creditDecimal = safeParseDecimal(creditValue);
+            
+            if (debitDecimal === null && debitValue.trim() !== "" && debitValue !== "0") {
+              console.warn(`[BalanceConfirmation] Invalid debit value for account ${accountCode}: "${debitValue}" - treating as 0`);
+            }
+            if (creditDecimal === null && creditValue.trim() !== "" && creditValue !== "0") {
+              console.warn(`[BalanceConfirmation] Invalid credit value for account ${accountCode}: "${creditValue}" - treating as 0`);
+            }
+            
+            // Convertim la number pentru storage (cu toNumber pentru a păstra 2 zecimale)
+            const debit = debitDecimal ? toNumber(debitDecimal) : 0;
+            const credit = creditDecimal ? toNumber(creditDecimal) : 0;
             
             accounts[accountCode] = { debit, credit };
             
