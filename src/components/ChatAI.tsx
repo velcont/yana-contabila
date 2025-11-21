@@ -1277,6 +1277,78 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
             title: "Succes!",
             description: "Balanța a fost analizată și salvată în dosarul tău."
           });
+
+          // 📄 DESCĂRCARE AUTOMATĂ RAPORT WORD PREMIUM
+          if (data.structuredData) {
+            setTimeout(async () => {
+              try {
+                toast({
+                  title: "📄 Generare Raport Premium...",
+                  description: "Raportul Word se descarcă automat în câteva secunde."
+                });
+
+                // Generare simplificată Word Premium automat
+                const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = await import('docx');
+                const { saveAs } = await import('file-saver');
+                
+                const doc = new Document({
+                  sections: [{
+                    properties: {},
+                    children: [
+                      new Paragraph({
+                        text: "RAPORT FINANCIAR PREMIUM",
+                        heading: HeadingLevel.HEADING_1,
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 400 }
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({ text: `Companie: ${data.structuredData.company}`, bold: true, size: 28 })
+                        ],
+                        spacing: { after: 200 }
+                      }),
+                      new Paragraph({
+                        children: [
+                          new TextRun({ text: `CUI: ${data.structuredData.cui}`, size: 24 })
+                        ],
+                        spacing: { after: 400 }
+                      }),
+                      new Paragraph({
+                        text: "ANALIZA FINANCIARĂ",
+                        heading: HeadingLevel.HEADING_2,
+                        spacing: { before: 400, after: 200 }
+                      }),
+                      new Paragraph({
+                        text: data.analysis || 'Analiză indisponibilă',
+                        spacing: { after: 400 }
+                      }),
+                      new Paragraph({
+                        text: `Generat automat de YANA la ${new Date().toLocaleString('ro-RO')}`,
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 600 }
+                      })
+                    ]
+                  }]
+                });
+
+                const blob = await Packer.toBlob(doc);
+                const fileName = `Raport_Premium_${data.structuredData.cui}_${new Date().toISOString().split('T')[0]}.docx`;
+                saveAs(blob, fileName);
+
+                toast({
+                  title: "✅ Raport Premium Descărcat!",
+                  description: `Fișierul ${fileName} a fost salvat automat.`
+                });
+              } catch (error) {
+                console.error('Eroare generare Word automat:', error);
+                toast({
+                  title: "⚠️ Raport disponibil în Dashboard",
+                  description: "Pentru raportul complet, mergi la Dashboard → selectează analiza.",
+                  variant: "default"
+                });
+              }
+            }, 1500);
+          }
         } catch (error) {
           console.error('Error analyzing balance:', error);
           const errorMessage = error instanceof Error ? error.message : "Nu am putut analiza balanța. Te rog încearcă din nou.";
