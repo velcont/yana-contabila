@@ -149,13 +149,14 @@ const Index = () => {
     setTheme("light");
   }, [setTheme]);
  
-   // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
-   useEffect(() => {
-     if (user && !loading) {
-       logger.log('🤖 [INDEX] Auto-deschidere ChatAI la logare');
-       setShouldOpenChatAI(true);
-     }
-   }, [user, loading]);
+   // ⚠️ Eliminat auto-deschiderea ChatAI la logare pentru a păstra layout-ul tip Google AI Studio
+   // Utilizatorul va deschide ChatAI doar când apasă pe cardul corespunzător
+   // useEffect(() => {
+   //   if (user && !loading) {
+   //     logger.log('🤖 [INDEX] Auto-deschidere ChatAI la logare');
+   //     setShouldOpenChatAI(true);
+   //   }
+   // }, [user, loading]);
   
    const handleSignOut = async () => {
      await signOut();
