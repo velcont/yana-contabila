@@ -211,7 +211,26 @@ const Index = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-background">
+      {/* 🚨 BANNER MARE PENTRU VERIFICARE BUILD 🚨 */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #ff0000 0%, #ff6600 100%)', 
+        color: '#ffffff', 
+        padding: '30px 20px',
+        textAlign: 'center',
+        fontSize: '28px',
+        fontWeight: 'bold',
+        border: '8px solid #ffff00',
+        boxShadow: '0 10px 40px rgba(255,0,0,0.5)',
+        position: 'relative',
+        zIndex: 9999
+      }}>
+        🔴 BUILD ACTUALIZAT: {new Date().toLocaleString('ro-RO')} 🔴
+        <div style={{ fontSize: '16px', marginTop: '10px' }}>
+          Dacă vezi acest banner, build-ul s-a actualizat cu succes!
+        </div>
+      </div>
+      
+      <div className="min-h-screen" style={{ background: 'linear-gradient(to bottom, #f0f4ff 0%, #e0e7ff 100%)' }}>
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           {/* Header + hero în stil Google AI Studio */}
           <header className="mb-10 space-y-6">
