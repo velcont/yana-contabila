@@ -45,6 +45,19 @@ const Index = () => {
   const navigate = useNavigate();
   const [shouldOpenChatAI, setShouldOpenChatAI] = useState(false);
 
+  // Auto-switch to history tab when navigating from ChatAI
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+
+    // Dacă vine din ChatAI cu parametrul tab=history, curăță URL-ul
+    if (tab === 'history') {
+      console.log("✅ Navigat către Dosarul Meu din ChatAI");
+      // Curăță URL-ul pentru a nu rămâne parametrul
+      window.history.replaceState({}, '', '/app');
+    }
+  }, []);
+
   // Check if user needs to select account type
   useEffect(() => {
     const checkAccountType = async () => {

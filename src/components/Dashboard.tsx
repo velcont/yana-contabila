@@ -69,12 +69,26 @@ export const Dashboard = () => {
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('analytics');
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
   const { themeType } = useTheme();
   const { currentTheme } = useThemeRole();
   const isAccountantMode = themeType === 'accountant';
   const navigate = useNavigate();
+
+  // Check URL params pentru navigare din ChatAI
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    
+    if (tabParam === 'history') {
+      console.log("✅ Deschid tab-ul 'Dosarul Meu' din ChatAI");
+      setActiveTab('history');
+      // Curăță URL-ul
+      window.history.replaceState({}, '', '/app');
+    }
+  }, []);
 
   useEffect(() => {
     loadAnalyses();
@@ -688,7 +702,7 @@ INDICATORI OPERAȚIONALI:
         </div>
       </div>
       
-      <Tabs defaultValue="analytics" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full max-w-5xl grid-cols-8">
           <TabsTrigger value="analytics" data-tour="tab-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
@@ -814,6 +828,7 @@ INDICATORI OPERAȚIONALI:
                 return (
                   <div
                     key={analysis.id}
+                    id={`balance-card-${analysis.id}`}
                     className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
                       selectedAnalysis?.id === analysis.id
                         ? 'bg-primary/10 border-primary scale-[1.02]'
