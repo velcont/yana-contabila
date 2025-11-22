@@ -2890,40 +2890,20 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   </p>
                                 </div>
                                 <Button 
-                                  onClick={() => handleGoToReport(msg.structuredData?.id)}
+                                  onClick={() => {
+                                    alert("🛠️ DEBUG: Încerc navigarea pentru ID: " + (msg.structuredData?.id || 'LIPSA ID'));
+                                    handleGoToReport(msg.structuredData?.id);
+                                  }}
                                   size="default"
-                                  className="gap-2"
+                                  className="gap-2 bg-green-600 hover:bg-green-700 text-white"
                                 >
                                   <ExternalLink className="h-4 w-4" />
-                                  Mergi la Dosarul Meu
+                                  CLICK AICI PENTRU RAPORT
                                 </Button>
                               </div>
                             </CardContent>
                           </Card>
                           
-                          {/* Banner VIZIBIL - Dosarul Meu */}
-                          <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-2 border-blue-500 dark:border-blue-400 rounded-lg shadow-lg">
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 text-2xl">📂</div>
-                              <div className="flex-1">
-                                <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-2 text-sm">
-                                  ✅ Analiza ta este salvată automat!
-                                </h4>
-                                <p className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed mb-3">
-                                  Găsești toate analizele tale în tab-ul <span className="font-bold bg-blue-200 dark:bg-blue-800 px-1.5 py-0.5 rounded">"Dosarul Meu"</span> din Dashboard. 
-                                  Poți revedea datele și regenera rapoarte oricând dorești.
-                                </p>
-                                <Button
-                                  onClick={() => window.location.href = '/app'}
-                                  variant="default"
-                                  size="sm"
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                >
-                                  📁 Toate Analizele Mele
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       )}
                       
