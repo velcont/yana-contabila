@@ -77,17 +77,60 @@ export const Dashboard = () => {
   const isAccountantMode = themeType === 'accountant';
   const navigate = useNavigate();
 
-  // Check URL params pentru navigare din ChatAI
+  // Listener pentru navigare din ChatAI folosind localStorage
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tabParam = params.get('tab');
-    
-    if (tabParam === 'history') {
-      console.log("✅ Deschid tab-ul 'Dosarul Meu' din ChatAI");
+    const pendingId = localStorage.getItem('pending_nav_id');
+    const pendingTab = localStorage.getItem('pending_nav_tab');
+    const pendingAction = localStorage.getItem('pending_nav_action');
+
+    if (!pendingId && !pendingTab && !pendingAction) return;
+
+    console.log("📌 [Dashboard] Pending navigation detectată:", { pendingId, pendingTab, pendingAction });
+
+    if (pendingTab === 'history') {
       setActiveTab('history');
-      // Curăță URL-ul
-      window.history.replaceState({}, '', '/app');
     }
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const interval = setInterval(() => {
+      attempts++;
+      let targetCard: HTMLElement | null = null;
+
+      if (pendingId && pendingId !== 'latest') {
+        targetCard = document.getElementById(`balance-card-${pendingId}`) as HTMLElement | null;
+      }
+
+      // PLAN B: dacă nu există ID sau nu a fost găsit cardul, selectează primul card disponibil
+      if (!targetCard) {
+        targetCard = document.querySelector('[id^="balance-card-"]') as HTMLElement | null;
+      }
+
+      if (targetCard || attempts > maxAttempts) {
+        clearInterval(interval);
+
+        if (targetCard) {
+          console.log("✅ [Dashboard] Balanță găsită, declanșez click...");
+          targetCard.click();
+
+          if (pendingAction === 'scroll_to_report') {
+            setTimeout(() => {
+              const reportSection = document.getElementById('report-preview-section');
+              reportSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 500);
+          }
+        } else {
+          console.warn("⚠️ [Dashboard] Nu am găsit niciun card de balanță pentru pending navigation.");
+        }
+
+        // Curăță cheile din localStorage pentru a evita repetarea
+        localStorage.removeItem('pending_nav_tab');
+        localStorage.removeItem('pending_nav_id');
+        localStorage.removeItem('pending_nav_action');
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

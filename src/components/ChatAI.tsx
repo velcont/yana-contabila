@@ -42,6 +42,7 @@ interface Message {
   sources?: Array<{ title: string; url: string; domain: string }>;
   related_questions?: string[];
   structuredData?: {
+    id?: string;
     cui: string;
     company: string;
     accounts: Array<{
@@ -136,6 +137,18 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }>;
   } | null>(null);
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
+  
+  const handleGoToReport = (balanceId?: string) => {
+    console.log("Setez navigarea pentru ID:", balanceId);
+    
+    // Scriem în memorie persistentă
+    localStorage.setItem('pending_nav_tab', 'history');
+    localStorage.setItem('pending_nav_id', balanceId || 'latest'); // Dacă nu avem ID, cerem ultima
+    localStorage.setItem('pending_nav_action', 'scroll_to_report');
+    
+    // Refresh pagina
+    window.location.href = '/app';
+  };
   
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
   const addPremiumReportSuggestion = (
@@ -2876,20 +2889,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   </p>
                                 </div>
                                 <Button 
-                                  onClick={() => {
-                                    console.log("🚀 Navigare inițiată către Dosarul Meu");
-                                    
-                                    // 1. Construim URL-ul complet
-                                    const baseUrl = window.location.origin;
-                                    const targetUrl = new URL(`${baseUrl}/app`);
-                                    
-                                    // 2. Adăugăm parametrul pentru tab-ul "Dosarul Meu"
-                                    targetUrl.searchParams.set('tab', 'history');
-                                    
-                                    // 3. FORȚĂM REFRESH-UL PAGINII (Hard Navigation)
-                                    // Asta rezolvă orice bug de state din React
-                                    window.location.href = targetUrl.toString();
-                                  }}
+                                  onClick={() => handleGoToReport(msg.structuredData?.id)}
                                   size="default"
                                   className="gap-2"
                                 >
