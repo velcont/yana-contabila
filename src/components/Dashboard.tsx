@@ -77,87 +77,52 @@ export const Dashboard = () => {
   const isAccountantMode = themeType === 'accountant';
   const navigate = useNavigate();
 
-  // Listener pentru navigare din ChatAI folosind localStorage
+  // HOOK 1: Gestionează Navigarea Automată din Chat (la încărcare)
   useEffect(() => {
-    const pendingId = localStorage.getItem('pending_nav_id');
     const pendingTab = localStorage.getItem('pending_nav_tab');
-    const pendingAction = localStorage.getItem('pending_nav_action');
-
-    if (!pendingId && !pendingTab && !pendingAction) return;
-
-    console.log("📌 [Dashboard] Pending navigation detectată:", { pendingId, pendingTab, pendingAction });
+    const pendingId = localStorage.getItem('pending_nav_id');
 
     if (pendingTab === 'history') {
       setActiveTab('history');
-    }
-
-    let attempts = 0;
-    const maxAttempts = 10;
-    const interval = setInterval(() => {
-      attempts++;
-      let targetCard: HTMLElement | null = null;
       
-      if (pendingId && pendingId !== 'latest') {
-        // Cazul 1: Avem ID specific
-        targetCard = document.getElementById(`balance-card-${pendingId}`);
-      } else {
-        // Cazul 2: ID este 'latest' sau null -> Luăm PRIMUL card din listă
-        // Folosim un selector care găsește orice card de balanță
-        const allCards = document.querySelectorAll('[id^="balance-card-"]');
-        if (allCards.length > 0) {
-            targetCard = allCards[0] as HTMLElement;
-            console.log("✅ Fallback la ultima balanță (prima din listă):", targetCard.id);
+      // Încercăm să găsim cardul timp de 2 secunde
+      const interval = setInterval(() => {
+        let targetCard = null;
+        
+        if (pendingId && pendingId !== 'latest') {
+          targetCard = document.getElementById(`balance-card-${pendingId}`);
+        } else {
+          // Fallback: primul card din listă
+          targetCard = document.querySelector('[id^="balance-card-"]');
         }
-      }
-
-      if (targetCard || attempts > maxAttempts) {
-        clearInterval(interval);
 
         if (targetCard) {
-          console.log("✅ [Dashboard] Balanță găsită, declanșez click...");
-          targetCard.click();
-
-          if (pendingAction === 'scroll_to_report') {
-            setTimeout(() => {
-              const reportSection = document.getElementById('report-preview-section');
-              reportSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 500);
-          }
-        } else {
-          console.warn("⚠️ [Dashboard] Nu am găsit niciun card de balanță pentru pending navigation.");
+          targetCard.click(); // Asta va declanșa Hook 2
+          clearInterval(interval);
+          localStorage.removeItem('pending_nav_tab');
+          localStorage.removeItem('pending_nav_id');
         }
-
-        // Curăță cheile din localStorage pentru a evita repetarea
-        localStorage.removeItem('pending_nav_tab');
-        localStorage.removeItem('pending_nav_id');
-        localStorage.removeItem('pending_nav_action');
-      }
-    }, 500);
-
-    return () => clearInterval(interval);
+      }, 200);
+      
+      setTimeout(() => clearInterval(interval), 2000);
+    }
   }, []);
 
-  // useEffect pentru scroll automat când se selectează o analiză (manual sau automat)
+  // HOOK 2: Gestionează SCROLL-ul (și manual, și automat)
   useEffect(() => {
     if (selectedAnalysis) {
-      console.log("📜 Analiză selectată:", selectedAnalysis.id, "- Încerc scroll...");
-      
-      // Folosim un timeout mic pentru a permite randarea DOM-ului
+      // Așteptăm puțin să se randeze raportul
       setTimeout(() => {
-        // Încercăm mai mulți selectori pentru siguranță
-        const reportSection = document.getElementById('report-preview-section') 
-                           || document.querySelector('.report-container')
-                           || document.getElementById('analysis-details');
+        // Căutăm secțiunea de raport sau butoanele de export
+        const reportSection = document.getElementById('report-preview-section') || 
+                              document.querySelector('.report-actions'); // Selector de rezervă
         
         if (reportSection) {
-          console.log("✅ Secțiune găsită. Execut scroll.");
           reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          console.error("❌ Nu găsesc secțiunea de raport pentru scroll!");
         }
       }, 300);
     }
-  }, [selectedAnalysis]);
+  }, [selectedAnalysis]); // Se activează oricând se schimbă analiza selectată
 
   useEffect(() => {
     loadAnalyses();
