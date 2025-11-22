@@ -2715,37 +2715,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-3 py-2">
-            {/* Banner promovare Dashboard - vizibil mereu - FIXED: proper sizing and responsive layout */}
-            <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
-              <CardContent className="p-3">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium mb-0.5 truncate">📊 Dashboard Grafice Interactive</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Evoluții și comparații financiare</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => {
-                      if (onOpenDashboard) {
-                        onOpenDashboard();
-                        setIsOpen(false);
-                      }
-                    }}
-                    className="flex items-center gap-1 h-8 text-xs px-3 w-full sm:w-auto shrink-0"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Deschide</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Banner explicativ la schimbarea modului */}
             {showModeSwitchBanner && (
               <Card className="bg-primary/10 border-2 border-primary animate-in slide-in-from-top duration-300">
