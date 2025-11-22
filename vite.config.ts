@@ -21,7 +21,8 @@ export default defineConfig(({ mode }) => ({
       gzipSize: true,
       brotliSize: true,
     }),
-    VitePWA({
+    // PWA only in production to avoid cache issues during development
+    mode === 'production' && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-512.png', 'icon-192.png'],
       manifest: {
