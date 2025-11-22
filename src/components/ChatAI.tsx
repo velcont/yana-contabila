@@ -2715,32 +2715,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-3 py-2">
-            {/* Banner Tutorial - vizibil mereu - FIXED: proper sizing and responsive layout */}
-            <Card className="bg-gradient-to-r from-accent/10 via-accent/5 to-transparent border-accent/20">
-              <CardContent className="p-3">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <GraduationCap className="h-4 w-4 text-accent" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium mb-0.5 truncate">🎓 Tutorial Interactiv</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight">Descoperă toate funcțiile Yana</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => setShowTutorialMenu(true)}
-                    className="flex items-center gap-1 h-8 text-xs px-3 w-full sm:w-auto shrink-0"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Deschide</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Banner promovare Dashboard - vizibil mereu - FIXED: proper sizing and responsive layout */}
             <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
               <CardContent className="p-3">
