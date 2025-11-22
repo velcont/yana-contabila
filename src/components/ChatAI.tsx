@@ -139,15 +139,14 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
   const handleGoToReport = (balanceId?: string) => {
-    alert("🚀 1. Chat: Am primit comanda de navigare pentru ID: " + (balanceId || 'latest'));
-    console.log("Setez navigarea pentru ID:", balanceId);
+    // 1. Salvăm intenția
+    console.log("Navigare silențioasă către:", balanceId);
     
-    // Scriem în memorie persistentă
     localStorage.setItem('pending_nav_tab', 'history');
-    localStorage.setItem('pending_nav_id', balanceId || 'latest'); // Dacă nu avem ID, cerem ultima
+    localStorage.setItem('pending_nav_id', balanceId || 'latest');
     localStorage.setItem('pending_nav_action', 'scroll_to_report');
     
-    // Refresh pagina
+    // 2. Refresh instantaneu
     window.location.href = '/app';
   };
   
