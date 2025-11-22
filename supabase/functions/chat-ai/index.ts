@@ -243,23 +243,38 @@ Numărul de clienți este NELIMITAT în Plan Contabil. Nu există cost per clien
 - "De ce nu merge PDF?" → Sistemul procesează doar Excel pentru acuratețe maximă
 
 📊 **DASHBOARD & VIZUALIZARE**
-- "Unde văd analizele?" → Click "📊 Dashboard cu grafice și indicatori" (dreapta-sus)
+- "Unde văd analizele?" → Click "Dosarul Meu" (butonul care palpită pe pagina principală)
 - "Cum văd istoricul?" → În Dashboard, tab-ul "Dosarul Meu" arată toate analizele
 - "Cum compar 2 perioade?" → În Dashboard, tab "Comparare Perioade", selectează 2 analize
 - "Unde sunt graficele?" → Dashboard → Tab "Grafice Analytics" (cifră afaceri, profit, DSO, etc.)
 - "Cum văd alertele?" → Dashboard → Tab "Alerte Proactive" (probleme detectate automat)
 
-📥 **DESCĂRCARE & EXPORT** (FOARTE IMPORTANT):
-Când utilizatorul întreabă "Cum descarc analiza?" sau "Unde e butonul de download?":
-1. **Pasul 1**: Click pe "📊 Dashboard cu grafice și indicatori" (dreapta-sus, pagina principală)
-2. **Pasul 2**: Click pe butonul "Dosarul meu" 
-3. **Pasul 3**: Selectează analiza dorită din listă
-4. **Pasul 4**: Fiecare analiză are 3 butoane în dreapta:
-   - 👁️ **Vezi** = vizualizează detaliile
-   - 📥 **Descarcă** = salvează PDF profesional (cu grafice, indicatori, recomandări)
-   - 🗑️ **Șterge** = elimină analiza
-5. **Pasul 5**: Click "📥 Descarcă" → PDF-ul se descarcă automat
-6. **Bonus**: Poți descărca orice analiză din istoric, oricând!
+📥 **DESCĂRCARE RAPORT PREMIUM** (FOARTE IMPORTANT):
+Când utilizatorul întreabă "Cum descarc analiza/balanța?" sau "Unde e raportul?":
+
+**Pași pentru a genera și descărca raportul Word Premium:**
+
+1. **Pasul 1**: Mergi în **"Dosarul Meu"** (butonul care palpită pe pagina principală)
+
+2. **Pasul 2**: Din **stânga**, selectează balanța pe care vrei să o analizezi din listă
+
+3. **Pasul 3**: **Scroll în jos** pe pagina de analiză până găsești butonul:
+   - 📄 **"Validează cu Grok & Generează Raport Premium"**
+
+4. **Pasul 4**: Click pe butonul de mai sus:
+   - ⏳ Sistemul va valida analiza cu Grok (durează ~10-15 secunde)
+   - ✅ După validare, raportul Word se generează automat
+
+5. **Pasul 5**: După generare, va apărea un **nou buton** chiar sub cel de validare:
+   - 📥 **"Descarcă Raportul Premium Generat"**
+
+6. **Pasul 6**: Click pe **"📥 Descarcă Raportul Premium Generat"** → Fișierul Word se descarcă automat cu:
+   - ✅ Analiza completă validată de Grok
+   - ✅ Grafice și indicatori financiari
+   - ✅ Recomandări strategice personalizate
+   - ✅ Format profesional pentru prezentare
+
+⚠️ **Important**: Trebuie să aștepți finalizarea validării Grok înainte ca butonul de descărcare să apară!
 
 📧 **TRIMITERE EMAIL & PARTAJARE**
 - "Cum trimit analiza prin email?" → În Dashboard, click 👁️ Vezi pe analiză → buton "📧 Trimite Email"
