@@ -85,6 +85,7 @@ export const Dashboard = () => {
 
     if (!pendingId && !pendingTab && !pendingAction) return;
 
+    alert("📥 2. Dashboard: Am primit semnalul din Chat! Caut ID: " + pendingId);
     console.log("📌 [Dashboard] Pending navigation detectată:", { pendingId, pendingTab, pendingAction });
 
     if (pendingTab === 'history') {
@@ -132,6 +133,28 @@ export const Dashboard = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // useEffect pentru scroll automat când se selectează o analiză (manual sau automat)
+  useEffect(() => {
+    if (selectedAnalysis) {
+      console.log("📜 Analiză selectată:", selectedAnalysis.id, "- Încerc scroll...");
+      
+      // Folosim un timeout mic pentru a permite randarea DOM-ului
+      setTimeout(() => {
+        // Încercăm mai mulți selectori pentru siguranță
+        const reportSection = document.getElementById('report-preview-section') 
+                           || document.querySelector('.report-container')
+                           || document.getElementById('analysis-details');
+        
+        if (reportSection) {
+          console.log("✅ Secțiune găsită. Execut scroll.");
+          reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          console.error("❌ Nu găsesc secțiunea de raport pentru scroll!");
+        }
+      }, 300);
+    }
+  }, [selectedAnalysis]);
 
   useEffect(() => {
     loadAnalyses();

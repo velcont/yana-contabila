@@ -139,6 +139,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
   const handleGoToReport = (balanceId?: string) => {
+    alert("🚀 1. Chat: Am primit comanda de navigare pentru ID: " + (balanceId || 'latest'));
     console.log("Setez navigarea pentru ID:", balanceId);
     
     // Scriem în memorie persistentă
