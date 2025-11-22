@@ -2869,22 +2869,32 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-base mb-1 flex items-center gap-2">
                                     <FileText className="h-5 w-5 text-primary" />
-                                    📂 Raport Word Premium
+                                    📂 Raport Word Complet
                                   </h4>
                                   <p className="text-xs text-muted-foreground">
-                                    Vezi raportul complet în Dashboard → Dosarul Meu
+                                    Vezi analiza completă în "Dosarul Meu"
                                   </p>
                                 </div>
                                 <Button 
                                   onClick={() => {
-                                    navigate('/app?action=scroll-to-report');
-                                    setIsOpen(false);
+                                    console.log("🚀 Navigare inițiată către Dosarul Meu");
+                                    
+                                    // 1. Construim URL-ul complet
+                                    const baseUrl = window.location.origin;
+                                    const targetUrl = new URL(`${baseUrl}/app`);
+                                    
+                                    // 2. Adăugăm parametrul pentru tab-ul "Dosarul Meu"
+                                    targetUrl.searchParams.set('tab', 'history');
+                                    
+                                    // 3. FORȚĂM REFRESH-UL PAGINII (Hard Navigation)
+                                    // Asta rezolvă orice bug de state din React
+                                    window.location.href = targetUrl.toString();
                                   }}
                                   size="default"
                                   className="gap-2"
                                 >
                                   <ExternalLink className="h-4 w-4" />
-                                  Mergi la Raportul Detaliat
+                                  Mergi la Dosarul Meu
                                 </Button>
                               </div>
                             </CardContent>
