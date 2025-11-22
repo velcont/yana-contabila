@@ -2890,10 +2890,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                                   </p>
                                 </div>
                                 <Button 
-                                  onClick={() => {
-                                    alert("🛠️ DEBUG: Încerc navigarea pentru ID: " + (msg.structuredData?.id || 'LIPSA ID'));
-                                    handleGoToReport(msg.structuredData?.id);
-                                  }}
+                                  onClick={() => handleGoToReport(msg.structuredData?.id)}
                                   size="default"
                                   className="gap-2 bg-green-600 hover:bg-green-700 text-white"
                                 >
