@@ -85,7 +85,6 @@ export const Dashboard = () => {
 
     if (!pendingId && !pendingTab && !pendingAction) return;
 
-    alert("📥 2. Dashboard: Am primit semnalul din Chat! Caut ID: " + pendingId);
     console.log("📌 [Dashboard] Pending navigation detectată:", { pendingId, pendingTab, pendingAction });
 
     if (pendingTab === 'history') {
@@ -97,14 +96,18 @@ export const Dashboard = () => {
     const interval = setInterval(() => {
       attempts++;
       let targetCard: HTMLElement | null = null;
-
+      
       if (pendingId && pendingId !== 'latest') {
-        targetCard = document.getElementById(`balance-card-${pendingId}`) as HTMLElement | null;
-      }
-
-      // PLAN B: dacă nu există ID sau nu a fost găsit cardul, selectează primul card disponibil
-      if (!targetCard) {
-        targetCard = document.querySelector('[id^="balance-card-"]') as HTMLElement | null;
+        // Cazul 1: Avem ID specific
+        targetCard = document.getElementById(`balance-card-${pendingId}`);
+      } else {
+        // Cazul 2: ID este 'latest' sau null -> Luăm PRIMUL card din listă
+        // Folosim un selector care găsește orice card de balanță
+        const allCards = document.querySelectorAll('[id^="balance-card-"]');
+        if (allCards.length > 0) {
+            targetCard = allCards[0] as HTMLElement;
+            console.log("✅ Fallback la ultima balanță (prima din listă):", targetCard.id);
+        }
       }
 
       if (targetCard || attempts > maxAttempts) {
