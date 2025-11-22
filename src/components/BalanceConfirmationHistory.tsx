@@ -1528,7 +1528,7 @@ export const BalanceConfirmationHistory = () => {
         <ScrollArea className="h-[600px]">
           <div className="space-y-4">
             {confirmations.map((confirmation) => (
-              <Card key={confirmation.id} className="hover:shadow-md transition-shadow">
+              <Card id={`balance-card-${confirmation.id}`} key={confirmation.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
