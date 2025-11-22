@@ -2855,51 +2855,55 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                         </div>
                       )}
                       
-                      {/* Preview și buton generare Word (doar pentru analiză balanță) */}
+                      {/* RESTAURARE INTERFAȚĂ BUTOANE */}
                       {msg.role === 'assistant' && chatMode === 'balance' && msg.structuredData && (
-                        <div className="mt-3 p-3 bg-accent/5 rounded-lg border border-accent/20 space-y-3">
-                          <div className="text-sm space-y-1.5">
-                            <p className="flex items-center gap-2">
-                              <span className="font-semibold text-muted-foreground">CUI:</span>
-                              <span className="text-foreground">{msg.structuredData.cui || 'N/A'}</span>
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <span className="font-semibold text-muted-foreground">Companie:</span>
-                              <span className="text-foreground">{msg.structuredData.company || 'N/A'}</span>
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <span className="font-semibold text-muted-foreground">Conturi detectate:</span>
-                              <Badge variant="secondary" className="ml-1">
-                                {msg.structuredData.accounts?.length || 0}
-                              </Badge>
-                            </p>
-                        </div>
+                        <div className="mt-4 space-y-3">
+                          
+                          {/* Cardul Principal */}
+                          <div className="border-2 border-primary/20 rounded-xl overflow-hidden shadow-md bg-card">
+                            {/* Header Verde */}
+                            <div className="bg-green-50 dark:bg-green-900/20 p-3 border-b border-green-100 flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-xs">✓</div>
+                              <span className="font-bold text-green-700 dark:text-green-400 text-sm">Analiză Finalizată</span>
+                            </div>
 
-                          {/* 🆕 BUTON RAPORT WORD PREMIUM */}
-                          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-base mb-1 flex items-center gap-2">
-                                    <FileText className="h-5 w-5 text-primary" />
-                                    📂 Raport Word Complet
-                                  </h4>
+                            <div className="p-4">
+                              <div className="flex flex-col gap-4">
+                                {/* Pasul 1: Raportul */}
+                                <div>
+                                  <h4 className="font-semibold text-sm mb-1">PASUL 1: Raportul Tău</h4>
+                                  <p className="text-xs text-muted-foreground mb-3">
+                                    Am generat dosarul complet. Apasă mai jos pentru a-l deschide.
+                                  </p>
+                                  
+                                  <Button 
+                                    onClick={() => {
+                                      // LOGICA DE NAVIGARE RESTAURATĂ
+                                      const balanceId = msg.structuredData?.id;
+                                      console.log("Navigare:", balanceId);
+                                      localStorage.setItem('pending_nav_tab', 'history');
+                                      localStorage.setItem('pending_nav_id', balanceId || 'latest');
+                                      localStorage.setItem('pending_nav_action', 'scroll_to_report');
+                                      window.location.href = '/app';
+                                    }}
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm gap-2"
+                                  >
+                                    📂 DESCHIDE DOSARUL & RAPORTUL
+                                  </Button>
+                                </div>
+
+                                <div className="h-px bg-border" />
+
+                                {/* Pasul 2: Consultanta */}
+                                <div>
+                                  <h4 className="font-semibold text-sm mb-1">PASUL 2: Discută cu mine</h4>
                                   <p className="text-xs text-muted-foreground">
-                                    Vezi analiza completă în "Dosarul Meu"
+                                    După ce citești, revino aici. Eu știu tot ce scrie în raport.
                                   </p>
                                 </div>
-                                <Button 
-                                  onClick={() => handleGoToReport(msg.structuredData?.id)}
-                                  size="default"
-                                  className="gap-2 bg-green-600 hover:bg-green-700 text-white"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                  CLICK AICI PENTRU RAPORT
-                                </Button>
                               </div>
-                            </CardContent>
-                          </Card>
-                          
+                            </div>
+                          </div>
                         </div>
                       )}
                       
