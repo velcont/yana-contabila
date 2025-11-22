@@ -359,6 +359,7 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const [thinkingMessage, setThinkingMessage] = useState('Yana analizează...');
   const [streamingProgress, setStreamingProgress] = useState(0);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [awaitingDownloadKnowledgeResponse, setAwaitingDownloadKnowledgeResponse] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -622,6 +623,89 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     const newUserMsg = { role: 'user' as const, content: userMessage };
     setMessages(prev => [...prev, newUserMsg]);
     setIsLoading(true);
+
+    // 🆕 Verificăm dacă așteptăm răspuns la întrebarea despre descărcare
+    if (awaitingDownloadKnowledgeResponse) {
+      setAwaitingDownloadKnowledgeResponse(false); // Resetăm flag-ul
+      
+      const userResponseLower = userMessage.toLowerCase().trim();
+      
+      // Detectăm răspunsuri pozitive (Da, Știu, Yes, etc.)
+      const positiveResponses = ['da', 'știu', 'stiu', 'yes', 'da știu', 'da stiu', 'sigur'];
+      const isPositiveResponse = positiveResponses.some(phrase => userResponseLower.includes(phrase));
+      
+      // Detectăm răspunsuri negative (Nu, Nu știu, No, etc.)
+      const negativeResponses = ['nu', 'no', 'nu știu', 'nu stiu', 'nush', 'nu prea'];
+      const isNegativeResponse = negativeResponses.some(phrase => userResponseLower.includes(phrase));
+      
+      let responseContent = '';
+      
+      if (isPositiveResponse) {
+        // Răspuns pozitiv
+        responseContent = '✅ **Foarte bine!** Citește raportul atunci când ești pregătit, apoi te aștept aici cu eventualele întrebări. Sunt aici să te ajut! 😊';
+      } else if (isNegativeResponse) {
+        // Răspuns negativ - arată pașii detalați
+        responseContent = `📥 **Nu-i nicio problemă! Iată cum descarci raportul de analiză:**
+
+**Pași pentru a genera și descărca raportul Word Premium:**
+
+1️⃣ **Mergi în "Dosarul Meu"** (butonul care palpită pe pagina principală)
+
+2️⃣ Din **stânga**, selectează balanța pe care vrei să o analizezi din listă
+
+3️⃣ **Scroll în jos** pe pagina de analiză până găsești butonul:
+   📄 **"Validează cu Grok & Generează Raport Premium"**
+
+4️⃣ Click pe butonul de mai sus:
+   - ⏳ Sistemul va valida analiza cu Grok (durează ~10-15 secunde)
+   - ✅ După validare, raportul Word se generează automat
+
+5️⃣ După generare, va apărea un **nou buton** chiar sub cel de validare:
+   📥 **"Descarcă Raportul Premium Generat"**
+
+6️⃣ Click pe **"📥 Descarcă Raportul Premium Generat"** → Fișierul Word se descarcă automat cu:
+   ✅ Analiza completă validată de Grok
+   ✅ Grafice și indicatori financiari
+   ✅ Recomandări strategice personalizate
+   ✅ Format profesional pentru prezentare
+
+⚠️ **Important**: Trebuie să aștepți finalizarea validării Grok înainte ca butonul de descărcare să apară!
+
+Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
+      } else {
+        // Răspuns ambiguu - cerere de clarificare
+        responseContent = '🤔 Nu sunt sigur ce vrei să spui. Te rog răspunde cu **Da** (dacă știi cum se descarcă) sau **Nu** (dacă ai nevoie de ajutor).';
+        setAwaitingDownloadKnowledgeResponse(true); // Rămânem în modul de așteptare
+      }
+      
+      // Adăugăm răspunsul chatbot-ului
+      const botResponse: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: responseContent
+      };
+      
+      setMessages(prev => [...prev, botResponse]);
+      setIsLoading(false);
+      scrollToBottom();
+      
+      // Salvăm răspunsul în istoric
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('conversation_history').insert({
+            user_id: user.id,
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: responseContent
+          });
+        }
+      } catch (err) {
+        console.error('Error saving bot response:', err);
+      }
+      
+      return; // IMPORTANT: Oprim execuția aici, nu apelăm AI-ul
+    }
 
     // Salvează mesajul user în istoric
     try {
@@ -1245,6 +1329,28 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
           };
           setMessages(prev => [...prev, aiMessage]);
           scrollToBottom();
+
+          // 🆕 Întrebare automată despre descărcarea raportului
+          setTimeout(() => {
+            const downloadQuestionMessage: Message = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: '💡 **Știi cum se descarcă raportul de analiză?** (răspunde cu Da sau Nu)'
+            };
+            setMessages(prev => [...prev, downloadQuestionMessage]);
+            setAwaitingDownloadKnowledgeResponse(true); // Activăm flag-ul
+            scrollToBottom();
+            
+            // Salvează întrebarea în istoric
+            if (user) {
+              supabase.from('conversation_history').insert({
+                user_id: user.id,
+                conversation_id: conversationId,
+                role: 'assistant',
+                content: downloadQuestionMessage.content
+              });
+            }
+          }, 1500); // Delay de 1.5 secunde pentru UX mai bun
 
           // Save to conversation history
           if (user) {
