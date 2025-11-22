@@ -179,6 +179,10 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   
+  // Generated report blob state (for manual download)
+  const [generatedReportBlob, setGeneratedReportBlob] = useState<Blob | null>(null);
+  const [generatedReportFileName, setGeneratedReportFileName] = useState<string>('');
+  
   const handleReprocess = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !analysisId) return;
@@ -373,6 +377,8 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
   const validateWithGrok = async () => {
     setIsValidating(true);
     setGrokValidation(null);
+    setGeneratedReportBlob(null);
+    setGeneratedReportFileName('');
     
     try {
       toast.info('🔍 Validare Grok în curs... (10-15 secunde)', { duration: 15000 });
@@ -3341,29 +3347,16 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       console.log(`   Metadata salvată: ${user ? '✅ DA' : '❌ NU (user lipsă)'}`);
       console.log('='.repeat(80) + '\n');
 
-      // Generate and download with proper filename
+      // Generate blob and save to state (no automatic download)
       const blob = await Packer.toBlob(doc);
-      const fileName = `Raport_Financiar_${cui}_${new Date().toISOString().split('T')[0]}.docx`;
+      const fileName = `Raport_Premium_${cui}_${new Date().toISOString().split('T')[0]}_${Date.now()}.docx`;
       
-      console.log('📄 Generare raport premium cu numele:', fileName);
+      console.log('📄 Raport premium generat cu numele:', fileName);
       
-      // Try primary download method
-      try {
-        saveAs(blob, fileName);
-        toast.success('✅ Raport Financiar Premium generat cu succes!');
-      } catch (saveError) {
-        // Fallback: force download via link
-        console.warn('saveAs failed, using fallback download method');
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success('✅ Raport Financiar Premium generat (download forțat)!');
-      }
+      // Save blob to state for manual download
+      setGeneratedReportBlob(blob);
+      setGeneratedReportFileName(fileName);
+      toast.success('✅ Raport Financiar Premium generat! Apasă butonul de descărcare când ești gata.', { duration: 5000 });
       
     } catch (error) {
       console.error('Eroare generare Raport Premium:', error);
@@ -3612,6 +3605,35 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             </>
           )}
         </Button>
+
+        {/* Manual Download Button (only visible after report is generated) */}
+        {generatedReportBlob && (
+          <Button 
+            onClick={() => {
+              try {
+                saveAs(generatedReportBlob, generatedReportFileName);
+                toast.success('📥 Raport descărcat cu succes!');
+              } catch (error) {
+                // Fallback download
+                const url = URL.createObjectURL(generatedReportBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = generatedReportFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                toast.success('📥 Raport descărcat (fallback)!');
+              }
+            }}
+            variant="default"
+            size="lg"
+            className="w-full mb-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+          >
+            <Download className="mr-2 h-5 w-5" />
+            📥 Descarcă Raportul Premium Generat
+          </Button>
+        )}
         
         {/* Word Readiness Indicator */}
         {(() => {
