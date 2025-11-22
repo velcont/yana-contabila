@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { 
   AlertCircle, 
   TrendingUp, 
@@ -173,37 +172,12 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
   const [selectedSection, setSelectedSection] = useState<AnalysisSection | null>(null);
   const [isReprocessing, setIsReprocessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const reportButtonRef = useRef<HTMLDivElement>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [highlightButton, setHighlightButton] = useState(false);
   
   // Grok validation state
   const [grokValidation, setGrokValidation] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
-  
-  // Auto-scroll to report button when coming from Chat
-  useEffect(() => {
-    const action = searchParams.get('action');
-    if (action === 'scroll-to-report' && reportButtonRef.current) {
-      setTimeout(() => {
-        reportButtonRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-        setHighlightButton(true);
-        
-        // Remove highlight after 3 seconds
-        setTimeout(() => {
-          setHighlightButton(false);
-          // Clean up URL parameter
-          searchParams.delete('action');
-          setSearchParams(searchParams);
-        }, 3000);
-      }, 500); // Small delay to ensure render
-    }
-  }, [searchParams, setSearchParams]);
   
   const handleReprocess = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3607,25 +3581,17 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       )}
 
       {/* Word Document Generation Button */}
-      <div 
-        ref={reportButtonRef}
-        className="animate-fade-in" 
-        style={{ animationDelay: '300ms' }}
-      >
+      <div className="animate-fade-in" style={{ animationDelay: '300ms' }}>
         <Button 
           onClick={validateWithGrok}
           disabled={isGeneratingWord || isValidating || !metadata?.structuredData}
           variant="outline"
-          className={`w-full relative overflow-hidden transition-all duration-300 ${
-            highlightButton ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : ''
-          }`}
+          className="w-full relative overflow-hidden"
           size="lg"
   style={{
-    animation: highlightButton ? 'pulse-highlight 1s ease-in-out infinite' : 'pulse-orange 2s ease-in-out infinite',
-    background: highlightButton 
-      ? 'linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(251, 146, 60, 0.3))'
-      : 'linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(251, 191, 36, 0.1))',
-    borderColor: highlightButton ? 'rgb(251, 191, 36)' : 'rgb(251, 146, 60)',
+    animation: 'pulse-orange 2s ease-in-out infinite',
+    background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(251, 191, 36, 0.1))',
+    borderColor: 'rgb(251, 146, 60)',
     fontWeight: 600
   }}
         >

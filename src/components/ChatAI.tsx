@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip, Download } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,6 @@ import { generateUUID } from '@/utils/uuid';
 import { rateLimiter, RATE_LIMITS } from '@/utils/rateLimiter';
 import { generateAccountantSections, generateLegalNoteSectionIfNeeded } from './BalanceConfirmationHistory';
 import { safeParseFloat } from '@/lib/finance';
-import { useNavigate } from 'react-router-dom';
 
 // 🧠 AI Learning System
 import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conversational-memory';
@@ -42,7 +41,6 @@ interface Message {
   sources?: Array<{ title: string; url: string; domain: string }>;
   related_questions?: string[];
   structuredData?: {
-    id?: string;
     cui: string;
     company: string;
     accounts: Array<{
@@ -84,7 +82,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
-  const navigate = useNavigate();
   
   
   const [isOpen, setIsOpen] = useState(openOnLoad);
@@ -137,18 +134,6 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
     }>;
   } | null>(null);
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
-  
-  const handleGoToReport = (balanceId?: string) => {
-    // 1. Salvăm intenția
-    console.log("Navigare silențioasă către:", balanceId);
-    
-    localStorage.setItem('pending_nav_tab', 'history');
-    localStorage.setItem('pending_nav_id', balanceId || 'latest');
-    localStorage.setItem('pending_nav_action', 'scroll_to_report');
-    
-    // 2. Refresh instantaneu
-    window.location.href = '/app';
-  };
   
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
   const addPremiumReportSuggestion = (
@@ -2855,52 +2840,46 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
                         </div>
                       )}
                       
-                      {/* RESTAURARE INTERFAȚĂ BUTOANE */}
+                      {/* Preview și buton generare Word (doar pentru analiză balanță) */}
                       {msg.role === 'assistant' && chatMode === 'balance' && msg.structuredData && (
-                        <div className="mt-4 space-y-3">
+                        <div className="mt-3 p-3 bg-accent/5 rounded-lg border border-accent/20 space-y-3">
+                          <div className="text-sm space-y-1.5">
+                            <p className="flex items-center gap-2">
+                              <span className="font-semibold text-muted-foreground">CUI:</span>
+                              <span className="text-foreground">{msg.structuredData.cui || 'N/A'}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="font-semibold text-muted-foreground">Companie:</span>
+                              <span className="text-foreground">{msg.structuredData.company || 'N/A'}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                              <span className="font-semibold text-muted-foreground">Conturi detectate:</span>
+                              <Badge variant="secondary" className="ml-1">
+                                {msg.structuredData.accounts?.length || 0}
+                              </Badge>
+                            </p>
+                        </div>
                           
-                          {/* Cardul Principal */}
-                          <div className="border-2 border-primary/20 rounded-xl overflow-hidden shadow-md bg-card">
-                            {/* Header Verde */}
-                            <div className="bg-green-50 dark:bg-green-900/20 p-3 border-b border-green-100 flex items-center gap-2">
-                              <div className="h-6 w-6 rounded-full bg-green-600 flex items-center justify-center text-white font-bold text-xs">✓</div>
-                              <span className="font-bold text-green-700 dark:text-green-400 text-sm">Analiză Finalizată</span>
-                            </div>
-
-                            <div className="p-4">
-                              <div className="flex flex-col gap-4">
-                                {/* Pasul 1: Raportul */}
-                                <div>
-                                  <h4 className="font-semibold text-sm mb-1">PASUL 1: Raportul Tău</h4>
-                                  <p className="text-xs text-muted-foreground mb-3">
-                                    Am generat dosarul complet. Apasă mai jos pentru a-l deschide.
-                                  </p>
-                                  
-                                  <Button 
-                                    onClick={() => {
-                                      // LOGICA DE NAVIGARE RESTAURATĂ
-                                      const balanceId = msg.structuredData?.id;
-                                      console.log("Navigare:", balanceId);
-                                      localStorage.setItem('pending_nav_tab', 'history');
-                                      localStorage.setItem('pending_nav_id', balanceId || 'latest');
-                                      localStorage.setItem('pending_nav_action', 'scroll_to_report');
-                                      window.location.href = '/app';
-                                    }}
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-bold shadow-sm gap-2"
-                                  >
-                                    📂 DESCHIDE DOSARUL & RAPORTUL
-                                  </Button>
-                                </div>
-
-                                <div className="h-px bg-border" />
-
-                                {/* Pasul 2: Consultanta */}
-                                <div>
-                                  <h4 className="font-semibold text-sm mb-1">PASUL 2: Discută cu mine</h4>
-                                  <p className="text-xs text-muted-foreground">
-                                    După ce citești, revino aici. Eu știu tot ce scrie în raport.
-                                  </p>
-                                </div>
+                          {/* Banner VIZIBIL - Dosarul Meu */}
+                          <div className="mt-4 p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-2 border-blue-500 dark:border-blue-400 rounded-lg shadow-lg">
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 text-2xl">📂</div>
+                              <div className="flex-1">
+                                <h4 className="font-bold text-blue-900 dark:text-blue-100 mb-2 text-sm">
+                                  ✅ Analiza ta este salvată automat!
+                                </h4>
+                                <p className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed mb-3">
+                                  Găsești toate analizele tale în tab-ul <span className="font-bold bg-blue-200 dark:bg-blue-800 px-1.5 py-0.5 rounded">"Dosarul Meu"</span> din Dashboard. 
+                                  Poți revedea datele și regenera rapoarte oricând dorești.
+                                </p>
+                                <Button
+                                  onClick={() => window.location.href = '/app'}
+                                  variant="default"
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                  📁 Toate Analizele Mele
+                                </Button>
                               </div>
                             </div>
                           </div>

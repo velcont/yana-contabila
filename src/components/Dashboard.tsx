@@ -69,60 +69,12 @@ export const Dashboard = () => {
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>('analytics');
   const { toast } = useToast();
   const { isAdmin, isLoading: isLoadingRole } = useUserRole();
   const { themeType } = useTheme();
   const { currentTheme } = useThemeRole();
   const isAccountantMode = themeType === 'accountant';
   const navigate = useNavigate();
-
-  // HOOK 1: Gestionează Navigarea Automată din Chat (la încărcare)
-  useEffect(() => {
-    const pendingTab = localStorage.getItem('pending_nav_tab');
-    const pendingId = localStorage.getItem('pending_nav_id');
-
-    if (pendingTab === 'history') {
-      setActiveTab('history');
-      
-      // Încercăm să găsim cardul timp de 2 secunde
-      const interval = setInterval(() => {
-        let targetCard = null;
-        
-        if (pendingId && pendingId !== 'latest') {
-          targetCard = document.getElementById(`balance-card-${pendingId}`);
-        } else {
-          // Fallback: primul card din listă
-          targetCard = document.querySelector('[id^="balance-card-"]');
-        }
-
-        if (targetCard) {
-          targetCard.click(); // Asta va declanșa Hook 2
-          clearInterval(interval);
-          localStorage.removeItem('pending_nav_tab');
-          localStorage.removeItem('pending_nav_id');
-        }
-      }, 200);
-      
-      setTimeout(() => clearInterval(interval), 2000);
-    }
-  }, []);
-
-  // HOOK 2: Gestionează SCROLL-ul (și manual, și automat)
-  useEffect(() => {
-    if (selectedAnalysis) {
-      // Așteptăm puțin să se randeze raportul
-      setTimeout(() => {
-        // Căutăm secțiunea de raport sau butoanele de export
-        const reportSection = document.getElementById('report-preview-section') || 
-                              document.querySelector('.report-actions'); // Selector de rezervă
-        
-        if (reportSection) {
-          reportSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300);
-    }
-  }, [selectedAnalysis]); // Se activează oricând se schimbă analiza selectată
 
   useEffect(() => {
     loadAnalyses();
@@ -736,7 +688,7 @@ INDICATORI OPERAȚIONALI:
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full max-w-5xl grid-cols-8">
           <TabsTrigger value="analytics" data-tour="tab-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
@@ -862,7 +814,6 @@ INDICATORI OPERAȚIONALI:
                 return (
                   <div
                     key={analysis.id}
-                    id={`balance-card-${analysis.id}`}
                     className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
                       selectedAnalysis?.id === analysis.id
                         ? 'bg-primary/10 border-primary scale-[1.02]'
