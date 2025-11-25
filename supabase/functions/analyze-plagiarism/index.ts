@@ -56,7 +56,9 @@ serve(async (req) => {
     console.log(`[Plagiarism Analysis] Starting analysis for Chapter ${chapterNumber}: ${chapterTitle}`);
     console.log(`[Plagiarism Analysis] Content length: ${content.length} characters`);
 
-    const systemPrompt = `Ești un expert în detectarea plagiatului academic pentru teze de doctorat în România.
+const systemPrompt = `Ești un expert în detectarea plagiatului academic pentru teze de doctorat în România.
+
+IMPORTANT: Trebuie să returnezi DOAR un obiect JSON valid, fără text explicativ înainte sau după. Nu include markdown code blocks.
 
 Analizează textul furnizat pe următoarele 8 criterii:
 
@@ -100,8 +102,13 @@ Analizează textul furnizat pe următoarele 8 criterii:
    - Detectează citări cu ani greșiți
    - Penalizare: -1 punct per eroare
 
-**Output cerut (JSON strict):**
-Returnează DOAR un obiect JSON valid cu următoarea structură:
+**REGULI CRITICE pentru OUTPUT:**
+1. Returnează DOAR obiectul JSON, fără text explicativ
+2. NU include markdown code blocks
+3. NU include comentarii sau explicații
+4. Începe direct cu { și termină cu }
+
+**Structura JSON obligatorie:**
 
 {
   "typographyVariations": {
@@ -210,15 +217,46 @@ Returnează analiza în format JSON conform instrucțiunilor.`;
       throw new Error('Nu am primit răspuns valid de la AI');
     }
 
-    // Parse AI response (handle markdown code blocks)
+    // Parse AI response (handle markdown code blocks and extra text)
     let criteriaScores;
     try {
-      // Remove markdown code blocks if present
-      const cleanContent = aiContent.replace(/```json\n?|\n?```/g, '').trim();
+      console.log('[Plagiarism Analysis] Raw AI response:', aiContent.substring(0, 500));
+      
+      // Try multiple extraction strategies
+      let cleanContent = aiContent.trim();
+      
+      // Strategy 1: Remove markdown code blocks
+      cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
+      
+      // Strategy 2: Extract JSON object between first { and last }
+      const firstBrace = cleanContent.indexOf('{');
+      const lastBrace = cleanContent.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      }
+      
+      console.log('[Plagiarism Analysis] Cleaned content:', cleanContent.substring(0, 300));
+      
       criteriaScores = JSON.parse(cleanContent);
+      
+      // Validate required fields
+      const requiredFields = [
+        'typographyVariations', 'translationErrors', 'styleInconsistency',
+        'structureLogic', 'personInconsistency', 'citationInconsistency',
+        'bibliographyIssues', 'attributionErrors'
+      ];
+      
+      for (const field of requiredFields) {
+        if (!criteriaScores[field]) {
+          throw new Error(`Lipsește câmpul obligatoriu: ${field}`);
+        }
+      }
+      
     } catch (parseError) {
-      console.error('[Plagiarism Analysis] Failed to parse AI response:', aiContent);
-      throw new Error('Răspunsul AI nu este în format JSON valid');
+      console.error('[Plagiarism Analysis] Parse error:', parseError);
+      console.error('[Plagiarism Analysis] Full AI response:', aiContent);
+      throw new Error(`Răspunsul AI nu este în format JSON valid: ${parseError instanceof Error ? parseError.message : 'eroare necunoscută'}`);
     }
 
     // Calculate overall score (weighted average)
