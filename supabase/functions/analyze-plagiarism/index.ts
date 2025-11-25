@@ -178,21 +178,140 @@ ${content}
 Returnează analiza în format JSON conform instrucțiunilor.`;
 
     // Call Lovable AI
+    const requestBody: any = {
+      model: 'google/gemini-2.5-pro',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 4000,
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'generate_plagiarism_report',
+            description: 'Evaluează un capitol de teză de doctorat pe baza a 8 criterii de plagiat și stil academic.',
+            parameters: {
+              type: 'object',
+              properties: {
+                typographyVariations: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 20 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                translationErrors: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 20 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                styleInconsistency: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 15 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                structureLogic: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 10 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                personInconsistency: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 15 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                citationInconsistency: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 10 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                bibliographyIssues: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 5 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+                attributionErrors: {
+                  type: 'object',
+                  properties: {
+                    score: { type: 'number', minimum: 0, maximum: 5 },
+                    issues: { type: 'array', items: { type: 'string' } },
+                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+                    locations: { type: 'array', items: { type: 'string' } },
+                  },
+                  required: ['score', 'issues', 'severity', 'locations'],
+                  additionalProperties: false,
+                },
+              },
+              required: [
+                'typographyVariations',
+                'translationErrors',
+                'styleInconsistency',
+                'structureLogic',
+                'personInconsistency',
+                'citationInconsistency',
+                'bibliographyIssues',
+                'attributionErrors',
+              ],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: {
+        type: 'function',
+        function: { name: 'generate_plagiarism_report' },
+      },
+    };
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!aiResponse.ok) {
@@ -212,50 +331,69 @@ Returnează analiza în format JSON conform instrucțiunilor.`;
     const aiData = await aiResponse.json();
     console.log('[Plagiarism Analysis] AI response received');
 
-    const aiContent = aiData.choices?.[0]?.message?.content;
-    if (!aiContent) {
+    if (!aiData?.choices?.[0]?.message) {
       throw new Error('Nu am primit răspuns valid de la AI');
     }
 
-    // Parse AI response (handle markdown code blocks and extra text)
+    // Parse AI response from tool call (preferred) or fallback to JSON content
     let criteriaScores;
     try {
-      console.log('[Plagiarism Analysis] Raw AI response:', aiContent.substring(0, 500));
-      
-      // Try multiple extraction strategies
-      let cleanContent = aiContent.trim();
-      
-      // Strategy 1: Remove markdown code blocks
-      cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
-      
-      // Strategy 2: Extract JSON object between first { and last }
-      const firstBrace = cleanContent.indexOf('{');
-      const lastBrace = cleanContent.lastIndexOf('}');
-      
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      console.log('[Plagiarism Analysis] Full AI raw data:', JSON.stringify(aiData).substring(0, 500));
+
+      const firstChoice = aiData.choices?.[0];
+      const message: any = firstChoice?.message;
+
+      let argsString: string | null = null;
+
+      // Newer tool_calls format
+      if (message?.tool_calls && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+        const firstToolCall = message.tool_calls[0];
+        argsString = firstToolCall?.function?.arguments ?? null;
       }
-      
-      console.log('[Plagiarism Analysis] Cleaned content:', cleanContent.substring(0, 300));
-      
-      criteriaScores = JSON.parse(cleanContent);
-      
+
+      // Legacy function_call format
+      if (!argsString && message?.function_call?.arguments) {
+        argsString = message.function_call.arguments;
+      }
+
+      // Fallback: try to use plain content and clean JSON as before
+      if (!argsString && typeof message?.content === 'string') {
+        let cleanContent = message.content.trim();
+        console.log('[Plagiarism Analysis] Fallback content from message.content:', cleanContent.substring(0, 300));
+
+        cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
+
+        const firstBrace = cleanContent.indexOf('{');
+        const lastBrace = cleanContent.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+        }
+
+        argsString = cleanContent;
+      }
+
+      if (!argsString) {
+        throw new Error('Nu am primit arguments pentru tool_call sau conținut JSON.');
+      }
+
+      console.log('[Plagiarism Analysis] Parsed tool arguments preview:', argsString.substring(0, 300));
+      criteriaScores = JSON.parse(argsString);
+
       // Validate required fields
       const requiredFields = [
         'typographyVariations', 'translationErrors', 'styleInconsistency',
         'structureLogic', 'personInconsistency', 'citationInconsistency',
-        'bibliographyIssues', 'attributionErrors'
+        'bibliographyIssues', 'attributionErrors',
       ];
-      
+
       for (const field of requiredFields) {
         if (!criteriaScores[field]) {
           throw new Error(`Lipsește câmpul obligatoriu: ${field}`);
         }
       }
-      
     } catch (parseError) {
       console.error('[Plagiarism Analysis] Parse error:', parseError);
-      console.error('[Plagiarism Analysis] Full AI response:', aiContent);
+      console.error('[Plagiarism Analysis] Full AI data on error:', JSON.stringify(aiData));
       throw new Error(`Răspunsul AI nu este în format JSON valid: ${parseError instanceof Error ? parseError.message : 'eroare necunoscută'}`);
     }
 
