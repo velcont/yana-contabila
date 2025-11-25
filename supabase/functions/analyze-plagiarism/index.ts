@@ -356,20 +356,47 @@ Returnează analiza în format JSON conform instrucțiunilor.`;
         argsString = message.function_call.arguments;
       }
 
-      // Fallback: try to use plain content and clean JSON as before
-      if (!argsString && typeof message?.content === 'string') {
-        let cleanContent = message.content.trim();
-        console.log('[Plagiarism Analysis] Fallback content from message.content:', cleanContent.substring(0, 300));
+      // Fallback: try to use plain content (string or array) and clean JSON as before
+      if (!argsString && message?.content) {
+        const rawContent: any = message.content;
+        let contentText: string | null = null;
 
-        cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
+        if (typeof rawContent === 'string') {
+          contentText = rawContent;
+        } else if (Array.isArray(rawContent)) {
+          // Gemini / OpenAI compatible: array of content parts
+          contentText = rawContent
+            .map((part: any) => {
+              if (typeof part === 'string') return part;
+              if (typeof part?.text === 'string') return part.text;
+              if (Array.isArray(part?.text)) return part.text.join('');
+              if (typeof part?.content === 'string') return part.content;
+              return '';
+            })
+            .join(' ')
+            .trim();
 
-        const firstBrace = cleanContent.indexOf('{');
-        const lastBrace = cleanContent.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+          if (!contentText) {
+            contentText = null;
+          }
         }
 
-        argsString = cleanContent;
+        if (contentText) {
+          let cleanContent = contentText.trim();
+          console.log('[Plagiarism Analysis] Fallback content from message.content:', cleanContent.substring(0, 300));
+
+          cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
+
+          const firstBrace = cleanContent.indexOf('{');
+          const lastBrace = cleanContent.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+          }
+
+          argsString = cleanContent;
+        } else {
+          console.warn('[Plagiarism Analysis] message.content present but not a string or parsable array:', JSON.stringify(rawContent).substring(0, 300));
+        }
       }
 
       if (!argsString) {
