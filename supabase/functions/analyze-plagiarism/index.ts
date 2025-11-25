@@ -42,7 +42,7 @@ serve(async (req) => {
   try {
     const { content, chapterNumber, chapterTitle } = await req.json();
 
-    if (!content || !chapterNumber || !chapterTitle) {
+    if (!content || chapterNumber === undefined || chapterNumber === null || !chapterTitle) {
       return new Response(
         JSON.stringify({ error: 'Lipsesc date obligatorii: content, chapterNumber, chapterTitle' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
