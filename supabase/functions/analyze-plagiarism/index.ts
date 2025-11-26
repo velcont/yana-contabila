@@ -58,251 +58,124 @@ serve(async (req) => {
 
 const systemPrompt = `Ești un expert în detectarea plagiatului academic pentru teze de doctorat în România.
 
-IMPORTANT: Trebuie să returnezi DOAR un obiect JSON valid, fără text explicativ înainte sau după. Nu include markdown code blocks.
+Analizează textul furnizat pe următoarele 8 criterii și returnează rezultatul în format JSON EXACT ca în exemplul de mai jos.
 
-Analizează textul furnizat pe următoarele 8 criterii:
+**CRITERII DE EVALUARE:**
 
-1. **Variații Tipografice** (max 20 puncte):
-   - Detectează schimbări între fonturi (Times New Roman, Calibri, Arial, etc.)
-   - Identifică inconsistențe în mărimea fontului
-   - Penalizare: -2 puncte per inconsistență detectată
-
-2. **Erori de Traducere Automată** (max 20 puncte):
-   - Detectează topici suspecte (ex: "face sens", "afacere de caz", "literatura de specialitate")
-   - Identifică expresii traduse literal din engleză
-   - Penalizare: -4 puncte per eroare detectată
-
-3. **Stil Incoerent** (max 15 puncte):
-   - Analizează complexitatea limbajului per paragraf
-   - Detectează salturi bruște de la limbaj tehnic → simplu
-   - Penalizare: -3 puncte pentru variaţii majore
-
-4. **Structură Ilogică** (max 10 puncte):
-   - Verifică succesiunea logică a subcapitolelor
-   - Detectează absența tranziției între secțiuni
-   - Penalizare: -2 puncte per salt logic
-
-5. **Inconsistențe de Persoană** (max 15 puncte):
-   - Detectează alternanța "eu" → "noi" → "I" (engleză)
-   - Verifică consistența perspectivei narative
-   - Penalizare: -3 puncte per schimbare
-
-6. **Inconsistențe Citări** (max 10 puncte):
-   - Verifică stiluri diferite: (Autor, An) vs [1] vs note subsol
-   - Detectează schimbări de stil în același capitol
+1. **Variații Tipografice** (max 20 puncte)
+   - Schimbări între fonturi (Times New Roman, Calibri, Arial)
+   - Inconsistențe în mărimea fontului
    - Penalizare: -2 puncte per inconsistență
 
-7. **Probleme Bibliografice** (max 5 puncte):
-   - Identifică secțiuni fără referințe (>500 cuvinte fără citări)
-   - Verifică vârsta surselor (>80% pre-2015 = suspect)
+2. **Erori de Traducere Automată** (max 20 puncte)
+   - Topici suspecte: "face sens", "afacere de caz", "literatura de specialitate"
+   - Expresii traduse literal din engleză
+   - Penalizare: -4 puncte per eroare
+
+3. **Stil Incoerent** (max 15 puncte)
+   - Salturi bruște de la limbaj tehnic la simplu
+   - Penalizare: -3 puncte pentru variații majore
+
+4. **Structură Ilogică** (max 10 puncte)
+   - Lipsă de tranziție între secțiuni
+   - Penalizare: -2 puncte per salt logic
+
+5. **Inconsistențe de Persoană** (max 15 puncte)
+   - Alternanța "eu" → "noi" → "I"
+   - Penalizare: -3 puncte per schimbare
+
+6. **Inconsistențe Citări** (max 10 puncte)
+   - Stiluri diferite: (Autor, An) vs [1] vs note subsol
+   - Penalizare: -2 puncte per inconsistență
+
+7. **Probleme Bibliografice** (max 5 puncte)
+   - Secțiuni fără referințe (>500 cuvinte)
+   - Vârsta surselor (>80% pre-2015)
    - Penalizare: -1 punct per problemă
 
-8. **Erori de Atribuire** (max 5 puncte):
-   - Verifică corectitudinea numelor autorilor
-   - Detectează citări cu ani greșiți
+8. **Erori de Atribuire** (max 5 puncte)
+   - Nume de autori greșite
+   - Ani de publicare greșiți
    - Penalizare: -1 punct per eroare
 
-**REGULI CRITICE pentru OUTPUT:**
-1. Returnează DOAR obiectul JSON, fără text explicativ
-2. NU include markdown code blocks
-3. NU include comentarii sau explicații
-4. Începe direct cu { și termină cu }
-
-**Structura JSON obligatorie:**
+**EXEMPLU DE OUTPUT JSON (URMEAZĂ ACEST FORMAT EXACT):**
 
 {
   "typographyVariations": {
-    "score": <0-20>,
-    "issues": ["descriere problemă 1", "descriere problemă 2"],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": ["Paragraf 3-5", "Secțiunea 2.1"]
+    "score": 18,
+    "issues": ["Font schimbat de la Times New Roman la Calibri în paragraful 5"],
+    "severity": "LOW",
+    "locations": ["Paragraful 5"]
   },
   "translationErrors": {
-    "score": <0-20>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 16,
+    "issues": ["Expresia 'face sens' în loc de 'are sens'"],
+    "severity": "MEDIUM",
+    "locations": ["Secțiunea 2.1, Paragraful 3"]
   },
   "styleInconsistency": {
-    "score": <0-15>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 12,
+    "issues": ["Tranziție bruscă de la limbaj tehnic la informal"],
+    "severity": "MEDIUM",
+    "locations": ["Între secțiunile 1.2 și 1.3"]
   },
   "structureLogic": {
-    "score": <0-10>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 8,
+    "issues": ["Lipsește tranziția între subcapitolul 2.1 și 2.2"],
+    "severity": "MEDIUM",
+    "locations": ["Sfârșitul secțiunii 2.1"]
   },
   "personInconsistency": {
-    "score": <0-15>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 15,
+    "issues": [],
+    "severity": "LOW",
+    "locations": []
   },
   "citationInconsistency": {
-    "score": <0-10>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 8,
+    "issues": ["Stil de citare schimbat de la (Autor, An) la [1]"],
+    "severity": "MEDIUM",
+    "locations": ["Capitolul 3"]
   },
   "bibliographyIssues": {
-    "score": <0-5>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 4,
+    "issues": ["Secțiune de 600 cuvinte fără nicio citare"],
+    "severity": "MEDIUM",
+    "locations": ["Secțiunea 4.2"]
   },
   "attributionErrors": {
-    "score": <0-5>,
-    "issues": [...],
-    "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-    "locations": [...]
+    "score": 5,
+    "issues": [],
+    "severity": "LOW",
+    "locations": []
   }
 }
 
-**IMPORTANT:**
-- Fii FOARTE strict și profesionist
-- Locațiile să fie cât mai precise (ex: "Paragraf 7-9 din Secțiunea 3.2")
-- Issues să fie concrete și acționabile
-- Severity: LOW (1-2 probleme minore), MEDIUM (3-5 probleme), HIGH (6-10 probleme), CRITICAL (>10 probleme sau probleme grave)`;
+**INSTRUCȚIUNI CRITICE:**
+1. Returnează DOAR obiectul JSON, fără text explicativ
+2. NU folosi markdown code blocks (nu pune \`\`\`json sau \`\`\`)
+3. Începe direct cu { și termină cu }
+4. Fiecare criteriu TREBUIE să aibă: score, issues, severity, locations
+5. Dacă nu găsești probleme, pune issues: [] și locations: []
+6. Severity: LOW (1-2 probleme), MEDIUM (3-5 probleme), HIGH (6-10 probleme), CRITICAL (>10 probleme)`;
 
-    const userPrompt = `Analizează următorul capitol din teză:
+    const userPrompt = `Analizează următorul capitol din teză și returnează analiza în format JSON exact ca în exemplul din instrucțiuni:
 
 **Capitol ${chapterNumber}: ${chapterTitle}**
 
 ---
 ${content}
----
+---`;
 
-Returnează analiza în format JSON conform instrucțiunilor.`;
-
-    // Call Lovable AI
+    // Call Lovable AI WITHOUT tool calling - simple JSON output with clear example
     const requestBody: any = {
-      model: 'google/gemini-2.5-pro',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      temperature: 0.3,
+      temperature: 0.1,
       max_tokens: 4000,
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'generate_plagiarism_report',
-            description: 'Evaluează un capitol de teză de doctorat pe baza a 8 criterii de plagiat și stil academic.',
-            parameters: {
-              type: 'object',
-              properties: {
-                typographyVariations: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 20 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                translationErrors: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 20 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                styleInconsistency: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 15 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                structureLogic: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 10 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                personInconsistency: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 15 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                citationInconsistency: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 10 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                bibliographyIssues: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 5 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-                attributionErrors: {
-                  type: 'object',
-                  properties: {
-                    score: { type: 'number', minimum: 0, maximum: 5 },
-                    issues: { type: 'array', items: { type: 'string' } },
-                    severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
-                    locations: { type: 'array', items: { type: 'string' } },
-                  },
-                  required: ['score', 'issues', 'severity', 'locations'],
-                  additionalProperties: false,
-                },
-              },
-              required: [
-                'typographyVariations',
-                'translationErrors',
-                'styleInconsistency',
-                'structureLogic',
-                'personInconsistency',
-                'citationInconsistency',
-                'bibliographyIssues',
-                'attributionErrors',
-              ],
-              additionalProperties: false,
-            },
-          },
-        },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'generate_plagiarism_report' },
-      },
     };
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -335,76 +208,48 @@ Returnează analiza în format JSON conform instrucțiunilor.`;
       throw new Error('Nu am primit răspuns valid de la AI');
     }
 
-    // Parse AI response from tool call (preferred) or fallback to JSON content
+    // Parse AI response - extract JSON from message.content
     let criteriaScores;
     try {
-      console.log('[Plagiarism Analysis] Full AI raw data:', JSON.stringify(aiData).substring(0, 500));
-
       const firstChoice = aiData.choices?.[0];
       const message: any = firstChoice?.message;
 
-      let argsString: string | null = null;
-
-      // Newer tool_calls format
-      if (message?.tool_calls && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
-        const firstToolCall = message.tool_calls[0];
-        argsString = firstToolCall?.function?.arguments ?? null;
+      let rawContent: string = '';
+      
+      if (typeof message?.content === 'string') {
+        rawContent = message.content;
+      } else if (Array.isArray(message?.content)) {
+        rawContent = message.content
+          .map((part: any) => {
+            if (typeof part === 'string') return part;
+            if (typeof part?.text === 'string') return part.text;
+            return '';
+          })
+          .join(' ');
       }
 
-      // Legacy function_call format
-      if (!argsString && message?.function_call?.arguments) {
-        argsString = message.function_call.arguments;
+      if (!rawContent) {
+        throw new Error('Nu am primit conținut de la AI');
       }
 
-      // Fallback: try to use plain content (string or array) and clean JSON as before
-      if (!argsString && message?.content) {
-        const rawContent: any = message.content;
-        let contentText: string | null = null;
+      console.log('[Plagiarism Analysis] Raw AI content:', rawContent.substring(0, 300));
 
-        if (typeof rawContent === 'string') {
-          contentText = rawContent;
-        } else if (Array.isArray(rawContent)) {
-          // Gemini / OpenAI compatible: array of content parts
-          contentText = rawContent
-            .map((part: any) => {
-              if (typeof part === 'string') return part;
-              if (typeof part?.text === 'string') return part.text;
-              if (Array.isArray(part?.text)) return part.text.join('');
-              if (typeof part?.content === 'string') return part.content;
-              return '';
-            })
-            .join(' ')
-            .trim();
-
-          if (!contentText) {
-            contentText = null;
-          }
-        }
-
-        if (contentText) {
-          let cleanContent = contentText.trim();
-          console.log('[Plagiarism Analysis] Fallback content from message.content:', cleanContent.substring(0, 300));
-
-          cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/\n?```/g, '');
-
-          const firstBrace = cleanContent.indexOf('{');
-          const lastBrace = cleanContent.lastIndexOf('}');
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
-          }
-
-          argsString = cleanContent;
-        } else {
-          console.warn('[Plagiarism Analysis] message.content present but not a string or parsable array:', JSON.stringify(rawContent).substring(0, 300));
-        }
+      // Clean the content - remove markdown code blocks and extra text
+      let cleanContent = rawContent.trim();
+      cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      
+      // Extract only the JSON object
+      const firstBrace = cleanContent.indexOf('{');
+      const lastBrace = cleanContent.lastIndexOf('}');
+      
+      if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+        throw new Error('Nu am găsit un obiect JSON valid în răspuns');
       }
+      
+      cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      console.log('[Plagiarism Analysis] Cleaned JSON:', cleanContent.substring(0, 300));
 
-      if (!argsString) {
-        throw new Error('Nu am primit arguments pentru tool_call sau conținut JSON.');
-      }
-
-      console.log('[Plagiarism Analysis] Parsed tool arguments preview:', argsString.substring(0, 300));
-      criteriaScores = JSON.parse(argsString);
+      criteriaScores = JSON.parse(cleanContent);
 
       // Validate required fields
       const requiredFields = [
@@ -417,10 +262,19 @@ Returnează analiza în format JSON conform instrucțiunilor.`;
         if (!criteriaScores[field]) {
           throw new Error(`Lipsește câmpul obligatoriu: ${field}`);
         }
+        // Validate structure
+        if (typeof criteriaScores[field].score !== 'number' ||
+            !Array.isArray(criteriaScores[field].issues) ||
+            !criteriaScores[field].severity ||
+            !Array.isArray(criteriaScores[field].locations)) {
+          throw new Error(`Câmpul ${field} nu are structura corectă`);
+        }
       }
+
+      console.log('[Plagiarism Analysis] JSON parsed and validated successfully');
     } catch (parseError) {
       console.error('[Plagiarism Analysis] Parse error:', parseError);
-      console.error('[Plagiarism Analysis] Full AI data on error:', JSON.stringify(aiData));
+      console.error('[Plagiarism Analysis] Full AI data:', JSON.stringify(aiData).substring(0, 1000));
       throw new Error(`Răspunsul AI nu este în format JSON valid: ${parseError instanceof Error ? parseError.message : 'eroare necunoscută'}`);
     }
 
