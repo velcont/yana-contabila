@@ -63,6 +63,7 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
   const [report, setReport] = useState<PlagiarismReport | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [language, setLanguage] = useState<'ro' | 'en'>('ro');
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -176,7 +177,7 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
       setCurrentStep("Analizare pe 8 criterii anti-plagiat...");
 
       const { data, error } = await supabase.functions.invoke('analyze-plagiarism', {
-        body: { content, chapterNumber, chapterTitle }
+        body: { content, chapterNumber, chapterTitle, language }
       });
 
       if (error) throw error;
@@ -253,16 +254,27 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
     });
   };
 
-  const criteriaInfo = {
-    typographyVariations: { name: "Variații Tipografice", max: 20 },
-    translationErrors: { name: "Erori de Traducere", max: 20 },
-    styleInconsistency: { name: "Stil Incoerent", max: 15 },
-    structureLogic: { name: "Structură Ilogică", max: 10 },
-    personInconsistency: { name: "Inconsistențe de Persoană", max: 15 },
-    citationInconsistency: { name: "Inconsistențe Citări", max: 10 },
-    bibliographyIssues: { name: "Probleme Bibliografice", max: 5 },
-    attributionErrors: { name: "Erori de Atribuire", max: 5 },
-  };
+  const criteriaInfo = language === 'en'
+    ? {
+        typographyVariations: { name: "Typography Variations", max: 20 },
+        translationErrors: { name: "AI-Generated Text", max: 20 },
+        styleInconsistency: { name: "Style Inconsistency", max: 15 },
+        structureLogic: { name: "Structure Logic", max: 10 },
+        personInconsistency: { name: "Person Inconsistency", max: 15 },
+        citationInconsistency: { name: "Citation Inconsistency", max: 10 },
+        bibliographyIssues: { name: "Bibliography Issues", max: 5 },
+        attributionErrors: { name: "Attribution Errors", max: 5 },
+      }
+    : {
+        typographyVariations: { name: "Variații Tipografice", max: 20 },
+        translationErrors: { name: "Erori de Traducere", max: 20 },
+        styleInconsistency: { name: "Stil Incoerent", max: 15 },
+        structureLogic: { name: "Structură Ilogică", max: 10 },
+        personInconsistency: { name: "Inconsistențe de Persoană", max: 15 },
+        citationInconsistency: { name: "Inconsistențe Citări", max: 10 },
+        bibliographyIssues: { name: "Probleme Bibliografice", max: 5 },
+        attributionErrors: { name: "Erori de Atribuire", max: 5 },
+      };
 
   return (
     <div className="space-y-6">
@@ -275,6 +287,20 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
           <CardDescription>
             Verificare pe 8 criterii profesionale de detectare a plagiatului
           </CardDescription>
+          <div className="mt-4">
+            <label className="text-sm font-medium block mb-2">
+              Limba Documentului
+            </label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as 'ro' | 'en')}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background"
+              disabled={analyzing}
+            >
+              <option value="ro">🇷🇴 Română</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Tabs defaultValue="existing" className="w-full">
