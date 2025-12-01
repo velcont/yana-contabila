@@ -642,7 +642,14 @@ serve(async (req) => {
       );
     }
 
-    const { message, conversationId, industryType, financialData } = await req.json();
+    const { 
+      message, 
+      conversationId, 
+      industryType, 
+      financialData,
+      simulation_mode,      // ← WAR ROOM SIMULATOR
+      simulation_changes    // ← MODIFICĂRI UTILIZATOR
+    } = await req.json();
 
     // ✅ SECURITY FIX: Input validation
     if (!message || typeof message !== 'string') {
@@ -661,8 +668,278 @@ serve(async (req) => {
 
     console.log("[STRATEGIC-ADVISOR] Request data:", { 
       hasIndustry: !!industryType, 
-      hasFinancialData: !!financialData 
+      hasFinancialData: !!financialData,
+      isSimulation: simulation_mode === true,
+      simulationChangesCount: simulation_changes?.length || 0
     });
+
+    // ============================================================================
+    // 🔴 WAR ROOM SIMULATOR - SIMULATION MODE HANDLER
+    // ============================================================================
+    if (simulation_mode === true) {
+      console.log("[STRATEGIC-ADVISOR] 🔴 WAR ROOM SIMULATION MODE ACTIVATED");
+      
+      // Validate simulation changes exist
+      if (!simulation_changes || simulation_changes.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Modul simulare necesită modificări (simulation_changes)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("[STRATEGIC-ADVISOR] Simulation changes:", JSON.stringify(simulation_changes, null, 2));
+
+      // 1. Fetch existing validated facts
+      const { data: existingFacts, error: factsError } = await supabaseClient
+        .from('strategic_advisor_facts')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .eq('status', 'validated')
+        .order('fact_category', { ascending: true });
+
+      if (factsError || !existingFacts || existingFacts.length === 0) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Nu există date validate pentru simulare. Rulează o analiză completă mai întâi.",
+            details: factsError 
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log("[STRATEGIC-ADVISOR] Loaded", existingFacts.length, "validated facts for simulation");
+
+      // 2. Build changes description
+      const changesDescription = simulation_changes.map((change: any) => {
+        const percentChangeNum = ((change.newValue - change.originalValue) / change.originalValue * 100);
+        const percentChange = percentChangeNum.toFixed(1);
+        const direction = change.newValue > change.originalValue ? '📈' : '📉';
+        return `${direction} **${change.key}**: ${change.originalValue} ${change.unit} → ${change.newValue} ${change.unit} (${percentChangeNum > 0 ? '+' : ''}${percentChange}%)`;
+      }).join('\n');
+
+      // 3. Build simulated fact sheet with MODIFIED values
+      let simulatedFactSheet = "📊 **DATE SIMULATE (MODIFICATE - SCENARIUL WAR ROOM):**\n\n";
+      
+      const grouped = existingFacts.reduce((acc: Record<string, any[]>, fact: any) => {
+        if (!acc[fact.fact_category]) acc[fact.fact_category] = [];
+        acc[fact.fact_category].push(fact);
+        return acc;
+      }, {});
+
+      const categoryLabels: Record<string, string> = {
+        financial: '💰 FINANCIAR',
+        company: '🏢 COMPANIE',
+        market: '📊 PIAȚĂ',
+        competition: '⚔️ CONCURENȚĂ'
+      };
+
+      Object.entries(grouped).forEach(([category, facts]) => {
+        simulatedFactSheet += `**${categoryLabels[category] || category.toUpperCase()}:**\n`;
+        (facts as any[]).forEach(fact => {
+          const change = simulation_changes.find((c: any) => c.key === fact.fact_key);
+          if (change) {
+            simulatedFactSheet += `- ⚠️ ${fact.fact_key.replace(/_/g, ' ')}: **${change.newValue} ${fact.fact_unit || ''}** (era: ${fact.fact_value})\n`;
+          } else {
+            simulatedFactSheet += `- ${fact.fact_key.replace(/_/g, ' ')}: ${fact.fact_value} ${fact.fact_unit || ''}\n`;
+          }
+        });
+        simulatedFactSheet += '\n';
+      });
+
+      // 4. Build special SIMULATION PROMPT
+      const simulationPrompt = `⚠️⚠️⚠️ MODUL SIMULARE WAR ROOM ACTIV ⚠️⚠️⚠️
+
+Utilizatorul a activat **WAR ROOM SIMULATOR** și simulează un SCENARIU CRITIC cu următoarele modificări:
+
+${changesDescription}
+
+${simulatedFactSheet}
+
+🎯 **TASK OBLIGATORIU - ANALIZĂ SIMULARE:**
+
+1. **RECALCULEAZĂ IMPACTUL** acestor modificări asupra întregului business
+2. **ESTIMEAZĂ RUNWAY** (luni de supraviețuire la noul burn rate/cash flow)
+3. **CALCULEAZĂ CASH FLOW PROIECTAT** pe următoarele 6 luni
+4. **OFERĂ 3-5 MĂSURI DE URGENȚĂ** concrete, acționabile, cu timeline și cost/beneficiu
+5. **EVALUEAZĂ RISCUL FALIMENT** (scăzut/mediu/ridicat/critic) cu probabilitate în 12 luni
+
+📋 **FORMAT RĂSPUNS OBLIGATORIU (RESPECTĂ EXACT):**
+
+🔴 **ANALIZĂ IMPACT SIMULARE**
+
+**Modificări aplicate:**
+${changesDescription}
+
+📊 **Metrici Recalculate:**
+• Cash runway NOU: X luni (era: Y luni)
+• Burn rate NOU: X RON/lună (era: Y RON/lună)
+• Break-even point: se atinge în X luni / NU se atinge în 12 luni
+• Marjă netă nouă: X% (era: Y%)
+• Lichiditate curentă: X (era: Y)
+
+💰 **Cash Flow Proiectat (6 luni):**
+| Luna | Intrări (RON) | Ieșiri (RON) | Sold Final (RON) |
+|------|---------------|--------------|------------------|
+| Luna 1 | [X] | [Y] | [Z] |
+| Luna 2 | [X] | [Y] | [Z] |
+| Luna 3 | [X] | [Y] | [Z] |
+| Luna 4 | [X] | [Y] | [Z] |
+| Luna 5 | [X] | [Y] | [Z] |
+| Luna 6 | [X] | [Y] | [Z] |
+
+⚡ **MĂSURI DE URGENȚĂ (PRIORITIZATE):**
+
+**1. [Măsură #1 - Titlu scurt]**
+   • **Timeline:** Execuție în X zile/săptămâni
+   • **Cost:** X RON
+   • **Beneficiu așteptat:** Economie/venit de Y RON/lună
+   • **Pași concreți:** [3-4 acțiuni enumerate]
+
+**2. [Măsură #2 - Titlu scurt]**
+   • **Timeline:** Execuție în X zile/săptămâni
+   • **Cost:** X RON
+   • **Beneficiu așteptat:** Economie/venit de Y RON/lună
+   • **Pași concreți:** [3-4 acțiuni enumerate]
+
+**3. [Măsură #3 - Titlu scurt]**
+   • **Timeline:** Execuție în X zile/săptămâni
+   • **Cost:** X RON
+   • **Beneficiu așteptat:** Economie/venit de Y RON/lună
+   • **Pași concreți:** [3-4 acțiuni enumerate]
+
+⚠️ **EVALUARE RISC FALIMENT:**
+• **Nivel risc:** [SCĂZUT / MEDIU / RIDICAT / CRITIC]
+• **Probabilitate faliment în 12 luni:** X%
+• **Factori critici:** [top 3 amenințări]
+• **Semnale alarmă:** [indicatori care trebuie monitorizați zilnic/săptămânal]
+
+🎯 **RECOMANDARE FINALĂ STRATEGICĂ:**
+[Decizie clară în 2-3 propoziții: CONTINUĂ cu ajustări / PIVOTEAZĂ urgent către X / ÎNCHIDE controlat și minimizează pierderi]
+
+**Cost simulare:** 0.50 RON (Strategist)
+**Timp estimat execuție plan:** X zile până la stabilizare
+
+---
+⚔️ Asta e un test de stres, antreprenorul trebuie să știe EXACT ce se întâmplă și ce măsuri concrete să ia ACUM.`;
+
+      // 5. Call Strategist directly with simulation prompt (bypass validator)
+      const simulationMessages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: simulationPrompt }
+      ];
+
+      console.log("[STRATEGIC-ADVISOR] Calling Strategist for simulation (Claude Sonnet 4.5)");
+
+      // Rate limiting check
+      const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
+        p_user_id: user.id,
+        p_endpoint: "strategic-advisor-simulation",
+        p_max_requests: 10
+      });
+
+      if (!canProceed) {
+        return new Response(
+          JSON.stringify({ error: "Prea multe simulări. Te rog așteaptă un minut." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const simulationResponse = await retryWithBackoff(async () => {
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "anthropic/claude-sonnet-4.5",
+            messages: simulationMessages,
+            temperature: 0.3,
+            max_tokens: 2048,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("[STRATEGIC-ADVISOR] Simulation AI Error:", response.status, errorText);
+          
+          if (response.status === 429) {
+            throw new Error("429: Limită de utilizare depășită");
+          }
+          if (response.status === 402) {
+            throw new Error("402: Fonduri insuficiente");
+          }
+          
+          throw new Error(`AI API error: ${response.status} ${errorText}`);
+        }
+
+        return response.json();
+      }, 3, 1500);
+
+      const simulationResult = simulationResponse.choices[0]?.message?.content;
+
+      if (!simulationResult) {
+        throw new Error("No response from Strategist in simulation mode");
+      }
+
+      console.log("[STRATEGIC-ADVISOR] Simulation result received, length:", simulationResult.length);
+
+      // 6. Prefix with [SIMULATION_RESULT] marker for frontend detection
+      const finalResponse = `[SIMULATION_RESULT]
+
+${simulationResult}
+
+---
+📊 **Simulare War Room executată cu succes**
+• Modificări aplicate: ${simulation_changes.length}
+• Model utilizat: Claude Sonnet 4.5
+• Cost simulare: 0.50 RON`;
+
+      // 7. Save to conversation history with simulation metadata
+      await supabaseClient.from("conversation_history").insert([
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "user",
+          content: `[SIMULARE WAR ROOM]\n\n**Modificări aplicate:**\n${changesDescription}`,
+          metadata: { 
+            type: "strategic", 
+            module: "strategic", 
+            phase: "simulation", 
+            simulation_changes,
+            is_simulation: true
+          }
+        },
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "assistant",
+          content: finalResponse,
+          metadata: { 
+            type: "strategic", 
+            module: "strategic", 
+            phase: "simulation_result", 
+            is_simulation: true,
+            simulation_changes_count: simulation_changes.length
+          }
+        }
+      ]);
+
+      console.log("[STRATEGIC-ADVISOR] ✅ Simulation complete, returning response");
+
+      return new Response(
+        JSON.stringify({ 
+          response: finalResponse,
+          is_simulation: true,
+          changes_applied: simulation_changes.length
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // ============================================================================
+    // NORMAL FLOW (NON-SIMULATION)
+    // ============================================================================
 
     // VALIDARE DATE - cerere automate de completare
     let validationWarnings: string[] = [];
