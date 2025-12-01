@@ -221,6 +221,41 @@ serve(async (req) => {
 
     console.log('[FISCAL-CHAT] Request from user:', user.email);
 
+    // ========================================
+    // PROTECȚIE FINANCIARĂ - Fiscal Chat
+    // ========================================
+    
+    // Rate Limiting: max 20 requests per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const { count } = await supabaseAdmin
+      .from('ai_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('endpoint', 'fiscal-chat')
+      .gte('created_at', oneHourAgo);
+    
+    if (count && count >= 20) {
+      console.error('[fiscal-chat] Rate limit exceeded:', count);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit depășit',
+          message: 'Maximum 20 întrebări fiscale per oră. Încearcă mai târziu.',
+          requests_used: count
+        }), 
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('[fiscal-chat] Rate limit OK:', count, '/20 requests this hour');
+
+    // ========================================
+    // PROTECȚIE FINANCIARĂ - SFÂRȘIT
+    // ========================================
+
     // Call Perplexity API with timeout and metrics
     const startTime = Date.now();
     
@@ -290,6 +325,23 @@ serve(async (req) => {
 
     const data = await perplexityResponse.json();
     console.log('[FISCAL-CHAT] Response received, citations:', data.citations?.length || 0);
+
+    // ========================================
+    // TRACK AI USAGE AFTER SUCCESS
+    // ========================================
+    await supabaseAdmin
+      .from('ai_usage')
+      .insert({
+        user_id: user.id,
+        endpoint: 'fiscal-chat',
+        model: 'sonar',
+        estimated_cost_cents: 15, // 0.15 RON per fiscal query
+        success: true,
+        month_year: new Date().toISOString().slice(0, 7) // YYYY-MM
+      });
+    
+    console.log('[fiscal-chat] AI usage tracked successfully');
+    // ========================================
 
     // Extract response and sources
     const responseText = data.choices?.[0]?.message?.content || 'Nu am putut genera un răspuns.';

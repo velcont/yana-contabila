@@ -794,6 +794,41 @@ serve(async (req) => {
       );
     }
 
+    // ========================================
+    // PROTECȚIE FINANCIARĂ - Chat AI
+    // ========================================
+    
+    // Check AI Credits (20 bani per message = 0.20 RON)
+    const MESSAGE_COST = 20; // cents
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('ai_credits')
+      .eq('id', userId)
+      .single();
+
+    const currentCredits = profile?.ai_credits || 0;
+
+    if (currentCredits < MESSAGE_COST) {
+      console.error('[chat-ai] Insufficient credits:', currentCredits);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Credit AI insuficient pentru chat',
+          required: MESSAGE_COST,
+          remaining: currentCredits
+        }), 
+        { 
+          status: 402, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('[chat-ai] Credits OK:', currentCredits, 'cents');
+
+    // ========================================
+    // PROTECȚIE FINANCIARĂ - SFÂRȘIT
+    // ========================================
+
     // DETECTARE "ȚINE MINTE" - Salvare în knowledge base
     const rememberRegex = /^(ține\s+minte|tine\s+minte)[:\s]+(.+)/i;
     const rememberMatch = message.match(rememberRegex);
@@ -1057,6 +1092,37 @@ serve(async (req) => {
       const responseData = await aiResponse.json();
       const content = responseData.choices?.[0]?.message?.content || "";
       
+      // ========================================
+      // DEDUCT CREDIT AFTER SUCCESS (non-streaming)
+      // ========================================
+      if (content) {
+        const { error: deductError } = await supabase
+          .from('profiles')
+          .update({ 
+            ai_credits: currentCredits - MESSAGE_COST 
+          })
+          .eq('id', userId);
+        
+        if (deductError) {
+          console.error('[chat-ai] Failed to deduct credits:', deductError);
+        } else {
+          console.log('[chat-ai] Credits deducted (non-stream), new balance:', currentCredits - MESSAGE_COST);
+        }
+        
+        // Track AI usage
+        await supabase
+          .from('ai_usage')
+          .insert({
+            user_id: userId,
+            endpoint: 'chat-ai',
+            model: 'google/gemini-2.5-flash',
+            estimated_cost_cents: MESSAGE_COST,
+            success: true,
+            month_year: new Date().toISOString().slice(0, 7)
+          });
+      }
+      // ========================================
+      
       return new Response(
         JSON.stringify({ response: content, message: content }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1214,6 +1280,35 @@ serve(async (req) => {
             controller.enqueue(encoder.encode("data: " + JSON.stringify({ type: "content", content: fallback }) + "\n\n"));
             accumulatedContent = fallback;
           }
+
+          // === DEDUCT CREDIT AFTER SUCCESS (streaming) ===
+          if (sentAnyContent && accumulatedContent.length > 0) {
+            const { error: deductError } = await supabase
+              .from('profiles')
+              .update({ 
+                ai_credits: currentCredits - MESSAGE_COST 
+              })
+              .eq('id', userId);
+            
+            if (deductError) {
+              console.error('[chat-ai] Failed to deduct credits:', deductError);
+            } else {
+              console.log('[chat-ai] Credits deducted (stream), new balance:', currentCredits - MESSAGE_COST);
+            }
+            
+            // Track AI usage
+            await supabase
+              .from('ai_usage')
+              .insert({
+                user_id: userId,
+                endpoint: 'chat-ai',
+                model: 'google/gemini-2.5-flash',
+                estimated_cost_cents: MESSAGE_COST,
+                success: true,
+                month_year: new Date().toISOString().slice(0, 7)
+              });
+          }
+          // === END CREDIT DEDUCTION ===
 
           // === ÎNVĂȚARE AUTOMATĂ: Salvăm răspunsul și extragem pattern-ul ===
           const responseTime = Date.now() - startTime;
