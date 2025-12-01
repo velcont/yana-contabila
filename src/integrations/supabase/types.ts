@@ -4004,6 +4004,78 @@ export type Database = {
       }
     }
     Views: {
+      public_accountant_profiles: {
+        Row: {
+          created_at: string | null
+          firm_name: string | null
+          id: string | null
+          location: string | null
+          rating: number | null
+          response_time_hours: number | null
+          reviews_count: number | null
+          specializations: string[] | null
+          total_clients: number | null
+          verified: boolean | null
+          years_experience: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          firm_name?: string | null
+          id?: string | null
+          location?: string | null
+          rating?: number | null
+          response_time_hours?: number | null
+          reviews_count?: number | null
+          specializations?: string[] | null
+          total_clients?: number | null
+          verified?: boolean | null
+          years_experience?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          firm_name?: string | null
+          id?: string | null
+          location?: string | null
+          rating?: number | null
+          response_time_hours?: number | null
+          reviews_count?: number | null
+          specializations?: string[] | null
+          total_clients?: number | null
+          verified?: boolean | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      public_subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string | null
+          name: string | null
+          plan_type: Database["public"]["Enums"]["subscription_type"] | null
+          price_monthly_eur: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string | null
+          name?: string | null
+          plan_type?: Database["public"]["Enums"]["subscription_type"] | null
+          price_monthly_eur?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string | null
+          name?: string | null
+          plan_type?: Database["public"]["Enums"]["subscription_type"] | null
+          price_monthly_eur?: number | null
+        }
+        Relationships: []
+      }
       strategic_facts_summary: {
         Row: {
           avg_confidence: number | null
