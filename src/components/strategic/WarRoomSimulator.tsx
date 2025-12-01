@@ -30,6 +30,12 @@ interface SimulationChange {
   unit: string;
 }
 
+interface PresetScenario {
+  name: string;
+  description: string;
+  changes: Array<{ key: string; multiplier: number }>;
+}
+
 export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
   open,
   onOpenChange,
@@ -42,6 +48,48 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
   const [loading, setLoading] = useState(false);
   const [simulating, setSimulating] = useState(false);
   const [changes, setChanges] = useState<Record<string, number>>({});
+  const [selectedScenario, setSelectedScenario] = useState<PresetScenario | null>(null);
+
+  // Predefined scenarios
+  const scenarios: Record<string, PresetScenario> = {
+    cashCrisis: {
+      name: '🔴 Criză Cash',
+      description: 'Simulează scăderea cu 50% a disponibilităților și 30% a veniturilor',
+      changes: [
+        { key: 'cash_disponibil', multiplier: 0.5 },
+        { key: 'casa', multiplier: 0.5 },
+        { key: 'disponibil', multiplier: 0.5 },
+        { key: 'cifra_afaceri', multiplier: 0.7 },
+        { key: 'venituri', multiplier: 0.7 },
+      ],
+    },
+    clientLoss: {
+      name: '⚡ Pierdere Client',
+      description: 'Simulează pierderea unui client major - scădere 30% venituri',
+      changes: [
+        { key: 'cifra_afaceri', multiplier: 0.7 },
+        { key: 'venituri', multiplier: 0.7 },
+      ],
+    },
+    recession: {
+      name: '📉 Recesiune',
+      description: 'Simulează recesiune economică - scădere 20% venituri + creștere 10% cheltuieli',
+      changes: [
+        { key: 'cifra_afaceri', multiplier: 0.8 },
+        { key: 'venituri', multiplier: 0.8 },
+        { key: 'cheltuieli', multiplier: 1.1 },
+        { key: 'costuri', multiplier: 1.1 },
+      ],
+    },
+    costInflation: {
+      name: '📈 Inflație Costuri',
+      description: 'Simulează inflație - creștere 15% cheltuieli operaționale',
+      changes: [
+        { key: 'cheltuieli', multiplier: 1.15 },
+        { key: 'costuri', multiplier: 1.15 },
+      ],
+    },
+  };
 
   useEffect(() => {
     if (open && conversationId) {
@@ -87,40 +135,34 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
     }
   };
 
-  const applyPreset = (preset: 'cash_crisis' | 'client_loss' | 'recession' | 'cost_inflation') => {
-    const newChanges = { ...changes };
-
-    facts.forEach(fact => {
-      const originalValue = parseFloat(fact.fact_value);
+  const applyScenario = (scenario: PresetScenario) => {
+    setSelectedScenario(scenario);
+    
+    // If we have facts from DB, apply multipliers to them
+    if (facts.length > 0) {
+      const newChanges = { ...changes };
       
-      switch (preset) {
-        case 'cash_crisis':
-          if (fact.fact_key.toLowerCase().includes('casa') || fact.fact_key.toLowerCase().includes('disponibil')) {
-            newChanges[fact.fact_key] = originalValue * 0.5; // -50% cash
-          }
-          break;
-        case 'client_loss':
-          if (fact.fact_key.toLowerCase().includes('venituri') || fact.fact_key.toLowerCase().includes('ca')) {
-            newChanges[fact.fact_key] = originalValue * 0.7; // -30% revenue
-          }
-          break;
-        case 'recession':
-          if (fact.fact_key.toLowerCase().includes('venituri') || fact.fact_key.toLowerCase().includes('ca')) {
-            newChanges[fact.fact_key] = originalValue * 0.8; // -20% revenue
-          }
-          if (fact.fact_key.toLowerCase().includes('cheltuieli')) {
-            newChanges[fact.fact_key] = originalValue * 1.1; // +10% costs
-          }
-          break;
-        case 'cost_inflation':
-          if (fact.fact_key.toLowerCase().includes('cheltuieli')) {
-            newChanges[fact.fact_key] = originalValue * 1.15; // +15% costs
-          }
-          break;
-      }
+      facts.forEach(fact => {
+        const originalValue = parseFloat(fact.fact_value);
+        const factKeyLower = fact.fact_key.toLowerCase();
+        
+        // Find matching change rule
+        const matchingChange = scenario.changes.find(change => 
+          factKeyLower.includes(change.key.toLowerCase())
+        );
+        
+        if (matchingChange) {
+          newChanges[fact.fact_key] = originalValue * matchingChange.multiplier;
+        }
+      });
+      
+      setChanges(newChanges);
+    }
+    
+    toast({
+      title: '✓ Scenariu selectat',
+      description: scenario.description,
     });
-
-    setChanges(newChanges);
   };
 
   const resetChanges = () => {
@@ -129,25 +171,57 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
       initialChanges[f.fact_key] = parseFloat(f.fact_value);
     });
     setChanges(initialChanges);
+    setSelectedScenario(null);
   };
 
   const runSimulation = async () => {
     setSimulating(true);
     try {
-      // Calculate simulation changes
-      const simulationChanges: SimulationChange[] = facts
-        .filter(f => changes[f.fact_key] !== parseFloat(f.fact_value))
-        .map(f => ({
-          key: f.fact_key,
-          originalValue: parseFloat(f.fact_value),
-          newValue: changes[f.fact_key],
-          unit: f.fact_unit || '',
-        }));
+      let simulationChanges: SimulationChange[] = [];
+      let simulationMessage = '';
 
-      if (simulationChanges.length === 0) {
+      // Scenario 1: Using preset scenario (works even without DB facts)
+      if (selectedScenario) {
+        simulationMessage = `Rulează scenariul: ${selectedScenario.name}. ${selectedScenario.description}`;
+        
+        // If we have facts, calculate actual changes
+        if (facts.length > 0) {
+          simulationChanges = facts
+            .filter(f => changes[f.fact_key] !== parseFloat(f.fact_value))
+            .map(f => ({
+              key: f.fact_key,
+              originalValue: parseFloat(f.fact_value),
+              newValue: changes[f.fact_key],
+              unit: f.fact_unit || '',
+            }));
+        } else {
+          // No facts - send scenario description for AI to simulate
+          simulationChanges = selectedScenario.changes.map(c => ({
+            key: c.key,
+            originalValue: 100, // placeholder
+            newValue: 100 * c.multiplier,
+            unit: 'RON',
+          }));
+        }
+      } 
+      // Scenario 2: Manual slider changes (requires DB facts)
+      else if (facts.length > 0) {
+        simulationChanges = facts
+          .filter(f => changes[f.fact_key] !== parseFloat(f.fact_value))
+          .map(f => ({
+            key: f.fact_key,
+            originalValue: parseFloat(f.fact_value),
+            newValue: changes[f.fact_key],
+            unit: f.fact_unit || '',
+          }));
+        
+        simulationMessage = 'Rulează simularea cu modificările manuale selectate';
+      }
+
+      if (simulationChanges.length === 0 && !selectedScenario) {
         toast({
           title: 'Nicio modificare',
-          description: 'Ajustează valorile pentru a simula un scenariu',
+          description: 'Selectează un scenariu sau ajustează valorile',
           variant: 'default',
         });
         return;
@@ -156,11 +230,12 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
       // Call strategic-advisor with simulation mode
       const { data, error } = await supabase.functions.invoke('strategic-advisor', {
         body: {
-          message: 'Rulează simularea cu modificările selectate',
+          message: simulationMessage,
           conversationId,
           userId,
           simulation_mode: true,
           simulation_changes: simulationChanges,
+          scenario_name: selectedScenario?.name,
         },
       });
 
@@ -168,6 +243,7 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
 
       onSimulationResult(data.response);
       onOpenChange(false);
+      setSelectedScenario(null);
       
       toast({
         title: '✅ Simulare completă',
@@ -186,6 +262,7 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
   };
 
   const hasChanges = facts.some(f => changes[f.fact_key] !== parseFloat(f.fact_value));
+  const canSimulate = selectedScenario !== null || (hasChanges && facts.length > 0);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -218,32 +295,40 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => applyPreset('cash_crisis')}
-                    className="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50"
+                    onClick={() => applyScenario(scenarios.cashCrisis)}
+                    className={`bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 transition-all ${
+                      selectedScenario?.name === scenarios.cashCrisis.name ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-slate-950' : ''
+                    }`}
                   >
                     🔴 Criză Cash
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => applyPreset('client_loss')}
-                    className="bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-600/50"
+                    onClick={() => applyScenario(scenarios.clientLoss)}
+                    className={`bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-600/50 transition-all ${
+                      selectedScenario?.name === scenarios.clientLoss.name ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-slate-950' : ''
+                    }`}
                   >
                     ⚡ Pierdere Client
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => applyPreset('recession')}
-                    className="bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/50"
+                    onClick={() => applyScenario(scenarios.recession)}
+                    className={`bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/50 transition-all ${
+                      selectedScenario?.name === scenarios.recession.name ? 'ring-2 ring-yellow-500 ring-offset-2 ring-offset-slate-950' : ''
+                    }`}
                   >
                     📉 Recesiune
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => applyPreset('cost_inflation')}
-                    className="bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-600/50"
+                    onClick={() => applyScenario(scenarios.costInflation)}
+                    className={`bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-600/50 transition-all ${
+                      selectedScenario?.name === scenarios.costInflation.name ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-950' : ''
+                    }`}
                   >
                     📈 Inflație Costuri
                   </Button>
@@ -270,7 +355,8 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
                 {facts.length === 0 ? (
                   <Alert className="bg-slate-900/50 border-slate-700">
                     <AlertDescription className="text-slate-400 text-sm">
-                      Nu există date validate pentru simulare. Continuă conversația cu Yana pentru a colecta date financiare.
+                      💡 <strong>Poți folosi scenariile predefinite!</strong><br />
+                      Selectează un scenariu de mai sus pentru a rula o simulare, chiar fără date validate în baza de date.
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -289,8 +375,8 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
               {/* Run Simulation Button */}
               <Button
                 onClick={runSimulation}
-                disabled={!hasChanges || simulating || facts.length === 0}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg"
+                disabled={!canSimulate || simulating}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {simulating ? (
                   <>
@@ -303,6 +389,12 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
                   </>
                 )}
               </Button>
+              
+              {!canSimulate && !simulating && (
+                <p className="text-xs text-slate-500 text-center -mt-4">
+                  Selectează un scenariu sau ajustează valorile pentru a activa simularea
+                </p>
+              )}
             </>
           )}
         </div>
