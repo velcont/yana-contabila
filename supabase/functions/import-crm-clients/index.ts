@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from 'https://esm.sh/zod@3.22.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,22 +69,37 @@ Deno.serve(async (req) => {
 
     console.log('[IMPORT-CRM] Subscription verified:', profile.subscription_type);
 
-    // Parse request body
-    const { clients } = await req.json();
+    // Zod validation schema for request body
+    const ClientSchema = z.object({
+      company_name: z.string().min(1, "Company name is required").max(255, "Company name must be less than 255 characters"),
+      contact_email: z.string().email("Invalid email format").max(255).optional(),
+      phone: z.string().max(20).optional(),
+      contact_person: z.string().max(255).optional(),
+      notes: z.string().max(1000).optional(),
+    });
 
-    if (!clients || !Array.isArray(clients) || clients.length === 0) {
+    const RequestSchema = z.object({
+      clients: z.array(ClientSchema).min(1, "At least one client is required").max(1000, "Maximum 1000 clients per import"),
+    });
+
+    const rawBody = await req.json();
+    const validation = RequestSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      console.error('[IMPORT-CRM] Invalid request body:', validation.error);
       return new Response(
-        JSON.stringify({ error: 'Niciun client trimis pentru import' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: 'Invalid request format',
+          details: validation.error.errors,
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
       );
     }
 
-    if (clients.length > 1000) {
-      return new Response(
-        JSON.stringify({ error: 'Puteți importa maxim 1000 de clienți per operațiune' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { clients } = validation.data;
 
     console.log(`[IMPORT-CRM] Starting import of ${clients.length} clients`);
 

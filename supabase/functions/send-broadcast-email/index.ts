@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
@@ -75,7 +76,32 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { subject, message, companyIds, broadcastId }: BroadcastRequest = await req.json();
+    // Zod validation schema for request body
+    const RequestSchema = z.object({
+      subject: z.string().min(1, "Subject is required").max(200, "Subject must be less than 200 characters"),
+      message: z.string().min(1, "Message is required").max(5000, "Message must be less than 5000 characters"),
+      companyIds: z.array(z.string().uuid()).optional(),
+      broadcastId: z.string().uuid().optional(),
+    });
+
+    const rawBody = await req.json();
+    const validation = RequestSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      console.error("❌ Invalid request body:", validation.error);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request format",
+          details: validation.error.errors,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+
+    const { subject, message, companyIds, broadcastId } = validation.data;
 
     // Ia companiile pentru acest contabil
     let companiesQuery = supabaseClient
