@@ -1,4 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
+
+// 🔒 SECURITY: Zod validation schema
+const TranscriptRequestSchema = z.object({
+  videoUrl: z.string().url("Invalid URL format").min(1, "videoUrl is required")
+});
 
 // Simple YouTube transcript extractor for Deno
 interface TranscriptEntry {
@@ -101,11 +107,16 @@ serve(async (req) => {
   }
 
   try {
-    const { videoUrl } = await req.json();
+    // 🔒 SECURITY: Validate input with Zod
+    const rawBody = await req.json();
+    const validationResult = TranscriptRequestSchema.safeParse(rawBody);
     
-    if (!videoUrl) {
+    if (!validationResult.success) {
       return new Response(
-        JSON.stringify({ error: 'videoUrl is required' }),
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: validationResult.error.errors 
+        }),
         { 
           status: 400,
           headers: { 
@@ -115,6 +126,8 @@ serve(async (req) => {
         }
       );
     }
+    
+    const { videoUrl } = validationResult.data;
     
     const videoId = extractVideoId(videoUrl);
     if (!videoId) {

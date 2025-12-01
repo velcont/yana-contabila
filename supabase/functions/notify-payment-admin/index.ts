@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,14 @@ const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[NOTIFY-PAYMENT] ${step}${detailsStr}`);
 };
+
+// 🔒 SECURITY: Zod validation schema
+const PaymentNotificationSchema = z.object({
+  sessionId: z.string().min(1, "sessionId is required"),
+  paymentType: z.enum(['subscription', 'credits'], {
+    errorMap: () => ({ message: "paymentType must be 'subscription' or 'credits'" })
+  }).optional().default('credits')
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -41,8 +50,22 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const { sessionId, paymentType } = await req.json();
-    if (!sessionId) throw new Error("sessionId is required");
+    // 🔒 SECURITY: Validate input with Zod
+    const rawBody = await req.json();
+    const validationResult = PaymentNotificationSchema.safeParse(rawBody);
+    
+    if (!validationResult.success) {
+      logStep("Validation error", { errors: validationResult.error.errors });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { sessionId, paymentType } = validationResult.data;
 
     // 🔒 SECURITY: Detectează ID-uri manuale/recovery care nu există în Stripe
     if (sessionId.includes('manual') || sessionId.includes('recovery') || sessionId.includes('_fix_')) {
