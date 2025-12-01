@@ -851,13 +851,12 @@ ${changesDescription}
           headers: {
             "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
             "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "anthropic/claude-sonnet-4.5",
-            messages: simulationMessages,
-            temperature: 0.3,
-            max_tokens: 2048,
-          }),
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          messages: simulationMessages,
+          max_tokens: 2048,
+        }),
         });
 
         if (!response.ok) {
@@ -1294,13 +1293,12 @@ ${factSheet}
         headers: {
           "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
           "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "anthropic/claude-sonnet-4.5",
-          messages: strategistMessages,
-          temperature: 0.3,
-          max_tokens: 2048,
-        }),
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-5",
+        messages: strategistMessages,
+        max_tokens: 2048,
+      }),
       });
 
       if (!response.ok) {
@@ -1333,11 +1331,11 @@ ${factSheet}
     
     const { error: updateError } = await supabaseClient
       .from('strategic_advisor_validations')
-      .update({
-        strategist_response: strategistResponse,
-        strategist_model: "anthropic/claude-sonnet-4.5",
-        strategist_tokens_used: data.usage?.total_tokens || 0,
-        total_cost_cents: costCents
+    .update({
+      strategist_response: strategistResponse,
+      strategist_model: "claude-sonnet-4-5",
+      strategist_tokens_used: data.usage?.total_tokens || 0,
+      total_cost_cents: costCents
       })
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
@@ -1377,11 +1375,11 @@ ${factSheet}
     await supabaseClient.from("ai_response_cache").insert({
       cache_key: strategyCacheKey,
       cache_type: "strategy",
-      request_hash: strategyCacheKey,
-      response_data: { content: strategistResponse, facts_used: allFacts?.length || 0 },
-      model_used: "anthropic/claude-sonnet-4.5",
-      tokens_used: data.usage?.total_tokens || 0,
-      cost_cents: costCents,
+    request_hash: strategyCacheKey,
+    response_data: { content: strategistResponse, facts_used: allFacts?.length || 0 },
+    model_used: "claude-sonnet-4-5",
+    tokens_used: data.usage?.total_tokens || 0,
+    cost_cents: costCents,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
     });
 
