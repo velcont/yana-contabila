@@ -78,6 +78,7 @@ interface Company {
   address: string;
   phone: string;
   contact_person: string;
+  contact_email: string | null;
   notes: string;
   created_at: string;
 }
@@ -129,9 +130,13 @@ export const CompanyManager = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Nu ești autentificat");
+
       const { data, error } = await supabase
         .from("companies")
         .select("*")
+        .eq("managed_by_accountant_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
