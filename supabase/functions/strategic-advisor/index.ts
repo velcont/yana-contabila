@@ -1036,6 +1036,33 @@ ${simulationResult}
     console.log("[STRATEGIC-ADVISOR] Starting multi-agent orchestration");
 
     // ============================================================================
+    // VALIDATOR DISABLED TEMPORAR - DIRECT LA STRATEGIST
+    // ============================================================================
+    console.log('[STRATEGIC-ADVISOR] ⚠️ Validator DISABLED - toate mesajele merg direct la Claude');
+
+    // Menținem calculul isFirstMessage doar pentru statistici și messaging
+    const { data: existingMessages } = await supabaseClient
+      .from('conversation_history')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id);
+
+    const isFirstMessage = !existingMessages || existingMessages.length === 0;
+
+    console.log(`[STRATEGIC-ADVISOR] 📊 Message count: ${existingMessages?.length || 0}, isFirstMessage: ${isFirstMessage}`);
+
+    const validation = {
+      validation_status: 'approved',
+      extracted_facts: [],
+      conflicts: [],
+      missing_critical_fields: [],
+      validation_notes: []
+    };
+
+    const totalCost = 0.5; // Doar Strategist, fără Validator
+
+    /*
+    // ============================================================================
     // CHECK IF FIRST MESSAGE IN CONVERSATION
     // ============================================================================
     const { data: existingMessages } = await supabaseClient
@@ -1095,6 +1122,7 @@ ${simulationResult}
       
       totalCost = 0.75; // AI_COSTS.STRATEGIC_ADVISOR.MESSAGE_COST (Validator + Strategist)
     }
+    */
 
     // ============================================================================
     // PHASE 2: HANDLE VALIDATION RESULTS
