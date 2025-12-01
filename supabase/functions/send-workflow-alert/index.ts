@@ -38,6 +38,26 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Rate limiting protection (defense-in-depth for public cron endpoint)
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    console.log(`[RATE-LIMIT] Checking rate limit for IP: ${clientIp}`);
+
+    const { data: canProceed, error: rateLimitError } = await supabase.rpc('check_rate_limit', {
+      p_user_id: clientIp,
+      p_endpoint: 'send-workflow-alert',
+      p_max_requests: 10 // Max 10 requests per minute (cron could check multiple times per day)
+    });
+
+    if (rateLimitError) {
+      console.error('[RATE-LIMIT] Error checking rate limit:', rateLimitError);
+    } else if (!canProceed) {
+      console.warn(`[RATE-LIMIT] Rate limit exceeded for IP: ${clientIp}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('🔍 Searching for overdue workflow stages...');
 
     // Fetch toate etapele în întârziere (status = 'in_progress' și started_at + estimated_days < NOW())
