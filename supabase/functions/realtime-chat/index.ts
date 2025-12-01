@@ -1,6 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req) => {
+  // ✅ SECURITY: Verify authentication before WebSocket upgrade
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    console.error('❌ [AUTH] Missing Authorization header');
+    return new Response(
+      JSON.stringify({ error: 'Autentificare necesară' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
 

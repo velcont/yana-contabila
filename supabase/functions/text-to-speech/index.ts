@@ -12,6 +12,16 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // ✅ SECURITY: Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    console.error('❌ [AUTH] Missing Authorization header');
+    return new Response(
+      JSON.stringify({ error: 'Autentificare necesară' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const { text, voice = 'alloy' } = await req.json();
 

@@ -1,7 +1,7 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
 [functions.analyze-balance]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-analysis-with-council]
 verify_jwt = true
@@ -22,16 +22,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.fetch-fiscal-news]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fetch-research-data]
 verify_jwt = true
 
 [functions.realtime-chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-realtime-token]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-predictions]
 verify_jwt = true
@@ -94,7 +94,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.text-to-speech]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-doctorate-draft]
 verify_jwt = true
