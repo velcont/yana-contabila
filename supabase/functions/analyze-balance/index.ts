@@ -1,11 +1,31 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { z } from 'https://esm.sh/zod@3.22.4';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// 🔒 VALIDARE INPUT SCHEMA
+const AnalyzeBalanceInputSchema = z.object({
+  excelBase64: z.string()
+    .min(1, "Fișierul Excel este vid")
+    .refine((val) => {
+      try {
+        const base64Pattern = /^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+)?;base64,([A-Za-z0-9+/=]+)$/;
+        return base64Pattern.test(val);
+      } catch {
+        return false;
+      }
+    }, "Format base64 invalid pentru fișierul Excel"),
+  fileName: z.string()
+    .min(1, "Nume fișier lipsește")
+    .max(255, "Nume fișier prea lung")
+    .refine((val) => val.endsWith('.xlsx') || val.endsWith('.xls'), "Fișierul trebuie să fie Excel (.xlsx sau .xls)"),
+  forceReprocess: z.boolean().optional().default(false)
+});
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
@@ -516,7 +536,22 @@ serve(async (req) => {
   console.log(`✅ [AUTH] User authenticated: ${user.id}`);
 
   try {
-    const { excelBase64, fileName, forceReprocess = false } = await req.json();
+    const rawBody = await req.json();
+    
+    // 🔒 VALIDARE INPUT CU ZOD
+    const validationResult = AnalyzeBalanceInputSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      console.error("❌ Input invalid:", validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: "Date de intrare invalide", 
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { excelBase64, fileName, forceReprocess = false } = validationResult.data;
     
     // Obiect pentru persistarea indexilor detectați (folosit în auditTrail)
     const detectedColumns = {

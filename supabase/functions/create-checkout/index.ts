@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// 🔒 VALIDARE INPUT SCHEMA
+const CreateCheckoutInputSchema = z.object({
+  priceId: z.string()
+    .min(1, "Price ID lipsește")
+    .startsWith("price_", "Price ID trebuie să înceapă cu 'price_'")
+    .max(100, "Price ID invalid (prea lung)")
+});
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -39,9 +48,22 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { priceId } = await req.json();
-    if (!priceId) throw new Error('Price ID is required');
+    const rawBody = await req.json();
     
+    // 🔒 VALIDARE INPUT CU ZOD
+    const validationResult = CreateCheckoutInputSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      logStep("❌ Input invalid", validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: "Date de intrare invalide", 
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    const { priceId } = validationResult.data;
     logStep("Price ID received", { priceId });
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {

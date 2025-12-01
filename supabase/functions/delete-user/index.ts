@@ -1,10 +1,21 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// 🔒 VALIDARE INPUT SCHEMA
+const DeleteUserInputSchema = z.object({
+  userId: z.string()
+    .uuid("User ID trebuie să fie un UUID valid")
+    .min(1, "User ID lipsește"),
+  deletionReason: z.string()
+    .max(500, "Motivul ștergerii este prea lung (max 500 caractere)")
+    .optional()
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,11 +38,22 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { userId, deletionReason } = await req.json();
-
-    if (!userId) {
-      throw new Error("User ID is required");
+    const rawBody = await req.json();
+    
+    // 🔒 VALIDARE INPUT CU ZOD
+    const validationResult = DeleteUserInputSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      console.error("❌ Input invalid:", validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: "Date de intrare invalide", 
+          details: validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
+    
+    const { userId, deletionReason } = validationResult.data;
 
     // Verifică permisiuni:
     // - Utilizatorul poate să-și șteargă propriul cont
