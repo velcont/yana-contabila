@@ -13,7 +13,8 @@ import {
   MessageSquarePlus,
   MessageSquare,
   PanelRightOpen,
-  PanelRightClose
+  PanelRightClose,
+  MoreVertical
 } from "lucide-react";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,7 +29,19 @@ import { StrategicFactsPanel } from "@/components/StrategicFactsPanel";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
 import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
-import { AlertTriangle, Plus } from "lucide-react";
+import { AlertTriangle, Plus, FileText } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 interface Message {
   role: "user" | "assistant";
@@ -425,7 +438,8 @@ export default function StrategicAdvisor() {
 
   // Main chat interface
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <TooltipProvider>
+      <div className="flex h-screen w-full overflow-hidden">
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Chat Section */}
@@ -462,15 +476,12 @@ export default function StrategicAdvisor() {
                 </div>
                 
                 <div className="flex items-center gap-3">
-              {/* Conversation activity indicator */}
-              {activeTab === "chat" && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <MessageSquare className="w-3 h-3" />
-                  {messages.length > 0 ? (
-                    <span>Conversație activă: {messages.length} mesaje</span>
-                  ) : (
-                    <span>Conversație nouă</span>
-                  )}
+              {/* Message counter - prominent display */}
+              {activeTab === "chat" && messages.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">{messages.length}</span>
+                  <span className="text-xs text-muted-foreground">mesaje</span>
                 </div>
               )}
               
@@ -503,20 +514,23 @@ export default function StrategicAdvisor() {
 
                   {activeTab === "chat" && (
                     <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setWarRoomOpen(true)}
-                        className="gap-2 border-red-500/50 text-red-500 hover:bg-red-500/10"
-                      >
-                        <AlertTriangle className="h-4 w-4" />
-                        War Room
-                      </Button>
-
-                      <BattlePlanExport 
-                        conversationId={conversationId}
-                        userId={user.id}
-                      />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <BattlePlanExport 
+                              conversationId={conversationId}
+                              userId={user.id}
+                              disabled={messages.length < 8}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {messages.length < 8 
+                            ? "Disponibil după 8+ mesaje de strategie"
+                            : "Generează plan de acțiune PDF"
+                          }
+                        </TooltipContent>
+                      </Tooltip>
 
                       <Button
                         variant="outline"
@@ -527,6 +541,21 @@ export default function StrategicAdvisor() {
                         <Plus className="w-4 h-4" />
                         Conversație Nouă
                       </Button>
+
+                      {/* War Room hidden in dropdown menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setWarRoomOpen(true)}>
+                            <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
+                            War Room Simulator
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </>
                   )}
                   
@@ -681,5 +710,6 @@ export default function StrategicAdvisor() {
         }}
       />
     </div>
+    </TooltipProvider>
   );
 }

@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface BattlePlanExportProps {
   conversationId: string;
   userId: string;
+  disabled?: boolean;
 }
 
 interface FactPreview {
@@ -22,6 +23,7 @@ interface FactPreview {
 export const BattlePlanExport: React.FC<BattlePlanExportProps> = ({
   conversationId,
   userId,
+  disabled = false,
 }) => {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -141,13 +143,18 @@ export const BattlePlanExport: React.FC<BattlePlanExportProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
+      if (disabled) return; // Don't open if disabled
       setOpen(isOpen);
       if (isOpen && !preview) {
         loadPreview();
       }
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 border-green-500/50 text-green-600 hover:bg-green-500/10">
+        <Button 
+          variant="outline" 
+          className="gap-2 border-green-500/50 text-green-600 hover:bg-green-500/10"
+          disabled={disabled}
+        >
           <FileText className="w-4 h-4" />
           Generează Battle Plan
         </Button>
