@@ -1036,28 +1036,65 @@ ${simulationResult}
     console.log("[STRATEGIC-ADVISOR] Starting multi-agent orchestration");
 
     // ============================================================================
-    // PHASE 1: VALIDATOR AGENT (Fact Extraction & Validation)
+    // CHECK IF FIRST MESSAGE IN CONVERSATION
     // ============================================================================
-    console.log("[STRATEGIC-ADVISOR] Phase 1: Calling Validator Agent");
-    
-    const validatorResponse = await supabaseClient.functions.invoke('validate-strategic-facts', {
-      headers: { Authorization: `Bearer ${token}` },
-      body: { 
-        userMessage: enrichedMessage,
-        conversationId 
+    const { data: existingMessages } = await supabaseClient
+      .from('conversation_history')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .eq('user_id', user.id);
+
+    const isFirstMessage = !existingMessages || existingMessages.length === 0;
+
+    console.log(`[STRATEGIC-ADVISOR] 📊 Message count: ${existingMessages?.length || 0}, isFirstMessage: ${isFirstMessage}`);
+
+    // ============================================================================
+    // PHASE 1: VALIDATOR AGENT (Conditional - Skip for First Message)
+    // ============================================================================
+    let validation;
+    let totalCost = 0;
+
+    if (isFirstMessage) {
+      // Skip validator pentru primul mesaj - Claude va cere date natural în conversație
+      validation = {
+        validation_status: 'approved',
+        extracted_facts: [],
+        conflicts: [],
+        missing_critical_fields: [],
+        validation_notes: []
+      };
+      
+      console.log('[STRATEGIC-ADVISOR] 🚀 First message in conversation - skipping strict validation, letting Claude handle data collection naturally');
+      
+      // Cost doar pentru Strategist (fără Validator)
+      totalCost = 0.5; // AI_COSTS.STRATEGIC_ADVISOR.BREAKDOWN.STRATEGIST_COST
+      
+    } else {
+      // Mesaje ulterioare: folosește validation normală pentru conflict detection
+      console.log('[STRATEGIC-ADVISOR] 🔍 Subsequent message - using normal validation');
+      console.log("[STRATEGIC-ADVISOR] Phase 1: Calling Validator Agent");
+      
+      const validatorResponse = await supabaseClient.functions.invoke('validate-strategic-facts', {
+        headers: { Authorization: `Bearer ${token}` },
+        body: { 
+          userMessage: enrichedMessage,
+          conversationId 
+        }
+      });
+
+      if (validatorResponse.error) {
+        console.error("[STRATEGIC-ADVISOR] Validator error:", validatorResponse.error);
+        return new Response(
+          JSON.stringify({ error: "Validator indisponibil sau a returnat eroare.", details: validatorResponse.error }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    });
 
-    if (validatorResponse.error) {
-      console.error("[STRATEGIC-ADVISOR] Validator error:", validatorResponse.error);
-      return new Response(
-        JSON.stringify({ error: "Validator indisponibil sau a returnat eroare.", details: validatorResponse.error }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      validation = validatorResponse.data;
+      console.log("[STRATEGIC-ADVISOR] Validator status:", validation.validation_status);
+      
+      totalCost = 0.75; // AI_COSTS.STRATEGIC_ADVISOR.MESSAGE_COST (Validator + Strategist)
     }
-
-    const validation = validatorResponse.data;
-    console.log("[STRATEGIC-ADVISOR] Validator status:", validation.validation_status);
 
     // ============================================================================
     // PHASE 2: HANDLE VALIDATION RESULTS
@@ -1221,7 +1258,7 @@ ${factSheet}
 4. Dacă lipsește o dată critică din baza validată → cere-o explicit (NU continua fără ea)
 
 **Model curent:** Claude Sonnet 4.5 (cel mai puternic pentru strategic reasoning)
-**Cost acest mesaj:** ~0.5 RON (total cu validare: 0.75 RON)
+**Cost acest mesaj:** ${totalCost.toFixed(2)} RON${isFirstMessage ? ' (fără validare - primul mesaj)' : ' (include validare)'}
 **Data:** ${new Date().toISOString().split('T')[0]}`;
 
     const strategistMessages = [
@@ -1291,16 +1328,15 @@ ${factSheet}
     console.log("[STRATEGIC-ADVISOR] Strategist response received, updating validation log");
 
     // Update validation log with strategist response
+    const costCents = Math.ceil(totalCost * 100); // Convert RON to cents
+    
     const { error: updateError } = await supabaseClient
       .from('strategic_advisor_validations')
       .update({
         strategist_response: strategistResponse,
         strategist_model: "anthropic/claude-sonnet-4.5",
         strategist_tokens_used: data.usage?.total_tokens || 0,
-        total_cost_cents: Math.ceil(
-          25 + // validator cost (0.25 RON)
-          ((data.usage?.total_tokens || 0) / 2000 * 100) // strategist cost (~0.5 RON)
-        )
+        total_cost_cents: costCents
       })
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: false })
@@ -1337,11 +1373,6 @@ ${factSheet}
     ]);
 
     // Cache the strategist response in new cache system
-    const costCents = Math.ceil(
-      25 + // validator cost (0.25 RON)
-      ((data.usage?.total_tokens || 0) / 2000 * 100) // strategist cost (~0.5 RON)
-    );
-    
     await supabaseClient.from("ai_response_cache").insert({
       cache_key: strategyCacheKey,
       cache_type: "strategy",
