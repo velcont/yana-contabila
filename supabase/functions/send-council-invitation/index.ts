@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "onboarding@resend.dev";
@@ -8,13 +9,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface InvitationRequest {
-  to_email: string;
-  to_name: string;
-  invitation_token: string;
-  role: string;
-  message?: string;
-}
+// Zod validation schema for input security
+const InvitationSchema = z.object({
+  to_email: z.string().email({ message: "Invalid email address" }).max(255),
+  to_name: z.string().trim().min(1).max(255),
+  invitation_token: z.string().uuid({ message: "Invalid invitation token" }),
+  role: z.enum(['advisor', 'partner', 'accountant', 'observer']),
+  message: z.string().max(1000).optional()
+});
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -22,7 +24,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to_email, to_name, invitation_token, role, message }: InvitationRequest = await req.json();
+    const rawBody = await req.json();
+    
+    // Validate input with Zod
+    const validationResult = InvitationSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      console.error('[VALIDATION] Invalid input:', validationResult.error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { to_email, to_name, invitation_token, role, message } = validationResult.data;
 
     const roleLabels: Record<string, string> = {
       advisor: "Consultant Fiscal",
