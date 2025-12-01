@@ -894,7 +894,7 @@ ${changesDescription}
         body: JSON.stringify({
           model: "google/gemini-2.5-pro",
           messages: simulationMessages,
-          max_tokens: 2048,
+          max_completion_tokens: 8192,
         }),
         });
 
@@ -1365,7 +1365,7 @@ ${factSheet}
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: strategistMessages,
-        max_tokens: 2048,
+        max_completion_tokens: 8192,
       }),
       });
 
