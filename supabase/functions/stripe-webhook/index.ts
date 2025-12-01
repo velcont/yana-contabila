@@ -19,6 +19,26 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // 🔒 SECURITY: Rate limiting by IP address
+  const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const { data: canProceed } = await supabase.rpc('check_rate_limit', {
+    p_user_id: clientIp,
+    p_endpoint: 'stripe-webhook',
+    p_max_requests: 60 // 60 webhook events per minute (Stripe may retry)
+  });
+
+  if (!canProceed) {
+    console.error(`Rate limit exceeded for IP: ${clientIp}`);
+    return new Response(
+      JSON.stringify({ error: 'Too many webhook requests' }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   const signature = req.headers.get("stripe-signature");
   if (!signature) {
     console.error("No Stripe signature found");
