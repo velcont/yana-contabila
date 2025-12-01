@@ -2930,6 +2930,7 @@ export type Database = {
       profiles: {
         Row: {
           account_type_selected: boolean | null
+          ai_credits: number
           created_at: string
           email: string
           full_name: string | null
@@ -2950,6 +2951,7 @@ export type Database = {
         }
         Insert: {
           account_type_selected?: boolean | null
+          ai_credits?: number
           created_at?: string
           email: string
           full_name?: string | null
@@ -2970,6 +2972,7 @@ export type Database = {
         }
         Update: {
           account_type_selected?: boolean | null
+          ai_credits?: number
           created_at?: string
           email?: string
           full_name?: string | null

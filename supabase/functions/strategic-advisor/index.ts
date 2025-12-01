@@ -634,10 +634,14 @@ serve(async (req) => {
 
     console.log("[STRATEGIC-ADVISOR] User authenticated:", user.id);
 
-    // Verify subscription status and trial credit
+    // ========================================
+    // PROTECȚIE FINANCIARĂ - NU ȘTERGE!
+    // ========================================
+
+    // Verify subscription status and AI credits
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("subscription_type, subscription_status, has_free_access, trial_credit_remaining")
+      .select("subscription_type, subscription_status, has_free_access, trial_credit_remaining, ai_credits")
       .eq("id", user.id)
       .single();
 
@@ -681,6 +685,32 @@ serve(async (req) => {
         }
       );
     }
+
+    // Check AI Credits (50 bani per message = 0.50 RON)
+    const MESSAGE_COST = 50; // cents
+    const currentCredits = profile?.ai_credits || 0;
+
+    if (currentCredits < MESSAGE_COST) {
+      console.error('[strategic-advisor] Insufficient credits:', currentCredits);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Credit AI insuficient',
+          message: 'Nu ai suficient credit pentru acest mesaj. Reîncarcă în Settings.',
+          required: MESSAGE_COST,
+          remaining: currentCredits
+        }), 
+        { 
+          status: 402, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('[strategic-advisor] Credits OK:', currentCredits, 'cents');
+
+    // ========================================
+    // PROTECȚIE FINANCIARĂ - SFÂRȘIT
+    // ========================================
 
     const { 
       message, 
@@ -921,6 +951,37 @@ ${changesDescription}
         console.error("[STRATEGIC-ADVISOR] Empty simulation response from AI:", JSON.stringify(simulationResponse, null, 2));
         throw new Error("No response from Strategist in simulation mode - check logs for API response details");
       }
+
+      console.log("[STRATEGIC-ADVISOR] Simulation result received, SUCCESS!");
+
+      // ========================================
+      // DEDUCT CREDIT ONLY AFTER SUCCESS (simulation)
+      // ========================================
+      const { error: deductError } = await supabaseClient
+        .from('profiles')
+        .update({ 
+          ai_credits: currentCredits - MESSAGE_COST 
+        })
+        .eq('id', user.id);
+      
+      if (deductError) {
+        console.error('[strategic-advisor] Failed to deduct credits (simulation):', deductError);
+      } else {
+        console.log('[strategic-advisor] Credits deducted (simulation), new balance:', currentCredits - MESSAGE_COST);
+      }
+      
+      // Track AI usage for simulation
+      await supabaseClient
+        .from('ai_usage')
+        .insert({
+          user_id: user.id,
+          endpoint: 'strategic-advisor-simulation',
+          model: 'google/gemini-2.5-pro',
+          estimated_cost_cents: MESSAGE_COST,
+          success: true,
+          month_year: new Date().toISOString().slice(0, 7)
+        });
+      // ========================================
 
       console.log("[STRATEGIC-ADVISOR] Simulation result received, length:", simulationResult.length);
 
@@ -1393,7 +1454,38 @@ ${factSheet}
       throw new Error("No response from Strategist - check logs for API response details");
     }
 
-    console.log("[STRATEGIC-ADVISOR] Strategist response received, updating validation log");
+    console.log("[STRATEGIC-ADVISOR] Strategist response received, SUCCESS!");
+
+    // ========================================
+    // DEDUCT CREDIT ONLY AFTER SUCCESS
+    // ========================================
+    const { error: deductError } = await supabaseClient
+      .from('profiles')
+      .update({ 
+        ai_credits: currentCredits - MESSAGE_COST 
+      })
+      .eq('id', user.id);
+    
+    if (deductError) {
+      console.error('[strategic-advisor] Failed to deduct credits:', deductError);
+      // Nu oprește execuția, doar loghează
+    } else {
+      console.log('[strategic-advisor] Credits deducted, new balance:', currentCredits - MESSAGE_COST);
+    }
+    
+    // Track AI usage
+    await supabaseClient
+      .from('ai_usage')
+      .insert({
+        user_id: user.id,
+        endpoint: 'strategic-advisor',
+        model: 'google/gemini-2.5-pro',
+        estimated_cost_cents: MESSAGE_COST,
+        success: true,
+        month_year: new Date().toISOString().slice(0, 7) // YYYY-MM
+      });
+
+    console.log("[STRATEGIC-ADVISOR] Updating validation log");
 
     // Update validation log with strategist response
     const costCents = Math.ceil(totalCost * 100); // Convert RON to cents
