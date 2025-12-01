@@ -109,7 +109,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.initiate-onboarding]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fetch-company-data]
 verify_jwt = true
@@ -124,7 +124,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.analyze-ai-patterns]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cfo-advisor]
 verify_jwt = true
