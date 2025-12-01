@@ -11,6 +11,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // ✅ SECURITY: Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    console.error('❌ [AUTH] Missing Authorization header');
+    return new Response(
+      JSON.stringify({ error: 'Autentificare necesară' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {

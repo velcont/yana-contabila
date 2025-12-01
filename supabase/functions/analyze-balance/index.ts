@@ -7,6 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+
 const SYSTEM_PROMPT = `Analizeaza balanta atasata urmand urmatoarele Instrucțiuni:
 
 🔴 **REGULĂ CRITICĂ ABSOLUTĂ - ACURATEȚEA VALORILOR** 🔴
@@ -486,6 +489,31 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // ✅ SECURITY: Verify authentication
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    console.error('❌ [AUTH] Missing Authorization header');
+    return new Response(
+      JSON.stringify({ error: 'Autentificare necesară' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+  if (authError || !user) {
+    console.error('❌ [AUTH] Invalid token:', authError?.message);
+    return new Response(
+      JSON.stringify({ error: 'Token invalid sau expirat' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  console.log(`✅ [AUTH] User authenticated: ${user.id}`);
 
   try {
     const { excelBase64, fileName, forceReprocess = false } = await req.json();
