@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const ADMIN_EMAIL = "office@velcont.com";
@@ -19,6 +20,26 @@ interface DeletionEmailRequest {
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // 🔒 SECURITY: Rate limiting by IP address
+  const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const { data: canProceed } = await supabase.rpc('check_rate_limit', {
+    p_user_id: clientIp,
+    p_endpoint: 'send-account-deletion-email',
+    p_max_requests: 5 // 5 deletion emails per minute (should be rare)
+  });
+
+  if (!canProceed) {
+    console.error(`Rate limit exceeded for IP: ${clientIp}`);
+    return new Response(
+      JSON.stringify({ error: 'Too many deletion email requests' }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
