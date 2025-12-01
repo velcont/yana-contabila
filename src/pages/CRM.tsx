@@ -6,7 +6,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CRMManualClientDialog } from "@/components/CRMManualClientDialog";
 import { CRMCSVImport } from "@/components/CRMCSVImport";
-import { Loader2, Building2, Mail, Users, UserPlus, FileUp, FileCheck } from "lucide-react";
+import { Loader2, Building2, Mail, Users, UserPlus, FileUp, FileCheck, MessageSquare } from "lucide-react";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +21,7 @@ const EmailBroadcast = lazy(() => import("@/components/EmailBroadcast").then(m =
 const UsersList = lazy(() => import("@/components/UsersList").then(m => ({ default: m.UsersList })));
 const MonthlyWorkflowManager = lazy(() => import("@/components/yanacrm/MonthlyWorkflowManager").then(m => ({ default: m.MonthlyWorkflowManager })));
 const BalanceConfirmationHistory = lazy(() => import("@/components/BalanceConfirmationHistory").then(m => ({ default: m.BalanceConfirmationHistory })));
+const CRMMessagingManager = lazy(() => import("@/components/CRMMessagingManager").then(m => ({ default: m.CRMMessagingManager })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -95,7 +96,7 @@ const CRM = () => {
           
           <Tabs defaultValue="clients" className="space-y-6">
             <div className="flex items-center justify-between mb-6">
-                <TabsList className="grid w-full max-w-3xl grid-cols-5">
+                <TabsList className="grid w-full max-w-4xl grid-cols-6">
                   <TabsTrigger value="clients" className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
                     Clienți
@@ -106,6 +107,10 @@ const CRM = () => {
                   </TabsTrigger>
                   <TabsTrigger value="workflows" className="flex items-center gap-2">
                     📅 Dosare Lunare
+                  </TabsTrigger>
+                  <TabsTrigger value="messaging" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Mesaje
                   </TabsTrigger>
                   <TabsTrigger value="broadcast" className="flex items-center gap-2">
                     <Mail className="h-4 w-4" />
@@ -133,6 +138,12 @@ const CRM = () => {
             <TabsContent value="workflows">
               <Suspense fallback={<TabContentLoader />}>
                 <MonthlyWorkflowManager />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="messaging">
+              <Suspense fallback={<TabContentLoader />}>
+                <CRMMessagingManager />
               </Suspense>
             </TabsContent>
 
