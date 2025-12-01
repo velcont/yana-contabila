@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const ADMIN_EMAIL = "office@velcont.com";
@@ -10,12 +11,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface DeletionEmailRequest {
-  userEmail: string;
-  userName?: string;
-  deletedBy: string;
-  deletionDate: string;
-}
+// 🔒 SECURITY: Zod validation schema
+const DeletionEmailSchema = z.object({
+  userEmail: z.string().email("Invalid email format"),
+  userName: z.string().optional(),
+  deletedBy: z.string().min(1, "deletedBy is required"),
+  deletionDate: z.string().min(1, "deletionDate is required")
+});
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -43,7 +45,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { userEmail, userName, deletedBy, deletionDate }: DeletionEmailRequest = await req.json();
+    // 🔒 SECURITY: Validate input with Zod
+    const rawBody = await req.json();
+    const validationResult = DeletionEmailSchema.safeParse(rawBody);
+    
+    if (!validationResult.success) {
+      console.error("Validation error:", validationResult.error.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { userEmail, userName, deletedBy, deletionDate } = validationResult.data;
 
     console.log(`Trimit email de confirmare ștergere către ${userEmail}`);
 
