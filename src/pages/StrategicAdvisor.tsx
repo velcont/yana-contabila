@@ -26,6 +26,9 @@ import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { StrategicFactsPanel } from "@/components/StrategicFactsPanel";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
+import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
+import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
+import { AlertTriangle, Plus } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
@@ -64,6 +67,7 @@ export default function StrategicAdvisor() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<any>(null);
+  const [warRoomOpen, setWarRoomOpen] = useState(false);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -498,15 +502,32 @@ export default function StrategicAdvisor() {
               </div>
 
                   {activeTab === "chat" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={startNewConversation}
-                      className="gap-2 btn-hover-lift"
-                    >
-                      <MessageSquarePlus className="w-4 h-4" />
-                      Conversație Nouă
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setWarRoomOpen(true)}
+                        className="gap-2 border-red-500/50 text-red-500 hover:bg-red-500/10"
+                      >
+                        <AlertTriangle className="h-4 w-4" />
+                        War Room
+                      </Button>
+
+                      <BattlePlanExport 
+                        conversationId={conversationId}
+                        userId={user.id}
+                      />
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={startNewConversation}
+                        className="gap-2 btn-hover-lift"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Conversație Nouă
+                      </Button>
+                    </>
                   )}
                   
                   {/* Sidebar Toggle */}
@@ -642,6 +663,22 @@ export default function StrategicAdvisor() {
         onOpenChange={setConflictDialogOpen}
         conflicts={selectedConflict?.conflicts || []}
         validationNotes={selectedConflict?.validation_notes}
+      />
+
+      {/* War Room Simulator */}
+      <WarRoomSimulator
+        open={warRoomOpen}
+        onOpenChange={setWarRoomOpen}
+        conversationId={conversationId}
+        userId={user.id}
+        onSimulationResult={(result) => {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: result,
+            timestamp: new Date(),
+            showFeedback: false,
+          }]);
+        }}
       />
     </div>
   );
