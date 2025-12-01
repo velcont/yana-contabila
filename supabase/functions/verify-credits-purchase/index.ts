@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,11 +14,30 @@ serve(async (req) => {
   }
 
   try {
-    const { sessionId } = await req.json();
+    // Zod validation schema for request body
+    const RequestSchema = z.object({
+      sessionId: z.string().min(1, "Session ID is required"),
+    });
 
-    if (!sessionId) {
-      throw new Error("Session ID is required");
+    const rawBody = await req.json();
+    const validation = RequestSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      console.error("❌ Invalid request body:", validation.error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Invalid request format",
+          details: validation.error.errors,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
     }
+
+    const { sessionId } = validation.data;
 
     console.log("🔍 Verifying purchase for session:", sessionId);
 
