@@ -1,6 +1,7 @@
 // Force redeploy v2 - First message validation skip
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -712,6 +713,45 @@ serve(async (req) => {
     // PROTECȚIE FINANCIARĂ - SFÂRȘIT
     // ========================================
 
+    // ✅ ZOD VALIDATION SCHEMA
+    const StrategicAdvisorRequestSchema = z.object({
+      message: z.string()
+        .min(1, "Mesajul nu poate fi gol")
+        .max(5000, "Mesajul este prea lung. Maximum 5,000 caractere"),
+      conversationId: z.string().uuid(),
+      industryType: z.string().max(100).optional(),
+      financialData: z.record(z.any()).optional(),
+      simulation_mode: z.boolean().optional().default(false),
+      simulation_changes: z.array(z.object({
+        key: z.string(),
+        originalValue: z.number(),
+        newValue: z.number(),
+        unit: z.string()
+      })).optional()
+    });
+
+    // ✅ PARSE AND VALIDATE WITH ZOD
+    let requestBody;
+    try {
+      const rawBody = await req.json();
+      requestBody = StrategicAdvisorRequestSchema.parse(rawBody);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error('[strategic-advisor] Validation error:', error.errors);
+        return new Response(
+          JSON.stringify({ 
+            error: "Date de intrare invalide", 
+            details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: "Format JSON invalid" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { 
       message, 
       conversationId, 
@@ -719,22 +759,7 @@ serve(async (req) => {
       financialData,
       simulation_mode,      // ← WAR ROOM SIMULATOR
       simulation_changes    // ← MODIFICĂRI UTILIZATOR
-    } = await req.json();
-
-    // ✅ SECURITY FIX: Input validation
-    if (!message || typeof message !== 'string') {
-      return new Response(
-        JSON.stringify({ error: "Mesaj invalid" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (message.length > 5000) {
-      return new Response(
-        JSON.stringify({ error: "Mesajul este prea lung. Maximum 5,000 caractere." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    } = requestBody;
 
     console.log("[STRATEGIC-ADVISOR] Request data:", { 
       hasIndustry: !!industryType, 

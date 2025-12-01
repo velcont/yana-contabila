@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,6 +121,22 @@ IMPORTANTE:
 `;
 
 
+// ✅ ZOD VALIDATION SCHEMA
+const FiscalChatRequestSchema = z.object({
+  message: z.string()
+    .min(1, "Mesajul nu poate fi gol")
+    .max(5000, "Mesajul este prea lung. Maximum 5,000 caractere")
+    .optional(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string()
+  }))
+    .max(50, "Istoricul conversației este prea lung. Maximum 50 mesaje")
+    .optional()
+}).refine(data => data.message || (data.messages && data.messages.length > 0), {
+  message: "Trebuie să existe 'message' sau 'messages' array"
+});
+
 serve(async (req) => {
   console.log('[FISCAL-CHAT] New request received.');
   console.log('[FISCAL-CHAT] Headers:', {
@@ -132,7 +149,7 @@ serve(async (req) => {
   }
 
   try {
-    // Read raw body to avoid JSON parse issues
+    // ✅ READ AND VALIDATE WITH ZOD
     let rawBody = '';
     try {
       rawBody = await req.text();
@@ -145,7 +162,6 @@ serve(async (req) => {
       });
     }
 
-    let body: any = {};
     if (!rawBody) {
       console.error('[FISCAL-CHAT] Empty request body');
       return new Response(JSON.stringify({ error: 'Empty request body' }), {
@@ -154,9 +170,22 @@ serve(async (req) => {
       });
     }
 
+    let parsedBody;
     try {
-      body = JSON.parse(rawBody);
+      const jsonBody = JSON.parse(rawBody);
+      parsedBody = FiscalChatRequestSchema.parse(jsonBody);
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        console.error('[FISCAL-CHAT] Zod validation error:', err.errors);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Date de intrare invalide', 
+            details: err.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       console.error('[FISCAL-CHAT] JSON parse error:', err);
       return new Response(JSON.stringify({ error: 'Invalid JSON format' }), {
         status: 400,
@@ -164,20 +193,13 @@ serve(async (req) => {
       });
     }
 
-    const message = typeof body.message === 'string' ? body.message
-      : Array.isArray(body.messages) ? (body.messages?.[0]?.content ?? '') : '';
+    // Extract message from validated body
+    const message = parsedBody.message || (parsedBody.messages?.[0]?.content ?? '');
     console.log('[FISCAL-CHAT] Parsed message:', message ? message.slice(0, 120) : '(empty)');
 
     // Extract full messages array for conversation history
-    const messagesArray = Array.isArray(body.messages) ? body.messages : [{ role: 'user', content: message }];
+    const messagesArray = parsedBody.messages || [{ role: 'user', content: message }];
     console.log('[FISCAL-CHAT] Messages array length:', messagesArray.length);
-
-    if (!message || typeof message !== 'string') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid message format' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     // Get Perplexity API key
     const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
