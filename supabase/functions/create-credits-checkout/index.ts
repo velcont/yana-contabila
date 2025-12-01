@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,8 +56,6 @@ serve(async (req) => {
       );
     }
 
-    const { priceId } = await req.json();
-
     // 🔒 BUG FIX #7: Validate priceId against whitelist
     const validPriceIds = [
       "price_1SIsUMBu3m83VcDA5X8MPfrS", // Starter (10 lei)
@@ -65,12 +64,32 @@ serve(async (req) => {
       "price_1SIsUQBu3m83VcDAykzaXTeT", // Enterprise (70 lei)
     ];
 
-    if (!priceId) {
+    // Zod validation schema for request body
+    const RequestSchema = z.object({
+      priceId: z.string().min(1, "Price ID is required").refine(
+        (id) => validPriceIds.includes(id),
+        { message: "Invalid price ID" }
+      ),
+    });
+
+    const rawBody = await req.json();
+    const validation = RequestSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      console.error("❌ Invalid request body:", validation.error);
       return new Response(
-        JSON.stringify({ error: "Price ID lipsă" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Invalid request format",
+          details: validation.error.errors,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
       );
     }
+
+    const { priceId } = validation.data;
 
     if (!validPriceIds.includes(priceId)) {
       console.error(`⚠️ Invalid priceId attempted: ${priceId} by user ${user.id}`);
