@@ -853,7 +853,7 @@ ${changesDescription}
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5",
+          model: "google/gemini-2.5-pro",
           messages: simulationMessages,
           max_tokens: 2048,
         }),
@@ -1295,7 +1295,7 @@ ${factSheet}
           "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "google/gemini-2.5-pro",
         messages: strategistMessages,
         max_tokens: 2048,
       }),
@@ -1333,7 +1333,7 @@ ${factSheet}
       .from('strategic_advisor_validations')
     .update({
       strategist_response: strategistResponse,
-      strategist_model: "claude-sonnet-4-5",
+      strategist_model: "google/gemini-2.5-pro",
       strategist_tokens_used: data.usage?.total_tokens || 0,
       total_cost_cents: costCents
       })
@@ -1377,7 +1377,7 @@ ${factSheet}
       cache_type: "strategy",
     request_hash: strategyCacheKey,
     response_data: { content: strategistResponse, facts_used: allFacts?.length || 0 },
-    model_used: "claude-sonnet-4-5",
+    model_used: "google/gemini-2.5-pro",
     tokens_used: data.usage?.total_tokens || 0,
     cost_cents: costCents,
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
