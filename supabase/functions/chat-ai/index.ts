@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -818,6 +819,23 @@ async function executeTools(toolCalls: any[], authHeader: string) {
   return results;
 }
 
+// ✅ ZOD VALIDATION SCHEMA
+const ChatAIRequestSchema = z.object({
+  message: z.string()
+    .min(1, "Mesajul nu poate fi gol")
+    .max(10000, "Mesajul este prea lung. Maximum 10,000 caractere"),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string()
+  }))
+    .max(100, "Istoricul conversației este prea lung. Maximum 100 mesaje")
+    .optional()
+    .default([]),
+  conversationId: z.string().uuid().optional(),
+  summaryType: z.enum(['detailed', 'brief', 'short', 'action']).optional().default('detailed'),
+  stream: z.boolean().optional().default(true)
+});
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -825,31 +843,30 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
-    const { message, history, conversationId, summaryType = 'detailed', stream: streamResponse = true } = await req.json();
-
-    // ✅ SECURITY FIX: Input validation
-    if (!message || typeof message !== 'string') {
+    
+    // ✅ PARSE AND VALIDATE WITH ZOD
+    let requestBody;
+    try {
+      const rawBody = await req.json();
+      requestBody = ChatAIRequestSchema.parse(rawBody);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error('[chat-ai] Validation error:', error.errors);
+        return new Response(
+          JSON.stringify({ 
+            error: "Date de intrare invalide", 
+            details: error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       return new Response(
-        JSON.stringify({ error: "Mesaj invalid" }),
+        JSON.stringify({ error: "Format JSON invalid" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ✅ SECURITY FIX: Length validation (DoS protection)
-    if (message.length > 10000) {
-      return new Response(
-        JSON.stringify({ error: "Mesajul este prea lung. Maximum 10,000 caractere." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // ✅ SECURITY FIX: Conversation history size limit
-    if (history && Array.isArray(history) && history.length > 100) {
-      return new Response(
-        JSON.stringify({ error: "Istoricul conversației este prea lung. Maximum 100 mesaje." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { message, history, conversationId, summaryType, stream: streamResponse } = requestBody;
 
     // Extragem user_id pentru rate limiting și caching
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
