@@ -829,7 +829,7 @@ ${changesDescription}
         { role: "user", content: simulationPrompt }
       ];
 
-      console.log("[STRATEGIC-ADVISOR] Calling Strategist for simulation (Claude Sonnet 4.5)");
+      console.log("[STRATEGIC-ADVISOR] Calling Strategist for simulation (Google Gemini 2.5 Pro)");
 
       // Rate limiting check
       const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
@@ -879,7 +879,8 @@ ${changesDescription}
       const simulationResult = simulationResponse.choices[0]?.message?.content;
 
       if (!simulationResult) {
-        throw new Error("No response from Strategist in simulation mode");
+        console.error("[STRATEGIC-ADVISOR] Empty simulation response from AI:", JSON.stringify(simulationResponse, null, 2));
+        throw new Error("No response from Strategist in simulation mode - check logs for API response details");
       }
 
       console.log("[STRATEGIC-ADVISOR] Simulation result received, length:", simulationResult.length);
@@ -892,7 +893,7 @@ ${simulationResult}
 ---
 📊 **Simulare War Room executată cu succes**
 • Modificări aplicate: ${simulation_changes.length}
-• Model utilizat: Claude Sonnet 4.5
+• Model utilizat: Google Gemini 2.5 Pro
 • Cost simulare: 0.50 RON`;
 
       // 7. Save to conversation history with simulation metadata
@@ -1285,7 +1286,7 @@ ${factSheet}
    📊 **Bază analiză:** CA: [X] RON, Profit: [Y] RON, Cash: [Z] RON, Industrie: [W]
 4. Dacă lipsește o dată critică din baza validată → cere-o explicit (NU continua fără ea)
 
-**Model curent:** Claude Sonnet 4.5 (cel mai puternic pentru strategic reasoning)
+**Model curent:** Google Gemini 2.5 Pro (optimizat pentru strategic reasoning)
 **Cost acest mesaj:** ${totalCost.toFixed(2)} RON${isFirstMessage ? ' (fără validare - primul mesaj)' : ' (include validare)'}
 **Data:** ${new Date().toISOString().split('T')[0]}`;
 
@@ -1298,7 +1299,7 @@ ${factSheet}
       { role: "user", content: message }
     ];
 
-    console.log("[STRATEGIC-ADVISOR] Phase 3: Calling Strategist Agent (Claude Sonnet 4.5)");
+    console.log("[STRATEGIC-ADVISOR] Phase 3: Calling Strategist Agent (Google Gemini 2.5 Pro)");
 
     // Rate limiting: max 10 requests per minute
     const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
@@ -1349,7 +1350,8 @@ ${factSheet}
     const strategistResponse = data.choices[0]?.message?.content;
 
     if (!strategistResponse) {
-      throw new Error("No response from Strategist");
+      console.error("[STRATEGIC-ADVISOR] Empty response from AI:", JSON.stringify(data, null, 2));
+      throw new Error("No response from Strategist - check logs for API response details");
     }
 
     console.log("[STRATEGIC-ADVISOR] Strategist response received, updating validation log");
