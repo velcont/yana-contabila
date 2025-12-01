@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -10,11 +11,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface WelcomeEmailRequest {
-  recipientEmail: string;
-  inviterName: string;
-  analysisName: string;
-}
+// Zod validation schema for input security
+const WelcomeEmailSchema = z.object({
+  recipientEmail: z.string().email({ message: "Invalid email address" }).max(255),
+  inviterName: z.string().trim().min(1).max(255),
+  analysisName: z.string().trim().min(1).max(500)
+});
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -22,7 +24,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipientEmail, inviterName, analysisName }: WelcomeEmailRequest = await req.json();
+    const rawBody = await req.json();
+    
+    // Validate input with Zod
+    const validationResult = WelcomeEmailSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      console.error('[VALIDATION] Invalid input:', validationResult.error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { recipientEmail, inviterName, analysisName } = validationResult.data;
     
     console.log('Sending welcome email to:', recipientEmail);
 

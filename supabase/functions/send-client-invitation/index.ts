@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.22.4";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -8,6 +9,11 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Zod validation schema for input security
+const ClientInvitationSchema = z.object({
+  invitationId: z.string().uuid({ message: "Invalid invitation ID" })
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,8 +33,22 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw userError;
 
-    const { invitationId } = await req.json();
-    if (!invitationId) throw new Error('Invitation ID required');
+    const rawBody = await req.json();
+    
+    // Validate input with Zod
+    const validationResult = ClientInvitationSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      console.error('[VALIDATION] Invalid input:', validationResult.error);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request format', 
+          details: validationResult.error.errors 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { invitationId } = validationResult.data;
 
     // Get invitation details
     const { data: invitation, error: inviteError } = await supabaseClient
