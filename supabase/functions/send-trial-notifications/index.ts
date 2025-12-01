@@ -21,6 +21,26 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Rate limiting protection (defense-in-depth for public cron endpoint)
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    console.log(`[RATE-LIMIT] Checking rate limit for IP: ${clientIp}`);
+
+    const { data: canProceed, error: rateLimitError } = await supabaseClient.rpc('check_rate_limit', {
+      p_user_id: clientIp,
+      p_endpoint: 'send-trial-notifications',
+      p_max_requests: 5 // Max 5 requests per minute (cron could run multiple times per day)
+    });
+
+    if (rateLimitError) {
+      console.error('[RATE-LIMIT] Error checking rate limit:', rateLimitError);
+    } else if (!canProceed) {
+      console.warn(`[RATE-LIMIT] Rate limit exceeded for IP: ${clientIp}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check for pending trial notifications
     const { data: notifications, error: fetchError } = await supabaseClient
       .from('trial_notifications')
