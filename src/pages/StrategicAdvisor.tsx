@@ -34,6 +34,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -532,27 +533,22 @@ export default function StrategicAdvisor() {
                         </TooltipContent>
                       </Tooltip>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={startNewConversation}
-                        className="gap-2 btn-hover-lift"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Conversație Nouă
-                      </Button>
-
-                      {/* War Room hidden in dropdown menu */}
+                      {/* War Room and New Conversation in dropdown menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="bg-background">
                           <DropdownMenuItem onClick={() => setWarRoomOpen(true)}>
                             <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
                             War Room Simulator
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={startNewConversation}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Conversație Nouă
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
