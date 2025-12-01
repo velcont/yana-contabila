@@ -1,6 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ExternalLink, ThumbsUp, ThumbsDown, AlertTriangle } from 'lucide-react';
+import { StrategicChart, ChartData } from '@/components/strategic/StrategicChart';
+import { cn } from '@/lib/utils';
 
 interface Source {
   title: string;
@@ -39,18 +41,51 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return '📄';
   };
 
+  // Detect if message is a simulation result
+  const isSimulation = content.includes('[SIMULATION_RESULT]');
+  const cleanContent = content.replace(/\[SIMULATION_RESULT\]/g, '').trim();
+
+  // Parse chart data from message
+  const parseChartData = (text: string): ChartData | null => {
+    const chartMatch = text.match(/\[CHART_DATA\](.*?)\[\/CHART_DATA\]/s);
+    if (chartMatch) {
+      try {
+        return JSON.parse(chartMatch[1]);
+      } catch (e) {
+        console.error('Failed to parse chart data:', e);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const chartData = parseChartData(content);
+  const contentWithoutChart = content.replace(/\[CHART_DATA\].*?\[\/CHART_DATA\]/s, '').trim();
+
   return (
     <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[80%] rounded-lg p-4 ${
+        className={cn(
+          'max-w-[80%] rounded-lg p-4',
           role === 'user'
             ? 'bg-primary text-primary-foreground'
-            : 'bg-secondary text-foreground'
-        }`}
+            : 'bg-secondary text-foreground',
+          isSimulation && 'border-2 border-red-500 bg-red-500/10'
+        )}
       >
+        {isSimulation && (
+          <div className="flex items-center gap-2 text-red-500 font-bold mb-3 pb-2 border-b border-red-500/30">
+            <AlertTriangle className="w-5 h-5" />
+            REZULTAT SIMULARE - SCENARIU IPOTETIC
+          </div>
+        )}
+        
         <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm">
-          {content}
+          {chartData ? contentWithoutChart : cleanContent}
         </div>
+
+        {/* Dynamic Chart Rendering */}
+        {chartData && <StrategicChart chartData={chartData} />}
 
         {/* Sources */}
         {role === 'assistant' && sources && sources.length > 0 && (
