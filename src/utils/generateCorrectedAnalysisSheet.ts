@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 
@@ -101,6 +101,145 @@ export const generateCorrectedAnalysisSheet = async () => {
               }),
             ],
             spacing: { after: 400 },
+          }),
+
+          // TABEL CU CELE 6 CÂMPURI CERUTE DE PROFESOARĂ
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "SINTEZĂ METODOLOGICĂ",
+                bold: true,
+                size: 26,
+                font: "Times New Roman",
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 200, after: 200 },
+          }),
+
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              // Row 1: Articolul analizat
+              new TableRow({
+                children: [
+                  new TableCell({
+                    width: { size: 35, type: WidthType.PERCENTAGE },
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Articolul analizat", bold: true, size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                    shading: { fill: "E8E8E8" },
+                  }),
+                  new TableCell({
+                    width: { size: 65, type: WidthType.PERCENTAGE },
+                    children: [new Paragraph({
+                      children: [
+                        new TextRun({ text: "Lu, J., Ren, L., Yao, S., Qiao, J., Mikalauskiene, A. & Streimikis, J. (2020). Exploring the relationship between corporate social responsibility and firm competitiveness. ", size: 22, font: "Times New Roman" }),
+                        new TextRun({ text: "Economic Research-Ekonomska Istraživanja", size: 22, font: "Times New Roman", italics: true }),
+                        new TextRun({ text: ", 33(1), 1621-1646.", size: 22, font: "Times New Roman" }),
+                      ],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                  }),
+                ],
+              }),
+              // Row 2: Domeniul de activitate
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Domeniul de activitate al studiului empiric", bold: true, size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                    shading: { fill: "E8E8E8" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Companii membre UN Global Compact din Lituania - 33 de firme din diverse sectoare (servicii, producție, comerț), reprezentând toate companiile lituaniene care au aderat la inițiativa Global Compact.", size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                  }),
+                ],
+              }),
+              // Row 3: Modalități de măsurare a competitivității
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Modalități de măsurare a competitivității pentru domeniul de activitate", bold: true, size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                    shading: { fill: "E8E8E8" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "6 elemente de competitivitate: (1) Capacitate financiară, (2) Calitatea producției, (3) Satisfacerea nevoilor consumatorilor, (4) Productivitate și eficiență, (5) Posibilități de introducere a inovațiilor, (6) Imaginea și reputația companiei.", size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                  }),
+                ],
+              }),
+              // Row 4: Modalitatea de evaluare a competitivității
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Modalitatea de evaluare a competitivității selectată de autori", bold: true, size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                    shading: { fill: "E8E8E8" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Coeficient de impact K calculat prin formula: Ki = Σ(j=1 to N) kj × ni / n, unde se utilizează scala unipolară (0; 0.25; 0.5; 1) pentru cuantificarea percepției respondenților asupra impactului fiecărei dimensiuni CSR asupra elementelor de competitivitate.", size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                  }),
+                ],
+              }),
+              // Row 5: Constituirea eșantionului
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Constituirea eșantionului", bold: true, size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                    shading: { fill: "E8E8E8" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Eșantion exhaustiv: toate cele 33 de companii membre UN Global Compact din Lituania. Rată de răspuns 100%. Studiu de tip census (nu eșantionare statistică).", size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                  }),
+                ],
+              }),
+              // Row 6: Modalitatea de culegere a datelor
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Modalitatea de culegere a datelor", bold: true, size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                    shading: { fill: "E8E8E8" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: "Chestionar structurat distribuit prin email în septembrie 2019. Scala Likert cu 4 puncte: 1 = niciun impact, 2 = impact nesemnificativ, 3 = impact moderat, 4 = impact ridicat.", size: 22, font: "Times New Roman" })],
+                      spacing: { before: 100, after: 100 },
+                    })],
+                  }),
+                ],
+              }),
+            ],
+          }),
+
+          new Paragraph({
+            text: "",
+            spacing: { after: 300 },
           }),
 
           // Section 1: Referință bibliografică
