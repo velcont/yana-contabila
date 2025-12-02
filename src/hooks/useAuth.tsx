@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from '@/utils/versionRefresh';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -47,6 +48,28 @@ export const useAuth = () => {
       email,
       password,
     });
+    
+    // Verificare versiune după autentificare reușită
+    if (!error) {
+      // Verificăm dacă există flag de refresh pending de la logout
+      const pendingRefresh = localStorage.getItem('pending_refresh');
+      if (pendingRefresh === 'true') {
+        localStorage.removeItem('pending_refresh');
+        await saveCurrentVersion(supabase);
+        await performVersionRefresh();
+        return { error }; // Nu ajunge aici, pagina se reîncarcă
+      }
+      
+      // Verificare normală de versiune nouă
+      setTimeout(async () => {
+        const hasNewVersion = await checkForNewVersion(supabase);
+        if (hasNewVersion) {
+          await saveCurrentVersion(supabase);
+          await performVersionRefresh();
+        }
+      }, 0);
+    }
+    
     return { error };
   };
 
@@ -85,6 +108,22 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Curățare cache și setare flag pentru refresh la următorul login
+    try {
+      // Șterge toate cache-urile
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }
+      
+      // Setăm flag pentru a forța refresh la următorul login
+      localStorage.setItem('pending_refresh', 'true');
+    } catch (error) {
+      console.warn('[SIGN_OUT] Cache cleanup failed:', error);
+    }
+    
     const { error } = await supabase.auth.signOut();
     return { error };
   };
