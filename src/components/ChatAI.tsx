@@ -1374,20 +1374,12 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           setIsLoading(true);
           setThinkingMessage("Analizez balanța încărcată...");
 
-          // 🔐 Validare sesiune înainte de upload
-          const isSessionValid = await validateSession();
-          if (!isSessionValid) {
-            setIsLoading(false);
-            setIsUploadingFile(false);
-            // Eliminăm mesajul de upload în caz de eroare sesiune
-            setMessages(prev => prev.slice(0, -1));
-            return;
-          }
-
-          // 🔐 Obține token-ul fresh după validare
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          if (!currentSession?.access_token) {
-            console.error('[ChatAI] Nu s-a putut obține token-ul de sesiune');
+          // 🔐 FORȚĂM refresh sesiune pentru a obține token proaspăt
+          console.log('[ChatAI] Forțăm refresh sesiune înainte de analyze-balance...');
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session?.access_token) {
+            console.error('[ChatAI] Refresh sesiune eșuat:', refreshError?.message);
             toast({
               title: '❌ Sesiune expirată',
               description: 'Te rugăm să te reconectezi pentru a încărca balanța.',
@@ -1400,16 +1392,17 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             return;
           }
 
-          console.log('[ChatAI] Token obținut, apelare analyze-balance...');
+          const freshToken = refreshData.session.access_token;
+          console.log('[ChatAI] Token proaspăt obținut, apelare analyze-balance...');
 
-          // Call analyze-balance edge function cu token explicit
+          // Call analyze-balance edge function cu token explicit fresh
           const { data, error } = await supabase.functions.invoke('analyze-balance', {
             body: { 
               excelBase64: base64Data,
               fileName: file.name 
             },
             headers: {
-              Authorization: `Bearer ${currentSession.access_token}`
+              Authorization: `Bearer ${freshToken}`
             }
           });
 
