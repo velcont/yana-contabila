@@ -22,7 +22,7 @@ export const UpdateNotificationBanner = () => {
         .select('version, title')
         .eq('is_current_version', true)
         .eq('status', 'published')
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.warn('[UpdateNotificationBanner] Failed to fetch app updates:', error);
