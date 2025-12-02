@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users, Plus, Trash2, Wand2 } from "lucide-react";
+import { Loader2, FileText, BookOpen, Download, AlertCircle, Sparkles, Youtube, ExternalLink, FileText as TranscriptIcon, GraduationCap, Database, Users, Plus, Trash2, Wand2, ClipboardCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ResearchDataImport } from "./ResearchDataImport";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { DoctorateStructureView } from "./doctorate/DoctorateStructureView";
-
+import { generateCorrectedAnalysisSheet } from "@/utils/generateCorrectedAnalysisSheet";
 interface ResearchData {
   id: string;
   research_theme: string;
@@ -44,6 +44,7 @@ export default function AcademicThesisAssistant() {
   const [loading, setLoading] = useState(false);
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [generatingDoctorate, setGeneratingDoctorate] = useState(false);
+  const [generatingAnalysisSheet, setGeneratingAnalysisSheet] = useState(false);
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   
@@ -52,6 +53,16 @@ export default function AcademicThesisAssistant() {
   const [newResourceLink, setNewResourceLink] = useState("");
   const [newResourceContent, setNewResourceContent] = useState("");
   const [sourceType, setSourceType] = useState<string>("enformation");
+
+  // Handler for downloading corrected analysis sheet
+  const handleDownloadAnalysisSheet = async () => {
+    setGeneratingAnalysisSheet(true);
+    try {
+      await generateCorrectedAnalysisSheet();
+    } finally {
+      setGeneratingAnalysisSheet(false);
+    }
+  };
 
   useEffect(() => {
     loadResearchData();
@@ -1034,7 +1045,46 @@ IMPORTANT:
                       <Database className="h-5 w-5 mr-2" />
                       Generează Draft Doctorat cu Date Agregate
                     </>
+          )}
+
+          {/* Buton pentru Fișă de Analiză Corectată (Ren2020) */}
+          {isAdmin && (
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck className="h-5 w-5 text-green-600" />
+                  <CardTitle className="text-base">Fișă Analiză - Ren et al. (2020)</CardTitle>
+                </div>
+                <CardDescription>
+                  Descarcă fișa de analiză corectată cu toate completările și sugestiile integrate
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleDownloadAnalysisSheet}
+                  disabled={generatingAnalysisSheet}
+                  variant="outline"
+                  className="w-full border-green-500/50 hover:bg-green-500/10"
+                  size="lg"
+                >
+                  {generatingAnalysisSheet ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Generare în curs...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-5 w-5 mr-2" />
+                      Descarcă Fișa Corectată (Word)
+                    </>
                   )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Include: metode statistice, rezultate detaliate, încadrare în literatura de specialitate
+                </p>
+              </CardContent>
+            </Card>
+          )}
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2 text-center">
                   Include statistici de la toți utilizatorii (anonimizate)
