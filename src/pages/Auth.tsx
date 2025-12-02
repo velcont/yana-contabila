@@ -42,33 +42,65 @@ const Auth = () => {
     }
   }, [isMarketplaceEntry, toast]);
 
+  // Ascultă evenimentul PASSWORD_RECOVERY de la Supabase Auth
   useEffect(() => {
-    const checkResetMode = async () => {
-      // Metodă 1: Verifică parametrul ?reset=true
-      const resetParam = searchParams.get('reset') === 'true';
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 [AUTH] Auth state change:', event, session?.user?.email);
       
-      // Metodă 2: Verifică parametrul type=recovery (vine direct de la Supabase)
-      const recoveryType = searchParams.get('type') === 'recovery';
-      
-      // Metodă 3: Verifică dacă există o sesiune activă de recovery
-      const { data: { session } } = await supabase.auth.getSession();
-      const hasRecoverySession = session?.user?.aud === 'authenticated' && 
-                                  searchParams.get('type') === 'recovery';
-      
-      // Activăm reset mode dacă oricare dintre metode confirmă
-      if (resetParam || recoveryType || hasRecoverySession) {
-        console.log('🔐 [AUTH] Reset mode detected:', { 
-          resetParam, 
-          recoveryType, 
-          hasRecoverySession,
-          sessionUser: session?.user?.email 
-        });
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('🔐 [AUTH] PASSWORD_RECOVERY event detected');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
         
         // Curățăm URL-ul de parametrii sensibili
         const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = ''; // Șterge hash fragment-ul
+        cleanUrl.searchParams.delete('type');
+        cleanUrl.searchParams.delete('token');
+        cleanUrl.searchParams.delete('token_hash');
+        cleanUrl.searchParams.set('reset', 'true');
+        window.history.replaceState({}, '', cleanUrl.toString());
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Verifică și parametrii din URL și hash fragment la încărcare
+  useEffect(() => {
+    const checkResetMode = async () => {
+      // Metodă 1: Verifică parametrul ?reset=true
+      const resetParam = searchParams.get('reset') === 'true';
+      
+      // Metodă 2: Verifică parametrul type=recovery din query string
+      const recoveryType = searchParams.get('type') === 'recovery';
+      
+      // Metodă 3: Verifică hash fragment-ul pentru type=recovery
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashRecoveryType = hashParams.get('type') === 'recovery';
+      
+      // Metodă 4: Verifică dacă există o sesiune activă
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      console.log('🔐 [AUTH] Check reset mode:', { 
+        resetParam, 
+        recoveryType, 
+        hashRecoveryType,
+        hash: window.location.hash,
+        sessionExists: !!session 
+      });
+      
+      // Activăm reset mode dacă oricare dintre metode confirmă
+      if (resetParam || recoveryType || hashRecoveryType) {
+        console.log('🔐 [AUTH] Reset mode activated');
+        setIsResetMode(true);
+        setIsLogin(false);
+        setIsForgotPassword(false);
+        
+        // Curățăm URL-ul de parametrii sensibili
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = '';
         cleanUrl.searchParams.delete('type');
         cleanUrl.searchParams.delete('token');
         cleanUrl.searchParams.delete('token_hash');
