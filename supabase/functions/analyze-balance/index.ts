@@ -520,13 +520,17 @@ serve(async (req) => {
     );
   }
 
+  // 🔐 Extract JWT token from header
+  const token = authHeader.replace('Bearer ', '');
+  
   const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } }
   });
 
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+  // 🔐 Pass token explicitly to getUser() - this is required in Deno edge functions
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
   if (authError || !user) {
-    console.error('❌ [AUTH] Invalid token:', authError?.message);
+    console.error('❌ [AUTH] Invalid token:', authError?.message || 'User not found');
     return new Response(
       JSON.stringify({ error: 'Token invalid sau expirat' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
