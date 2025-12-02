@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -86,17 +86,22 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   // Detectare utilizator nou
   const [userProfile, setUserProfile] = useState<any>(null);
   const [analysesCount, setAnalysesCount] = useState<number>(0);
+  const [lastAnalysisDate, setLastAnalysisDate] = useState<string | null>(null);
   
   // Verifică dacă utilizatorul este nou (< 7 zile + 0 analize)
   const isNewUser = userProfile && analysesCount === 0 && 
     (new Date().getTime() - new Date(userProfile.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
+  
+  // Detectare utilizator revenit (>14 zile de la ultima analiză, dar are analize anterioare)
+  const isReturningUser = userProfile && analysesCount > 0 && lastAnalysisDate && 
+    (new Date().getTime() - new Date(lastAnalysisDate).getTime()) > 14 * 24 * 60 * 60 * 1000;
   
   const [isOpen, setIsOpen] = useState(openOnLoad);
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
   const [showModeSwitchBanner, setShowModeSwitchBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
   
-  // Mesaj de bun venit diferențiat pentru utilizatori noi
+  // Mesaj de bun venit diferențiat pentru utilizatori noi și revenitori
   const getWelcomeMessage = () => {
     if (isNewUser) {
       return `👋 **Bună! Eu sunt Yana, ghidul tău AI pentru analiza financiară!**
@@ -106,7 +111,16 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 Ce vrei să faci mai întâi?`;
     }
     
-    return isAccountantModule ? 
+    if (isReturningUser) {
+      return `👋 **Bine ai revenit în Yana!**
+
+Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
+
+🔄 Scrie **"ajutor"** oricând pentru un ghid rapid
+📊 Sau încarcă direct o balanță nouă mai jos`;
+    }
+    
+    return isAccountantModule ?
       `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
 📊 **Pentru analiză balanță:**
@@ -405,13 +419,26 @@ Ce vrei să faci mai întâi?`;
           setUserProfile(profile);
         }
 
-        // Încarcă număr analize
+        // Încarcă număr analize și data ultimei analize
         const { count } = await supabase
           .from('analyses')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', user.id);
         
         setAnalysesCount(count || 0);
+
+        // Încarcă data ultimei analize pentru detectare utilizatori revenitori
+        const { data: lastAnalysis } = await supabase
+          .from('analyses')
+          .select('created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (lastAnalysis) {
+          setLastAnalysisDate(lastAnalysis.created_at);
+        }
       } catch (err) {
         console.error('Error loading user data:', err);
       }
@@ -420,7 +447,7 @@ Ce vrei să faci mai întâi?`;
     loadUserData();
   }, []);
 
-  // Update mesajul de bun venit când se determină dacă este utilizator nou
+  // Update mesajul de bun venit când se determină dacă este utilizator nou sau revenit
   useEffect(() => {
     if (!autoStart && userProfile) {
       setMessages([{
@@ -428,7 +455,7 @@ Ce vrei să faci mai întâi?`;
         content: getWelcomeMessage()
       }]);
     }
-  }, [userProfile, analysesCount, autoStart]);
+  }, [userProfile, analysesCount, lastAnalysisDate, autoStart]);
 
   // Auto-open chat effect
   useEffect(() => {
@@ -678,6 +705,36 @@ Ce vrei să faci mai întâi?`;
     }
   };
 
+  // Handler pentru cereri de ajutor
+  const handleHelpRequest = () => {
+    const helpMessage = `📚 **Ghid Rapid Yana - Ce poți face aici:**
+
+**1. 📊 Analiză Balanță Contabilă**
+   → Încarcă un fișier Excel cu balanța
+   → Primești automat: DSO, cash flow, anomalii, indicatori
+
+**2. ⚖️ Consultanță Fiscală** (tab separat sus)
+   → Întrebări despre TVA, impozite, legislație
+
+**3. 🎯 Funcții Rapide:**
+   - Scrie "DSO" pentru Days Sales Outstanding
+   - Scrie "cash flow" pentru analiza lichidității
+   - Scrie "anomalii" pentru probleme detectate
+
+**Ce vrei să faci acum?**
+- 📊 Încărc o balanță
+- ❓ Am o întrebare specifică
+- 👀 Arată-mi un exemplu`;
+
+    const helpResponse: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: helpMessage
+    };
+    
+    setMessages(prev => [...prev, helpResponse]);
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -686,6 +743,41 @@ Ce vrei să faci mai întâi?`;
     const newUserMsg = { role: 'user' as const, content: userMessage };
     setMessages(prev => [...prev, newUserMsg]);
     setIsLoading(true);
+
+    // 🆕 Verificăm dacă este cerere de ajutor
+    const helpKeywords = ['ajutor', 'help', 'cum folosesc', 'tutorial', 'ghid', 'am uitat', 'nu stiu', 'nu știu'];
+    const isHelpRequest = helpKeywords.some(keyword => 
+      userMessage.toLowerCase().includes(keyword)
+    );
+
+    if (isHelpRequest) {
+      handleHelpRequest();
+      setIsLoading(false);
+      
+      // Salvăm în istoric
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('conversation_history').insert([
+            {
+              user_id: user.id,
+              conversation_id: conversationId,
+              role: 'user',
+              content: userMessage
+            },
+            {
+              user_id: user.id,
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: messages[messages.length - 1].content
+            }
+          ]);
+        }
+      } catch (err) {
+        console.error('Error saving help conversation:', err);
+      }
+      return;
+    }
 
     // 🆕 Verificăm dacă așteptăm răspuns la întrebarea despre descărcare
     if (awaitingDownloadKnowledgeResponse) {
@@ -2687,6 +2779,21 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           {/* Grup dreapta - Controale unificate */}
           <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleHelpRequest}
+                    className="h-8 w-8"
+                    aria-label="Ajutor"
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Ghid rapid - Cum folosesc Yana?</TooltipContent>
+              </Tooltip>
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
