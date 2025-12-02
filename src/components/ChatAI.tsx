@@ -1384,11 +1384,32 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             return;
           }
 
-          // Call analyze-balance edge function
+          // 🔐 Obține token-ul fresh după validare
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (!currentSession?.access_token) {
+            console.error('[ChatAI] Nu s-a putut obține token-ul de sesiune');
+            toast({
+              title: '❌ Sesiune expirată',
+              description: 'Te rugăm să te reconectezi pentru a încărca balanța.',
+              variant: 'destructive',
+              duration: 7000
+            });
+            setIsLoading(false);
+            setIsUploadingFile(false);
+            setMessages(prev => prev.slice(0, -1));
+            return;
+          }
+
+          console.log('[ChatAI] Token obținut, apelare analyze-balance...');
+
+          // Call analyze-balance edge function cu token explicit
           const { data, error } = await supabase.functions.invoke('analyze-balance', {
             body: { 
               excelBase64: base64Data,
               fileName: file.name 
+            },
+            headers: {
+              Authorization: `Bearer ${currentSession.access_token}`
             }
           });
 
