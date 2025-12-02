@@ -424,8 +424,14 @@ REPETĂM: ACEASTĂ SECȚIUNE ESTE OBLIGATORIE! NU UITA SĂ O ADAUGI LA SFÂRȘIT
 // Parse Excel file with proper number formatting
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
   try {
+    // Extract base64 content from data URL if present
+    let base64Content = excelBase64;
+    if (excelBase64.includes(',')) {
+      base64Content = excelBase64.split(',')[1];
+    }
+    
     // Convert base64 to Uint8Array
-    const binaryString = atob(excelBase64);
+    const binaryString = atob(base64Content);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
@@ -634,8 +640,13 @@ serve(async (req) => {
     const storagePath = `${timestamp}_${sanitizedFileName}`;
     
     try {
+      // Extract base64 content from data URL if present
+      let base64ForStorage = excelBase64;
+      if (excelBase64.includes(',')) {
+        base64ForStorage = excelBase64.split(',')[1];
+      }
       // Convert base64 to bytes
-      const fileBytes = Uint8Array.from(atob(excelBase64), c => c.charCodeAt(0));
+      const fileBytes = Uint8Array.from(atob(base64ForStorage), c => c.charCodeAt(0));
       
       const { error: uploadError } = await supabaseClient
         .storage
