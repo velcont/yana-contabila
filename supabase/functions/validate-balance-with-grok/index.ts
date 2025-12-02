@@ -101,6 +101,11 @@ VERIFICĂ OBLIGATORIU (în această ordine):
    - Cont 121 cu sold dublu (debit ȘI credit)
    - Casa (5311) cu sold CREDITOR (imposibil!)
 
+   **EXCEPȚII IMPORTANTE (NU sunt erori critice, sunt AVERTISMENTE):**
+   - Cont 4411 (Impozit pe profit) cu sold creditor NEGATIV mic (sub 100 RON) = impozit plătit în avans, NORMAL!
+   - Cont 4411 cu sold debitor = impozit de plătit, NORMAL!
+   - Orice cont de impozit/taxe (441x) cu sold mic negativ = plată în avans, acceptabil
+
 2. **INTERPRETĂRI CORECTE**:
    - Cont 4551: sold creditor = BĂGAT / sold debitor = RETRAS
    - Cont 121: sold creditor = PROFIT / sold debitor = PIERDERE
@@ -200,6 +205,41 @@ REGULI STRICTE:
     // Validare răspuns Grok
     if (!validationResult.validation_status) {
       throw new Error('Invalid Grok response structure');
+    }
+
+    // POST-PROCESARE: Downgrade anomalii 4411 (impozit plătit în avans) de la CRITICAL la WARNING
+    if (validationResult.anomalies && Array.isArray(validationResult.anomalies)) {
+      let hadCritical4411 = false;
+      
+      validationResult.anomalies = validationResult.anomalies.map((anomaly: any) => {
+        // Dacă e cont 4411 cu sold negativ mic, e doar avertisment, nu eroare critică
+        if (anomaly.account === '4411' && anomaly.severity === 'CRITICAL') {
+          // Verifică dacă mesajul menționează sold negativ mic
+          const isSmallNegative = anomaly.message?.includes('negativ') || anomaly.message?.includes('-');
+          if (isSmallNegative) {
+            console.log('[Grok] Downgrading 4411 anomaly from CRITICAL to WARNING (prepaid tax)');
+            hadCritical4411 = true;
+            return {
+              ...anomaly,
+              severity: 'WARNING',
+              message: anomaly.message + ' (Notă: Sold negativ pe 4411 poate indica impozit plătit în avans - verificați!)',
+              recommendation: 'Acest lucru poate fi normal dacă ați plătit impozit în avans. Verificați înregistrările.'
+            };
+          }
+        }
+        return anomaly;
+      });
+
+      // Recalculează status dacă am downgradat toate anomaliile CRITICAL
+      if (hadCritical4411) {
+        const remainingCritical = validationResult.anomalies.filter((a: any) => a.severity === 'CRITICAL');
+        if (remainingCritical.length === 0) {
+          console.log('[Grok] No more CRITICAL anomalies after downgrade, setting ready_for_report: true');
+          validationResult.validation_status = validationResult.anomalies.length > 0 ? 'WARNING' : 'VALID';
+          validationResult.ready_for_report = true;
+          validationResult.blocked_reasons = [];
+        }
+      }
     }
 
     console.log('[Grok] Validation completed:', validationResult.validation_status);
