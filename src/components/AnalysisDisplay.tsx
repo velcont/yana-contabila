@@ -445,6 +445,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error('Utilizator neautentificat');
+      setIsGeneratingWord(false);
       return;
     }
 
@@ -496,8 +497,16 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     // Fallback: construiește date structurate din metadata dacă lipsesc
     let sd: { cui: string; company: string; accounts: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> } | null = null;
 
+    console.log('📊 [WORD-GEN] Verificare date structurate:', {
+      hasMetadata: !!metadata,
+      hasStructuredData: !!metadata?.structuredData,
+      accountsLength: metadata?.structuredData?.accounts?.length || 0,
+      metadataKeys: metadata ? Object.keys(metadata).slice(0, 10) : []
+    });
+
     if (metadata?.structuredData?.accounts && metadata.structuredData.accounts.length > 0) {
       sd = metadata.structuredData;
+      console.log('✅ [WORD-GEN] Folosesc structuredData direct:', sd.accounts.length, 'conturi');
     } else {
       const accs: Array<{code: string; name: string; debit: number; credit: number; accountClass: number}> = [];
       const round2 = (n: number) => Math.round((n || 0) * 100) / 100;
@@ -563,7 +572,13 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
     }
 
     if (!sd) {
-      toast.error("Nu există date suficiente pentru generarea documentului Word. Reprocesează balanța.");
+      console.error("❌ [WORD-GEN] Nu există date structurate! Metadata:", {
+        hasStructuredData: !!metadata?.structuredData,
+        accountsCount: metadata?.structuredData?.accounts?.length || 0,
+        metadataKeys: metadata ? Object.keys(metadata) : []
+      });
+      toast.error("Nu există date suficiente pentru generarea documentului Word. Reprocesează balanța.", { duration: 7000 });
+      setIsGeneratingWord(false);
       return;
     }
 
