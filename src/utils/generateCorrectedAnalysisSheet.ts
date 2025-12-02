@@ -767,8 +767,137 @@ export const generateCorrectedAnalysisSheet = async () => {
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 400 },
+            spacing: { after: 300 },
             alignment: AlignmentType.JUSTIFIED,
+          }),
+
+          // Section 9: Observații Critice
+          new Paragraph({
+            text: "9. OBSERVAȚII CRITICE",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "PUNCTE FORTE:",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Model conceptual clar și ușor de înțeles pentru relația CSR-competitivitate",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Acoperire exhaustivă a populației țintă (100% din membrii Global Compact Lituania)",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Cadru metodologic simplu și replicabil pentru alte contexte",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Rezultate contraintuitive care contribuie la teoria CSR (calitatea producției și inovația nu sunt afectate de CSR)",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "LIMITĂRI ALE STUDIULUI:",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Eșantion mic (N=33) - limitează generalizabilitatea rezultatelor",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Focus geografic îngust (doar Lituania) - rezultatele pot să nu fie transferabile în alte contexte culturale",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Metodologie predominant calitativă - lipsa testelor statistice inferențiale (t-test, ANOVA, regresie)",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Date auto-raportate susceptibile la bias de dezirabilitate socială",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Lipsa validării externe a rezultatelor sau a datelor financiare obiective",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "• Coeficienții K nu permit inferențe despre cauzalitate sau semnificație statistică",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 400 },
           }),
 
           // Footer
@@ -786,7 +915,7 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: `Document generat automat: ${new Date().toLocaleDateString('ro-RO')}`,
+                text: "Document generat: Decembrie 2024",
                 size: 20,
                 font: "Times New Roman",
                 italics: true,
