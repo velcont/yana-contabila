@@ -1045,6 +1045,13 @@ IMPORTANT:
                       <Database className="h-5 w-5 mr-2" />
                       Generează Draft Doctorat cu Date Agregate
                     </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Include statistici de la toți utilizatorii (anonimizate)
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {/* Buton pentru Fișă de Analiză Corectată (Ren2020) */}
@@ -1081,13 +1088,6 @@ IMPORTANT:
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2 text-center">
                   Include: metode statistice, rezultate detaliate, încadrare în literatura de specialitate
-                </p>
-              </CardContent>
-            </Card>
-          )}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Include statistici de la toți utilizatorii (anonimizate)
                 </p>
               </CardContent>
             </Card>
