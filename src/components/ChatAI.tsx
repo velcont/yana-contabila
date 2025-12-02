@@ -31,6 +31,7 @@ import { getEnhancedPrompt, saveConversation, saveFeedback } from '@/lib/ai/conv
 import { BalanceUploader } from './chat-ai/BalanceUploader';
 import { ChatMessage } from './chat/ChatMessage';
 import { ChatInput } from './chat/ChatInput';
+import { useSessionGuard } from '@/hooks/useSessionGuard';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -81,6 +82,7 @@ interface ChatAIProps {
 export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard, openOnLoad = false }: ChatAIProps = {}) => {
   const { isAccountant, subscriptionType } = useSubscription();
   const { currentTheme } = useThemeRole();
+  const { validateSession } = useSessionGuard();
   const isAccountantModule = currentTheme === 'accountant';
   
   // Detectare utilizator nou
@@ -1372,6 +1374,16 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           setIsLoading(true);
           setThinkingMessage("Analizez balanța încărcată...");
 
+          // 🔐 Validare sesiune înainte de upload
+          const isSessionValid = await validateSession();
+          if (!isSessionValid) {
+            setIsLoading(false);
+            setIsUploadingFile(false);
+            // Eliminăm mesajul de upload în caz de eroare sesiune
+            setMessages(prev => prev.slice(0, -1));
+            return;
+          }
+
           // Call analyze-balance edge function
           const { data, error } = await supabase.functions.invoke('analyze-balance', {
             body: { 
@@ -1380,7 +1392,24 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             }
           });
 
-          if (error) throw error;
+          // 🔐 Verificare specifică pentru erori de autentificare
+          if (error) {
+            const errorMsg = error.message || '';
+            if (errorMsg.includes('401') || errorMsg.includes('Auth') || errorMsg.includes('Unauthorized')) {
+              console.error('[ChatAI] 401 Auth error detected:', errorMsg);
+              toast({
+                title: '❌ Sesiune expirată',
+                description: 'Te rugăm să te reconectezi pentru a încărca balanța.',
+                variant: 'destructive',
+                duration: 7000
+              });
+              setIsLoading(false);
+              setIsUploadingFile(false);
+              setMessages(prev => prev.slice(0, -1));
+              return;
+            }
+            throw error;
+          }
           if (data?.error) throw new Error(data.error);
 
           // 📊 Salvează datele structurate pentru generare Word
