@@ -561,7 +561,17 @@ serve(async (req) => {
       );
     }
     
-    const { excelBase64, fileName, forceReprocess = false } = validationResult.data;
+    const { excelBase64: rawExcelBase64, fileName, forceReprocess = false } = validationResult.data;
+    
+    // ✅ CRITICAL FIX: Extract pure base64 content from data URL format
+    // data:application/vnd.ms-excel;base64,CONTENT -> CONTENT
+    let excelBase64 = rawExcelBase64;
+    if (rawExcelBase64.includes(';base64,')) {
+      excelBase64 = rawExcelBase64.split(';base64,')[1];
+      console.log('✅ [BASE64] Extracted pure base64 from data URL format');
+    } else {
+      console.log('⚠️ [BASE64] Using raw value (no data URL prefix found)');
+    }
     
     // Obiect pentru persistarea indexilor detectați (folosit în auditTrail)
     const detectedColumns = {
