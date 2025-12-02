@@ -79,7 +79,7 @@ export const generateCorrectedAnalysisSheet = async () => {
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Chertes Horatiu",
+                text: "[Nume Doctorand]",
                 size: 24,
                 font: "Times New Roman",
               }),
