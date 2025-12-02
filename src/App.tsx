@@ -1,5 +1,5 @@
 import './App.css';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,8 @@ import { Loader2 } from "lucide-react";
 import { UpdateNotificationBanner } from "@/components/UpdateNotificationBanner";
 import { NotificationProvider } from "@/components/NotificationSystem";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { supabase } from "@/integrations/supabase/client";
+import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from "@/utils/versionRefresh";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -76,14 +78,49 @@ const LoadingFallback = () => (
   </div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <UpdateNotificationBanner />
-        <BrowserRouter>
+const App = () => {
+  // Verificare inactivitate >24h la încărcarea aplicației
+  useEffect(() => {
+    const checkInactivity = async () => {
+      const lastActiveTime = localStorage.getItem('lastActiveTime');
+      const now = Date.now();
+      
+      if (lastActiveTime) {
+        const hoursSinceLastActivity = (now - parseInt(lastActiveTime)) / (1000 * 60 * 60);
+        
+        // Dacă au trecut >24h de la ultima activitate, verificăm versiunea
+        if (hoursSinceLastActivity > 24) {
+          const hasNewVersion = await checkForNewVersion(supabase);
+          if (hasNewVersion) {
+            await saveCurrentVersion(supabase);
+            await performVersionRefresh();
+            return; // Nu ajunge aici, pagina se reîncarcă
+          }
+        }
+      }
+      
+      // Salvăm timpul curent ca ultimă activitate
+      localStorage.setItem('lastActiveTime', now.toString());
+    };
+    
+    checkInactivity();
+    
+    // Update lastActiveTime la fiecare 5 minute de activitate
+    const activityInterval = setInterval(() => {
+      localStorage.setItem('lastActiveTime', Date.now().toString());
+    }, 5 * 60 * 1000); // 5 minute
+    
+    return () => clearInterval(activityInterval);
+  }, []);
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <UpdateNotificationBanner />
+          <BrowserRouter>
           <ErrorBoundary>
             <SubscriptionProvider>
               <ThemeRoleProvider>
@@ -139,10 +176,11 @@ const App = () => (
             </ThemeRoleProvider>
           </SubscriptionProvider>
           </ErrorBoundary>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

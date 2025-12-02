@@ -74,24 +74,8 @@ export const UpdateNotificationBanner = () => {
     }
   };
 
-  // Detectează când Service Worker-ul se actualizează
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'activated' && !dismissed) {
-                // Afișează banner-ul automat când SW se actualizează
-                setIsVisible(true);
-              }
-            });
-          }
-        });
-      });
-    }
-  }, [dismissed]);
+  // Service Worker listener ELIMINAT - era prea agresiv și cauzau refresh-uri excesive
+  // Banner-ul acum funcționează doar ca notificare pasivă bazată pe polling la 30 min
 
   useEffect(() => {
     if (currentVersion && !localVersion) {
