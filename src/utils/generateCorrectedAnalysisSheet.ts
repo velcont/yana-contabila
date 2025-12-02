@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 
@@ -6,8 +6,8 @@ export const generateCorrectedAnalysisSheet = async () => {
   try {
     const doc = new Document({
       creator: "YANA Academic Assistant",
-      title: "Fișă de Analiză - Ren et al. (2020) - Corectată",
-      description: "Fișă de analiză completă pentru articolul CSR și competitivitate",
+      title: "Fișă de Analiză - Lu, Ren et al. (2020) - CSR și Competitivitate",
+      description: "Fișă de analiză completă pentru articolul CSR și competitivitatea firmelor",
       styles: {
         paragraphStyles: [
           {
@@ -17,10 +17,10 @@ export const generateCorrectedAnalysisSheet = async () => {
             next: "Normal",
             run: {
               font: "Times New Roman",
-              size: 24, // 12pt
+              size: 24,
             },
             paragraph: {
-              spacing: { line: 360 }, // 1.5 line spacing
+              spacing: { line: 360 },
             },
           },
         ],
@@ -29,7 +29,7 @@ export const generateCorrectedAnalysisSheet = async () => {
         properties: {
           page: {
             margin: {
-              top: 1440, // 1 inch
+              top: 1440,
               right: 1440,
               bottom: 1440,
               left: 1440,
@@ -55,19 +55,18 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "Articol analizat: ",
+                text: "Curs: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Ren, S., He, D., Zhang, T., & Chen, X. (2020). Symbolic reactions or substantive pro‐environmental behaviour? An empirical study of corporate environmental performance under the government's environmental subsidy scheme. Business Strategy and the Environment, 29(4), 1480-1499.",
+                text: "Strategii de dezvoltare și competitivitate în afaceri",
                 size: 24,
                 font: "Times New Roman",
-                italics: true,
               }),
             ],
-            spacing: { after: 300 },
+            spacing: { after: 200 },
           }),
 
           new Paragraph({
@@ -84,7 +83,7 @@ export const generateCorrectedAnalysisSheet = async () => {
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 300 },
+            spacing: { after: 200 },
           }),
 
           new Paragraph({
@@ -104,310 +103,345 @@ export const generateCorrectedAnalysisSheet = async () => {
             spacing: { after: 400 },
           }),
 
-          // Section 1: Problema de cercetare
+          // Section 1: Referință bibliografică
           new Paragraph({
-            text: "1. Problema de cercetare identificată",
+            text: "1. REFERINȚĂ BIBLIOGRAFICĂ",
             heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Studiul investighează relația dintre subvențiile guvernamentale pentru protecția mediului și performanța reală de mediu a companiilor chineze. Problema centrală este dacă firmele răspund la stimulentele financiare prin comportamente substantive pro-mediu sau doar prin reacții simbolice pentru a obține legitimitate externă fără schimbări reale în practicile operaționale.",
+                text: "Lu, J., Ren, L., Yao, S., Qiao, J., Mikalauskiene, A. & Streimikis, J. (2020). Exploring the relationship between corporate social responsibility and firm competitiveness. ",
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Economic Research-Ekonomska Istraživanja",
+                size: 24,
+                font: "Times New Roman",
+                italics: true,
+              }),
+              new TextRun({
+                text: ", 33(1), 1621-1646. DOI: 10.1080/1331677X.2020.1761419",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+
+          // Section 2: Scop și context
+          new Paragraph({
+            text: "2. SCOP ȘI CONTEXT",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Scopul studiului: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Analiza relației dintre responsabilitatea socială corporativă (CSR) și competitivitatea firmelor. Cercetarea dezvoltă un model teoretic care stabilește legăturile dintre CSR și competențele corporative, testat empiric pe companii din Lituania.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
             spacing: { after: 200 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Contextul este relevant deoarece China a investit masiv în subvenții pentru mediu (peste 100 miliarde yuan anual), dar eficiența acestor politici rămâne neclară. Autorii pun sub semnul întrebării presupunerea că subvențiile generează automat îmbunătățiri de mediu.",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 300 },
-          }),
-
-          // Section 2: Obiectivele cercetării
-          new Paragraph({
-            text: "2. Obiectivele cercetării",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { before: 300, after: 200 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Obiectiv principal: ",
+                text: "Contextul cercetării: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Examinarea impactului subvențiilor guvernamentale pentru mediu asupra performanței reale de mediu a companiilor",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Obiectiv secundar 1: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Testarea rolului moderator al gradului de libertate în utilizarea subvențiilor (restricted vs. unrestricted)",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Obiectiv secundar 2: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Analiza efectului de moderare al tipului de proprietate (companii de stat vs. private)",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Obiectiv secundar 3: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Evaluarea influenței mediului instituțional (regiuni cu enforcement puternic vs. slab)",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 300 },
-          }),
-
-          // Section 3: Ipoteze
-          new Paragraph({
-            text: "3. Ipoteze formulate",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { before: 300, after: 200 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "H1: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Subvențiile guvernamentale pentru mediu au un efect pozitiv asupra performanței de mediu a companiilor",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "H2: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Gradul de libertate în utilizarea subvențiilor moderează negativ relația dintre subvenții și performanța de mediu (subvențiile restricționate sunt mai eficiente)",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "H3: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Tipul de proprietate moderează relația - companiile de stat au performanță mai scăzută decât cele private",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "H4: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Mediul instituțional puternic intensifică efectul pozitiv al subvențiilor asupra performanței de mediu",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 300 },
-          }),
-
-          // Section 4: Metode statistico-matematice (COMPLETAT!)
-          new Paragraph({
-            text: "4. Metode statistico-matematice utilizate",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { before: 300, after: 200 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Studiul utilizează o abordare preponderent calitativă, combinată cu elemente cantitative pentru măsurarea impactului:",
+                text: "În societatea modernă, companiile nu mai pot ignora nevoile consumatorilor conștienți care cer ca afacerile să fie responsabile social, ecologic și etic. Deși conceptul CSR a fost discutat încă din anii 1950, inițiativa Global Compact lansată în 1999 de ONU a marcat un punct de cotitură, încurajând companiile să respecte drepturile omului, protecția mediului și lupta anticorupție.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
             spacing: { after: 200 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Analiza de regresie panel: ",
+                text: "Problema identificată: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Pentru testarea ipotezelor pe datele longitudinale ale companiilor listate la bursa din Shanghai și Shenzhen (perioada 2008-2016)",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• Modelul cu efecte fixe: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Pentru controlul heterogenității neobservate la nivel de firmă și industrie",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• Variabile de interacțiune: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Pentru testarea efectelor de moderare (gradul de libertate × subvenții, proprietate × subvenții, mediu instituțional × subvenții)",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• Eșantion: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "1.256 companii listate din sectoarele cu impact ridicat asupra mediului, cu 8.792 observații firm-year",
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• Teste de robustețe: ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Propensity Score Matching (PSM) pentru adresarea endogenității și auto-selecției",
+                text: "Studiile anterioare s-au concentrat pe impactul CSR asupra performanței firmei, valorii de brand sau profitului, dar nu au oferit un cadru clar și simplu pentru legătura CSR-competitivitate. Majoritatea au folosit analize de moderare/mediere complexe cu ecuații structurale și zeci de ipoteze.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
             spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+
+          // Section 3: Metodologie
+          new Paragraph({
+            text: "3. METODOLOGIE",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Design cercetare: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Studiu empiric cantitativ bazat pe chestionare cu evaluare calitativă.",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Eșantion: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "33 de companii din Lituania - toate companiile membre Global Compact din această țară. Chestionarele au fost distribuite prin email în septembrie 2019, cu răspunsuri de la toate cele 33 de companii (rată de răspuns 100%).",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Instrumente: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Chestionar cu scală Likert de 4 puncte pentru evaluarea impactului CSR asupra competitivității. Scala: 1 = niciun impact, 2 = impact nesemnificativ, 3 = impact moderat, 4 = impact ridicat.",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Variabile independente (Dimensiuni CSR): ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Dimensiunea de mediu (environmental), Dimensiunea socială (social), Dimensiunea economică (economic), Dimensiunea stakeholder-ilor (shareholder), Dimensiunea voluntariatului/filantropiei (voluntariness/philanthropic).",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Variabile dependente (Elemente de competitivitate): ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Capacitate financiară, Calitatea producției, Satisfacerea nevoilor consumatorilor, Productivitate și eficiență, Posibilități de introducere a inovațiilor, Imaginea și reputația companiei.",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+
+          // Section 4: Metode statistico-matematice
+          new Paragraph({
+            text: "4. METODE STATISTICO-MATEMATICE UTILIZATE",
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Metoda principală: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Calculul coeficienților de impact (K coefficient)",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Formula aplicată: Ki = Σ(j=1 to N) kj × ni / n",
+                size: 24,
+                font: "Times New Roman",
+                italics: true,
+              }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Unde: Ki = coeficientul de impact al dimensiunii CSR selectate asupra elementului i de competitivitate; kj = scorul de impact; j = scorul de la 1 la N (N=4); ni = numărul de răspunsuri care au selectat scorul j pentru elementul i; n = numărul total de răspunsuri.",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Scala unipolară cu 4 grade: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "0; 0.25; 0.5; 1",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "NOTĂ IMPORTANTĂ: ",
+                bold: true,
+                size: 24,
+                font: "Times New Roman",
+              }),
+              new TextRun({
+                text: "Studiul este predominant CALITATIV, nu utilizează teste statistice inferențiale (t-test, ANOVA, regresie). Coeficienții K reprezintă o măsură descriptivă a percepției respondenților asupra impactului CSR. Autorii recunosc explicit această limitare și recomandă utilizarea Structural Equation Modelling în cercetări viitoare pentru analize mai riguroase.",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
 
           // Section 5: Rezultate obținute
           new Paragraph({
-            text: "5. Rezultate obținute",
+            text: "5. REZULTATE OBȚINUTE",
             heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Rezultatul principal: ",
+                text: "TABEL - Coeficienți de impact K (din Tabelul 5 al studiului):",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
+            ],
+            spacing: { after: 150 },
+          }),
+          new Paragraph({
+            children: [
               new TextRun({
-                text: "Subvențiile guvernamentale pentru mediu au un efect pozitiv semnificativ statistic asupra performanței reale de mediu (β = 0.023, p < 0.01), confirmând H1.",
-                size: 24,
-                font: "Times New Roman",
+                text: "                              Mediu    Social   Economic  Stakeholder  Filantropie",
+                size: 22,
+                font: "Courier New",
+              }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Capacitate financiară         0.247    0.140    0.264     0.253        0.123",
+                size: 22,
+                font: "Courier New",
+              }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Calitatea producției          0.173    0.153    0.183     0.263        0.110",
+                size: 22,
+                font: "Courier New",
+              }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Nevoi consumatori             0.267    0.267    0.223     0.320        0.160",
+                size: 22,
+                font: "Courier New",
+              }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Productivitate                0.220    0.203    0.220     0.317        0.127",
+                size: 22,
+                font: "Courier New",
+              }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Introducere inovații          0.253    0.180    0.197     0.273        0.120",
+                size: 22,
+                font: "Courier New",
+              }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Imagine/Reputație             0.353    0.350    0.313     0.340        0.340",
+                size: 22,
+                font: "Courier New",
               }),
             ],
             spacing: { after: 200 },
@@ -415,7 +449,7 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "Rezultate pentru variabilele moderatoare:",
+                text: "CONCLUZII PRINCIPALE:",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
@@ -426,13 +460,7 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Gradul de libertate (H2 - CONFIRMATĂ): ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Subvențiile restricționate generează performanță de mediu superioară comparativ cu cele nerestricționate. Coeficientul de interacțiune negativ și semnificativ (β = -0.018, p < 0.05) indică că libertatea excesivă în alocarea fondurilor slăbește eficiența.",
+                text: "1. Toate dimensiunile CSR influențează cel mai mult IMAGINEA și REPUTAȚIA companiei (coeficienți între 0.313-0.353).",
                 size: 24,
                 font: "Times New Roman",
               }),
@@ -442,13 +470,7 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Tipul de proprietate (H3 - CONFIRMATĂ): ",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Companiile de stat (SOEs) manifestă un comportament mai degrabă simbolic, cu efect mai slab al subvențiilor asupra performanței reale de mediu comparativ cu firmele private.",
+                text: "2. Calitatea producției și introducerea inovațiilor NU sunt afectate semnificativ de dimensiunile CSR.",
                 size: 24,
                 font: "Times New Roman",
               }),
@@ -458,13 +480,27 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Mediul instituțional (H4 - CONFIRMATĂ): ",
-                bold: true,
+                text: "3. Imaginea/reputația și satisfacerea nevoilor consumatorilor sunt afectate de TOATE dimensiunile CSR.",
                 size: 24,
                 font: "Times New Roman",
               }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
               new TextRun({
-                text: "În regiunile cu enforcement puternic al reglementărilor de mediu, efectul subvențiilor este amplificat semnificativ.",
+                text: "4. Capacitatea financiară este influențată predominant de dimensiunile de mediu (0.247) și economică (0.264).",
+                size: 24,
+                font: "Times New Roman",
+              }),
+            ],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "5. Productivitatea și eficiența sunt corelate cu dimensiunile socială (0.203), stakeholder (0.317) și filantropică (0.127).",
                 size: 24,
                 font: "Times New Roman",
               }),
@@ -474,173 +510,175 @@ export const generateCorrectedAnalysisSheet = async () => {
 
           // Section 6: Încadrarea în studii similare
           new Paragraph({
-            text: "6. Încadrarea în studii similare",
+            text: "6. ÎNCADRAREA ÎN STUDII SIMILARE",
             heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Studiul se poziționează în cadrul literaturii despre CSR și competitivitate, cu următoarele referințe cheie:",
+                text: "Studiul se poziționează în cadrul literaturii despre CSR și competitivitate:",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 200 },
+            spacing: { after: 150 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Battaglia et al. (2014): ",
+                text: "• Battaglia et al. (2014) - ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Studiază relația CSR-competitivitate în IMM-uri, confirmând că practicile responsabile pot genera avantaj competitiv. Ren et al. extinde această analiză la nivel de subvenții guvernamentale.",
+                text: "\"CSR and Competitiveness within SMEs of the Fashion Industry\" (Italia, Franța). Similitudine: Confirmă impactul CSR asupra imaginii/reputației. Diferență: Nu menționează influența asupra satisfacției consumatorilor.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Tantalo et al. (2014): ",
+                text: "• Tantalo et al. (2014) - ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Analizează tensiunea dintre crearea de valoare pentru stakeholderi și performanța economică. Ren et al. adaugă dimensiunea comportamentului simbolic vs. substantiv.",
+                text: "Cadru de evaluare calitativă CSR-competitivitate. Similitudine: Abordare calitativă similară. Diferență: Găsește relație nesemnificativă pentru dimensiunea socială, pe când studiul actual identifică impact.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Vilanova et al. (2009): ",
+                text: "• Vilanova et al. (2009) - ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Propune modelul competitiveness-responsibility bazat pe managementul stakeholderilor. Studiul actual testează empiric acest model în contextul politicilor guvernamentale.",
+                text: "Ipoteze despre impactul CSR asupra competitivității. Similitudine: Dezvoltă ipoteze clare despre legătura CSR-competitivitate. Diferență: Studiul actual oferă date empirice concrete.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• Zait et al. (2015): ",
+                text: "• Zait et al. (2015) - ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Analizează competitivitatea la nivel de cluster regional. Ren et al. completează cu perspectiva micro (nivel de firmă) și rolul intervențiilor guvernamentale.",
+                text: "Studiu în context european. Similitudine: Focus pe capacitate financiară și imagine. Diferență: Nu analizează dimensiunea economică separat.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
             spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
 
           // Section 7: Elemente de noutate
           new Paragraph({
-            text: "7. Elemente de noutate științifică",
+            text: "7. ELEMENTE DE NOUTATE",
             heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "1. Distincția comportament simbolic vs. substantiv: ",
+                text: "1. CADRU CONCEPTUAL SIMPLIFICAT: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Primul studiu care aplică această teorie la contextul subvențiilor de mediu, demonstrând că firmele pot manipula percepția fără schimbări reale.",
+                text: "Dezvoltă un model clar pentru relația CSR-competitivitate, în contrast cu ecuațiile structurale complexe din studiile anterioare.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "2. Tripla moderare: ",
+                text: "2. EVALUARE CALITATIVĂ DIRECTĂ: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Integrarea simultană a trei variabile moderatoare (gradul de libertate, tip proprietate, mediu instituțional) pentru o înțelegere holistică a eficienței subvențiilor.",
+                text: "Aplică o abordare diferită - evaluare calitativă cu coeficienți K în loc de analize de moderare/mediere.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "3. Implicații pentru politici publice: ",
+                text: "3. STUDIU EXHAUSTIV PE MEMBRI GLOBAL COMPACT: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Oferă recomandări concrete pentru design-ul schemelor de subvenții (restricționare, monitorizare, enforcement), transferabile și în alte economii emergente inclusiv România.",
+                text: "Acoperă 100% din companiile membre Global Compact din Lituania (33 companii).",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "4. Date longitudinale extinse: ",
+                text: "4. REZULTATE CONTRAINTUITIVE: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Utilizarea unui panel de 9 ani (2008-2016) cu peste 8.700 observații oferă robustețe statistică superioară studiilor transversale anterioare.",
+                text: "Descoperă că calitatea producției și inovația NU sunt afectate de CSR, contrazicând asumpții comune din literatură.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
             spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
 
-          // Section 8: Contribuție pentru teza de doctorat
+          // Section 8: Conectarea la teza doctorală
           new Paragraph({
-            text: "8. Contribuție pentru teza de doctorat",
+            text: "8. CONECTAREA LA TEZA DOCTORANDULUI",
             heading: HeadingLevel.HEADING_1,
             spacing: { before: 300, after: 200 },
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Tema tezei: ",
+                text: "RELEVANȚĂ PENTRU TEZA: \"Inovație digitală și reziliență financiară în IMM-urile din România\"",
                 bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "\"Inovație digitală și reziliență financiară în IMM-urile din România\"",
-                italics: true,
                 size: 24,
                 font: "Times New Roman",
               }),
@@ -650,158 +688,122 @@ export const generateCorrectedAnalysisSheet = async () => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "Relevanță pentru cercetarea personală:",
-                bold: true,
-                size: 24,
-                font: "Times New Roman",
-              }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Metodologic: ",
+                text: "1. CADRU TEORETIC TRANSFERABIL: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Abordarea panel cu efecte fixe și testele de moderare pot fi replicate pentru analiza impactului inovației digitale asupra rezilienței financiare în IMM-urile românești.",
+                text: "Modelul CSR-competitivitate poate fi adaptat pentru analiza inovație digitală-reziliență. Dimensiunile CSR pot fi înlocuite cu dimensiuni ale inovației digitale (tehnologii cloud, automatizare, e-commerce, analiză date).",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Conceptual: ",
+                text: "2. METODOLOGIE REPLICABILĂ: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Distincția simbolic/substantiv poate fi aplicată investițiilor în digitalizare - unele firme pot adopta tehnologii \"de fațadă\" fără impact real asupra rezilienței.",
+                text: "Scala Likert și coeficienții K pot fi aplicați pentru măsurarea impactului inovației digitale asupra rezilienței IMM-urilor românești.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 100 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "• ",
-                size: 24,
-                font: "Times New Roman",
-              }),
-              new TextRun({
-                text: "Policy: ",
+                text: "3. COMPETITIVITATE CA CONSTRUCT COMUN: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
               new TextRun({
-                text: "Concluziile despre eficiența subvențiilor restricționate sunt relevante pentru programele de digitalizare finanțate prin PNRR în România.",
+                text: "Elementele de competitivitate din studiu (capacitate financiară, productivitate, imagine) sunt relevante și pentru evaluarea rezilienței.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 300 },
-          }),
-
-          // Section 9: Observații critice
-          new Paragraph({
-            text: "9. Observații critice",
-            heading: HeadingLevel.HEADING_1,
-            spacing: { before: 300, after: 200 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Puncte forte:",
+                text: "4. IPOTEZE DE CERCETARE DERIVATE: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
               new TextRun({
-                text: "• Eșantion mare și reprezentativ (1.256 companii, 8.792 observații)\n• Teste de robustețe multiple (PSM, variabile alternative)\n• Implicații practice clare pentru factorii de decizie",
+                text: "H1: Inovația digitală influențează diferit elementele rezilienței; H2: Nu toate tipurile de inovație digitală afectează toate elementele rezilienței; H3: Imaginea/reputația digitală este cel mai afectat element.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 200 },
+            spacing: { after: 150 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({
             children: [
               new TextRun({
-                text: "Limitări:",
+                text: "5. DIRECȚII VIITOARE: ",
                 bold: true,
                 size: 24,
                 font: "Times New Roman",
               }),
-            ],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [
               new TextRun({
-                text: "• Focus exclusiv pe China - generalizabilitatea pentru alte economii trebuie testată\n• Perioada 2008-2016 poate să nu reflecte dinamica actuală post-COVID\n• Măsurarea performanței de mediu bazată pe raportări corporative (potențial bias de raportare)",
+                text: "Autorii recomandă Structural Equation Modelling pentru analize mai riguroase - metodă recomandată și pentru validarea modelului inovație-reziliență în teza doctorală.",
                 size: 24,
                 font: "Times New Roman",
               }),
             ],
-            spacing: { after: 300 },
+            spacing: { after: 400 },
+            alignment: AlignmentType.JUSTIFIED,
           }),
 
           // Footer
           new Paragraph({
             children: [
               new TextRun({
-                text: "Document generat cu YANA Academic Assistant - ",
-                size: 20,
+                text: "─".repeat(50),
+                size: 24,
                 font: "Times New Roman",
-                color: "666666",
-              }),
-              new TextRun({
-                text: new Date().toLocaleString('ro-RO'),
-                size: 20,
-                font: "Times New Roman",
-                color: "666666",
               }),
             ],
             alignment: AlignmentType.CENTER,
-            spacing: { before: 600 },
+            spacing: { before: 300, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Document generat automat: ${new Date().toLocaleDateString('ro-RO')}`,
+                size: 20,
+                font: "Times New Roman",
+                italics: true,
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
           }),
         ],
       }],
     });
 
+    // Generate and download
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, `Fisa_Analiza_Ren2020_Corectat_${new Date().toISOString().split('T')[0]}.docx`);
-    
-    toast.success('Fișa de analiză corectată a fost generată și descărcată!');
-    return true;
+    saveAs(blob, "Fisa_Analiza_Lu_Ren_2020_CSR_Competitivitate.docx");
+    toast.success("✅ Fișa de analiză a fost descărcată!");
   } catch (error) {
-    console.error('Eroare la generarea fișei:', error);
-    toast.error('Eroare la generarea documentului Word');
-    return false;
+    console.error("Error generating analysis sheet:", error);
+    toast.error("Eroare la generarea fișei de analiză");
   }
 };
