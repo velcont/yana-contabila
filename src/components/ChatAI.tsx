@@ -83,18 +83,31 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { currentTheme } = useThemeRole();
   const isAccountantModule = currentTheme === 'accountant';
   
+  // Detectare utilizator nou
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [analysesCount, setAnalysesCount] = useState<number>(0);
+  
+  // Verifică dacă utilizatorul este nou (< 7 zile + 0 analize)
+  const isNewUser = userProfile && analysesCount === 0 && 
+    (new Date().getTime() - new Date(userProfile.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
   
   const [isOpen, setIsOpen] = useState(openOnLoad);
   const [chatMode, setChatMode] = useState<'balance' | 'fiscal'>('balance');
   const [showModeSwitchBanner, setShowModeSwitchBanner] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
   
-  const [messages, setMessages] = useState<Message[]>(
-    autoStart ? [] : [
-      {
-        role: 'assistant',
-        content: isAccountantModule ? 
-          `👋 Bună! Sunt Yana, asistenta ta AI financiară!
+  // Mesaj de bun venit diferențiat pentru utilizatori noi
+  const getWelcomeMessage = () => {
+    if (isNewUser) {
+      return `👋 **Bună! Eu sunt Yana, ghidul tău AI pentru analiza financiară!**
+
+🎯 **Îți voi arăta exact cum funcționează totul, pas cu pas.**
+
+Ce vrei să faci mai întâi?`;
+    }
+    
+    return isAccountantModule ? 
+      `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
 📊 **Pentru analiză balanță:**
 - Încarcă fișier Excel (.xls sau .xlsx)
@@ -104,8 +117,8 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
 
 🏛️ Pentru consultanță fiscală → folosește butonul verde "Consultanță Fiscală" din YanaCRM`
-          :
-          `👋 Bună! Sunt Yana, asistenta ta AI financiară!
+      :
+      `👋 Bună! Sunt Yana, asistenta ta AI financiară!
 
 📊 **Pentru analiză balanță:**
 - Încarcă fișier Excel (.xls sau .xlsx)
@@ -114,7 +127,14 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
 
 💡 **Important:** Eu analizez doar datele din balanța ta (indicatori financiari, DSO, cash flow, etc.).
 
-⚖️ Pentru **consultanță fiscală** despre taxe, legislație fiscală și impozite → schimbă pe tab-ul "Consultanță Fiscală" de mai jos.`
+⚖️ Pentru **consultanță fiscală** despre taxe, legislație fiscală și impozite → schimbă pe tab-ul "Consultanță Fiscală" de mai jos.`;
+  };
+  
+  const [messages, setMessages] = useState<Message[]>(
+    autoStart ? [] : [
+      {
+        role: 'assistant',
+        content: getWelcomeMessage()
       }
     ]
   );
@@ -367,6 +387,49 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { toast } = useToast();
   const { setShowTutorialMenu } = useTutorial();
   
+  // Încarcă datele profilului și numărul de analize pentru detectare utilizatori noi
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Încarcă profil
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('created_at')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserProfile(profile);
+        }
+
+        // Încarcă număr analize
+        const { count } = await supabase
+          .from('analyses')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        
+        setAnalysesCount(count || 0);
+      } catch (err) {
+        console.error('Error loading user data:', err);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // Update mesajul de bun venit când se determină dacă este utilizator nou
+  useEffect(() => {
+    if (!autoStart && userProfile) {
+      setMessages([{
+        role: 'assistant',
+        content: getWelcomeMessage()
+      }]);
+    }
+  }, [userProfile, analysesCount, autoStart]);
+
   // Auto-open chat effect
   useEffect(() => {
     if (openOnLoad) {
