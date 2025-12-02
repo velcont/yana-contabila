@@ -1358,8 +1358,8 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
       const reader = new FileReader();
       reader.onload = async (event) => {
         try {
-          const base64 = event.target?.result as string;
-          const base64Data = base64.split(',')[1];
+          const base64Data = event.target?.result as string;
+          // ✅ Trimitem FULL base64 cu prefix (data:...;base64,...) - NU doar conținutul!
 
           // Add user message
           const userMessage: Message = {
