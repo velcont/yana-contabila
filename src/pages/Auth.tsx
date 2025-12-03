@@ -507,33 +507,33 @@ const Auth = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-3 md:p-4">
       {/* Marketplace Entry Banner */}
       {isMarketplaceEntry && (
-        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 px-4 text-center shadow-lg z-50">
-          <p className="text-sm font-medium">
-            🎉 Marketplace Yana - 30 zile gratuite! Creează-ți cont pentru a accesa toate funcțiile.
+        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 md:py-3 px-3 md:px-4 text-center shadow-lg z-50">
+          <p className="text-xs md:text-sm font-medium">
+            🎉 Marketplace Yana - 30 zile gratuite!
           </p>
         </div>
       )}
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">
+      <Card className="w-full max-w-md mx-2 md:mx-0">
+        <CardHeader className="px-4 md:px-6 py-4 md:py-6">
+          <CardTitle className="text-xl md:text-2xl text-center">
             {isResetMode ? 'Resetare Parolă' : isForgotPassword ? 'Recuperare Parolă' : isLogin ? 'Autentificare' : 'Înregistrare'}
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-center text-xs md:text-sm">
             {isResetMode 
               ? 'Introdu noua ta parolă' 
               : isForgotPassword 
-              ? 'Îți vom trimite un link de resetare pe email'
+              ? 'Îți vom trimite un link de resetare'
               : isLogin 
               ? 'Intră în contul tău Yana' 
-              : 'Creează un cont nou pentru a salva analizele'}
+              : 'Creează un cont nou'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
           {isResetMode ? (
-            <form onSubmit={handleResetPassword} className="space-y-4">
+            <form onSubmit={handleResetPassword} className="space-y-3 md:space-y-4">
               <div className="space-y-2">
                 <label htmlFor="newPassword" className="text-sm font-medium">
                   Parolă nouă
@@ -648,7 +648,7 @@ const Auth = () => {
                     <label className="text-sm font-medium">
                       Tip cont *
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 md:gap-3">
                       <Card 
                         className={`cursor-pointer border-2 transition-all ${
                           accountType === 'entrepreneur' 
@@ -657,14 +657,14 @@ const Auth = () => {
                         }`}
                         onClick={() => setAccountType('entrepreneur')}
                       >
-                        <CardContent className="p-3">
-                          <div className="flex flex-col items-center text-center space-y-1">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        <CardContent className="p-3 md:p-4">
+                          <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
+                            <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
                               accountType === 'entrepreneur' ? 'bg-blue-500' : 'bg-blue-400'
                             }`}>
-                              <Briefcase className="h-4 w-4 text-white" />
+                              <Briefcase className="h-5 w-5 md:h-4 md:w-4 text-white" />
                             </div>
-                            <span className={`text-xs font-medium ${
+                            <span className={`text-sm md:text-xs font-medium ${
                               accountType === 'entrepreneur' ? 'text-blue-600 dark:text-blue-400' : ''
                             }`}>
                               Antreprenor
@@ -681,14 +681,14 @@ const Auth = () => {
                         }`}
                         onClick={() => setAccountType('accounting_firm')}
                       >
-                        <CardContent className="p-3">
-                          <div className="flex flex-col items-center text-center space-y-1">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        <CardContent className="p-3 md:p-4">
+                          <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
+                            <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
                               accountType === 'accounting_firm' ? 'bg-green-500' : 'bg-green-400'
                             }`}>
-                              <Building2 className="h-4 w-4 text-white" />
+                              <Building2 className="h-5 w-5 md:h-4 md:w-4 text-white" />
                             </div>
-                            <span className={`text-xs font-medium ${
+                            <span className={`text-sm md:text-xs font-medium ${
                               accountType === 'accounting_firm' ? 'text-green-600 dark:text-green-400' : ''
                             }`}>
                               Contabil
@@ -857,7 +857,7 @@ const Auth = () => {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-11 md:h-10 text-base md:text-sm"
                 disabled={
                   isLoading || (!isLogin && !canRegister)
                 }

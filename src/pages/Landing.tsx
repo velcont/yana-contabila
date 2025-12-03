@@ -300,23 +300,23 @@ Perioada: 01/04/2025 - 30/04/2025`,
 
       {/* Demo Section */}
       {showDemo && (
-        <section id="demo-section" className="container mx-auto px-4 py-20 bg-muted/30 rounded-3xl mb-20">
-          <div className="flex justify-between items-center mb-8">
+        <section id="demo-section" className="container mx-auto px-4 py-8 md:py-20 bg-muted/30 rounded-2xl md:rounded-3xl mb-8 md:mb-20">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">
-                📊 Demo Interactiv - SC DEMO CONSTRUCT SRL
+              <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-2">
+                📊 Demo Interactiv
               </h2>
-              <p className="text-muted-foreground">
-                Explorează funcționalitățile YANA cu date demo reale. Fără autentificare necesară!
+              <p className="text-sm md:text-base text-muted-foreground">
+                Explorează funcționalitățile YANA cu date demo reale.
               </p>
             </div>
-            <Button variant="outline" onClick={() => setShowDemo(false)}>
+            <Button variant="outline" size="sm" className="md:size-default" onClick={() => setShowDemo(false)}>
               Închide Demo
             </Button>
           </div>
 
           {/* KPIs Overview */}
-          <div className="grid md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Cifra de Afaceri</CardTitle>
@@ -405,24 +405,23 @@ Perioada: 01/04/2025 - 30/04/2025`,
       )}
 
       {/* Features Grid */}
-      <section className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+      <section className="container mx-auto px-4 py-12 md:py-20">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-8 md:mb-12">
           De ce Yana e diferită?
         </h2>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {features.map((feature, idx) => (
             <Card 
               key={idx} 
-              className="hover:shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
-              style={{ animationDelay: `${idx * 100}ms` }}
+              className="hover:shadow-lg transition-all duration-300"
             >
-              <CardContent className="p-6 text-center space-y-4">
-                <div className="h-12 w-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center text-primary">
+              <CardContent className="p-3 md:p-6 text-center space-y-2 md:space-y-4">
+                <div className="h-10 w-10 md:h-12 md:w-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center text-primary">
                   {feature.icon}
                 </div>
-                <h3 className="font-semibold text-lg">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                <h3 className="font-semibold text-sm md:text-lg">{feature.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground hidden md:block">{feature.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -430,19 +429,19 @@ Perioada: 01/04/2025 - 30/04/2025`,
       </section>
 
       {/* Yana vs ChatGPT Comparison */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+      <section className="container mx-auto px-4 py-12 md:py-20">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 px-2">
             ChatGPT nu știe Codul Fiscal. Yana știe.
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
             De ce să plătești pentru un instrument generic când poți avea unul construit 
             special pentru legislația și businessul românesc?
           </p>
         </div>
 
         {/* Comparison Table */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto">
           {/* ChatGPT Column */}
           <Card className="border-red-500/50">
             <CardHeader>
@@ -531,21 +530,22 @@ Perioada: 01/04/2025 - 30/04/2025`,
       </section>
 
       {/* Două Module - Clarificare */}
-      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-background to-muted/30 rounded-3xl mb-20">
-        <div className="text-center mb-12">
-          <Badge className="mb-4" variant="secondary">
+      <section className="container mx-auto px-4 py-12 md:py-20 bg-gradient-to-b from-background to-muted/30 rounded-2xl md:rounded-3xl mb-8 md:mb-20">
+        <div className="text-center mb-8 md:mb-12">
+          <Badge className="mb-3 md:mb-4 text-xs md:text-sm" variant="secondary">
             <Sparkles className="h-3 w-3 mr-1" />
-            Două instrumente puternice într-o singură platformă
+            <span className="hidden md:inline">Două instrumente puternice într-o singură platformă</span>
+            <span className="md:hidden">2 instrumente puternice</span>
           </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
             Cum funcționează YANA?
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            YANA îți oferă două module complementare pentru afacerea ta. Alege ce ai nevoie acum.
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-2">
+            YANA îți oferă două module complementare pentru afacerea ta.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-6xl mx-auto">
           {/* Modul 1: Analiză Balanță */}
           <Card className="hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-500">
             <CardHeader className="text-center pb-6">
@@ -633,22 +633,22 @@ Perioada: 01/04/2025 - 30/04/2025`,
       </section>
 
       {/* Pricing Section */}
-      <section className="container mx-auto px-4 py-20 bg-gradient-to-b from-muted/30 to-background rounded-3xl">
-        <div className="text-center mb-4">
-          <Badge className="mb-4" variant="secondary">
+      <section className="container mx-auto px-4 py-12 md:py-20 bg-gradient-to-b from-muted/30 to-background rounded-2xl md:rounded-3xl">
+        <div className="text-center mb-3 md:mb-4">
+          <Badge className="mb-3 md:mb-4" variant="secondary">
             <Gift className="h-3 w-3 mr-1" />
             Primele 30 zile GRATUIT
           </Badge>
         </div>
         
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-          Alege planul potrivit pentru afacerea ta
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-4">
+          Alege planul potrivit
         </h2>
-        <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-          Începi gratuit pentru 30 zile. Fără card necesar. Fără angajamente.
+        <p className="text-center text-sm md:text-base text-muted-foreground mb-8 md:mb-12 max-w-2xl mx-auto px-2">
+          Începi gratuit 30 zile. Fără card. Fără angajamente.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-5xl mx-auto">
           {/* Plan Antreprenor */}
           <Card className="relative hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/50">
             <CardHeader className="text-center pb-8 pt-8">
