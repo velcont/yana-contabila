@@ -462,77 +462,87 @@ export default function StrategicAdvisor() {
           <header className="border-b bg-card/50 backdrop-blur p-4 animate-appear flex-shrink-0">
             <div className="container mx-auto max-w-5xl">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
+                {/* Left side - minimal pe mobil */}
+                <div className="flex items-center gap-2 md:gap-3 min-w-0">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate('/app')}
                     aria-label="Înapoi la aplicație"
-                    className="btn-hover-lift"
+                    className="btn-hover-lift flex-shrink-0"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </Button>
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
+                  
+                  {/* Brain icon - doar desktop */}
+                  <div className="hidden md:flex p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
                     <Brain className="w-6 h-6 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <h1 className="text-xl md:text-2xl font-bold">Yana Strategică</h1>
+                  
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="min-w-0">
+                      {/* Titlu scurt pe mobil, complet pe desktop */}
+                      <h1 className="text-lg md:text-2xl font-bold truncate">
+                        <span className="md:hidden">Yana</span>
+                        <span className="hidden md:inline">Yana Strategică</span>
+                      </h1>
                       <p className="text-sm text-muted-foreground hidden md:block">
                         Consultant AI Strategic
                       </p>
                     </div>
-                    <ContextualHelp
-                      title="Yana Strategică"
-                      content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive sau oportunități de expansiune."
-                    />
+                    
+                    {/* ContextualHelp - doar desktop */}
+                    <div className="hidden md:block flex-shrink-0">
+                      <ContextualHelp
+                        title="Yana Strategică"
+                        content="Consultanță strategică AI pentru afacerea ta. Pune întrebări despre strategii de creștere, analize competitive sau oportunități de expansiune."
+                      />
+                    </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2 md:gap-3">
-              {/* Message counter - prominent display (hidden on mobile) */}
-              {activeTab === "chat" && messages.length > 0 && (
-                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
-                  <MessageSquare className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">{messages.length}</span>
-                  <span className="text-xs text-muted-foreground">mesaje</span>
-                </div>
-              )}
-              
-              {/* Credit indicator - arată creditul în RON (compact on mobile) */}
-              <div className={cn(
-                "px-2 md:px-4 py-1.5 md:py-2 rounded-lg border-2",
-                creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
-                  ? 'border-destructive bg-destructive/10' 
-                  : creditRemaining <= 5 
-                  ? 'border-yellow-500 bg-yellow-500/10'
-                  : 'border-primary bg-primary/10'
-              )}>
-                <div className="flex items-center gap-2">
+                {/* Right side - controls esențiale, mereu vizibile */}
+                <div className="flex items-center gap-1 md:gap-3 flex-shrink-0">
+                  {/* Message counter - doar desktop */}
+                  {activeTab === "chat" && messages.length > 0 && (
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
+                      <MessageSquare className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium">{messages.length}</span>
+                      <span className="text-xs text-muted-foreground">mesaje</span>
+                    </div>
+                  )}
+                  
+                  {/* Credit indicator - compact pe mobil */}
                   <div className={cn(
-                    "w-2 h-2 rounded-full",
+                    "px-2 py-1 md:px-4 md:py-2 rounded-lg border-2 flex-shrink-0",
                     creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
-                      ? 'bg-destructive animate-pulse' 
-                      : creditRemaining <= 5
-                      ? 'bg-yellow-500 animate-pulse'
-                      : 'bg-primary'
-                  )} />
-                  <div className="text-right">
-                    <p className="text-xs font-medium text-muted-foreground hidden md:block">
-                      Credit Disponibil
-                    </p>
-                    <p className="text-base md:text-lg font-bold">
-                      {creditRemaining.toFixed(2)} lei
-                    </p>
+                      ? 'border-destructive bg-destructive/10' 
+                      : creditRemaining <= 5 
+                      ? 'border-yellow-500 bg-yellow-500/10'
+                      : 'border-primary bg-primary/10'
+                  )}>
+                    <div className="flex items-center gap-1 md:gap-2">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full flex-shrink-0",
+                        creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
+                          ? 'bg-destructive animate-pulse' 
+                          : creditRemaining <= 5
+                          ? 'bg-yellow-500 animate-pulse'
+                          : 'bg-primary'
+                      )} />
+                      <p className="text-sm md:text-lg font-bold whitespace-nowrap">
+                        {creditRemaining.toFixed(2)}
+                        <span className="hidden md:inline"> lei</span>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </div>
 
                   {activeTab === "chat" && (
                     <>
+                      {/* BattlePlan - vizibil pe toate ecranele */}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div>
+                          <div className="flex-shrink-0">
                             <BattlePlanExport 
                               conversationId={conversationId}
                               userId={user.id}
@@ -548,11 +558,11 @@ export default function StrategicAdvisor() {
                         </TooltipContent>
                       </Tooltip>
 
-                      {/* War Room and New Conversation in dropdown menu */}
+                      {/* Dropdown menu */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
+                          <Button variant="ghost" size="icon" className="flex-shrink-0">
+                            <MoreVertical className="w-5 h-5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background">
@@ -570,12 +580,12 @@ export default function StrategicAdvisor() {
                     </>
                   )}
                   
-                  {/* Sidebar Toggle */}
+                  {/* Sidebar Toggle - mereu vizibil */}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="btn-hover-lift"
+                    className="btn-hover-lift flex-shrink-0"
                   >
                     {sidebarOpen ? (
                       <PanelRightClose className="w-5 h-5" />

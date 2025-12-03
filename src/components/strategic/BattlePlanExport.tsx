@@ -154,9 +154,10 @@ export const BattlePlanExport: React.FC<BattlePlanExportProps> = ({
           variant="outline" 
           className="gap-2 border-green-500/50 text-green-600 hover:bg-green-500/10"
           disabled={disabled}
+          size="default"
         >
           <FileText className="w-4 h-4" />
-          Generează Battle Plan
+          <span className="hidden md:inline">Generează Battle Plan</span>
         </Button>
       </DialogTrigger>
       
