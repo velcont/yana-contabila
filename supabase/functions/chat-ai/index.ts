@@ -976,6 +976,14 @@ serve(async (req) => {
     let requestBody;
     try {
       const rawBody = await req.json();
+      
+      // ✅ PRE-PROCESS: Truncate history to last 100 messages BEFORE validation
+      // This prevents validation errors when conversation history grows too large
+      if (rawBody.history && Array.isArray(rawBody.history) && rawBody.history.length > 100) {
+        console.log(`[chat-ai][${requestId}] History truncated: ${rawBody.history.length} → 100 messages`);
+        rawBody.history = rawBody.history.slice(-100); // Keep last 100 messages
+      }
+      
       requestBody = ChatAIRequestSchema.parse(rawBody);
     } catch (error) {
       if (error instanceof z.ZodError) {
