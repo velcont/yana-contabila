@@ -929,7 +929,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       <p className="text-sm text-muted-foreground font-semibold mb-2">
                         Ce face: Procesează fișierul Excel al balanței tale și extrage automat toți indicatorii financiari
                       </p>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-1 text-sm hidden md:block">
                         <p className="flex items-start gap-2">
                           <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                           <span>Calculează automat: DSO, DPO, DIO, marja profit, EBITDA, etc.</span>
@@ -968,7 +968,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       <p className="text-sm text-muted-foreground font-semibold mb-2">
                         Ce face: Răspunde la întrebări simple despre balanța pe care ai uploadat-o
                       </p>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-1 text-sm hidden md:block">
                         <p className="flex items-start gap-2">
                           <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                           <span>Ex: "Cât este DSO-ul meu în martie?" → Răspuns instant din datele tale</span>
@@ -1003,7 +1003,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       <p className="text-sm text-muted-foreground font-semibold mb-2">
                         Ce face: AI-ul analizează ISTORIC (min. 3 luni) și generează previziuni automate pe viitor (3-6 luni)
                       </p>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-1 text-sm hidden md:block">
                         <p className="flex items-start gap-2">
                           <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
                           <span>Prevede profitul probabil pentru lunile următoare</span>
@@ -1028,7 +1028,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       ⚡ NECESITĂ CREDITE AI - Procesare complexă cu modele AI avansate (~100 credite = 1 leu/predicție)
                     </p>
                   </div>
-                  <div className="mt-2 p-3 bg-background rounded border">
+                  <div className="mt-2 p-3 bg-background rounded border hidden md:block">
                     <p className="text-xs">
                       <span className="font-semibold">Diferența față de analiza simplă:</span> Analiza balanței = "Cum arată acum?". Predicțiile = "Cum va arăta în viitor?"
                     </p>
@@ -1049,7 +1049,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       <p className="text-sm text-muted-foreground font-semibold mb-2">
                         Ce face: Consultant AI virtual care analizează în profunzime situația ta și oferă strategii personalizate
                       </p>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-1 text-sm hidden md:block">
                         <p className="flex items-start gap-2">
                           <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
                           <span>Analiză complexă cross-factorială (combinații între toți indicatorii)</span>
@@ -1078,7 +1078,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       ⚡ NECESITĂ CREDITE AI - Analiză aprofundată cu modele GPT-4 avansate (~150 credite = 1.5 lei/sesiune)
                     </p>
                   </div>
-                  <div className="mt-2 p-3 bg-background rounded border">
+                  <div className="mt-2 p-3 bg-background rounded border hidden md:block">
                     <p className="text-xs">
                       <span className="font-semibold">Diferența față de chat-ul simplu:</span> Chat AI = "Întrebări rapide despre ce vezi". Consilier Strategic = "Consultant AI care îți face plan complet de optimizare"
                     </p>
@@ -1099,7 +1099,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                       <p className="text-sm text-muted-foreground font-semibold mb-2">
                         Ce face: Benchmarking automat - compară mai multe companii între ele și generează raport comparativ
                       </p>
-                      <div className="space-y-1 text-sm">
+                      <div className="space-y-1 text-sm hidden md:block">
                         <p className="flex items-start gap-2">
                           <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                           <span>Identifică care companie performează cel mai bine la fiecare indicator</span>
