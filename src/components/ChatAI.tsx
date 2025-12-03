@@ -584,7 +584,7 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
   };
 
   useEffect(() => {
