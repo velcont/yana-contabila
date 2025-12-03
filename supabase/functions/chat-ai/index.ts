@@ -959,6 +959,12 @@ const ChatAIRequestSchema = z.object({
 });
 
 serve(async (req) => {
+  // ========== LOGGING: Request ID și timestamp ==========
+  const requestId = crypto.randomUUID().slice(0, 8);
+  const requestStartTime = Date.now();
+  console.log(`[chat-ai][${requestId}] ========== REQUEST RECEIVED ==========`);
+  console.log(`[chat-ai][${requestId}] Timestamp: ${new Date().toISOString()}`);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -973,7 +979,7 @@ serve(async (req) => {
       requestBody = ChatAIRequestSchema.parse(rawBody);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('[chat-ai] Validation error:', error.errors);
+        console.error(`[chat-ai][${requestId}] Validation error:`, error.errors);
         return new Response(
           JSON.stringify({ 
             error: "Date de intrare invalide", 
@@ -982,6 +988,7 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      console.error(`[chat-ai][${requestId}] JSON parse error`);
       return new Response(
         JSON.stringify({ error: "Format JSON invalid" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -989,6 +996,13 @@ serve(async (req) => {
     }
 
     const { message, history, conversationId, summaryType, stream: streamResponse } = requestBody;
+    
+    // ========== LOGGING: Request details ==========
+    console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
+    console.log(`[chat-ai][${requestId}] Message preview: "${message.slice(0, 80)}${message.length > 80 ? '...' : ''}"`);
+    console.log(`[chat-ai][${requestId}] History length: ${history.length} messages`);
+    console.log(`[chat-ai][${requestId}] Stream mode: ${streamResponse}`);
+    console.log(`[chat-ai][${requestId}] Summary type: ${summaryType}`);
 
     // Extragem user_id pentru rate limiting și caching
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1000,6 +1014,7 @@ serve(async (req) => {
     const userId = user?.id;
 
     if (!userId) {
+      console.error(`[chat-ai][${requestId}] Auth failed: no user ID`);
       return new Response(
         JSON.stringify({ error: "Autentificare necesară" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1010,7 +1025,8 @@ serve(async (req) => {
     // Chat AI pentru analiza balanței - INCLUS în abonament
     // NU necesită verificare credite AI (e parte din funcționalitatea de bază)
     // ========================================
-    console.log('[chat-ai] User authenticated:', userId);
+    console.log(`[chat-ai][${requestId}] User authenticated: ${userId}`);
+    console.log(`[chat-ai][${requestId}] User email: ${user?.email || 'unknown'}`);
 
     // DETECTARE "ȚINE MINTE" - Salvare în knowledge base
     const rememberRegex = /^(ține\s+minte|tine\s+minte)[:\s]+(.+)/i;
@@ -1088,8 +1104,9 @@ serve(async (req) => {
     });
 
     if (rateLimitError) {
-      console.error('Rate limit check error:', rateLimitError);
+      console.error(`[chat-ai][${requestId}] Rate limit check error:`, rateLimitError);
     }
+    console.log(`[chat-ai][${requestId}] Rate limit check: ${rateLimitData === false ? 'BLOCKED' : 'PASSED'}`);
 
     if (rateLimitData === false) {
       return new Response(
@@ -1216,6 +1233,12 @@ serve(async (req) => {
     const controller1 = new AbortController();
     const timeout1 = setTimeout(() => controller1.abort(), 45000);
     
+    // ========== LOGGING: Pre-AI call ==========
+    console.log(`[chat-ai][${requestId}] Calling AI Gateway...`);
+    console.log(`[chat-ai][${requestId}] Model: google/gemini-2.5-flash`);
+    console.log(`[chat-ai][${requestId}] Tools enabled: ${TOOLS.length} tools`);
+    const aiCallStartTime = Date.now();
+    
     let aiResponse: Response;
     try {
       aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1235,20 +1258,23 @@ serve(async (req) => {
         signal: controller1.signal
       });
       clearTimeout(timeout1);
+      console.log(`[chat-ai][${requestId}] AI Gateway response: ${aiResponse.status} (${Date.now() - aiCallStartTime}ms)`);
     } catch (err: any) {
       clearTimeout(timeout1);
       if (err.name === 'AbortError') {
+        console.error(`[chat-ai][${requestId}] AI Gateway TIMEOUT after 45s`);
         return new Response(
           JSON.stringify({ error: "Timeout: cererea a depășit 45 secunde" }),
           { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      console.error(`[chat-ai][${requestId}] AI Gateway fetch error:`, err.message);
       throw err;
     }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("Eroare AI Gateway:", aiResponse.status, errorText);
+      console.error(`[chat-ai][${requestId}] AI Gateway ERROR: ${aiResponse.status}`, errorText);
       
       if (aiResponse.status === 429) {
         return new Response(
@@ -1292,7 +1318,11 @@ serve(async (req) => {
             success: true,
             month_year: new Date().toISOString().slice(0, 7)
           });
-        console.log('[chat-ai] Message tracked (included in subscription)');
+        const totalDuration = Date.now() - requestStartTime;
+        console.log(`[chat-ai][${requestId}] ========== REQUEST COMPLETE (non-stream) ==========`);
+        console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms`);
+        console.log(`[chat-ai][${requestId}] Response length: ${content.length} chars`);
+        console.log(`[chat-ai][${requestId}] Status: SUCCESS`);
       }
       // ========================================
       
@@ -1345,6 +1375,7 @@ serve(async (req) => {
                   for (const tc of delta.tool_calls) {
                     if (!toolCalls[tc.index]) {
                       toolCalls[tc.index] = { id: tc.id, type: "function", function: { name: "", arguments: "" } };
+                      console.log(`[chat-ai][${requestId}] Tool call detected: index ${tc.index}`);
                     }
                     if (tc.function?.name) toolCalls[tc.index].function.name += tc.function.name;
                     if (tc.function?.arguments) toolCalls[tc.index].function.arguments += tc.function.arguments;
@@ -1457,6 +1488,12 @@ serve(async (req) => {
           // === Chat AI inclus în abonament - doar tracking pentru statistici ===
           if (sentAnyContent && accumulatedContent.length > 0) {
             // Track AI usage pentru statistici (fără deducere credite)
+            const totalDuration = Date.now() - requestStartTime;
+            console.log(`[chat-ai][${requestId}] ========== REQUEST COMPLETE (stream) ==========`);
+            console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms`);
+            console.log(`[chat-ai][${requestId}] Response length: ${accumulatedContent.length} chars`);
+            console.log(`[chat-ai][${requestId}] Status: SUCCESS`);
+            
             await supabase
               .from('ai_usage')
               .insert({
@@ -1571,8 +1608,10 @@ serve(async (req) => {
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
-        } catch (error) {
-          console.error("Stream error:", error);
+        } catch (error: any) {
+          const totalDuration = Date.now() - requestStartTime;
+          console.error(`[chat-ai][${requestId}] STREAM ERROR after ${totalDuration}ms:`, error?.message || error);
+          console.error(`[chat-ai][${requestId}] Stack:`, error?.stack);
           controller.error(error);
         }
       }
@@ -1587,9 +1626,13 @@ serve(async (req) => {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     // ✅ SECURITY FIX: Sanitize error messages - don't expose stack traces
-    console.error("Eroare în chat-ai:", error);
+    const totalDuration = Date.now() - requestStartTime;
+    console.error(`[chat-ai][${requestId}] ========== REQUEST FAILED ==========`);
+    console.error(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms`);
+    console.error(`[chat-ai][${requestId}] Error: ${error?.message || error}`);
+    console.error(`[chat-ai][${requestId}] Stack: ${error?.stack}`);
     return new Response(
       JSON.stringify({
         error: "A apărut o eroare tehnică. Te rog încearcă din nou."
