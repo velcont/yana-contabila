@@ -9,13 +9,20 @@ const corsHeaders = {
 };
 
 // 🔒 VALIDARE INPUT SCHEMA
+// ✅ FIX: Accept both data URL format AND pure base64
 const AnalyzeBalanceInputSchema = z.object({
   excelBase64: z.string()
     .min(1, "Fișierul Excel este vid")
     .refine((val) => {
       try {
-        const base64Pattern = /^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+)?;base64,([A-Za-z0-9+/=]+)$/;
-        return base64Pattern.test(val);
+        // Accept data URL format: data:mime/type;base64,CONTENT
+        if (val.includes(';base64,')) {
+          const base64Part = val.split(';base64,')[1];
+          // Check if base64 part is valid (basic check)
+          return base64Part && base64Part.length > 0 && /^[A-Za-z0-9+/=]+$/.test(base64Part);
+        }
+        // Accept pure base64
+        return /^[A-Za-z0-9+/=]+$/.test(val);
       } catch {
         return false;
       }
