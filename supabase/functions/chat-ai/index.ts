@@ -1007,39 +1007,10 @@ serve(async (req) => {
     }
 
     // ========================================
-    // PROTECȚIE FINANCIARĂ - Chat AI
+    // Chat AI pentru analiza balanței - INCLUS în abonament
+    // NU necesită verificare credite AI (e parte din funcționalitatea de bază)
     // ========================================
-    
-    // Check AI Credits (20 bani per message = 0.20 RON)
-    const MESSAGE_COST = 20; // cents
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('ai_credits')
-      .eq('id', userId)
-      .single();
-
-    const currentCredits = profile?.ai_credits || 0;
-
-    if (currentCredits < MESSAGE_COST) {
-      console.error('[chat-ai] Insufficient credits:', currentCredits);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Credit AI insuficient pentru chat',
-          required: MESSAGE_COST,
-          remaining: currentCredits
-        }), 
-        { 
-          status: 402, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    console.log('[chat-ai] Credits OK:', currentCredits, 'cents');
-
-    // ========================================
-    // PROTECȚIE FINANCIARĂ - SFÂRȘIT
-    // ========================================
+    console.log('[chat-ai] User authenticated:', userId);
 
     // DETECTARE "ȚINE MINTE" - Salvare în knowledge base
     const rememberRegex = /^(ține\s+minte|tine\s+minte)[:\s]+(.+)/i;
@@ -1307,31 +1278,21 @@ serve(async (req) => {
       // ========================================
       // DEDUCT CREDIT AFTER SUCCESS (non-streaming)
       // ========================================
+      // Chat AI inclus în abonament - doar tracking pentru statistici
+      // ========================================
       if (content) {
-        const { error: deductError } = await supabase
-          .from('profiles')
-          .update({ 
-            ai_credits: currentCredits - MESSAGE_COST 
-          })
-          .eq('id', userId);
-        
-        if (deductError) {
-          console.error('[chat-ai] Failed to deduct credits:', deductError);
-        } else {
-          console.log('[chat-ai] Credits deducted (non-stream), new balance:', currentCredits - MESSAGE_COST);
-        }
-        
-        // Track AI usage
+        // Track AI usage pentru statistici (fără deducere credite)
         await supabase
           .from('ai_usage')
           .insert({
             user_id: userId,
             endpoint: 'chat-ai',
             model: 'google/gemini-2.5-flash',
-            estimated_cost_cents: MESSAGE_COST,
+            estimated_cost_cents: 0, // Inclus în abonament
             success: true,
             month_year: new Date().toISOString().slice(0, 7)
           });
+        console.log('[chat-ai] Message tracked (included in subscription)');
       }
       // ========================================
       
@@ -1493,34 +1454,22 @@ serve(async (req) => {
             accumulatedContent = fallback;
           }
 
-          // === DEDUCT CREDIT AFTER SUCCESS (streaming) ===
+          // === Chat AI inclus în abonament - doar tracking pentru statistici ===
           if (sentAnyContent && accumulatedContent.length > 0) {
-            const { error: deductError } = await supabase
-              .from('profiles')
-              .update({ 
-                ai_credits: currentCredits - MESSAGE_COST 
-              })
-              .eq('id', userId);
-            
-            if (deductError) {
-              console.error('[chat-ai] Failed to deduct credits:', deductError);
-            } else {
-              console.log('[chat-ai] Credits deducted (stream), new balance:', currentCredits - MESSAGE_COST);
-            }
-            
-            // Track AI usage
+            // Track AI usage pentru statistici (fără deducere credite)
             await supabase
               .from('ai_usage')
               .insert({
                 user_id: userId,
                 endpoint: 'chat-ai',
                 model: 'google/gemini-2.5-flash',
-                estimated_cost_cents: MESSAGE_COST,
+                estimated_cost_cents: 0, // Inclus în abonament
                 success: true,
                 month_year: new Date().toISOString().slice(0, 7)
               });
+            console.log('[chat-ai] Message tracked (included in subscription)');
           }
-          // === END CREDIT DEDUCTION ===
+          // === END TRACKING ===
 
           // === ÎNVĂȚARE AUTOMATĂ: Salvăm răspunsul și extragem pattern-ul ===
           const responseTime = Date.now() - startTime;
