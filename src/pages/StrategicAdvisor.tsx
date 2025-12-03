@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { 
   Loader2, 
@@ -53,6 +56,7 @@ interface Message {
 
 export default function StrategicAdvisor() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -78,8 +82,17 @@ export default function StrategicAdvisor() {
   const [creditRemaining, setCreditRemaining] = useState<number>(0);
   
   // Sidebar and conflict dialog states
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+
+  // Set sidebar open on desktop after initial render
+  useEffect(() => {
+    if (isMobile === false) {
+      setSidebarOpen(true);
+    } else if (isMobile === true) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
   const [selectedConflict, setSelectedConflict] = useState<any>(null);
   const [warRoomOpen, setWarRoomOpen] = useState(false);
 
@@ -464,8 +477,8 @@ export default function StrategicAdvisor() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div>
-                      <h1 className="text-2xl font-bold">Yana Strategică</h1>
-                      <p className="text-sm text-muted-foreground">
+                      <h1 className="text-xl md:text-2xl font-bold">Yana Strategică</h1>
+                      <p className="text-sm text-muted-foreground hidden md:block">
                         Consultant AI Strategic
                       </p>
                     </div>
@@ -476,37 +489,39 @@ export default function StrategicAdvisor() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
-              {/* Message counter - prominent display */}
+                <div className="flex items-center gap-2 md:gap-3">
+              {/* Message counter - prominent display (hidden on mobile) */}
               {activeTab === "chat" && messages.length > 0 && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
                   <MessageSquare className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium">{messages.length}</span>
                   <span className="text-xs text-muted-foreground">mesaje</span>
                 </div>
               )}
               
-              {/* Credit indicator - arată creditul în RON */}
-              <div className={`px-4 py-2 rounded-lg border-2 ${
+              {/* Credit indicator - arată creditul în RON (compact on mobile) */}
+              <div className={cn(
+                "px-2 md:px-4 py-1.5 md:py-2 rounded-lg border-2",
                 creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
                   ? 'border-destructive bg-destructive/10' 
                   : creditRemaining <= 5 
                   ? 'border-yellow-500 bg-yellow-500/10'
                   : 'border-primary bg-primary/10'
-              }`}>
+              )}>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
                     creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
                       ? 'bg-destructive animate-pulse' 
                       : creditRemaining <= 5
                       ? 'bg-yellow-500 animate-pulse'
                       : 'bg-primary'
-                  }`} />
+                  )} />
                   <div className="text-right">
-                    <p className="text-xs font-medium text-muted-foreground">
+                    <p className="text-xs font-medium text-muted-foreground hidden md:block">
                       Credit Disponibil
                     </p>
-                    <p className="text-lg font-bold">
+                    <p className="text-base md:text-lg font-bold">
                       {creditRemaining.toFixed(2)} lei
                     </p>
                   </div>
@@ -671,14 +686,26 @@ export default function StrategicAdvisor() {
           </Tabs>
         </div>
 
-        {/* Sidebar Panel - Facts */}
-        {sidebarOpen && (
+        {/* Sidebar Panel - Facts (Desktop: fixed sidebar, Mobile: Sheet overlay) */}
+        {!isMobile && sidebarOpen && (
           <div className="w-96 border-l bg-card flex-shrink-0 overflow-hidden">
             <StrategicFactsPanel
               userId={user?.id}
               conversationId={conversationId}
             />
           </div>
+        )}
+
+        {/* Mobile Sidebar Sheet */}
+        {isMobile && (
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="right" className="w-[85vw] max-w-96 p-0">
+              <StrategicFactsPanel
+                userId={user?.id}
+                conversationId={conversationId}
+              />
+            </SheetContent>
+          </Sheet>
         )}
       </div>
 
