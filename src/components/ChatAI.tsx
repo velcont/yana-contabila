@@ -737,6 +737,39 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
     setMessages(prev => [...prev, helpResponse]);
   };
 
+  // 🛡️ FINANCIAL QUESTION GUARD - Helper function
+  // Detectează întrebări financiare care trebuie să ajungă la AI, nu la tutorial
+  const isFinancialQuestion = (msg: string): boolean => {
+    const msgLower = msg.toLowerCase();
+    
+    // 1. Cuvinte cheie financiare explicite
+    const financialKeywords = [
+      'pierdere', 'profit', 'venituri', 'cheltuieli', 'cifra', 'afaceri',
+      'dso', 'dpo', 'dio', 'cash', 'lichiditate', 'sold', 'cont', 'balanț',
+      'indicator', 'anomali', 'stoc', 'creanț', 'datori', 'activ', 'pasiv',
+      'amortiz', 'capital', 'patrimon', 'ebitda', 'margin', 'rentabil',
+      'rulaj', 'sold final', 'sold initial', 'debit', 'credit'
+    ];
+    
+    // 2. Referințe la luni (context temporal pentru analiză)
+    const months = ['ianuarie','februarie','martie','aprilie','mai','iunie',
+                    'iulie','august','septembrie','octombrie','noiembrie','decembrie'];
+    
+    // 3. Pattern-uri de întrebări analitice
+    const analyticalPatterns = /\b(de ce|cum|care|cât|câte|câți|explicați|analizează|compară|arată|ce s-a|ce se)\b/i;
+    
+    const hasFinancialKeyword = financialKeywords.some(kw => msgLower.includes(kw));
+    const hasMonth = months.some(m => msgLower.includes(m));
+    const hasQuestion = msg.includes('?');
+    const hasAnalyticalPattern = analyticalPatterns.test(msgLower);
+    
+    // Este întrebare financiară dacă:
+    // - Conține cuvinte cheie financiare, SAU
+    // - Conține o lună + este întrebare (are "?"), SAU
+    // - Conține pattern analitic + lună
+    return hasFinancialKeyword || (hasMonth && hasQuestion) || (hasAnalyticalPattern && hasMonth);
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -746,9 +779,18 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
     setMessages(prev => [...prev, newUserMsg]);
     setIsLoading(true);
 
-    // 🆕 Verificăm dacă este cerere de ajutor
+    // 🛡️ FINANCIAL QUESTION GUARD - Prioritate maximă
+    // Întrebările financiare bypassează flow-ul de tutorial/descărcare
+    const isFinancialQ = isFinancialQuestion(userMessage);
+    if (isFinancialQ && awaitingDownloadKnowledgeResponse) {
+      console.log('[Chat] 🛡️ Financial Question Guard: Bypassing download knowledge flow');
+      setAwaitingDownloadKnowledgeResponse(false);
+      // NU facem return - lăsăm mesajul să treacă la AI
+    }
+
+    // 🆕 Verificăm dacă este cerere de ajutor (doar dacă NU e întrebare financiară)
     const helpKeywords = ['ajutor', 'help', 'cum folosesc', 'tutorial', 'ghid', 'am uitat', 'nu stiu', 'nu știu'];
-    const isHelpRequest = helpKeywords.some(keyword => 
+    const isHelpRequest = !isFinancialQ && helpKeywords.some(keyword => 
       userMessage.toLowerCase().includes(keyword)
     );
 
@@ -782,7 +824,8 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
     }
 
     // 🆕 Verificăm dacă așteptăm răspuns la întrebarea despre descărcare
-    if (awaitingDownloadKnowledgeResponse) {
+    // (dar DOAR dacă NU e întrebare financiară - deja verificat mai sus)
+    if (awaitingDownloadKnowledgeResponse && !isFinancialQ) {
       setAwaitingDownloadKnowledgeResponse(false); // Resetăm flag-ul
       
       const userResponseLower = userMessage.toLowerCase().trim();
@@ -791,9 +834,10 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
       const positiveResponses = ['da', 'știu', 'stiu', 'yes', 'da știu', 'da stiu', 'sigur'];
       const isPositiveResponse = positiveResponses.some(phrase => userResponseLower.includes(phrase));
       
-      // Detectăm răspunsuri negative (Nu, Nu știu, No, etc.)
-      const negativeResponses = ['nu', 'no', 'nu știu', 'nu stiu', 'nush', 'nu prea'];
-      const isNegativeResponse = negativeResponses.some(phrase => userResponseLower.includes(phrase));
+      // Detectăm răspunsuri negative cu WORD BOUNDARY (fix pentru "noiembrie" = "no")
+      // Folosim regex \b pentru a detecta cuvinte întregi, nu subșiruri
+      const isNegativeResponse = /\b(nu|no)\b/i.test(userResponseLower) || 
+                                  /nu știu|nu stiu|nush|nu prea/i.test(userResponseLower);
       
       let responseContent = '';
       
