@@ -128,10 +128,37 @@ function extractBasicFacts(message: string): ExtractedFact[] {
     { regex: /(\d+)\s*(?:angaja[țt]i|programatori|oameni|membri|persoane|speciali[sș]ti)/i, key: 'angajati_numar', unit: '', category: 'company' },
     { regex: /echip[aă]\s*(?:de\s*)?(\d+)/i, key: 'angajati_numar', unit: '', category: 'company' },
     { regex: /(\d+)\s*(?:în\s*)?echip[aă]/i, key: 'angajati_numar', unit: '', category: 'company' },
+    // Clienți - extins pentru portofoliu, bază de clienți, etc.
     { regex: /(\d+)\s*clien[țt]i\s*(?:activi)?/i, key: 'clienti_activi', unit: '', category: 'company' },
+    { regex: /portofoliu\s*(?:de\s*)?(\d+)\s*clien[țt]i/i, key: 'clienti_activi', unit: '', category: 'company' },
+    { regex: /baz[aă]\s*(?:de\s*)?clien[țt]i\s*(?:de\s*)?(\d+)/i, key: 'clienti_activi', unit: '', category: 'company' },
+    { regex: /servim\s*(\d+)\s*clien[țt]i/i, key: 'clienti_activi', unit: '', category: 'company' },
+    { regex: /avem\s*(\d+)\s*clien[țt]i/i, key: 'clienti_activi', unit: '', category: 'company' },
     
-    // Marjă
-    { regex: /marj[aă][:\s]*([0-9.,]+)\s*%/i, key: 'marja_profit', unit: '%', category: 'financial' },
+    // Marjă - flexibilizat pentru variații
+    { regex: /marj[aă]\s*(?:de\s*)?(?:profit|brut[aă]|net[aă])?\s*(?:de\s*)?([0-9.,]+)\s*%/i, key: 'marja_profit', unit: '%', category: 'financial' },
+    { regex: /profitabilitate\s*(?:de\s*)?([0-9.,]+)\s*%/i, key: 'marja_profit', unit: '%', category: 'financial' },
+    
+    // Datorii - NOU
+    { regex: /datorii\s*(?:bancare|totale|financiare)?\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR)?/i, key: 'datorii_totale', unit: 'RON', category: 'financial' },
+    { regex: /credit\s*(?:bancar)?\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR)?/i, key: 'datorii_totale', unit: 'RON', category: 'financial' },
+    { regex: /[îi]mprumuturi?\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR)?/i, key: 'datorii_totale', unit: 'RON', category: 'financial' },
+    { regex: /obliga[țt]ii\s*(?:financiare)?\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR)?/i, key: 'datorii_totale', unit: 'RON', category: 'financial' },
+    
+    // Stocuri - NOU
+    { regex: /stocuri\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'stocuri', unit: 'RON', category: 'financial' },
+    { regex: /valoare\s*stocuri\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'stocuri', unit: 'RON', category: 'financial' },
+    { regex: /inventar\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'stocuri', unit: 'RON', category: 'financial' },
+    { regex: /marf[aă]\s*(?:[îi]n\s*)?stoc\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'stocuri', unit: 'RON', category: 'financial' },
+    
+    // Creanțe - NOU
+    { regex: /crean[țt]e\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'creante', unit: 'RON', category: 'financial' },
+    { regex: /de\s*[îi]ncasat\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'creante', unit: 'RON', category: 'financial' },
+    { regex: /clien[țt]i\s*(?:de\s*)?[îi]ncasat\s*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'creante', unit: 'RON', category: 'financial' },
+    
+    // Capital social - NOU
+    { regex: /capital\s*social\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'capital_social', unit: 'RON', category: 'financial' },
+    { regex: /capitalizare\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'capital_social', unit: 'RON', category: 'financial' },
     
     // Contract mediu
     { regex: /contract\s*mediu[:\s]*([0-9.,]+)\s*(RON|lei|EUR)?/i, key: 'contract_mediu', unit: 'RON', category: 'company' },
