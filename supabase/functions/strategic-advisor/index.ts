@@ -81,6 +81,101 @@ async function generateStrategyCacheKey(
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ============================================================================
+// EXTRACTOR SIMPLU DE DATE FINANCIARE (pentru Facts Panel)
+// ============================================================================
+interface ExtractedFact {
+  key: string;
+  value: string;
+  unit: string;
+  category: string;
+}
+
+function extractBasicFacts(message: string): ExtractedFact[] {
+  const facts: ExtractedFact[] = [];
+  const text = message.toLowerCase();
+  
+  // Patterns pentru extragere date financiare din text liber
+  const patterns: Array<{
+    regex: RegExp;
+    key: string;
+    unit: string;
+    category: string;
+    valueGroup?: number;
+  }> = [
+    // Cifra de afaceri
+    { regex: /cifr[aă]\s*(?:de\s*)?afaceri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR|mii)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financiar' },
+    { regex: /ca[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financiar' },
+    { regex: /venituri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'venituri_totale', unit: 'RON', category: 'financiar' },
+    
+    // Profit
+    { regex: /profit\s*(?:net)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'profit_net', unit: 'RON', category: 'financiar' },
+    { regex: /pierdere[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'pierdere', unit: 'RON', category: 'financiar' },
+    
+    // Cash
+    { regex: /cash\s*(?:disponibil)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financiar' },
+    { regex: /disponibil[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financiar' },
+    
+    // Costuri
+    { regex: /costuri\s*salariale[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financiar' },
+    { regex: /salarii[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financiar' },
+    
+    // Angajați și clienți
+    { regex: /(\d+)\s*angaja[țt]i/i, key: 'angajati_numar', unit: '', category: 'companie' },
+    { regex: /(\d+)\s*clien[țt]i\s*(?:activi)?/i, key: 'clienti_activi', unit: '', category: 'companie' },
+    
+    // Marjă
+    { regex: /marj[aă][:\s]*([0-9.,]+)\s*%/i, key: 'marja_profit', unit: '%', category: 'financiar' },
+    
+    // Contract mediu
+    { regex: /contract\s*mediu[:\s]*([0-9.,]+)\s*(RON|lei|EUR)?/i, key: 'contract_mediu', unit: 'RON', category: 'companie' },
+    
+    // CAC și LTV
+    { regex: /cac[:\s]*([0-9.,]+)\s*(RON|lei)?/i, key: 'cac', unit: 'RON', category: 'metrici' },
+    { regex: /ltv[:\s]*([0-9.,]+)\s*(RON|lei)?/i, key: 'ltv', unit: 'RON', category: 'metrici' },
+    
+    // Capacitate
+    { regex: /capacitate\s*(?:maxim[aă])?[:\s]*(\d+)\s*clien[țt]i/i, key: 'capacitate_maxima', unit: 'clienți', category: 'companie' },
+    
+    // DSO, DPO, DIO
+    { regex: /dso[:\s]*(\d+)\s*(?:zile)?/i, key: 'dso', unit: 'zile', category: 'eficienta' },
+    { regex: /dpo[:\s]*(\d+)\s*(?:zile)?/i, key: 'dpo', unit: 'zile', category: 'eficienta' },
+    { regex: /dio[:\s]*(\d+)\s*(?:zile)?/i, key: 'dio', unit: 'zile', category: 'eficienta' },
+  ];
+  
+  const foundKeys = new Set<string>();
+  
+  for (const pattern of patterns) {
+    // Skip dacă am găsit deja acest key
+    if (foundKeys.has(pattern.key)) continue;
+    
+    const match = message.match(pattern.regex);
+    if (match) {
+      // Extrage valoarea și curăță-o
+      let value = match[1]
+        .replace(/\./g, '') // Elimină puncte de mii
+        .replace(',', '.'); // Virgula devine punct zecimal
+      
+      // Detectează dacă e "mii" sau "000" menționat
+      if (match[2]?.toLowerCase() === 'mii' || message.match(new RegExp(match[0] + '\\s*(?:mii|000)', 'i'))) {
+        value = String(parseFloat(value) * 1000);
+      }
+      
+      facts.push({
+        key: pattern.key,
+        value: value,
+        unit: pattern.unit,
+        category: pattern.category
+      });
+      
+      foundKeys.add(pattern.key);
+    }
+  }
+  
+  console.log(`[FACTS-EXTRACTOR] Extracted ${facts.length} facts from message`);
+  return facts;
+}
+
 // System prompt embedded directly (no external file dependency)
 const SYSTEM_PROMPT = `# Strategic Advisor System Prompt
 
@@ -1186,6 +1281,43 @@ ${simulationResult}
     };
 
     const totalCost = 0.5; // Doar Strategist, fără Validator
+
+    // ============================================================================
+    // EXTRAGERE AUTOMATĂ DATE FINANCIARE → FACTS PANEL
+    // ============================================================================
+    const extractedFacts = extractBasicFacts(message);
+    
+    if (extractedFacts.length > 0) {
+      console.log(`[STRATEGIC-ADVISOR] 📊 Auto-extracting ${extractedFacts.length} facts to sidebar panel`);
+      
+      // Fire and forget - nu blochează răspunsul AI
+      Promise.resolve().then(async () => {
+        try {
+          for (const fact of extractedFacts) {
+            await supabaseClient
+              .from('strategic_advisor_facts')
+              .upsert({
+                conversation_id: conversationId,
+                user_id: user.id,
+                fact_category: fact.category,
+                fact_key: fact.key,
+                fact_value: fact.value,
+                fact_unit: fact.unit || '',
+                confidence: 0.85,
+                source: 'auto_extract',
+                status: 'validated',
+                metadata: { extracted_from: 'user_message' }
+              }, { 
+                onConflict: 'conversation_id,fact_key',
+                ignoreDuplicates: false 
+              });
+          }
+          console.log(`[STRATEGIC-ADVISOR] ✅ Saved ${extractedFacts.length} facts to DB`);
+        } catch (e) {
+          console.error('[STRATEGIC-ADVISOR] ❌ Error saving facts:', e);
+        }
+      });
+    }
 
     /*
     // ============================================================================
