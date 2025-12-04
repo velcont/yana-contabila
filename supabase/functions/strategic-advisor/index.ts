@@ -106,7 +106,8 @@ function extractBasicFacts(message: string): ExtractedFact[] {
     // Cifra de afaceri - IMPORTANT: category trebuie să fie 'financial' sau 'company' pentru CHECK constraint
     { regex: /cifr[aă]\s*(?:de\s*)?afaceri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR|mii)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financial' },
     { regex: /ca[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financial' },
-    { regex: /venituri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'venituri_totale', unit: 'RON', category: 'financial' },
+    // Venituri - flexibilizat pentru variații naturale
+    { regex: /venituri\s*(?:lunare|anuale|totale)?\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'venituri_totale', unit: 'RON', category: 'financial' },
     
     // Profit
     { regex: /profit\s*(?:net)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'profit_net', unit: 'RON', category: 'financial' },
@@ -116,12 +117,17 @@ function extractBasicFacts(message: string): ExtractedFact[] {
     { regex: /cash\s*(?:disponibil)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financial' },
     { regex: /disponibil[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financial' },
     
+    // Cheltuieli - NOU: pattern pentru cheltuieli operaționale, lunare, etc.
+    { regex: /cheltuieli\s*(?:opera[țt]ionale|lunare|totale|fixe)?\s*(?:de\s*)?([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cheltuieli', unit: 'RON', category: 'financial' },
+    
     // Costuri
     { regex: /costuri\s*salariale[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financial' },
     { regex: /salarii[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financial' },
     
-    // Angajați și clienți
-    { regex: /(\d+)\s*angaja[țt]i/i, key: 'angajati_numar', unit: '', category: 'company' },
+    // Angajați și clienți - extins pentru programatori, oameni, membri, etc.
+    { regex: /(\d+)\s*(?:angaja[țt]i|programatori|oameni|membri|persoane|speciali[sș]ti)/i, key: 'angajati_numar', unit: '', category: 'company' },
+    { regex: /echip[aă]\s*(?:de\s*)?(\d+)/i, key: 'angajati_numar', unit: '', category: 'company' },
+    { regex: /(\d+)\s*(?:în\s*)?echip[aă]/i, key: 'angajati_numar', unit: '', category: 'company' },
     { regex: /(\d+)\s*clien[țt]i\s*(?:activi)?/i, key: 'clienti_activi', unit: '', category: 'company' },
     
     // Marjă
