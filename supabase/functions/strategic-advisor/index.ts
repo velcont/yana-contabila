@@ -1303,7 +1303,7 @@ ${simulationResult}
               fact_value: fact.value,
               fact_unit: fact.unit || '',
               confidence: 0.85,
-              source: 'auto_extract',
+              source: 'user_direct',
               status: 'validated',
               metadata: { extracted_from: 'user_message' }
             }, { 
