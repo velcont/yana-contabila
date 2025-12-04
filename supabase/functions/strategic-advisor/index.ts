@@ -1290,33 +1290,35 @@ ${simulationResult}
     if (extractedFacts.length > 0) {
       console.log(`[STRATEGIC-ADVISOR] 📊 Auto-extracting ${extractedFacts.length} facts to sidebar panel`);
       
-      // Fire and forget - nu blochează răspunsul AI
-      Promise.resolve().then(async () => {
+      // Salvare sincronă - nu mai folosim fire and forget (se anulează în Deno)
+      for (const fact of extractedFacts) {
         try {
-          for (const fact of extractedFacts) {
-            await supabaseClient
-              .from('strategic_advisor_facts')
-              .upsert({
-                conversation_id: conversationId,
-                user_id: user.id,
-                fact_category: fact.category,
-                fact_key: fact.key,
-                fact_value: fact.value,
-                fact_unit: fact.unit || '',
-                confidence: 0.85,
-                source: 'auto_extract',
-                status: 'validated',
-                metadata: { extracted_from: 'user_message' }
-              }, { 
-                onConflict: 'conversation_id,fact_key',
-                ignoreDuplicates: false 
-              });
+          const { error: upsertError } = await supabaseClient
+            .from('strategic_advisor_facts')
+            .upsert({
+              conversation_id: conversationId,
+              user_id: user.id,
+              fact_category: fact.category,
+              fact_key: fact.key,
+              fact_value: fact.value,
+              fact_unit: fact.unit || '',
+              confidence: 0.85,
+              source: 'auto_extract',
+              status: 'validated',
+              metadata: { extracted_from: 'user_message' }
+            }, { 
+              onConflict: 'conversation_id,fact_key',
+              ignoreDuplicates: false 
+            });
+          
+          if (upsertError) {
+            console.error(`[STRATEGIC-ADVISOR] ❌ Upsert error for ${fact.key}:`, upsertError);
           }
-          console.log(`[STRATEGIC-ADVISOR] ✅ Saved ${extractedFacts.length} facts to DB`);
         } catch (e) {
-          console.error('[STRATEGIC-ADVISOR] ❌ Error saving facts:', e);
+          console.error(`[STRATEGIC-ADVISOR] ❌ Error saving fact ${fact.key}:`, e);
         }
-      });
+      }
+      console.log(`[STRATEGIC-ADVISOR] ✅ Saved ${extractedFacts.length} facts to DB`);
     }
 
     /*
