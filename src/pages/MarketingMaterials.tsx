@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { generateYanaPremiumReportPPT } from "@/utils/generateYanaPremiumReportPPT";
 import { generateMarketplacePowerPoint } from "@/utils/generateMarketplacePowerPoint";
+import { generateYanaStrategicaDemoPPT } from "@/utils/generateYanaStrategicaDemoPPT";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 
 interface StorageFile {
@@ -127,13 +128,15 @@ export default function MarketingMaterials() {
     }
   };
 
-  const handleGeneratePPT = async (type: 'premium' | 'marketplace') => {
+  const handleGeneratePPT = async (type: 'premium' | 'marketplace' | 'strategic-demo') => {
     setGenerating(type);
     try {
       if (type === 'premium') {
         await generateYanaPremiumReportPPT();
-      } else {
+      } else if (type === 'marketplace') {
         await generateMarketplacePowerPoint();
+      } else if (type === 'strategic-demo') {
+        await generateYanaStrategicaDemoPPT();
       }
       toast.success('PowerPoint generated successfully');
     } catch (error) {
@@ -197,7 +200,7 @@ export default function MarketingMaterials() {
 
           {/* PRESENTATIONS TAB */}
           <TabsContent value="presentations" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -254,6 +257,37 @@ export default function MarketingMaterials() {
                       <>
                         <Download className="w-4 h-4 mr-2" />
                         Generează PPT Marketplace
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/50 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Presentation className="w-5 h-5 text-primary" />
+                    Demo Yana Strategică
+                  </CardTitle>
+                  <CardDescription>
+                    12 sliduri: TechServ SRL + texte Synthesia + placeholders screenshots
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => handleGeneratePPT('strategic-demo')}
+                    disabled={generating === 'strategic-demo'}
+                    className="w-full"
+                  >
+                    {generating === 'strategic-demo' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Se generează...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Generează PPT Demo YouTube
                       </>
                     )}
                   </Button>
