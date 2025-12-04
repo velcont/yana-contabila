@@ -17,8 +17,10 @@ import {
   MessageSquare,
   PanelRightOpen,
   PanelRightClose,
-  MoreVertical
+  MoreVertical,
+  History
 } from "lucide-react";
+import { ConversationHistory } from "@/components/ConversationHistory";
 import { LoadingSpinner, LoadingOverlay } from "@/components/ui/skeleton-loader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContextualHelp } from "@/components/ContextualHelp";
@@ -62,7 +64,7 @@ export default function StrategicAdvisor() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("chat");
-  const [conversationId] = useState(() => {
+  const [conversationId, setConversationId] = useState(() => {
     const stored = localStorage.getItem('yana_strategic_conversation_id');
     if (stored) {
       logger.log("📖 [CONVERSATION] Reusing existing conversation:", stored);
@@ -73,6 +75,9 @@ export default function StrategicAdvisor() {
     logger.log("🆕 [CONVERSATION] Created new conversation:", newId);
     return newId;
   });
+  
+  // History sheet state (ADDITIVE - new feature)
+  const [showHistorySheet, setShowHistorySheet] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Access control states
@@ -415,6 +420,15 @@ export default function StrategicAdvisor() {
     window.location.reload();
   };
 
+  // Handler pentru selectarea unei conversații din istoric (ADDITIVE - new feature)
+  const handleSelectConversation = (selectedId: string) => {
+    logger.log("📂 [HISTORY] Selecting conversation:", selectedId);
+    setConversationId(selectedId);
+    localStorage.setItem('yana_strategic_conversation_id', selectedId);
+    setShowHistorySheet(false);
+    // useEffect[conversationId] va reîncărca automat mesajele
+  };
+
   // Loading state
   if (isCheckingAccess) {
     return <LoadingOverlay message="Verificare acces..." />;
@@ -566,6 +580,11 @@ export default function StrategicAdvisor() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background">
+                          <DropdownMenuItem onClick={() => setShowHistorySheet(true)}>
+                            <History className="w-4 h-4 mr-2" />
+                            Istoric Conversații
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => setWarRoomOpen(true)}>
                             <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
                             War Room Simulator
@@ -742,6 +761,16 @@ export default function StrategicAdvisor() {
           }]);
         }}
       />
+
+      {/* Conversation History Sheet (ADDITIVE - new feature) */}
+      <Sheet open={showHistorySheet} onOpenChange={setShowHistorySheet}>
+        <SheetContent side="left" className="w-[85vw] max-w-md p-0">
+          <ConversationHistory
+            onSelectConversation={handleSelectConversation}
+            currentConversationId={conversationId}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
     </TooltipProvider>
   );
