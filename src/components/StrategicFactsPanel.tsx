@@ -125,16 +125,30 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
 
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
+      case 'financial':
       case 'financiar':
         return <DollarSign className="w-4 h-4 text-primary" />;
+      case 'company':
       case 'companie':
         return <Building2 className="w-4 h-4 text-primary" />;
       case 'piata':
+      case 'market':
         return <TrendingUp className="w-4 h-4 text-primary" />;
       case 'concurenta':
+      case 'competition':
         return <Briefcase className="w-4 h-4 text-primary" />;
       default:
         return <CheckCircle2 className="w-4 h-4 text-primary" />;
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'financial': return 'Financiar';
+      case 'company': return 'Companie';
+      case 'market': return 'Piață';
+      case 'competition': return 'Concurență';
+      default: return category.charAt(0).toUpperCase() + category.slice(1);
     }
   };
 
@@ -154,7 +168,7 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
           <div key={category} className="space-y-3">
             <h4 className="text-sm font-semibold flex items-center gap-2">
               {getCategoryIcon(category)}
-              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {getCategoryLabel(category)}
             </h4>
             <Card className="p-4 space-y-3">
               {categoryFacts.map((fact) => (

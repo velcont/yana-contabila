@@ -103,44 +103,44 @@ function extractBasicFacts(message: string): ExtractedFact[] {
     category: string;
     valueGroup?: number;
   }> = [
-    // Cifra de afaceri
-    { regex: /cifr[aă]\s*(?:de\s*)?afaceri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR|mii)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financiar' },
-    { regex: /ca[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financiar' },
-    { regex: /venituri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'venituri_totale', unit: 'RON', category: 'financiar' },
+    // Cifra de afaceri - IMPORTANT: category trebuie să fie 'financial' sau 'company' pentru CHECK constraint
+    { regex: /cifr[aă]\s*(?:de\s*)?afaceri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei|EUR|mii)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financial' },
+    { regex: /ca[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cifra_afaceri', unit: 'RON', category: 'financial' },
+    { regex: /venituri[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'venituri_totale', unit: 'RON', category: 'financial' },
     
     // Profit
-    { regex: /profit\s*(?:net)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'profit_net', unit: 'RON', category: 'financiar' },
-    { regex: /pierdere[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'pierdere', unit: 'RON', category: 'financiar' },
+    { regex: /profit\s*(?:net)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'profit_net', unit: 'RON', category: 'financial' },
+    { regex: /pierdere[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'pierdere', unit: 'RON', category: 'financial' },
     
     // Cash
-    { regex: /cash\s*(?:disponibil)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financiar' },
-    { regex: /disponibil[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financiar' },
+    { regex: /cash\s*(?:disponibil)?[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financial' },
+    { regex: /disponibil[:\s]*([0-9.,]+)\s*(?:000\s*)?(RON|lei)?/i, key: 'cash_disponibil', unit: 'RON', category: 'financial' },
     
     // Costuri
-    { regex: /costuri\s*salariale[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financiar' },
-    { regex: /salarii[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financiar' },
+    { regex: /costuri\s*salariale[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financial' },
+    { regex: /salarii[:\s]*([0-9.,]+)\s*%/i, key: 'costuri_salariale_pct', unit: '%', category: 'financial' },
     
     // Angajați și clienți
-    { regex: /(\d+)\s*angaja[țt]i/i, key: 'angajati_numar', unit: '', category: 'companie' },
-    { regex: /(\d+)\s*clien[țt]i\s*(?:activi)?/i, key: 'clienti_activi', unit: '', category: 'companie' },
+    { regex: /(\d+)\s*angaja[țt]i/i, key: 'angajati_numar', unit: '', category: 'company' },
+    { regex: /(\d+)\s*clien[țt]i\s*(?:activi)?/i, key: 'clienti_activi', unit: '', category: 'company' },
     
     // Marjă
-    { regex: /marj[aă][:\s]*([0-9.,]+)\s*%/i, key: 'marja_profit', unit: '%', category: 'financiar' },
+    { regex: /marj[aă][:\s]*([0-9.,]+)\s*%/i, key: 'marja_profit', unit: '%', category: 'financial' },
     
     // Contract mediu
-    { regex: /contract\s*mediu[:\s]*([0-9.,]+)\s*(RON|lei|EUR)?/i, key: 'contract_mediu', unit: 'RON', category: 'companie' },
+    { regex: /contract\s*mediu[:\s]*([0-9.,]+)\s*(RON|lei|EUR)?/i, key: 'contract_mediu', unit: 'RON', category: 'company' },
     
-    // CAC și LTV
-    { regex: /cac[:\s]*([0-9.,]+)\s*(RON|lei)?/i, key: 'cac', unit: 'RON', category: 'metrici' },
-    { regex: /ltv[:\s]*([0-9.,]+)\s*(RON|lei)?/i, key: 'ltv', unit: 'RON', category: 'metrici' },
+    // CAC și LTV - folosim 'financial' pentru metrici
+    { regex: /cac[:\s]*([0-9.,]+)\s*(RON|lei)?/i, key: 'cac', unit: 'RON', category: 'financial' },
+    { regex: /ltv[:\s]*([0-9.,]+)\s*(RON|lei)?/i, key: 'ltv', unit: 'RON', category: 'financial' },
     
     // Capacitate
-    { regex: /capacitate\s*(?:maxim[aă])?[:\s]*(\d+)\s*clien[țt]i/i, key: 'capacitate_maxima', unit: 'clienți', category: 'companie' },
+    { regex: /capacitate\s*(?:maxim[aă])?[:\s]*(\d+)\s*clien[țt]i/i, key: 'capacitate_maxima', unit: 'clienți', category: 'company' },
     
-    // DSO, DPO, DIO
-    { regex: /dso[:\s]*(\d+)\s*(?:zile)?/i, key: 'dso', unit: 'zile', category: 'eficienta' },
-    { regex: /dpo[:\s]*(\d+)\s*(?:zile)?/i, key: 'dpo', unit: 'zile', category: 'eficienta' },
-    { regex: /dio[:\s]*(\d+)\s*(?:zile)?/i, key: 'dio', unit: 'zile', category: 'eficienta' },
+    // DSO, DPO, DIO - folosim 'financial' pentru eficiență financiară
+    { regex: /dso[:\s]*(\d+)\s*(?:zile)?/i, key: 'dso', unit: 'zile', category: 'financial' },
+    { regex: /dpo[:\s]*(\d+)\s*(?:zile)?/i, key: 'dpo', unit: 'zile', category: 'financial' },
+    { regex: /dio[:\s]*(\d+)\s*(?:zile)?/i, key: 'dio', unit: 'zile', category: 'financial' },
   ];
   
   const foundKeys = new Set<string>();
