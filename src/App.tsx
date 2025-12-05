@@ -54,6 +54,7 @@ const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureRe
 const GenerateConferencePaper = lazy(() => import("./pages/GenerateConferencePaper"));
 const MyDocuments = lazy(() => import("./pages/MyDocuments"));
 const GenerateAcademicStatistics = lazy(() => import("./pages/GenerateAcademicStatistics"));
+const MyAICosts = lazy(() => import("./pages/MyAICosts"));
 
 const queryClient = new QueryClient();
 
@@ -163,6 +164,7 @@ const App = () => {
                       <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />
                       <Route path="/generate-academic-statistics" element={<PrivateRoute><GenerateAcademicStatistics /></PrivateRoute>} />
                       <Route path="/my-documents" element={<PrivateRoute><MyDocuments /></PrivateRoute>} />
+                      <Route path="/my-ai-costs" element={<PrivateRoute><MyAICosts /></PrivateRoute>} />
                       
                       <Route path="/install" element={<InstallPWA />} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
