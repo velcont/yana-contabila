@@ -130,6 +130,20 @@ export default function StrategicAdvisor() {
       try {
         logger.log("🔐 [ACCESS-CHECK] Checking access for user:", user.id);
         
+        // ✅ ADMIN BYPASS: Adminii au acces complet fără verificări
+        const { data: isAdmin } = await supabase.rpc('has_role', {
+          _user_id: user.id,
+          _role: 'admin'
+        });
+        
+        if (isAdmin) {
+          logger.log("✅ [ACCESS-CHECK] Admin user detected - granting full access");
+          setHasAccess(true);
+          setCreditRemaining(999); // Admin unlimited credit display
+          setIsCheckingAccess(false);
+          return;
+        }
+        
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("subscription_status, subscription_type, trial_credit_remaining, stripe_subscription_id, has_free_access")
