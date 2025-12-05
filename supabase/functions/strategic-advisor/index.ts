@@ -184,19 +184,51 @@ function extractBasicFacts(message: string): ExtractedFact[] {
     
     const match = message.match(pattern.regex);
     if (match) {
-      // Extrage valoarea și curăță-o
-      let value = match[1]
-        .replace(/\./g, '') // Elimină puncte de mii
-        .replace(',', '.'); // Virgula devine punct zecimal
+      let rawValue = match[1];
       
-      // Detectează dacă e "mii" sau "000" menționat
-      if (match[2]?.toLowerCase() === 'mii' || message.match(new RegExp(match[0] + '\\s*(?:mii|000)', 'i'))) {
-        value = String(parseFloat(value) * 1000);
+      // DETECTEAZĂ multiplicatori ÎNAINTE de curățare
+      const matchIndex = message.toLowerCase().indexOf(match[0].toLowerCase());
+      const afterMatch = message.slice(matchIndex + match[0].length, matchIndex + match[0].length + 30).toLowerCase();
+      const hasMilioane = /milioane?|mil\b/i.test(afterMatch);
+      const hasMii = /mii\b|k\b/i.test(afterMatch) || match[2]?.toLowerCase() === 'mii';
+      const has000 = /000/.test(afterMatch);
+      
+      // Pentru valori mici cu punct (ex: 1.2), punctul e zecimal, nu separator de mii
+      // Pentru valori mari (ex: 180.000), punctul e separator de mii
+      let numValue: number;
+      
+      if (rawValue.includes('.') && rawValue.includes(',')) {
+        // Format european: 1.234.567,89 → punct = mii, virgulă = zecimal
+        numValue = parseFloat(rawValue.replace(/\./g, '').replace(',', '.'));
+      } else if (rawValue.includes(',') && !rawValue.includes('.')) {
+        // Format cu virgulă zecimală: 1,2 sau 1.234,56
+        numValue = parseFloat(rawValue.replace(',', '.'));
+      } else if (rawValue.includes('.')) {
+        // Punct singur: verifică dacă e zecimal sau separator mii
+        const parts = rawValue.split('.');
+        if (parts.length === 2 && parts[1].length <= 2) {
+          // Probabil zecimal: 1.2, 25.5, etc.
+          numValue = parseFloat(rawValue);
+        } else {
+          // Separator mii: 180.000, 1.200.000
+          numValue = parseFloat(rawValue.replace(/\./g, ''));
+        }
+      } else {
+        numValue = parseFloat(rawValue);
+      }
+      
+      // Aplică multiplicatori
+      if (hasMilioane) {
+        numValue = numValue * 1000000;
+        console.log(`[FACTS-EXTRACTOR] Detected "milioane" multiplier for ${pattern.key}: ${rawValue} → ${numValue}`);
+      } else if (hasMii || has000) {
+        numValue = numValue * 1000;
+        console.log(`[FACTS-EXTRACTOR] Detected "mii/000" multiplier for ${pattern.key}: ${rawValue} → ${numValue}`);
       }
       
       facts.push({
         key: pattern.key,
-        value: value,
+        value: String(numValue),
         unit: pattern.unit,
         category: pattern.category
       });
