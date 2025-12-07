@@ -241,11 +241,11 @@ Perioada: 01/04/2025 - 30/04/2025`,
           </Badge>
           
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 animate-in fade-in slide-in-from-bottom-4 leading-tight">
-            ChatGPT nu știe <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Codul Fiscal</span>. Yana știe.
+            Faci profit pe hârtie, dar <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">contul e gol</span>?
           </h1>
           
           <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 md:mb-8 px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-            Prima analiză financiară AI antrenată pe legislația română 2025. Analiza balanței în 2 secunde + consultanță fiscală specializată.
+            Află exact de ce — în 2 secunde. Analiză financiară AI în limba română.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-stretch sm:items-center px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
