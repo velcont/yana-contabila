@@ -877,7 +877,7 @@ serve(async (req) => {
     const StrategicAdvisorRequestSchema = z.object({
       message: z.string()
         .min(1, "Mesajul nu poate fi gol")
-        .max(5000, "Mesajul este prea lung. Maximum 5,000 caractere"),
+        .max(100000, "Mesajul este prea lung. Maximum 100,000 caractere"),
       conversationId: z.string().uuid(),
       industryType: z.string().max(100).optional(),
       financialData: z.record(z.any()).optional(),
