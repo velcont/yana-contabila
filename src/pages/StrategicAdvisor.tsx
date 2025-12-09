@@ -631,13 +631,55 @@ export default function StrategicAdvisor() {
         return;
       }
 
-      // Send short confirmation to chat, full data goes to AI in background
-      const fileMessage = `📊 Am încărcat fișierul "${file.name}" pentru analiză strategică. Procesez datele...`;
+      // SEPARARE: Chat conversațional vs Date pentru AI
+      // 1. Afișăm mesaj scurt în chat (user-friendly)
+      const displayMessage = `📊 Am încărcat fișierul "${file.name}" pentru analiză strategică.`;
+      setMessages(prev => [...prev, { role: "user" as const, content: displayMessage, timestamp: new Date() }]);
       
-      // Send as a regular message
-      await sendMessage(fileMessage);
+      // 2. Trimitem datele complete direct la edge function (fără a le afișa în chat)
+      const dataMessage = `📊 Am încărcat fișierul "${file.name}". Iată datele financiare extrase:\n\n${extractedText.substring(0, 8000)}\n\nTe rog analizează aceste date și extrage faptele financiare relevante pentru strategie (cifra de afaceri, profit, cheltuieli, angajați, etc).`;
       
-      toast.success(`✅ ${file.name} încărcat și trimis pentru analiză!`);
+      setIsLoading(true);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke("strategic-advisor", {
+          body: { 
+            message: dataMessage, 
+            conversationId, 
+            userId: user?.id,
+            isFirstMessage: messages.length === 0
+          }
+        });
+        
+        if (error) {
+          logger.error("❌ [FILE] Edge function error:", error);
+          toast.error("Eroare la procesarea fișierului. Încearcă din nou.");
+          setIsLoading(false);
+          return;
+        }
+        
+        // 3. Afișăm răspunsul AI în chat
+        if (data?.response) {
+          setMessages(prev => [...prev, { 
+            role: "assistant" as const, 
+            content: data.response, 
+            timestamp: new Date() 
+          }]);
+          
+          // Deducem creditul
+          if (data.cost_cents) {
+            setCreditRemaining(prev => Math.max(0, prev - data.cost_cents));
+          }
+        }
+        
+        toast.success(`✅ ${file.name} analizat cu succes!`);
+        
+      } catch (invokeError) {
+        logger.error("❌ [FILE] Invoke error:", invokeError);
+        toast.error("Eroare la comunicarea cu serverul.");
+      } finally {
+        setIsLoading(false);
+      }
       
     } catch (error) {
       logger.error("❌ [FILE] Error processing file:", error);
