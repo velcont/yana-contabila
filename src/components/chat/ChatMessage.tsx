@@ -66,7 +66,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
         className={cn(
-          'max-w-[80%] rounded-lg p-4',
+          'max-w-[95%] md:max-w-[80%] rounded-lg p-3 md:p-4',
           role === 'user'
             ? 'bg-primary text-primary-foreground'
             : 'bg-secondary text-foreground',
@@ -80,7 +80,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
         
-        <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm">
+        <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm md:text-base">
           {chartData ? contentWithoutChart : cleanContent}
         </div>
 

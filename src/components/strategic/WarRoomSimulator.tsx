@@ -291,12 +291,12 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
               {/* Scenario Presets */}
               <div className="space-y-2">
                 <p className="text-sm font-medium text-slate-400">Scenarii Predefinite:</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => applyScenario(scenarios.cashCrisis)}
-                    className={`bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 transition-all ${
+                    className={`bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 transition-all py-3 ${
                       selectedScenario?.name === scenarios.cashCrisis.name ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-slate-950' : ''
                     }`}
                   >
@@ -306,7 +306,7 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={() => applyScenario(scenarios.clientLoss)}
-                    className={`bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-600/50 transition-all ${
+                    className={`bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-600/50 transition-all py-3 ${
                       selectedScenario?.name === scenarios.clientLoss.name ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-slate-950' : ''
                     }`}
                   >
@@ -316,7 +316,7 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={() => applyScenario(scenarios.recession)}
-                    className={`bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/50 transition-all ${
+                    className={`bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 border border-yellow-600/50 transition-all py-3 ${
                       selectedScenario?.name === scenarios.recession.name ? 'ring-2 ring-yellow-500 ring-offset-2 ring-offset-slate-950' : ''
                     }`}
                   >
@@ -326,7 +326,7 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={() => applyScenario(scenarios.costInflation)}
-                    className={`bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-600/50 transition-all ${
+                    className={`bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-600/50 transition-all py-3 ${
                       selectedScenario?.name === scenarios.costInflation.name ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-slate-950' : ''
                     }`}
                   >
@@ -376,7 +376,7 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
               <Button
                 onClick={runSimulation}
                 disabled={!canSimulate || simulating}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 md:py-6 text-base md:text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {simulating ? (
                   <>
