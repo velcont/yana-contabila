@@ -792,9 +792,29 @@ export default function StrategicAdvisor() {
                       <StrategicDocumentUpload
                         conversationId={conversationId}
                         disabled={isLoading || creditRemaining < 0.5}
-                        onFactsExtracted={(facts) => {
+                        onFactsExtracted={(facts, fileName) => {
                           logger.log("📄 [UPLOAD] Facts extracted from document:", facts.length);
-                          toast.success(`${facts.length} date financiare extrase și adăugate în Facts Panel!`);
+                          
+                          // Add a summary message to chat instead of raw data
+                          const validFacts = facts.filter(f => f.fact_value && Number(f.fact_value) !== 0);
+                          
+                          if (validFacts.length > 0) {
+                            // Create a concise summary message
+                            const factsSummary = validFacts.slice(0, 5).map(f => 
+                              `• ${f.fact_key.replace(/_/g, ' ')}: ${new Intl.NumberFormat('ro-RO').format(f.fact_value)} ${f.fact_unit || ''}`
+                            ).join('\n');
+                            
+                            const summaryMessage: Message = {
+                              role: "assistant",
+                              content: `📄 **Document procesat: ${fileName || 'document'}**\n\nAm extras ${validFacts.length} date financiare:\n\n${factsSummary}${validFacts.length > 5 ? `\n\n...și încă ${validFacts.length - 5} date în panoul lateral →` : ''}\n\n✅ Datele sunt disponibile în **Facts Panel** (dreapta). Acum pot analiza situația ta financiară. Ce întrebări ai?`,
+                              timestamp: new Date(),
+                              showFeedback: false
+                            };
+                            
+                            setMessages(prev => [...prev, summaryMessage]);
+                          } else {
+                            toast.info("Nu am găsit date financiare valide în document.");
+                          }
                         }}
                       />
 

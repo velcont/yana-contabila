@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface StrategicDocumentUploadProps {
   conversationId: string;
-  onFactsExtracted?: (facts: any[]) => void;
+  onFactsExtracted?: (facts: any[], fileName?: string) => void;
   disabled?: boolean;
 }
 
@@ -157,9 +157,9 @@ export function StrategicDocumentUpload({
         duration: 5000,
       });
 
-      // Notify parent about extracted facts
+      // Notify parent about extracted facts with filename
       if (onFactsExtracted && processResult.facts) {
-        onFactsExtracted(processResult.facts);
+        onFactsExtracted(processResult.facts, file.name);
       }
 
       // Reset status after 3 seconds
