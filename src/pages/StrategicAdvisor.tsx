@@ -98,7 +98,9 @@ export default function StrategicAdvisor() {
     relationshipLevel: number;
   } | null>(null);
   const [welcomeMessageShown, setWelcomeMessageShown] = useState(false);
-
+  const [mobileWarningShown, setMobileWarningShown] = useState(() => {
+    return localStorage.getItem('yana_strategic_mobile_warning_shown') === 'true';
+  });
   // Set sidebar open on desktop after initial render
   useEffect(() => {
     if (isMobile === false) {
@@ -219,6 +221,13 @@ export default function StrategicAdvisor() {
       welcomeMessage = `Salut, ${userProfile.preferredName}! 😊 Mă bucur să te văd. Sunt Yana, consilierul tău strategic. Cu ce te pot ajuta azi?`;
     }
     
+    // Add mobile recommendation note if on mobile and not shown before
+    if (isMobile && !mobileWarningShown) {
+      welcomeMessage += "\n\n📱 *Observ că ești pe mobil. Aplicația funcționează, dar War Room și Battle Plan arată mai bine pe desktop/laptop.*";
+      localStorage.setItem('yana_strategic_mobile_warning_shown', 'true');
+      setMobileWarningShown(true);
+    }
+    
     const welcomeMsg: Message = {
       role: "assistant",
       content: welcomeMessage,
@@ -230,7 +239,7 @@ export default function StrategicAdvisor() {
     setWelcomeMessageShown(true);
     
     logger.log(`👋 [WELCOME] Showed personalized welcome for ${userProfile.preferredName || 'new user'} (${userProfile.detectedGender})`);
-  }, [userProfile, welcomeMessageShown, messages.length]);
+  }, [userProfile, welcomeMessageShown, messages.length, isMobile, mobileWarningShown]);
 
   // Check access and credit on mount
   useEffect(() => {
