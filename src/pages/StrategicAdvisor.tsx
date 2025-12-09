@@ -35,7 +35,8 @@ import { StrategicFactsPanel } from "@/components/StrategicFactsPanel";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
 import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
-import { AlertTriangle, Plus, FileText } from "lucide-react";
+import { ConsultYanaDialog } from "@/components/ConsultYanaDialog";
+import { AlertTriangle, Plus, FileText, Bot } from "lucide-react";
 import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
   DropdownMenu,
@@ -699,6 +700,12 @@ export default function StrategicAdvisor() {
 
                   {activeTab === "chat" && (
                     <>
+                      {/* Consultă Yana - AI-to-AI dialog */}
+                      <ConsultYanaDialog 
+                        context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
+                        conversationId={conversationId}
+                      />
+                      
                       {/* BattlePlan - vizibil pe toate ecranele */}
                       <Tooltip>
                         <TooltipTrigger asChild>
