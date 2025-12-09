@@ -851,7 +851,7 @@ serve(async (req) => {
     const MESSAGE_COST = 50; // cents
     const currentCredits = profile?.ai_credits || 0;
 
-    if (currentCredits < MESSAGE_COST) {
+    if (!isAdmin && currentCredits < MESSAGE_COST) {
       console.error('[strategic-advisor] Insufficient credits:', currentCredits);
       return new Response(
         JSON.stringify({ 
