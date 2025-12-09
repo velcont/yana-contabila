@@ -34,6 +34,7 @@ import { ChatMessage } from './chat/ChatMessage';
 import { ChatInput } from './chat/ChatInput';
 import { useSessionGuard } from '@/hooks/useSessionGuard';
 import { CashRunwayPanel } from './insights/CashRunwayPanel';
+import { TopExpensesPanel, calculateTopExpenses } from './insights/TopExpensesPanel';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -3111,9 +3112,24 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               survivalMonths={getSurvivalMonths()}
               onBack={() => setActiveInsightScreen(null)}
               onFollowUp={() => {
-                console.log('🕳️ Follow-up: Găuri negre - TBD');
+                console.log('🕳️ Follow-up: Găuri negre');
+                setActiveInsightScreen('expenses');
               }}
             />
+          ) : activeInsightScreen === 'expenses' ? (
+            (() => {
+              const { categories, total } = calculateTopExpenses(balanceStructuredData?.accounts || []);
+              return (
+                <TopExpensesPanel
+                  expenses={categories}
+                  totalExpenses={total}
+                  onBack={() => setActiveInsightScreen('cash')}
+                  onStrategy={() => {
+                    console.log('💡 Strategii - TBD');
+                  }}
+                />
+              );
+            })()
           ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 space-y-6 animate-in fade-in duration-500">
             <div className="text-center space-y-2">
