@@ -3918,6 +3918,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_personal_profile: {
+        Row: {
+          created_at: string | null
+          detected_gender: string | null
+          id: string
+          last_interaction_at: string | null
+          personal_notes: Json | null
+          preferred_name: string | null
+          relationship_level: number | null
+          total_conversations: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          detected_gender?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          personal_notes?: Json | null
+          preferred_name?: string | null
+          relationship_level?: number | null
+          total_conversations?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          detected_gender?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          personal_notes?: Json | null
+          preferred_name?: string | null
+          relationship_level?: number | null
+          total_conversations?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
