@@ -63,7 +63,16 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
 
       if (error) throw error;
       
-      setFacts(data || []);
+      // Filter out facts with 0 or null values - these are not useful to display
+      const validFacts = (data || []).filter(fact => {
+        const numValue = Number(fact.fact_value);
+        return fact.fact_value !== null && 
+               fact.fact_value !== undefined && 
+               !isNaN(numValue) && 
+               numValue !== 0;
+      });
+      
+      setFacts(validFacts);
     } catch (error) {
       logger.error('❌ [FACTS-PANEL] Error loading facts:', error);
     } finally {
