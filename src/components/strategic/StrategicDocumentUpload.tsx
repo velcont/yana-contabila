@@ -79,8 +79,15 @@ export function StrategicDocumentUpload({
         throw new Error("Trebuie să fii autentificat");
       }
 
+      // Sanitize filename - remove special characters that cause storage issues
+      const sanitizedFileName = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+        .replace(/[^a-zA-Z0-9._-]/g, "_") // Replace special chars with underscore
+        .replace(/_+/g, "_"); // Collapse multiple underscores
+      
       // Upload to storage
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      const filePath = `${user.id}/${Date.now()}_${sanitizedFileName}`;
       const { error: uploadError } = await supabase.storage
         .from("strategic-documents")
         .upload(filePath, file);
