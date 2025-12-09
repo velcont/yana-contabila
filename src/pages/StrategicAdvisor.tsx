@@ -34,7 +34,8 @@ import { StrategicFactsPanel } from "@/components/StrategicFactsPanel";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
 import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
-import { AlertTriangle, Plus, FileText } from "lucide-react";
+import { AlertTriangle, Plus, FileText, Upload } from "lucide-react";
+import { StrategicDocumentUpload } from "@/components/strategic/StrategicDocumentUpload";
 import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
   DropdownMenu,
@@ -707,6 +708,16 @@ export default function StrategicAdvisor() {
                           }
                         </TooltipContent>
                       </Tooltip>
+
+                      {/* Document Upload Button */}
+                      <StrategicDocumentUpload
+                        conversationId={conversationId}
+                        disabled={isLoading || creditRemaining < 0.5}
+                        onFactsExtracted={(facts) => {
+                          logger.log("📄 [UPLOAD] Facts extracted from document:", facts.length);
+                          toast.success(`${facts.length} date financiare extrase și adăugate în Facts Panel!`);
+                        }}
+                      />
 
                       {/* Dropdown menu */}
                       <DropdownMenu>

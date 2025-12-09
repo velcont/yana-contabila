@@ -3540,6 +3540,57 @@ export type Database = {
         }
         Relationships: []
       }
+      strategic_documents: {
+        Row: {
+          conversation_id: string
+          cost_cents: number | null
+          created_at: string
+          error_message: string | null
+          extracted_facts: Json | null
+          extracted_text: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          processed_at: string | null
+          processing_status: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          cost_cents?: number | null
+          created_at?: string
+          error_message?: string | null
+          extracted_facts?: Json | null
+          extracted_text?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          processed_at?: string | null
+          processing_status?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          cost_cents?: number | null
+          created_at?: string
+          error_message?: string | null
+          extracted_facts?: Json | null
+          extracted_text?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          processed_at?: string | null
+          processing_status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       strategic_facts: {
         Row: {
           conflicts: Json | null
