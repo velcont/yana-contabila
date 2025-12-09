@@ -255,9 +255,13 @@ Dacă nu găsești date financiare, returnează: []`;
       .eq("id", documentId);
 
     // Save facts to strategic_advisor_facts table
+    // NOTE: Unique index is on (conversation_id, fact_key), NOT (user_id, conversation_id, fact_key)
     if (extractedFacts.length > 0 && conversationId) {
+      let savedCount = 0;
+      let errorCount = 0;
+      
       for (const fact of extractedFacts) {
-        await supabase
+        const { error: upsertError } = await supabase
           .from("strategic_advisor_facts")
           .upsert({
             user_id: user.id,
@@ -270,10 +274,17 @@ Dacă nu găsești date financiare, returnează: []`;
             confidence: fact.confidence || 0.8,
             status: "validated",
           }, {
-            onConflict: "user_id,conversation_id,fact_key",
+            onConflict: "conversation_id,fact_key",  // FIXED: Match the actual unique index
           });
+        
+        if (upsertError) {
+          console.error(`[process-strategic-document][${requestId}] Upsert error for ${fact.fact_key}:`, upsertError);
+          errorCount++;
+        } else {
+          savedCount++;
+        }
       }
-      console.log(`[process-strategic-document][${requestId}] Facts saved to strategic_advisor_facts`);
+      console.log(`[process-strategic-document][${requestId}] Facts saved: ${savedCount} success, ${errorCount} errors`);
     }
 
     // Track AI usage (0.50 RON = 50 cents)
