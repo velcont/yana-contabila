@@ -46,19 +46,21 @@ export const SimulationSlider: React.FC<SimulationSliderProps> = ({
   const isDecrease = localValue < currentValue;
 
   return (
-    <Card className="p-4 bg-slate-900/50 border-slate-700">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-slate-200">{label}</Label>
-          <div className="flex items-center gap-2">
+    <Card className="p-3 md:p-4 bg-slate-900/50 border-slate-700">
+      <div className="space-y-2 md:space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs md:text-sm font-medium text-slate-200 truncate flex-1" title={label}>
+            {label}
+          </Label>
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <Input
               type="number"
               value={localValue}
               onChange={handleInputChange}
-              className="w-24 h-8 text-right bg-slate-800 border-slate-600 text-white"
+              className="w-20 md:w-24 h-7 md:h-8 text-right bg-slate-800 border-slate-600 text-white text-xs md:text-sm"
               step={step}
             />
-            <span className="text-xs text-slate-400 min-w-[40px]">{unit}</span>
+            <span className="text-xs text-slate-400 min-w-[30px] md:min-w-[40px]">{unit}</span>
           </div>
         </div>
 
@@ -72,11 +74,11 @@ export const SimulationSlider: React.FC<SimulationSliderProps> = ({
         />
 
         <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-500">
+          <span className="text-slate-500 truncate">
             Original: {currentValue.toLocaleString('ro-RO')} {unit}
           </span>
           {localValue !== currentValue && (
-            <span className={`font-medium ${isIncrease ? 'text-red-400' : isDecrease ? 'text-green-400' : 'text-slate-400'}`}>
+            <span className={`font-medium flex-shrink-0 ${isIncrease ? 'text-red-400' : isDecrease ? 'text-green-400' : 'text-slate-400'}`}>
               {isIncrease ? '↑' : isDecrease ? '↓' : ''} {percentageChange}%
             </span>
           )}
