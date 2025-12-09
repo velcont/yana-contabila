@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   TrendingUp, 
   Building2, 
-  Users, 
   DollarSign,
   CheckCircle2,
   Calendar,
-  Briefcase
+  Briefcase,
+  FileSpreadsheet
 } from "lucide-react";
 import { logger } from "@/lib/logger";
 import type { Database } from "@/integrations/supabase/types";
@@ -25,9 +24,10 @@ interface StrategicFactsPanelProps {
 export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPanelProps) {
   const [facts, setFacts] = useState<StrategicFact[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [hasDocuments, setHasDocuments] = useState(false);
   useEffect(() => {
     loadFacts();
+    checkDocuments();
     
     // Subscribe to realtime updates
     const channel = supabase
@@ -40,8 +40,7 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
           table: 'strategic_advisor_facts',
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
-          logger.log('📊 [FACTS-PANEL] Realtime update:', payload);
+        () => {
           loadFacts();
         }
       )
@@ -51,6 +50,19 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
       supabase.removeChannel(channel);
     };
   }, [userId, conversationId]);
+
+  const checkDocuments = async () => {
+    try {
+      const { count } = await supabase
+        .from('strategic_documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId);
+      
+      setHasDocuments((count || 0) > 0);
+    } catch (error) {
+      // Silent fail - just means no documents indicator
+    }
+  };
 
   const loadFacts = async () => {
     try {
@@ -122,10 +134,25 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
       <div className="p-6">
         <Card className="p-6 border-dashed">
           <div className="text-center text-muted-foreground">
-            <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">
-              Nicio dată extrasă încă. Începe conversația cu Yana Strategică pentru a extrage date financiare.
-            </p>
+            {hasDocuments ? (
+              <>
+                <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-primary opacity-70" />
+                <p className="text-sm font-medium text-foreground mb-2">
+                  📊 Document încărcat
+                </p>
+                <p className="text-sm">
+                  Datele din document sunt analizate de Yana în chat. 
+                  Continuă conversația pentru strategii personalizate.
+                </p>
+              </>
+            ) : (
+              <>
+                <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">
+                  Nicio dată extrasă încă. Începe conversația cu Yana Strategică pentru a extrage date financiare.
+                </p>
+              </>
+            )}
           </div>
         </Card>
       </div>
