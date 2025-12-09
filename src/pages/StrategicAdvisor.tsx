@@ -8,7 +8,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+
 import { 
   Loader2, 
   Brain, 
@@ -35,8 +35,7 @@ import { StrategicFactsPanel } from "@/components/StrategicFactsPanel";
 import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog";
 import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
-import { AlertTriangle, Plus, FileText, Upload } from "lucide-react";
-import { StrategicDocumentUpload } from "@/components/strategic/StrategicDocumentUpload";
+import { AlertTriangle, Plus, FileText } from "lucide-react";
 import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
   DropdownMenu,
@@ -575,117 +574,6 @@ export default function StrategicAdvisor() {
     // useEffect[conversationId] va reîncărca automat mesajele
   };
 
-  // File input ref for upload
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Handler for file upload - parse Excel locally
-  const handleFileUpload = async () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const fileName = file.name.toLowerCase();
-    const allowedExtensions = ['.xlsx', '.xls', '.csv'];
-    const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
-
-    if (!hasValidExtension) {
-      toast.error("Format nesuportat. Acceptăm: Excel (.xlsx, .xls) sau CSV.");
-      return;
-    }
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-
-    toast.info(`📊 Se procesează ${file.name}...`);
-
-    try {
-      let extractedText = '';
-
-      if (fileName.endsWith('.csv')) {
-        // CSV - read as text directly
-        extractedText = await file.text();
-        logger.log("📄 [FILE] CSV parsed directly, length:", extractedText.length);
-      } else {
-        // Excel (.xlsx, .xls) - parse with XLSX library on frontend
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        
-        // Convert all sheets to CSV
-        const allSheetsText: string[] = [];
-        for (const sheetName of workbook.SheetNames) {
-          const sheet = workbook.Sheets[sheetName];
-          const csvText = XLSX.utils.sheet_to_csv(sheet);
-          allSheetsText.push(`=== Sheet: ${sheetName} ===\n${csvText}`);
-        }
-        extractedText = allSheetsText.join('\n\n');
-        logger.log("📊 [FILE] Excel parsed on frontend, sheets:", workbook.SheetNames.length, "text length:", extractedText.length);
-      }
-
-      if (!extractedText || extractedText.trim().length < 50) {
-        toast.error("Fișierul pare gol sau nu conține date suficiente.");
-        return;
-      }
-
-      // SEPARARE: Chat conversațional vs Date pentru AI
-      // 1. Afișăm mesaj scurt în chat (user-friendly)
-      const displayMessage = `📊 Am încărcat fișierul "${file.name}" pentru analiză strategică.`;
-      setMessages(prev => [...prev, { role: "user" as const, content: displayMessage, timestamp: new Date() }]);
-      
-      // 2. Trimitem datele complete direct la edge function (fără a le afișa în chat)
-      const dataMessage = `📊 Am încărcat fișierul "${file.name}". Iată datele financiare extrase:\n\n${extractedText.substring(0, 8000)}\n\nTe rog analizează aceste date și extrage faptele financiare relevante pentru strategie (cifra de afaceri, profit, cheltuieli, angajați, etc).`;
-      
-      setIsLoading(true);
-      
-      try {
-        const { data, error } = await supabase.functions.invoke("strategic-advisor", {
-          body: { 
-            message: dataMessage, 
-            conversationId, 
-            userId: user?.id,
-            isFirstMessage: messages.length === 0
-          }
-        });
-        
-        if (error) {
-          logger.error("❌ [FILE] Edge function error:", error);
-          toast.error("Eroare la procesarea fișierului. Încearcă din nou.");
-          setIsLoading(false);
-          return;
-        }
-        
-        // 3. Afișăm răspunsul AI în chat
-        if (data?.response) {
-          setMessages(prev => [...prev, { 
-            role: "assistant" as const, 
-            content: data.response, 
-            timestamp: new Date() 
-          }]);
-          
-          // Deducem creditul
-          if (data.cost_cents) {
-            setCreditRemaining(prev => Math.max(0, prev - data.cost_cents));
-          }
-        }
-        
-        toast.success(`✅ ${file.name} analizat cu succes!`);
-        
-      } catch (invokeError) {
-        logger.error("❌ [FILE] Invoke error:", invokeError);
-        toast.error("Eroare la comunicarea cu serverul.");
-      } finally {
-        setIsLoading(false);
-      }
-      
-    } catch (error) {
-      logger.error("❌ [FILE] Error processing file:", error);
-      toast.error("Eroare la procesarea fișierului. Încearcă din nou.");
-    }
-  };
 
   // Loading state
   if (isCheckingAccess) {
@@ -830,35 +718,6 @@ export default function StrategicAdvisor() {
                         </TooltipContent>
                       </Tooltip>
 
-                      {/* Document Upload Button */}
-                      <StrategicDocumentUpload
-                        conversationId={conversationId}
-                        disabled={isLoading || creditRemaining < 0.5}
-                        onFactsExtracted={(facts, fileName) => {
-                          logger.log("📄 [UPLOAD] Facts extracted from document:", facts.length);
-                          
-                          // Add a summary message to chat instead of raw data
-                          const validFacts = facts.filter(f => f.fact_value && Number(f.fact_value) !== 0);
-                          
-                          if (validFacts.length > 0) {
-                            // Create a concise summary message
-                            const factsSummary = validFacts.slice(0, 5).map(f => 
-                              `• ${f.fact_key.replace(/_/g, ' ')}: ${new Intl.NumberFormat('ro-RO').format(f.fact_value)} ${f.fact_unit || ''}`
-                            ).join('\n');
-                            
-                            const summaryMessage: Message = {
-                              role: "assistant",
-                              content: `📄 **Document procesat: ${fileName || 'document'}**\n\nAm extras ${validFacts.length} date financiare:\n\n${factsSummary}${validFacts.length > 5 ? `\n\n...și încă ${validFacts.length - 5} date în panoul lateral →` : ''}\n\n✅ Datele sunt disponibile în **Facts Panel** (dreapta). Acum pot analiza situația ta financiară. Ce întrebări ai?`,
-                              timestamp: new Date(),
-                              showFeedback: false
-                            };
-                            
-                            setMessages(prev => [...prev, summaryMessage]);
-                          } else {
-                            toast.info("Nu am găsit date financiare valide în document.");
-                          }
-                        }}
-                      />
 
                       {/* Dropdown menu */}
                       <DropdownMenu>
@@ -991,24 +850,14 @@ export default function StrategicAdvisor() {
                 </div>
               </div>
 
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
-              {/* Input Area with file upload */}
+              {/* Input Area */}
               <ChatInput
                 value={input}
                 onChange={setInput}
                 onSend={sendMessage}
-                onFileUpload={handleFileUpload}
                 isLoading={isLoading}
                 placeholder="Descrie provocarea ta de business aici..."
-                showFileUpload={true}
+                showFileUpload={false}
               />
             </TabsContent>
           </Tabs>
