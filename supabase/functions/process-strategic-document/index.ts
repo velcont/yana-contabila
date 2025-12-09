@@ -84,35 +84,71 @@ serve(async (req) => {
 
     // Extract text based on file type
     let extractedText = "";
+    let rawBase64Content = "";
+    
+    // Extract base64 content for AI analysis
+    try {
+      rawBase64Content = fileContent.includes(",") 
+        ? fileContent.split(",")[1] 
+        : fileContent;
+    } catch (e) {
+      console.error(`[process-strategic-document][${requestId}] Base64 extraction error:`, e);
+    }
     
     if (fileType === "text/csv" || fileName.endsWith(".csv")) {
       // CSV: decode and use as-is
       try {
-        const base64Content = fileContent.includes(",") 
-          ? fileContent.split(",")[1] 
-          : fileContent;
-        extractedText = atob(base64Content);
+        extractedText = atob(rawBase64Content);
         console.log(`[process-strategic-document][${requestId}] CSV extracted: ${extractedText.length} chars`);
       } catch (e) {
         console.error(`[process-strategic-document][${requestId}] CSV decode error:`, e);
         extractedText = "Eroare la decodare CSV";
       }
     } else if (fileType.includes("excel") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-      // Excel: we can't parse directly in Deno, but we can extract basic structure
-      // For now, we'll send to AI with a note that it's Excel data
-      extractedText = `[Document Excel: ${fileName}] - Conținutul va fi analizat de AI pentru extragere date financiare.`;
-      console.log(`[process-strategic-document][${requestId}] Excel file detected`);
+      // Excel: decode base64 and extract readable text portions
+      try {
+        const decodedContent = atob(rawBase64Content);
+        // Extract only printable ASCII and Romanian characters from the binary
+        extractedText = decodedContent
+          .split('')
+          .filter(char => {
+            const code = char.charCodeAt(0);
+            // Keep printable ASCII (32-126), newlines, tabs, and extended Latin (Romanian chars)
+            return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 || 
+                   (code >= 192 && code <= 687); // Extended Latin for Romanian diacritics
+          })
+          .join('')
+          .replace(/\s{3,}/g, ' ') // Collapse multiple spaces
+          .trim();
+        console.log(`[process-strategic-document][${requestId}] Excel text extracted: ${extractedText.length} chars`);
+        console.log(`[process-strategic-document][${requestId}] Excel preview: ${extractedText.slice(0, 500)}`);
+      } catch (e) {
+        console.error(`[process-strategic-document][${requestId}] Excel decode error:`, e);
+        extractedText = `[Document Excel: ${fileName}] - Nu s-a putut decodifica`;
+      }
     } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
-      // PDF: we'll need to inform user that PDF parsing has limitations
-      extractedText = `[Document PDF: ${fileName}] - Conținut PDF detectat. AI va încerca să extragă datele relevante.`;
-      console.log(`[process-strategic-document][${requestId}] PDF file detected`);
+      // PDF: extract readable text portions
+      try {
+        const decodedContent = atob(rawBase64Content);
+        extractedText = decodedContent
+          .split('')
+          .filter(char => {
+            const code = char.charCodeAt(0);
+            return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 ||
+                   (code >= 192 && code <= 687);
+          })
+          .join('')
+          .replace(/\s{3,}/g, ' ')
+          .trim();
+        console.log(`[process-strategic-document][${requestId}] PDF text extracted: ${extractedText.length} chars`);
+      } catch (e) {
+        console.error(`[process-strategic-document][${requestId}] PDF decode error:`, e);
+        extractedText = `[Document PDF: ${fileName}] - Nu s-a putut decodifica`;
+      }
     } else {
       // Try to decode as text
       try {
-        const base64Content = fileContent.includes(",") 
-          ? fileContent.split(",")[1] 
-          : fileContent;
-        extractedText = atob(base64Content);
+        extractedText = atob(rawBase64Content);
       } catch {
         extractedText = `[Document: ${fileName}] - Format necunoscut`;
       }
