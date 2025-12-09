@@ -33,6 +33,7 @@ import { BalanceUploader } from './chat-ai/BalanceUploader';
 import { ChatMessage } from './chat/ChatMessage';
 import { ChatInput } from './chat/ChatInput';
 import { useSessionGuard } from '@/hooks/useSessionGuard';
+import { CashRunwayPanel } from './insights/CashRunwayPanel';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -176,9 +177,43 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   } | null>(null);
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
-  // 🆕 Ghidaj Forțat - Ecran post-upload cu 3 butoane
+// 🆕 Ghidaj Forțat - Ecran post-upload cu 3 butoane
   const [showGuidedQuestions, setShowGuidedQuestions] = useState(false);
   const [uploadedBalanceData, setUploadedBalanceData] = useState<any>(null);
+  const [activeInsightScreen, setActiveInsightScreen] = useState<'questions' | 'cash' | 'profit' | 'expenses' | null>(null);
+  
+  // 🆕 Funcții de calcul pentru ecranele insight
+  const getTotalCash = () => {
+    if (!balanceStructuredData?.accounts) return 0;
+    // Conturi 5121 (Bănci) + 5311 (Casă) - folosim sold final (debit - credit pentru active)
+    const bankAccounts = balanceStructuredData.accounts.filter(a => 
+      a.code.startsWith('5121') || a.code.startsWith('5311') || a.code === '5121' || a.code === '5311'
+    );
+    return bankAccounts.reduce((sum, a) => {
+      // Pentru conturi de activ, soldul = debit - credit
+      return sum + ((a.debit || 0) - (a.credit || 0));
+    }, 0);
+  };
+
+  const getMonthlyBurn = () => {
+    if (!balanceStructuredData?.accounts) return 0;
+    // Venituri (Clasa 7) - Cheltuieli (Clasa 6)
+    const revenues = balanceStructuredData.accounts
+      .filter(a => a.accountClass === 7)
+      .reduce((sum, a) => sum + (a.credit || 0), 0);
+    const expenses = balanceStructuredData.accounts
+      .filter(a => a.accountClass === 6)
+      .reduce((sum, a) => sum + (a.debit || 0), 0);
+    return revenues - expenses; // Pozitiv = profit, Negativ = pierdere
+  };
+
+  const getSurvivalMonths = () => {
+    const cash = getTotalCash();
+    const burn = getMonthlyBurn();
+    if (burn >= 0) return Infinity; // Firma acumulează, nu arde
+    if (cash <= 0) return 0; // Nu are cash
+    return cash / Math.abs(burn);
+  };
   
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
   const addPremiumReportSuggestion = (
@@ -3069,6 +3104,17 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
 
         {/* 🆕 ECRAN GHIDAJ FORȚAT - 3 Butoane după upload balanță */}
         {showGuidedQuestions ? (
+          activeInsightScreen === 'cash' ? (
+            <CashRunwayPanel
+              totalCash={getTotalCash()}
+              monthlyBurn={getMonthlyBurn()}
+              survivalMonths={getSurvivalMonths()}
+              onBack={() => setActiveInsightScreen(null)}
+              onFollowUp={() => {
+                console.log('🕳️ Follow-up: Găuri negre - TBD');
+              }}
+            />
+          ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 space-y-6 animate-in fade-in duration-500">
             <div className="text-center space-y-2">
               <Sparkles className="h-10 w-10 mx-auto text-primary mb-4" />
@@ -3084,7 +3130,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Am destui bani?');
-                  // TODO: Pasul 2 - afișare panou cash
+                  setActiveInsightScreen('cash');
                 }}
                 variant="outline"
                 className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
@@ -3096,7 +3142,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Cum stau cu Profitul?');
-                  // TODO: Pasul 2 - afișare panou profit
+                  // TODO: Pasul 3 - afișare panou profit
                 }}
                 variant="outline"
                 className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
@@ -3108,7 +3154,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Unde se duc banii?');
-                  // TODO: Pasul 2 - afișare panou cheltuieli
+                  // TODO: Pasul 4 - afișare panou cheltuieli
                 }}
                 variant="outline"
                 className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
@@ -3127,6 +3173,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               ← Înapoi la chat
             </Button>
           </div>
+          )
         ) : (
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-3 py-2">
