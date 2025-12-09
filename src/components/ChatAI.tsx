@@ -176,6 +176,10 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   } | null>(null);
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
+  // 🆕 Ghidaj Forțat - Ecran post-upload cu 3 butoane
+  const [showGuidedQuestions, setShowGuidedQuestions] = useState(false);
+  const [uploadedBalanceData, setUploadedBalanceData] = useState<any>(null);
+  
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
   const addPremiumReportSuggestion = (
     content: string, 
@@ -1567,50 +1571,19 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             }
           }
 
-          // Construiește conținutul mesajului
-          let aiContent = data.analysis ? 
-            `${data.analysis}\n\n✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?` :
-            "✅ Ți-am analizat balanța! Cu ce informații pot să te ajut?";
-
-          // 🆕 Adaugă sugestie premium ÎNTOTDEAUNA la upload balanță
-          aiContent = addPremiumReportSuggestion(
-            aiContent, 
-            data.structuredData !== null && data.structuredData !== undefined,
-            '', // Nu contează întrebarea la upload
-            true // ✅ FLAG special: este upload balanță → afișează GARANTAT
-          );
-
-          // Add AI response
-          const aiMessage: Message = {
+          // 🆕 GHIDAJ FORȚAT: Salvăm datele și afișăm ecranul cu 3 butoane
+          setUploadedBalanceData(data);
+          setBalanceStructuredData(data.structuredData || null);
+          setShowGuidedQuestions(true);
+          
+          // Adaugă mesaj simplu de confirmare în chat (pentru istoric)
+          const confirmMessage: Message = {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: aiContent,
-            structuredData: data.structuredData // 📊 Salvează datele structurate în mesaj
+            content: '✅ Am primit balanța ta! Alege ce vrei să afli prima dată.',
+            structuredData: data.structuredData
           };
-          setMessages(prev => [...prev, aiMessage]);
-          scrollToBottom();
-
-          // 🆕 Întrebare automată despre descărcarea raportului
-          setTimeout(() => {
-            const downloadQuestionMessage: Message = {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: '💡 **Știi cum se descarcă raportul de analiză?** (răspunde cu Da sau Nu)'
-            };
-            setMessages(prev => [...prev, downloadQuestionMessage]);
-            setAwaitingDownloadKnowledgeResponse(true); // Activăm flag-ul
-            scrollToBottom();
-            
-            // Salvează întrebarea în istoric
-            if (user) {
-              supabase.from('conversation_history').insert({
-                user_id: user.id,
-                conversation_id: conversationId,
-                role: 'assistant',
-                content: downloadQuestionMessage.content
-              });
-            }
-          }, 1500); // Delay de 1.5 secunde pentru UX mai bun
+          setMessages(prev => [...prev, confirmMessage]);
 
           // Save to conversation history
           if (user) {
@@ -1626,7 +1599,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
                 user_id: user.id,
                 conversation_id: conversationId,
                 role: 'assistant',
-                content: aiMessage.content
+                content: confirmMessage.content
               }
             ]);
           }
@@ -3094,6 +3067,67 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           </div>
         )}
 
+        {/* 🆕 ECRAN GHIDAJ FORȚAT - 3 Butoane după upload balanță */}
+        {showGuidedQuestions ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 space-y-6 animate-in fade-in duration-500">
+            <div className="text-center space-y-2">
+              <Sparkles className="h-10 w-10 mx-auto text-primary mb-4" />
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                Ce vrei să afli prima dată despre firma ta?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Am analizat balanța. Alege ce te interesează cel mai mult.
+              </p>
+            </div>
+            
+            <div className="w-full max-w-md space-y-4">
+              <Button
+                onClick={() => {
+                  console.log('🔘 Buton apăsat: Am destui bani?');
+                  // TODO: Pasul 2 - afișare panou cash
+                }}
+                variant="outline"
+                className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
+              >
+                <span className="text-2xl mr-3">💰</span>
+                Am destui bani?
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  console.log('🔘 Buton apăsat: Cum stau cu Profitul?');
+                  // TODO: Pasul 2 - afișare panou profit
+                }}
+                variant="outline"
+                className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
+              >
+                <span className="text-2xl mr-3">📈</span>
+                Cum stau cu Profitul?
+              </Button>
+              
+              <Button
+                onClick={() => {
+                  console.log('🔘 Buton apăsat: Unde se duc banii?');
+                  // TODO: Pasul 2 - afișare panou cheltuieli
+                }}
+                variant="outline"
+                className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
+              >
+                <span className="text-2xl mr-3">📊</span>
+                Unde se duc banii?
+              </Button>
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setShowGuidedQuestions(false)}
+            >
+              ← Înapoi la chat
+            </Button>
+          </div>
+        ) : (
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-3 py-2">
             {/* Banner explicativ la schimbarea modului */}
@@ -3265,6 +3299,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
+        )}
 
         <div className="space-y-3 pt-3 border-t bg-background/95 backdrop-blur-sm">
           <div className="relative">
