@@ -3187,7 +3187,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Cum stau cu Profitul?');
-                  // TODO: Pasul 3 - afișare panou profit
+                  setActiveInsightScreen('cash');
                 }}
                 variant="outline"
                 className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
@@ -3199,7 +3199,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Unde se duc banii?');
-                  // TODO: Pasul 4 - afișare panou cheltuieli
+                  setActiveInsightScreen('expenses');
                 }}
                 variant="outline"
                 className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
@@ -3209,13 +3209,17 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               </Button>
             </div>
             
+            {/* Buton de închidere pentru a reveni la chat liber */}
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setShowGuidedQuestions(false)}
+              className="text-muted-foreground hover:text-foreground mt-4"
+              onClick={() => {
+                setShowGuidedQuestions(false);
+                setActiveInsightScreen(null);
+              }}
             >
-              ← Înapoi la chat
+              ✕ Închide și scrie liber în chat
             </Button>
           </div>
           )
