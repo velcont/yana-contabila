@@ -72,8 +72,8 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { documentId, conversationId, fileContent, fileName, fileType } = await req.json();
-    console.log(`[process-strategic-document][${requestId}] Processing: ${fileName} (${fileType})`);
+    const { documentId, conversationId, fileContent, contentType, fileName, fileType } = await req.json();
+    console.log(`[process-strategic-document][${requestId}] Processing: ${fileName} (${fileType}), contentType: ${contentType || 'base64'}`);
 
     if (!documentId || !fileContent) {
       return new Response(JSON.stringify({ error: "Missing documentId or fileContent" }), {
@@ -82,75 +82,65 @@ serve(async (req) => {
       });
     }
 
-    // Extract text based on file type
+    // Extract text based on content type
     let extractedText = "";
-    let rawBase64Content = "";
     
-    // Extract base64 content for AI analysis
-    try {
-      rawBase64Content = fileContent.includes(",") 
-        ? fileContent.split(",")[1] 
-        : fileContent;
-    } catch (e) {
-      console.error(`[process-strategic-document][${requestId}] Base64 extraction error:`, e);
-    }
-    
-    if (fileType === "text/csv" || fileName.endsWith(".csv")) {
-      // CSV: decode and use as-is
-      try {
-        extractedText = atob(rawBase64Content);
-        console.log(`[process-strategic-document][${requestId}] CSV extracted: ${extractedText.length} chars`);
-      } catch (e) {
-        console.error(`[process-strategic-document][${requestId}] CSV decode error:`, e);
-        extractedText = "Eroare la decodare CSV";
-      }
-    } else if (fileType.includes("excel") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-      // Excel: decode base64 and extract readable text portions
-      try {
-        const decodedContent = atob(rawBase64Content);
-        // Extract only printable ASCII and Romanian characters from the binary
-        extractedText = decodedContent
-          .split('')
-          .filter(char => {
-            const code = char.charCodeAt(0);
-            // Keep printable ASCII (32-126), newlines, tabs, and extended Latin (Romanian chars)
-            return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 || 
-                   (code >= 192 && code <= 687); // Extended Latin for Romanian diacritics
-          })
-          .join('')
-          .replace(/\s{3,}/g, ' ') // Collapse multiple spaces
-          .trim();
-        console.log(`[process-strategic-document][${requestId}] Excel text extracted: ${extractedText.length} chars`);
-        console.log(`[process-strategic-document][${requestId}] Excel preview: ${extractedText.slice(0, 500)}`);
-      } catch (e) {
-        console.error(`[process-strategic-document][${requestId}] Excel decode error:`, e);
-        extractedText = `[Document Excel: ${fileName}] - Nu s-a putut decodifica`;
-      }
-    } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
-      // PDF: extract readable text portions
-      try {
-        const decodedContent = atob(rawBase64Content);
-        extractedText = decodedContent
-          .split('')
-          .filter(char => {
-            const code = char.charCodeAt(0);
-            return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 ||
-                   (code >= 192 && code <= 687);
-          })
-          .join('')
-          .replace(/\s{3,}/g, ' ')
-          .trim();
-        console.log(`[process-strategic-document][${requestId}] PDF text extracted: ${extractedText.length} chars`);
-      } catch (e) {
-        console.error(`[process-strategic-document][${requestId}] PDF decode error:`, e);
-        extractedText = `[Document PDF: ${fileName}] - Nu s-a putut decodifica`;
-      }
+    // If frontend already parsed the document (Excel/CSV), use that directly
+    if (contentType === "extracted_text") {
+      extractedText = fileContent;
+      console.log(`[process-strategic-document][${requestId}] Using pre-extracted text: ${extractedText.length} chars`);
+      console.log(`[process-strategic-document][${requestId}] Text preview: ${extractedText.slice(0, 500)}`);
     } else {
-      // Try to decode as text
+      // Fallback: base64 content needs decoding
+      let rawBase64Content = "";
+      
       try {
-        extractedText = atob(rawBase64Content);
-      } catch {
-        extractedText = `[Document: ${fileName}] - Format necunoscut`;
+        rawBase64Content = fileContent.includes(",") 
+          ? fileContent.split(",")[1] 
+          : fileContent;
+      } catch (e) {
+        console.error(`[process-strategic-document][${requestId}] Base64 extraction error:`, e);
+      }
+      
+      if (fileType === "text/csv" || fileName.endsWith(".csv")) {
+        // CSV: decode and use as-is
+        try {
+          extractedText = atob(rawBase64Content);
+          console.log(`[process-strategic-document][${requestId}] CSV extracted: ${extractedText.length} chars`);
+        } catch (e) {
+          console.error(`[process-strategic-document][${requestId}] CSV decode error:`, e);
+          extractedText = "Eroare la decodare CSV";
+        }
+      } else if (fileType.includes("excel") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        // Excel without frontend parsing - this shouldn't happen with the fix
+        console.warn(`[process-strategic-document][${requestId}] Excel received as base64 - frontend parsing failed`);
+        extractedText = `[Document Excel: ${fileName}] - Eroare: Fișierul Excel nu a fost parsat corect pe frontend. Te rog reîncarcă documentul.`;
+      } else if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
+        // PDF: extract readable text portions
+        try {
+          const decodedContent = atob(rawBase64Content);
+          extractedText = decodedContent
+            .split('')
+            .filter(char => {
+              const code = char.charCodeAt(0);
+              return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9 ||
+                     (code >= 192 && code <= 687);
+            })
+            .join('')
+            .replace(/\s{3,}/g, ' ')
+            .trim();
+          console.log(`[process-strategic-document][${requestId}] PDF text extracted: ${extractedText.length} chars`);
+        } catch (e) {
+          console.error(`[process-strategic-document][${requestId}] PDF decode error:`, e);
+          extractedText = `[Document PDF: ${fileName}] - Nu s-a putut decodifica`;
+        }
+      } else {
+        // Try to decode as text
+        try {
+          extractedText = atob(rawBase64Content);
+        } catch {
+          extractedText = `[Document: ${fileName}] - Format necunoscut`;
+        }
       }
     }
 
