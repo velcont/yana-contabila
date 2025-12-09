@@ -35,6 +35,7 @@ import { ChatInput } from './chat/ChatInput';
 import { useSessionGuard } from '@/hooks/useSessionGuard';
 import { CashRunwayPanel } from './insights/CashRunwayPanel';
 import { TopExpensesPanel, calculateTopExpenses } from './insights/TopExpensesPanel';
+import ProfitInsightPanel from './insights/ProfitInsightPanel';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -245,6 +246,31 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
     if (burn >= 0) return Infinity; // Firma acumulează, nu arde
     if (cash <= 0) return 0; // Nu are cash
     return cash / Math.abs(burn);
+  };
+
+  // 🆕 Funcții pentru ProfitInsightPanel
+  const getTotalRevenues = () => {
+    if (!balanceStructuredData?.accounts) return 0;
+    return balanceStructuredData.accounts
+      .filter(a => a.accountClass === 7)
+      .reduce((sum, a) => sum + (a.credit || 0), 0);
+  };
+
+  const getTotalExpenses = () => {
+    if (!balanceStructuredData?.accounts) return 0;
+    return balanceStructuredData.accounts
+      .filter(a => a.accountClass === 6)
+      .reduce((sum, a) => sum + (a.debit || 0), 0);
+  };
+
+  const getNetProfit = () => {
+    return getTotalRevenues() - getTotalExpenses();
+  };
+
+  const getProfitMargin = () => {
+    const revenues = getTotalRevenues();
+    if (revenues === 0) return 0;
+    return (getNetProfit() / revenues) * 100;
   };
   
   // 🆕 Helper function pentru verificare și adăugare sugestie premium
@@ -3147,6 +3173,15 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
                 setActiveInsightScreen('expenses');
               }}
             />
+          ) : activeInsightScreen === 'profit' ? (
+            <ProfitInsightPanel
+              totalRevenues={getTotalRevenues()}
+              totalExpenses={getTotalExpenses()}
+              netProfit={getNetProfit()}
+              profitMargin={getProfitMargin()}
+              onBack={() => setActiveInsightScreen(null)}
+              onFollowUp={() => setActiveInsightScreen('expenses')}
+            />
           ) : activeInsightScreen === 'expenses' ? (
             (() => {
               const { categories, total } = calculateTopExpenses(balanceStructuredData?.accounts || []);
@@ -3154,13 +3189,26 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
                 <TopExpensesPanel
                   expenses={categories}
                   totalExpenses={total}
-                  onBack={() => setActiveInsightScreen('cash')}
+                  onBack={() => setActiveInsightScreen(null)}
                   onStrategy={handleStartAIChat}
                 />
               );
             })()
           ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8 space-y-6 animate-in fade-in duration-500">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in duration-500 relative">
+            {/* Buton de închidere - fix în colțul din dreapta sus */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setShowGuidedQuestions(false);
+                setActiveInsightScreen(null);
+              }}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+
             <div className="text-center space-y-2">
               <Sparkles className="h-10 w-10 mx-auto text-primary mb-4" />
               <h2 className="text-xl md:text-2xl font-bold text-foreground">
@@ -3171,28 +3219,28 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
               </p>
             </div>
             
-            <div className="w-full max-w-md space-y-4">
+            <div className="w-full max-w-md space-y-4 mt-6">
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Am destui bani?');
                   setActiveInsightScreen('cash');
                 }}
                 variant="outline"
-                className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
+                className="w-full h-14 md:h-16 text-base md:text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
               >
-                <span className="text-2xl mr-3">💰</span>
+                <span className="text-xl md:text-2xl mr-3">💰</span>
                 Am destui bani?
               </Button>
               
               <Button
                 onClick={() => {
                   console.log('🔘 Buton apăsat: Cum stau cu Profitul?');
-                  setActiveInsightScreen('cash');
+                  setActiveInsightScreen('profit');
                 }}
                 variant="outline"
-                className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
+                className="w-full h-14 md:h-16 text-base md:text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
               >
-                <span className="text-2xl mr-3">📈</span>
+                <span className="text-xl md:text-2xl mr-3">📈</span>
                 Cum stau cu Profitul?
               </Button>
               
@@ -3202,25 +3250,23 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
                   setActiveInsightScreen('expenses');
                 }}
                 variant="outline"
-                className="w-full h-16 text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
+                className="w-full h-14 md:h-16 text-base md:text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
               >
-                <span className="text-2xl mr-3">📊</span>
+                <span className="text-xl md:text-2xl mr-3">📊</span>
                 Unde se duc banii?
               </Button>
             </div>
             
-            {/* Buton de închidere pentru a reveni la chat liber */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground mt-4"
+            {/* Link subtil pentru chat liber */}
+            <button
+              className="mt-6 text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
               onClick={() => {
                 setShowGuidedQuestions(false);
                 setActiveInsightScreen(null);
               }}
             >
-              ✕ Închide și scrie liber în chat
-            </Button>
+              sau scrie liber în chat
+            </button>
           </div>
           )
         ) : (
