@@ -8,6 +8,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { 
   Loader2, 
   Brain, 
@@ -566,6 +567,76 @@ export default function StrategicAdvisor() {
     // useEffect[conversationId] va reîncărca automat mesajele
   };
 
+  // File input ref for upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handler for file upload - parse Excel locally
+  const handleFileUpload = async () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+    const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+    const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+    if (!hasValidExtension) {
+      toast.error("Format nesuportat. Acceptăm: Excel (.xlsx, .xls) sau CSV.");
+      return;
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    toast.info(`📊 Se procesează ${file.name}...`);
+
+    try {
+      let extractedText = '';
+
+      if (fileName.endsWith('.csv')) {
+        // CSV - read as text directly
+        extractedText = await file.text();
+        logger.log("📄 [FILE] CSV parsed directly, length:", extractedText.length);
+      } else {
+        // Excel (.xlsx, .xls) - parse with XLSX library on frontend
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        // Convert all sheets to CSV
+        const allSheetsText: string[] = [];
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          const csvText = XLSX.utils.sheet_to_csv(sheet);
+          allSheetsText.push(`=== Sheet: ${sheetName} ===\n${csvText}`);
+        }
+        extractedText = allSheetsText.join('\n\n');
+        logger.log("📊 [FILE] Excel parsed on frontend, sheets:", workbook.SheetNames.length, "text length:", extractedText.length);
+      }
+
+      if (!extractedText || extractedText.trim().length < 50) {
+        toast.error("Fișierul pare gol sau nu conține date suficiente.");
+        return;
+      }
+
+      // Send extracted text as a user message with file context
+      const fileMessage = `📊 Am încărcat fișierul "${file.name}". Iată datele extrase:\n\n\`\`\`\n${extractedText.substring(0, 8000)}\n\`\`\`\n\nTe rog analizează aceste date și extrage faptele financiare relevante.`;
+      
+      // Send as a regular message
+      await sendMessage(fileMessage);
+      
+      toast.success(`✅ ${file.name} încărcat și trimis pentru analiză!`);
+      
+    } catch (error) {
+      logger.error("❌ [FILE] Error processing file:", error);
+      toast.error("Eroare la procesarea fișierului. Încearcă din nou.");
+    }
+  };
+
   // Loading state
   if (isCheckingAccess) {
     return <LoadingOverlay message="Verificare acces..." />;
@@ -850,13 +921,24 @@ export default function StrategicAdvisor() {
                 </div>
               </div>
 
-              {/* Input Area */}
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {/* Input Area with file upload */}
               <ChatInput
                 value={input}
                 onChange={setInput}
                 onSend={sendMessage}
+                onFileUpload={handleFileUpload}
                 isLoading={isLoading}
                 placeholder="Descrie provocarea ta de business aici..."
+                showFileUpload={true}
               />
             </TabsContent>
           </Tabs>
