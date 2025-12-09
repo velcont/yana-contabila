@@ -35,6 +35,7 @@ import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog"
 import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
 import { AlertTriangle, Plus, FileText } from "lucide-react";
+import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,6 +90,14 @@ export default function StrategicAdvisor() {
   // Sidebar and conflict dialog states
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  
+  // Personality states for welcome message
+  const [userProfile, setUserProfile] = useState<{
+    preferredName: string | null;
+    detectedGender: 'male' | 'female' | 'unknown';
+    relationshipLevel: number;
+  } | null>(null);
+  const [welcomeMessageShown, setWelcomeMessageShown] = useState(false);
 
   // Set sidebar open on desktop after initial render
   useEffect(() => {
@@ -118,6 +127,110 @@ export default function StrategicAdvisor() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load user personality profile and show welcome message
+  useEffect(() => {
+    if (!user || welcomeMessageShown) return;
+    
+    const loadOrCreatePersonalityProfile = async () => {
+      try {
+        logger.log("👤 [PERSONALITY] Loading user personality profile...");
+        
+        // First check if profile exists in user_personal_profile
+        const { data: existingProfile } = await supabase
+          .from('user_personal_profile')
+          .select('preferred_name, detected_gender, relationship_level, total_conversations')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (existingProfile) {
+          logger.log("👤 [PERSONALITY] Found existing profile:", existingProfile);
+          setUserProfile({
+            preferredName: existingProfile.preferred_name,
+            detectedGender: existingProfile.detected_gender as 'male' | 'female' | 'unknown',
+            relationshipLevel: existingProfile.relationship_level || 1
+          });
+          return existingProfile;
+        }
+        
+        // No profile exists - create one by detecting gender from profiles.full_name
+        logger.log("👤 [PERSONALITY] No profile found, creating new one...");
+        const { data: authProfile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        
+        const fullName = authProfile?.full_name || '';
+        const detectedGender = detectGender(fullName);
+        const preferredName = extractPreferredName(fullName);
+        
+        logger.log(`👤 [PERSONALITY] Detected: name="${preferredName}", gender="${detectedGender}"`);
+        
+        // Create new personality profile
+        const { error: insertError } = await supabase
+          .from('user_personal_profile')
+          .insert({
+            user_id: user.id,
+            preferred_name: preferredName || null,
+            detected_gender: detectedGender,
+            relationship_level: 1,
+            total_conversations: 0
+          });
+        
+        if (insertError) {
+          logger.error("❌ [PERSONALITY] Error creating profile:", insertError);
+        }
+        
+        setUserProfile({
+          preferredName: preferredName || null,
+          detectedGender,
+          relationshipLevel: 1
+        });
+        
+        return { preferred_name: preferredName, detected_gender: detectedGender, relationship_level: 1 };
+      } catch (error) {
+        logger.error("❌ [PERSONALITY] Error loading profile:", error);
+        return null;
+      }
+    };
+    
+    loadOrCreatePersonalityProfile();
+  }, [user, welcomeMessageShown]);
+
+  // Show personalized welcome message when profile is loaded and no messages exist
+  useEffect(() => {
+    if (!userProfile || welcomeMessageShown || messages.length > 0) return;
+    
+    // Generate personalized welcome message based on Tone B (playful with compliments)
+    let welcomeMessage = "";
+    
+    if (!userProfile.preferredName) {
+      // First time user without name - ask for it
+      welcomeMessage = "Salut! 😊 Eu sunt Yana, consilierul tău strategic. Îmi place să lucrez cu antreprenori ambițioși! Tu cum te numești?";
+    } else if (userProfile.detectedGender === 'male') {
+      // Male user - Tone B: playful with subtle strategic compliments
+      welcomeMessage = `Salut, ${userProfile.preferredName}! 😊 Îmi place când văd un antreprenor pregătit pentru bătălie strategică. Cu ce războim azi competiția?`;
+    } else if (userProfile.detectedGender === 'female') {
+      // Female user - warm confidant style
+      welcomeMessage = `Salut, ${userProfile.preferredName}! 💕 Ce mă bucur că ai venit. Hai să vedem ce putem construi împreună azi pentru afacerea ta.`;
+    } else {
+      // Unknown gender - neutral but warm
+      welcomeMessage = `Salut, ${userProfile.preferredName}! 😊 Mă bucur să te văd. Sunt Yana, consilierul tău strategic. Cu ce te pot ajuta azi?`;
+    }
+    
+    const welcomeMsg: Message = {
+      role: "assistant",
+      content: welcomeMessage,
+      timestamp: new Date(),
+      showFeedback: false
+    };
+    
+    setMessages([welcomeMsg]);
+    setWelcomeMessageShown(true);
+    
+    logger.log(`👋 [WELCOME] Showed personalized welcome for ${userProfile.preferredName || 'new user'} (${userProfile.detectedGender})`);
+  }, [userProfile, welcomeMessageShown, messages.length]);
 
   // Check access and credit on mount
   useEffect(() => {
