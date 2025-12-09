@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
@@ -84,6 +85,10 @@ export const ChatAI = ({ autoStart = false, onAutoStartComplete, onOpenDashboard
   const { currentTheme } = useThemeRole();
   const { validateSession } = useSessionGuard();
   const isAccountantModule = currentTheme === 'accountant';
+  const isMobile = useIsMobile();
+  const [mobileWarningShown, setMobileWarningShown] = useState(() => {
+    return localStorage.getItem('yana_chatai_mobile_warning_shown') === 'true';
+  });
   
   // Detectare utilizator nou
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -240,6 +245,19 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
       loadFiscalConversationHistory();
     }
   }, [chatMode, isOpen]);
+
+  // Show mobile warning message once when chat opens on mobile
+  useEffect(() => {
+    if (isOpen && isMobile && !mobileWarningShown && messages.length >= 1) {
+      const mobileWarningMsg: Message = {
+        role: 'assistant',
+        content: '📱 *Observ că ești pe mobil. Pentru experiență optimă (grafice, rapoarte, navigare), recomand desktop/laptop.*'
+      };
+      setMessages(prev => [...prev, mobileWarningMsg]);
+      localStorage.setItem('yana_chatai_mobile_warning_shown', 'true');
+      setMobileWarningShown(true);
+    }
+  }, [isOpen, isMobile, mobileWarningShown, messages.length]);
 
   // Încarcă istoric balance când componenta se deschide
   const [hasLoadedHistory, setHasLoadedHistory] = useState(false);

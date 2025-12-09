@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,9 +45,13 @@ const ChartLoader = () => (
 
 const Landing = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [showDemo, setShowDemo] = useState(false);
   const [demoAnalyses, setDemoAnalyses] = useState<any[]>([]);
   const [isAccountant, setIsAccountant] = useState(false);
+  const [mobileBannerDismissed, setMobileBannerDismissed] = useState(() => {
+    return localStorage.getItem('yana_mobile_banner_dismissed') === 'true';
+  });
 
   useEffect(() => {
     // Check if user is an accountant
@@ -231,6 +236,24 @@ Perioada: 01/04/2025 - 30/04/2025`,
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       <StickyTrialBanner />
+      
+      {/* Mobile Recommendation Banner */}
+      {isMobile && !mobileBannerDismissed && (
+        <div className="bg-primary/10 border-b border-primary/20 px-4 py-3 text-center text-sm">
+          <span className="text-muted-foreground">
+            📱 Aplicația funcționează pe mobil, dar pentru experiență optimă recomandăm desktop/laptop.
+          </span>
+          <button 
+            onClick={() => {
+              setMobileBannerDismissed(true);
+              localStorage.setItem('yana_mobile_banner_dismissed', 'true');
+            }}
+            className="ml-2 text-primary hover:underline"
+          >
+            Am înțeles
+          </button>
+        </div>
+      )}
       
       {/* Hero Section - Optimized */}
       <section className="container mx-auto px-4 py-12 md:py-20">
