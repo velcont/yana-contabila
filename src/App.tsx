@@ -24,15 +24,12 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Analytics = lazy(() => import("./pages/Analytics"));
-const AdvancedAnalytics = lazy(() => import("./pages/AdvancedAnalytics"));
 const Admin = lazy(() => import("./pages/Admin"));
 const UpdatesManager = lazy(() => import("./pages/UpdatesManager"));
 const MarketingMaterials = lazy(() => import("./pages/MarketingMaterials"));
-const CRM = lazy(() => import("./pages/CRM"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Landing = lazy(() => import("./pages/Landing"));
 const Demo = lazy(() => import("./pages/Demo"));
-const IndustryDemos = lazy(() => import("./pages/IndustryDemos"));
 const SystemHealth = lazy(() => import("./pages/SystemHealth"));
 const PlatformCosts = lazy(() => import("./pages/PlatformCosts"));
 const Terms = lazy(() => import("./pages/Terms"));
@@ -41,12 +38,8 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 
 const Subscription = lazy(() => import("./pages/Subscription"));
 const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
-const AccountantDashboard = lazy(() => import("./pages/AccountantDashboard"));
-const AccountantBranding = lazy(() => import("./pages/AccountantBranding"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const StrategicAdvisor = lazy(() => import("./pages/StrategicAdvisor"));
-const HumanizeText = lazy(() => import("./pages/HumanizeText"));
-const ClientOnboardingWizard = lazy(() => import("./pages/ClientOnboardingWizard"));
 const Settings = lazy(() => import("./pages/Settings"));
 
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
@@ -133,16 +126,13 @@ const App = () => {
                       <Route path="/" element={<Landing />} />
                       <Route path="/landing" element={<Landing />} />
                       <Route path="/demo" element={<Demo />} />
-                      <Route path="/industry-demos" element={<PrivateRoute><IndustryDemos /></PrivateRoute>} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
-                      <Route path="/advanced-analytics" element={<PrivateRoute><AdvancedAnalytics /></PrivateRoute>} />
                       <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
                       <Route path="/admin/platform-costs" element={<PrivateRoute><PlatformCosts /></PrivateRoute>} />
                       <Route path="/marketing-materials" element={<PrivateRoute><MarketingMaterials /></PrivateRoute>} />
                       <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
-                      <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
                       <Route path="/system-health" element={<PrivateRoute><SystemHealth /></PrivateRoute>} />
                       <Route path="/terms" element={<Terms />} />
                       <Route path="/privacy" element={<Privacy />} />
@@ -150,15 +140,11 @@ const App = () => {
                       
                       <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                       <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
-                      <Route path="/yanacrm" element={<PrivateRoute><AccountantDashboard /></PrivateRoute>} />
-                      <Route path="/accountant-branding" element={<PrivateRoute><AccountantBranding /></PrivateRoute>} />
                       <Route path="/accept-invitation" element={<AcceptInvitation />} />
-                      <Route path="/client-onboarding/:processId" element={<ClientOnboardingWizard />} />
                       <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
                       
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                       <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
-                      <Route path="/humanize-text" element={<PrivateRoute><HumanizeText /></PrivateRoute>} />
                       
                       <Route path="/generate-literature-review" element={<GenerateLiteratureReview />} />
                       <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />
