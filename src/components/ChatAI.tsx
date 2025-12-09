@@ -178,10 +178,41 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   } | null>(null);
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
-// 🆕 Ghidaj Forțat - Ecran post-upload cu 3 butoane
+  // 🆕 Ghidaj Forțat - Ecran post-upload cu 3 butoane
   const [showGuidedQuestions, setShowGuidedQuestions] = useState(false);
   const [uploadedBalanceData, setUploadedBalanceData] = useState<any>(null);
   const [activeInsightScreen, setActiveInsightScreen] = useState<'questions' | 'cash' | 'profit' | 'expenses' | null>(null);
+  
+  // 🆕 Misiunea #4: Handler pentru activarea chat-ului AI cu context
+  const handleStartAIChat = () => {
+    // Calculează valorile necesare pentru mesajul contextual
+    const survivalMonths = getSurvivalMonths();
+    const topExpenses = balanceStructuredData?.accounts 
+      ? calculateTopExpenses(balanceStructuredData.accounts)
+      : { categories: [], total: 0 };
+    const topExpenseName = topExpenses.categories[0]?.name || 'cheltuieli operaționale';
+    
+    // Formatează lunile de supraviețuire
+    const formattedMonths = survivalMonths === Infinity 
+      ? 'stabil (acumulezi profit)'
+      : survivalMonths.toFixed(1) + ' luni';
+    
+    // A. Creează mesajul automat de la Yana
+    const yanaContextMessage: Message = {
+      role: 'assistant',
+      content: `🎯 **Analiză finalizată.**\n\nCu un cash runway de **${formattedMonths}** și cu **"${topExpenseName}"** fiind principala gaură neagră, avem nevoie de un plan de atac.\n\n💪 **Sunt pregătită.** Ce vrei să știi?`
+    };
+    
+    // Adaugă mesajul în chat
+    setMessages(prev => [...prev, yanaContextMessage]);
+    
+    // B. Pre-completează input-ul cu întrebarea sugerată
+    setInput('Ce strategii concrete ai pentru a crește cash-ul și a reduce cheltuielile?');
+    
+    // Închide ecranul de insight și revino la chat
+    setShowGuidedQuestions(false);
+    setActiveInsightScreen(null);
+  };
   
   // 🆕 Funcții de calcul pentru ecranele insight
   const getTotalCash = () => {
@@ -3124,9 +3155,7 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
                   expenses={categories}
                   totalExpenses={total}
                   onBack={() => setActiveInsightScreen('cash')}
-                  onStrategy={() => {
-                    console.log('💡 Strategii - TBD');
-                  }}
+                  onStrategy={handleStartAIChat}
                 />
               );
             })()
