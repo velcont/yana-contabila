@@ -1,6 +1,7 @@
 /**
  * Component preloader utility
  * Preload components before they are needed to improve perceived performance
+ * Simplified version - v2
  */
 
 type PreloadableComponent = 
