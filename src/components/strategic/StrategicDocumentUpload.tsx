@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import * as XLSX from "xlsx";
 
 interface StrategicDocumentUploadProps {
   conversationId: string;
@@ -29,6 +30,35 @@ export function StrategicDocumentUpload({
   const [statusMessage, setStatusMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Parse Excel/CSV files on frontend to extract readable text
+  const parseExcelToText = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          
+          // Extract text from all sheets
+          let allText = "";
+          for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName];
+            const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false });
+            allText += `=== ${sheetName} ===\n${csv}\n\n`;
+          }
+          
+          console.log("[StrategicDocumentUpload] Excel parsed successfully:", allText.length, "chars");
+          resolve(allText);
+        } catch (err) {
+          console.error("[StrategicDocumentUpload] Excel parse error:", err);
+          reject(err);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -118,13 +148,37 @@ export function StrategicDocumentUpload({
         throw new Error(`Eroare la salvare: ${insertError.message}`);
       }
 
-      // Convert file to base64
-      const fileContent = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Parse Excel/CSV files on frontend to get readable text
+      let extractedText = "";
+      const isExcel = file.type.includes("excel") || file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+      const isCsv = file.type === "text/csv" || file.name.endsWith(".csv");
+      
+      if (isExcel) {
+        // Parse Excel on frontend - critical fix for binary xlsx files
+        extractedText = await parseExcelToText(file);
+        console.log("[StrategicDocumentUpload] Extracted Excel text preview:", extractedText.slice(0, 500));
+      } else if (isCsv) {
+        // Read CSV as text
+        extractedText = await file.text();
+      }
+
+      // For PDF or when Excel parsing provides text, send the extracted text instead of base64
+      let fileContent = "";
+      let contentType = "text";
+      
+      if (extractedText) {
+        fileContent = extractedText;
+        contentType = "extracted_text";
+      } else {
+        // Fallback to base64 for PDF or failed parsing
+        fileContent = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        contentType = "base64";
+      }
 
       // Process with edge function
       const { data: processResult, error: processError } = await supabase.functions.invoke(
@@ -134,6 +188,7 @@ export function StrategicDocumentUpload({
             documentId: docRecord.id,
             conversationId,
             fileContent,
+            contentType, // NEW: tell backend what type of content we're sending
             fileName: file.name,
             fileType: file.type,
           },
