@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Sparkles, Settings, LogOut, User, Building2, MessageSquare, Briefcase, TrendingUp, FileText } from "lucide-react";
+import { Sparkles, Settings, LogOut, User, MessageSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -22,13 +22,11 @@ import Landing from "@/pages/Landing";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
 import { AccountTypeSelector } from "@/components/AccountTypeSelector";
-import { CompanySwitcher } from "@/components/CompanySwitcher";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationSystem";
-import { MarketplaceLayout } from "@/components/marketplace/MarketplaceLayout";
 
 const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -125,7 +123,7 @@ const Index = () => {
   };
 
   const handleCardClick = (view: string) => {
-    if (view === 'strategic-advisor' || view === 'yanacrm') {
+    if (view === 'strategic-advisor') {
       navigate(`/${view}`);
     } else {
       setSearchParams({ view });
@@ -152,19 +150,6 @@ const Index = () => {
 
   logger.log('User is authenticated:', user.email);
 
-  // Render content based on activeView
-  const renderContent = () => {
-    switch (activeView) {
-      case 'analiza-balanta':
-      case 'chat-ai':
-        return <Dashboard />;
-      case 'marketplace':
-        return <MarketplaceLayout />;
-      default:
-        return <Dashboard />;
-    }
-  };
-
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
@@ -175,20 +160,11 @@ const Index = () => {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Yana
               </h1>
-              {userSubscriptionType === 'accounting_firm' && (
-                <CompanySwitcher 
-                  currentCompanyId={currentCompanyId}
-                  onCompanyChange={setCurrentCompanyId}
-                  onAddCompany={() => navigate('/crm')}
-                />
-              )}
             </div>
             
             <div className="flex gap-2 items-center">
-              {/* AI Credits indicator DOAR pentru antreprenori */}
-              {userSubscriptionType === 'entrepreneur' && (
-                <CreditAndTrialIndicator />
-              )}
+              {/* AI Credits indicator */}
+              <CreditAndTrialIndicator />
               
               <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
                 <Settings className="h-5 w-5" />
@@ -214,11 +190,9 @@ const Index = () => {
                   <DropdownMenuItem onClick={() => navigate('/subscription')}>
                     Abonament
                   </DropdownMenuItem>
-                  {!isAccountant && (
-                    <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
-                      Credite AI
-                    </DropdownMenuItem>
-                  )}
+                  <DropdownMenuItem onClick={() => navigate('/my-ai-costs')}>
+                    Credite AI
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Deconectare
@@ -228,134 +202,57 @@ const Index = () => {
             </div>
           </div>
 
-          {/* 3 Card Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {userSubscriptionType === 'entrepreneur' ? (
-              <>
-                {/* Card 1: Analiză Balanței */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20"
-                  onClick={() => handleCardClick('analiza-balanta')}
-                  data-tour="card-analiza-balanta"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center mb-2">
-                      <TrendingUp className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Analiză Balanței</CardTitle>
-                    <CardDescription>
-                      Chat AI pentru întrebări despre balanță + Dashboard complet cu grafice, alerte, predicții și rapoarte
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+          {/* 2 Card Layout - Simplified */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-3xl mx-auto">
+            {/* Card 1: Analiză Balanței */}
+            <Card 
+              className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20"
+              onClick={() => handleCardClick('analiza-balanta')}
+              data-tour="card-analiza-balanta"
+            >
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center mb-2">
+                  <TrendingUp className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle>Analiză Balanței</CardTitle>
+                <CardDescription>
+                  Chat AI pentru întrebări despre balanță + Dashboard complet cu grafice, alerte, predicții și rapoarte
+                </CardDescription>
+              </CardHeader>
+            </Card>
 
-                {/* Card 2: Strategic Advisor */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/20"
-                  onClick={() => handleCardClick('strategic-advisor')}
-                  data-tour="card-strategic-advisor"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center mb-2">
-                      <Sparkles className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle className="flex items-center gap-2">
-                      Yana Strategică
-                      <span className="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full">💎 AI Premium</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Consultanță strategică AI avansată pentru decizii de business complexe (necesită credite AI)
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-                {/* Card 3: Marketplace */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20"
-                  onClick={() => handleCardClick('marketplace')}
-                  data-tour="card-marketplace"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mb-2">
-                      <Briefcase className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Marketplace</CardTitle>
-                    <CardDescription>
-                      Găsește contabilul perfect pentru firma ta și primește oferte personalizate
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-              </>
-            ) : (
-              <>
-                {/* Card 1: Chat AI (pentru contabili) */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20"
-                  onClick={() => handleCardClick('chat-ai')}
-                  data-tour="card-chat-ai"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center mb-2">
-                      <MessageSquare className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Chat AI</CardTitle>
-                    <CardDescription>
-                      Chat AI general + Dashboard complet cu grafice, multi-firmă, alerte și rapoarte pentru clienți
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-                {/* Card 2: Yana CRM */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/20"
-                  onClick={() => handleCardClick('yanacrm')}
-                  data-tour="card-yanacrm"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center mb-2">
-                      <Building2 className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Yana CRM</CardTitle>
-                    <CardDescription>
-                      CRM complet pentru gestionarea clienților, workflows lunare și email marketing
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-                {/* Card 3: Marketplace */}
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20"
-                  onClick={() => handleCardClick('marketplace')}
-                  data-tour="card-marketplace"
-                >
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mb-2">
-                      <Briefcase className="h-6 w-6 text-white" />
-                    </div>
-                    <CardTitle>Marketplace</CardTitle>
-                    <CardDescription>
-                      Găsește clienți noi și răspunde la anunțurile antreprenorilor
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </>
-            )}
+            {/* Card 2: Strategic Advisor */}
+            <Card 
+              className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/20"
+              onClick={() => handleCardClick('strategic-advisor')}
+              data-tour="card-strategic-advisor"
+            >
+              <CardHeader>
+                <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center mb-2">
+                  <Sparkles className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="flex items-center gap-2">
+                  Yana Strategică
+                  <span className="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full">💎 AI Premium</span>
+                </CardTitle>
+                <CardDescription>
+                  Consultanță strategică AI avansată pentru decizii de business complexe (necesită credite AI)
+                </CardDescription>
+              </CardHeader>
+            </Card>
           </div>
 
           {/* Content Area */}
           <div className="mt-8">
-            {renderContent()}
+            <Dashboard />
           </div>
           
           <Footer />
         </div>
       </div>
       
-      {/* ChatAI disponibil global pentru analiza-balanta și chat-ai views */}
-      {(activeView === 'analiza-balanta' || activeView === 'chat-ai') && (
-        <ChatAI openOnLoad={shouldOpenChatAI} />
-      )}
+      {/* ChatAI disponibil global */}
+      <ChatAI openOnLoad={shouldOpenChatAI} />
       
       <AccountTypeSelector 
         open={showAccountTypeSelector} 

@@ -31,7 +31,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 // Lazy load Recharts components (~100KB)
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 const MultiCompanyComparison = lazy(() => import('./MultiCompanyComparison').then(m => ({ default: m.MultiCompanyComparison })));
-const MarketplaceLayout = lazy(() => import('./marketplace/MarketplaceLayout').then(m => ({ default: m.MarketplaceLayout })));
 
 const ChartLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -772,11 +771,6 @@ INDICATORI OPERAȚIONALI:
           </TabsContent>
         )}
 
-        <TabsContent value="marketplace" className="space-y-6">
-          <Suspense fallback={<ChartLoader />}>
-            <MarketplaceLayout />
-          </Suspense>
-        </TabsContent>
 
         <TabsContent value="news" className="space-y-6">
           <FiscalNews />

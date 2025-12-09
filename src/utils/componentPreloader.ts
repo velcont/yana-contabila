@@ -8,10 +8,7 @@ type PreloadableComponent =
   | 'dashboard'
   | 'fiscalChat'
   | 'strategicCouncil'
-  | 'analytics'
-  | 'companyManager'
-  | 'crmClient'
-  | 'emailManager';
+  | 'analytics';
 
 const preloadCache = new Set<PreloadableComponent>();
 
@@ -21,9 +18,6 @@ const componentLoaders: Record<PreloadableComponent, () => Promise<any>> = {
   fiscalChat: () => import('@/components/FiscalChat'),
   strategicCouncil: () => import('@/components/StrategicCouncil'),
   analytics: () => import('@/components/AnalyticsCharts'),
-  companyManager: () => import('@/components/CompanyManager'),
-  crmClient: () => import('@/components/CRMClientForm'),
-  emailManager: () => import('@/components/EmailManager'),
 };
 
 /**
@@ -39,10 +33,9 @@ export const preloadComponent = (component: PreloadableComponent): void => {
     loader()
       .then(() => {
         preloadCache.add(component);
-        console.log(`✅ Preloaded: ${component}`);
       })
       .catch((error) => {
-        console.error(`❌ Failed to preload ${component}:`, error);
+        console.warn(`Failed to preload component ${component}:`, error);
       });
   }
 };
@@ -55,35 +48,58 @@ export const preloadComponents = (components: PreloadableComponent[]): void => {
 };
 
 /**
- * Preload critical components that are likely to be used soon
+ * Preload critical components for initial app load
  */
 export const preloadCriticalComponents = (): void => {
-  // Wait a bit to not interfere with initial render
-  setTimeout(() => {
-    preloadComponents(['chatAI', 'dashboard']);
-  }, 1000);
+  preloadComponents(['chatAI', 'dashboard']);
 };
 
 /**
- * Preload on hover - use this on buttons/links
- */
-export const createPreloadHandler = (component: PreloadableComponent) => {
-  return () => preloadComponent(component);
-};
-
-/**
- * Preload based on route
+ * Preload components based on route
  */
 export const preloadForRoute = (route: string): void => {
-  const routePreloads: Record<string, PreloadableComponent[]> = {
-    '/app': ['chatAI', 'dashboard'],
-    '/strategic-advisor': ['strategicCouncil'],
-    '/analytics': ['analytics'],
-    '/crm': ['crmClient', 'emailManager'],
-  };
+  switch (route) {
+    case '/app':
+      preloadComponents(['chatAI', 'dashboard', 'analytics']);
+      break;
+    case '/strategic-advisor':
+      preloadComponents(['strategicCouncil']);
+      break;
+    default:
+      // Unknown route, no specific preloading
+      break;
+  }
+};
 
-  const components = routePreloads[route];
-  if (components) {
+/**
+ * Check if a component has been preloaded
+ */
+export const isPreloaded = (component: PreloadableComponent): boolean => {
+  return preloadCache.has(component);
+};
+
+/**
+ * Preload components after a delay (for non-critical components)
+ */
+export const preloadAfterDelay = (
+  components: PreloadableComponent[],
+  delayMs: number = 2000
+): void => {
+  setTimeout(() => {
     preloadComponents(components);
+  }, delayMs);
+};
+
+/**
+ * Preload components when the browser is idle
+ */
+export const preloadWhenIdle = (components: PreloadableComponent[]): void => {
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(() => {
+      preloadComponents(components);
+    });
+  } else {
+    // Fallback for browsers that don't support requestIdleCallback
+    preloadAfterDelay(components, 1000);
   }
 };
