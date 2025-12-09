@@ -143,3 +143,6 @@ verify_jwt = true
 
 [functions.process-strategic-document]
 verify_jwt = true
+
+[functions.consult-yana]
+verify_jwt = true
