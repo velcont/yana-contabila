@@ -631,8 +631,8 @@ export default function StrategicAdvisor() {
         return;
       }
 
-      // Send extracted text as a user message with file context
-      const fileMessage = `📊 Am încărcat fișierul "${file.name}". Iată datele extrase:\n\n\`\`\`\n${extractedText.substring(0, 8000)}\n\`\`\`\n\nTe rog analizează aceste date și extrage faptele financiare relevante.`;
+      // Send short confirmation to chat, full data goes to AI in background
+      const fileMessage = `📊 Am încărcat fișierul "${file.name}" pentru analiză strategică. Procesez datele...`;
       
       // Send as a regular message
       await sendMessage(fileMessage);
