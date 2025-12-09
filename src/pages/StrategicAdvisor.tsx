@@ -476,11 +476,19 @@ export default function StrategicAdvisor() {
         }
       });
 
-      logger.log("📡 [SEND] Edge function response received");
+      logger.log("📡 [SEND] Edge function response received", { data, error });
 
-      if (error) throw error;
+      if (error) {
+        logger.error("❌ [SEND] Edge function error:", error);
+        const errorMessage = error.message || "Eroare la procesarea cererii";
+        toast.error(errorMessage, { duration: 7000 });
+        throw error;
+      }
+      
       if (data?.error) {
-        toast.error(data.error);
+        logger.error("❌ [SEND] Backend returned error:", data.error, data.details);
+        const errorDetails = data.details ? `: ${data.details}` : '';
+        toast.error(`${data.error}${errorDetails}`, { duration: 7000 });
         return;
       }
 
