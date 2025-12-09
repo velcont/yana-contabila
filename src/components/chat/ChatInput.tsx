@@ -38,11 +38,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       <div className="flex gap-2">
         {showFileUpload && onFileUpload && (
           <Button
-            variant="outline"
+            variant="secondary"
             size="icon"
             onClick={onFileUpload}
             disabled={isLoading || disabled}
-            className="h-[60px] w-[60px] flex-shrink-0"
+            className="h-[60px] w-[60px] flex-shrink-0 bg-muted hover:bg-muted/80"
           >
             <Paperclip className="h-5 w-5" />
           </Button>
