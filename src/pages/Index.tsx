@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Sparkles, Settings, LogOut, User, MessageSquare, TrendingUp } from "lucide-react";
+import { Sparkles, Settings, LogOut, User, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -21,10 +21,8 @@ import {
 import Landing from "@/pages/Landing";
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
-import { AccountTypeSelector } from "@/components/AccountTypeSelector";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationSystem";
 
@@ -32,48 +30,27 @@ const Index = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeView = searchParams.get('view') || 'analiza-balanta';
   
-  const [showAccountTypeSelector, setShowAccountTypeSelector] = useState(false);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
-  const [userSubscriptionType, setUserSubscriptionType] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, signOut, loading } = useAuth();
-  const { isAccountant } = useSubscription();
-  const { setThemeOverride, themeOverride } = useTheme();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const [shouldOpenChatAI, setShouldOpenChatAI] = useState(false);
 
-  // Check if user needs to select account type
+  // Check subscription and trial status on mount
   useEffect(() => {
-    const checkAccountType = async () => {
+    const checkSubscription = async () => {
       if (user && !loading) {
-        logger.log('🟢 [INDEX] Checking account type for user:', user.id);
+        logger.log('🟢 [INDEX] Checking subscription for user:', user.id);
         
         const { data, error } = await supabase
           .from('profiles')
-          .select('account_type_selected, subscription_type, subscription_status, trial_ends_at')
+          .select('subscription_status, trial_ends_at')
           .eq('id', user.id)
           .single();
 
-        logger.log('🟢 [INDEX] Profile data:', data, 'Error:', error);
-
         if (!error && data) {
-          if (!data.account_type_selected) {
-            setShowAccountTypeSelector(true);
-            return;
-          }
-
-          if (data.subscription_type === 'accounting_firm') {
-            logger.log('✅ User este contabil - afișare /app cu temă contabil');
-            setUserSubscriptionType('accounting_firm');
-            if (!themeOverride) setThemeOverride?.('accountant');
-          } else {
-            logger.log('✅ User este antreprenor - afișare /app cu temă antreprenor');
-            setUserSubscriptionType('entrepreneur');
-            if (!themeOverride) setThemeOverride?.('entrepreneur');
-          }
-
-          // Verifică expirarea perioadei de testare
+          // Check trial expiration
           if (data.trial_ends_at && new Date(data.trial_ends_at) <= new Date() && data.subscription_status !== 'active') {
             toast({
               title: "Perioada de testare expirată",
@@ -84,25 +61,23 @@ const Index = () => {
             return;
           }
           
-          // Load first company as default pentru antreprenori
-          if (data.subscription_type === 'entrepreneur') {
-            const { data: companies } = await supabase
-              .from('companies')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('is_active', true)
-              .order('created_at', { ascending: false })
-              .limit(1);
-            
-            if (companies && companies.length > 0) {
-              setCurrentCompanyId(companies[0].id);
-            }
+          // Load first company as default
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          
+          if (companies && companies.length > 0) {
+            setCurrentCompanyId(companies[0].id);
           }
         }
       }
     };
 
-    checkAccountType();
+    checkSubscription();
   }, [user, loading]);
 
   // 🤖 Deschide automat ChatAI pentru TOȚI utilizatorii la FIECARE logare
@@ -115,7 +90,6 @@ const Index = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    setThemeOverride(null);
     toast({
       title: "Deconectat",
       description: "Te-ai deconectat cu succes.",
@@ -253,13 +227,6 @@ const Index = () => {
       
       {/* ChatAI disponibil global */}
       <ChatAI openOnLoad={shouldOpenChatAI} />
-      
-      <AccountTypeSelector 
-        open={showAccountTypeSelector} 
-        onComplete={() => {
-          setShowAccountTypeSelector(false);
-        }}
-      />
     </>
   );
 };

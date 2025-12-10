@@ -3,17 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Crown, Building2, ArrowLeft } from 'lucide-react';
+import { Loader2, Check, Brain, ArrowLeft, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/hooks/use-toast';
 
+// Yana Strategic - Single Plan
+const YANA_STRATEGIC_PRICE_ID = 'price_1ScuQdBu3m83VcDAKjel2RTU';
+
 const Subscription = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { subscriptionType, subscriptionStatus, isSubscribed, subscriptionEnd, checkSubscription, accessType } = useSubscription();
+  const { subscriptionStatus, isSubscribed, subscriptionEnd, accessType } = useSubscription();
   
-  // Only show "Active Subscription" card if user has a real Stripe subscription
   const hasStripeSubscription = accessType === 'subscription';
   const hasFreeAccess = accessType === 'free_access';
   const [loading, setLoading] = useState<string | null>(null);
@@ -48,14 +50,12 @@ const Subscription = () => {
                   </div>
                   <div>
                     <CardTitle className="text-primary">
-                      {hasFreeAccess ? '🎉 Acces Gratuit Permanent' : 'Abonament Activ'}
+                      {hasFreeAccess ? '🎉 Acces Gratuit Permanent' : 'Yana Strategic - Activ'}
                     </CardTitle>
                     <CardDescription className="text-base">
                       {hasFreeAccess 
                         ? 'Fără costuri, toate funcționalitățile disponibile'
-                        : subscriptionType === 'accounting_firm' 
-                          ? 'Plan Firmă Contabilitate' 
-                          : 'Plan Antreprenor'}
+                        : 'Acces complet la toate funcționalitățile Yana Strategic'}
                     </CardDescription>
                   </div>
                 </div>
@@ -65,11 +65,7 @@ const Subscription = () => {
                   <div className="p-4 bg-background/50 rounded-lg">
                     <p className="text-sm text-muted-foreground mb-1">Plan curent</p>
                     <p className="text-lg font-semibold text-foreground">
-                      {hasFreeAccess
-                        ? '🎁 Acces Gratuit'
-                        : subscriptionType === 'accounting_firm' 
-                          ? 'Firmă Contabilitate' 
-                          : 'Antreprenor'}
+                      {hasFreeAccess ? '🎁 Acces Gratuit' : 'Yana Strategic'}
                     </p>
                   </div>
                   <div className="p-4 bg-background/50 rounded-lg">
@@ -140,58 +136,18 @@ const Subscription = () => {
     );
   }
 
-  const plans = [
-    {
-      id: 'entrepreneur',
-      name: 'Plan Antreprenor',
-      description: 'Perfect pentru afaceri mici și mijlocii',
-      price: '49',
-      priceId: 'price_1SLWzEBu3m83VcDAfHVcQupt',
-      icon: Crown,
-      features: [
-        'Analiză AI nelimitată a balanței',
-        'Chat AI conversațional',
-        'Voice Interface (10 min/lună)',
-        'Dashboard & Analytics live',
-        'Predicții AI & Alerte proactive',
-        'Export PDF nelimitat',
-        '✨ Yana Strategică + 10 lei credit test',
-        'Suport email prioritar',
-      ],
-    },
-    {
-      id: 'accounting_firm',
-      name: 'Plan Contabil',
-      description: 'Pentru firme de contabilitate cu clienți',
-      price: '199',
-      priceId: 'price_1SLWzFBu3m83VcDAgP1veppc',
-      icon: Building2,
-      popular: true,
-      features: [
-        'Toate din planul Antreprenor (fără Yana Strategică)',
-        'CRM complet pentru clienți',
-        'Management documente & facturi',
-        'Calendar termene fiscale',
-        'Task management & colaborare',
-        'Email marketing integrat',
-        'Branding personalizat',
-        'Clienți nelimitați',
-      ],
-    },
-  ];
-
-  const handleSubscribe = async (priceId: string, planId: string) => {
+  const handleSubscribe = async () => {
     try {
-      setLoading(planId);
+      setLoading('subscribe');
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId },
+        body: { priceId: YANA_STRATEGIC_PRICE_ID },
       });
 
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        window.location.href = data.url;
       }
     } catch (error: any) {
       console.error('Error creating checkout:', error);
@@ -205,32 +161,9 @@ const Subscription = () => {
     }
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      setLoading('manage');
-
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error: any) {
-      console.error('Error opening customer portal:', error);
-      toast({
-        title: 'Eroare',
-        description: error.message || 'Nu s-a putut deschide portalul',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(null);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => navigate('/app')}
@@ -241,95 +174,86 @@ const Subscription = () => {
         </Button>
 
         <div className="text-center mb-12">
+          <Badge className="mb-4" variant="secondary">
+            <Sparkles className="h-3 w-3 mr-1" />
+            Un singur plan. Totul inclus.
+          </Badge>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Alege planul potrivit pentru tine
+            Yana Strategic
           </h1>
           <p className="text-lg text-muted-foreground">
-            Începe cu un abonament lunar, anulează oricând
+            CFO-ul tău AI, la cerere. Analiză strategică, nu doar cifre.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {plans.map((plan) => {
-            const Icon = plan.icon;
-            const isCurrentPlan = hasStripeSubscription && subscriptionType === plan.id;
+        {/* Single Plan Card */}
+        <Card className="border-2 border-primary shadow-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10">
+          <CardHeader className="text-center pt-8">
+            <div className="h-16 w-16 mx-auto mb-4 bg-primary/20 rounded-full flex items-center justify-center">
+              <Brain className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Yana Strategic</CardTitle>
+            <CardDescription>Acces complet la toate funcționalitățile</CardDescription>
+            <div className="flex items-baseline justify-center gap-2 mt-6">
+              <span className="text-5xl font-bold text-primary">99</span>
+              <span className="text-2xl font-semibold">EUR</span>
+              <span className="text-muted-foreground">/lună</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">fără TVA</p>
+          </CardHeader>
 
-            return (
-              <Card
-                key={plan.id}
-                className={`relative transition-all hover:scale-[1.02] ${
-                  isCurrentPlan
-                    ? 'border-primary shadow-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5'
-                    : plan.popular
-                    ? 'border-accent shadow-lg bg-gradient-to-br from-accent/10 to-accent/5'
-                    : 'shadow-md hover:shadow-lg'
-                }`}
-              >
-                {plan.popular && !isCurrentPlan && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground font-semibold shadow-md">
-                    Planul Tău
-                  </Badge>
-                )}
-                {isCurrentPlan && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold shadow-md">
-                    Plan Activ
-                  </Badge>
-                )}
+          <CardContent className="pt-6">
+            <ul className="space-y-3">
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Generează Analiza Strategică Completă (40+ pagini)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Primește un plan de acțiune concret pe 90 de zile</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Identifică riscuri ascunse și oportunități de creștere</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Discută rezultatele direct cu motorul AI</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">War Room Simulator & Battle Plan Export</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Chat AI conversațional nelimitat</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Dashboard & Analytics live</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
+                <span className="text-sm">Export PDF & Word nelimitat</span>
+              </li>
+            </ul>
+          </CardContent>
 
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                      isCurrentPlan 
-                        ? 'bg-gradient-to-br from-primary/20 to-accent/20' 
-                        : 'bg-primary/10'
-                    }`}>
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-foreground">{plan.name}</CardTitle>
-                      <CardDescription>{plan.description}</CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-primary">{plan.price}</span>
-                    <span className="text-xl font-semibold text-foreground">RON</span>
-                    <span className="text-muted-foreground ml-1">/lună</span>
-                  </div>
-                </CardHeader>
+          <CardFooter className="pb-8">
+            <Button
+              className="w-full font-semibold text-lg py-6 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg"
+              disabled={loading === 'subscribe'}
+              onClick={handleSubscribe}
+            >
+              {loading === 'subscribe' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Sparkles className="mr-2 h-5 w-5" />
+              Activează Acum
+            </Button>
+          </CardFooter>
+        </Card>
 
-                <CardContent>
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <Check className="h-5 w-5 text-success shrink-0 mt-0.5" />
-                        <span className="text-sm text-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-
-                <CardFooter>
-                  <Button
-                    className={`w-full font-semibold ${
-                      isCurrentPlan 
-                        ? 'border-primary/50' 
-                        : 'bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-md'
-                    }`}
-                    variant={isCurrentPlan ? 'outline' : 'default'}
-                    disabled={isCurrentPlan || loading === plan.id}
-                    onClick={() => handleSubscribe(plan.priceId, plan.id)}
-                  >
-                    {loading === plan.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isCurrentPlan ? 'Plan Activ' : 'Abonează-te'}
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
-
-        <div className="mt-12 text-center text-sm text-muted-foreground">
-          <p>Toate prețurile sunt în RON. Poți anula abonamentul oricând.</p>
+        <div className="mt-8 text-center text-sm text-muted-foreground">
+          <p>30 de zile gratuit • Anulare oricând • Fără card inițial</p>
           <p className="mt-2">
             Pentru întrebări, contactează-ne la <a href="/contact" className="text-primary hover:underline font-medium">contact</a>
           </p>
