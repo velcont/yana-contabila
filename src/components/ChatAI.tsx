@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip, HelpCircle } from 'lucide-react';
+import { MessageCircle, Send, X, Sparkles, AlertCircle, TrendingUp, FileText, ListChecks, FileBarChart, Maximize2, Minimize2, Lightbulb, History, Menu, Mic, Bell, ThumbsUp, ThumbsDown, BookOpen, Zap, BarChart3, ExternalLink, GraduationCap, Scale, Loader2, Paperclip, HelpCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,8 @@ import { useSessionGuard } from '@/hooks/useSessionGuard';
 import { CashRunwayPanel } from './insights/CashRunwayPanel';
 import { TopExpensesPanel, calculateTopExpenses } from './insights/TopExpensesPanel';
 import ProfitInsightPanel from './insights/ProfitInsightPanel';
+// 🆕 Import AnalysisDisplay pentru raportul complet Grok
+import { AnalysisDisplay } from './AnalysisDisplay';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -186,169 +188,23 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   const [generatedReportBlob, setGeneratedReportBlob] = useState<Blob | null>(null);
   const [generatedReportFileName, setGeneratedReportFileName] = useState<string>('');
   const [uploadedBalanceData, setUploadedBalanceData] = useState<any>(null);
+  // 🆕 State pentru afișarea AnalysisDisplay (raportul complet Grok)
+  const [showAnalysisDisplay, setShowAnalysisDisplay] = useState(false);
+  const [analysisTextForDisplay, setAnalysisTextForDisplay] = useState<string>('');
   
-  // 🆕 BUTONUL ROȘU: Handler pentru generarea analizei complete
-  const handleGenerateFullAnalysis = async () => {
-    setIsGeneratingAnalysis(true);
+  // 🆕 BUTONUL ROȘU: Handler pentru generarea analizei complete - folosește AnalysisDisplay
+  const handleGenerateFullAnalysis = () => {
+    // Găsește ultimul mesaj AI care conține analiza balanței
+    const lastAnalysisMessage = [...messages].reverse().find(
+      msg => msg.role === 'assistant' && msg.content.length > 500
+    );
     
-    try {
-      // Import dinamic docx pentru a genera raportul
-      const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, PageBreak, Table, TableRow, TableCell, WidthType, BorderStyle } = await import('docx');
-      const { saveAs } = await import('file-saver');
-      
-      const companyName = balanceStructuredData?.company || uploadedBalanceData?.company || 'Companie';
-      const fileName = `Analiza_Financiara_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.docx`;
-      
-      // Calculează indicatorii
-      const revenues = getTotalRevenues();
-      const expenses = getTotalExpenses();
-      const profit = getNetProfit();
-      const profitMargin = getProfitMargin();
-      const totalCash = getTotalCash();
-      const monthlyBurn = getMonthlyBurn();
-      const survivalMonths = getSurvivalMonths();
-      
-      // Generează documentul Word simplu dar complet
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            // Titlu
-            new Paragraph({
-              children: [new TextRun({ text: '📊 ANALIZĂ FINANCIARĂ COMPLETĂ', bold: true, size: 48 })],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 400 }
-            }),
-            new Paragraph({
-              children: [new TextRun({ text: companyName, bold: true, size: 36 })],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 200 }
-            }),
-            new Paragraph({
-              children: [new TextRun({ text: `Generată pe ${new Date().toLocaleDateString('ro-RO')}`, size: 24, italics: true })],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 600 }
-            }),
-            
-            // Secțiunea 1: Pista de Supraviețuire
-            new Paragraph({
-              children: [new TextRun({ text: '💰 PISTA DE SUPRAVIEȚUIRE (Cash Runway)', bold: true, size: 32 })],
-              spacing: { before: 400, after: 200 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Cash disponibil: ', bold: true }),
-                new TextRun({ text: `${totalCash.toLocaleString('ro-RO')} RON` })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Flux lunar net: ', bold: true }),
-                new TextRun({ text: `${monthlyBurn.toLocaleString('ro-RO')} RON` })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Luni de supraviețuire: ', bold: true }),
-                new TextRun({ 
-                  text: survivalMonths === Infinity ? 'STABIL (acumulezi profit)' : `${survivalMonths.toFixed(1)} luni`,
-                  color: survivalMonths < 3 ? 'DC2626' : survivalMonths < 6 ? 'F59E0B' : '16A34A'
-                })
-              ],
-              spacing: { after: 300 }
-            }),
-            
-            // Secțiunea 2: Profitabilitate
-            new Paragraph({
-              children: [new TextRun({ text: '📈 PROFITABILITATE', bold: true, size: 32 })],
-              spacing: { before: 400, after: 200 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Venituri totale: ', bold: true }),
-                new TextRun({ text: `${revenues.toLocaleString('ro-RO')} RON` })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Cheltuieli totale: ', bold: true }),
-                new TextRun({ text: `${expenses.toLocaleString('ro-RO')} RON` })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Profit net: ', bold: true }),
-                new TextRun({ 
-                  text: `${profit.toLocaleString('ro-RO')} RON`,
-                  color: profit >= 0 ? '16A34A' : 'DC2626'
-                })
-              ],
-              spacing: { after: 100 }
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({ text: 'Marjă de profit: ', bold: true }),
-                new TextRun({ text: `${profitMargin.toFixed(1)}%` })
-              ],
-              spacing: { after: 300 }
-            }),
-            
-            // Secțiunea 3: Top Cheltuieli
-            new Paragraph({
-              children: [new TextRun({ text: '📊 TOP 3 GĂURI NEGRE (Cheltuieli)', bold: true, size: 32 })],
-              spacing: { before: 400, after: 200 }
-            }),
-            ...(balanceStructuredData?.accounts ? (() => {
-              const { categories } = calculateTopExpenses(balanceStructuredData.accounts);
-              return categories.slice(0, 3).map((cat, idx) => 
-                new Paragraph({
-                  children: [
-                    new TextRun({ text: `${idx + 1}. ${cat.name}: `, bold: true }),
-                    new TextRun({ text: `${cat.amount.toLocaleString('ro-RO')} RON (${cat.percentage.toFixed(1)}%)` })
-                  ],
-                  spacing: { after: 100 }
-                })
-              );
-            })() : []),
-            
-            // Footer
-            new Paragraph({
-              children: [new TextRun({ text: '\n\n---\nGenerat automat de YANA AI - Asistentă Financiară', size: 20, italics: true })],
-              spacing: { before: 600 },
-              alignment: AlignmentType.CENTER
-            })
-          ]
-        }]
-      });
-      
-      const blob = await Packer.toBlob(doc);
-      
-      // Salvează blob-ul și numele pentru descărcare ulterioară
-      setGeneratedReportBlob(blob);
-      setGeneratedReportFileName(fileName);
-      setAnalysisComplete(true);
-      
-      toast({
-        title: '✅ Analiză generată cu succes!',
-        description: 'Apasă butonul de descărcare pentru a salva raportul.',
-        duration: 5000
-      });
-      
-    } catch (error) {
-      console.error('Eroare la generarea analizei:', error);
-      toast({
-        title: 'Eroare',
-        description: 'Nu am putut genera analiza. Încearcă din nou.',
-        variant: 'destructive',
-        duration: 7000
-      });
-    } finally {
-      setIsGeneratingAnalysis(false);
-    }
+    const analysisText = lastAnalysisMessage?.content || 
+      `Analiza financiară pentru ${balanceStructuredData?.company || 'Companie'}`;
+    
+    setAnalysisTextForDisplay(analysisText);
+    setShowRedButtonScreen(false);
+    setShowAnalysisDisplay(true);
   };
   
   // 🆕 BUTONUL ROȘU: Handler pentru descărcarea raportului
@@ -368,6 +224,8 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   // 🆕 BUTONUL ROȘU: Reset pentru a permite o nouă analiză
   const handleResetRedButton = () => {
     setShowRedButtonScreen(false);
+    setShowAnalysisDisplay(false);
+    setAnalysisTextForDisplay('');
     setIsGeneratingAnalysis(false);
     setAnalysisComplete(false);
     setGeneratedReportBlob(null);
@@ -3323,9 +3181,47 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           </div>
         )}
 
-        {/* 🆕 BUTONUL ROȘU - Ecran post-upload cu singur buton mare */}
-        {showRedButtonScreen ? (
+        {/* 🆕 AFIȘARE AnalysisDisplay pentru raportul complet Grok */}
+        {showAnalysisDisplay ? (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header cu buton înapoi */}
+            <div className="flex items-center gap-2 p-3 border-b border-border bg-muted/30">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowAnalysisDisplay(false);
+                  setShowRedButtonScreen(false);
+                }}
+                className="gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Înapoi la chat
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Raport Premium cu Validare Grok
+              </span>
+            </div>
+            
+            {/* AnalysisDisplay component */}
+            <ScrollArea className="flex-1">
+              <div className="p-4">
+                <AnalysisDisplay 
+                  analysisText={analysisTextForDisplay}
+                  fileName={uploadedBalanceData?.fileName || 'Balanță'}
+                  metadata={{
+                    structuredData: balanceStructuredData,
+                    company: balanceStructuredData?.company,
+                    cui: balanceStructuredData?.cui
+                  }}
+                />
+              </div>
+            </ScrollArea>
+          </div>
+        ) : showRedButtonScreen ? (
           <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in duration-500 relative">
+
+        {/* 🆕 BUTONUL ROȘU - Ecran post-upload cu singur buton mare */}
             {/* Buton de închidere */}
             <Button
               variant="ghost"
