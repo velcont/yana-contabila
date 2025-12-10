@@ -36,8 +36,8 @@ import { useSessionGuard } from '@/hooks/useSessionGuard';
 import { CashRunwayPanel } from './insights/CashRunwayPanel';
 import { TopExpensesPanel, calculateTopExpenses } from './insights/TopExpensesPanel';
 import ProfitInsightPanel from './insights/ProfitInsightPanel';
-// 🆕 Import AnalysisDisplay pentru raportul complet Grok
-import { AnalysisDisplay } from './AnalysisDisplay';
+// 🆕 Import pentru generarea raportului Word complet
+import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -188,23 +188,95 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   const [generatedReportBlob, setGeneratedReportBlob] = useState<Blob | null>(null);
   const [generatedReportFileName, setGeneratedReportFileName] = useState<string>('');
   const [uploadedBalanceData, setUploadedBalanceData] = useState<any>(null);
-  // 🆕 State pentru afișarea AnalysisDisplay (raportul complet Grok)
-  const [showAnalysisDisplay, setShowAnalysisDisplay] = useState(false);
-  const [analysisTextForDisplay, setAnalysisTextForDisplay] = useState<string>('');
+  // State pentru mesaje de progres
+  const [generationProgress, setGenerationProgress] = useState<string>('');
   
-  // 🆕 BUTONUL ROȘU: Handler pentru generarea analizei complete - folosește AnalysisDisplay
-  const handleGenerateFullAnalysis = () => {
-    // Găsește ultimul mesaj AI care conține analiza balanței
-    const lastAnalysisMessage = [...messages].reverse().find(
-      msg => msg.role === 'assistant' && msg.content.length > 500
-    );
-    
-    const analysisText = lastAnalysisMessage?.content || 
-      `Analiza financiară pentru ${balanceStructuredData?.company || 'Companie'}`;
-    
-    setAnalysisTextForDisplay(analysisText);
-    setShowRedButtonScreen(false);
-    setShowAnalysisDisplay(true);
+  // 🆕 BUTONUL ROȘU: Handler pentru generarea analizei complete - apel DIRECT Grok + Word
+  const handleGenerateFullAnalysis = async () => {
+    if (!balanceStructuredData) {
+      toast({
+        title: 'Lipsesc datele',
+        description: 'Nu există date structurate pentru generarea raportului.',
+        variant: 'destructive',
+        duration: 5000
+      });
+      return;
+    }
+
+    setIsGeneratingAnalysis(true);
+    setGenerationProgress('🔍 Validare Grok în curs...');
+
+    try {
+      // PASUL 1: Validare Grok
+      toast({
+        title: '🔍 Validare Grok...',
+        description: 'Verificăm balanța cu cel mai puternic AI contabil (10-15 sec)',
+        duration: 15000
+      });
+
+      const { data: grokData, error: grokError } = await supabase.functions.invoke('validate-balance-with-grok', {
+        body: { 
+          structuredData: balanceStructuredData,
+          companyInfo: {
+            name: balanceStructuredData.company,
+            cui: balanceStructuredData.cui
+          },
+          analysisText: messages.find(m => m.role === 'assistant' && m.content.length > 500)?.content || ''
+        }
+      });
+
+      if (grokError) {
+        console.error('[Red Button] Grok validation error:', grokError);
+        // Continuă fără validare Grok dacă există eroare
+        toast({
+          title: '⚠️ Validare Grok eșuată',
+          description: 'Continuăm cu generarea raportului...',
+          duration: 3000
+        });
+      }
+
+      setGenerationProgress('📄 Generez raportul Word...');
+      
+      // PASUL 2: Generează Word direct
+      toast({
+        title: '📄 Generez raportul...',
+        description: 'Pregătesc documentul Word complet',
+        duration: 10000
+      });
+
+      const { blob, fileName } = await generatePremiumWordReport({
+        structuredData: balanceStructuredData,
+        grokValidation: grokData || null,
+        companyInfo: {
+          name: balanceStructuredData.company || 'Companie',
+          cui: balanceStructuredData.cui || 'N/A'
+        }
+      });
+
+      // PASUL 3: Salvează în state pentru download
+      setGeneratedReportBlob(blob);
+      setGeneratedReportFileName(fileName);
+      setAnalysisComplete(true);
+      setIsGeneratingAnalysis(false);
+      setGenerationProgress('');
+
+      toast({
+        title: '✅ Raport generat cu succes!',
+        description: 'Apasă butonul pentru a descărca.',
+        duration: 5000
+      });
+
+    } catch (error: any) {
+      console.error('[Red Button] Error generating report:', error);
+      toast({
+        title: 'Eroare la generare',
+        description: error.message || 'A apărut o eroare la generarea raportului.',
+        variant: 'destructive',
+        duration: 7000
+      });
+      setIsGeneratingAnalysis(false);
+      setGenerationProgress('');
+    }
   };
   
   // 🆕 BUTONUL ROȘU: Handler pentru descărcarea raportului
@@ -224,12 +296,11 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   // 🆕 BUTONUL ROȘU: Reset pentru a permite o nouă analiză
   const handleResetRedButton = () => {
     setShowRedButtonScreen(false);
-    setShowAnalysisDisplay(false);
-    setAnalysisTextForDisplay('');
     setIsGeneratingAnalysis(false);
     setAnalysisComplete(false);
     setGeneratedReportBlob(null);
     setGeneratedReportFileName('');
+    setGenerationProgress('');
     setBalanceStructuredData(null);
     setUploadedBalanceData(null);
   };
@@ -3181,44 +3252,8 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           </div>
         )}
 
-        {/* 🆕 AFIȘARE AnalysisDisplay pentru raportul complet Grok */}
-        {showAnalysisDisplay ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header cu buton înapoi */}
-            <div className="flex items-center gap-2 p-3 border-b border-border bg-muted/30">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setShowAnalysisDisplay(false);
-                  setShowRedButtonScreen(false);
-                }}
-                className="gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Înapoi la chat
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Raport Premium cu Validare Grok
-              </span>
-            </div>
-            
-            {/* AnalysisDisplay component */}
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                <AnalysisDisplay 
-                  analysisText={analysisTextForDisplay}
-                  fileName={uploadedBalanceData?.fileName || 'Balanță'}
-                  metadata={{
-                    structuredData: balanceStructuredData,
-                    company: balanceStructuredData?.company,
-                    cui: balanceStructuredData?.cui
-                  }}
-                />
-              </div>
-            </ScrollArea>
-          </div>
-        ) : showRedButtonScreen ? (
+        {/* 🆕 BUTONUL ROȘU - Ecran simplu fără AnalysisDisplay */}
+        {showRedButtonScreen ? (
           <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in duration-500 relative">
 
         {/* 🆕 BUTONUL ROȘU - Ecran post-upload cu singur buton mare */}
