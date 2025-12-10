@@ -88,6 +88,7 @@ export default function StrategicAdvisor() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const [creditRemaining, setCreditRemaining] = useState<number>(0);
+  const [isAdminUser, setIsAdminUser] = useState(false); // Admin bypass state
   
   // Sidebar and conflict dialog states
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -262,6 +263,7 @@ export default function StrategicAdvisor() {
         
         if (isAdmin) {
           logger.log("✅ [ACCESS-CHECK] Admin user detected - granting full access");
+          setIsAdminUser(true); // ✅ SALVEZ STATUSUL ADMIN
           setHasAccess(true);
           setCreditRemaining(999); // Admin unlimited credit display
           setIsCheckingAccess(false);
@@ -382,6 +384,12 @@ export default function StrategicAdvisor() {
 
   // Generic credit deduction function using the new AI usage system
   const deductCredit = async (amount: number): Promise<boolean> => {
+    // ✅ ADMIN BYPASS: Nu deduce credite pentru admini
+    if (isAdminUser) {
+      logger.log("✅ [CREDIT] Admin user - skipping deduction");
+      return true;
+    }
+    
     if (creditRemaining < amount) {
       toast.error(`Credit insuficient! Necesari ${amount.toFixed(2)} lei.`);
       return false;
@@ -444,8 +452,8 @@ export default function StrategicAdvisor() {
       return;
     }
 
-    // Check credit before sending
-    if (creditRemaining <= 0) {
+    // Check credit before sending (ADMINS BYPASS)
+    if (!isAdminUser && creditRemaining <= 0) {
       logger.error("❌ [SEND] Credit exhausted");
       toast.error("Credit epuizat. Cumpără credite pentru a continua.");
       setHasAccess(false);
@@ -519,22 +527,24 @@ export default function StrategicAdvisor() {
           logger.error('⚠️ [CREDIT] Error tracking usage:', trackError);
         }
 
-        // Refresh credit from ai_budget_limits
-        const { data: usageData, error: usageError } = await supabase.rpc('get_monthly_ai_usage');
-        if (!usageError && usageData?.[0]) {
-          const usage = usageData[0];
-          const remainingCents = Math.max(0, (usage.budget_cents || 0) - (usage.total_cost_cents || 0));
-          const newCredit = Number((remainingCents / 100).toFixed(2));
-          logger.log(`💰 [CREDIT] New balance after refresh: ${newCredit} lei`);
-          setCreditRemaining(newCredit);
-          
-          if (newCredit <= 0) {
-            logger.warn("⚠️ [CREDIT] Credit exhausted!");
-            toast.warning("Credit epuizat! Cumpără credite pentru a continua.");
-            setHasAccess(false);
-          } else if (newCredit <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD) {
-            logger.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
-            toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit!`);
+        // Refresh credit from ai_budget_limits (ADMINS SKIP)
+        if (!isAdminUser) {
+          const { data: usageData, error: usageError } = await supabase.rpc('get_monthly_ai_usage');
+          if (!usageError && usageData?.[0]) {
+            const usage = usageData[0];
+            const remainingCents = Math.max(0, (usage.budget_cents || 0) - (usage.total_cost_cents || 0));
+            const newCredit = Number((remainingCents / 100).toFixed(2));
+            logger.log(`💰 [CREDIT] New balance after refresh: ${newCredit} lei`);
+            setCreditRemaining(newCredit);
+            
+            if (newCredit <= 0) {
+              logger.warn("⚠️ [CREDIT] Credit exhausted!");
+              toast.warning("Credit epuizat! Cumpără credite pentru a continua.");
+              setHasAccess(false);
+            } else if (newCredit <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD) {
+              logger.warn(`⚠️ [CREDIT] Low credit warning: ${newCredit} lei`);
+              toast.warning(`Atenție: Mai ai doar ${newCredit.toFixed(2)} lei credit!`);
+            }
           }
         }
       } catch (error) {
