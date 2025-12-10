@@ -179,40 +179,201 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   } | null>(null);
   const [premiumSuggestionShown, setPremiumSuggestionShown] = useState(false);
   
-  // 🆕 Ghidaj Forțat - Ecran post-upload cu 3 butoane
-  const [showGuidedQuestions, setShowGuidedQuestions] = useState(false);
+  // 🆕 BUTONUL ROȘU - Ecran post-upload cu singur buton mare
+  const [showRedButtonScreen, setShowRedButtonScreen] = useState(false);
+  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [generatedReportBlob, setGeneratedReportBlob] = useState<Blob | null>(null);
+  const [generatedReportFileName, setGeneratedReportFileName] = useState<string>('');
   const [uploadedBalanceData, setUploadedBalanceData] = useState<any>(null);
-  const [activeInsightScreen, setActiveInsightScreen] = useState<'questions' | 'cash' | 'profit' | 'expenses' | null>(null);
   
-  // 🆕 Misiunea #4: Handler pentru activarea chat-ului AI cu context
-  const handleStartAIChat = () => {
-    // Calculează valorile necesare pentru mesajul contextual
-    const survivalMonths = getSurvivalMonths();
-    const topExpenses = balanceStructuredData?.accounts 
-      ? calculateTopExpenses(balanceStructuredData.accounts)
-      : { categories: [], total: 0 };
-    const topExpenseName = topExpenses.categories[0]?.name || 'cheltuieli operaționale';
+  // 🆕 BUTONUL ROȘU: Handler pentru generarea analizei complete
+  const handleGenerateFullAnalysis = async () => {
+    setIsGeneratingAnalysis(true);
     
-    // Formatează lunile de supraviețuire
-    const formattedMonths = survivalMonths === Infinity 
-      ? 'stabil (acumulezi profit)'
-      : survivalMonths.toFixed(1) + ' luni';
-    
-    // A. Creează mesajul automat de la Yana
-    const yanaContextMessage: Message = {
-      role: 'assistant',
-      content: `🎯 **Analiză finalizată.**\n\nCu un cash runway de **${formattedMonths}** și cu **"${topExpenseName}"** fiind principala gaură neagră, avem nevoie de un plan de atac.\n\n💪 **Sunt pregătită.** Ce vrei să știi?`
-    };
-    
-    // Adaugă mesajul în chat
-    setMessages(prev => [...prev, yanaContextMessage]);
-    
-    // B. Pre-completează input-ul cu întrebarea sugerată
-    setInput('Ce strategii concrete ai pentru a crește cash-ul și a reduce cheltuielile?');
-    
-    // Închide ecranul de insight și revino la chat
-    setShowGuidedQuestions(false);
-    setActiveInsightScreen(null);
+    try {
+      // Import dinamic docx pentru a genera raportul
+      const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, PageBreak, Table, TableRow, TableCell, WidthType, BorderStyle } = await import('docx');
+      const { saveAs } = await import('file-saver');
+      
+      const companyName = balanceStructuredData?.company || uploadedBalanceData?.company || 'Companie';
+      const fileName = `Analiza_Financiara_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0,10)}.docx`;
+      
+      // Calculează indicatorii
+      const revenues = getTotalRevenues();
+      const expenses = getTotalExpenses();
+      const profit = getNetProfit();
+      const profitMargin = getProfitMargin();
+      const totalCash = getTotalCash();
+      const monthlyBurn = getMonthlyBurn();
+      const survivalMonths = getSurvivalMonths();
+      
+      // Generează documentul Word simplu dar complet
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            // Titlu
+            new Paragraph({
+              children: [new TextRun({ text: '📊 ANALIZĂ FINANCIARĂ COMPLETĂ', bold: true, size: 48 })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: companyName, bold: true, size: 36 })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `Generată pe ${new Date().toLocaleDateString('ro-RO')}`, size: 24, italics: true })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 600 }
+            }),
+            
+            // Secțiunea 1: Pista de Supraviețuire
+            new Paragraph({
+              children: [new TextRun({ text: '💰 PISTA DE SUPRAVIEȚUIRE (Cash Runway)', bold: true, size: 32 })],
+              spacing: { before: 400, after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Cash disponibil: ', bold: true }),
+                new TextRun({ text: `${totalCash.toLocaleString('ro-RO')} RON` })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Flux lunar net: ', bold: true }),
+                new TextRun({ text: `${monthlyBurn.toLocaleString('ro-RO')} RON` })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Luni de supraviețuire: ', bold: true }),
+                new TextRun({ 
+                  text: survivalMonths === Infinity ? 'STABIL (acumulezi profit)' : `${survivalMonths.toFixed(1)} luni`,
+                  color: survivalMonths < 3 ? 'DC2626' : survivalMonths < 6 ? 'F59E0B' : '16A34A'
+                })
+              ],
+              spacing: { after: 300 }
+            }),
+            
+            // Secțiunea 2: Profitabilitate
+            new Paragraph({
+              children: [new TextRun({ text: '📈 PROFITABILITATE', bold: true, size: 32 })],
+              spacing: { before: 400, after: 200 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Venituri totale: ', bold: true }),
+                new TextRun({ text: `${revenues.toLocaleString('ro-RO')} RON` })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Cheltuieli totale: ', bold: true }),
+                new TextRun({ text: `${expenses.toLocaleString('ro-RO')} RON` })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Profit net: ', bold: true }),
+                new TextRun({ 
+                  text: `${profit.toLocaleString('ro-RO')} RON`,
+                  color: profit >= 0 ? '16A34A' : 'DC2626'
+                })
+              ],
+              spacing: { after: 100 }
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Marjă de profit: ', bold: true }),
+                new TextRun({ text: `${profitMargin.toFixed(1)}%` })
+              ],
+              spacing: { after: 300 }
+            }),
+            
+            // Secțiunea 3: Top Cheltuieli
+            new Paragraph({
+              children: [new TextRun({ text: '📊 TOP 3 GĂURI NEGRE (Cheltuieli)', bold: true, size: 32 })],
+              spacing: { before: 400, after: 200 }
+            }),
+            ...(balanceStructuredData?.accounts ? (() => {
+              const { categories } = calculateTopExpenses(balanceStructuredData.accounts);
+              return categories.slice(0, 3).map((cat, idx) => 
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: `${idx + 1}. ${cat.name}: `, bold: true }),
+                    new TextRun({ text: `${cat.amount.toLocaleString('ro-RO')} RON (${cat.percentage.toFixed(1)}%)` })
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            })() : []),
+            
+            // Footer
+            new Paragraph({
+              children: [new TextRun({ text: '\n\n---\nGenerat automat de YANA AI - Asistentă Financiară', size: 20, italics: true })],
+              spacing: { before: 600 },
+              alignment: AlignmentType.CENTER
+            })
+          ]
+        }]
+      });
+      
+      const blob = await Packer.toBlob(doc);
+      
+      // Salvează blob-ul și numele pentru descărcare ulterioară
+      setGeneratedReportBlob(blob);
+      setGeneratedReportFileName(fileName);
+      setAnalysisComplete(true);
+      
+      toast({
+        title: '✅ Analiză generată cu succes!',
+        description: 'Apasă butonul de descărcare pentru a salva raportul.',
+        duration: 5000
+      });
+      
+    } catch (error) {
+      console.error('Eroare la generarea analizei:', error);
+      toast({
+        title: 'Eroare',
+        description: 'Nu am putut genera analiza. Încearcă din nou.',
+        variant: 'destructive',
+        duration: 7000
+      });
+    } finally {
+      setIsGeneratingAnalysis(false);
+    }
+  };
+  
+  // 🆕 BUTONUL ROȘU: Handler pentru descărcarea raportului
+  const handleDownloadReport = () => {
+    if (generatedReportBlob && generatedReportFileName) {
+      const { saveAs } = require('file-saver');
+      saveAs(generatedReportBlob, generatedReportFileName);
+      
+      toast({
+        title: '📥 Raport descărcat!',
+        description: 'Găsești fișierul în folderul Downloads.',
+        duration: 4000
+      });
+    }
+  };
+  
+  // 🆕 BUTONUL ROȘU: Reset pentru a permite o nouă analiză
+  const handleResetRedButton = () => {
+    setShowRedButtonScreen(false);
+    setIsGeneratingAnalysis(false);
+    setAnalysisComplete(false);
+    setGeneratedReportBlob(null);
+    setGeneratedReportFileName('');
+    setBalanceStructuredData(null);
+    setUploadedBalanceData(null);
   };
   
   // 🆕 Funcții de calcul pentru ecranele insight
@@ -1664,16 +1825,18 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             }
           }
 
-          // 🆕 GHIDAJ FORȚAT: Salvăm datele și afișăm ecranul cu 3 butoane
+          // 🆕 BUTONUL ROȘU: Salvăm datele și afișăm ecranul cu singur buton mare
           setUploadedBalanceData(data);
           setBalanceStructuredData(data.structuredData || null);
-          setShowGuidedQuestions(true);
+          setShowRedButtonScreen(true);
+          setAnalysisComplete(false);
+          setIsGeneratingAnalysis(false);
           
           // Adaugă mesaj simplu de confirmare în chat (pentru istoric)
           const confirmMessage: Message = {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: '✅ Am primit balanța ta! Alege ce vrei să afli prima dată.',
+            content: '✅ Balanța ta este validată! Apasă butonul pentru a genera analiza.',
             structuredData: data.structuredData
           };
           setMessages(prev => [...prev, confirmMessage]);
@@ -3160,115 +3323,106 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           </div>
         )}
 
-        {/* 🆕 ECRAN GHIDAJ FORȚAT - 3 Butoane după upload balanță */}
-        {showGuidedQuestions ? (
-          activeInsightScreen === 'cash' ? (
-            <CashRunwayPanel
-              totalCash={getTotalCash()}
-              monthlyBurn={getMonthlyBurn()}
-              survivalMonths={getSurvivalMonths()}
-              onBack={() => setActiveInsightScreen(null)}
-              onFollowUp={() => {
-                console.log('🕳️ Follow-up: Găuri negre');
-                setActiveInsightScreen('expenses');
-              }}
-            />
-          ) : activeInsightScreen === 'profit' ? (
-            <ProfitInsightPanel
-              totalRevenues={getTotalRevenues()}
-              totalExpenses={getTotalExpenses()}
-              netProfit={getNetProfit()}
-              profitMargin={getProfitMargin()}
-              onBack={() => setActiveInsightScreen(null)}
-              onFollowUp={() => setActiveInsightScreen('expenses')}
-            />
-          ) : activeInsightScreen === 'expenses' ? (
-            (() => {
-              const { categories, total } = calculateTopExpenses(balanceStructuredData?.accounts || []);
-              return (
-                <TopExpensesPanel
-                  expenses={categories}
-                  totalExpenses={total}
-                  onBack={() => setActiveInsightScreen(null)}
-                  onStrategy={handleStartAIChat}
-                />
-              );
-            })()
-          ) : (
+        {/* 🆕 BUTONUL ROȘU - Ecran post-upload cu singur buton mare */}
+        {showRedButtonScreen ? (
           <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in duration-500 relative">
-            {/* Buton de închidere - fix în colțul din dreapta sus */}
+            {/* Buton de închidere */}
             <Button
               variant="ghost"
               size="icon"
               className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setShowGuidedQuestions(false);
-                setActiveInsightScreen(null);
-              }}
+              onClick={handleResetRedButton}
             >
               <X className="h-5 w-5" />
             </Button>
 
-            <div className="text-center space-y-2">
-              <Sparkles className="h-10 w-10 mx-auto text-primary mb-4" />
-              <h2 className="text-xl md:text-2xl font-bold text-foreground">
-                Ce vrei să afli prima dată despre firma ta?
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Am analizat balanța. Alege ce te interesează cel mai mult.
-              </p>
-            </div>
-            
-            <div className="w-full max-w-md space-y-4 mt-6">
-              <Button
-                onClick={() => {
-                  console.log('🔘 Buton apăsat: Am destui bani?');
-                  setActiveInsightScreen('cash');
-                }}
-                variant="outline"
-                className="w-full h-14 md:h-16 text-base md:text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
-              >
-                <span className="text-xl md:text-2xl mr-3">💰</span>
-                Am destui bani?
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  console.log('🔘 Buton apăsat: Cum stau cu Profitul?');
-                  setActiveInsightScreen('profit');
-                }}
-                variant="outline"
-                className="w-full h-14 md:h-16 text-base md:text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
-              >
-                <span className="text-xl md:text-2xl mr-3">📈</span>
-                Cum stau cu Profitul?
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  console.log('🔘 Buton apăsat: Unde se duc banii?');
-                  setActiveInsightScreen('expenses');
-                }}
-                variant="outline"
-                className="w-full h-14 md:h-16 text-base md:text-lg font-semibold border-2 hover:border-primary hover:bg-primary/5 transition-all duration-300"
-              >
-                <span className="text-xl md:text-2xl mr-3">📊</span>
-                Unde se duc banii?
-              </Button>
-            </div>
-            
-            {/* Link subtil pentru chat liber */}
-            <button
-              className="mt-6 text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
-              onClick={() => {
-                setShowGuidedQuestions(false);
-                setActiveInsightScreen(null);
-              }}
-            >
-              sau scrie liber în chat
-            </button>
+            {isGeneratingAnalysis ? (
+              // ECRAN LOADING - Spinner cu mesaj
+              <div className="text-center space-y-6">
+                <div className="relative">
+                  <Loader2 className="h-16 w-16 mx-auto text-primary animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="h-6 w-6 text-primary/50" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                    Generez analiza ta...
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Calculez indicatori, detectez anomalii, pregătesc raportul...
+                  </p>
+                </div>
+                <Progress value={45} className="w-64 mx-auto" />
+              </div>
+            ) : analysisComplete ? (
+              // ECRAN REZULTATE - Buton descărcare
+              <div className="text-center space-y-6">
+                <div className="h-20 w-20 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
+                  <FileText className="h-10 w-10 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                    ✅ Analiză Generată cu Succes!
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Raportul tău Word este gata de descărcare.
+                  </p>
+                </div>
+                
+                <Button
+                  onClick={handleDownloadReport}
+                  size="lg"
+                  className="h-16 px-12 text-lg font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg"
+                >
+                  <FileText className="h-6 w-6 mr-3" />
+                  📥 DESCARCĂ RAPORTUL
+                </Button>
+                
+                <button
+                  className="mt-4 text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                  onClick={handleResetRedButton}
+                >
+                  ← Înapoi la chat
+                </button>
+              </div>
+            ) : (
+              // ECRAN INIȚIAL - Butonul Roșu Mare
+              <div className="text-center space-y-4">
+                <div className="h-16 w-16 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-green-500" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                    🎉 Felicitări! Balanța ta este validată.
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Apasă butonul pentru a primi analiza financiară completă.
+                  </p>
+                </div>
+                
+                <Button
+                  onClick={handleGenerateFullAnalysis}
+                  size="lg"
+                  className="h-20 px-12 text-xl font-bold bg-primary hover:bg-primary/90 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                >
+                  <FileBarChart className="h-8 w-8 mr-3" />
+                  GENEREAZĂ ANALIZA FINANCIARĂ COMPLETĂ
+                </Button>
+                
+                <p className="text-xs text-muted-foreground mt-4">
+                  Vei primi un raport Word cu: pista de supraviețuire, profitabilitate, top cheltuieli
+                </p>
+                
+                <button
+                  className="mt-2 text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                  onClick={handleResetRedButton}
+                >
+                  sau scrie liber în chat
+                </button>
+              </div>
+            )}
           </div>
-          )
         ) : (
         <ScrollArea className="flex-1 pr-2">
           <div className="space-y-3 py-2">
