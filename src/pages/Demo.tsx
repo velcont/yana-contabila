@@ -290,7 +290,7 @@ const Demo = () => {
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className="grid w-full max-w-5xl grid-cols-7">
+        <TabsList className="grid w-full max-w-4xl grid-cols-6">
           <TabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
@@ -314,14 +314,6 @@ const Demo = () => {
           <TabsTrigger value="news">
             <Newspaper className="h-4 w-4 mr-2" />
             Știri
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history"
-            className="data-[state=active]:bg-orange-500 data-[state=active]:text-white hover:bg-orange-100 dark:hover:bg-orange-950"
-            style={{ animation: 'pulse-orange 2s ease-in-out infinite' }}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Dosarul Meu
           </TabsTrigger>
         </TabsList>
 
@@ -447,118 +439,6 @@ const Demo = () => {
             </CardContent>
           </Card>
           <FiscalNews />
-        </TabsContent>
-
-        <TabsContent value="history">
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Lista analizelor */}
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle>Analizele Demo</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 max-h-[600px] overflow-y-auto">
-                {demoAnalyses.map((analysis) => (
-                  <div
-                    key={analysis.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedAnalysis?.id === analysis.id
-                        ? 'bg-primary/10 border-primary'
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => setSelectedAnalysis(analysis)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {analysis.file_name}
-                        </p>
-                        <p className="text-xs font-semibold text-primary">
-                          {analysis.company_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(analysis.created_at), 'dd MMM yyyy', { locale: ro })}
-                        </p>
-                      </div>
-                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Detalii analiză */}
-            <Card className="md:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Detalii Analiză Demo</CardTitle>
-                {selectedAnalysis && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => exportToPDF(selectedAnalysis)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export PDF
-                    </Button>
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                {selectedAnalysis ? (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">{selectedAnalysis.company_name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(selectedAnalysis.created_at), 'dd MMMM yyyy', { locale: ro })}
-                      </p>
-                    </div>
-
-                    {/* KPIs Grid */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-lg bg-muted">
-                        <p className="text-sm text-muted-foreground mb-1">Cifra de Afaceri</p>
-                        <p className="text-2xl font-bold">
-                          {formatCurrency(selectedAnalysis.metadata.ca)}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted">
-                        <p className="text-sm text-muted-foreground mb-1">Profit Net</p>
-                        <p className={`text-2xl font-bold ${selectedAnalysis.metadata.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {formatCurrency(selectedAnalysis.metadata.profit)}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted">
-                        <p className="text-sm text-muted-foreground mb-1">EBITDA</p>
-                        <p className={`text-2xl font-bold ${selectedAnalysis.metadata.ebitda >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {formatCurrency(selectedAnalysis.metadata.ebitda)}
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-muted">
-                        <p className="text-sm text-muted-foreground mb-1">Marja Profit</p>
-                        <p className="text-2xl font-bold">
-                          {selectedAnalysis.metadata.profit_margin.toFixed(2)}%
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Analysis Text */}
-                    <div>
-                      <h4 className="font-semibold mb-3">Analiză Completă:</h4>
-                      <div className="prose prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm text-foreground font-sans">
-                          {selectedAnalysis.analysis_text}
-                        </pre>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-12">
-                    Selectează o analiză pentru a vedea detaliile
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </TabsContent>
       </Tabs>
 
