@@ -352,9 +352,9 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   };
   
   // 🆕 BUTONUL ROȘU: Handler pentru descărcarea raportului
-  const handleDownloadReport = () => {
+  const handleDownloadReport = async () => {
     if (generatedReportBlob && generatedReportFileName) {
-      const { saveAs } = require('file-saver');
+      const { saveAs } = await import('file-saver');
       saveAs(generatedReportBlob, generatedReportFileName);
       
       toast({
