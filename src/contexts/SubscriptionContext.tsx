@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-type SubscriptionType = 'entrepreneur' | 'accounting_firm';
+type SubscriptionType = 'yana_strategic' | 'entrepreneur' | 'accounting_firm'; // Legacy support
 type SubscriptionStatus = 'active' | 'inactive' | 'trial_expired' | 'loading';
 
 interface SubscriptionContextType {

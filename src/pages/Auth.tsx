@@ -24,7 +24,6 @@ const Auth = () => {
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [accountType, setAccountType] = useState<'entrepreneur' | 'accounting_firm' | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
@@ -174,7 +173,7 @@ const Auth = () => {
   const emailOk = email.trim().length > 0;
   const passwordLenOk = password.length >= 8;
   const passwordStrongEnough = calculatePasswordStrength(password) !== 'weak';
-  const accountTypeOk = !!accountType;
+  const accountTypeOk = true; // Single plan - no account type selection needed
   const termsOk = termsAccepted;
 
   const canRegister = isLogin ? true : (

@@ -283,13 +283,8 @@ export default function StrategicAdvisor() {
 
         logger.log("📊 [ACCESS-CHECK] Profile data:", profile);
 
-        // ✅ VERIFICARE: Doar utilizatorii cu planul Antreprenor au acces
-        if (profile?.subscription_type !== 'entrepreneur') {
-          logger.log("❌ [ACCESS-CHECK] Wrong subscription type - requires entrepreneur plan");
-          setHasAccess(false);
-          setIsCheckingAccess(false);
-          return;
-        }
+        // ✅ YANA STRATEGIC: All subscribed users have access (single plan)
+        // No subscription_type check needed - unified plan
 
         setSubscriptionStatus(profile?.subscription_status || "none");
 
