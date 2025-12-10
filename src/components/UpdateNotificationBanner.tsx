@@ -1,20 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, X } from "lucide-react";
+import { performVersionRefresh } from "@/utils/versionRefresh";
 
 export const UpdateNotificationBanner = () => {
   const [dismissed, setDismissed] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [localVersion, setLocalVersion] = useState<string | null>(null);
+  const [forceRefreshTriggered, setForceRefreshTriggered] = useState(false);
 
+  // Inițializare: citim versiunea locală
   useEffect(() => {
     const stored = localStorage.getItem('yana_app_version');
     setLocalVersion(stored);
+    
+    // FIX CRITIC: Dacă nu există versiune locală salvată, forțăm salvarea primei versiuni
+    // Acest lucru previne utilizatorii noi să vadă versiuni vechi
+    if (!stored) {
+      console.log('[UpdateNotificationBanner] No local version found - will save on first fetch');
+    }
   }, []);
 
-  const { data: currentVersion } = useQuery({
+  const { data: currentVersion, refetch } = useQuery({
     queryKey: ['current-app-version'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -26,63 +35,70 @@ export const UpdateNotificationBanner = () => {
       
       if (error) {
         console.warn('[UpdateNotificationBanner] Failed to fetch app updates:', error);
-        return null; // Return null instead of throwing - feature is optional
+        return null;
       }
       return data;
     },
-    refetchInterval: 30 * 60 * 1000, // 30 minutes - reduced from 5 to prevent UI flickering
-    refetchOnWindowFocus: false, // Disable to reduce unnecessary checks
-    staleTime: 10 * 60 * 1000, // 10 minutes - consider data fresh for 10 min
-    retry: false, // Don't retry if app_updates table doesn't exist or has permission issues
+    // FIX: Interval redus de la 30 min la 5 min pentru detectare mai rapidă
+    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true, // Re-activat pentru a detecta versiuni noi când user revine
+    staleTime: 2 * 60 * 1000, // 2 minutes - consider data fresh for 2 min
+    retry: false,
   });
 
   const hasNewVersion = currentVersion && 
     localVersion !== null && 
     currentVersion.version !== localVersion;
 
-  // Trigger slide-in animation when banner should show
+  // FIX CRITIC: Verificare IMEDIATĂ la încărcare pentru utilizatori noi
+  // Dacă nu au versiune salvată, salvăm versiunea curentă
   useEffect(() => {
-    if (hasNewVersion && !dismissed) {
-      setTimeout(() => setIsVisible(true), 100);
-    } else {
-      setIsVisible(false);
-    }
-  }, [hasNewVersion, dismissed]);
-
-  const handleRefresh = async () => {
-    if (currentVersion) {
-      localStorage.setItem('yana_app_version', currentVersion.version);
-      
-      // STEP 1: Șterge tot cache-ul Service Worker
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
-      
-      // STEP 2: Șterge cache-ul browser-ului
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-      }
-      
-      // STEP 3: HARD REFRESH (șterge și cache-ul memoriei)
-      window.location.href = window.location.href + '?v=' + Date.now();
-    }
-  };
-
-  // Service Worker listener ELIMINAT - era prea agresiv și cauzau refresh-uri excesive
-  // Banner-ul acum funcționează doar ca notificare pasivă bazată pe polling la 30 min
-
-  useEffect(() => {
-    if (currentVersion && !localVersion) {
+    if (currentVersion && localVersion === null) {
+      console.log('[UpdateNotificationBanner] First visit - saving current version:', currentVersion.version);
       localStorage.setItem('yana_app_version', currentVersion.version);
       setLocalVersion(currentVersion.version);
     }
   }, [currentVersion, localVersion]);
+
+  // FIX CRITIC: Forțare refresh automat dacă versiunea e diferită și utilizatorul nu a văzut niciodată
+  // bannerul (prima vizită cu versiune veche în cache)
+  useEffect(() => {
+    if (hasNewVersion && !dismissed && !forceRefreshTriggered) {
+      const lastForcedRefresh = localStorage.getItem('yana_last_forced_refresh');
+      const now = Date.now();
+      
+      // Prevenim refresh-uri repetate - maxim o dată la 5 minute
+      if (!lastForcedRefresh || (now - parseInt(lastForcedRefresh)) > 5 * 60 * 1000) {
+        console.log('[UpdateNotificationBanner] New version detected - auto-refresh in 3 seconds...');
+        setForceRefreshTriggered(true);
+        
+        // Afișăm banner-ul pentru 3 secunde, apoi facem refresh automat
+        setTimeout(() => setIsVisible(true), 100);
+        
+        // Auto-refresh după 3 secunde (dă timp utilizatorului să vadă mesajul)
+        setTimeout(async () => {
+          localStorage.setItem('yana_last_forced_refresh', now.toString());
+          if (currentVersion) {
+            localStorage.setItem('yana_app_version', currentVersion.version);
+          }
+          await performVersionRefresh();
+        }, 3000);
+      } else {
+        // Dacă a trecut prea puțin timp de la ultimul refresh, doar afișăm banner-ul
+        setTimeout(() => setIsVisible(true), 100);
+      }
+    } else if (!hasNewVersion) {
+      setIsVisible(false);
+    }
+  }, [hasNewVersion, dismissed, forceRefreshTriggered, currentVersion]);
+
+  const handleRefresh = useCallback(async () => {
+    if (currentVersion) {
+      localStorage.setItem('yana_app_version', currentVersion.version);
+      localStorage.setItem('yana_last_forced_refresh', Date.now().toString());
+      await performVersionRefresh();
+    }
+  }, [currentVersion]);
 
   if (dismissed || !hasNewVersion) return null;
 
