@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
+import { UsersList } from "@/components/UsersList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
@@ -346,82 +347,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>Toți Utilizatorii</CardTitle>
-                <CardDescription>
-                  Lista completă a utilizatorilor înregistrați
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[600px]">
-                  <div className="space-y-4">
-                    {profiles.map((profile) => {
-                      const isSelected = selectedUser === profile.id;
-                      return (
-                        <Card
-                          key={profile.id}
-                          className={`cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-primary border-2 bg-primary/5 shadow-lg"
-                              : "hover:border-primary/50 hover:shadow-md"
-                          }`}
-                          onClick={() => setSelectedUser(profile.id)}
-                        >
-                          <CardContent className="pt-6">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                {isSelected && (
-                                  <span className="text-xs font-bold text-primary mb-1 block">
-                                    ✓ SELECTAT
-                                  </span>
-                                )}
-                                <p className="font-semibold">
-                                  {profile.full_name || "Fără nume"}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  {profile.email}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  ID: {profile.id}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-muted-foreground">
-                                  Înregistrat:{" "}
-                                  {format(
-                                    new Date(profile.created_at),
-                                    "dd MMM yyyy",
-                                    { locale: ro }
-                                  )}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Analize:{" "}
-                                  {
-                                    analyses.filter((a) => a.user_id === profile.id)
-                                      .length
-                                  }
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Conversații:{" "}
-                                  {
-                                    new Set(
-                                      conversations
-                                        .filter((c) => c.user_id === profile.id)
-                                        .map((c) => c.conversation_id)
-                                    ).size
-                                  }
-                                </p>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            <UsersList />
           </TabsContent>
 
           <TabsContent value="analyses">
