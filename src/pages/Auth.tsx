@@ -68,6 +68,7 @@ const Auth = () => {
   }, []);
 
   // Verifică și parametrii din URL și hash fragment la încărcare
+  // FIX CRITIC: Așteptăm ca Supabase să proceseze token-ul din hash ÎNAINTE de a verifica sesiunea
   useEffect(() => {
     const checkResetMode = async () => {
       // Metodă 1: Verifică parametrul ?reset=true
@@ -76,24 +77,50 @@ const Auth = () => {
       // Metodă 2: Verifică parametrul type=recovery din query string
       const recoveryType = searchParams.get('type') === 'recovery';
       
-      // Metodă 3: Verifică hash fragment-ul pentru type=recovery
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      // Metodă 3: Verifică hash fragment-ul pentru type=recovery SAU access_token
+      const hashFragment = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hashFragment);
       const hashRecoveryType = hashParams.get('type') === 'recovery';
-      
-      // Metodă 4: Verifică dacă există o sesiune activă
-      const { data: { session } } = await supabase.auth.getSession();
+      const hasAccessToken = hashFragment.includes('access_token');
       
       console.log('🔐 [AUTH] Check reset mode:', { 
         resetParam, 
         recoveryType, 
         hashRecoveryType,
-        hash: window.location.hash,
-        sessionExists: !!session 
+        hasAccessToken,
+        hash: window.location.hash
       });
       
-      // Activăm reset mode dacă oricare dintre metode confirmă
+      // FIX CRITIC: Dacă avem access_token în hash, Supabase are nevoie de timp să-l proceseze
+      if (hasAccessToken && (hashRecoveryType || hashFragment.includes('type=recovery'))) {
+        console.log('🔐 [AUTH] Access token detected in hash - waiting for Supabase to process...');
+        
+        // Setăm reset mode IMEDIAT pentru a arăta formularul corect
+        setIsResetMode(true);
+        setIsLogin(false);
+        setIsForgotPassword(false);
+        
+        // Așteptăm 1.5 secunde pentru ca Supabase să proceseze token-ul din hash
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Verificăm dacă sesiunea a fost creată
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔐 [AUTH] Session after wait:', session?.user?.email);
+        
+        // Curățăm URL-ul DUPĂ ce Supabase a procesat token-ul
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = '';
+        cleanUrl.searchParams.delete('type');
+        cleanUrl.searchParams.delete('token');
+        cleanUrl.searchParams.delete('token_hash');
+        cleanUrl.searchParams.set('reset', 'true');
+        window.history.replaceState({}, '', cleanUrl.toString());
+        return;
+      }
+      
+      // Activăm reset mode dacă oricare dintre metode confirmă (fără access_token)
       if (resetParam || recoveryType || hashRecoveryType) {
-        console.log('🔐 [AUTH] Reset mode activated');
+        console.log('🔐 [AUTH] Reset mode activated via URL params');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
@@ -197,12 +224,23 @@ const Auth = () => {
     try {
       console.log('🔐 [AUTH] Starting password reset...');
       
-      // 1. Validate recovery session exists
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔐 [AUTH] Current session:', session?.user?.email, 'Type:', searchParams.get('type'));
+      // FIX CRITIC: Verificăm sesiunea cu retry-uri dacă token-ul e încă în procesare
+      let session = (await supabase.auth.getSession()).data.session;
+      console.log('🔐 [AUTH] Initial session check:', session?.user?.email);
+      
+      // Dacă nu există sesiune, încercăm de 3 ori cu pauză (Supabase poate procesa async)
+      if (!session) {
+        console.log('🔐 [AUTH] No session - attempting retries...');
+        for (let i = 0; i < 3; i++) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          session = (await supabase.auth.getSession()).data.session;
+          console.log(`🔐 [AUTH] Retry ${i + 1}: session =`, session?.user?.email);
+          if (session) break;
+        }
+      }
       
       if (!session) {
-        console.error('🔴 [AUTH] No session found for password reset');
+        console.error('🔴 [AUTH] No session found after retries');
         toast({
           title: "Link expirat sau invalid",
           description: "Linkul de resetare a expirat (valabil 1 oră) sau nu a fost inițiat corect.",

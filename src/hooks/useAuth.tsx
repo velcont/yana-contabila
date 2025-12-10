@@ -15,8 +15,15 @@ export const useAuth = () => {
     }, 2000);
 
     // Set up auth state listener FIRST
+    // IMPORTANT: Skip PASSWORD_RECOVERY event - let Auth.tsx handle it
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Skip PASSWORD_RECOVERY - Auth.tsx gestionează resetarea parolei
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('🔐 [useAuth] PASSWORD_RECOVERY event - skipping, Auth.tsx handles this');
+          return; // Nu procesăm aici, lăsăm Auth.tsx să gestioneze
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
