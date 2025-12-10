@@ -401,16 +401,18 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
       setGrokValidation(data);
       setShowValidationDialog(true);
       
-      // LOGICA DE BLOCARE STRICTĂ
+      // === BYPASS GROK - Revizia 4 ===
+      // NU mai blocăm pentru CRITICAL - generăm raportul cu banner roșu de avertisment
       if (data.validation_status === 'CRITICAL' || !data.ready_for_report) {
-        toast.error('🚨 Validare FAILED! Generarea raportului este BLOCATĂ!', { duration: 10000 });
+        toast.warning('⚠️ Anomalii critice detectate - raportul va include avertisment vizibil', { duration: 7000 });
+        // CONTINUĂ cu generarea - nu mai blocăm!
+        await generateWordExplanations(data);
         setIsValidating(false);
-        return; // STOP - nu permite generare
+        return;
       }
       
       if (data.validation_status === 'WARNING') {
         toast.warning('⚠️ Avertismente detectate - raportul va include secțiunea Validare Grok', { duration: 5000 });
-        // Continuă cu generarea, dar va include banner-ul galben
         await generateWordExplanations(data);
         setIsValidating(false);
         return;
@@ -714,7 +716,87 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
         })
       );
       
-      // === GROK VALIDATION WARNINGS (if any) ===
+      // === BYPASS GROK - BANNER ROȘU PENTRU CRITICAL ===
+      if (grokValidationData?.validation_status === 'CRITICAL' || grokValidationData?.ready_for_report === false) {
+        // Banner mare ROȘU la începutul documentului
+        docSections.unshift(
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: '⚠️ AVERTISMENT DE INTEGRITATE', 
+                bold: true, 
+                size: 36, 
+                color: 'FFFFFF' // White text
+              })
+            ],
+            spacing: { before: 100, after: 100 },
+            shading: { fill: 'DC2626' }, // Red background
+            alignment: AlignmentType.CENTER
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ 
+                text: 'Această analiză a fost generată pe baza unei balanțe contabile care conține anomalii critice sau informații incomplete. Anumite cifre din acest raport pot fi distorsionate. Vă rugăm să discutați aceste anomalii cu contabilul dvs. sau să folosiți chat-ul nostru pentru a înțelege impactul.', 
+                size: 22,
+                color: '7F1D1D' // Dark red text
+              })
+            ],
+            spacing: { after: 200 },
+            shading: { fill: 'FEE2E2' } // Light red/pink background
+          }),
+          new Paragraph({
+            text: '',
+            spacing: { after: 200 }
+          })
+        );
+        
+        // Lista anomaliilor critice (dacă există)
+        if (grokValidationData?.anomalies?.length > 0) {
+          docSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({ 
+                  text: '🚨 ANOMALII CRITICE DETECTATE', 
+                  bold: true, 
+                  size: 32, 
+                  color: 'DC2626' // Red
+                })
+              ],
+              spacing: { before: 200, after: 100 },
+              shading: { fill: 'FEE2E2' } // Light red background
+            }),
+            new Paragraph({
+              text: `Au fost detectate ${grokValidationData.anomalies.length} anomalie(i) critice în balanță:`,
+              spacing: { after: 100 }
+            })
+          );
+          
+          grokValidationData.anomalies.forEach((anomaly: any, index: number) => {
+            docSections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `${index + 1}. ${anomaly.type}: `, bold: true, color: 'DC2626' }),
+                  new TextRun({ text: anomaly.account ? `Cont ${anomaly.account}` : 'General' })
+                ],
+                spacing: { after: 50 }
+              }),
+              new Paragraph({
+                text: `📋 ${anomaly.message}`,
+                spacing: { after: 100 }
+              })
+            );
+          });
+          
+          docSections.push(
+            new Paragraph({
+              text: '',
+              spacing: { after: 200 }
+            })
+          );
+        }
+      }
+      
+      // === GROK VALIDATION WARNINGS (for WARNING status - orange) ===
       if (grokValidationData?.validation_status === 'WARNING' && grokValidationData?.anomalies?.length > 0) {
         docSections.push(
           new Paragraph({
