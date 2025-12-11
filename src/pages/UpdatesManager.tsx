@@ -141,13 +141,19 @@ export default function UpdatesManager() {
 
   // Send migration email v3.0
   const sendMigrationEmailMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('send-migration-email');
+    mutationFn: async (testMode: boolean = false) => {
+      const { data, error } = await supabase.functions.invoke('send-migration-email', {
+        body: { testMode }
+      });
       if (error) throw error;
-      return data;
+      return { ...data, testMode };
     },
     onSuccess: (data: any) => {
-      toast.success(`✅ Email-uri migrare trimise: ${data.sent} succes, ${data.failed} eșuate`);
+      if (data.testMode) {
+        toast.success("✅ Email test trimis! Verifică inbox-ul tău.");
+      } else {
+        toast.success(`✅ Email-uri migrare trimise: ${data.sent} succes, ${data.failed} eșuate`);
+      }
     },
     onError: (error: any) => {
       toast.error("Eroare la trimitere migrare: " + error.message);
@@ -358,23 +364,32 @@ export default function UpdatesManager() {
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm font-medium mb-2">📧 Email Migrare v3.0</p>
               <p className="text-xs text-muted-foreground mb-3">
-                Trimite email cu link special (?update=force_v3) și instrucțiuni CTRL+SHIFT+R la toți utilizatorii.
+                Trimite email cu link special (?update=force_v3) și instrucțiuni CTRL+SHIFT+R.
               </p>
-              <Button
-                onClick={() => {
-                  if (window.confirm("Ești sigur că vrei să trimiți email-ul de migrare v3.0 la TOȚI utilizatorii?")) {
-                    sendMigrationEmailMutation.mutate();
-                  }
-                }}
-                disabled={sendMigrationEmailMutation.isPending}
-                className="w-full"
-                variant="destructive"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {sendMigrationEmailMutation.isPending
-                  ? "Se trimit email-uri migrare..."
-                  : "🚀 Trimite Email Migrare v3.0"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => sendMigrationEmailMutation.mutate(true)}
+                  disabled={sendMigrationEmailMutation.isPending}
+                  className="flex-1 border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+                  variant="outline"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  🧪 Testează Email
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (window.confirm("Ești sigur că vrei să trimiți email-ul de migrare v3.0 la TOȚI utilizatorii?")) {
+                      sendMigrationEmailMutation.mutate(false);
+                    }
+                  }}
+                  disabled={sendMigrationEmailMutation.isPending}
+                  className="flex-1"
+                  variant="destructive"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  🚀 Trimite la Toți
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
