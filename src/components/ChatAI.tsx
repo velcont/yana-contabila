@@ -38,6 +38,8 @@ import { TopExpensesPanel, calculateTopExpenses } from './insights/TopExpensesPa
 import ProfitInsightPanel from './insights/ProfitInsightPanel';
 // 🆕 Import pentru generarea raportului Word complet
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
+// 🆕 Import pentru detectarea formatului SAGA
+import { detectSagaFormat } from '@/utils/sagaDetector';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -1642,10 +1644,15 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           }
 
           const freshToken = refreshData.session.access_token;
-          console.log('[ChatAI] Token proaspăt obținut, apelare analyze-balance...');
+          console.log('[ChatAI] Token proaspăt obținut, detectare format...');
 
-          // Call analyze-balance edge function cu token explicit fresh
-          const { data, error } = await supabase.functions.invoke('analyze-balance', {
+          // 🆕 DETECTARE FORMAT SAGA
+          const isSagaFormat = await detectSagaFormat(file);
+          const edgeFunctionName = isSagaFormat ? 'analyze-balance-saga' : 'analyze-balance';
+          console.log(`[ChatAI] Format detectat: ${isSagaFormat ? 'SAGA' : 'Standard'}, folosesc: ${edgeFunctionName}`);
+
+          // Call edge function cu token explicit fresh
+          const { data, error } = await supabase.functions.invoke(edgeFunctionName, {
             body: { 
               excelBase64: base64Data,
               fileName: file.name 
