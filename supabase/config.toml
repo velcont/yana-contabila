@@ -147,5 +147,8 @@ verify_jwt = true
 [functions.consult-yana]
 verify_jwt = true
 
+[functions.analyze-balance-saga]
+verify_jwt = true
+
 [functions.send-migration-email]
 verify_jwt = true
