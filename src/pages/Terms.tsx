@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import MiniFooter from '@/components/MiniFooter';
 
 const Terms = () => {
   const navigate = useNavigate();
@@ -338,6 +339,8 @@ const Terms = () => {
           </CardContent>
         </Card>
       </div>
+
+      <MiniFooter />
     </div>
   );
 };

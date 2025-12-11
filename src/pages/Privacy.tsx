@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import MiniFooter from '@/components/MiniFooter';
 
 const Privacy = () => {
   const navigate = useNavigate();
@@ -333,6 +334,8 @@ const Privacy = () => {
           </CardContent>
         </Card>
       </div>
+
+      <MiniFooter />
     </div>
   );
 };
