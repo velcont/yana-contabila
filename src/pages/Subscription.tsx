@@ -9,7 +9,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/hooks/use-toast';
 
 // Yana Strategic - Single Plan
-const YANA_STRATEGIC_PRICE_ID = 'price_1ScuQdBu3m83VcDAKjel2RTU';
+const YANA_STRATEGIC_PRICE_ID = 'price_1Sd3AHBu3m83VcDAFa7QcuLM';
 
 const Subscription = () => {
   const navigate = useNavigate();
@@ -195,11 +195,11 @@ const Subscription = () => {
             <CardTitle className="text-2xl">Yana Strategic</CardTitle>
             <CardDescription>Acces complet la toate funcționalitățile</CardDescription>
             <div className="flex items-baseline justify-center gap-2 mt-6">
-              <span className="text-5xl font-bold text-primary">99</span>
-              <span className="text-2xl font-semibold">EUR</span>
+              <span className="text-5xl font-bold text-primary">49</span>
+              <span className="text-2xl font-semibold">RON</span>
               <span className="text-muted-foreground">/lună</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">fără TVA</p>
+            <p className="text-sm text-muted-foreground mt-1">+ TVA</p>
           </CardHeader>
 
           <CardContent className="pt-6">

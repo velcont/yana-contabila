@@ -486,7 +486,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 <CheckCircle className="h-5 w-5 text-green-500" />
                 Yana Strategic
               </CardTitle>
-              <p className="text-sm text-muted-foreground">99 EUR/lună</p>
+              <p className="text-sm text-muted-foreground">49 RON/lună</p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-start gap-2">
@@ -559,12 +559,12 @@ Perioada: 01/04/2025 - 30/04/2025`,
               <p className="text-muted-foreground text-sm">CFO-ul tău AI, la cerere</p>
               <div className="mt-6">
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold">99</span>
-                  <span className="text-2xl font-semibold">EUR</span>
+                  <span className="text-5xl font-bold">49</span>
+                  <span className="text-2xl font-semibold">RON</span>
                   <span className="text-muted-foreground">/lună</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  fără TVA
+                  + TVA
                 </p>
               </div>
             </CardHeader>
