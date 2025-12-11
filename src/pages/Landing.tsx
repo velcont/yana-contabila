@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import MiniFooter from '@/components/MiniFooter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -813,6 +814,8 @@ Perioada: 01/04/2025 - 30/04/2025`,
           30 zile gratuit • Fără card de credit • Suport în română
         </p>
       </section>
+
+      <MiniFooter />
     </div>
   );
 };

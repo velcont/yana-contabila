@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logError } from '@/utils/sentry';
+import MiniFooter from '@/components/MiniFooter';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -872,6 +873,8 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
+
+      <MiniFooter />
     </div>
   );
 };

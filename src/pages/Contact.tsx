@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Mail, MessageCircle, Building2, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import MiniFooter from '@/components/MiniFooter';
 
 const Contact = () => {
   const navigate = useNavigate();
@@ -148,6 +149,8 @@ const Contact = () => {
           </Card>
         </div>
       </div>
+
+      <MiniFooter />
     </div>
   );
 };
