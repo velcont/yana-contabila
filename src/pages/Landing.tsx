@@ -1,10 +1,9 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { 
   Zap, 
   MessageSquare, 
@@ -14,16 +13,12 @@ import {
   XCircle,
   ArrowRight,
   Star,
-  Clock,
   Shield,
   Sparkles,
-  Database,
   TrendingUp,
   TrendingDown,
   AlertCircle,
   DollarSign,
-  Users,
-  Building2,
   Check,
   Gift,
   Brain,
@@ -48,28 +43,9 @@ const Landing = () => {
   const isMobile = useIsMobile();
   const [showDemo, setShowDemo] = useState(false);
   const [demoAnalyses, setDemoAnalyses] = useState<any[]>([]);
-  const [isAccountant, setIsAccountant] = useState(false);
   const [mobileBannerDismissed, setMobileBannerDismissed] = useState(() => {
     return localStorage.getItem('yana_mobile_banner_dismissed') === 'true';
   });
-
-  useEffect(() => {
-    // Check if user is an accountant
-    const checkAccountant = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_type')
-          .eq('id', user.id)
-          .single();
-        
-        setIsAccountant(profile?.subscription_type === 'accounting_firm');
-      }
-    };
-    
-    checkAccountant();
-  }, []);
 
   const features = [
     {
@@ -255,12 +231,12 @@ Perioada: 01/04/2025 - 30/04/2025`,
         </div>
       )}
       
-      {/* Hero Section - Optimized */}
+      {/* Hero Section */}
       <section className="container mx-auto px-4 py-12 md:py-20">
         <div className="max-w-4xl mx-auto text-center">
           <Badge className="mb-4 md:mb-6 animate-in fade-in slide-in-from-top-4" variant="secondary">
             <Sparkles className="h-3 w-3 mr-1" />
-            AI-ul financiar care înțelege România
+            CFO-ul tău AI, la cerere
           </Badge>
           
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 animate-in fade-in slide-in-from-bottom-4 leading-tight">
@@ -268,7 +244,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
           </h1>
           
           <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground mb-6 md:mb-8 px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '100ms' }}>
-            Află exact de ce — în 2 secunde. Analiză financiară AI în limba română.
+            Află exact de ce — în 2 secunde. Analiză strategică, nu doar cifre.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-stretch sm:items-center px-4 animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: '200ms' }}>
@@ -508,9 +484,9 @@ Perioada: 01/04/2025 - 30/04/2025`,
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-500" />
-                Yana
+                Yana Strategic
               </CardTitle>
-              <p className="text-sm text-muted-foreground">49 lei/lună</p>
+              <p className="text-sm text-muted-foreground">99 EUR/lună</p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-start gap-2">
@@ -531,11 +507,11 @@ Perioada: 01/04/2025 - 30/04/2025`,
               </div>
               <div className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span className="text-sm font-semibold">Rapoarte automate PDF/Excel</span>
+                <span className="text-sm font-semibold">Rapoarte automate PDF/Word</span>
               </div>
               <div className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span className="text-sm font-semibold">Răspunsuri verificate cu surse ANAF</span>
+                <span className="text-sm font-semibold">War Room + Battle Plan incluse</span>
               </div>
             </CardContent>
           </Card>
@@ -543,119 +519,13 @@ Perioada: 01/04/2025 - 30/04/2025`,
 
         {/* CTA */}
         <div className="text-center mt-8">
-          <p className="text-sm text-muted-foreground mb-4">
-            💡 Cu 31 lei MAI PUȚIN decât ChatGPT, primești un instrument 5x mai valoros pentru businessul tău românesc
-          </p>
           <Button size="lg" onClick={() => navigate('/auth')}>
             Testează gratuit 30 de zile
           </Button>
         </div>
       </section>
 
-      {/* Două Module - Clarificare */}
-      <section className="container mx-auto px-4 py-12 md:py-20 bg-gradient-to-b from-background to-muted/30 rounded-2xl md:rounded-3xl mb-8 md:mb-20">
-        <div className="text-center mb-8 md:mb-12">
-          <Badge className="mb-3 md:mb-4 text-xs md:text-sm" variant="secondary">
-            <Sparkles className="h-3 w-3 mr-1" />
-            <span className="hidden md:inline">Două instrumente puternice într-o singură platformă</span>
-            <span className="md:hidden">2 instrumente puternice</span>
-          </Badge>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
-            Cum funcționează YANA?
-          </h2>
-          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-2">
-            YANA îți oferă două module complementare pentru afacerea ta.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-6xl mx-auto">
-          {/* Modul 1: Analiză Balanță */}
-          <Card className="hover:shadow-2xl transition-all duration-300 border-2 hover:border-blue-500">
-            <CardHeader className="text-center pb-6">
-              <div className="h-16 w-16 mx-auto mb-4 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <BarChart3 className="h-8 w-8 text-blue-500" />
-              </div>
-              <CardTitle className="text-2xl mb-2">📊 Modul 1: Analiză Balanță</CardTitle>
-              <p className="text-muted-foreground text-sm">
-                Pentru înțelegerea zilnică a situației financiare
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <p className="font-semibold mb-2">📁 Ce faci aici:</p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>✅ Încarci balanța de verificare (.xlsx)</li>
-                  <li>✅ Primești analiză AI instant (&lt;2 secunde)</li>
-                  <li>✅ Vezi dashboard interactiv cu grafice</li>
-                  <li>✅ Întrebi AI despre orice din balanță (chat)</li>
-                  <li>✅ Obții alerte proactive (DSO ridicat, profit negativ, etc.)</li>
-                </ul>
-              </div>
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm font-semibold">
-                  💡 Perfect pentru: Monitorizare zilnică, rapoarte lunare, decizii rapide
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Modul 2: Yana Strategică */}
-          <Card className="hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary bg-gradient-to-b from-primary/5 to-background">
-            <CardHeader className="text-center pb-6">
-              <div className="h-16 w-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
-                <Brain className="h-8 w-8 text-primary" />
-              </div>
-              <CardTitle className="text-2xl mb-2">🧠 Modul 2: Yana Strategică</CardTitle>
-              <Badge variant="destructive" className="mb-2">
-                💳 Necesită Credite AI (separate de abonament)
-              </Badge>
-              <p className="text-muted-foreground text-sm">
-                Consultant AI strategic pentru decizii de business
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800 rounded-lg mb-4">
-                <p className="font-bold text-red-900 dark:text-red-100 mb-2">⚠️ IMPORTANT - Cost Separat:</p>
-                <p className="text-sm text-red-800 dark:text-red-200">
-                  Yana Strategică NU este inclusă în abonamentul de 49 RON! 
-                  Necesită achiziționarea de <strong>Credite AI</strong> (pachete de la 19 lei).
-                  Primești 10 RON credite la început pentru test.
-                </p>
-              </div>
-              <div className="p-4 bg-primary/5 rounded-lg">
-                <p className="font-semibold mb-2">🎯 Ce faci aici:</p>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>✅ Discuți strategii de business (fără upload)</li>
-                  <li>✅ Primești sfaturi bazate pe Teoria Jocului</li>
-                  <li>✅ Analizezi competiția și piața</li>
-                  <li>✅ Planifici expansiuni sau reduceri de costuri</li>
-                  <li>✅ Primești scenarii "Ce ar fi dacă...?"</li>
-                </ul>
-              </div>
-              <div className="text-center p-3 bg-muted/50 rounded-lg">
-                <p className="text-sm font-semibold">
-                  💡 Perfect pentru: Strategii pe termen lung, decizii majore, planificare
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-12 text-center p-6 bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800 rounded-xl">
-          <p className="text-sm font-semibold text-red-900 dark:text-red-100 mb-2">
-            ⚠️ IMPORTANT - Transparență Costuri:
-          </p>
-          <p className="text-sm text-red-800 dark:text-red-200">
-            <strong>Modulul 1 (Analiză Balanță)</strong> = Inclus în abonament (49 RON/lună)<br />
-            <strong>Modulul 2 (Yana Strategică)</strong> = Necesită achiziționarea de Credite AI separate (pachete de la 19 lei)
-          </p>
-          <p className="text-xs text-red-700 dark:text-red-300 mt-2">
-            Nu există acces nelimitat la Yana Strategică, indiferent de abonament. Primești 10 RON credite la început pentru test.
-          </p>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
+      {/* Pricing Section - Single Plan */}
       <section className="container mx-auto px-4 py-12 md:py-20 bg-gradient-to-b from-muted/30 to-background rounded-2xl md:rounded-3xl">
         <div className="text-center mb-3 md:mb-4">
           <Badge className="mb-3 md:mb-4" variant="secondary">
@@ -665,102 +535,36 @@ Perioada: 01/04/2025 - 30/04/2025`,
         </div>
         
         <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-4">
-          Alege planul potrivit
+          Un singur plan. Totul inclus.
         </h2>
         <p className="text-center text-sm md:text-base text-muted-foreground mb-8 md:mb-12 max-w-2xl mx-auto px-2">
-          Începi gratuit 30 zile. Fără card. Fără angajamente.
+          CFO-ul tău AI, la cerere. Analiză strategică, nu doar cifre.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 max-w-5xl mx-auto">
-          {/* Plan Antreprenor */}
-          <Card className="relative hover:shadow-2xl transition-all duration-300 border-2 hover:border-primary/50">
-            <CardHeader className="text-center pb-8 pt-8">
-              <div className="h-16 w-16 mx-auto mb-4 bg-blue-500/10 rounded-full flex items-center justify-center">
-                <Users className="h-8 w-8 text-blue-500" />
-              </div>
-              <CardTitle className="text-2xl mb-2">Plan Antreprenor</CardTitle>
-              <p className="text-muted-foreground text-sm">Perfect pentru afaceri mici și mijlocii</p>
-              <div className="mt-6">
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold">49</span>
-                  <span className="text-2xl font-semibold">RON</span>
-                  <span className="text-muted-foreground">/lună</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  ~12 EUR/lună
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Analiză AI nelimitată a balanței</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Chat AI conversațional</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Voice Interface (10 min/lună)</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Dashboard & Analytics live</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Predicții AI & Alerte proactive</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Export PDF nelimitat</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Suport email prioritar</span>
-                </div>
-              </div>
-
-              <Button 
-                size="lg" 
-                className="w-full bg-blue-500 hover:bg-blue-600"
-                onClick={() => navigate('/auth')}
-              >
-                Începe gratuit 30 zile
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-
-              <p className="text-xs text-center text-muted-foreground">
-                Storage inclus: 1GB • După trial: 49 RON/lună
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Plan Contabil */}
+        <div className="max-w-lg mx-auto">
+          {/* Yana Strategic Plan */}
           <Card className="relative hover:shadow-2xl transition-all duration-300 border-2 border-primary bg-gradient-to-b from-primary/5 to-background">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <Badge className="bg-primary text-primary-foreground px-6 py-1">
                 <Sparkles className="h-3 w-3 mr-1" />
-                Popular
+                Tot ce ai nevoie
               </Badge>
             </div>
             
-            <CardHeader className="text-center pb-8 pt-8">
-              <div className="h-16 w-16 mx-auto mb-4 bg-success/10 rounded-full flex items-center justify-center">
-                <Building2 className="h-8 w-8 text-success" />
+            <CardHeader className="text-center pb-8 pt-10">
+              <div className="h-16 w-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center">
+                <Brain className="h-8 w-8 text-primary" />
               </div>
-              <CardTitle className="text-2xl mb-2">Plan Contabil</CardTitle>
-              <p className="text-muted-foreground text-sm">Pentru firme de contabilitate cu clienți</p>
+              <CardTitle className="text-2xl mb-2">Yana Strategic</CardTitle>
+              <p className="text-muted-foreground text-sm">CFO-ul tău AI, la cerere</p>
               <div className="mt-6">
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold">199</span>
-                  <span className="text-2xl font-semibold">RON</span>
+                  <span className="text-5xl font-bold">99</span>
+                  <span className="text-2xl font-semibold">EUR</span>
                   <span className="text-muted-foreground">/lună</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  ~47 EUR/lună
+                  fără TVA
                 </p>
               </div>
             </CardHeader>
@@ -768,39 +572,35 @@ Perioada: 01/04/2025 - 30/04/2025`,
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold">Funcționalități specializate pentru cabinete:</span>
+                  <span className="text-sm">Generează Analiza Strategică Completă (40+ pagini)</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Analiză AI nelimitată balanțe clienți</span>
+                  <span className="text-sm">Primește un plan de acțiune concret pe 90 de zile</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">CRM complet pentru clienți</span>
+                  <span className="text-sm">Identifică riscuri ascunse și oportunități de creștere</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Management documente & facturi</span>
+                  <span className="text-sm">Discută rezultatele direct cu motorul AI</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Calendar termene fiscale</span>
+                  <span className="text-sm">War Room Simulator - testează scenarii de criză</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Task management & colaborare</span>
+                  <span className="text-sm">Battle Plan Export - strategie PDF profesională</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Email marketing integrat</span>
+                  <span className="text-sm">Analiză nelimitată a balanțelor</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Branding personalizat</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">Clienți nelimitați</span>
+                  <span className="text-sm">Suport prioritar în limba română</span>
                 </div>
               </div>
 
@@ -813,499 +613,15 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
-              <div className="p-3 bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-800 rounded-lg">
-                <p className="text-xs text-center text-red-900 dark:text-red-100 font-semibold flex items-center justify-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  ⚠️ Acest plan NU include acces la Yana Strategică (Consilier Strategic AI)
-                </p>
-                <p className="text-xs text-center text-red-800 dark:text-red-200 mt-1">
-                  Planul Contabil este specializat pentru managementul clienților și CRM
-                </p>
-              </div>
-
               <p className="text-xs text-center text-muted-foreground">
-                Storage inclus: 5GB • După trial: 199 RON/lună
+                Fără card de credit • Anulare oricând
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* IMPORTANT: Yana Strategică = Cost Separat */}
-        <div className="mt-12 max-w-4xl mx-auto">
-          <Card className="bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-800">
-            <CardContent className="p-6">
-              <h3 className="font-bold text-center mb-4 text-red-900 dark:text-red-100 flex items-center justify-center gap-2">
-                <AlertCircle className="h-6 w-6" />
-                ⚠️ IMPORTANT: Transparență Costuri pentru Yana Strategică
-              </h3>
-              <div className="space-y-4 text-sm">
-                <div className="p-4 bg-white dark:bg-red-900/30 rounded-lg">
-                  <p className="font-semibold mb-2 text-red-900 dark:text-red-100">
-                    Ce include abonamentul de 49 RON/lună (Plan Antreprenor):
-                  </p>
-                  <ul className="space-y-1 text-red-800 dark:text-red-200">
-                    <li>✅ Analiză balanță AI nelimitată</li>
-                    <li>✅ Chat AI pentru întrebări despre balanță</li>
-                    <li>✅ Dashboard, grafice, rapoarte</li>
-                    <li>✅ Export PDF nelimitat</li>
-                  </ul>
-                </div>
-                <div className="p-4 bg-white dark:bg-red-900/30 rounded-lg">
-                  <p className="font-semibold mb-2 text-red-900 dark:text-red-100">
-                    Ce NU include abonamentul de 49 RON (necesită achiziționare credite AI):
-                  </p>
-                  <ul className="space-y-1 text-red-800 dark:text-red-200">
-                    <li>❌ <strong>Yana Strategică</strong> - Consilier Strategic AI (necesită credite AI de la 19 lei)</li>
-                    <li>❌ <strong>Analiză Vocală extinsă</strong> - Peste 10 minute/lună (necesită credite AI)</li>
-                    <li>❌ <strong>Predicții AI intensive</strong> - Peste 5 predicții/lună (necesită credite AI)</li>
-                  </ul>
-                </div>
-                <div className="text-center p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg border border-yellow-300 dark:border-yellow-700">
-                  <p className="text-xs font-semibold text-yellow-900 dark:text-yellow-100">
-                    🎁 Primești 10 RON credite AI la început pentru a testa Yana Strategică gratuit!
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Costuri Suplimentare Tehnice */}
-        <div className="mt-8 max-w-3xl mx-auto">
-          <Card className="bg-muted/50">
-            <CardContent className="p-6">
-              <h3 className="font-semibold text-center mb-4">💡 Alte costuri suplimentare (tehnice)</h3>
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <div className="space-y-2">
-                  <p className="flex items-center gap-2">
-                    <Database className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Storage extra:</span>
-                    <span className="text-muted-foreground">~0.09 RON/GB/lună</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground ml-6">
-                    Pentru documentele clienților (balanțe, facturi, contracte)
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <p className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Email-uri:</span>
-                    <span className="text-muted-foreground">3,000 gratis/lună</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground ml-6">
-                    Apoi ~0.40 RON/1000 email-uri (pentru rapoarte automate)
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs text-center text-muted-foreground mt-4">
-                Pentru majoritatea utilizatorilor, costurile tehnice suplimentare sunt <span className="font-semibold text-foreground">0-10 RON/lună</span>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <p className="text-center text-muted-foreground text-sm mt-8">
-          🎁 Fără card necesar pentru trial • Anulare oricând • Suport în limba română
-        </p>
-      </section>
-
-      {/* AI Credits Pricing Section - NEW */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <Badge className="mb-4" variant="secondary">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Politică de Tarife AI - 100% Transparent
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Cum funcționează creditele AI?
-            </h2>
-            <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
-              Abonamentul include <span className="font-semibold text-foreground">analiză AI nelimitată</span>. 
-              Creditele suplimentare sunt doar pentru funcții avansate AI (predicții, consilier strategic).
-            </p>
-          </div>
-
-          {/* Detailed Feature Explanations - NEW */}
-          <Card className="mb-8 border-2 border-success/30 bg-success/5">
-            <CardHeader>
-              <CardTitle className="text-center text-xl">
-                🔍 Ce înseamnă exact fiecare funcție?
-              </CardTitle>
-              <p className="text-center text-sm text-muted-foreground">
-                Explicații clare pentru fiecare feature AI din platformă
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Analiza Balantei */}
-                <div className="p-5 bg-success/10 rounded-lg border-2 border-success/20">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="h-5 w-5 text-success" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                        Analiză Balanță
-                        <Badge variant="outline" className="bg-success text-success-foreground">NELIMITAT</Badge>
-                      </h4>
-                      <p className="text-sm text-muted-foreground font-semibold mb-2">
-                        Ce face: Procesează fișierul Excel al balanței tale și extrage automat toți indicatorii financiari
-                      </p>
-                      <div className="space-y-1 text-sm hidden md:block">
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Calculează automat: DSO, DPO, DIO, marja profit, EBITDA, etc.</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Identifică probleme evidente (ex: "Cheltuieli &gt; Venituri")</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Afișează dashboard-ul cu grafice și KPI-uri</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Exportă PDF cu analiza completă</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-background/50 rounded border">
-                    <p className="text-xs font-semibold text-success">✅ INCLUS ÎN ABONAMENT - Poți analiza 1000 de balanțe/lună fără cost suplimentar!</p>
-                  </div>
-                </div>
-
-                {/* Chat AI */}
-                <div className="p-5 bg-success/10 rounded-lg border-2 border-success/20">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
-                      <MessageSquare className="h-5 w-5 text-success" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                        Chat AI Conversațional
-                        <Badge variant="outline" className="bg-success text-success-foreground">NELIMITAT</Badge>
-                      </h4>
-                      <p className="text-sm text-muted-foreground font-semibold mb-2">
-                        Ce face: Răspunde la întrebări simple despre balanța pe care ai uploadat-o
-                      </p>
-                      <div className="space-y-1 text-sm hidden md:block">
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Ex: "Cât este DSO-ul meu în martie?" → Răspuns instant din datele tale</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Ex: "Am profit sau pierdere?" → Analiza datelor existente</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                          <span>Ex: "Cum a evoluat profitul meu în ultimele 3 luni?" → Comparație simplă</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-background/50 rounded border">
-                    <p className="text-xs font-semibold text-success">✅ INCLUS ÎN ABONAMENT - Întrebări nelimitate despre balanțele tale uploadate!</p>
-                  </div>
-                </div>
-
-                {/* Predictii AI */}
-                <div className="p-5 bg-orange-50 dark:bg-orange-950/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-orange-200 dark:bg-orange-800 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                        Predicții AI Avansate
-                        <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200">~100 credite</Badge>
-                      </h4>
-                      <p className="text-sm text-muted-foreground font-semibold mb-2">
-                        Ce face: AI-ul analizează ISTORIC (min. 3 luni) și generează previziuni automate pe viitor (3-6 luni)
-                      </p>
-                      <div className="space-y-1 text-sm hidden md:block">
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                          <span>Prevede profitul probabil pentru lunile următoare</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                          <span>Identifică tendințe ascunse (ex: "DSO-ul crește cu 5 zile/lună")</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                          <span>Alertează asupra riscurilor viitoare (ex: "Cash flow negativ în 2 luni")</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
-                          <span>Machine learning pe datele tale istorice</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-orange-100 dark:bg-orange-900/30 rounded border border-orange-300 dark:border-orange-700">
-                    <p className="text-xs font-semibold text-orange-800 dark:text-orange-200">
-                      ⚡ NECESITĂ CREDITE AI - Procesare complexă cu modele AI avansate (~100 credite = 1 leu/predicție)
-                    </p>
-                  </div>
-                  <div className="mt-2 p-3 bg-background rounded border hidden md:block">
-                    <p className="text-xs">
-                      <span className="font-semibold">Diferența față de analiza simplă:</span> Analiza balanței = "Cum arată acum?". Predicțiile = "Cum va arăta în viitor?"
-                    </p>
-                  </div>
-                </div>
-
-                {/* Consilier Strategic */}
-                <div className="p-5 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                        Consilier Strategic AI
-                        <Badge variant="outline" className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">~150 credite</Badge>
-                      </h4>
-                      <p className="text-sm text-muted-foreground font-semibold mb-2">
-                        Ce face: Consultant AI virtual care analizează în profunzime situația ta și oferă strategii personalizate
-                      </p>
-                      <div className="space-y-1 text-sm hidden md:block">
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                          <span>Analiză complexă cross-factorială (combinații între toți indicatorii)</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                          <span>Recomandări acționabile concrete (ex: "Renegociază termenele cu furnizorii X, Y, Z")</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                          <span>Strategii de optimizare cash-flow personalizate pe contextul tău</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                          <span>Scenarii "what-if" (ex: "Ce se întâmplă dacă reduc DSO cu 20 zile?")</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
-                          <span>Plan de acțiune detaliat pe 30-60-90 zile</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded border border-purple-300 dark:border-purple-700">
-                    <p className="text-xs font-semibold text-purple-800 dark:text-purple-200">
-                      ⚡ NECESITĂ CREDITE AI - Analiză aprofundată cu modele GPT-4 avansate (~150 credite = 1.5 lei/sesiune)
-                    </p>
-                  </div>
-                  <div className="mt-2 p-3 bg-background rounded border hidden md:block">
-                    <p className="text-xs">
-                      <span className="font-semibold">Diferența față de chat-ul simplu:</span> Chat AI = "Întrebări rapide despre ce vezi". Consilier Strategic = "Consultant AI care îți face plan complet de optimizare"
-                    </p>
-                  </div>
-                </div>
-
-                {/* Comparatii Multi-Companie */}
-                <div className="p-5 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-200 dark:bg-blue-800 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg mb-1 flex items-center gap-2">
-                        Comparații Multi-Companie
-                        <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">~80 credite</Badge>
-                      </h4>
-                      <p className="text-sm text-muted-foreground font-semibold mb-2">
-                        Ce face: Benchmarking automat - compară mai multe companii între ele și generează raport comparativ
-                      </p>
-                      <div className="space-y-1 text-sm hidden md:block">
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                          <span>Identifică care companie performează cel mai bine la fiecare indicator</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                          <span>Analiză competitivă pentru firme de contabilitate cu 10+ clienți</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                          <span>Rapoarte executive pentru prezentări către parteneri</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-900/30 rounded border border-blue-300 dark:border-blue-700">
-                    <p className="text-xs font-semibold text-blue-800 dark:text-blue-200">
-                      ⚡ NECESITĂ CREDITE AI - Procesare paralelă a mai multor companii (~80 credite = 0.8 lei/comparație)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* What's Included in Subscription - Simplified */}
-          <Card className="mb-8 border-2 border-primary/20 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="text-center flex items-center justify-center gap-2">
-                <Check className="h-6 w-6 text-success" />
-                Rezumat: Ce plătești în abonament vs. Credite AI
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-4 bg-success/10 rounded-lg border-2 border-success/20">
-                  <h4 className="font-bold mb-3 flex items-center gap-2">
-                    <Check className="h-5 w-5 text-success" />
-                    INCLUS în abonament (NELIMITAT)
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <p>✅ Analiză completă balanță (upload + indicatori)</p>
-                    <p>✅ Chat AI cu întrebări simple</p>
-                    <p>✅ Dashboard & grafice</p>
-                    <p>✅ Export PDF</p>
-                    <p>✅ Alerte automate (probleme evidente)</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
-                  <h4 className="font-bold mb-3 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    Cu credite AI suplimentare
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <p>⚡ Predicții AI pe 3-6 luni (~100 credite)</p>
-                    <p>⚡ Consilier Strategic AI (~150 credite)</p>
-                    <p>⚡ Comparații multi-companie (~80 credite)</p>
-                    <p className="text-xs text-muted-foreground pt-2">
-                      1000 credite = 10 lei (nu expiră)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* AI Credits Explanation */}
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  Când ai nevoie de credite AI?
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-start gap-3">
-                  <Badge variant="outline" className="mt-0.5">1</Badge>
-                  <div>
-                    <p className="font-semibold">Predicții AI avansate</p>
-                    <p className="text-muted-foreground">Previziuni automate pe 3-6 luni (~100 credite/predicție)</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Badge variant="outline" className="mt-0.5">2</Badge>
-                  <div>
-                    <p className="font-semibold">Consilier Strategic AI</p>
-                    <p className="text-muted-foreground">Analiză aprofundată cu recomandări personalizate (~150 credite/sesiune)</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Badge variant="outline" className="mt-0.5">3</Badge>
-                  <div>
-                    <p className="font-semibold">Comparații multi-companie</p>
-                    <p className="text-muted-foreground">Benchmarking automat cu competitori (~80 credite/comparație)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-primary" />
-                  Exemple practice de cost
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-semibold mb-1">Utilizare ușoară (10-20 clienți)</p>
-                  <p className="text-muted-foreground">~5-10 predicții/lună = 1000 credite = <span className="font-semibold text-foreground">10 lei/lună</span></p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-semibold mb-1">Utilizare medie (30-50 clienți)</p>
-                  <p className="text-muted-foreground">~15-25 analize avansate = 2500 credite = <span className="font-semibold text-foreground">20 lei/lună</span></p>
-                </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="font-semibold mb-1">Utilizare intensă (100+ clienți)</p>
-                  <p className="text-muted-foreground">~50+ sesiuni consilier = 5000-10000 credite = <span className="font-semibold text-foreground">40-70 lei/lună</span></p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* AI Credits Packages */}
-          <h3 className="text-2xl font-bold text-center mb-6">Pachete Credite AI Suplimentare</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="text-center hover:shadow-lg transition-all hover:border-primary">
-              <CardContent className="pt-6">
-                <Sparkles className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-                <p className="text-2xl font-bold mb-1">10 lei</p>
-                <p className="text-sm text-muted-foreground mb-3">1,000 credite</p>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>~10 predicții AI</p>
-                  <p>sau ~6 sesiuni consilier</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-all hover:border-primary border-2 border-primary bg-primary/5">
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary">Popular</Badge>
-              </div>
-              <CardContent className="pt-6">
-                <Zap className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold mb-1">20 lei</p>
-                <p className="text-sm text-muted-foreground mb-3">2,500 credite</p>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>~25 predicții AI</p>
-                  <p>sau ~16 sesiuni consilier</p>
-                  <p className="text-success font-semibold">Economie: 20%</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-all hover:border-primary">
-              <CardContent className="pt-6">
-                <TrendingUp className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-                <p className="text-2xl font-bold mb-1">40 lei</p>
-                <p className="text-sm text-muted-foreground mb-3">5,000 credite</p>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>~50 predicții AI</p>
-                  <p>sau ~33 sesiuni consilier</p>
-                  <p className="text-success font-semibold">Economie: 25%</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-all hover:border-primary">
-              <CardContent className="pt-6">
-                <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-                <p className="text-2xl font-bold mb-1">70 lei</p>
-                <p className="text-sm text-muted-foreground mb-3">10,000 credite</p>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>~100 predicții AI</p>
-                  <p>sau ~66 sesiuni consilier</p>
-                  <p className="text-success font-semibold">Economie: 30%</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Transparency Guarantees */}
+        {/* Transparency */}
+        <div className="mt-12 max-w-3xl mx-auto">
           <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20">
             <CardContent className="p-6">
               <h3 className="text-xl font-bold text-center mb-6 flex items-center justify-center gap-2">
@@ -1316,31 +632,21 @@ Perioada: 01/04/2025 - 30/04/2025`,
                 <div className="text-center">
                   <Check className="h-8 w-8 mx-auto mb-2 text-success" />
                   <p className="font-semibold mb-1">Fără surprize</p>
-                  <p className="text-muted-foreground">Vezi consumul exact în timp real în dashboard</p>
+                  <p className="text-muted-foreground">Preț fix, funcționalități complete</p>
                 </div>
                 <div className="text-center">
                   <Check className="h-8 w-8 mx-auto mb-2 text-success" />
-                  <p className="font-semibold mb-1">Control total</p>
-                  <p className="text-muted-foreground">Setezi limite de buget și primești alerte la 80%</p>
+                  <p className="font-semibold mb-1">Anulare oricând</p>
+                  <p className="text-muted-foreground">Fără penalități, fără întrebări</p>
                 </div>
                 <div className="text-center">
                   <Check className="h-8 w-8 mx-auto mb-2 text-success" />
-                  <p className="font-semibold mb-1">Fără expirare</p>
-                  <p className="text-muted-foreground">Creditele rămân valabile până le folosești</p>
+                  <p className="font-semibold mb-1">Date sigure</p>
+                  <p className="text-muted-foreground">Criptare end-to-end, GDPR compliant</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <div className="mt-8 text-center space-y-4">
-            <p className="text-muted-foreground">
-              <span className="font-semibold text-foreground">💡 Sfat:</span> Majoritatea utilizatorilor cheltuie <span className="font-semibold text-foreground">0-20 lei/lună</span> pe credite AI suplimentare
-            </p>
-            <Button size="lg" onClick={() => navigate('/auth')}>
-              Începe cu 30 zile gratuit
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
         </div>
       </section>
 
@@ -1485,14 +791,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
             </CardContent>
           </Card>
         </div>
-
-        <div className="text-center mt-8">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">100% Gratuit</span> în schimbul recenziilor tale oneste
-          </p>
-        </div>
       </section>
-
 
       {/* CTA Final */}
       <section className="container mx-auto px-4 py-20 text-center">
@@ -1511,7 +810,7 @@ Perioada: 01/04/2025 - 30/04/2025`,
         </div>
 
         <p className="mt-6 text-sm text-muted-foreground">
-          100% Gratuit • Suport în română
+          30 zile gratuit • Fără card de credit • Suport în română
         </p>
       </section>
     </div>
