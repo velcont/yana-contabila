@@ -247,25 +247,49 @@ export default function StrategicAdvisor() {
   // Check access and credit on mount
   useEffect(() => {
     const checkAccessAndCredit = async () => {
+      // ✅ FIX: Nu seta isCheckingAccess(false) când user nu e încărcat încă
+      // Așteaptă ca user-ul să fie disponibil
       if (!user) {
-        setIsCheckingAccess(false);
-        return;
+        logger.log("⏳ [ACCESS-CHECK] Waiting for user to load...");
+        return; // Nu seta isCheckingAccess(false) - lasă loading să continue
       }
 
       try {
-        logger.log("🔐 [ACCESS-CHECK] Checking access for user:", user.id);
+        logger.log("🔐 [ACCESS-CHECK] Checking access for user:", user.id, user.email);
         
         // ✅ ADMIN BYPASS: Adminii au acces complet fără verificări
-        const { data: isAdmin } = await supabase.rpc('has_role', {
-          _user_id: user.id,
-          _role: 'admin'
-        });
+        let isAdmin = false;
+        
+        try {
+          const { data: adminData, error: adminError } = await supabase.rpc('has_role', {
+            _user_id: user.id,
+            _role: 'admin'
+          });
+          
+          if (adminError) {
+            logger.warn("⚠️ [ACCESS-CHECK] has_role RPC error:", adminError.message);
+            // Fallback: verifică email pentru admin cunoscut
+            if (user.email === 'office@velcont.com') {
+              logger.log("✅ [ACCESS-CHECK] Admin fallback by email");
+              isAdmin = true;
+            }
+          } else {
+            isAdmin = !!adminData;
+          }
+        } catch (rpcError) {
+          logger.warn("⚠️ [ACCESS-CHECK] RPC exception:", rpcError);
+          // Fallback sigur pentru admin
+          if (user.email === 'office@velcont.com') {
+            logger.log("✅ [ACCESS-CHECK] Admin fallback by email (exception)");
+            isAdmin = true;
+          }
+        }
         
         if (isAdmin) {
           logger.log("✅ [ACCESS-CHECK] Admin user detected - granting full access");
-          setIsAdminUser(true); // ✅ SALVEZ STATUSUL ADMIN
+          setIsAdminUser(true);
           setHasAccess(true);
-          setCreditRemaining(999); // Admin unlimited credit display
+          setCreditRemaining(999);
           setIsCheckingAccess(false);
           return;
         }
