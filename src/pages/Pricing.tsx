@@ -46,12 +46,12 @@ const Pricing = () => {
             </CardDescription>
             <div className="mt-8">
               <div className="flex items-baseline justify-center gap-2">
-                <span className="text-6xl font-bold text-primary">99</span>
-                <span className="text-3xl font-semibold">EUR</span>
+                <span className="text-6xl font-bold text-primary">49</span>
+                <span className="text-3xl font-semibold">RON</span>
                 <span className="text-muted-foreground">/lună</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                fără TVA
+                + TVA
               </p>
             </div>
           </CardHeader>
@@ -180,7 +180,7 @@ const Pricing = () => {
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-success mt-0.5" />
-                <span><strong>Fără costuri ascunse:</strong> 99 EUR/lună include totul</span>
+                <span><strong>Fără costuri ascunse:</strong> 49 RON/lună + TVA include totul</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-success mt-0.5" />
