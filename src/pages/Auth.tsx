@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Building2, Briefcase, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logError } from '@/utils/sentry';
 
@@ -676,46 +676,7 @@ const Auth = () => {
                     />
                   </div>
                   
-                  {/* Account type selection removed - single Yana Strategic plan */}
                 </>
-              )}
-              
-              {isLogin && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Tipuri de conturi disponibile
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Card className="border-2 border-blue-200 bg-blue-50/50 dark:bg-blue-950/10 opacity-75">
-                      <CardContent className="p-3">
-                        <div className="flex flex-col items-center text-center space-y-1">
-                          <div className="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center">
-                            <Briefcase className="h-4 w-4 text-white" />
-                          </div>
-                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                            Antreprenor
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card className="border-2 border-green-200 bg-green-50/50 dark:bg-green-950/10 opacity-75">
-                      <CardContent className="p-3">
-                        <div className="flex flex-col items-center text-center space-y-1">
-                          <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center">
-                            <Building2 className="h-4 w-4 text-white" />
-                          </div>
-                          <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                            Contabil
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  <p className="text-xs text-center text-muted-foreground">
-                    Alege-ți tipul de cont la înregistrare
-                  </p>
-                </div>
               )}
               
               <div className="space-y-2">
