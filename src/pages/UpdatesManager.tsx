@@ -139,6 +139,21 @@ export default function UpdatesManager() {
     },
   });
 
+  // Send migration email v3.0
+  const sendMigrationEmailMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('send-migration-email');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`✅ Email-uri migrare trimise: ${data.sent} succes, ${data.failed} eșuate`);
+    },
+    onError: (error: any) => {
+      toast.error("Eroare la trimitere migrare: " + error.message);
+    },
+  });
+
   const updatesToEmail = updates?.filter(u => u.include_in_next_email && u.is_published) || [];
   const publishedUpdates = updates?.filter(u => u.status === "published") || [];
   const inProgressUpdates = updates?.filter(u => u.status === "in_progress") || [];
@@ -338,6 +353,29 @@ export default function UpdatesManager() {
                 Selectează update-urile de mai jos pentru a le include în email
               </p>
             )}
+            
+            {/* Migration Email Button */}
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-sm font-medium mb-2">📧 Email Migrare v3.0</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Trimite email cu link special (?update=force_v3) și instrucțiuni CTRL+SHIFT+R la toți utilizatorii.
+              </p>
+              <Button
+                onClick={() => {
+                  if (window.confirm("Ești sigur că vrei să trimiți email-ul de migrare v3.0 la TOȚI utilizatorii?")) {
+                    sendMigrationEmailMutation.mutate();
+                  }
+                }}
+                disabled={sendMigrationEmailMutation.isPending}
+                className="w-full"
+                variant="destructive"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {sendMigrationEmailMutation.isPending
+                  ? "Se trimit email-uri migrare..."
+                  : "🚀 Trimite Email Migrare v3.0"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
