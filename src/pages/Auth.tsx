@@ -170,7 +170,7 @@ const Auth = () => {
     }
   }, [password, isLogin]);
  
-  const fullNameOk = fullName.trim().length > 0;
+  // ✅ SIMPLIFICAT: Nu mai verificăm fullName - se extrage automat din email
   const emailOk = email.trim().length > 0;
   const passwordLenOk = password.length >= 8;
   const passwordStrongEnough = calculatePasswordStrength(password) !== 'weak';
@@ -178,14 +178,14 @@ const Auth = () => {
   const termsOk = termsAccepted;
 
   const canRegister = isLogin ? true : (
-    fullNameOk && emailOk && passwordLenOk && passwordStrongEnough && accountTypeOk && termsOk
+    emailOk && passwordLenOk && passwordStrongEnough && accountTypeOk && termsOk
   );
 
   useEffect(() => {
     if (!isLogin) {
-      console.log('[AUTH DEBUG] Flags', { fullNameOk, emailOk, passwordLenOk, passwordStrongEnough, accountTypeOk, termsOk, canRegister });
+      console.log('[AUTH DEBUG] Flags', { emailOk, passwordLenOk, passwordStrongEnough, accountTypeOk, termsOk, canRegister });
     }
-  }, [isLogin, fullNameOk, emailOk, passwordLenOk, passwordStrongEnough, accountTypeOk, termsOk, canRegister]);
+  }, [isLogin, emailOk, passwordLenOk, passwordStrongEnough, accountTypeOk, termsOk, canRegister]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -383,9 +383,14 @@ const Auth = () => {
           navigate('/app');
         }
       } else {
-        if (!fullName.trim()) {
-          throw new Error("Te rog introdu numele complet");
-        }
+        // ✅ SIMPLIFICAT: Extrage automat numele din email (înainte de @)
+        const autoName = email.split('@')[0]
+          .replace(/[._-]/g, ' ')  // Înlocuiește puncte, underscore, dash cu spații
+          .replace(/\d+/g, '')      // Elimină cifrele
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ') || 'Utilizator';
         
         // Single plan - no account type selection needed
         const accountType = 'entrepreneur'; // Default for all users
@@ -394,9 +399,9 @@ const Auth = () => {
           throw new Error("Trebuie să accepți Termenii și Condițiile pentru a crea un cont");
         }
         
-        console.log('🟡 [AUTH] Attempting signup with accountType:', accountType);
+        console.log('🟡 [AUTH] Attempting signup with accountType:', accountType, 'autoName:', autoName);
         
-        const signUpResult = await signUp(email, password, fullName, accountType || undefined);
+        const signUpResult = await signUp(email, password, autoName, accountType || undefined);
         if (signUpResult.error) {
           const msg = (signUpResult.error.message || '').toLowerCase();
           const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;
@@ -659,26 +664,8 @@ const Auth = () => {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <>
-                  <div className="space-y-2">
-                    <label htmlFor="fullName" className="text-sm font-medium">
-                      Nume complet
-                    </label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      placeholder="Ion Popescu"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      onInput={(e) => setFullName((e.target as HTMLInputElement).value)}
-                      required={!isLogin}
-                      autoComplete="name"
-                    />
-                  </div>
-                  
-                </>
-              )}
+              {/* Formular simplificat: fără câmp pentru Nume complet */}
+              {/* Numele se extrage automat din email în handleSubmit */}
               
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
@@ -815,10 +802,8 @@ const Auth = () => {
               {!isLogin && (
                 <div className="mt-2 text-xs text-muted-foreground" role="status" aria-live="polite">
                   <div className="grid grid-cols-2 gap-1">
-                    <div className={fullNameOk ? 'text-emerald-600' : 'text-red-500'}>Nume complet {fullNameOk ? '✓' : '—'}</div>
                     <div className={emailOk ? 'text-emerald-600' : 'text-red-500'}>Email {emailOk ? '✓' : '—'}</div>
                     <div className={(passwordLenOk && passwordStrongEnough) ? 'text-emerald-600' : 'text-red-500'}>Parolă validă {(passwordLenOk && passwordStrongEnough) ? '✓' : '—'}</div>
-                    <div className={accountTypeOk ? 'text-emerald-600' : 'text-red-500'}>Tip cont {accountTypeOk ? '✓' : '—'}</div>
                     <div className={termsOk ? 'text-emerald-600' : 'text-red-500'}>Termeni acceptați {termsOk ? '✓' : '—'}</div>
                   </div>
                 </div>

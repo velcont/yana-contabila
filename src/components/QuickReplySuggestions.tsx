@@ -134,11 +134,12 @@ export const QuickReplySuggestions = ({
       </div>
       
       <ScrollArea className="w-full">
-        <div className="flex flex-wrap gap-2">
+        {/* Grid pe mobil pentru butoane full-width, flex-wrap pe desktop */}
+        <div className="grid grid-cols-1 md:flex md:flex-wrap gap-3 md:gap-2">
           {isLoading ? (
             <>
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-16 w-48 bg-muted/50 animate-pulse rounded-md" />
+                <div key={i} className="h-14 md:h-16 w-full md:w-48 bg-muted/50 animate-pulse rounded-md" />
               ))}
             </>
           ) : (
@@ -146,17 +147,18 @@ export const QuickReplySuggestions = ({
               <Button
                 key={idx}
                 variant="outline"
-                size="sm"
                 onClick={() => onSelectSuggestion(suggestion.question_pattern)}
-                className="h-auto py-2 px-3 text-left whitespace-normal hover:bg-primary/5 hover:border-primary/50 transition-all group"
+                className="h-auto py-3 md:py-2 px-4 md:px-3 text-left whitespace-normal 
+                           hover:bg-primary/5 hover:border-primary/50 transition-all group
+                           w-full md:w-auto border-2 border-primary/30 hover:border-primary"
               >
-                <div className="flex items-start gap-2 w-full">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-xs font-medium leading-snug">
+                <div className="flex items-center gap-3 md:gap-2 w-full">
+                  <div className="flex-1">
+                    <p className="text-sm md:text-xs font-medium leading-snug">
                       {suggestion.question_pattern}
                     </p>
                     {showFrequency && suggestion.frequency > 0 && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 mt-1">
                         <TrendingUp className="h-3 w-3 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">
                           {suggestion.frequency}x
@@ -164,7 +166,7 @@ export const QuickReplySuggestions = ({
                       </div>
                     )}
                   </div>
-                  <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-0.5" />
+                  <ArrowRight className="h-4 w-4 md:h-3 md:w-3 text-primary group-hover:translate-x-1 transition-transform flex-shrink-0" />
                 </div>
               </Button>
             ))
