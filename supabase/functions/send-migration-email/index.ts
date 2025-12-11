@@ -19,6 +19,12 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Parse request body pentru test mode
+    const body = await req.json().catch(() => ({}));
+    const testMode = body.testMode === true;
+
+    console.log(`[send-migration-email] Mode: ${testMode ? 'TEST' : 'PRODUCTION'}`);
+
     // Verify authorization
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -59,18 +65,26 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
-    // Fetch all user emails
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, email, full_name")
-      .not("email", "is", null);
+    // În test mode, trimite doar la email-ul adminului
+    let profiles;
+    if (testMode) {
+      console.log(`[send-migration-email] TEST MODE - sending only to: ${userData.user.email}`);
+      profiles = [{ id: userData.user.id, email: userData.user.email, full_name: 'Test User' }];
+    } else {
+      // Fetch all user emails
+      const { data: allProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .not("email", "is", null);
 
-    if (profilesError) {
-      console.error("[send-migration-email] Error fetching profiles:", profilesError);
-      throw profilesError;
+      if (profilesError) {
+        console.error("[send-migration-email] Error fetching profiles:", profilesError);
+        throw profilesError;
+      }
+      profiles = allProfiles;
     }
 
-    console.log(`[send-migration-email] Found ${profiles?.length || 0} users to email`);
+    console.log(`[send-migration-email] Will send to ${profiles?.length || 0} user(s)`);
 
     // Calculate deadline (7 days from now)
     const deadline = new Date();
