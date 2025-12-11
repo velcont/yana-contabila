@@ -35,16 +35,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="border-t px-3 py-3 md:px-6 md:py-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 md:gap-3">
         {showFileUpload && onFileUpload && (
           <Button
-            variant="secondary"
-            size="icon"
+            variant="outline"
             onClick={onFileUpload}
             disabled={isLoading || disabled}
-            className="h-11 w-11 md:h-[60px] md:w-[60px] flex-shrink-0 bg-muted hover:bg-muted/80"
+            className="h-14 w-auto md:h-[60px] md:w-[60px] flex-shrink-0 
+                       bg-primary/10 hover:bg-primary/20 
+                       border-2 border-primary/50 hover:border-primary
+                       gap-2 px-4 md:px-0"
           >
-            <Paperclip className="h-4 w-4 md:h-5 md:w-5" />
+            <Paperclip className="h-5 w-5 text-primary" />
+            <span className="md:hidden text-sm font-medium text-primary">Încarcă</span>
           </Button>
         )}
         <Textarea

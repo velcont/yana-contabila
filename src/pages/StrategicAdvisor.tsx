@@ -691,8 +691,8 @@ export default function StrategicAdvisor() {
                   </div>
                 </div>
                 
-                {/* Right side - controls esențiale, mereu vizibile */}
-                <div className="flex items-center gap-1 md:gap-3 flex-shrink-0">
+                {/* Right side - controls esențiale, optimizate pentru mobil */}
+                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                   {/* Message counter - doar desktop */}
                   {activeTab === "chat" && messages.length > 0 && (
                     <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
@@ -702,9 +702,9 @@ export default function StrategicAdvisor() {
                     </div>
                   )}
                   
-                  {/* Credit indicator - compact pe mobil */}
+                  {/* Credit indicator - ultra-compact pe mobil */}
                   <div className={cn(
-                    "px-2 py-1 md:px-4 md:py-2 rounded-lg border-2 flex-shrink-0",
+                    "px-2 py-1.5 md:px-4 md:py-2 rounded-lg border-2 flex-shrink-0",
                     creditRemaining <= AI_COSTS.STRATEGIC_ADVISOR.WARNING_THRESHOLD
                       ? 'border-destructive bg-destructive/10' 
                       : creditRemaining <= 5 
@@ -729,40 +729,57 @@ export default function StrategicAdvisor() {
 
                   {activeTab === "chat" && (
                     <>
-                      {/* Consultă Yana - AI-to-AI dialog */}
-                      <ConsultYanaDialog 
-                        context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
-                        conversationId={conversationId}
-                      />
+                      {/* Consultă Yana - DOAR desktop */}
+                      <div className="hidden md:block">
+                        <ConsultYanaDialog 
+                          context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
+                          conversationId={conversationId}
+                        />
+                      </div>
                       
-                      {/* BattlePlan - vizibil pe toate ecranele */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex-shrink-0">
-                            <BattlePlanExport 
-                              conversationId={conversationId}
-                              userId={user.id}
-                              disabled={messages.length < 8}
-                            />
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {messages.length < 8 
-                            ? "Disponibil după 8+ mesaje de strategie"
-                            : "Generează plan de acțiune PDF"
-                          }
-                        </TooltipContent>
-                      </Tooltip>
+                      {/* BattlePlan - DOAR desktop, pe mobil e în dropdown */}
+                      <div className="hidden md:block">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex-shrink-0">
+                              <BattlePlanExport 
+                                conversationId={conversationId}
+                                userId={user.id}
+                                disabled={messages.length < 8}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {messages.length < 8 
+                              ? "Disponibil după 8+ mesaje de strategie"
+                              : "Generează plan de acțiune PDF"
+                            }
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
 
-
-                      {/* Dropdown menu */}
+                      {/* Dropdown menu - conține toate opțiunile pe mobil */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="flex-shrink-0">
+                          <Button variant="ghost" size="icon" className="flex-shrink-0 h-9 w-9 md:h-10 md:w-10">
                             <MoreVertical className="w-5 h-5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-background">
+                        <DropdownMenuContent align="end" className="bg-background min-w-[200px]">
+                          {/* Battle Plan - vizibil doar pe mobil în dropdown */}
+                          <DropdownMenuItem 
+                            className="md:hidden" 
+                            disabled={messages.length < 8}
+                            onClick={() => {
+                              // Trigger BattlePlanExport click
+                              const battlePlanBtn = document.querySelector('[data-battle-plan-trigger]') as HTMLButtonElement;
+                              if (battlePlanBtn) battlePlanBtn.click();
+                            }}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            {messages.length < 8 ? 'Battle Plan (8+ mesaje)' : 'Battle Plan Export'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="md:hidden" />
                           <DropdownMenuItem onClick={() => setShowHistorySheet(true)}>
                             <History className="w-4 h-4 mr-2" />
                             Istoric Conversații
