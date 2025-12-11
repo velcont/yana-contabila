@@ -15,6 +15,7 @@ import CompareAnalyses from './CompareAnalyses';
 import { parseAnalysisText, formatCurrency, type FinancialIndicators } from '@/utils/analysisParser';
 import { FiscalNews } from './FiscalNews';
 import { AnalysisDisplay } from './AnalysisDisplay';
+import { EmailComposerTab } from './EmailComposerTab';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useThemeRole } from '@/contexts/ThemeRoleContext';
 import { TopIssuesWidget } from './TopIssuesWidget';
@@ -688,7 +689,7 @@ INDICATORI OPERAȚIONALI:
       </div>
       
       <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList className={`grid w-full max-w-4xl ${isAccountantMode ? 'grid-cols-6' : 'grid-cols-5'}`}>
+        <TabsList className={`grid w-full max-w-4xl ${isAccountantMode ? 'grid-cols-7' : 'grid-cols-6'}`}>
           <TabsTrigger value="analytics" data-tour="tab-analytics">
             <BarChart3 className="h-4 w-4 mr-2" />
             Grafice
@@ -714,6 +715,10 @@ INDICATORI OPERAȚIONALI:
           <TabsTrigger value="news" data-tour="tab-news">
             <Newspaper className="h-4 w-4 mr-2" />
             Știri
+          </TabsTrigger>
+          <TabsTrigger value="email" data-tour="tab-email">
+            <Mail className="h-4 w-4 mr-2" />
+            Email
           </TabsTrigger>
         </TabsList>
 
@@ -762,6 +767,10 @@ INDICATORI OPERAȚIONALI:
 
         <TabsContent value="news" className="space-y-6">
           <FiscalNews />
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-6">
+          <EmailComposerTab />
         </TabsContent>
       </Tabs>
       
