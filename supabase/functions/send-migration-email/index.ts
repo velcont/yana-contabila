@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const APP_URL = "https://ygfsuoloxzjpiulogrjz.lovable.app";
+const APP_URL = "https://yana-contabila.velcont.com";
 
 serve(async (req: Request): Promise<Response> => {
   console.log("[send-migration-email] Request received");
@@ -104,7 +104,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!profile.email) continue;
 
       const userName = profile.full_name || "utilizator";
-      const migrationLink = `${APP_URL}?update=force_v3`;
+      const migrationLink = `${APP_URL}/auth?update=force_v3`;
 
       const htmlContent = `
 <!DOCTYPE html>
