@@ -386,9 +386,8 @@ const Auth = () => {
           throw new Error("Te rog introdu numele complet");
         }
         
-        if (!accountType) {
-          throw new Error("Te rog selectează tipul de cont");
-        }
+        // Single plan - no account type selection needed
+        const accountType = 'entrepreneur'; // Default for all users
 
         if (!termsAccepted) {
           throw new Error("Trebuie să accepți Termenii și Condițiile pentru a crea un cont");
@@ -427,7 +426,7 @@ const Auth = () => {
                 await supabase
                   .from('profiles')
                   .update({
-                    subscription_type: accountType,
+                    subscription_type: 'entrepreneur',
                     account_type_selected: true,
                     terms_accepted: true,
                     terms_accepted_at: new Date().toISOString()
@@ -437,9 +436,7 @@ const Auth = () => {
 
               toast({
                 title: 'Cont existent – autentificat',
-                description: accountType === 'entrepreneur'
-                  ? 'Te-am autentificat și ți-am păstrat tipul de cont.'
-                  : 'Te-am autentificat și ți-am setat contul ca „Contabil”.',
+                description: 'Te-am autentificat cu succes!',
               });
 
               navigate('/app');
@@ -512,9 +509,7 @@ const Auth = () => {
         
         toast({
           title: "Cont creat cu succes!",
-          description: accountType === 'entrepreneur' 
-            ? "Contul tău de antreprenor a fost configurat cu succes! Ai 30 de zile gratuite!" 
-            : "Contul tău de contabil a fost configurat cu succes! Ai 30 de zile gratuite!",
+          description: "Contul tău a fost configurat cu succes! Ai 30 de zile gratuite!",
         });
         
         // Track Google Ads conversion
@@ -681,60 +676,7 @@ const Auth = () => {
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Tip cont *
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      <Card 
-                        className={`cursor-pointer border-2 transition-all ${
-                          accountType === 'entrepreneur' 
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20' 
-                            : 'border-border hover:border-blue-300'
-                        }`}
-                        onClick={() => setAccountType('entrepreneur')}
-                      >
-                        <CardContent className="p-3 md:p-4">
-                          <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
-                            <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
-                              accountType === 'entrepreneur' ? 'bg-blue-500' : 'bg-blue-400'
-                            }`}>
-                              <Briefcase className="h-5 w-5 md:h-4 md:w-4 text-white" />
-                            </div>
-                            <span className={`text-sm md:text-xs font-medium ${
-                              accountType === 'entrepreneur' ? 'text-blue-600 dark:text-blue-400' : ''
-                            }`}>
-                              Antreprenor
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card 
-                        className={`cursor-pointer border-2 transition-all ${
-                          accountType === 'accounting_firm' 
-                            ? 'border-green-500 bg-green-50 dark:bg-green-950/20' 
-                            : 'border-border hover:border-green-300'
-                        }`}
-                        onClick={() => setAccountType('accounting_firm')}
-                      >
-                        <CardContent className="p-3 md:p-4">
-                          <div className="flex flex-col items-center text-center space-y-1 md:space-y-2">
-                            <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center ${
-                              accountType === 'accounting_firm' ? 'bg-green-500' : 'bg-green-400'
-                            }`}>
-                              <Building2 className="h-5 w-5 md:h-4 md:w-4 text-white" />
-                            </div>
-                            <span className={`text-sm md:text-xs font-medium ${
-                              accountType === 'accounting_firm' ? 'text-green-600 dark:text-green-400' : ''
-                            }`}>
-                              Contabil
-                            </span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
+                  {/* Account type selection removed - single Yana Strategic plan */}
                 </>
               )}
               
