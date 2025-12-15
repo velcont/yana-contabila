@@ -737,8 +737,8 @@ export default function StrategicAdvisor() {
                         />
                       </div>
                       
-                      {/* BattlePlan - DOAR desktop mare (lg), pe mobil e în dropdown */}
-                      <div className="hidden lg:block">
+                      {/* BattlePlan - DOAR desktop XL (>1280px), pe mobil/laptop e în dropdown */}
+                      <div className="hidden xl:block">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex-shrink-0">
