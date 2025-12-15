@@ -114,7 +114,7 @@ export const EmailComposerTab = () => {
 
       const response = await supabase.functions.invoke('send-monthly-report', {
         body: {
-          clientEmail: validEmails[0],
+          clientEmails: validEmails, // Trimite TOATE emailurile ca array
           clientName: '',
           subject: subject.trim(),
           customMessage: message.trim(),
@@ -126,8 +126,7 @@ export const EmailComposerTab = () => {
           attachments: attachments.map(att => ({
             filename: att.name,
             content: att.content
-          })),
-          additionalRecipients: validEmails.slice(1)
+          }))
         }
       });
 
