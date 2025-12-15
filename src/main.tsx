@@ -49,9 +49,13 @@ const executeScorchedEarth = async (): Promise<boolean> => {
     
     console.log('[SCORCHED_EARTH] Version check:', { localVersion, serverVersion });
     
-    // 2. COMPARAȚIE: Dacă versiunea locală NU corespunde cu cea live
-    if (localVersion && localVersion !== serverVersion) {
-      console.log('[SCORCHED_EARTH] 🔥 VERSION MISMATCH DETECTED! Executing nuclear refresh...');
+    // 2. COMPARAȚIE: Forțează refresh dacă:
+    //    - NU există versiune locală (utilizator nou) SAU
+    //    - Versiunea locală NU corespunde cu cea live
+    if (!localVersion || localVersion !== serverVersion) {
+      const reason = !localVersion ? 'NEW_USER' : 'VERSION_MISMATCH';
+      console.log(`[SCORCHED_EARTH] 🔥 ${reason} DETECTED! Executing nuclear refresh...`);
+      console.log('[SCORCHED_EARTH] Local:', localVersion, '| Server:', serverVersion);
       
       // ACȚIUNE 1: Invalidare sesiune Supabase (forțează re-login)
       localStorage.removeItem('sb-ygfsuoloxzjpiulogrjz-auth-token');
@@ -84,13 +88,9 @@ const executeScorchedEarth = async (): Promise<boolean> => {
       return false; // Nu randa aplicația - pagina face refresh
     }
     
-    // Prima vizită - salvăm versiunea curentă
-    if (!localVersion) {
-      localStorage.setItem('yana_app_version', serverVersion);
-      console.log('[SCORCHED_EARTH] First visit, version saved:', serverVersion);
-    }
-    
-    return true; // Continuă cu randarea normală
+    // Versiunea corespunde - continuă normal
+    console.log('[SCORCHED_EARTH] ✓ Version match, proceeding normally:', serverVersion);
+    return true;
     
   } catch (error) {
     console.warn('[SCORCHED_EARTH] Check failed, continuing normally:', error);
