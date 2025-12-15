@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { z } from "https://esm.sh/zod@3.22.4";
+import { ACCOUNTING_RULES } from "../_shared/accounting-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,8 @@ const SYSTEM_PROMPT = `🤝 Ești un consultant financiar de încredere, special
 - Ești profesionist dar prietenos și accesibil
 - Înțelegi provocările antreprenorilor și îi ajuți cu soluții concrete
 - Creezi o experiență caldă, nu robotică
+
+${ACCOUNTING_RULES}
 
 🛑 **REGULĂ CRITICĂ #1 - ÎNTREBĂRI DESPRE PIERDERE (CITEȘTE PRIMA!)**
 
