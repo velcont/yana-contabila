@@ -121,7 +121,7 @@ export const EmailComposerTab = () => {
           reportData: {
             companyName: 'Email personalizat',
             period: new Date().toLocaleDateString('ro-RO'),
-            summary: message.trim()
+            personalNote: message.trim()
           },
           attachments: attachments.map(att => ({
             filename: att.name,

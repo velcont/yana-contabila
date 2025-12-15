@@ -54,8 +54,10 @@ serve(async (req) => {
       companyName: directCompanyName,
       pdfAttachment,
       additionalAttachments, // Array of additional file attachments
+      attachments: directAttachments, // Support for direct attachments from EmailComposerTab
       reportMonth, // Expected format: "2025-09" or similar
-      reportYear
+      reportYear,
+      subject: customSubject // Custom subject from EmailComposerTab
     } = await req.json();
     
     // Support both single email (legacy) and multiple emails
@@ -194,9 +196,20 @@ serve(async (req) => {
         content: pdfAttachment.content,
       });
     }
-    // Add additional attachments
+    // Add additional attachments (legacy format)
     if (additionalAttachments && Array.isArray(additionalAttachments)) {
       additionalAttachments.forEach((attachment: any) => {
+        if (attachment.filename && attachment.content) {
+          attachments.push({
+            filename: attachment.filename,
+            content: attachment.content,
+          });
+        }
+      });
+    }
+    // Add direct attachments from EmailComposerTab
+    if (directAttachments && Array.isArray(directAttachments)) {
+      directAttachments.forEach((attachment: any) => {
         if (attachment.filename && attachment.content) {
           attachments.push({
             filename: attachment.filename,
@@ -212,13 +225,18 @@ serve(async (req) => {
       ? envFrom
       : "Yana AI <noreply@yana-contabila.velcont.com>"; // fallback to known verified domain
 
-    logStep("About to send email", { from: fromEmail, recipients: emailList });
+    // Use custom subject if provided, otherwise generate default
+    const emailSubject = customSubject && customSubject.trim() 
+      ? customSubject.trim() 
+      : `Raport Financiar - ${companyName} - ${reportDateString}`;
+
+    logStep("About to send email", { from: fromEmail, recipients: emailList, subject: emailSubject });
     
     // Send email to all recipients
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: fromEmail,
       to: emailList,
-      subject: `Raport Financiar - ${companyName} - ${reportDateString}`,
+      subject: emailSubject,
       html: emailHtml,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
