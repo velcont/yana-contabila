@@ -692,10 +692,10 @@ export default function StrategicAdvisor() {
                 </div>
                 
                 {/* Right side - controls esențiale, optimizate pentru mobil */}
-                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-                  {/* Message counter - doar desktop */}
+                <div className="flex items-center gap-3 md:gap-4 flex-shrink-0 flex-wrap justify-end">
+                  {/* Message counter - doar desktop mare (lg) */}
                   {activeTab === "chat" && messages.length > 0 && (
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
+                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
                       <MessageSquare className="w-4 h-4 text-primary" />
                       <span className="text-sm font-medium">{messages.length}</span>
                       <span className="text-xs text-muted-foreground">mesaje</span>
@@ -729,16 +729,16 @@ export default function StrategicAdvisor() {
 
                   {activeTab === "chat" && (
                     <>
-                      {/* Consultă Yana - DOAR desktop */}
-                      <div className="hidden md:block">
-                        <ConsultYanaDialog 
+                      {/* Consultă Yana - DOAR desktop mare (lg) */}
+                      <div className="hidden lg:block">
+                        <ConsultYanaDialog
                           context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
                           conversationId={conversationId}
                         />
                       </div>
                       
-                      {/* BattlePlan - DOAR desktop, pe mobil e în dropdown */}
-                      <div className="hidden md:block">
+                      {/* BattlePlan - DOAR desktop mare (lg), pe mobil e în dropdown */}
+                      <div className="hidden lg:block">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex-shrink-0">
