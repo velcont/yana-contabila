@@ -849,7 +849,9 @@ serve(async (req) => {
 
     // Check AI Credits (50 bani per message = 0.50 RON)
     const MESSAGE_COST = 50; // cents
-    const currentCredits = profile?.ai_credits || 0;
+    // Combinăm ai_credits (cenți) + trial_credit_remaining (RON convertit în cenți)
+    const trialCreditsInCents = Math.floor((profile?.trial_credit_remaining || 0) * 100);
+    const currentCredits = (profile?.ai_credits || 0) + trialCreditsInCents;
 
     if (!isAdmin && currentCredits < MESSAGE_COST) {
       console.error('[strategic-advisor] Insufficient credits:', currentCredits);
