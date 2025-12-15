@@ -1671,7 +1671,28 @@ ${factSheet}
       return response.json();
     }, 3, 1500);
 
-    const strategistResponse = data.choices[0]?.message?.content;
+    // Extract response - handle Gemini's reasoning mode where content may be empty but reasoning exists
+    let strategistResponse = data.choices[0]?.message?.content;
+    
+    // If content is empty, check if reasoning exists (Gemini thinking mode)
+    if (!strategistResponse && data.choices[0]?.message?.reasoning) {
+      console.log("[STRATEGIC-ADVISOR] Content empty but reasoning found - extracting from reasoning");
+      const reasoning = data.choices[0].message.reasoning;
+      // Try to extract meaningful content from reasoning
+      if (typeof reasoning === 'string' && reasoning.length > 50) {
+        strategistResponse = reasoning;
+      }
+    }
+    
+    // Also check reasoning_details array for Gemini v1 format
+    if (!strategistResponse && data.choices[0]?.message?.reasoning_details?.length > 0) {
+      console.log("[STRATEGIC-ADVISOR] Extracting from reasoning_details");
+      const details = data.choices[0].message.reasoning_details;
+      const lastDetail = details[details.length - 1];
+      if (lastDetail?.text && lastDetail.text.length > 50) {
+        strategistResponse = lastDetail.text;
+      }
+    }
 
     if (!strategistResponse) {
       console.error("[STRATEGIC-ADVISOR] Empty response from AI:", JSON.stringify(data, null, 2));
