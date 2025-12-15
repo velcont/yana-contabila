@@ -693,9 +693,9 @@ export default function StrategicAdvisor() {
                 
                 {/* Right side - controls esențiale, optimizate pentru mobil */}
                 <div className="flex items-center gap-3 md:gap-4 flex-shrink-0 flex-wrap justify-end">
-                  {/* Message counter - doar desktop mare (lg) */}
+                  {/* Message counter - doar desktop XL (>1280px) */}
                   {activeTab === "chat" && messages.length > 0 && (
-                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
+                    <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
                       <MessageSquare className="w-4 h-4 text-primary" />
                       <span className="text-sm font-medium">{messages.length}</span>
                       <span className="text-xs text-muted-foreground">mesaje</span>
@@ -729,8 +729,8 @@ export default function StrategicAdvisor() {
 
                   {activeTab === "chat" && (
                     <>
-                      {/* Consultă Yana - DOAR desktop mare (lg) */}
-                      <div className="hidden lg:block">
+                      {/* Consultă Yana - DOAR desktop XL (>1280px) */}
+                      <div className="hidden xl:block">
                         <ConsultYanaDialog
                           context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
                           conversationId={conversationId}
