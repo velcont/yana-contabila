@@ -847,12 +847,18 @@ serve(async (req) => {
         if (indices.headerRowIndex >= 0 && indices.contCol >= 0) {
           for (let i = indices.headerRowIndex + 1; i < data.length; i++) {
             const row = data[i];
-            const contCode = String(row[indices.contCol] || '').trim();
+            const contCodeFull = String(row[indices.contCol] || '').trim();
             
-            if (!contCode || !/^\d/.test(contCode) || contCode.length < 3) continue;
+            // ✅ FIX: Extrage DOAR partea numerică (3-4 cifre) din cod cont
+            // Rezolvă bug-ul când coloana conține "121 - Profit sau pierdere" în loc de "121"
+            const contCodeMatch = contCodeFull.match(/^(\d{3,4})/);
+            if (!contCodeMatch) continue;
+            const contCode = contCodeMatch[1];
             
             const accountClass = parseInt(contCode[0]);
-            const denumire = indices.denumireCol >= 0 ? String(row[indices.denumireCol] || '').trim() : '';
+            // Extrage denumirea din coloana dedicată SAU din string-ul complet dacă lipsește
+            const denumireFromCol = indices.denumireCol >= 0 ? String(row[indices.denumireCol] || '').trim() : '';
+            const denumire = denumireFromCol || contCodeFull.replace(/^\d+\s*[-–]\s*/, '').trim();
             
             let debit = 0, credit = 0;
             
