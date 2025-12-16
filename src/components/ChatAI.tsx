@@ -2436,28 +2436,67 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
       );
       
       // REZUMAT EXECUTIV - Calcul automat
-      // FIX CRITIC: Bancă - include 5121 (LEI) + 5124 (valută) + 5125 (în curs) - ACTIVE = sold DEBITOR
-      const bankAccounts = structuredData.accounts.filter(a => 
-        a.code === '5121' || a.code === '5124' || a.code === '5125'
-      );
-      const bank = bankAccounts.reduce((sum, a) => sum + (a.debit || 0), 0);
       
-      // FIX CRITIC: Casă 5311 - ACTIV = sold DEBITOR (nu creditor!)
-      const cash = structuredData.accounts.find(a => a.code === '5311')?.debit || 0;
+      // Helper: Caută cont flexibil - acceptă atât cod sintetic (411) cât și analitic (4111)
+      const findAccount = (accounts: any[], baseCode: string) => {
+        // 1. Caută codul exact
+        let account = accounts.find(a => a.code === baseCode);
+        if (account) return account;
+        
+        // 2. Caută conturi care ÎNCEP cu baseCode (ex: '411' găsește '4111')
+        account = accounts.find(a => a.code.startsWith(baseCode));
+        if (account) return account;
+        
+        // 3. Dacă baseCode e lung (4111), caută și versiunea scurtă (411)
+        if (baseCode.length === 4) {
+          const shortCode = baseCode.substring(0, 3);
+          account = accounts.find(a => a.code === shortCode || a.code.startsWith(shortCode));
+          if (account) return account;
+        }
+        
+        return null;
+      };
+
+      // Helper: Sumează mai multe conturi flexibil (pentru bănci care pot fi 512/5121/5124/5125)
+      const sumAccounts = (accounts: any[], baseCodes: string[], field: 'debit' | 'credit') => {
+        let total = 0;
+        const counted = new Set<string>(); // Evită duplicatele
+        
+        for (const baseCode of baseCodes) {
+          const matchingAccounts = accounts.filter(a => 
+            (a.code === baseCode || a.code.startsWith(baseCode)) && !counted.has(a.code)
+          );
+          for (const acc of matchingAccounts) {
+            total += acc[field] || 0;
+            counted.add(acc.code);
+          }
+        }
+        return total;
+      };
+
+      // Bancă: 512/5121 (LEI) + 5124 (valută) + 5125 (în curs) - ACTIVE = sold DEBITOR
+      const bank = sumAccounts(structuredData.accounts, ['5121', '512', '5124', '5125'], 'debit');
+      
+      // Casă: 531/5311 - ACTIV = sold DEBITOR
+      const cash = findAccount(structuredData.accounts, '5311')?.debit || 
+                   findAccount(structuredData.accounts, '531')?.debit || 0;
       
       // Profit/Pierdere: 121 - sold CREDITOR = profit, sold DEBITOR = pierdere
-      const cont121 = structuredData.accounts.find(a => a.code === '121');
+      const cont121 = findAccount(structuredData.accounts, '121');
       const profit = cont121?.credit || 0;
       const loss = cont121?.debit || 0;
       
-      // FIX CRITIC: Clienți 4111 (nu 411!) - ACTIV = sold DEBITOR
-      const clients = structuredData.accounts.find(a => a.code === '4111')?.debit || 0;
+      // Clienți: 411/4111 - ACTIV = sold DEBITOR
+      const clients = findAccount(structuredData.accounts, '4111')?.debit || 
+                      findAccount(structuredData.accounts, '411')?.debit || 0;
       
-      // Furnizori: 401 - PASIV = sold CREDITOR ✓ (corect)
-      const suppliers = structuredData.accounts.find(a => a.code === '401')?.credit || 0;
+      // Furnizori: 401/4011 - PASIV = sold CREDITOR
+      const suppliers = findAccount(structuredData.accounts, '401')?.credit || 
+                        findAccount(structuredData.accounts, '4011')?.credit || 0;
       
-      // Stocuri: 371 - ACTIV = sold DEBITOR ✓ (corect)
-      const stocks = structuredData.accounts.find(a => a.code === '371')?.debit || 0;
+      // Stocuri: 371/3711 - ACTIV = sold DEBITOR
+      const stocks = findAccount(structuredData.accounts, '371')?.debit || 
+                     findAccount(structuredData.accounts, '3711')?.debit || 0;
       
       const totalCash = bank + cash;
       const netProfitLoss = profit - loss;
