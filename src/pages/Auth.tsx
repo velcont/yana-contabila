@@ -14,9 +14,21 @@ import MiniFooter from '@/components/MiniFooter';
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const isMarketplaceEntry = searchParams.get('ref') === 'marketplace';
+  
+  // FIX CRITIC: Detectare IMEDIATĂ a reset mode ÎNAINTE de randare
+  const detectInitialResetMode = () => {
+    const hashFragment = window.location.hash.substring(1);
+    const hashParams = new URLSearchParams(hashFragment);
+    const hasAccessToken = hashFragment.includes('access_token');
+    const isRecovery = hashParams.get('type') === 'recovery' || hashFragment.includes('type=recovery');
+    const resetParam = new URLSearchParams(window.location.search).get('reset') === 'true';
+    return (hasAccessToken && isRecovery) || resetParam;
+  };
+  
+  const [isInitializing, setIsInitializing] = useState(() => detectInitialResetMode());
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(() => detectInitialResetMode());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -42,6 +54,41 @@ const Auth = () => {
     }
   }, [isMarketplaceEntry, toast]);
 
+  // FIX CRITIC: Inițializare și așteptare procesare token Supabase
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const hashFragment = window.location.hash.substring(1);
+      const hasAccessToken = hashFragment.includes('access_token');
+      const isRecovery = hashFragment.includes('type=recovery');
+      
+      console.log('🔐 [AUTH INIT] Starting...', { hasAccessToken, isRecovery, hash: window.location.hash });
+      
+      if (hasAccessToken && isRecovery) {
+        console.log('🔐 [AUTH INIT] Recovery token detected - waiting for Supabase to process...');
+        setIsResetMode(true);
+        setIsLogin(false);
+        setIsForgotPassword(false);
+        
+        // Așteptăm Supabase să proceseze token-ul
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Verificăm sesiunea
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔐 [AUTH INIT] Session after wait:', session?.user?.email);
+        
+        // Curățăm URL-ul
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.hash = '';
+        cleanUrl.searchParams.set('reset', 'true');
+        window.history.replaceState({}, '', cleanUrl.toString());
+      }
+      
+      setIsInitializing(false);
+    };
+    
+    initializeAuth();
+  }, []);
+
   // Ascultă evenimentul PASSWORD_RECOVERY de la Supabase Auth
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -52,13 +99,11 @@ const Auth = () => {
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
+        setIsInitializing(false); // Oprește loading-ul când evenimentul e detectat
         
         // Curățăm URL-ul de parametrii sensibili
         const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = ''; // Șterge hash fragment-ul
-        cleanUrl.searchParams.delete('type');
-        cleanUrl.searchParams.delete('token');
-        cleanUrl.searchParams.delete('token_hash');
+        cleanUrl.hash = '';
         cleanUrl.searchParams.set('reset', 'true');
         window.history.replaceState({}, '', cleanUrl.toString());
       }
@@ -543,6 +588,18 @@ const Auth = () => {
     }
   };
 
+
+  // FIX CRITIC: Loading screen în timpul inițializării pentru a preveni flash-ul formularului de login
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-3 md:p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm">Se verifică link-ul de resetare...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-3 md:p-4">
