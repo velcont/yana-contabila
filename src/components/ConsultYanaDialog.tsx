@@ -35,17 +35,29 @@ interface ConsultYanaDialogProps {
   context?: string;
   conversationId?: string;
   onYanaResponse?: (response: YanaResponse) => void;
+  // Optional controlled mode props
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  triggerButton?: boolean; // Show trigger button (default true)
 }
 
 export function ConsultYanaDialog({ 
   context, 
   conversationId,
-  onYanaResponse 
+  onYanaResponse,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  triggerButton = true
 }: ConsultYanaDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ConsultMessage[]>([]);
   const [isConsulting, setIsConsulting] = useState(false);
+  
+  // Support both controlled and uncontrolled mode
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange || (() => {})) : setInternalOpen;
 
   const handleConsult = async () => {
     if (!question.trim() || isConsulting) return;
@@ -136,17 +148,19 @@ export function ConsultYanaDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="gap-2 border-primary/30 hover:bg-primary/10"
-        >
-          <Bot className="h-4 w-4" />
-          <span className="hidden md:inline">Consultă Yana</span>
-          <Sparkles className="h-3 w-3 text-primary" />
-        </Button>
-      </DialogTrigger>
+      {triggerButton && (
+        <DialogTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 border-primary/30 hover:bg-primary/10"
+          >
+            <Bot className="h-4 w-4" />
+            <span className="hidden md:inline">Consultă Yana</span>
+            <Sparkles className="h-3 w-3 text-primary" />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
