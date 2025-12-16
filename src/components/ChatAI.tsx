@@ -2436,12 +2436,27 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
       );
       
       // REZUMAT EXECUTIV - Calcul automat
-      const bank = structuredData.accounts.find(a => a.code === '5121')?.credit || 0;
-      const cash = structuredData.accounts.find(a => a.code === '5311')?.credit || 0;
-      const profit = structuredData.accounts.find(a => a.code === '121')?.credit || 0;
-      const loss = structuredData.accounts.find(a => a.code === '121')?.debit || 0;
-      const clients = structuredData.accounts.find(a => a.code === '411')?.debit || 0;
+      // FIX CRITIC: Bancă - include 5121 (LEI) + 5124 (valută) + 5125 (în curs) - ACTIVE = sold DEBITOR
+      const bankAccounts = structuredData.accounts.filter(a => 
+        a.code === '5121' || a.code === '5124' || a.code === '5125'
+      );
+      const bank = bankAccounts.reduce((sum, a) => sum + (a.debit || 0), 0);
+      
+      // FIX CRITIC: Casă 5311 - ACTIV = sold DEBITOR (nu creditor!)
+      const cash = structuredData.accounts.find(a => a.code === '5311')?.debit || 0;
+      
+      // Profit/Pierdere: 121 - sold CREDITOR = profit, sold DEBITOR = pierdere
+      const cont121 = structuredData.accounts.find(a => a.code === '121');
+      const profit = cont121?.credit || 0;
+      const loss = cont121?.debit || 0;
+      
+      // FIX CRITIC: Clienți 4111 (nu 411!) - ACTIV = sold DEBITOR
+      const clients = structuredData.accounts.find(a => a.code === '4111')?.debit || 0;
+      
+      // Furnizori: 401 - PASIV = sold CREDITOR ✓ (corect)
       const suppliers = structuredData.accounts.find(a => a.code === '401')?.credit || 0;
+      
+      // Stocuri: 371 - ACTIV = sold DEBITOR ✓ (corect)
       const stocks = structuredData.accounts.find(a => a.code === '371')?.debit || 0;
       
       const totalCash = bank + cash;
