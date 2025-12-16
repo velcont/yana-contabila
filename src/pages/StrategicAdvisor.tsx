@@ -81,6 +81,8 @@ export default function StrategicAdvisor() {
   
   // History sheet state (ADDITIVE - new feature)
   const [showHistorySheet, setShowHistorySheet] = useState(false);
+  // Consult Yana dropdown state (pentru ecrane sub 2xl)
+  const [showConsultYanaFromDropdown, setShowConsultYanaFromDropdown] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Access control states
@@ -692,10 +694,10 @@ export default function StrategicAdvisor() {
                 </div>
                 
                 {/* Right side - controls esențiale, optimizate pentru mobil */}
-                <div className="flex items-center gap-3 md:gap-4 flex-shrink-0 flex-wrap justify-end">
-                  {/* Message counter - doar desktop XL (>1280px) */}
+                <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+                  {/* Message counter - doar desktop 2XL (>1536px) */}
                   {activeTab === "chat" && messages.length > 0 && (
-                    <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
+                    <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-lg border border-primary/30">
                       <MessageSquare className="w-4 h-4 text-primary" />
                       <span className="text-sm font-medium">{messages.length}</span>
                       <span className="text-xs text-muted-foreground">mesaje</span>
@@ -729,16 +731,16 @@ export default function StrategicAdvisor() {
 
                   {activeTab === "chat" && (
                     <>
-                      {/* Consultă Yana - DOAR desktop XL (>1280px) */}
-                      <div className="hidden xl:block">
+                      {/* Consultă Yana - DOAR desktop 2XL (>1536px) */}
+                      <div className="hidden 2xl:block">
                         <ConsultYanaDialog
                           context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
                           conversationId={conversationId}
                         />
                       </div>
                       
-                      {/* BattlePlan - DOAR desktop XL (>1280px), pe mobil/laptop e în dropdown */}
-                      <div className="hidden xl:block">
+                      {/* BattlePlan - DOAR desktop 2XL (>1536px), pe laptop/mobil e în dropdown */}
+                      <div className="hidden 2xl:block">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="flex-shrink-0">
@@ -766,9 +768,18 @@ export default function StrategicAdvisor() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-background min-w-[200px]">
-                          {/* Battle Plan - vizibil doar pe mobil în dropdown */}
+                          {/* Consultă Yana - vizibil sub 2xl în dropdown */}
                           <DropdownMenuItem 
-                            className="md:hidden" 
+                            className="2xl:hidden" 
+                            onClick={() => setShowConsultYanaFromDropdown(true)}
+                          >
+                            <Bot className="w-4 h-4 mr-2" />
+                            Consultă Yana
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="2xl:hidden" />
+                          {/* Battle Plan - vizibil sub 2xl în dropdown */}
+                          <DropdownMenuItem 
+                            className="2xl:hidden" 
                             disabled={messages.length < 8}
                             onClick={() => {
                               // Trigger BattlePlanExport click
@@ -779,7 +790,7 @@ export default function StrategicAdvisor() {
                             <FileText className="w-4 h-4 mr-2" />
                             {messages.length < 8 ? 'Battle Plan (8+ mesaje)' : 'Battle Plan Export'}
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator className="md:hidden" />
+                          <DropdownMenuSeparator className="2xl:hidden" />
                           <DropdownMenuItem onClick={() => setShowHistorySheet(true)}>
                             <History className="w-4 h-4 mr-2" />
                             Istoric Conversații
@@ -972,6 +983,14 @@ export default function StrategicAdvisor() {
           />
         </SheetContent>
       </Sheet>
+      {/* Consult Yana Dialog - triggered from dropdown on screens < 2xl */}
+      <ConsultYanaDialog
+        open={showConsultYanaFromDropdown}
+        onOpenChange={setShowConsultYanaFromDropdown}
+        triggerButton={false}
+        context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
+        conversationId={conversationId}
+      />
     </div>
     </TooltipProvider>
   );
