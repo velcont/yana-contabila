@@ -18,7 +18,12 @@ import {
   ShoppingBag,
   Award,
   BarChart3,
-  Loader2
+  Loader2,
+  MessageSquare,
+  Brain,
+  Target,
+  FileOutput,
+  Copy
 } from "lucide-react";
 import { generateYanaPremiumReportPPT } from "@/utils/generateYanaPremiumReportPPT";
 import { generateMarketplacePowerPoint } from "@/utils/generateMarketplacePowerPoint";
@@ -160,6 +165,11 @@ export default function MarketingMaterials() {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Mesaj copiat în clipboard!");
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -179,7 +189,7 @@ export default function MarketingMaterials() {
         </div>
 
         <Tabs defaultValue="presentations" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="presentations">
               <Presentation className="w-4 h-4 mr-2" />
               Presentations
@@ -195,6 +205,10 @@ export default function MarketingMaterials() {
             <TabsTrigger value="actions">
               <Zap className="w-4 h-4 mr-2" />
               Quick Actions
+            </TabsTrigger>
+            <TabsTrigger value="copy">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Copy Library
             </TabsTrigger>
           </TabsList>
 
@@ -534,6 +548,185 @@ export default function MarketingMaterials() {
                     <FileSpreadsheet className="w-4 h-4 mr-2" />
                     Export Analytics (Coming Soon)
                   </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* COPY LIBRARY TAB */}
+          <TabsContent value="copy" className="space-y-4">
+            <Alert>
+              <AlertDescription>
+                Mesaje de marketing corecte pentru fiecare funcționalitate YANA. Click pentru copiere rapidă.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* CHAT AI - Raport Financiar */}
+              <Card className="border-blue-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                    Chat AI - Raport Financiar
+                  </CardTitle>
+                  <CardDescription>
+                    Funcționalitate: Încărcare balanță → Raport 40+ pagini în 60 secunde
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">📺 YouTube / TikTok:</p>
+                    <p className="text-sm text-foreground">"Încarcă balanța ta pe Yana-contabila.velcont.com și primești raportul financiar complet în 60 de secunde. Link în primul comentariu."</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Încarcă balanța ta pe Yana-contabila.velcont.com și primești raportul financiar complet în 60 de secunde. Link în primul comentariu.")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                  
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">📘 Facebook:</p>
+                    <p className="text-sm text-foreground">"Ai nevoie de analiză financiară rapidă? Încarcă balanța pe Yana și primești raport de 40+ pagini cu indicatori, grafice și recomandări. Gratuit prima analiză!"</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Ai nevoie de analiză financiară rapidă? Încarcă balanța pe Yana și primești raport de 40+ pagini cu indicatori, grafice și recomandări. Gratuit prima analiză!")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* YANA STRATEGICĂ - Strategie Business */}
+              <Card className="border-violet-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-violet-500" />
+                    Yana Strategică - Strategie Business
+                  </CardTitle>
+                  <CardDescription>
+                    Funcționalitate: Conversație AI → Strategii personalizate pentru afacerea ta
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-violet-50 dark:bg-violet-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-1">📺 YouTube / TikTok:</p>
+                    <p className="text-sm text-foreground">"Intră pe Yana-contabila.velcont.com, accesează Yana Strategică și primești strategii personalizate pentru afacerea ta. Link în primul comentariu."</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Intră pe Yana-contabila.velcont.com, accesează Yana Strategică și primești strategii personalizate pentru afacerea ta. Link în primul comentariu.")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                  
+                  <div className="p-3 bg-violet-50 dark:bg-violet-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-1">📘 Facebook:</p>
+                    <p className="text-sm text-foreground">"Cum crești vânzările? Cum reduci costurile? Discută cu Yana Strategică - AI-ul tău de business care îți oferă strategii concrete bazate pe datele firmei tale."</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Cum crești vânzările? Cum reduci costurile? Discută cu Yana Strategică - AI-ul tău de business care îți oferă strategii concrete bazate pe datele firmei tale.")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* WAR ROOM - Simulări Scenarii */}
+              <Card className="border-red-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-red-500" />
+                    War Room - Simulări Scenarii
+                  </CardTitle>
+                  <CardDescription>
+                    Funcționalitate: Testează scenarii de criză înainte să se întâmple
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">📺 YouTube / TikTok:</p>
+                    <p className="text-sm text-foreground">"Ce se întâmplă dacă pierzi clientul principal? Testează scenarii de criză în War Room-ul Yana înainte să se întâmple în realitate. Link în bio."</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Ce se întâmplă dacă pierzi clientul principal? Testează scenarii de criză în War Room-ul Yana înainte să se întâmple în realitate. Link în bio.")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                  
+                  <div className="p-3 bg-red-50 dark:bg-red-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">📘 Facebook:</p>
+                    <p className="text-sm text-foreground">"Simulează scenarii de criză: scădere vânzări 30%, pierdere client major, creștere costuri. War Room-ul Yana îți arată impactul și soluțiile ÎNAINTE să fie prea târziu."</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Simulează scenarii de criză: scădere vânzări 30%, pierdere client major, creștere costuri. War Room-ul Yana îți arată impactul și soluțiile ÎNAINTE să fie prea târziu.")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* BATTLE PLAN - Export PDF */}
+              <Card className="border-amber-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileOutput className="w-5 h-5 text-amber-500" />
+                    Battle Plan - Export PDF
+                  </CardTitle>
+                  <CardDescription>
+                    Funcționalitate: Exportă strategia completă în PDF profesional
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">📺 YouTube / TikTok:</p>
+                    <p className="text-sm text-foreground">"Primește Battle Plan-ul tău în PDF: obiective, pași concreți, timeline și KPIs. Exportă și prezintă echipei sau investitorilor. Link în bio."</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Primește Battle Plan-ul tău în PDF: obiective, pași concreți, timeline și KPIs. Exportă și prezintă echipei sau investitorilor. Link în bio.")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
+                  
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-lg">
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">📘 Facebook:</p>
+                    <p className="text-sm text-foreground">"Strategia ta de business într-un document profesional: Battle Plan PDF cu obiective SMART, pași de implementare și indicatori de succes. Pregătit pentru prezentare!"</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => copyToClipboard("Strategia ta de business într-un document profesional: Battle Plan PDF cu obiective SMART, pași de implementare și indicatori de succes. Pregătit pentru prezentare!")}
+                    >
+                      <Copy className="w-3 h-3 mr-1" />
+                      Copiază
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
