@@ -144,15 +144,44 @@ export async function generatePremiumWordReport(params: GenerateReportParams): P
   // Helper functions
   const fmt = (n: number) => n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
+  // 🆕 Căutare FLEXIBILĂ de conturi (exact match → startsWith → 3-digit pentru 4-digit codes)
+  const findAccount = (baseCode: string) => {
+    if (!accounts || accounts.length === 0) return null;
+    // Exact match first
+    let acc = accounts.find(a => a.code === baseCode);
+    if (acc) return acc;
+    // startsWith match (pentru a găsi 5121 când căutăm "512")
+    acc = accounts.find(a => a.code.startsWith(baseCode));
+    if (acc) return acc;
+    // Pentru coduri 4-digit, verifică și varianta 3-digit (pentru soft-uri diferite)
+    if (baseCode.length === 4) {
+      acc = accounts.find(a => a.code === baseCode.substring(0, 3));
+    }
+    return acc || null;
+  };
+  
+  // 🆕 Sumează mai multe conturi (pentru cash total = 5121 + 5124 + 5125 + 5311)
+  const sumAccounts = (baseCodes: string[], field: 'debit' | 'credit'): number => {
+    let total = 0;
+    for (const code of baseCodes) {
+      // Găsește toate conturile care încep cu codul
+      const matchingAccounts = accounts.filter(a => a.code.startsWith(code));
+      for (const acc of matchingAccounts) {
+        total += field === 'debit' ? (acc.debit || 0) : (acc.credit || 0);
+      }
+    }
+    return total;
+  };
+  
   const get = (code: string) => {
-    const acc = accounts.find(a => a.code === code);
+    const acc = findAccount(code);
     if (!acc) return { debit: 0, credit: 0, sold: 0 };
     const sold = acc.debit > 0 ? acc.debit : (acc.credit > 0 ? acc.credit : 0);
     return { debit: acc.debit, credit: acc.credit, sold };
   };
   
   const getAccountValue = (code: string, type: 'debit' | 'credit' = 'debit'): number => {
-    const acc = accounts.find(a => a.code === code);
+    const acc = findAccount(code);
     if (!acc) return 0;
     return type === 'debit' ? (acc.debit || 0) : (acc.credit || 0);
   };
@@ -169,18 +198,49 @@ export async function generatePremiumWordReport(params: GenerateReportParams): P
       .reduce((sum, a) => sum + (type === 'debit' ? (a.debit || 0) : (a.credit || 0)), 0);
   };
 
-  // Calculate key indicators
-  const bank = get('5121').sold;
-  const cash = get('5311').sold;
-  const clients411 = get('411').debit;
-  const clients4111 = get('4111').debit;
-  const totalClients = clients411 + clients4111;
-  const suppliers = get('401').credit;
-  const stocks = get('371').debit;
-  const profit121credit = get('121').credit;
-  const profit121debit = get('121').debit;
-  const profitOrLoss = profit121credit - profit121debit;
+  // 🔍 LOGGING pentru debugging
+  console.log(`[generatePremiumWordReport] Accounts received: ${accounts?.length || 0}`);
+  console.log(`[generatePremiumWordReport] Sample accounts:`, accounts?.slice(0, 10).map(a => `${a.code}: D=${a.debit} C=${a.credit}`));
+
+  // Calculate key indicators - 🆕 CORECTĂRI CRITICE
+  // Bancă: 5121 (lei) + 5124 (valută) + 5125 (alte conturi)
+  const bank5121 = getAccountValue('5121', 'debit');
+  const bank5124 = getAccountValue('5124', 'debit');
+  const bank5125 = getAccountValue('5125', 'debit');
+  const bank = bank5121 + bank5124 + bank5125;
+  
+  // Cash la casă: 5311 (lei) + 5314 (valută)
+  const cash5311 = getAccountValue('5311', 'debit');
+  const cash5314 = getAccountValue('5314', 'debit');
+  const cash = cash5311 + cash5314;
+  
+  // Total cash
   const totalCash = bank + cash;
+  
+  // Clienți: 4111 sau 411
+  const clients4111 = getAccountValue('4111', 'debit');
+  const clients411 = getAccountValue('411', 'debit');
+  const totalClients = clients4111 > 0 ? clients4111 : clients411;
+  
+  // Furnizori: 401 (credit!)
+  const suppliers = getAccountValue('401', 'credit');
+  
+  // Stocuri marfă: 371
+  const stocks = getAccountValue('371', 'debit');
+  
+  // Profit/Pierdere: 121 (credit = profit, debit = pierdere)
+  const profit121credit = getAccountValue('121', 'credit');
+  const profit121debit = getAccountValue('121', 'debit');
+  const profitOrLoss = profit121credit - profit121debit;
+  
+  // 🔍 LOGGING valorilor calculate
+  console.log(`[generatePremiumWordReport] 💰 Bank (5121+5124+5125): ${bank5121} + ${bank5124} + ${bank5125} = ${bank}`);
+  console.log(`[generatePremiumWordReport] 💵 Cash (5311+5314): ${cash5311} + ${cash5314} = ${cash}`);
+  console.log(`[generatePremiumWordReport] 📊 Total Cash: ${totalCash}`);
+  console.log(`[generatePremiumWordReport] 👥 Clients (4111/411): ${clients4111} / ${clients411} = ${totalClients}`);
+  console.log(`[generatePremiumWordReport] 📦 Suppliers (401): ${suppliers}`);
+  console.log(`[generatePremiumWordReport] 🏪 Stocks (371): ${stocks}`);
+  console.log(`[generatePremiumWordReport] 📈 Profit/Loss (121): credit=${profit121credit} debit=${profit121debit} = ${profitOrLoss}`);
   
   // Sum revenues (class 7) and expenses (class 6)
   const totalRevenue = accounts.filter(a => a.accountClass === 7).reduce((sum, a) => sum + a.credit, 0);
