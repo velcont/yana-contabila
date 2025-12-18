@@ -63,6 +63,7 @@ export default function StrategicAdvisor() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [user, setUser] = useState<any>(null);
+  const [sessionChecked, setSessionChecked] = useState(false); // Track if session was verified
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -126,10 +127,12 @@ export default function StrategicAdvisor() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setSessionChecked(true); // Session verified
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setSessionChecked(true);
     });
 
     return () => subscription.unsubscribe();
@@ -249,11 +252,17 @@ export default function StrategicAdvisor() {
   // Check access and credit on mount
   useEffect(() => {
     const checkAccessAndCredit = async () => {
-      // ✅ FIX: Nu seta isCheckingAccess(false) când user nu e încărcat încă
-      // Așteaptă ca user-ul să fie disponibil
+      // Așteptăm să știm dacă avem sesiune sau nu
+      if (!sessionChecked) {
+        logger.log("⏳ [ACCESS-CHECK] Waiting for session check...");
+        return;
+      }
+      
+      // Dacă sesiunea a fost verificată și nu avem user = neautentificat
       if (!user) {
-        logger.log("⏳ [ACCESS-CHECK] Waiting for user to load...");
-        return; // Nu seta isCheckingAccess(false) - lasă loading să continue
+        logger.log("❌ [ACCESS-CHECK] User not authenticated - redirecting to auth");
+        navigate('/auth?redirect=/strategic-advisor');
+        return;
       }
 
       try {
@@ -354,7 +363,7 @@ export default function StrategicAdvisor() {
     };
 
     checkAccessAndCredit();
-  }, [user]);
+  }, [user, sessionChecked, navigate]);
 
   // Load conversation history ONLY on mount
   useEffect(() => {

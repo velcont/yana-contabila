@@ -420,9 +420,12 @@ const Auth = () => {
           description: "Bine ai revenit!",
         });
         
-        // Redirect logic based on marketplace entry
+        // Redirect logic: check for redirect param first, then marketplace, then default
+        const redirectTo = searchParams.get('redirect');
         const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
-        if (isMarketplace) {
+        if (redirectTo) {
+          navigate(redirectTo);
+        } else if (isMarketplace) {
           navigate('/app?view=marketplace');
         } else {
           navigate('/app');
@@ -490,7 +493,8 @@ const Auth = () => {
                 description: 'Te-am autentificat cu succes!',
               });
 
-              navigate('/app');
+              const redirectTo = searchParams.get('redirect');
+              navigate(redirectTo || '/app');
               return;
             } else {
               // 3) Parola nu e corectă – trimitem automat email de resetare
@@ -568,9 +572,12 @@ const Auth = () => {
           (window as any).gtag_report_conversion();
         }
         
-        // Redirect logic based on marketplace entry
+        // Redirect logic: check for redirect param first, then marketplace, then default
+        const redirectTo = searchParams.get('redirect');
         const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
-        if (isMarketplace) {
+        if (redirectTo) {
+          navigate(redirectTo);
+        } else if (isMarketplace) {
           navigate('/app?view=marketplace');
         } else {
           navigate('/app');
