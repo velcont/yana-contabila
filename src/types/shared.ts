@@ -38,14 +38,17 @@ export interface MessageSource {
 export interface StructuredBalanceData {
   cui: string;
   company: string;
+  period?: string;  // 🆕 Perioada balanței (ex: "Decembrie 2024")
   accounts: BalanceAccount[];
 }
 
 export interface BalanceAccount {
   code: string;
   name: string;
-  debit: number;
-  credit: number;
+  debit: number;           // Total sume debitoare (pentru clasa 6-7)
+  credit: number;          // Total sume creditoare (pentru clasa 6-7)
+  finalDebit?: number;     // 🆕 Sold final debitor (pentru clasa 1-5)
+  finalCredit?: number;    // 🆕 Sold final creditor (pentru clasa 1-5)
   accountClass: number;
 }
 
