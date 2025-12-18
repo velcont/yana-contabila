@@ -855,6 +855,11 @@ serve(async (req) => {
             if (!contCodeMatch) continue;
             const contCode = contCodeMatch[1];
             
+            // 🔍 DEBUG pentru contul 371 - verificăm extragerea
+            if (contCode === '371') {
+              console.log(`🔍 [DEBUG-371] Row ${i}: contCode=${contCode}, soldFinalDebitCol=${indices.soldFinalDebitCol}, rawValue=${row[indices.soldFinalDebitCol]}`);
+            }
+            
             const accountClass = parseInt(contCode[0]);
             // Extrage denumirea din coloana dedicată SAU din string-ul complet dacă lipsește
             const denumireFromCol = indices.denumireCol >= 0 ? String(row[indices.denumireCol] || '').trim() : '';
@@ -877,17 +882,37 @@ serve(async (req) => {
             }
             
             if (debit > 0 || credit > 0) {
-              accounts.push({
+              const accountObj: any = {
                 code: contCode,
                 name: denumire,
-                debit: Math.round(debit * 100) / 100,
-                credit: Math.round(credit * 100) / 100,
                 accountClass
-              });
+              };
+              
+              // ✅ Clase 1-5: salvează ca finalDebit/finalCredit (solduri finale)
+              if (accountClass >= 1 && accountClass <= 5) {
+                accountObj.finalDebit = Math.round(debit * 100) / 100;
+                accountObj.finalCredit = Math.round(credit * 100) / 100;
+                accountObj.debit = 0;
+                accountObj.credit = 0;
+              } 
+              // ✅ Clase 6-7: salvează ca debit/credit (total sume)
+              else {
+                accountObj.debit = Math.round(debit * 100) / 100;
+                accountObj.credit = Math.round(credit * 100) / 100;
+                accountObj.finalDebit = 0;
+                accountObj.finalCredit = 0;
+              }
+              
+              accounts.push(accountObj);
+              
+              // 🔍 DEBUG pentru contul 371
+              if (contCode === '371') {
+                console.log(`🔍 [DEBUG-371] SALVAT: finalDebit=${accountObj.finalDebit}, finalCredit=${accountObj.finalCredit}`);
+              }
               
               // ✅ LOGGING DETALIAT pentru clasa 7
-              if (accountClass === 7 && credit > 0) {
-                console.log(`✅ [CL7] Cont ${contCode} (col ${indices.totalSumeCreditCol}): ${credit} RON`);
+              if (accountClass === 7 && accountObj.credit > 0) {
+                console.log(`✅ [CL7] Cont ${contCode} (col ${indices.totalSumeCreditCol}): ${accountObj.credit} RON`);
               }
             }
           }

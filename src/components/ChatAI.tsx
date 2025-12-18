@@ -3001,8 +3001,8 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
         duration: 6000
       });
       
-      // Reset state pentru următoarea analiză
-      setBalanceStructuredData(null);
+      // ✅ NU mai resetăm datele - utilizatorul trebuie să poată întreba în chat despre balanță
+      // setBalanceStructuredData(null);
       
     } catch (error) {
       console.error('Eroare generare Word:', error);
