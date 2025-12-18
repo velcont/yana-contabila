@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { TutorialProvider } from "@/contexts/TutorialContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -53,6 +53,8 @@ const queryClient = new QueryClient();
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -60,9 +62,11 @@ const PrivateRoute = ({ children }: { children: JSX.Element }) => {
       </div>
     );
   }
+  
   if (!user) {
-    return <Landing />;
+    return <Navigate to={`/auth?redirect=${location.pathname}`} replace />;
   }
+  
   return children;
 };
 
