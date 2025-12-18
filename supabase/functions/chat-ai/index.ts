@@ -1050,7 +1050,21 @@ const ChatAIRequestSchema = z.object({
     .default([]),
   conversationId: z.string().uuid().optional(),
   summaryType: z.enum(['detailed', 'brief', 'short', 'action']).optional().default('detailed'),
-  stream: z.boolean().optional().default(true)
+  stream: z.boolean().optional().default(true),
+  // 🆕 ADĂUGAT: balanceContext pentru datele balanței
+  balanceContext: z.object({
+    company: z.string().optional(),
+    cui: z.string().optional(),
+    accounts: z.array(z.object({
+      code: z.string(),
+      name: z.string(),
+      debit: z.number(),
+      credit: z.number(),
+      finalDebit: z.number().optional(),
+      finalCredit: z.number().optional(),
+      accountClass: z.number().optional()
+    }))
+  }).optional().nullable()
 });
 
 serve(async (req) => {
@@ -1098,7 +1112,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1106,6 +1120,8 @@ serve(async (req) => {
     console.log(`[chat-ai][${requestId}] History length: ${history.length} messages`);
     console.log(`[chat-ai][${requestId}] Stream mode: ${streamResponse}`);
     console.log(`[chat-ai][${requestId}] Summary type: ${summaryType}`);
+    // 🆕 LOGGING pentru balanceContext
+    console.log(`[chat-ai][${requestId}] Balance context: ${balanceContext ? `${balanceContext.accounts?.length || 0} accounts for ${balanceContext.company || 'unknown'}` : 'null'}`);
 
     // Extragem user_id pentru rate limiting și caching
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1298,7 +1314,14 @@ serve(async (req) => {
     // Adaptează system prompt pe baza tipului de sumarizare și setează data curentă dinamic
     const now = new Date();
     const roNow = new Intl.DateTimeFormat('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' }).format(now);
-    let adaptedPrompt = SYSTEM_PROMPT + knowledgeContext + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    
+    // 🆕 Construiește secțiunea cu datele balanței din balanceContext primit din frontend
+    const balanceDataSection = buildBalanceDataContext(balanceContext);
+    if (balanceDataSection) {
+      console.log(`[chat-ai][${requestId}] Balance data section added to prompt (${balanceDataSection.length} chars)`);
+    }
+    
+    let adaptedPrompt = SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
