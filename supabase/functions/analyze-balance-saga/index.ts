@@ -159,8 +159,9 @@ function parseSagaExcel(excelBase64: string): {
       }
     }
     
-    // Al doilea sub-header (opțional)
-    if (subHeaderRow1 >= 0 && subHeaderRow2 < 0 && i > subHeaderRow1) {
+    // Al doilea sub-header (opțional) - DOAR în următoarele 2 rânduri după primul sub-header
+    // (previne detectarea falsă a "debitori" din denumirea contului 4092)
+    if (subHeaderRow1 >= 0 && subHeaderRow2 < 0 && i > subHeaderRow1 && i <= subHeaderRow1 + 2) {
       if (rowStr.includes('debit') || rowStr.includes('credit')) {
         subHeaderRow2 = i;
         console.log(`[SAGA-PARSER] Sub-header 2 găsit la rând ${i}`);
