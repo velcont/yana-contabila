@@ -311,15 +311,30 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   };
   
   // 🆕 Funcții de calcul pentru ecranele insight
+  // 🆕 FUNCȚIA CRITICĂ: Citește valoarea corectă în funcție de clasa contului
+  const getCorrectValue = (acc: any, field: 'debit' | 'credit'): number => {
+    if (!acc) return 0;
+    const accountClass = acc.accountClass || parseInt(acc.code?.charAt(0) || '0');
+    
+    if (accountClass >= 1 && accountClass <= 5) {
+      // Clase 1-5: Solduri finale (finalDebit/finalCredit)
+      return field === 'debit' ? (acc.finalDebit || 0) : (acc.finalCredit || 0);
+    } else {
+      // Clase 6-7: Rulaje (debit/credit)
+      return field === 'debit' ? (acc.debit || 0) : (acc.credit || 0);
+    }
+  };
+
   const getTotalCash = () => {
     if (!balanceStructuredData?.accounts) return 0;
-    // Conturi 5121 (Bănci) + 5311 (Casă) - folosim sold final (debit - credit pentru active)
+    // Conturi 5121 (Bănci) + 5124 (Valută) + 5311 (Casă) - folosim getCorrectValue pentru clase 5
     const bankAccounts = balanceStructuredData.accounts.filter(a => 
-      a.code.startsWith('5121') || a.code.startsWith('5311') || a.code === '5121' || a.code === '5311'
+      a.code.startsWith('5121') || a.code.startsWith('5124') || a.code.startsWith('5311') || 
+      a.code === '5121' || a.code === '5124' || a.code === '5311'
     );
     return bankAccounts.reduce((sum, a) => {
-      // Pentru conturi de activ, soldul = debit - credit
-      return sum + ((a.debit || 0) - (a.credit || 0));
+      // 🆕 Folosim getCorrectValue pentru a citi finalDebit pentru clasa 5
+      return sum + getCorrectValue(a, 'debit');
     }, 0);
   };
 
