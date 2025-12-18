@@ -1159,19 +1159,8 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
             if (!findErr && found && found.length > 0 && found[0]?.metadata) {
             const md = found[0].metadata as any;
             let answer: string | null = null;
-            if (/(cifra|venit|ca)/i.test(userMessage)) {
-              const revenue = Number(md?.revenue || 0);
-              console.log('[Chat] Răspund cu revenue:', revenue);
-              answer = `Cifra de afaceri pentru ${detectedMonth} este ${revenue.toLocaleString('ro-RO')} RON.`;
-            } else if (/profit/i.test(userMessage)) {
-              const profit = Number(md?.profit || 0);
-              console.log('[Chat] Răspund cu profit:', profit);
-              answer = `Profitul pentru ${detectedMonth} este ${profit.toLocaleString('ro-RO')} RON.`;
-            } else if (/(cheltuieli)/i.test(userMessage)) {
-              const expenses = Number(md?.expenses || 0);
-              console.log('[Chat] Răspund cu expenses:', expenses);
-              answer = `Cheltuielile pentru ${detectedMonth} sunt ${expenses.toLocaleString('ro-RO')} RON.`;
-            } else if (/(stoc|inventar|marfuri|m[ăa]rfuri|materii\s*prime|materiale)/i.test(userMessage)) {
+            // 🔄 PRIORITATE CORECTĂ: Stocuri ÎNAINTE de cifra afaceri (evită false positive de la "Cât")
+            if (/(stoc|inventar|marf[ăa]|marfuri|m[ăa]rfuri|materii\s*prime|materiale)/i.test(userMessage)) {
               const stocuri = Number(md?.soldStocuri || 0);
               const materiiPrime = Number(md?.soldMateriiPrime || 0);
               const materiale = Number(md?.soldMateriale || 0);
@@ -1191,6 +1180,19 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
                 answer = `Nu am găsit informații despre stocuri în balanța pentru ${detectedMonth}. Verifică dacă balanța conține conturile 301 (Materii prime), 302 (Materiale) sau 371 (Mărfuri).`;
                 console.log('[Chat] Nu există stocuri în metadata pentru', detectedMonth);
               }
+            } else if (/(cifra|venit)/i.test(userMessage)) {
+              // ✅ CORECTAT: Eliminat /ca/i care se potrivea cu "Cât"
+              const revenue = Number(md?.revenue || 0);
+              console.log('[Chat] Răspund cu revenue:', revenue);
+              answer = `Cifra de afaceri pentru ${detectedMonth} este ${revenue.toLocaleString('ro-RO')} RON.`;
+            } else if (/profit/i.test(userMessage)) {
+              const profit = Number(md?.profit || 0);
+              console.log('[Chat] Răspund cu profit:', profit);
+              answer = `Profitul pentru ${detectedMonth} este ${profit.toLocaleString('ro-RO')} RON.`;
+            } else if (/(cheltuieli)/i.test(userMessage)) {
+              const expenses = Number(md?.expenses || 0);
+              console.log('[Chat] Răspund cu expenses:', expenses);
+              answer = `Cheltuielile pentru ${detectedMonth} sunt ${expenses.toLocaleString('ro-RO')} RON.`;
             }
             if (answer) {
               console.log('[Chat] ✅ Răspuns direct din DB:', answer.substring(0, 100));
