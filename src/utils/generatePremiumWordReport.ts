@@ -16,6 +16,8 @@ interface StructuredData {
     name: string;
     debit: number;
     credit: number;
+    finalDebit?: number;   // 🆕 Sold final debitor (clase 1-5)
+    finalCredit?: number;  // 🆕 Sold final creditor (clase 1-5)
     accountClass: number;
   }>;
 }
@@ -144,6 +146,22 @@ export async function generatePremiumWordReport(params: GenerateReportParams): P
   // Helper functions
   const fmt = (n: number) => n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
+  // 🆕 FUNCȚIA CRITICĂ: Citește valoarea corectă în funcție de clasa contului
+  // Clase 1-5: folosim finalDebit/finalCredit (solduri finale)
+  // Clase 6-7: folosim debit/credit (rulaje)
+  const getCorrectValue = (acc: any, field: 'debit' | 'credit'): number => {
+    if (!acc) return 0;
+    const accountClass = acc.accountClass || parseInt(acc.code?.charAt(0) || '0');
+    
+    if (accountClass >= 1 && accountClass <= 5) {
+      // Clase 1-5: Solduri finale
+      return field === 'debit' ? (acc.finalDebit || 0) : (acc.finalCredit || 0);
+    } else {
+      // Clase 6-7: Rulaje
+      return field === 'debit' ? (acc.debit || 0) : (acc.credit || 0);
+    }
+  };
+  
   // 🆕 Căutare FLEXIBILĂ de conturi (exact match → startsWith → 3-digit pentru 4-digit codes)
   const findAccount = (baseCode: string) => {
     if (!accounts || accounts.length === 0) return null;
@@ -160,14 +178,14 @@ export async function generatePremiumWordReport(params: GenerateReportParams): P
     return acc || null;
   };
   
-  // 🆕 Sumează mai multe conturi (pentru cash total = 5121 + 5124 + 5125 + 5311)
+  // 🆕 Sumează mai multe conturi - FOLOSEȘTE getCorrectValue
   const sumAccounts = (baseCodes: string[], field: 'debit' | 'credit'): number => {
     let total = 0;
     for (const code of baseCodes) {
       // Găsește toate conturile care încep cu codul
       const matchingAccounts = accounts.filter(a => a.code.startsWith(code));
       for (const acc of matchingAccounts) {
-        total += field === 'debit' ? (acc.debit || 0) : (acc.credit || 0);
+        total += getCorrectValue(acc, field);
       }
     }
     return total;
@@ -176,26 +194,28 @@ export async function generatePremiumWordReport(params: GenerateReportParams): P
   const get = (code: string) => {
     const acc = findAccount(code);
     if (!acc) return { debit: 0, credit: 0, sold: 0 };
-    const sold = acc.debit > 0 ? acc.debit : (acc.credit > 0 ? acc.credit : 0);
-    return { debit: acc.debit, credit: acc.credit, sold };
+    const debit = getCorrectValue(acc, 'debit');
+    const credit = getCorrectValue(acc, 'credit');
+    const sold = debit > 0 ? debit : (credit > 0 ? credit : 0);
+    return { debit, credit, sold };
   };
   
   const getAccountValue = (code: string, type: 'debit' | 'credit' = 'debit'): number => {
     const acc = findAccount(code);
     if (!acc) return 0;
-    return type === 'debit' ? (acc.debit || 0) : (acc.credit || 0);
+    return getCorrectValue(acc, type);
   };
   
   const getAccountsSum = (pattern: RegExp, type: 'debit' | 'credit' = 'debit'): number => {
     return accounts
       .filter(a => pattern.test(a.code))
-      .reduce((sum, a) => sum + (type === 'debit' ? (a.debit || 0) : (a.credit || 0)), 0);
+      .reduce((sum, a) => sum + getCorrectValue(a, type), 0);
   };
   
   const getClassSum = (classNum: number, type: 'debit' | 'credit' = 'debit'): number => {
     return accounts
       .filter(a => a.accountClass === classNum)
-      .reduce((sum, a) => sum + (type === 'debit' ? (a.debit || 0) : (a.credit || 0)), 0);
+      .reduce((sum, a) => sum + getCorrectValue(a, type), 0);
   };
 
   // 🔍 LOGGING pentru debugging
