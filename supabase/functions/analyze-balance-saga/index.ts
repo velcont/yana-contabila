@@ -498,31 +498,47 @@ serve(async (req) => {
     // Construim metadata din datele structurate
     const metadata: Record<string, any> = {};
     
+    // Helper: pentru clase 1-5 folosim finalDebit/finalCredit, pentru 6-7 folosim debit/credit
+    const getDebitValue = (acc: any | undefined) => {
+      if (!acc) return 0;
+      return acc.accountClass >= 1 && acc.accountClass <= 5 
+        ? (acc.finalDebit || 0) 
+        : (acc.debit || 0);
+    };
+    const getCreditValue = (acc: any | undefined) => {
+      if (!acc) return 0;
+      return acc.accountClass >= 1 && acc.accountClass <= 5 
+        ? (acc.finalCredit || 0) 
+        : (acc.credit || 0);
+    };
+    
     // Extrage indicatori cheie
-    const account121 = structuredData.accounts.find(a => a.code === '121');
+    const account121 = structuredData.accounts.find(a => a.code === '121' || a.code.startsWith('121'));
     if (account121) {
       // Sold creditor = profit, sold debitor = pierdere
-      metadata.profit = account121.credit > 0 ? account121.credit : -account121.debit;
+      const creditVal = getCreditValue(account121);
+      const debitVal = getDebitValue(account121);
+      metadata.profit = creditVal > 0 ? creditVal : -debitVal;
     }
     
     const account5121 = structuredData.accounts.find(a => a.code.startsWith('5121'));
     const account5311 = structuredData.accounts.find(a => a.code.startsWith('5311'));
-    metadata.banca = account5121?.debit || 0;
-    metadata.casa = account5311?.debit || 0;
+    metadata.banca = getDebitValue(account5121);
+    metadata.casa = getDebitValue(account5311);
     
     const account4111 = structuredData.accounts.find(a => a.code.startsWith('4111'));
-    metadata.clienti = account4111?.debit || 0;
+    metadata.clienti = getDebitValue(account4111);
     
     const account401 = structuredData.accounts.find(a => a.code.startsWith('401'));
-    metadata.furnizori = account401?.credit || 0;
+    metadata.furnizori = getCreditValue(account401);
     
-    // Cifra de afaceri din conturile 70x
+    // Cifra de afaceri din conturile 70x (clasa 7 - folosesc credit normal)
     const revenueAccounts = structuredData.accounts.filter(a => a.code.startsWith('70'));
-    metadata.ca = revenueAccounts.reduce((sum, a) => sum + a.credit, 0);
+    metadata.ca = revenueAccounts.reduce((sum, a) => sum + getCreditValue(a), 0);
     
-    // Total cheltuieli
+    // Total cheltuieli (clasa 6 - folosesc debit normal)
     const expenseAccounts = structuredData.accounts.filter(a => a.accountClass === 6);
-    metadata.cheltuieli = expenseAccounts.reduce((sum, a) => sum + a.debit, 0);
+    metadata.cheltuieli = expenseAccounts.reduce((sum, a) => sum + getDebitValue(a), 0);
 
     console.log("[SAGA] 📊 Metadata calculată:", metadata);
 
