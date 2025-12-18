@@ -219,6 +219,8 @@ function parseSagaExcel(excelBase64: string): {
     name: string;
     debit: number;
     credit: number;
+    finalDebit?: number;
+    finalCredit?: number;
     accountClass: number;
   }> = [];
   
@@ -295,13 +297,29 @@ function parseSagaExcel(excelBase64: string): {
     
     // Adăugăm doar conturile cu valori > 0
     if (debit > 0 || credit > 0) {
-      accounts.push({
-        code: contCode,
-        name: denumire,
-        debit: Math.round(debit * 100) / 100,
-        credit: Math.round(credit * 100) / 100,
-        accountClass
-      });
+      // ✅ Clase 1-5: salvează ca finalDebit/finalCredit (solduri finale)
+      // ✅ Clase 6-7: salvează ca debit/credit (rulaje)
+      if (accountClass >= 1 && accountClass <= 5) {
+        accounts.push({
+          code: contCode,
+          name: denumire,
+          debit: 0,
+          credit: 0,
+          finalDebit: Math.round(debit * 100) / 100,
+          finalCredit: Math.round(credit * 100) / 100,
+          accountClass
+        });
+      } else {
+        accounts.push({
+          code: contCode,
+          name: denumire,
+          debit: Math.round(debit * 100) / 100,
+          credit: Math.round(credit * 100) / 100,
+          finalDebit: 0,
+          finalCredit: 0,
+          accountClass
+        });
+      }
       
       csvLines.push(`${contCode},"${denumire.replace(/"/g, '""')}",${soldFinalDebit.toFixed(2)},${soldFinalCredit.toFixed(2)},${totalSumeDebit.toFixed(2)},${totalSumeCredit.toFixed(2)}`);
     }
@@ -309,12 +327,12 @@ function parseSagaExcel(excelBase64: string): {
   
   console.log(`[SAGA-PARSER] Total conturi extrase: ${accounts.length}`);
   
-  // Log câteva conturi pentru verificare
+  // Log câteva conturi pentru verificare (inclusiv 371 Mărfuri)
   const criticalAccounts = accounts.filter(a => 
-    ['121', '5121', '5311', '4111', '401'].some(code => a.code.startsWith(code))
+    ['121', '5121', '5311', '4111', '401', '371'].some(code => a.code.startsWith(code))
   );
   console.log('[SAGA-PARSER] Conturi critice:', criticalAccounts.map(a => 
-    `${a.code}: D=${a.debit} C=${a.credit}`
+    `${a.code}: D=${a.debit} C=${a.credit} FD=${a.finalDebit || 0} FC=${a.finalCredit || 0}`
   ).join(' | '));
   
   return {
