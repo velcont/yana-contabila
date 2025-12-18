@@ -173,11 +173,14 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
   const [balanceStructuredData, setBalanceStructuredData] = useState<{
     cui: string;
     company: string;
+    period?: string;  // 🆕 Perioada balanței
     accounts: Array<{
       code: string;
       name: string;
       debit: number;
       credit: number;
+      finalDebit?: number;   // 🆕 Sold final debitor (clase 1-5)
+      finalCredit?: number;  // 🆕 Sold final creditor (clase 1-5)
       accountClass: number;
     }>;
   } | null>(null);
@@ -1249,14 +1252,18 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
       const { data: { session } } = await supabase.auth.getSession();
       
       // 🆕 Construiește contextul balanței pentru a trimite datele structurate
+      // IMPORTANT: Trimitem și finalDebit/finalCredit pentru conturile din clasele 1-5
       const balanceContext = balanceStructuredData ? {
         company: balanceStructuredData.company,
         cui: balanceStructuredData.cui,
+        period: balanceStructuredData.period, // 🆕 Adăugăm perioada
         accounts: balanceStructuredData.accounts.map(a => ({
           code: a.code,
           name: a.name,
-          debit: a.debit,
-          credit: a.credit,
+          debit: a.debit,                 // Total sume debitoare (pentru clasa 6-7)
+          credit: a.credit,               // Total sume creditoare (pentru clasa 6-7)
+          finalDebit: a.finalDebit,       // 🆕 Sold final debitor (pentru clasa 1-5)
+          finalCredit: a.finalCredit,     // 🆕 Sold final creditor (pentru clasa 1-5)
           accountClass: a.accountClass
         }))
       } : null;

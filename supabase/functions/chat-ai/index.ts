@@ -9,22 +9,48 @@ const corsHeaders = {
 };
 
 // 🆕 Funcție pentru a construi contextul balanței din datele structurate
+// RESPECTĂ REGULILE CONTABILE: Clasele 1-5 pe Solduri finale, Clasele 6-7 pe Total sume
 function buildBalanceDataContext(balanceContext: any): string {
   if (!balanceContext || !balanceContext.accounts || balanceContext.accounts.length === 0) {
     return '';
   }
 
   const accountLines = balanceContext.accounts.map((a: any) => {
-    const debit = Number(a.debit || 0).toFixed(2);
-    const credit = Number(a.credit || 0).toFixed(2);
-    return `Cont ${a.code} (${a.name}): Debit=${debit} RON | Credit=${credit} RON`;
+    const accountClass = parseInt(a.code?.toString()?.[0] || '0');
+    
+    // 📊 REGULĂ CONTABILĂ FUNDAMENTALĂ:
+    // Clasele 1-5 (active, pasive, capitaluri, creanțe, datorii): SOLDURI FINALE
+    // Clasele 6-7 (cheltuieli, venituri): TOTAL SUME (rulaje)
+    
+    if (accountClass >= 1 && accountClass <= 5) {
+      // SOLDURI FINALE pentru clasele 1-5
+      const finalD = Number(a.finalDebit || 0);
+      const finalC = Number(a.finalCredit || 0);
+      
+      if (finalD > 0) {
+        return `Cont ${a.code} (${a.name}): Sold final DEBITOR = ${finalD.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`;
+      } else if (finalC > 0) {
+        return `Cont ${a.code} (${a.name}): Sold final CREDITOR = ${finalC.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`;
+      } else {
+        return `Cont ${a.code} (${a.name}): Sold final = 0.00 RON`;
+      }
+    } else {
+      // TOTAL SUME pentru clasele 6-7
+      const totalD = Number(a.debit || 0);
+      const totalC = Number(a.credit || 0);
+      return `Cont ${a.code} (${a.name}): Total sume Debit = ${totalD.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON | Credit = ${totalC.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`;
+    }
   }).join('\n');
 
   return `
 
-📊 **DATELE BALANȚEI ACTIVE (FOLOSEȘTE EXCLUSIV ACESTE VALORI!)**
+📊 **DATELE BALANȚEI - ${balanceContext.period || 'Perioadă necunoscută'}**
 Firmă: ${balanceContext.company || 'Necunoscut'}
 CUI: ${balanceContext.cui || 'N/A'}
+
+**REGULĂ CONTABILĂ APLICATĂ:**
+- Clasele 1-5 (active, pasive, capitaluri, creanțe, datorii): Se afișează SOLDURI FINALE
+- Clasele 6-7 (cheltuieli, venituri): Se afișează TOTAL SUME (rulaje)
 
 **CONTURI DISPONIBILE:**
 ${accountLines}
