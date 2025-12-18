@@ -1,12 +1,39 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { z } from "https://esm.sh/zod@3.22.4";
-import { ACCOUNTING_RULES } from "../_shared/accounting-rules.ts";
+import { FULL_ANALYSIS_PROMPT } from "../_shared/full-analysis-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// 🆕 Funcție pentru a construi contextul balanței din datele structurate
+function buildBalanceDataContext(balanceContext: any): string {
+  if (!balanceContext || !balanceContext.accounts || balanceContext.accounts.length === 0) {
+    return '';
+  }
+
+  const accountLines = balanceContext.accounts.map((a: any) => {
+    const debit = Number(a.debit || 0).toFixed(2);
+    const credit = Number(a.credit || 0).toFixed(2);
+    return `Cont ${a.code} (${a.name}): Debit=${debit} RON | Credit=${credit} RON`;
+  }).join('\n');
+
+  return `
+
+📊 **DATELE BALANȚEI ACTIVE (FOLOSEȘTE EXCLUSIV ACESTE VALORI!)**
+Firmă: ${balanceContext.company || 'Necunoscut'}
+CUI: ${balanceContext.cui || 'N/A'}
+
+**CONTURI DISPONIBILE:**
+${accountLines}
+
+⚠️ **REGULĂ CRITICĂ ABSOLUTĂ**: Pentru ORICE întrebare despre solduri, conturi sau valori financiare,
+CITEȘTE și FOLOSEȘTE EXCLUSIV valorile din lista de mai sus! 
+NU INVENTA cifre! NU APROXIMA! Dacă un cont nu apare în listă, spune că nu există date pentru el.
+`;
+}
 
 const SYSTEM_PROMPT = `🤝 Ești un consultant financiar de încredere, specializat în analiza balanțelor contabile pentru companii din România.
 
@@ -16,7 +43,7 @@ const SYSTEM_PROMPT = `🤝 Ești un consultant financiar de încredere, special
 - Înțelegi provocările antreprenorilor și îi ajuți cu soluții concrete
 - Creezi o experiență caldă, nu robotică
 
-${ACCOUNTING_RULES}
+${FULL_ANALYSIS_PROMPT}
 
 🛑 **REGULĂ CRITICĂ #1 - ÎNTREBĂRI DESPRE PIERDERE (CITEȘTE PRIMA!)**
 

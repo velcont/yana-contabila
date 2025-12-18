@@ -1246,6 +1246,21 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
       console.log('[Chat] Apel AI generic pentru răspuns...');
       const { data: { session } } = await supabase.auth.getSession();
       
+      // 🆕 Construiește contextul balanței pentru a trimite datele structurate
+      const balanceContext = balanceStructuredData ? {
+        company: balanceStructuredData.company,
+        cui: balanceStructuredData.cui,
+        accounts: balanceStructuredData.accounts.map(a => ({
+          code: a.code,
+          name: a.name,
+          debit: a.debit,
+          credit: a.credit,
+          accountClass: a.accountClass
+        }))
+      } : null;
+
+      console.log('[Chat] 📊 Balance context being sent:', balanceContext ? `${balanceContext.accounts.length} accounts` : 'null');
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-ai`,
         {
@@ -1256,9 +1271,10 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
           },
           body: JSON.stringify({
             message: finalMessage, // 🧠 Folosește prompt-ul îmbogățit
-            history: messages,
+            history: messages.slice(-10), // 🆕 Limitează la ultimele 10 mesaje pentru optimizare tokeni
             conversationId,
-            summaryType
+            summaryType,
+            balanceContext // 🆕 Trimite datele structurate ale balanței
           })
         }
       );
