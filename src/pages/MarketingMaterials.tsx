@@ -23,11 +23,13 @@ import {
   Brain,
   Target,
   FileOutput,
-  Copy
+  Copy,
+  AlertTriangle
 } from "lucide-react";
 import { generateYanaPremiumReportPPT } from "@/utils/generateYanaPremiumReportPPT";
 import { generateMarketplacePowerPoint } from "@/utils/generateMarketplacePowerPoint";
 import { generateYanaStrategicaDemoPPT } from "@/utils/generateYanaStrategicaDemoPPT";
+import { generateBusinessPlanDebunkPPT } from "@/utils/generateBusinessPlanDebunkPPT";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 
 interface StorageFile {
@@ -133,7 +135,7 @@ export default function MarketingMaterials() {
     }
   };
 
-  const handleGeneratePPT = async (type: 'premium' | 'marketplace' | 'strategic-demo') => {
+  const handleGeneratePPT = async (type: 'premium' | 'marketplace' | 'strategic-demo' | 'business-debunk') => {
     setGenerating(type);
     try {
       if (type === 'premium') {
@@ -142,6 +144,8 @@ export default function MarketingMaterials() {
         await generateMarketplacePowerPoint();
       } else if (type === 'strategic-demo') {
         await generateYanaStrategicaDemoPPT();
+      } else if (type === 'business-debunk') {
+        await generateBusinessPlanDebunkPPT();
       }
       toast.success('PowerPoint generated successfully');
     } catch (error) {
@@ -214,7 +218,7 @@ export default function MarketingMaterials() {
 
           {/* PRESENTATIONS TAB */}
           <TabsContent value="presentations" className="space-y-4">
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -302,6 +306,38 @@ export default function MarketingMaterials() {
                       <>
                         <Download className="w-4 h-4 mr-2" />
                         Generează PPT Demo YouTube
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-destructive" />
+                    Business planul NU te salvează
+                  </CardTitle>
+                  <CardDescription>
+                    6 sliduri: reclamă provocatoare pentru YANA Strategică
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => handleGeneratePPT('business-debunk')}
+                    disabled={generating === 'business-debunk'}
+                    className="w-full"
+                    variant="destructive"
+                  >
+                    {generating === 'business-debunk' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Se generează...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Generează PPT Reclamă
                       </>
                     )}
                   </Button>
