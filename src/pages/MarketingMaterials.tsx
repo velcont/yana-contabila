@@ -30,6 +30,7 @@ import { generateYanaPremiumReportPPT } from "@/utils/generateYanaPremiumReportP
 import { generateMarketplacePowerPoint } from "@/utils/generateMarketplacePowerPoint";
 import { generateYanaStrategicaDemoPPT } from "@/utils/generateYanaStrategicaDemoPPT";
 import { generateBusinessPlanDebunkPPT } from "@/utils/generateBusinessPlanDebunkPPT";
+import { generateFiscalTaxPPT } from "@/utils/generateFiscalTaxPPT";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 
 interface StorageFile {
@@ -135,7 +136,7 @@ export default function MarketingMaterials() {
     }
   };
 
-  const handleGeneratePPT = async (type: 'premium' | 'marketplace' | 'strategic-demo' | 'business-debunk') => {
+  const handleGeneratePPT = async (type: 'premium' | 'marketplace' | 'strategic-demo' | 'business-debunk' | 'fiscal-tax') => {
     setGenerating(type);
     try {
       if (type === 'premium') {
@@ -146,6 +147,8 @@ export default function MarketingMaterials() {
         await generateYanaStrategicaDemoPPT();
       } else if (type === 'business-debunk') {
         await generateBusinessPlanDebunkPPT();
+      } else if (type === 'fiscal-tax') {
+        await generateFiscalTaxPPT();
       }
       toast.success('PowerPoint generated successfully');
     } catch (error) {
@@ -338,6 +341,37 @@ export default function MarketingMaterials() {
                       <>
                         <Download className="w-4 h-4 mr-2" />
                         Generează PPT Reclamă
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="border-amber-500/50 bg-amber-500/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-amber-600" />
+                    Impozit Special pe Lux
+                  </CardTitle>
+                  <CardDescription>
+                    6 sliduri: educativ despre formularul 216 + reclamă YANA Fiscală
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    onClick={() => handleGeneratePPT('fiscal-tax')}
+                    disabled={generating === 'fiscal-tax'}
+                    className="w-full bg-amber-600 hover:bg-amber-700"
+                  >
+                    {generating === 'fiscal-tax' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Se generează...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Generează PPT Fiscal
                       </>
                     )}
                   </Button>
