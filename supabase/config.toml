@@ -152,3 +152,6 @@ verify_jwt = true
 
 [functions.send-migration-email]
 verify_jwt = true
+
+[functions.humanize-text]
+verify_jwt = true
