@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -26,6 +26,7 @@ const IntellectualPropertyCertificate = lazy(() => import("@/components/Intellec
 const AdminCostsDashboard = lazy(() => import("@/components/AdminCostsDashboard").then(m => ({ default: m.AdminCostsDashboard })));
 const AdminRevenueMonitor = lazy(() => import("@/components/AdminRevenueMonitor"));
 const TestCheckout = lazy(() => import("@/components/TestCheckout").then(m => ({ default: m.TestCheckout })));
+const TextHumanizer = lazy(() => import("@/components/TextHumanizer").then(m => ({ default: m.TextHumanizer })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -337,6 +338,10 @@ const Admin = () => {
             <TabsTrigger value="research">
               <GraduationCap className="h-4 w-4 mr-2" />
               Asistent Doctorat
+            </TabsTrigger>
+            <TabsTrigger value="humanizer">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Text Humanizer
             </TabsTrigger>
           </TabsList>
 
@@ -753,6 +758,12 @@ const Admin = () => {
           <TabsContent value="test">
             <Suspense fallback={<TabContentLoader />}>
               <TestCheckout />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="humanizer">
+            <Suspense fallback={<TabContentLoader />}>
+              <TextHumanizer />
             </Suspense>
           </TabsContent>
         </Tabs>
