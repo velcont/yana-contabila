@@ -4206,8 +4206,19 @@ export type Database = {
         Returns: boolean
       }
       check_trial_expiration_notifications: { Args: never; Returns: undefined }
+      check_user_access: {
+        Args: { p_user_id: string }
+        Returns: {
+          access_type: string
+          credits_remaining: number
+          has_access: boolean
+          message: string
+          subscription_status: string
+        }[]
+      }
       cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_old_data: { Args: never; Returns: undefined }
+      deactivate_expired_subscriptions: { Args: never; Returns: undefined }
       extract_question_pattern: {
         Args: { question_text: string }
         Returns: {
