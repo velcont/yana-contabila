@@ -515,6 +515,84 @@ serve(async (req) => {
       console.log(`✅ Successfully processed payment for user ${user.id}: ${creditsToAdd} credits added`);
     }
 
+    // 🔒 SECURITY FIX: Handle subscription cancellation/expiration
+    if (event.type === "customer.subscription.deleted" || 
+        event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as Stripe.Subscription;
+      
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+
+      // Get customer email from Stripe
+      const customer = await stripe.customers.retrieve(subscription.customer as string) as Stripe.Customer;
+      const customerEmail = customer.email;
+
+      if (customerEmail) {
+        const newStatus = subscription.status === 'active' ? 'active' : 
+                         subscription.status === 'canceled' ? 'canceled' :
+                         subscription.status === 'past_due' ? 'past_due' : 'expired';
+
+        const { error: updateError } = await supabaseClient
+          .from('profiles')
+          .update({
+            subscription_status: newStatus,
+            subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', customerEmail);
+
+        if (updateError) {
+          console.error(`❌ Failed to update subscription status for ${customerEmail}:`, updateError);
+        } else {
+          console.log(`✅ Updated subscription status to '${newStatus}' for ${customerEmail}`);
+        }
+
+        // Audit log
+        await supabaseClient.from('audit_logs').insert({
+          user_email: customerEmail,
+          action_type: `STRIPE_SUBSCRIPTION_${event.type.toUpperCase().replace('.', '_')}`,
+          table_name: 'profiles',
+          metadata: {
+            subscription_id: subscription.id,
+            old_status: subscription.status,
+            new_status: newStatus,
+            event_id: event.id
+          }
+        });
+      }
+    }
+
+    // 🔒 Handle failed payments
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const customerEmail = invoice.customer_email;
+
+      if (customerEmail) {
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        );
+
+        // Create admin alert
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'PAYMENT_FAILED',
+          severity: 'high',
+          title: `Payment Failed for ${customerEmail}`,
+          description: `Invoice payment failed. Manual follow-up required.`,
+          details: {
+            invoice_id: invoice.id,
+            customer_email: customerEmail,
+            amount: invoice.amount_due,
+            attempt_count: invoice.attempt_count
+          }
+        });
+
+        console.log(`⚠️ Payment failed for ${customerEmail} - admin alerted`);
+      }
+    }
+
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
