@@ -998,6 +998,19 @@ export default function StrategicAdvisor() {
                 isLoading={isLoading}
                 placeholder="Descrie provocarea ta de business aici..."
                 showFileUpload={false}
+                leftAddon={
+                  user?.id ? (
+                    <StrategicDocumentUploader
+                      conversationId={conversationId}
+                      userId={user.id}
+                      onDocumentProcessed={(text, fileName) => {
+                        setInput(text);
+                        toast.success(`Document "${fileName}" pregătit pentru trimitere`);
+                      }}
+                      disabled={isLoading}
+                    />
+                  ) : null
+                }
               />
             </TabsContent>
           </Tabs>
