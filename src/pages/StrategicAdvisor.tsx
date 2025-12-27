@@ -675,6 +675,17 @@ export default function StrategicAdvisor() {
                     <ArrowLeft className="w-5 h-5" />
                   </Button>
                   
+                  {/* Buton Analizează Balanța - discret */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/app')}
+                    className="hidden md:flex items-center gap-1.5 text-xs"
+                  >
+                    <span>📊</span>
+                    <span>Analizează Balanța</span>
+                  </Button>
+                  
                   {/* Brain icon - doar desktop */}
                   <div className="hidden md:flex p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
                     <Brain className="w-6 h-6 text-primary" />
@@ -810,6 +821,15 @@ export default function StrategicAdvisor() {
                             War Room Simulator
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          {/* Analizează Balanța - vizibil doar pe mobil */}
+                          <DropdownMenuItem 
+                            className="md:hidden"
+                            onClick={() => navigate('/app')}
+                          >
+                            <span className="mr-2">📊</span>
+                            Analizează Balanța
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="md:hidden" />
                           <DropdownMenuItem onClick={startNewConversation}>
                             <Plus className="w-4 h-4 mr-2" />
                             Conversație Nouă
