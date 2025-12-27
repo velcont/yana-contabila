@@ -36,6 +36,7 @@ import { ConflictResolutionDialog } from "@/components/ConflictResolutionDialog"
 import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
 import { ConsultYanaDialog } from "@/components/ConsultYanaDialog";
+import { StrategicDocumentUploader } from "@/components/strategic/StrategicDocumentUploader";
 import { AlertTriangle, Plus, FileText, Bot } from "lucide-react";
 import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
@@ -208,25 +209,71 @@ export default function StrategicAdvisor() {
     loadOrCreatePersonalityProfile();
   }, [user, welcomeMessageShown]);
 
+  // State pentru context emoțional (Daily Anchor)
+  const [emotionalContext, setEmotionalContext] = useState<{
+    topicSummary?: string;
+    nextStepSuggested?: string;
+    detectedMood?: string;
+    unresolvedIssue?: boolean;
+  } | null>(null);
+
+  // Fetch emotional context pentru Daily Anchor
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchEmotionalContext = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_emotional_context')
+          .select('topic_summary, next_step_suggested, detected_mood, unresolved_issue')
+          .eq('user_id', user.id)
+          .gte('session_date', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+          .order('session_date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (!error && data) {
+          logger.log("🔗 [DAILY-ANCHOR] Found recent context:", data);
+          setEmotionalContext({
+            topicSummary: data.topic_summary || undefined,
+            nextStepSuggested: data.next_step_suggested || undefined,
+            detectedMood: data.detected_mood || undefined,
+            unresolvedIssue: data.unresolved_issue || false
+          });
+        }
+      } catch (err) {
+        logger.error("❌ [DAILY-ANCHOR] Error fetching context:", err);
+      }
+    };
+    
+    fetchEmotionalContext();
+  }, [user]);
+
   // Show personalized welcome message when profile is loaded and no messages exist
   useEffect(() => {
     if (!userProfile || welcomeMessageShown || messages.length > 0) return;
     
-    // Generate personalized welcome message based on Tone B (playful with compliments)
+    // Generate personalized welcome message - NOU: unificat + Daily Anchor
     let welcomeMessage = "";
     
-    if (!userProfile.preferredName) {
-      // First time user without name - ask for it
-      welcomeMessage = "Salut! 😊 Eu sunt Yana, consilierul tău strategic. Îmi place să lucrez cu antreprenori ambițioși! Tu cum te numești?";
-    } else if (userProfile.detectedGender === 'male') {
-      // Male user - Tone B: playful with subtle strategic compliments
-      welcomeMessage = `Salut, ${userProfile.preferredName}! 😊 Îmi place când văd un antreprenor pregătit pentru bătălie strategică. Cu ce războim azi competiția?`;
-    } else if (userProfile.detectedGender === 'female') {
-      // Female user - warm confidant style
-      welcomeMessage = `Salut, ${userProfile.preferredName}! 💕 Ce mă bucur că ai venit. Hai să vedem ce putem construi împreună azi pentru afacerea ta.`;
+    // Daily Anchor: dacă avem context recent cu problemă nerezolvată
+    if (emotionalContext?.unresolvedIssue && emotionalContext?.topicSummary) {
+      const name = userProfile.preferredName ? `, ${userProfile.preferredName}` : "";
+      if (emotionalContext.nextStepSuggested) {
+        welcomeMessage = `Bună${name}! Ultima dată vorbeam despre ${emotionalContext.topicSummary}. Ți-am sugerat să ${emotionalContext.nextStepSuggested}. Ai reușit?`;
+      } else {
+        welcomeMessage = `Bună${name}! Ultima dată vorbeam despre ${emotionalContext.topicSummary}. Cum a evoluat situația?`;
+      }
+    } else if (emotionalContext?.detectedMood === 'obosit' || emotionalContext?.detectedMood === 'anxios') {
+      const name = userProfile.preferredName ? `, ${userProfile.preferredName}` : "";
+      welcomeMessage = `Bună${name}! Mă bucur că ai revenit. Ultima dată păreai ${emotionalContext.detectedMood === 'obosit' ? 'obosit' : 'puțin stresat'}. Cum te simți azi?`;
     } else {
-      // Unknown gender - neutral but warm
-      welcomeMessage = `Salut, ${userProfile.preferredName}! 😊 Mă bucur să te văd. Sunt Yana, consilierul tău strategic. Cu ce te pot ajuta azi?`;
+      // Welcome standard NOU
+      if (userProfile.preferredName) {
+        welcomeMessage = `Bună, ${userProfile.preferredName}! Sunt Yana. Cu ce te pot ajuta azi - o decizie, o strategie, sau pur și simplu să vorbim despre afacerea ta?`;
+      } else {
+        welcomeMessage = "Bună! Sunt Yana. Cu ce te pot ajuta azi - o decizie, o strategie, sau pur și simplu să vorbim despre afacerea ta?";
+      }
     }
     
     // Add mobile recommendation note if on mobile and not shown before
@@ -246,8 +293,8 @@ export default function StrategicAdvisor() {
     setMessages([welcomeMsg]);
     setWelcomeMessageShown(true);
     
-    logger.log(`👋 [WELCOME] Showed personalized welcome for ${userProfile.preferredName || 'new user'} (${userProfile.detectedGender})`);
-  }, [userProfile, welcomeMessageShown, messages.length, isMobile, mobileWarningShown]);
+    logger.log(`👋 [WELCOME] Showed personalized welcome for ${userProfile.preferredName || 'new user'}`);
+  }, [userProfile, welcomeMessageShown, messages.length, isMobile, mobileWarningShown, emotionalContext]);
 
   // Check access and credit on mount
   useEffect(() => {

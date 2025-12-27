@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2, Paperclip } from 'lucide-react';
@@ -12,6 +12,8 @@ interface ChatInputProps {
   disabled?: boolean;
   placeholder?: string;
   showFileUpload?: boolean;
+  /** Custom element to render before the textarea (e.g., document uploader) */
+  leftAddon?: ReactNode;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -23,6 +25,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   disabled,
   placeholder = 'Scrie mesajul tău...',
   showFileUpload = false,
+  leftAddon,
 }) => {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -35,7 +38,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="border-t px-3 py-3 md:px-6 md:py-4">
-      <div className="flex gap-2 md:gap-3">
+      <div className="flex gap-2 md:gap-3 items-end">
+        {/* Left addon (e.g., document uploader) */}
+        {leftAddon}
+        
         {showFileUpload && onFileUpload && (
           <Button
             variant="outline"

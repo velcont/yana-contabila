@@ -3927,6 +3927,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_emotional_context: {
+        Row: {
+          created_at: string | null
+          detected_mood: string | null
+          id: string
+          main_topic: string | null
+          mode_flow: string | null
+          mood_score: number | null
+          next_step_suggested: string | null
+          session_date: string
+          topic_summary: string | null
+          unresolved_issue: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          detected_mood?: string | null
+          id?: string
+          main_topic?: string | null
+          mode_flow?: string | null
+          mood_score?: number | null
+          next_step_suggested?: string | null
+          session_date?: string
+          topic_summary?: string | null
+          unresolved_issue?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          detected_mood?: string | null
+          id?: string
+          main_topic?: string | null
+          mode_flow?: string | null
+          mood_score?: number | null
+          next_step_suggested?: string | null
+          session_date?: string
+          topic_summary?: string | null
+          unresolved_issue?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_notifications: {
         Row: {
           created_at: string | null
@@ -4025,6 +4070,48 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_strategic_documents: {
+        Row: {
+          ai_summary: string | null
+          conversation_id: string | null
+          extracted_text: string | null
+          file_name: string
+          file_path: string
+          file_size_bytes: number | null
+          file_type: string | null
+          id: string
+          metadata: Json | null
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          conversation_id?: string | null
+          extracted_text?: string | null
+          file_name: string
+          file_path: string
+          file_size_bytes?: number | null
+          file_type?: string | null
+          id?: string
+          metadata?: Json | null
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_summary?: string | null
+          conversation_id?: string | null
+          extracted_text?: string | null
+          file_name?: string
+          file_path?: string
+          file_size_bytes?: number | null
+          file_type?: string | null
+          id?: string
+          metadata?: Json | null
+          uploaded_at?: string | null
           user_id?: string
         }
         Relationships: []
