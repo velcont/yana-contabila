@@ -15,6 +15,19 @@ const Landing = () => {
           <span className="text-primary"> chiar dacă ai profit pe hârtie</span>
         </h1>
 
+        {/* Subheadline - clarificare CE e Yana */}
+        <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+          Yana e partenerul tău strategic AI —<br />
+          te ascultă, analizează cifrele și te ajută să iei decizii clare.
+        </p>
+
+        {/* Micro-poziționare emoțională */}
+        <div className="text-sm md:text-base text-muted-foreground/80 space-y-1">
+          <p>Unii vin să vorbească.</p>
+          <p>Alții vin pentru strategie.</p>
+          <p className="font-medium text-foreground">Yana știe diferența.</p>
+        </div>
+
         {/* CTA Principal - Strategic Advisor */}
         <div className="space-y-2">
           <Button 
@@ -23,10 +36,10 @@ const Landing = () => {
             onClick={() => navigate('/auth?redirect=/strategic-advisor')}
           >
             <MessageCircle className="mr-2 h-5 w-5" />
-            Vorbește cu Yana ACUM
+            Vorbește cu Yana
           </Button>
           <p className="text-sm text-muted-foreground">
-            Fără balanță necesară • Răspuns instant
+            Poți începe doar cu ce ai în cap • Răspuns instant
           </p>
         </div>
 
