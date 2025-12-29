@@ -3,7 +3,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Calendar, Sparkles } from 'lucide-react';
+import { CreditCard, Calendar, Sparkles, PartyPopper, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface AIUsage {
@@ -17,6 +17,7 @@ export const CreditAndTrialIndicator = () => {
   const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
   const [loadingUsage, setLoadingUsage] = useState(true);
   const [hasFreeAccess, setHasFreeAccess] = useState(false);
+  const [hasEverUsedCredits, setHasEverUsedCredits] = useState(false);
 
   useEffect(() => {
     const fetchAIUsage = async () => {
@@ -32,6 +33,14 @@ export const CreditAndTrialIndicator = () => {
           .single();
         
         setHasFreeAccess(profile?.has_free_access === true);
+
+        // Check if user has ever used AI credits (any usage in ai_usage table)
+        const { count } = await supabase
+          .from('ai_usage')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        
+        setHasEverUsedCredits((count || 0) > 0);
 
         const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -59,60 +68,61 @@ export const CreditAndTrialIndicator = () => {
     return null;
   }
 
-  const costInLei = aiUsage ? (aiUsage.total_cost_cents / 100).toFixed(2) : '0.00';
-  const budgetInLei = aiUsage ? (aiUsage.budget_cents / 100).toFixed(2) : '0.00';
+  // Pentru utilizatori noi care nu au consumat niciodată credite - NU afișa indicatorul
+  if (!hasEverUsedCredits && !hasFreeAccess) {
+    return null;
+  }
+
   const remainingCredits = aiUsage ? (aiUsage.budget_cents - aiUsage.total_cost_cents) / 100 : 0;
   const usagePercent = aiUsage?.usage_percent || 0;
   // Utilizatorii cu acces gratuit NU au credite AI disponibile pentru funcții premium
   const hasCredits = !hasFreeAccess && remainingCredits > 0;
 
+  // Mesaj elegant pentru upgrade când nu mai sunt credite
+  if (!hasCredits) {
+    return (
+      <Card className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <PartyPopper className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-foreground">
+              Yana a identificat primele oportunități!
+            </span>
+          </div>
+          
+          <p className="text-sm text-muted-foreground">
+            {hasFreeAccess 
+              ? 'Pentru a continua analiza, explora scenarii sau încărca date noi, alege un plan care ți se potrivește.'
+              : 'Pentru a continua conversația, a explora noi scenarii sau a obține strategii personalizate, alege un plan.'}
+          </p>
+          
+          <Link 
+            to="/pricing" 
+            className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground hover:bg-primary/90 py-2.5 px-4 rounded-md text-sm font-medium transition-colors"
+          >
+            Alege planul potrivit
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </Card>
+    );
+  }
+
+  // Estimare sesiuni rămase (simplificat, fără RON)
+  const estimatedSessions = Math.floor(remainingCredits / 2); // ~2 RON per sesiune medie
+
   return (
-    <Card className={`p-3 ${!hasCredits ? 'bg-destructive/10 border-destructive/30' : 'bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20'}`}>
+    <Card className="p-3 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className={`h-4 w-4 ${!hasCredits ? 'text-destructive' : 'text-primary'}`} />
-            <span className="text-sm font-medium">
-              {!hasCredits ? '⚠️ Fără Credite AI' : 'Credite AI Disponibile'}
-            </span>
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Sesiuni disponibile</span>
           </div>
-          {hasCredits && (
-            <Badge variant={usagePercent > 80 ? "destructive" : "secondary"} className="text-xs">
-              {usagePercent.toFixed(0)}%
-            </Badge>
-          )}
+          <Badge variant="secondary" className="text-xs">
+            ~{estimatedSessions} {estimatedSessions === 1 ? 'sesiune' : 'sesiuni'}
+          </Badge>
         </div>
-
-        {!hasCredits ? (
-          <div className="space-y-2">
-            <div className="text-sm text-destructive font-semibold">
-              {hasFreeAccess 
-                ? 'Ai acces gratuit - funcțiile AI premium (Yana Strategica) necesită abonament plătit și credite AI.'
-                : 'Nu ai credite AI! Funcțiile premium (Yana Strategica) sunt blocate.'}
-            </div>
-            <Link 
-              to="/my-ai-costs" 
-              className="block w-full bg-primary text-primary-foreground hover:bg-primary/90 text-center py-2 px-4 rounded-md text-sm font-medium transition-colors"
-            >
-              {hasFreeAccess ? 'Vezi Planuri de Abonament →' : 'Cumpără Credite AI →'}
-            </Link>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-1">
-                <CreditCard className="h-3 w-3 text-muted-foreground" />
-                <span className="text-muted-foreground">Credite rămase:</span>
-              </div>
-              <span className="font-semibold text-green-600">{remainingCredits.toFixed(2)} lei</span>
-            </div>
-
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Consumat acest an:</span>
-              <span>{costInLei} lei</span>
-            </div>
-          </>
-        )}
 
         {accessType === 'trial' && trialDaysRemaining !== null && (
           <div className="flex items-center justify-between text-sm pt-2 border-t border-primary/10">
@@ -129,14 +139,12 @@ export const CreditAndTrialIndicator = () => {
           </div>
         )}
 
-        {hasCredits && (
-          <Link 
-            to="/my-ai-costs" 
-            className="text-xs text-primary hover:underline text-center mt-1"
-          >
-            Vezi detalii complete →
-          </Link>
-        )}
+        <Link 
+          to="/my-ai-costs" 
+          className="text-xs text-primary hover:underline text-center mt-1"
+        >
+          Vezi detalii complete →
+        </Link>
       </div>
     </Card>
   );

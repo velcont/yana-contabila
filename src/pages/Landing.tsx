@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
+import { Sparkles, Shield, Lock, Server } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -28,19 +28,35 @@ const Landing = () => {
           <p className="font-medium text-foreground">Yana știe diferența.</p>
         </div>
 
-        {/* CTA Principal - Strategic Advisor */}
-        <div className="space-y-2">
+        {/* CTA Principal - Orientat pe REZULTAT */}
+        <div className="space-y-3">
           <Button 
             size="lg" 
             className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
             onClick={() => navigate('/auth?redirect=/strategic-advisor')}
           >
-            <MessageCircle className="mr-2 h-5 w-5" />
-            Vorbește cu Yana
+            <Sparkles className="mr-2 h-5 w-5" />
+            Obține gratuit diagnosticul afacerii tale
           </Button>
           <p className="text-sm text-muted-foreground">
-            Poți începe doar cu ce ai în cap • Răspuns instant
+            Fără card, fără obligații. Vezi în timp real unde poți crește profitul.
           </p>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+            <Shield className="h-3.5 w-3.5 text-green-600" />
+            <span>GDPR compliant</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+            <Lock className="h-3.5 w-3.5 text-green-600" />
+            <span>Date criptate</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+            <Server className="h-3.5 w-3.5 text-green-600" />
+            <span>Servere în UE</span>
+          </div>
         </div>
 
         {/* Link secundar */}
