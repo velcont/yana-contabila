@@ -46,115 +46,100 @@ serve(async (req) => {
 
     console.log("Starting Stripe payments sync...");
 
-    // Fetch all paid invoices from Stripe (last 100)
-    const invoices = await stripe.invoices.list({
-      status: 'paid',
+    // Fetch subscriptions and their paid invoices (more reliable than scanning all invoices)
+    const subscriptions = await stripe.subscriptions.list({
+      status: 'all',
       limit: 100,
     });
 
-    console.log(`Found ${invoices.data.length} paid invoices in Stripe`);
+    console.log(`Found ${subscriptions.data.length} subscriptions in Stripe`);
 
     let synced = 0;
     let skipped = 0;
     const errors: string[] = [];
 
-    for (const invoice of invoices.data) {
-      // Only process subscription invoices (subscription can be string ID or null)
-      const subscriptionId = typeof invoice.subscription === 'string' 
-        ? invoice.subscription 
-        : invoice.subscription?.id;
-        
-      if (!subscriptionId) {
-        console.log(`Invoice ${invoice.id}: no subscription, skipping`);
-        skipped++;
-        continue;
-      }
-
+    for (const sub of subscriptions.data) {
       try {
-        // Check if already exists
-        const { data: existing } = await supabaseClient
-          .from('subscription_payments')
-          .select('id')
-          .eq('stripe_invoice_id', invoice.id)
-          .maybeSingle();
+        const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
+        const customer = await stripe.customers.retrieve(customerId);
+        const customerEmail = !customer || (customer as any).deleted ? null : (customer as any).email;
 
-        if (existing) {
-          console.log(`Invoice ${invoice.id}: already exists, skipping`);
+        if (!customerEmail) {
           skipped++;
           continue;
         }
 
-        // Get customer email - need to fetch customer separately
-        let customerEmail = invoice.customer_email;
-        
-        if (!customerEmail && invoice.customer) {
-          const customerId = typeof invoice.customer === 'string' 
-            ? invoice.customer 
-            : invoice.customer.id;
-          const customer = await stripe.customers.retrieve(customerId);
-          if (customer && !customer.deleted) {
-            customerEmail = (customer as any).email;
-          }
-        }
-
-        if (!customerEmail) {
-          errors.push(`Invoice ${invoice.id}: no customer email found`);
-          console.log(`Invoice ${invoice.id}: no customer email`);
-          continue;
-        }
-
-        console.log(`Invoice ${invoice.id}: processing for ${customerEmail}`);
-
-        // Find user by email
         const { data: profile } = await supabaseClient
           .from('profiles')
-          .select('id, email')
+          .select('id, email, subscription_type')
           .eq('email', customerEmail)
           .maybeSingle();
 
         if (!profile) {
-          errors.push(`Invoice ${invoice.id}: user not found for ${customerEmail}`);
-          console.log(`Invoice ${invoice.id}: user ${customerEmail} not found in profiles`);
+          skipped++;
           continue;
         }
 
-        // Determine subscription type based on amount
-        let subscriptionType = 'entrepreneur';
-        if (invoice.amount_paid >= 19900) {
-          subscriptionType = 'accounting_firm';
-        }
+        // Fetch paid invoices for this subscription (latest first)
+        const subInvoices = await stripe.invoices.list({
+          subscription: sub.id,
+          status: 'paid',
+          limit: 24,
+        } as any);
 
-        // Insert payment record
-        const { error: insertError } = await supabaseClient
-          .from('subscription_payments')
-          .insert({
-            user_id: profile.id,
-            stripe_subscription_id: subscriptionId,
-            stripe_invoice_id: invoice.id,
-            amount_paid_cents: invoice.amount_paid,
-            currency: (invoice.currency || 'ron').toUpperCase(),
-            subscription_type: subscriptionType,
-            period_start: new Date((invoice.period_start || invoice.created) * 1000).toISOString(),
-            period_end: new Date((invoice.period_end || invoice.created + 30*24*60*60) * 1000).toISOString(),
-            payment_date: new Date(invoice.created * 1000).toISOString(),
-            status: 'paid',
-            invoice_generated: false,
-            metadata: {
-              synced_at: new Date().toISOString(),
-              customer_email: customerEmail
+        for (const invoice of subInvoices.data) {
+          try {
+            const { data: existing } = await supabaseClient
+              .from('subscription_payments')
+              .select('id')
+              .eq('stripe_invoice_id', invoice.id)
+              .maybeSingle();
+
+            if (existing) {
+              skipped++;
+              continue;
             }
-          });
 
-        if (insertError) {
-          errors.push(`Invoice ${invoice.id}: ${insertError.message}`);
-          console.log(`Invoice ${invoice.id}: insert error - ${insertError.message}`);
-        } else {
-          synced++;
-          console.log(`Synced invoice ${invoice.id} for ${customerEmail} - ${invoice.amount_paid / 100} ${invoice.currency}`);
+            const amountPaid = invoice.amount_paid ?? 0;
+
+            // Prefer profile subscription_type (already normalized in app)
+            const subscriptionType = (profile as any).subscription_type || (amountPaid >= 19900 ? 'accounting_firm' : 'entrepreneur');
+
+            const periodStart = (invoice.period_start || invoice.created) * 1000;
+            const periodEnd = (invoice.period_end || invoice.created + 30 * 24 * 60 * 60) * 1000;
+
+            const { error: insertError } = await supabaseClient
+              .from('subscription_payments')
+              .insert({
+                user_id: profile.id,
+                stripe_subscription_id: sub.id,
+                stripe_invoice_id: invoice.id,
+                amount_paid_cents: amountPaid,
+                currency: (invoice.currency || 'ron').toUpperCase(),
+                subscription_type: subscriptionType,
+                period_start: new Date(periodStart).toISOString(),
+                period_end: new Date(periodEnd).toISOString(),
+                payment_date: new Date(invoice.created * 1000).toISOString(),
+                status: 'paid',
+                invoice_generated: false,
+                metadata: {
+                  synced_at: new Date().toISOString(),
+                  customer_email: customerEmail,
+                },
+              });
+
+            if (insertError) {
+              errors.push(`Invoice ${invoice.id}: ${insertError.message}`);
+            } else {
+              synced++;
+              console.log(`Synced ${invoice.id} for ${customerEmail}`);
+            }
+          } catch (err: any) {
+            errors.push(`Invoice ${invoice.id}: ${err.message}`);
+          }
         }
       } catch (err: any) {
-        errors.push(`Invoice ${invoice.id}: ${err.message}`);
-        console.log(`Invoice ${invoice.id}: error - ${err.message}`);
+        errors.push(`Subscription ${sub.id}: ${err.message}`);
       }
     }
 
