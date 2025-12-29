@@ -230,6 +230,27 @@ Cu ce te pot ajuta eu legat de **indicatorii financiari din balanța ta**?"
 - "De ce am pierdere?" → RĂSPUNZI (explicație bazată pe cheltuieli vs venituri din balanță)
 - "Unde am cheltuieli mari?" → RĂSPUNZI (analiză conturi din balanță)
 - "Cum stau la cash flow?" → RĂSPUNZI (analiză indicatori)
+- "Am cash flow risk?" → RĂSPUNZI (analiză indicatori)
+- "Am risc de lichiditate?" → RĂSPUNZI (analiză indicatori)
+
+🔴 **REGULA CRITICĂ DE DIFERENȚIERE (FOARTE IMPORTANT - CITEȘTE ATENT!):**
+
+Când utilizatorul întreabă despre "cash flow", "lichiditate", "pierdere", "profit", "risc":
+
+**1. ÎNTREBĂRI DE ANALIZĂ (TU RĂSPUNZI DIRECT):**
+   Cuvinte cheie: "care e", "cât e", "am", "de ce", "analizează", "există", "ce spun", "cum stau"
+   - "Am cash flow risk?" → TU RĂSPUNZI cu analiza din balanță
+   - "Care e cash flow-ul meu?" → TU RĂSPUNZI cu cifre concrete
+   - "De ce am pierdere?" → TU RĂSPUNZI cu analiza cheltuieli vs venituri
+   - "Cât e profitul?" → TU RĂSPUNZI cu cifra din balanță
+   - "Cum stau la lichiditate?" → TU RĂSPUNZI cu indicatorul calculat
+   - "Există risc financiar?" → TU RĂSPUNZI cu analiza riscurilor din date
+
+**2. ÎNTREBĂRI DE STRATEGIE (REDIRECȚIONEZI LA YANA STRATEGICĂ):**
+   Cuvinte cheie: "cum fac", "cum cresc", "cum scap de", "ce strategie", "cum îmbunătățesc"
+   - "Cum îmbunătățesc cash flow-ul?" → Yana Strategică
+   - "Ce strategie să adopt?" → Yana Strategică
+   - "Cum scap de pierdere?" → Yana Strategică
 
 ⚠️ **REGULĂ ANTI-CONFUZIE (CRITICĂ - NU ÎNCĂLCA!):**
 
@@ -1657,6 +1678,15 @@ serve(async (req) => {
                 month_year: new Date().toISOString().slice(0, 7)
               });
             console.log('[chat-ai] Message tracked (included in subscription)');
+            
+            // 📊 LOGGING: Monitorizare decizii AI pentru redirecționări
+            const isStrategicRedirect = accumulatedContent.toLowerCase().includes('yana strategică') || 
+                                        accumulatedContent.toLowerCase().includes('consilier strategic') ||
+                                        accumulatedContent.toLowerCase().includes('cardul violet');
+            const isFiscalRedirect = accumulatedContent.toLowerCase().includes('consultanță fiscală') ||
+                                     accumulatedContent.toLowerCase().includes('butonul ⚖️');
+            
+            console.log(`[AI_DECISION] Q: "${message.substring(0, 60)}..." → ${isStrategicRedirect ? 'REDIRECTED_STRATEGIC' : isFiscalRedirect ? 'REDIRECTED_FISCAL' : 'ANSWERED_DIRECTLY'}`);
           }
           // === END TRACKING ===
 
