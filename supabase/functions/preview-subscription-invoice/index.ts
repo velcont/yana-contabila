@@ -155,6 +155,33 @@ serve(async (req) => {
     };
     const planName = PRICE_NAMES[priceId] || 'Abonament YANA';
 
+    // 🔧 Calculate period dates with fallbacks
+    const THIRTY_DAYS_SECONDS = 30 * 24 * 60 * 60;
+    
+    const getPeriodStart = (): number => {
+      if (subscription.current_period_start) {
+        return subscription.current_period_start;
+      }
+      // Fallback: use start_date or created timestamp
+      if (subscription.start_date) {
+        return subscription.start_date;
+      }
+      return subscription.created;
+    };
+    
+    const getPeriodEnd = (): number => {
+      if (subscription.current_period_end) {
+        return subscription.current_period_end;
+      }
+      // Fallback: calculate start + 30 days
+      return getPeriodStart() + THIRTY_DAYS_SECONDS;
+    };
+    
+    const periodStart = getPeriodStart();
+    const periodEnd = getPeriodEnd();
+    const periodStartCalculated = !subscription.current_period_start;
+    const periodEndCalculated = !subscription.current_period_end;
+
     // Build warnings list
     const warnings: string[] = [];
 
@@ -170,11 +197,11 @@ serve(async (req) => {
     if (!customer.email) {
       warnings.push('⚠️ Emailul clientului lipsește în Stripe');
     }
-    if (!subscription.current_period_start) {
-      warnings.push('⚠️ Perioada abonamentului lipsește (start)');
+    if (periodStartCalculated) {
+      warnings.push('ℹ️ Perioada start calculată din data creării abonamentului');
     }
-    if (!subscription.current_period_end) {
-      warnings.push('⚠️ Perioada abonamentului lipsește (end)');
+    if (periodEndCalculated) {
+      warnings.push('ℹ️ Perioada sfârșit calculată: start + 30 zile');
     }
 
     // Format dates (safe)
@@ -201,8 +228,8 @@ serve(async (req) => {
       plan_description: `Abonament ${planName} - YANA Strategica`,
       amount_cents: amountCents,
       currency: 'RON',
-      period_start: formatDate(subscription.current_period_start),
-      period_end: formatDate(subscription.current_period_end),
+      period_start: formatDate(periodStart),
+      period_end: formatDate(periodEnd),
       
       // Invoice info
       invoice_series: 'conta',
