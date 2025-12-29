@@ -138,6 +138,28 @@ serve(async (req) => {
             errors.push(`Invoice ${invoice.id}: ${err.message}`);
           }
         }
+
+        // 🔒 FIX: Also update profile if subscription is active
+        if (sub.status === 'active') {
+          const subscriptionEndDate = new Date(sub.current_period_end * 1000).toISOString();
+          
+          const { error: profileUpdateError } = await supabaseClient
+            .from('profiles')
+            .update({
+              subscription_status: 'active',
+              stripe_customer_id: customerId,
+              stripe_subscription_id: sub.id,
+              subscription_ends_at: subscriptionEndDate,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', profile.id);
+
+          if (profileUpdateError) {
+            console.warn(`⚠️ Failed to update profile for ${customerEmail}:`, profileUpdateError);
+          } else {
+            console.log(`✅ Profile synced for ${customerEmail}, subscription ends ${subscriptionEndDate}`);
+          }
+        }
       } catch (err: any) {
         errors.push(`Subscription ${sub.id}: ${err.message}`);
       }
