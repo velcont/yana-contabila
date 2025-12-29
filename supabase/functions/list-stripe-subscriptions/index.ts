@@ -99,6 +99,16 @@ serve(async (req) => {
       cancel_at_period_end: boolean;
     }
 
+    // Helper to safely convert timestamp to ISO string
+    const safeDate = (timestamp: number | null | undefined): string => {
+      if (!timestamp || timestamp <= 0) return '';
+      try {
+        return new Date(timestamp * 1000).toISOString();
+      } catch {
+        return '';
+      }
+    };
+
     // Build the response with enriched data
     const enrichedSubscriptions: EnrichedSubscription[] = subscriptions.data.map((sub: Stripe.Subscription) => {
       const customer = sub.customer as Stripe.Customer;
@@ -115,9 +125,9 @@ serve(async (req) => {
         plan_name: priceInfo.name,
         amount_cents: priceInfo.amount,
         currency: 'RON',
-        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-        created_at: new Date(sub.created * 1000).toISOString(),
+        current_period_start: safeDate(sub.current_period_start),
+        current_period_end: safeDate(sub.current_period_end),
+        created_at: safeDate(sub.created),
         cancel_at_period_end: sub.cancel_at_period_end,
       };
     });
