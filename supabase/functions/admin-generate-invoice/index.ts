@@ -26,24 +26,25 @@ interface SmartBillClient {
 }
 
 interface SmartBillProduct {
-  nume: string;
-  cod: string;
-  um: string;
-  cantitate: number;
-  pret: number;
-  cotaTVA: string;
-  isTaxIncluded?: boolean;
+  name: string;
+  code: string;
+  measuringUnitName: string;
+  currency: string;
+  quantity: number;
+  price: number;
+  isService: boolean;
+  saveToDb?: boolean;
 }
 
 interface SmartBillInvoice {
-  cif: string;
+  companyVatCode: string;
   client: SmartBillClient;
-  emitereFactura: string;
-  scadentaFactura: string;
-  serieFactura: string;
-  produse: SmartBillProduct[];
-  observatii?: string;
-  moneda: string;
+  issueDate: string;
+  dueDate: string;
+  seriesName: string;
+  products: SmartBillProduct[];
+  mentions?: string;
+  currency?: string;
 }
 
 serve(async (req) => {
@@ -346,24 +347,24 @@ serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
 
     const smartbillInvoice: SmartBillInvoice = {
-      cif: companyCIF,
+      companyVatCode: companyCIF,
       client: clientData,
-      emitereFactura: today,
-      scadentaFactura: today,
-      serieFactura: "conta",
-      produse: [
+      issueDate: today,
+      dueDate: today,
+      seriesName: "conta",
+      products: [
         {
-          nume: productName,
-          cod: paymentType === 'subscription' ? "YANA-SUB" : "YANA-AI",
-          um: "buc",
-          cantitate: 1,
-          pret: amount,
-          cotaTVA: "Taxare inversa",
-          isTaxIncluded: true,
+          name: productName,
+          code: paymentType === 'subscription' ? "YANA-SUB" : "YANA-AI",
+          measuringUnitName: "buc",
+          currency: "RON",
+          quantity: 1,
+          price: amount,
+          isService: true,
+          saveToDb: false,
         },
       ],
-      observatii: `Plata Stripe - ${paymentType}: ${paymentType === 'subscription' ? stripeInvoiceIdForDb : sessionId}`,
-      moneda: "RON",
+      mentions: `Plata Stripe - ${paymentType}: ${paymentType === 'subscription' ? stripeInvoiceIdForDb : sessionId}`,
     };
 
     logStep("Sending to SmartBill", { 
