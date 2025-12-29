@@ -965,7 +965,8 @@ serve(async (req) => {
         originalValue: z.number(),
         newValue: z.number(),
         unit: z.string()
-      })).optional()
+      })).optional(),
+      scenario_name: z.string().optional()  // ← SCENARIU PREDEFINIT WAR ROOM
     });
 
     // ✅ PARSE AND VALIDATE WITH ZOD
@@ -996,8 +997,9 @@ serve(async (req) => {
       industryType, 
       financialData,
       simulation_mode,      // ← WAR ROOM SIMULATOR
-      simulation_changes    // ← MODIFICĂRI UTILIZATOR
-    } = requestBody;
+      simulation_changes,   // ← MODIFICĂRI UTILIZATOR
+      scenario_name         // ← NUME SCENARIU PREDEFINIT
+    } = requestBody as any;
 
     console.log("[STRATEGIC-ADVISOR] Request data:", { 
       hasIndustry: !!industryType, 
@@ -1030,17 +1032,25 @@ serve(async (req) => {
         .eq('status', 'validated')
         .order('fact_category', { ascending: true });
 
-      if (factsError || !existingFacts || existingFacts.length === 0) {
+      // Flag pentru simulare conceptuală (fără date validate)
+      const isConceptualSimulation = factsError || !existingFacts || existingFacts.length === 0;
+      
+      if (isConceptualSimulation && !scenario_name) {
+        // Fără scenariu predefinit și fără date = eroare
         return new Response(
           JSON.stringify({ 
-            error: "Nu există date validate pentru simulare. Rulează o analiză completă mai întâi.",
+            error: "Nu există date validate pentru simulare. Rulează o analiză completă sau selectează un scenariu predefinit.",
             details: factsError 
           }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      console.log("[STRATEGIC-ADVISOR] Loaded", existingFacts.length, "validated facts for simulation");
+      if (isConceptualSimulation) {
+        console.log("[STRATEGIC-ADVISOR] WAR ROOM: Simulare CONCEPTUALĂ cu scenariu predefinit:", scenario_name);
+      } else {
+        console.log("[STRATEGIC-ADVISOR] Loaded", existingFacts.length, "validated facts for simulation");
+      }
 
       // 2. Build changes description
       const changesDescription = simulation_changes.map((change: any) => {
@@ -1050,34 +1060,47 @@ serve(async (req) => {
         return `${direction} **${change.key}**: ${change.originalValue} ${change.unit} → ${change.newValue} ${change.unit} (${percentChangeNum > 0 ? '+' : ''}${percentChange}%)`;
       }).join('\n');
 
-      // 3. Build simulated fact sheet with MODIFIED values
-      let simulatedFactSheet = "📊 **DATE SIMULATE (MODIFICATE - SCENARIUL WAR ROOM):**\n\n";
+      // 3. Build simulated fact sheet with MODIFIED values (sau date conceptuale)
+      let simulatedFactSheet = "";
       
-      const grouped = existingFacts.reduce((acc: Record<string, any[]>, fact: any) => {
-        if (!acc[fact.fact_category]) acc[fact.fact_category] = [];
-        acc[fact.fact_category].push(fact);
-        return acc;
-      }, {});
-
-      const categoryLabels: Record<string, string> = {
-        financial: '💰 FINANCIAR',
-        company: '🏢 COMPANIE',
-        market: '📊 PIAȚĂ',
-        competition: '⚔️ CONCURENȚĂ'
-      };
-
-      Object.entries(grouped).forEach(([category, facts]) => {
-        simulatedFactSheet += `**${categoryLabels[category] || category.toUpperCase()}:**\n`;
-        (facts as any[]).forEach(fact => {
-          const change = simulation_changes.find((c: any) => c.key === fact.fact_key);
-          if (change) {
-            simulatedFactSheet += `- ⚠️ ${fact.fact_key.replace(/_/g, ' ')}: **${change.newValue} ${fact.fact_unit || ''}** (era: ${fact.fact_value})\n`;
-          } else {
-            simulatedFactSheet += `- ${fact.fact_key.replace(/_/g, ' ')}: ${fact.fact_value} ${fact.fact_unit || ''}\n`;
-          }
+      if (isConceptualSimulation) {
+        // Simulare conceptuală - folosim scenariul ca bază
+        simulatedFactSheet = `📊 **SIMULARE CONCEPTUALĂ - SCENARIU: ${scenario_name?.toUpperCase()}**\n\n`;
+        simulatedFactSheet += `⚠️ **NOTĂ:** Nu există date financiare validate pentru acest business. Analiza este bazată pe estimări tipice pentru scenariul selectat.\n\n`;
+        simulatedFactSheet += `**MODIFICĂRI SIMULATE:**\n`;
+        simulation_changes.forEach((change: any) => {
+          simulatedFactSheet += `- ${change.key.replace(/_/g, ' ')}: modificare de ${change.newValue > change.originalValue ? '+' : ''}${((change.newValue - change.originalValue) / change.originalValue * 100).toFixed(0)}%\n`;
         });
         simulatedFactSheet += '\n';
-      });
+      } else {
+        simulatedFactSheet = "📊 **DATE SIMULATE (MODIFICATE - SCENARIUL WAR ROOM):**\n\n";
+        
+        const grouped = existingFacts.reduce((acc: Record<string, any[]>, fact: any) => {
+          if (!acc[fact.fact_category]) acc[fact.fact_category] = [];
+          acc[fact.fact_category].push(fact);
+          return acc;
+        }, {});
+
+        const categoryLabels: Record<string, string> = {
+          financial: '💰 FINANCIAR',
+          company: '🏢 COMPANIE',
+          market: '📊 PIAȚĂ',
+          competition: '⚔️ CONCURENȚĂ'
+        };
+
+        Object.entries(grouped).forEach(([category, facts]) => {
+          simulatedFactSheet += `**${categoryLabels[category] || category.toUpperCase()}:**\n`;
+          (facts as any[]).forEach(fact => {
+            const change = simulation_changes.find((c: any) => c.key === fact.fact_key);
+            if (change) {
+              simulatedFactSheet += `- ⚠️ ${fact.fact_key.replace(/_/g, ' ')}: **${change.newValue} ${fact.fact_unit || ''}** (era: ${fact.fact_value})\n`;
+            } else {
+              simulatedFactSheet += `- ${fact.fact_key.replace(/_/g, ' ')}: ${fact.fact_value} ${fact.fact_unit || ''}\n`;
+            }
+          });
+          simulatedFactSheet += '\n';
+        });
+      }
 
       // 4. Build special SIMULATION PROMPT
       const simulationPrompt = `⚠️⚠️⚠️ MODUL SIMULARE WAR ROOM ACTIV ⚠️⚠️⚠️
