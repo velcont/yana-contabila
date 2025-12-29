@@ -3333,6 +3333,7 @@ export type Database = {
           smartbill_response: Json | null
           status: string
           stripe_customer_id: string
+          stripe_invoice_id: string | null
           stripe_session_id: string
           updated_at: string
           user_id: string
@@ -3352,6 +3353,7 @@ export type Database = {
           smartbill_response?: Json | null
           status?: string
           stripe_customer_id: string
+          stripe_invoice_id?: string | null
           stripe_session_id: string
           updated_at?: string
           user_id: string
@@ -3371,6 +3373,7 @@ export type Database = {
           smartbill_response?: Json | null
           status?: string
           stripe_customer_id?: string
+          stripe_invoice_id?: string | null
           stripe_session_id?: string
           updated_at?: string
           user_id?: string
