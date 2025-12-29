@@ -295,60 +295,62 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="flex flex-wrap w-full gap-2">
-            <TabsTrigger value="users">
-              <Users className="h-4 w-4 mr-2" />
-              Utilizatori ({profiles.length})
-            </TabsTrigger>
-            <TabsTrigger value="revenue">
-              <DollarSign className="h-4 w-4 mr-2" />
-              💰 Facturare & Venituri
-            </TabsTrigger>
-            <TabsTrigger value="test">
-              <Package className="h-4 w-4 mr-2" />
-              Test Checkout
-            </TabsTrigger>
-            <TabsTrigger value="analyses">
-              <FileText className="h-4 w-4 mr-2" />
-              Analize ({analyses.length})
-            </TabsTrigger>
-            <TabsTrigger value="conversations">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Conversații ({Object.keys(groupedConversations).length})
-            </TabsTrigger>
-            <TabsTrigger value="strategic">
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Strategic Advisor
-            </TabsTrigger>
-            <TabsTrigger value="email">
-              <Mail className="h-4 w-4 mr-2" />
-              Email Anunț
-            </TabsTrigger>
-            <TabsTrigger value="storage">
-              <HardDrive className="h-4 w-4 mr-2" />
-              Storage
-            </TabsTrigger>
-            <TabsTrigger value="audit">
-              <Shield className="h-4 w-4 mr-2" />
-              Audit Logs
-            </TabsTrigger>
-            <TabsTrigger value="copyright">
-              <FileDown className="h-4 w-4 mr-2" />
-              Copyright
-            </TabsTrigger>
-            <TabsTrigger value="research">
-              <GraduationCap className="h-4 w-4 mr-2" />
-              Asistent Doctorat
-            </TabsTrigger>
-            <TabsTrigger value="humanizer">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Text Humanizer
-            </TabsTrigger>
-            <TabsTrigger value="sync">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Sync Stripe
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full whitespace-nowrap pb-2">
+            <TabsList className="inline-flex w-max gap-2">
+              <TabsTrigger value="users">
+                <Users className="h-4 w-4 mr-2" />
+                Utilizatori ({profiles.length})
+              </TabsTrigger>
+              <TabsTrigger value="revenue">
+                <DollarSign className="h-4 w-4 mr-2" />
+                💰 Facturare & Venituri
+              </TabsTrigger>
+              <TabsTrigger value="test">
+                <Package className="h-4 w-4 mr-2" />
+                Test Checkout
+              </TabsTrigger>
+              <TabsTrigger value="analyses">
+                <FileText className="h-4 w-4 mr-2" />
+                Analize ({analyses.length})
+              </TabsTrigger>
+              <TabsTrigger value="conversations">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Conversații ({Object.keys(groupedConversations).length})
+              </TabsTrigger>
+              <TabsTrigger value="strategic">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Strategic Advisor
+              </TabsTrigger>
+              <TabsTrigger value="email">
+                <Mail className="h-4 w-4 mr-2" />
+                Email Anunț
+              </TabsTrigger>
+              <TabsTrigger value="storage">
+                <HardDrive className="h-4 w-4 mr-2" />
+                Storage
+              </TabsTrigger>
+              <TabsTrigger value="audit">
+                <Shield className="h-4 w-4 mr-2" />
+                Audit Logs
+              </TabsTrigger>
+              <TabsTrigger value="copyright">
+                <FileDown className="h-4 w-4 mr-2" />
+                Copyright
+              </TabsTrigger>
+              <TabsTrigger value="research">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Asistent Doctorat
+              </TabsTrigger>
+              <TabsTrigger value="humanizer">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Text Humanizer
+              </TabsTrigger>
+              <TabsTrigger value="sync">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Sync Stripe
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
 
           <TabsContent value="revenue">
             <Suspense fallback={<TabContentLoader />}>
