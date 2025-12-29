@@ -139,10 +139,11 @@ export default function AdminRevenueMonitor() {
         .select('*')
         .order('purchase_date', { ascending: false });
 
-      // Fetch abonamente
+      // Fetch abonamente - DOAR YANA 49 RON (4900 cents)
       const { data: subscriptions } = await supabase
         .from('subscription_payments')
         .select('*')
+        .eq('amount_paid_cents', 4900)
         .order('payment_date', { ascending: false });
 
       // Fetch toate profile-urile necesare
