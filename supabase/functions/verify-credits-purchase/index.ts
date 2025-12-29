@@ -226,7 +226,7 @@ serve(async (req) => {
     console.log(`✅ Successfully added ${creditsToAdd} credits to ${customerEmail}`);
     console.log(`📊 Budget: ${oldBudget} → ${newBudget} cents`);
 
-    // Log audit event
+    // Log audit event for credits verification
     await supabaseClient.rpc("log_audit_event", {
       p_action_type: "CREDITS_VERIFIED_AND_ADDED",
       p_table_name: "credits_purchases",
@@ -234,12 +234,36 @@ serve(async (req) => {
       p_metadata: {
         session_id: session.id,
         user_id: user.id,
+        user_email: customerEmail,
         credits_added: creditsToAdd,
+        package_name: packageName,
+        amount_paid_cents: amountPaid,
         old_budget: oldBudget,
         new_budget: newBudget,
+        price_id: priceId,
         verified_at: new Date().toISOString(),
+        source: "verify-credits-purchase"
       },
     });
+
+    // Create admin alert for manual invoice generation
+    await supabaseClient.from('admin_alerts').insert({
+      alert_type: 'CREDITS_PURCHASE_NEEDS_INVOICE',
+      severity: 'low',
+      title: `💳 Factură Necesară: ${customerEmail}`,
+      description: `Utilizatorul a achiziționat ${creditsToAdd} credite (${packageName}). Generează factura.`,
+      details: {
+        user_id: user.id,
+        user_email: customerEmail,
+        credits_added: creditsToAdd,
+        package_name: packageName,
+        amount_paid_cents: amountPaid,
+        session_id: session.id,
+        purchase_date: new Date().toISOString()
+      }
+    });
+
+    console.log(`📢 Admin alert created for invoice: ${customerEmail}, ${packageName}`);
 
     return new Response(
       JSON.stringify({

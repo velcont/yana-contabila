@@ -196,6 +196,146 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
       );
 
+      // Get customer email early - needed for both subscription and credits
+      const customerEmail = session.customer_email || session.customer_details?.email;
+
+      // 🔒 FIX: Handle SUBSCRIPTION checkout (mode: 'subscription')
+      if (session.mode === 'subscription') {
+        console.log(`📦 Processing SUBSCRIPTION checkout for ${customerEmail}, session ${session.id}`);
+        
+        if (!customerEmail) {
+          console.error("❌ No customer email found in subscription checkout session");
+          
+          await supabaseClient.from('admin_alerts').insert({
+            alert_type: 'SUBSCRIPTION_NO_EMAIL',
+            severity: 'critical',
+            title: 'Subscription Checkout Without Email',
+            description: 'A subscription checkout completed but no customer email was found.',
+            details: {
+              sessionId: session.id,
+              customerId: session.customer,
+              subscriptionId: session.subscription
+            }
+          });
+          
+          return new Response(JSON.stringify({ 
+            received: true, 
+            error: 'No customer email in subscription checkout'
+          }), { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200 
+          });
+        }
+
+        // Find user profile by email
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('id, email, subscription_status, stripe_customer_id')
+          .eq('email', customerEmail)
+          .single();
+
+        if (profileError || !profile) {
+          console.error(`❌ Profile not found for email ${customerEmail}:`, profileError);
+          
+          await supabaseClient.from('admin_alerts').insert({
+            alert_type: 'SUBSCRIPTION_PROFILE_NOT_FOUND',
+            severity: 'critical',
+            title: `Subscription Paid but Profile Not Found: ${customerEmail}`,
+            description: 'User paid for subscription but their profile does not exist in database.',
+            details: {
+              sessionId: session.id,
+              customerEmail,
+              subscriptionId: session.subscription
+            }
+          });
+          
+          return new Response(JSON.stringify({ 
+            received: true, 
+            error: 'Profile not found for subscription'
+          }), { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200 
+          });
+        }
+
+        // Retrieve the subscription from Stripe to get full details
+        const subscriptionId = session.subscription as string;
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscriptionEndDate = new Date(subscription.current_period_end * 1000).toISOString();
+
+        // Determine subscription type based on price
+        const priceId = subscription.items.data[0]?.price?.id;
+        const amountCents = subscription.items.data[0]?.price?.unit_amount || 0;
+        let subscriptionType = 'entrepreneur'; // default
+        
+        if (priceId === 'price_1SLWzFBu3m83VcDAgP1veppc' || amountCents >= 19900) {
+          subscriptionType = 'accounting_firm';
+        }
+
+        console.log(`📊 Subscription details: type=${subscriptionType}, ends=${subscriptionEndDate}, priceId=${priceId}`);
+
+        // Update profile with subscription data
+        const { error: updateError } = await supabaseClient
+          .from('profiles')
+          .update({
+            subscription_status: 'active',
+            subscription_type: subscriptionType,
+            stripe_customer_id: session.customer as string,
+            stripe_subscription_id: subscriptionId,
+            subscription_ends_at: subscriptionEndDate,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', profile.id);
+
+        if (updateError) {
+          console.error(`❌ Failed to update profile for ${customerEmail}:`, updateError);
+          
+          await supabaseClient.from('admin_alerts').insert({
+            alert_type: 'SUBSCRIPTION_PROFILE_UPDATE_FAILED',
+            severity: 'critical',
+            title: `Failed to Activate Subscription for ${customerEmail}`,
+            description: 'Subscription payment received but profile update failed. Manual intervention required.',
+            details: {
+              profileId: profile.id,
+              sessionId: session.id,
+              subscriptionId,
+              error: updateError.message
+            }
+          });
+        } else {
+          console.log(`✅ Subscription ACTIVATED for ${customerEmail}: ${subscriptionType}, ends ${subscriptionEndDate}`);
+        }
+
+        // Create audit log for subscription activation
+        await supabaseClient.from('audit_logs').insert({
+          user_id: profile.id,
+          user_email: customerEmail,
+          action_type: 'SUBSCRIPTION_ACTIVATED_VIA_CHECKOUT',
+          table_name: 'profiles',
+          metadata: {
+            checkout_session_id: session.id,
+            subscription_id: subscriptionId,
+            subscription_type: subscriptionType,
+            subscription_ends_at: subscriptionEndDate,
+            price_id: priceId,
+            amount_cents: amountCents,
+            customer_id: session.customer
+          }
+        });
+
+        return new Response(JSON.stringify({ 
+          received: true, 
+          subscription_activated: true,
+          user_email: customerEmail
+        }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200 
+        });
+      }
+
+      // 🔒 CREDITS PURCHASE handling (mode: 'payment')
+      console.log(`💳 Processing CREDITS checkout for ${customerEmail}, session ${session.id}`);
+
       // 🔒 SECURITY FIX 2: Check if checkout session already processed to prevent duplicates
       const { data: existingPurchase } = await supabaseClient
         .from('credits_purchases')
@@ -214,9 +354,6 @@ serve(async (req) => {
           status: 200 
         });
       }
-
-      // Get customer email
-      const customerEmail = session.customer_email || session.customer_details?.email;
       if (!customerEmail) {
         console.error("No customer email found in session");
         return new Response("No email", { status: 400 });
