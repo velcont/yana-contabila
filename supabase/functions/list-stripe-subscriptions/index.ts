@@ -109,28 +109,49 @@ serve(async (req) => {
       }
     };
 
-    // Build the response with enriched data
-    const enrichedSubscriptions: EnrichedSubscription[] = subscriptions.data.map((sub: Stripe.Subscription) => {
-      const customer = sub.customer as Stripe.Customer;
-      const priceId = sub.items.data[0]?.price?.id || '';
-      const priceInfo = PRICE_NAMES[priceId] || { name: 'Plan Necunoscut', amount: 0 };
-      
-      return {
-        id: sub.id,
-        customer_id: typeof sub.customer === 'string' ? sub.customer : customer.id,
-        customer_email: customer?.email || null,
-        customer_name: customer?.name || null,
-        status: sub.status,
-        price_id: priceId,
-        plan_name: priceInfo.name,
-        amount_cents: priceInfo.amount,
-        currency: 'RON',
-        current_period_start: safeDate(sub.current_period_start),
-        current_period_end: safeDate(sub.current_period_end),
-        created_at: safeDate(sub.created),
-        cancel_at_period_end: sub.cancel_at_period_end,
-      };
-    });
+    // Get all emails of users with free access to exclude them
+    const { data: freeAccessUsers } = await supabaseClient
+      .from('profiles')
+      .select('email')
+      .eq('has_free_access', true);
+    
+    const freeAccessEmails = new Set(
+      (freeAccessUsers || [])
+        .map(u => u.email?.toLowerCase())
+        .filter(Boolean)
+    );
+    
+    logStep("Free access users to exclude", { count: freeAccessEmails.size });
+
+    // Build the response with enriched data, excluding free access users
+    const enrichedSubscriptions: EnrichedSubscription[] = subscriptions.data
+      .filter((sub: Stripe.Subscription) => {
+        const customer = sub.customer as Stripe.Customer;
+        const email = customer?.email?.toLowerCase();
+        // Exclude if user has free access
+        return !email || !freeAccessEmails.has(email);
+      })
+      .map((sub: Stripe.Subscription) => {
+        const customer = sub.customer as Stripe.Customer;
+        const priceId = sub.items.data[0]?.price?.id || '';
+        const priceInfo = PRICE_NAMES[priceId] || { name: 'Plan Necunoscut', amount: 0 };
+        
+        return {
+          id: sub.id,
+          customer_id: typeof sub.customer === 'string' ? sub.customer : customer.id,
+          customer_email: customer?.email || null,
+          customer_name: customer?.name || null,
+          status: sub.status,
+          price_id: priceId,
+          plan_name: priceInfo.name,
+          amount_cents: priceInfo.amount,
+          currency: 'RON',
+          current_period_start: safeDate(sub.current_period_start),
+          current_period_end: safeDate(sub.current_period_end),
+          created_at: safeDate(sub.created),
+          cancel_at_period_end: sub.cancel_at_period_end,
+        };
+      });
 
     // Sort by status (active first, then by date)
     enrichedSubscriptions.sort((a: EnrichedSubscription, b: EnrichedSubscription) => {
