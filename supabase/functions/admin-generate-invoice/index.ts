@@ -169,7 +169,7 @@ serve(async (req) => {
 
         // Prefer a paid invoice, fall back to the newest invoice if needed
         invoice =
-          invoices.data.find((i) => i.status === 'paid') ||
+          invoices.data.find((i: Stripe.Invoice) => i.status === 'paid') ||
           invoices.data[0];
 
         if (!invoice) {
