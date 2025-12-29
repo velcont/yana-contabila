@@ -78,22 +78,15 @@ const Terms = () => {
             </ul>
 
             <h2>6. Planuri de Abonament și Tarife</h2>
-            <p>YANA oferă următoarele planuri de abonament lunare:</p>
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 my-4">
-              <h3 className="font-semibold mb-2">6.1. Plan Antreprenor</h3>
+            <p>YANA oferă un singur plan de abonament simplu și complet:</p>
+            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 my-4">
+              <h3 className="font-semibold mb-2">Yana Strategic - 49 RON/lună</h3>
               <ul>
-                <li><strong>Preț:</strong> 49 lei/lună (TVA inclus)</li>
-                <li><strong>Include:</strong> Analiză financiară nelimitată, Chat AI, Dashboard interactiv, Export rapoarte</li>
-                <li><strong>Pentru:</strong> Afaceri individuale și IMM-uri</li>
+                <li><strong>Preț:</strong> 49 lei/lună + TVA</li>
+                <li><strong>Include:</strong> Analiză financiară nelimitată, Chat AI, Dashboard interactiv, Export rapoarte PDF/Word, Yana Strategică (Consilier AI), War Room Simulator, Battle Plan Export</li>
+                <li><strong>Pentru:</strong> Antreprenori și IMM-uri care vor decizii bazate pe date</li>
               </ul>
-            </div>
-            <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800 my-4">
-              <h3 className="font-semibold mb-2">6.2. Plan Contabil</h3>
-              <ul>
-                <li><strong>Preț:</strong> 199 lei/lună (TVA inclus)</li>
-                <li><strong>Include:</strong> Toate funcțiile Plan Antreprenor + Gestionare clienți nelimitați, CRM integrat, Managementul documentelor, Branding personalizat</li>
-                <li><strong>Pentru:</strong> Cabinete de contabilitate</li>
-              </ul>
+              <p className="text-sm mt-2 text-muted-foreground">30 de zile gratuit • Anulare oricând • Fără card inițial</p>
             </div>
             
             <h3 className="font-semibold mt-4">6.3. Credite AI pentru Funcționalități Premium</h3>
