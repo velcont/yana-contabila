@@ -51,8 +51,22 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         skipWaiting: true,        // Service Worker se activează IMEDIAT
         clientsClaim: true,       // Preia controlul tuturor paginilor INSTANT
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        cleanupOutdatedCaches: true, // Curăță cache-uri vechi automat
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'], // FĂRĂ html - NetworkFirst pentru navigații
         runtimeCaching: [
+          {
+            // Navigații - prioritate rețea, fallback cache pentru offline
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 // 1 oră
+              },
+              networkTimeoutSeconds: 3, // Timeout rapid pentru fallback
+            }
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',

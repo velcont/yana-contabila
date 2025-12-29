@@ -17,7 +17,7 @@ export const useAuth = () => {
     // Set up auth state listener FIRST
     // IMPORTANT: Skip PASSWORD_RECOVERY event - let Auth.tsx handle it
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         // Skip PASSWORD_RECOVERY - Auth.tsx gestionează resetarea parolei
         if (event === 'PASSWORD_RECOVERY') {
           console.log('🔐 [useAuth] PASSWORD_RECOVERY event - skipping, Auth.tsx handles this');
@@ -28,6 +28,31 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         setLoading(false);
         clearTimeout(loadingTimeout);
+        
+        // Faza 2: Verificare versiune la SIGNED_IN
+        if (event === 'SIGNED_IN') {
+          // Protecție anti-loop: verificăm dacă am făcut deja refresh în această sesiune
+          const refreshGuard = sessionStorage.getItem('yana_login_refresh_guard');
+          if (refreshGuard === 'true') {
+            console.log('🔄 [useAuth] Refresh guard active - skipping version check');
+            return;
+          }
+          
+          // Delay mic pentru a evita deadlock Supabase
+          setTimeout(async () => {
+            try {
+              const hasNewVersion = await checkForNewVersion(supabase);
+              if (hasNewVersion) {
+                console.log('🔄 [useAuth] New version detected at login - refreshing...');
+                sessionStorage.setItem('yana_login_refresh_guard', 'true');
+                await saveCurrentVersion(supabase);
+                await performVersionRefresh();
+              }
+            } catch (error) {
+              console.warn('[useAuth] Version check failed:', error);
+            }
+          }, 100);
+        }
       }
     );
 

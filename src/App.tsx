@@ -14,6 +14,7 @@ import { TutorialMenu } from "@/components/TutorialMenu";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { UpdateNotificationBanner } from "@/components/UpdateNotificationBanner";
+import { VersionUpdateBanner } from "@/components/VersionUpdateBanner";
 import { NotificationProvider } from "@/components/NotificationSystem";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,6 +119,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <UpdateNotificationBanner />
+          <VersionUpdateBanner />
           <BrowserRouter>
           <ErrorBoundary>
             <SubscriptionProvider>
