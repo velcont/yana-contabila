@@ -157,7 +157,7 @@ serve(async (req) => {
 
     // Build warnings list
     const warnings: string[] = [];
-    
+
     if (clientType === 'PJ' && !clientCif) {
       warnings.push('⚠️ Tip firmă detectat dar CIF lipsește în Stripe');
     }
@@ -170,10 +170,19 @@ serve(async (req) => {
     if (!customer.email) {
       warnings.push('⚠️ Emailul clientului lipsește în Stripe');
     }
+    if (!subscription.current_period_start) {
+      warnings.push('⚠️ Perioada abonamentului lipsește (start)');
+    }
+    if (!subscription.current_period_end) {
+      warnings.push('⚠️ Perioada abonamentului lipsește (end)');
+    }
 
-    // Format dates
-    const formatDate = (timestamp: number) => {
-      return new Date(timestamp * 1000).toISOString();
+    // Format dates (safe)
+    const formatDate = (timestamp: number | null | undefined): string => {
+      if (!timestamp || timestamp <= 0) return '';
+      const d = new Date(timestamp * 1000);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toISOString();
     };
 
     const preview: InvoicePreview = {
