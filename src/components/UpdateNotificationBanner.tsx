@@ -9,7 +9,6 @@ export const UpdateNotificationBanner = () => {
   const [dismissed, setDismissed] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [localVersion, setLocalVersion] = useState<string | null>(null);
-  const [forceRefreshTriggered, setForceRefreshTriggered] = useState(false);
 
   // Inițializare: citim versiunea locală
   useEffect(() => {
@@ -60,37 +59,14 @@ export const UpdateNotificationBanner = () => {
     }
   }, [currentVersion, localVersion]);
 
-  // FIX CRITIC: Forțare refresh automat dacă versiunea e diferită și utilizatorul nu a văzut niciodată
-  // bannerul (prima vizită cu versiune veche în cache)
+  // Afișează banner-ul când există versiune nouă - FĂRĂ auto-refresh
   useEffect(() => {
-    if (hasNewVersion && !dismissed && !forceRefreshTriggered) {
-      const lastForcedRefresh = localStorage.getItem('yana_last_forced_refresh');
-      const now = Date.now();
-      
-      // Prevenim refresh-uri repetate - maxim o dată la 5 minute
-      if (!lastForcedRefresh || (now - parseInt(lastForcedRefresh)) > 5 * 60 * 1000) {
-        console.log('[UpdateNotificationBanner] New version detected - auto-refresh in 3 seconds...');
-        setForceRefreshTriggered(true);
-        
-        // Afișăm banner-ul pentru 3 secunde, apoi facem refresh automat
-        setTimeout(() => setIsVisible(true), 100);
-        
-        // Auto-refresh după 3 secunde (dă timp utilizatorului să vadă mesajul)
-        setTimeout(async () => {
-          localStorage.setItem('yana_last_forced_refresh', now.toString());
-          if (currentVersion) {
-            localStorage.setItem('yana_app_version', currentVersion.version);
-          }
-          await performVersionRefresh();
-        }, 3000);
-      } else {
-        // Dacă a trecut prea puțin timp de la ultimul refresh, doar afișăm banner-ul
-        setTimeout(() => setIsVisible(true), 100);
-      }
-    } else if (!hasNewVersion) {
+    if (hasNewVersion && !dismissed) {
+      setTimeout(() => setIsVisible(true), 100);
+    } else {
       setIsVisible(false);
     }
-  }, [hasNewVersion, dismissed, forceRefreshTriggered, currentVersion]);
+  }, [hasNewVersion, dismissed]);
 
   const handleRefresh = useCallback(async () => {
     if (currentVersion) {
