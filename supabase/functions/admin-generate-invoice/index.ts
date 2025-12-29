@@ -354,7 +354,10 @@ serve(async (req) => {
       moneda: "RON",
     };
 
-    logStep("Sending to SmartBill", { amount });
+    logStep("Sending to SmartBill", { 
+      amount,
+      invoicePayload: JSON.stringify(smartbillInvoice, null, 2)
+    });
 
     // 🔒 RESILIENCE FIX #3: Add retry logic with timeout
     let smartBillResponse: Response | undefined;
