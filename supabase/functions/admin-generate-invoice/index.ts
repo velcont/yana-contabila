@@ -117,7 +117,8 @@ serve(async (req) => {
     let isValidStripeId = false;
     
     if (paymentType === 'subscription') {
-      isValidStripeId = sessionId.startsWith('in_');
+      // Accept both invoice IDs (in_) and subscription IDs (sub_)
+      isValidStripeId = sessionId.startsWith('in_') || sessionId.startsWith('sub_');
     } else {
       // Credits: cs_test_ or cs_live_
       isValidStripeId = sessionId.startsWith('cs_test_') || sessionId.startsWith('cs_live_');
@@ -128,7 +129,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: `ID Stripe invalid: ${paymentType === 'subscription' ? 'trebuie să înceapă cu "in_"' : 'trebuie să înceapă cu "cs_test_" sau "cs_live_"'}`
+          error: `ID Stripe invalid: ${paymentType === 'subscription' ? 'trebuie să înceapă cu "in_" sau "sub_"' : 'trebuie să înceapă cu "cs_test_" sau "cs_live_"'}`
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
@@ -151,8 +152,31 @@ serve(async (req) => {
     let productName: string;
 
     if (paymentType === 'subscription') {
-      // Handle subscription invoice
-      const invoice = await stripe.invoices.retrieve(sessionId);
+      // Handle subscription - can be invoice ID (in_) or subscription ID (sub_)
+      let invoice: Stripe.Invoice;
+      let stripeInvoiceId = sessionId;
+      
+      if (sessionId.startsWith('sub_')) {
+        // Get the latest paid invoice for this subscription
+        logStep("Fetching latest invoice for subscription", { subscriptionId: sessionId });
+        const invoices = await stripe.invoices.list({
+          subscription: sessionId,
+          status: 'paid',
+          limit: 1,
+        });
+        
+        if (invoices.data.length === 0) {
+          throw new Error(`Nu există facturi plătite pentru acest abonament. Verificați statusul abonamentului.`);
+        }
+        
+        invoice = invoices.data[0];
+        stripeInvoiceId = invoice.id;
+        logStep("Found paid invoice for subscription", { invoiceId: stripeInvoiceId });
+      } else {
+        // Direct invoice ID
+        invoice = await stripe.invoices.retrieve(sessionId);
+      }
+      
       customerEmail = invoice.customer_email || '';
       const customer = await stripe.customers.retrieve(invoice.customer as string);
       customerName = (customer as any).name || customerEmail;
@@ -161,6 +185,7 @@ serve(async (req) => {
       productName = "Abonament Yana Contabila";
 
       logStep("Invoice retrieved", { 
+        invoiceId: stripeInvoiceId,
         customerId: stripeCustomerId,
         amount,
         currency: invoice.currency 
