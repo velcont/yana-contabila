@@ -55,6 +55,7 @@ interface TotalStats {
 export default function AdminRevenueMonitor() {
   const [allPayments, setAllPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'credits' | 'subscriptions'>('all');
@@ -194,6 +195,34 @@ export default function AdminRevenueMonitor() {
   useEffect(() => {
     loadAllPayments();
   }, []);
+
+  // Sync payments from Stripe
+  const syncStripePayments = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-stripe-payments');
+      
+      if (error) throw error;
+      
+      if (data?.success) {
+        toast({
+          title: '✅ Sincronizare completă',
+          description: `${data.synced} plăți sincronizate, ${data.skipped} ignorate${data.total_errors > 0 ? `, ${data.total_errors} erori` : ''}`
+        });
+        await loadAllPayments(); // Refresh data
+      } else {
+        throw new Error(data?.error || 'Eroare necunoscută');
+      }
+    } catch (error: any) {
+      toast({
+        title: '❌ Eroare sincronizare',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Check if session ID is valid for Stripe API calls
   const isValidStripeSession = (sessionId: string, paymentType: string) => {
@@ -622,6 +651,10 @@ export default function AdminRevenueMonitor() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button onClick={syncStripePayments} disabled={syncing} variant="default">
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Sincronizare...' : 'Sincronizează Stripe'}
+              </Button>
               <Button onClick={loadAllPayments} disabled={loading} variant="outline">
                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
