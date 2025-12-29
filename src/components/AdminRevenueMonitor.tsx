@@ -1091,9 +1091,8 @@ export default function AdminRevenueMonitor() {
                         <TableHead className="w-[150px]">Customer ID</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead className="w-[100px]">Status</TableHead>
-                        <TableHead className="w-[130px]">Plan</TableHead>
                         <TableHead className="text-right w-[100px]">Preț</TableHead>
-                        <TableHead className="text-right w-[140px] sticky right-0 bg-background/95 backdrop-blur">Acțiuni</TableHead>
+                        <TableHead className="text-right w-[130px]">Acțiuni</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1112,13 +1111,10 @@ export default function AdminRevenueMonitor() {
                             </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{sub.plan_name}</Badge>
-                          </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(sub.amount_cents)}
                           </TableCell>
-                          <TableCell className="text-right sticky right-0 bg-background/95 backdrop-blur">
+                          <TableCell className="text-right">
                             <Button
                               size="sm"
                               variant="default"
