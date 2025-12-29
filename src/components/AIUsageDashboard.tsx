@@ -2,14 +2,12 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, AlertTriangle, Activity, ShoppingCart, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, AlertTriangle, Activity, ShoppingCart, Loader2, ChevronDown, ChevronUp, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AICreditsPurchase } from "@/components/AICreditsPurchase";
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { getCurrentUser } from '@/lib/supabaseHelpers';
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 interface MonthlyUsage {
   user_id: string;
@@ -25,6 +23,7 @@ export const AIUsageDashboard = () => {
   const [usage, setUsage] = useState<MonthlyUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPurchase, setShowPurchase] = useState(false);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   // Check for success/cancel params and verify purchase
   const { handleError, handleSuccess, handleWarning } = useErrorHandler();
@@ -154,80 +153,151 @@ export const AIUsageDashboard = () => {
     return Math.max(0, b - c).toFixed(2);
   })();
 
+  // Estimare sesiuni (simplificat)
+  const estimatedSessions = Math.floor(parseFloat(remainingRON) / 2); // ~2 RON per sesiune
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
-            <CardTitle className="text-sm font-medium">Cost Luna Curentă</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{costRON} lei</div>
-            <p className="text-xs text-muted-foreground">din {budgetRON} lei buget</p>
-            <p className="text-xs text-muted-foreground">Rămas: {remainingRON} lei</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
-            <CardTitle className="text-sm font-medium">Cereri Procesate</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {usage?.total_requests?.toLocaleString() || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total această lună
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
-            <CardTitle className="text-sm font-medium">Token-uri Consumate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {usage?.total_tokens ? (usage.total_tokens / 1000).toFixed(1) + "K" : "0"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Input + Output tokens
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
-            <CardTitle className="text-sm font-medium">Utilizare Buget</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{usagePercent.toFixed(1)}%</div>
-            <Progress value={usagePercent} className="mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Purchase Button */}
-      <Card className="bg-gradient-to-r from-primary/10 to-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
+      {/* Vizualizare simplificată - default */}
+      <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Sesiuni disponibile cu Yana
+          </CardTitle>
+          <CardDescription>
+            Estimare bazată pe utilizarea ta medie
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-lg font-semibold mb-1">Ai nevoie de mai multe credite?</h3>
+              <div className="text-4xl font-bold text-primary">
+                ~{estimatedSessions}
+              </div>
               <p className="text-sm text-muted-foreground">
-                Cumpără credite instant cu plată securizată prin Stripe
+                {estimatedSessions === 1 ? 'sesiune rămasă' : 'sesiuni rămase'}
               </p>
             </div>
-            <Button size="lg" onClick={() => setShowPurchase(true)}>
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Cumpără Credite
+            <div className="text-right">
+              <Badge variant={usagePercent > 80 ? "destructive" : "secondary"}>
+                {(100 - usagePercent).toFixed(0)}% disponibil
+              </Badge>
+            </div>
+          </div>
+
+          <Progress value={100 - usagePercent} className="mb-4" />
+
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+              className="text-muted-foreground"
+            >
+              {showTechnicalDetails ? (
+                <>
+                  <ChevronUp className="mr-1 h-4 w-4" />
+                  Ascunde detalii tehnice
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="mr-1 h-4 w-4" />
+                  Vezi detalii tehnice
+                </>
+              )}
+            </Button>
+
+            <Button size="sm" onClick={() => setShowPurchase(true)}>
+              <ShoppingCart className="mr-1 h-4 w-4" />
+              Adaugă sesiuni
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Detalii tehnice - afișate doar la cerere */}
+      {showTechnicalDetails && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
+              <CardTitle className="text-sm font-medium">Cost Luna Curentă</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{costRON} lei</div>
+              <p className="text-xs text-muted-foreground">din {budgetRON} lei buget</p>
+              <p className="text-xs text-muted-foreground">Rămas: {remainingRON} lei</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
+              <CardTitle className="text-sm font-medium">Cereri Procesate</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {usage?.total_requests?.toLocaleString() || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Total această lună
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
+              <CardTitle className="text-sm font-medium">Token-uri Consumate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {usage?.total_tokens ? (usage.total_tokens / 1000).toFixed(1) + "K" : "0"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Input + Output tokens
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4">
+              <CardTitle className="text-sm font-medium">Utilizare Buget</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{usagePercent.toFixed(1)}%</div>
+              <Progress value={usagePercent} className="mt-2" />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* CTA pentru upgrade - dacă sesiunile sunt puține */}
+      {estimatedSessions < 3 && (
+        <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Continuă progresul cu Yana
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Ai identificat deja primele oportunități. Pentru strategii complete și acces nelimitat, upgrade-ează.
+                </p>
+              </div>
+              <Link to="/pricing">
+                <Button size="lg" className="gap-2 whitespace-nowrap">
+                  Vezi planuri
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
