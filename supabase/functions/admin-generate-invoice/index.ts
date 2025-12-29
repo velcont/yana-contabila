@@ -443,6 +443,7 @@ serve(async (req) => {
        // Save failed attempt
        const failedInvoiceData: any = {
          user_id: targetUser.id,
+         stripe_session_id: sessionId,
          stripe_customer_id: stripeCustomerId,
          customer_email: customerEmail,
          customer_name: customerName,
@@ -455,9 +456,8 @@ serve(async (req) => {
 
        if (paymentType === 'subscription') {
          failedInvoiceData.stripe_invoice_id = stripeInvoiceIdForDb;
-       } else {
-         failedInvoiceData.stripe_session_id = sessionId;
        }
+
 
        await supabaseClient.from('smartbill_invoices').insert(failedInvoiceData);
 
@@ -480,6 +480,7 @@ serve(async (req) => {
      // Save to database
      const successInvoiceData: any = {
        user_id: targetUser.id,
+       stripe_session_id: sessionId,
        stripe_customer_id: stripeCustomerId,
        customer_email: customerEmail,
        customer_name: customerName,
@@ -495,9 +496,8 @@ serve(async (req) => {
 
      if (paymentType === 'subscription') {
        successInvoiceData.stripe_invoice_id = stripeInvoiceIdForDb;
-     } else {
-       successInvoiceData.stripe_session_id = sessionId;
      }
+
 
     const { error: insertError } = await supabaseClient
       .from('smartbill_invoices')
@@ -505,8 +505,9 @@ serve(async (req) => {
 
     if (insertError) {
       logStep("Error saving to database", { error: insertError });
-      throw insertError;
+      throw new Error(insertError.message);
     }
+
 
     // Update subscription payment status if applicable
     if (paymentType === 'subscription') {
