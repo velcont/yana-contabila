@@ -1081,67 +1081,67 @@ export default function AdminRevenueMonitor() {
                 </div>
               </div>
 
+              <div className="overflow-x-auto">
               <ScrollArea className="h-[400px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>#</TableHead>
-                      <TableHead>Customer ID</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead className="text-right">Preț</TableHead>
-                      <TableHead>Următoarea Plată</TableHead>
-                      <TableHead className="text-right">Acțiuni</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stripeSubscriptions.map((sub, idx) => (
-                      <TableRow key={sub.id} className={sub.status === 'active' ? 'bg-green-50/50 dark:bg-green-950/20' : ''}>
-                        <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{sub.customer_id}</code>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-sm">{sub.customer_email || '-'}</p>
-                            {sub.customer_name && (
-                              <p className="text-xs text-muted-foreground">{sub.customer_name}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{sub.plan_name}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {formatCurrency(sub.amount_cents)}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {sub.current_period_end ? format(new Date(sub.current_period_end), 'dd MMM yyyy', { locale: ro }) : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleInvoicePreview(sub)}
-                            disabled={loadingPreview && selectedSubscriptionForInvoice?.id === sub.id}
-                            title="Facturează - vezi preview"
-                            className="gap-1"
-                          >
-                            {loadingPreview && selectedSubscriptionForInvoice?.id === sub.id ? (
-                              <RefreshCw className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Eye className="h-3 w-3" />
-                            )}
-                            <span className="hidden sm:inline">Facturează</span>
-                          </Button>
-                        </TableCell>
+                <div className="min-w-[900px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">#</TableHead>
+                        <TableHead className="w-[150px]">Customer ID</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="w-[100px]">Status</TableHead>
+                        <TableHead className="w-[130px]">Plan</TableHead>
+                        <TableHead className="text-right w-[100px]">Preț</TableHead>
+                        <TableHead className="text-right w-[130px]">Acțiuni</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {stripeSubscriptions.map((sub, idx) => (
+                        <TableRow key={sub.id} className={sub.status === 'active' ? 'bg-green-50/50 dark:bg-green-950/20' : ''}>
+                          <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{sub.customer_id}</code>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{sub.customer_email || '-'}</p>
+                              {sub.customer_name && (
+                                <p className="text-xs text-muted-foreground">{sub.customer_name}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{sub.plan_name}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(sub.amount_cents)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleInvoicePreview(sub)}
+                              disabled={loadingPreview && selectedSubscriptionForInvoice?.id === sub.id}
+                              title="Facturează - vezi preview"
+                              className="gap-1"
+                            >
+                              {loadingPreview && selectedSubscriptionForInvoice?.id === sub.id ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Receipt className="h-3 w-3" />
+                              )}
+                              Facturează
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </ScrollArea>
+              </div>
             </>
           )}
         </CardContent>
