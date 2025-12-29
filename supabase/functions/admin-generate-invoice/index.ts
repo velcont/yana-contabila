@@ -13,15 +13,16 @@ const logStep = (step: string, details?: any) => {
 };
 
 interface SmartBillClient {
-  tip: "PF" | "PJ";
-  nume: string;
-  email: string;
-  cif?: string;
-  cnp?: string;
-  localitate: string;
-  judet: string;
-  adresa: string;
-  tara: string;
+  name: string;
+  vatCode?: string;
+  regCom?: string;
+  address: string;
+  isTaxPayer: boolean;
+  city: string;
+  county?: string;
+  country: string;
+  email?: string;
+  saveToDb?: boolean;
 }
 
 interface SmartBillProduct {
@@ -30,8 +31,8 @@ interface SmartBillProduct {
   um: string;
   cantitate: number;
   pret: number;
-  valoareTVA: number;
-  procent_tva: number;
+  cotaTVA: string;
+  isTaxIncluded?: boolean;
 }
 
 interface SmartBillInvoice {
@@ -302,33 +303,44 @@ serve(async (req) => {
     const isPJ = !!taxId && (taxId.startsWith('RO') || /^\d{6,10}$/.test(taxId));
 
     let clientData: SmartBillClient;
+    
+    // Normalize Romanian diacritics for SmartBill
+    const normalizeText = (text: string) => text
+      .replace(/ș/g, 's').replace(/Ș/g, 'S')
+      .replace(/ț/g, 't').replace(/Ț/g, 'T')
+      .replace(/ă/g, 'a').replace(/Ă/g, 'A')
+      .replace(/â/g, 'a').replace(/Â/g, 'A')
+      .replace(/î/g, 'i').replace(/Î/g, 'I')
+      .replace(/ş/g, 's').replace(/Ş/g, 'S')
+      .replace(/ţ/g, 't').replace(/Ţ/g, 'T');
 
     if (isPJ) {
       const companyTaxId = taxId!.startsWith('RO') ? taxId! : `RO${taxId}`;
       clientData = {
-        tip: 'PJ',
-        nume: customerName,
-        cif: companyTaxId,
+        name: normalizeText(customerName),
+        vatCode: companyTaxId,
+        address: normalizeText(`${addressLine}${postalCode ? ', ' + postalCode : ''}`),
+        isTaxPayer: true,
+        city: normalizeText(city),
+        county: normalizeText(state),
+        country: country === 'RO' ? 'Romania' : country,
         email: customerEmail,
-        localitate: city,
-        judet: state,
-        adresa: `${addressLine}${postalCode ? ', ' + postalCode : ''}`,
-        tara: country === 'RO' ? 'Romania' : country,
+        saveToDb: false,
       };
     } else {
       clientData = {
-        tip: 'PF',
-        nume: customerName,
-        cnp: '-',
+        name: normalizeText(customerName),
+        address: normalizeText(`${addressLine}${postalCode ? ', ' + postalCode : ''}`),
+        isTaxPayer: false,
+        city: normalizeText(city),
+        county: normalizeText(state),
+        country: country === 'RO' ? 'Romania' : country,
         email: customerEmail,
-        localitate: city,
-        judet: state,
-        adresa: `${addressLine}${postalCode ? ', ' + postalCode : ''}`,
-        tara: country === 'RO' ? 'Romania' : country,
+        saveToDb: false,
       };
     }
 
-    logStep("SmartBill client prepared", { clientType: clientData.tip, hasTaxId: !!taxId });
+    logStep("SmartBill client prepared", { clientType: isPJ ? 'PJ' : 'PF', hasTaxId: !!taxId });
 
     // Prepare SmartBill invoice (SmartBill Romania API format)
     const today = new Date().toISOString().split('T')[0];
@@ -346,8 +358,8 @@ serve(async (req) => {
           um: "buc",
           cantitate: 1,
           pret: amount,
-          valoareTVA: 0,
-          procent_tva: 0,
+          cotaTVA: "Taxare inversa",
+          isTaxIncluded: true,
         },
       ],
       observatii: `Plata Stripe - ${paymentType}: ${paymentType === 'subscription' ? stripeInvoiceIdForDb : sessionId}`,
