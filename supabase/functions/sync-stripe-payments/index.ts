@@ -50,7 +50,6 @@ serve(async (req) => {
     const invoices = await stripe.invoices.list({
       status: 'paid',
       limit: 100,
-      expand: ['data.subscription', 'data.customer']
     });
 
     console.log(`Found ${invoices.data.length} paid invoices in Stripe`);
@@ -60,8 +59,13 @@ serve(async (req) => {
     const errors: string[] = [];
 
     for (const invoice of invoices.data) {
-      // Only process subscription invoices
-      if (!invoice.subscription) {
+      // Only process subscription invoices (subscription can be string ID or null)
+      const subscriptionId = typeof invoice.subscription === 'string' 
+        ? invoice.subscription 
+        : invoice.subscription?.id;
+        
+      if (!subscriptionId) {
+        console.log(`Invoice ${invoice.id}: no subscription, skipping`);
         skipped++;
         continue;
       }
@@ -72,37 +76,47 @@ serve(async (req) => {
           .from('subscription_payments')
           .select('id')
           .eq('stripe_invoice_id', invoice.id)
-          .single();
+          .maybeSingle();
 
         if (existing) {
+          console.log(`Invoice ${invoice.id}: already exists, skipping`);
           skipped++;
           continue;
         }
 
-        // Get customer email
-        const customer = invoice.customer as Stripe.Customer;
-        const customerEmail = customer?.email || invoice.customer_email;
+        // Get customer email - need to fetch customer separately
+        let customerEmail = invoice.customer_email;
+        
+        if (!customerEmail && invoice.customer) {
+          const customerId = typeof invoice.customer === 'string' 
+            ? invoice.customer 
+            : invoice.customer.id;
+          const customer = await stripe.customers.retrieve(customerId);
+          if (customer && !customer.deleted) {
+            customerEmail = (customer as any).email;
+          }
+        }
 
         if (!customerEmail) {
-          errors.push(`Invoice ${invoice.id}: no customer email`);
+          errors.push(`Invoice ${invoice.id}: no customer email found`);
+          console.log(`Invoice ${invoice.id}: no customer email`);
           continue;
         }
+
+        console.log(`Invoice ${invoice.id}: processing for ${customerEmail}`);
 
         // Find user by email
         const { data: profile } = await supabaseClient
           .from('profiles')
           .select('id, email')
           .eq('email', customerEmail)
-          .single();
+          .maybeSingle();
 
         if (!profile) {
           errors.push(`Invoice ${invoice.id}: user not found for ${customerEmail}`);
+          console.log(`Invoice ${invoice.id}: user ${customerEmail} not found in profiles`);
           continue;
         }
-
-        // Get subscription details
-        const subscription = invoice.subscription as Stripe.Subscription;
-        const priceId = subscription?.items?.data?.[0]?.price?.id;
 
         // Determine subscription type based on amount
         let subscriptionType = 'entrepreneur';
@@ -115,12 +129,10 @@ serve(async (req) => {
           .from('subscription_payments')
           .insert({
             user_id: profile.id,
-            stripe_subscription_id: typeof invoice.subscription === 'string' 
-              ? invoice.subscription 
-              : invoice.subscription?.id,
+            stripe_subscription_id: subscriptionId,
             stripe_invoice_id: invoice.id,
             amount_paid_cents: invoice.amount_paid,
-            currency: invoice.currency.toUpperCase(),
+            currency: (invoice.currency || 'ron').toUpperCase(),
             subscription_type: subscriptionType,
             period_start: new Date((invoice.period_start || invoice.created) * 1000).toISOString(),
             period_end: new Date((invoice.period_end || invoice.created + 30*24*60*60) * 1000).toISOString(),
@@ -129,19 +141,20 @@ serve(async (req) => {
             invoice_generated: false,
             metadata: {
               synced_at: new Date().toISOString(),
-              customer_email: customerEmail,
-              price_id: priceId
+              customer_email: customerEmail
             }
           });
 
         if (insertError) {
           errors.push(`Invoice ${invoice.id}: ${insertError.message}`);
+          console.log(`Invoice ${invoice.id}: insert error - ${insertError.message}`);
         } else {
           synced++;
-          console.log(`Synced invoice ${invoice.id} for ${customerEmail}`);
+          console.log(`Synced invoice ${invoice.id} for ${customerEmail} - ${invoice.amount_paid / 100} ${invoice.currency}`);
         }
       } catch (err: any) {
         errors.push(`Invoice ${invoice.id}: ${err.message}`);
+        console.log(`Invoice ${invoice.id}: error - ${err.message}`);
       }
     }
 
