@@ -66,6 +66,16 @@ serve(async (req) => {
     const { priceId } = validationResult.data;
     logStep("Price ID received", { priceId });
 
+    // 🔒 SECURITY: Only allow the official YANA subscription price (49 RON)
+    const ALLOWED_YANA_PRICE = 'price_1Sd3AHBu3m83VcDAFa7QcuLM';
+    if (priceId !== ALLOWED_YANA_PRICE) {
+      logStep("❌ REJECTED: Invalid price ID attempted", { priceId, expected: ALLOWED_YANA_PRICE });
+      return new Response(
+        JSON.stringify({ error: 'Preț invalid pentru abonament YANA. Doar abonamentul de 49 RON este disponibil.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });

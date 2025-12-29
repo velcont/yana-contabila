@@ -123,13 +123,22 @@ serve(async (req) => {
     
     logStep("Free access users to exclude", { count: freeAccessEmails.size });
 
-    // Build the response with enriched data, excluding free access users
+    // YANA subscription price: 49 RON = 4900 cents
+    const YANA_PRICE_CENTS = 4900;
+
+    // Build the response with enriched data, filtering for YANA subscriptions only
     const enrichedSubscriptions: EnrichedSubscription[] = subscriptions.data
       .filter((sub: Stripe.Subscription) => {
         const customer = sub.customer as Stripe.Customer;
         const email = customer?.email?.toLowerCase();
+        
         // Exclude if user has free access
-        return !email || !freeAccessEmails.has(email);
+        if (email && freeAccessEmails.has(email)) return false;
+        
+        // ONLY include YANA subscriptions (49 RON = 4900 cents)
+        const priceItem = sub.items?.data?.[0];
+        const amountCents = priceItem?.price?.unit_amount || 0;
+        return amountCents === YANA_PRICE_CENTS;
       })
       .map((sub: Stripe.Subscription) => {
         const customer = sub.customer as Stripe.Customer;
