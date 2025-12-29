@@ -210,7 +210,7 @@ export default function AdminRevenueMonitor() {
           user_id: s.user_id,
           amount_cents: s.amount_paid_cents,
           currency: s.currency,
-          description: `Abonament ${s.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Cabinet Contabil'} (${format(new Date(s.period_start), 'MMM yyyy', { locale: ro })})`,
+          description: `Abonament ${s.subscription_type === 'entrepreneur' ? 'Antreprenor' : 'Cabinet Contabil'} (${safeFormatRo(s.period_start, 'MMM yyyy')})`,
           stripe_reference: s.stripe_invoice_id || '',
           invoice_number: invoice?.invoice_number,
           invoice_series: invoice?.invoice_series,
@@ -457,6 +457,13 @@ export default function AdminRevenueMonitor() {
     return `${(cents / 100).toFixed(2)} RON`;
   };
 
+  const safeFormatRo = (value: string | Date | null | undefined, dateFormat: string) => {
+    if (!value) return '-';
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return '-';
+    return format(d, dateFormat, { locale: ro });
+  };
+
   const handleViewUserDetails = async (payment: PaymentRecord) => {
     try {
       // Fetch user profile and company details
@@ -646,7 +653,7 @@ export default function AdminRevenueMonitor() {
                     <div>
                       <p className="font-medium text-yellow-800 dark:text-yellow-200">Factură deja generată!</p>
                       <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                        Seria {invoicePreview.existing_invoice?.series}-{invoicePreview.existing_invoice?.number} din {invoicePreview.existing_invoice?.created_at ? format(new Date(invoicePreview.existing_invoice.created_at), 'dd MMM yyyy', { locale: ro }) : '-'}
+                        Seria {invoicePreview.existing_invoice?.series}-{invoicePreview.existing_invoice?.number} din {safeFormatRo(invoicePreview.existing_invoice?.created_at, 'dd MMM yyyy')}
                       </p>
                     </div>
                   </div>
@@ -725,11 +732,11 @@ export default function AdminRevenueMonitor() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Perioadă Start</p>
-                      <p className="font-medium">{format(new Date(invoicePreview.period_start), 'dd MMM yyyy', { locale: ro })}</p>
+                      <p className="font-medium">{safeFormatRo(invoicePreview.period_start, 'dd MMM yyyy')}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Perioadă Sfârșit</p>
-                      <p className="font-medium">{format(new Date(invoicePreview.period_end), 'dd MMM yyyy', { locale: ro })}</p>
+                      <p className="font-medium">{safeFormatRo(invoicePreview.period_end, 'dd MMM yyyy')}</p>
                     </div>
                   </div>
                 </CardContent>
