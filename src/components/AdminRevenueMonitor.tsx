@@ -4,16 +4,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download, User, Copy, CreditCard, AlertTriangle, CheckCircle } from 'lucide-react';
+import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download, User, Copy, CreditCard, AlertTriangle, CheckCircle, Receipt, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { SkeletonTable } from '@/components/ui/skeleton-loader';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 interface PaymentRecord {
   id: string;
@@ -70,6 +71,34 @@ interface StripeSubscription {
   cancel_at_period_end: boolean;
 }
 
+interface InvoicePreview {
+  client_name: string;
+  client_email: string;
+  client_type: 'PF' | 'PJ';
+  client_cif?: string;
+  client_address?: string;
+  client_city?: string;
+  client_country?: string;
+  client_phone?: string;
+  plan_name: string;
+  plan_description: string;
+  amount_cents: number;
+  currency: string;
+  period_start: string;
+  period_end: string;
+  invoice_series: string;
+  invoice_date: string;
+  stripe_customer_id: string;
+  stripe_subscription_id: string;
+  warnings: string[];
+  already_invoiced: boolean;
+  existing_invoice?: {
+    number: string;
+    series: string;
+    created_at: string;
+  };
+}
+
 export default function AdminRevenueMonitor() {
   const [allPayments, setAllPayments] = useState<PaymentRecord[]>([]);
   const [stripeSubscriptions, setStripeSubscriptions] = useState<StripeSubscription[]>([]);
@@ -82,6 +111,14 @@ export default function AdminRevenueMonitor() {
   const [filterPeriod, setFilterPeriod] = useState<'all' | 'today' | 'week' | 'month' | 'year'>('all');
   const [selectedUserDetails, setSelectedUserDetails] = useState<UserBillingDetails | null>(null);
   const [showUserDetailsDialog, setShowUserDetailsDialog] = useState(false);
+  
+  // Invoice preview state
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [invoicePreview, setInvoicePreview] = useState<InvoicePreview | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [generatingFromPreview, setGeneratingFromPreview] = useState(false);
+  const [selectedSubscriptionForInvoice, setSelectedSubscriptionForInvoice] = useState<StripeSubscription | null>(null);
+  
   const [totalStats, setTotalStats] = useState<TotalStats>({
     total_revenue: 0,
     credits_revenue: 0,
@@ -495,8 +532,297 @@ export default function AdminRevenueMonitor() {
     return true;
   });
 
+  // Handle invoice preview for Stripe subscription
+  const handleInvoicePreview = async (subscription: StripeSubscription) => {
+    setSelectedSubscriptionForInvoice(subscription);
+    setLoadingPreview(true);
+    setShowInvoicePreview(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('preview-subscription-invoice', {
+        body: { 
+          subscription_id: subscription.id,
+          customer_id: subscription.customer_id
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success && data?.preview) {
+        setInvoicePreview(data.preview);
+      } else {
+        throw new Error(data?.error || 'Eroare la generarea preview-ului');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Eroare',
+        description: error.message,
+        variant: 'destructive'
+      });
+      setShowInvoicePreview(false);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  // Generate invoice from preview (calls the existing admin-generate-invoice)
+  const handleGenerateInvoiceFromPreview = async () => {
+    if (!selectedSubscriptionForInvoice) return;
+    
+    setGeneratingFromPreview(true);
+    try {
+      // For subscriptions, we need to get the latest invoice from Stripe for this subscription
+      // The admin-generate-invoice expects a Stripe invoice ID for subscriptions
+      const { data, error } = await supabase.functions.invoke('admin-generate-invoice', {
+        body: { 
+          sessionId: selectedSubscriptionForInvoice.id, // subscription ID
+          paymentType: 'subscription'
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data && !data.success) {
+        throw new Error(data.error || data.message || 'Eroare necunoscută');
+      }
+      
+      toast({
+        title: '✅ Factură generată cu succes!',
+        description: `Factură SmartBill: ${data.invoice?.number || 'N/A'}`
+      });
+      
+      setShowInvoicePreview(false);
+      setInvoicePreview(null);
+      setSelectedSubscriptionForInvoice(null);
+      
+      // Refresh data
+      await loadAllPayments();
+      await loadStripeSubscriptions();
+      
+    } catch (error: any) {
+      toast({
+        title: '❌ Eroare',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setGeneratingFromPreview(false);
+    }
+  };
+
   return (
     <>
+      {/* Invoice Preview Dialog */}
+      <Dialog open={showInvoicePreview} onOpenChange={(open) => {
+        setShowInvoicePreview(open);
+        if (!open) {
+          setInvoicePreview(null);
+          setSelectedSubscriptionForInvoice(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Preview Factură SmartBill
+            </DialogTitle>
+            <DialogDescription>
+              Verifică datele înainte de a genera factura
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingPreview ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Se încarcă datele...</span>
+            </div>
+          ) : invoicePreview ? (
+            <div className="space-y-4">
+              {/* Already invoiced warning */}
+              {invoicePreview.already_invoiced && (
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-yellow-800 dark:text-yellow-200">Factură deja generată!</p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        Seria {invoicePreview.existing_invoice?.series}-{invoicePreview.existing_invoice?.number} din {invoicePreview.existing_invoice?.created_at ? format(new Date(invoicePreview.existing_invoice.created_at), 'dd MMM yyyy', { locale: ro }) : '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Warnings */}
+              {invoicePreview.warnings.length > 0 && (
+                <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 p-4 rounded-lg space-y-1">
+                  <p className="font-medium text-orange-800 dark:text-orange-200 text-sm">Atenție:</p>
+                  {invoicePreview.warnings.map((warning, idx) => (
+                    <p key={idx} className="text-sm text-orange-700 dark:text-orange-300">{warning}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Client Details */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Date Client
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nume</p>
+                      <p className="font-medium">{invoicePreview.client_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{invoicePreview.client_email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tip Client</p>
+                      <Badge variant={invoicePreview.client_type === 'PJ' ? 'default' : 'secondary'}>
+                        {invoicePreview.client_type === 'PJ' ? '🏢 Persoană Juridică' : '👤 Persoană Fizică'}
+                      </Badge>
+                    </div>
+                    {invoicePreview.client_cif && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">CIF</p>
+                        <p className="font-medium font-mono">{invoicePreview.client_cif}</p>
+                      </div>
+                    )}
+                  </div>
+                  {(invoicePreview.client_address || invoicePreview.client_city) && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Adresă</p>
+                      <p className="font-medium">
+                        {[invoicePreview.client_address, invoicePreview.client_city, invoicePreview.client_country].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Product Details */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Detalii Produs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Plan</p>
+                      <Badge>{invoicePreview.plan_name}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Sumă</p>
+                      <p className="font-bold text-lg">{formatCurrency(invoicePreview.amount_cents)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Perioadă Start</p>
+                      <p className="font-medium">{format(new Date(invoicePreview.period_start), 'dd MMM yyyy', { locale: ro })}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Perioadă Sfârșit</p>
+                      <p className="font-medium">{format(new Date(invoicePreview.period_end), 'dd MMM yyyy', { locale: ro })}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Invoice Details */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Detalii Factură
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Serie</p>
+                      <p className="font-medium font-mono">{invoicePreview.invoice_series}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Data</p>
+                      <p className="font-medium">{invoicePreview.invoice_date}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Stripe References */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    Referințe Stripe
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Customer ID</p>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">{invoicePreview.stripe_customer_id}</code>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(invoicePreview.stripe_customer_id, 'Customer ID')}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Subscription ID</p>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">{invoicePreview.stripe_subscription_id}</code>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(invoicePreview.stripe_subscription_id, 'Subscription ID')}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowInvoicePreview(false)}>
+              Anulează
+            </Button>
+            <Button 
+              onClick={handleGenerateInvoiceFromPreview}
+              disabled={generatingFromPreview || loadingPreview || invoicePreview?.already_invoiced}
+            >
+              {generatingFromPreview ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Se generează...
+                </>
+              ) : (
+                <>
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Confirmă și Generează Factură
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* User Details Dialog */}
       <Dialog open={showUserDetailsDialog} onOpenChange={setShowUserDetailsDialog}>
         <DialogContent className="max-w-2xl">
@@ -766,6 +1092,7 @@ export default function AdminRevenueMonitor() {
                       <TableHead>Plan</TableHead>
                       <TableHead className="text-right">Preț</TableHead>
                       <TableHead>Următoarea Plată</TableHead>
+                      <TableHead className="text-right">Acțiuni</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -792,6 +1119,23 @@ export default function AdminRevenueMonitor() {
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {sub.current_period_end ? format(new Date(sub.current_period_end), 'dd MMM yyyy', { locale: ro }) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleInvoicePreview(sub)}
+                            disabled={loadingPreview && selectedSubscriptionForInvoice?.id === sub.id}
+                            title="Facturează - vezi preview"
+                            className="gap-1"
+                          >
+                            {loadingPreview && selectedSubscriptionForInvoice?.id === sub.id ? (
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                            <span className="hidden sm:inline">Facturează</span>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
