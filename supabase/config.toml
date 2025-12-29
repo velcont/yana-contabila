@@ -155,3 +155,6 @@ verify_jwt = true
 
 [functions.humanize-text]
 verify_jwt = true
+
+[functions.list-stripe-subscriptions]
+verify_jwt = true

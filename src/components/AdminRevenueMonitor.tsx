@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download, User, Copy } from 'lucide-react';
+import { RefreshCw, DollarSign, Zap, Repeat, FileCheck, Clock, Mail, FileText, Download, User, Copy, CreditCard, AlertTriangle, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { SkeletonTable } from '@/components/ui/skeleton-loader';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PaymentRecord {
   id: string;
@@ -52,8 +54,26 @@ interface TotalStats {
   invoices_pending: number;
 }
 
+interface StripeSubscription {
+  id: string;
+  customer_id: string;
+  customer_email: string | null;
+  customer_name: string | null;
+  status: string;
+  price_id: string;
+  amount_cents: number;
+  currency: string;
+  plan_name: string;
+  current_period_start: string;
+  current_period_end: string;
+  created_at: string;
+  cancel_at_period_end: boolean;
+}
+
 export default function AdminRevenueMonitor() {
   const [allPayments, setAllPayments] = useState<PaymentRecord[]>([]);
+  const [stripeSubscriptions, setStripeSubscriptions] = useState<StripeSubscription[]>([]);
+  const [loadingSubscriptions, setLoadingSubscriptions] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
@@ -194,7 +214,50 @@ export default function AdminRevenueMonitor() {
 
   useEffect(() => {
     loadAllPayments();
+    loadStripeSubscriptions();
   }, []);
+
+  // Load active subscriptions from Stripe via edge function
+  const loadStripeSubscriptions = async () => {
+    setLoadingSubscriptions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('list-stripe-subscriptions');
+
+      if (error) throw error;
+
+      if (data?.success && data?.subscriptions) {
+        setStripeSubscriptions(data.subscriptions);
+      }
+    } catch (error: any) {
+      console.error('Error loading Stripe subscriptions:', error);
+      toast({
+        title: 'Eroare încărcare abonamente Stripe',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingSubscriptions(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="gap-1 bg-green-500"><CheckCircle className="h-3 w-3" />Activ</Badge>;
+      case 'past_due':
+        return <Badge className="gap-1 bg-orange-500"><AlertTriangle className="h-3 w-3" />Plată Restantă</Badge>;
+      case 'canceled':
+        return <Badge variant="secondary" className="gap-1">Anulat</Badge>;
+      case 'trialing':
+        return <Badge className="gap-1 bg-blue-500">Trial</Badge>;
+      case 'incomplete':
+        return <Badge variant="outline" className="gap-1">Incomplet</Badge>;
+      case 'incomplete_expired':
+        return <Badge variant="destructive" className="gap-1">Expirat</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   // Sync payments from Stripe
   const syncStripePayments = async () => {
@@ -639,6 +702,106 @@ export default function AdminRevenueMonitor() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Stripe Subscriptions Section */}
+      <Card className="border-primary/30">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                🔵 Lista Abonamente Active din Stripe
+              </CardTitle>
+              <CardDescription>
+                Toate abonamentele direct din Stripe - actualizare în timp real
+              </CardDescription>
+            </div>
+            <Button onClick={loadStripeSubscriptions} disabled={loadingSubscriptions} variant="outline">
+              <RefreshCw className={`mr-2 h-4 w-4 ${loadingSubscriptions ? 'animate-spin' : ''}`} />
+              {loadingSubscriptions ? 'Se încarcă...' : 'Actualizează'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingSubscriptions ? (
+            <SkeletonTable />
+          ) : stripeSubscriptions.length === 0 ? (
+            <EmptyState
+              icon={<CreditCard className="h-12 w-12" />}
+              title="Niciun abonament găsit"
+              description="Nu s-au găsit abonamente în Stripe."
+            />
+          ) : (
+            <>
+              {/* Stats summary */}
+              <div className="grid gap-3 md:grid-cols-4 mb-6">
+                <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-green-600">{stripeSubscriptions.filter(s => s.status === 'active').length}</p>
+                  <p className="text-xs text-muted-foreground">Active</p>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-950 p-3 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-orange-600">{stripeSubscriptions.filter(s => s.status === 'past_due').length}</p>
+                  <p className="text-xs text-muted-foreground">Plată Restantă</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-gray-600">{stripeSubscriptions.filter(s => s.status === 'canceled').length}</p>
+                  <p className="text-xs text-muted-foreground">Anulate</p>
+                </div>
+                <div className="bg-primary/10 p-3 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-primary">
+                    {formatCurrency(stripeSubscriptions.filter(s => s.status === 'active').reduce((sum, s) => sum + s.amount_cents, 0))}
+                  </p>
+                  <p className="text-xs text-muted-foreground">MRR Lunar</p>
+                </div>
+              </div>
+
+              <ScrollArea className="h-[400px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Customer ID</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead className="text-right">Preț</TableHead>
+                      <TableHead>Următoarea Plată</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stripeSubscriptions.map((sub, idx) => (
+                      <TableRow key={sub.id} className={sub.status === 'active' ? 'bg-green-50/50 dark:bg-green-950/20' : ''}>
+                        <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{sub.customer_id}</code>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">{sub.customer_email || '-'}</p>
+                            {sub.customer_name && (
+                              <p className="text-xs text-muted-foreground">{sub.customer_name}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{sub.plan_name}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(sub.amount_cents)}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {sub.current_period_end ? format(new Date(sub.current_period_end), 'dd MMM yyyy', { locale: ro }) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Main Revenue Table */}
       <Card>
