@@ -50,15 +50,21 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error('User not authenticated');
 
-    // Check if user is admin
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      throw new Error('Admin access required');
+    // Check if user is admin (office@velcont.com or has free access)
+    const ADMIN_EMAILS = ['office@velcont.com'];
+    const isAdminEmail = ADMIN_EMAILS.includes(user.email.toLowerCase());
+    
+    if (!isAdminEmail) {
+      // Also check for has_free_access as a secondary admin check
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('has_free_access')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profile?.has_free_access) {
+        throw new Error('Admin access required');
+      }
     }
 
     logStep("Admin verified", { userId: user.id, email: user.email });
