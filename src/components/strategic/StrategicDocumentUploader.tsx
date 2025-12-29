@@ -176,8 +176,14 @@ export function StrategicDocumentUploader({
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top">
-            <p>Atașează document (PDF, Word, TXT, Excel)</p>
+          <TooltipContent side="top" className="max-w-xs">
+            <p className="font-medium">Documente de business</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Planuri, contracte, rapoarte (PDF, Word, TXT)
+            </p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              ⚠️ Pentru balanțe contabile, folosește ChatAI
+            </p>
           </TooltipContent>
         </Tooltip>
       )}

@@ -284,11 +284,31 @@ Văd că ai mai folosit aplicația în trecut. Cu ce te pot ajuta?
     }
   };
   
-  // 🆕 BUTONUL ROȘU: Handler pentru descărcarea raportului
+  // 🆕 BUTONUL ROȘU: Handler pentru descărcarea raportului + TRACKING
   const handleDownloadReport = async () => {
     if (generatedReportBlob && generatedReportFileName) {
       const { saveAs } = await import('file-saver');
       saveAs(generatedReportBlob, generatedReportFileName);
+      
+      // 📊 TRACKING: Înregistrăm descărcarea Word
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('analytics_events').insert({
+            user_id: user.id,
+            event_name: 'word_download',
+            event_data: {
+              file_name: generatedReportFileName,
+              company: balanceStructuredData?.company || 'unknown',
+              period: balanceStructuredData?.period || 'unknown'
+            },
+            page_url: '/chat-ai'
+          });
+          console.log('✅ Word download tracked:', generatedReportFileName);
+        }
+      } catch (trackError) {
+        console.error('⚠️ Error tracking Word download (non-critical):', trackError);
+      }
       
       toast({
         title: '📥 Raport descărcat!',
@@ -1425,13 +1445,31 @@ Dacă ai nevoie de ajutor suplimentar, nu ezita să mă întrebi! 😊`;
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user && assistantContent) {
-          // Salvează în sistemul vechi (conversation_history)
-          await supabase.from('conversation_history').insert({
-            user_id: user.id,
-            conversation_id: conversationId,
-            role: 'assistant',
-            content: assistantContent
-          });
+          // 🔒 VERIFICARE DUPLICAT: Edge function-ul salvează deja mesajul assistant
+          // Verificăm dacă există deja în DB pentru a evita duplicări
+          const { data: existingMessages } = await supabase
+            .from('conversation_history')
+            .select('id, content, created_at')
+            .eq('conversation_id', conversationId)
+            .eq('role', 'assistant')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          const alreadySaved = existingMessages && existingMessages.length > 0 && 
+            existingMessages[0].content?.substring(0, 100) === assistantContent.substring(0, 100);
+
+          if (!alreadySaved) {
+            // FALLBACK: Edge function nu a salvat, salvăm din frontend
+            console.warn('⚠️ [FALLBACK] Edge function nu a salvat mesajul, salvare din frontend');
+            await supabase.from('conversation_history').insert({
+              user_id: user.id,
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: assistantContent
+            });
+          } else {
+            console.log('✅ Edge function a salvat deja mesajul, skip duplicat');
+          }
           
           // 🧠 Salvează în noul sistem de învățare
           const { data: companies } = await supabase
