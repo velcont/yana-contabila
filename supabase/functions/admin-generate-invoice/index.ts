@@ -13,36 +13,36 @@ const logStep = (step: string, details?: any) => {
 };
 
 interface SmartBillClient {
-  name: string;
-  vatCode?: string;
-  regCom?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  email?: string;
-  type?: 'pf' | 'pj';
+  tip: "PF" | "PJ";
+  nume: string;
+  email: string;
+  cif?: string;
+  cnp?: string;
+  localitate: string;
+  judet: string;
+  adresa: string;
+  tara: string;
 }
 
 interface SmartBillProduct {
-  name: string;
-  code: string;
-  measuringUnit: string;
-  quantity: number;
-  price: number;
-  isTaxIncluded: boolean;
-  taxPercentage: number;
-  saveToDb: boolean;
+  nume: string;
+  cod: string;
+  um: string;
+  cantitate: number;
+  pret: number;
+  valoareTVA: number;
+  procent_tva: number;
 }
 
 interface SmartBillInvoice {
-  companyVatCode: string;
+  cif: string;
   client: SmartBillClient;
-  invoiceSeries: string;
-  issueDate: string;
-  isDraft: boolean;
-  currency: string;
-  products: SmartBillProduct[];
-  language: string;
+  emitereFactura: string;
+  scadentaFactura: string;
+  serieFactura: string;
+  produse: SmartBillProduct[];
+  observatii?: string;
+  moneda: string;
 }
 
 serve(async (req) => {
@@ -151,32 +151,39 @@ serve(async (req) => {
     let stripeCustomerId: string;
     let productName: string;
 
+    // For subscription flows we may receive either invoice id (in_) or subscription id (sub_)
+    let stripeInvoiceIdForDb = sessionId;
+
     if (paymentType === 'subscription') {
       // Handle subscription - can be invoice ID (in_) or subscription ID (sub_)
       let invoice: Stripe.Invoice;
       let stripeInvoiceId = sessionId;
-      
+
       if (sessionId.startsWith('sub_')) {
-        // Get the latest paid invoice for this subscription
         logStep("Fetching latest invoice for subscription", { subscriptionId: sessionId });
+
         const invoices = await stripe.invoices.list({
           subscription: sessionId,
-          status: 'paid',
-          limit: 1,
+          limit: 5,
         });
-        
-        if (invoices.data.length === 0) {
-          throw new Error(`Nu există facturi plătite pentru acest abonament. Verificați statusul abonamentului.`);
+
+        // Prefer a paid invoice, fall back to the newest invoice if needed
+        invoice =
+          invoices.data.find((i) => i.status === 'paid') ||
+          invoices.data[0];
+
+        if (!invoice) {
+          throw new Error('Nu există facturi pentru acest abonament.');
         }
-        
-        invoice = invoices.data[0];
+
         stripeInvoiceId = invoice.id;
-        logStep("Found paid invoice for subscription", { invoiceId: stripeInvoiceId });
+        stripeInvoiceIdForDb = stripeInvoiceId;
+        logStep("Found invoice for subscription", { invoiceId: stripeInvoiceId, status: invoice.status });
       } else {
-        // Direct invoice ID
         invoice = await stripe.invoices.retrieve(sessionId);
+        stripeInvoiceIdForDb = invoice.id;
       }
-      
+
       customerEmail = invoice.customer_email || '';
       const customer = await stripe.customers.retrieve(invoice.customer as string);
       customerName = (customer as any).name || customerEmail;
@@ -184,11 +191,11 @@ serve(async (req) => {
       stripeCustomerId = invoice.customer as string;
       productName = "Abonament Yana Contabila";
 
-      logStep("Invoice retrieved", { 
-        invoiceId: stripeInvoiceId,
+      logStep("Invoice retrieved", {
+        invoiceId: stripeInvoiceIdForDb,
         customerId: stripeCustomerId,
         amount,
-        currency: invoice.currency 
+        currency: invoice.currency,
       });
     } else {
       // Handle credits checkout session
@@ -200,10 +207,10 @@ serve(async (req) => {
       stripeCustomerId = session.customer as string;
       productName = "Credite AI Yana";
 
-      logStep("Session retrieved", { 
+      logStep("Session retrieved", {
         customerId: session.customer,
         amount: session.amount_total,
-        currency: session.currency 
+        currency: session.currency,
       });
     }
 
@@ -211,7 +218,7 @@ serve(async (req) => {
     const { data: existingInvoice } = await supabaseClient
       .from('smartbill_invoices')
       .select('id, invoice_number, invoice_series')
-      .eq(paymentType === 'subscription' ? 'stripe_invoice_id' : 'stripe_session_id', sessionId)
+      .eq(paymentType === 'subscription' ? 'stripe_invoice_id' : 'stripe_session_id', paymentType === 'subscription' ? stripeInvoiceIdForDb : sessionId)
       .eq('status', 'success')
       .maybeSingle();
 
@@ -277,50 +284,74 @@ serve(async (req) => {
 
     logStep("Target user found", { userId: targetUser.id });
 
-    // Get billing details from Stripe customer
-    const customer = await stripe.customers.retrieve(stripeCustomerId);
-    const billingDetails = (customer as any).address;
-    const taxId = (customer as any).tax_ids?.data?.[0]?.value;
+    // Get billing details from Stripe customer (+ tax IDs)
+    const stripeCustomer = await stripe.customers.retrieve(stripeCustomerId, {
+      expand: ['tax_ids'],
+    }) as Stripe.Customer & { tax_ids?: { data: Stripe.TaxId[] } };
 
-    // Determine if PJ (legal entity) or PF (individual)
-    const isPJ = taxId && (taxId.startsWith('RO') || taxId.length >= 8);
-    
-    const smartBillClient: SmartBillClient = {
-      name: customerName,
-      email: customerEmail,
-      type: isPJ ? 'pj' : 'pf',
-      country: billingDetails?.country || 'Romania',
-      city: billingDetails?.city || '',
-      address: billingDetails?.line1 || '',
-    };
+    const billingDetails = stripeCustomer.address;
+    const country = billingDetails?.country || 'RO';
+    const city = billingDetails?.city || 'Bucuresti';
+    const state = (billingDetails as any)?.state || city || 'Bucuresti';
+    const addressLine = billingDetails?.line1 || '-';
+    const postalCode = (billingDetails as any)?.postal_code || '';
 
-    if (isPJ && taxId) {
-      smartBillClient.vatCode = taxId;
+    const rawTaxId = stripeCustomer.tax_ids?.data?.[0]?.value;
+    const taxId = rawTaxId ? rawTaxId.replace(/\s/g, '').toUpperCase() : undefined;
+
+    const isPJ = !!taxId && (taxId.startsWith('RO') || /^\d{6,10}$/.test(taxId));
+
+    let clientData: SmartBillClient;
+
+    if (isPJ) {
+      const companyTaxId = taxId!.startsWith('RO') ? taxId! : `RO${taxId}`;
+      clientData = {
+        tip: 'PJ',
+        nume: customerName,
+        cif: companyTaxId,
+        email: customerEmail,
+        localitate: city,
+        judet: state,
+        adresa: `${addressLine}${postalCode ? ', ' + postalCode : ''}`,
+        tara: country === 'RO' ? 'Romania' : country,
+      };
+    } else {
+      clientData = {
+        tip: 'PF',
+        nume: customerName,
+        cnp: '-',
+        email: customerEmail,
+        localitate: city,
+        judet: state,
+        adresa: `${addressLine}${postalCode ? ', ' + postalCode : ''}`,
+        tara: country === 'RO' ? 'Romania' : country,
+      };
     }
 
-    logStep("SmartBill client prepared", { clientType: smartBillClient.type });
+    logStep("SmartBill client prepared", { clientType: clientData.tip, hasTaxId: !!taxId });
 
-    // Prepare SmartBill invoice
-    const invoiceData: SmartBillInvoice = {
-      companyVatCode: companyCIF,
-      client: smartBillClient,
-      invoiceSeries: "conta",
-      issueDate: new Date().toISOString().split('T')[0],
-      isDraft: false,
-      currency: "RON",
-      language: "RO",
-      products: [
+    // Prepare SmartBill invoice (SmartBill Romania API format)
+    const today = new Date().toISOString().split('T')[0];
+
+    const smartbillInvoice: SmartBillInvoice = {
+      cif: companyCIF,
+      client: clientData,
+      emitereFactura: today,
+      scadentaFactura: today,
+      serieFactura: "conta",
+      produse: [
         {
-          name: productName,
-          code: paymentType === 'subscription' ? "YANA-SUB" : "YANA-AI",
-          measuringUnit: "buc",
-          quantity: 1,
-          price: amount,
-          isTaxIncluded: true,
-          taxPercentage: 19,
-          saveToDb: false,
+          nume: productName,
+          cod: paymentType === 'subscription' ? "YANA-SUB" : "YANA-AI",
+          um: "buc",
+          cantitate: 1,
+          pret: amount,
+          valoareTVA: 0,
+          procent_tva: 0,
         },
       ],
+      observatii: `Plata Stripe - ${paymentType}: ${paymentType === 'subscription' ? stripeInvoiceIdForDb : sessionId}`,
+      moneda: "RON",
     };
 
     logStep("Sending to SmartBill", { amount });
@@ -335,18 +366,18 @@ serve(async (req) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
         
-        smartBillResponse = await fetch("https://ws.smartbill.ro/SBORO/api/invoice", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Authorization": `Basic ${btoa(
-              `${Deno.env.get("SMARTBILL_EMAIL")}:${Deno.env.get("SMARTBILL_API_KEY")}`
-            )}`,
-          },
-          body: JSON.stringify(invoiceData),
-          signal: controller.signal,
-        });
+         smartBillResponse = await fetch("https://ws.smartbill.ro/SBORO/api/invoice", {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+             "Accept": "application/json",
+             "Authorization": `Basic ${btoa(
+               `${Deno.env.get("SMARTBILL_EMAIL")}:${Deno.env.get("SMARTBILL_API_KEY")}`
+             )}`,
+           },
+           body: JSON.stringify(smartbillInvoice),
+           signal: controller.signal,
+         });
         
         clearTimeout(timeoutId);
         break; // Success, exit retry loop
@@ -393,26 +424,26 @@ serve(async (req) => {
     if (!smartBillResponse.ok) {
       logStep("SmartBill error", { status: smartBillResponse.status, response: responseText });
       
-      // Save failed attempt
-      const failedInvoiceData: any = {
-        user_id: targetUser.id,
-        stripe_customer_id: stripeCustomerId,
-        customer_email: customerEmail,
-        customer_name: customerName,
-        amount: amount,
-        currency: 'RON',
-        invoice_series: 'conta',
-        status: 'failed',
-        error_message: `SmartBill returnează HTML în loc de JSON. Status: ${smartBillResponse.status}. Verifică credențialele SmartBill și CIF-ul companiei.`,
-      };
+       // Save failed attempt
+       const failedInvoiceData: any = {
+         user_id: targetUser.id,
+         stripe_customer_id: stripeCustomerId,
+         customer_email: customerEmail,
+         customer_name: customerName,
+         amount: amount,
+         currency: 'RON',
+         invoice_series: 'conta',
+         status: 'failed',
+         error_message: `SmartBill returnează HTML în loc de JSON. Status: ${smartBillResponse.status}. Verifică credențialele SmartBill și seria de facturare.`,
+       };
 
-      if (paymentType === 'subscription') {
-        failedInvoiceData.stripe_invoice_id = sessionId;
-      } else {
-        failedInvoiceData.stripe_session_id = sessionId;
-      }
+       if (paymentType === 'subscription') {
+         failedInvoiceData.stripe_invoice_id = stripeInvoiceIdForDb;
+       } else {
+         failedInvoiceData.stripe_session_id = sessionId;
+       }
 
-      await supabaseClient.from('smartbill_invoices').insert(failedInvoiceData);
+       await supabaseClient.from('smartbill_invoices').insert(failedInvoiceData);
 
       throw new Error(`SmartBill API error: ${smartBillResponse.status}`);
     }
@@ -430,27 +461,27 @@ serve(async (req) => {
       number: smartBillData.number 
     });
 
-    // Save to database
-    const successInvoiceData: any = {
-      user_id: targetUser.id,
-      stripe_customer_id: stripeCustomerId,
-      customer_email: customerEmail,
-      customer_name: customerName,
-      customer_cif: taxId,
-      amount: amount,
-      currency: 'RON',
-      invoice_series: smartBillData.series,
-      invoice_number: smartBillData.number,
-      invoice_url: smartBillData.url,
-      status: 'success',
-      smartbill_response: smartBillData,
-    };
+     // Save to database
+     const successInvoiceData: any = {
+       user_id: targetUser.id,
+       stripe_customer_id: stripeCustomerId,
+       customer_email: customerEmail,
+       customer_name: customerName,
+       customer_cif: taxId,
+       amount: amount,
+       currency: 'RON',
+       invoice_series: smartBillData.series,
+       invoice_number: smartBillData.number,
+       invoice_url: smartBillData.url,
+       status: 'success',
+       smartbill_response: smartBillData,
+     };
 
-    if (paymentType === 'subscription') {
-      successInvoiceData.stripe_invoice_id = sessionId;
-    } else {
-      successInvoiceData.stripe_session_id = sessionId;
-    }
+     if (paymentType === 'subscription') {
+       successInvoiceData.stripe_invoice_id = stripeInvoiceIdForDb;
+     } else {
+       successInvoiceData.stripe_session_id = sessionId;
+     }
 
     const { error: insertError } = await supabaseClient
       .from('smartbill_invoices')
@@ -466,7 +497,7 @@ serve(async (req) => {
       await supabaseClient
         .from('subscription_payments')
         .update({ invoice_generated: true })
-        .eq('stripe_invoice_id', sessionId);
+        .eq('stripe_invoice_id', stripeInvoiceIdForDb);
       
       logStep("Subscription payment marked as invoiced");
     }
