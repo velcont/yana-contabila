@@ -284,6 +284,38 @@ function parseReActSteps(response: string): ReActStep[] {
     }
   }
   
+  // FALLBACK: Dacă nu găsim format ReAct, extragem structuri alternative
+  if (steps.length === 0) {
+    // Detectăm puncte numerotate cu titluri (1. **Titlu:** conținut)
+    const numberedPoints = response.match(/(\d+)\.\s*\*?\*?([^:*]+)\*?\*?:\s*([^0-9\n]+?)(?=\d+\.|$)/gs);
+    if (numberedPoints && numberedPoints.length > 0) {
+      numberedPoints.slice(0, 5).forEach((point, index) => {
+        steps.push({
+          type: index === 0 ? 'observation' : index === numberedPoints.length - 1 ? 'recommendation' : 'reasoning',
+          content: point.trim().slice(0, 500)
+        });
+      });
+    }
+    
+    // Dacă tot nu găsim, căutăm paragrafe cu cuvinte cheie strategice
+    if (steps.length === 0) {
+      const strategicKeywords = /(recomand|sugerez|ar trebui|problema|soluția|strategia|analiza|concluzia)/i;
+      const paragraphs = response.split(/\n\n+/).filter(p => p.length > 50 && strategicKeywords.test(p));
+      if (paragraphs.length > 0) {
+        steps.push({
+          type: 'observation',
+          content: paragraphs[0].trim().slice(0, 500)
+        });
+        if (paragraphs.length > 1) {
+          steps.push({
+            type: 'recommendation',
+            content: paragraphs[paragraphs.length - 1].trim().slice(0, 500)
+          });
+        }
+      }
+    }
+  }
+  
   return steps;
 }
 
@@ -560,16 +592,18 @@ Când oferi analize sau recomandări strategice concrete (NU în companion mode 
 ❓ **CONTINUARE:** [Întrebare deschisă pentru utilizator sau opțiuni de aprofundare]
 
 **CÂND NU APLICI ACEST FORMAT:**
-- În companion mode (când utilizatorul e stresat/obosit)
-- La salutul inițial sau întrebări simple
-- La clarificări sau întrebări scurte
-- Când construiești context (primele 1-2 mesaje de descoperire)
+- În companion mode simplu (când utilizatorul e stresat/obosit și NU cere analiză)
+- La salutul inițial de 1-2 propoziții ("Bună! Cu ce te pot ajuta?")
 
-**CÂND APLICI ACEST FORMAT:**
-- Când oferi o analiză strategică concretă
-- Când recomanzi o acțiune specifică
-- Când aplici o metodologie
-- Când răspunzi la o întrebare de decizie
+**ÎNTOTDEAUNA APLICI ACEST FORMAT CÂND:**
+- Identifici orice problemă de business (chiar dacă e primul mesaj!)
+- Oferi orice recomandare, sugestie sau analiză
+- Menționezi cifre, procente, metrici sau concepte strategice
+- Utilizatorul descrie o situație care necesită decizie
+- Răspunsul tău are mai mult de 2 paragrafe
+- Detectezi bounce rate, conversii, venituri, costuri, sau alte metrici
+
+**IMPORTANT:** În dubiu, APLICĂ formatul. Mai bine transparență excesivă decât opacitate.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## TON ȘI STIL
@@ -1826,6 +1860,12 @@ ${factSheet}
     // ============================================================================
     try {
       const reasoningSteps = parseReActSteps(strategistResponse);
+      console.log(`[STRATEGIC-ADVISOR] ReAct parsing: found ${reasoningSteps.length} steps`);
+      
+      if (reasoningSteps.length === 0) {
+        console.log(`[STRATEGIC-ADVISOR] ⚠️ No ReAct structure found. Response preview: ${strategistResponse.substring(0, 300).replace(/\n/g, ' ')}`);
+      }
+      
       if (reasoningSteps.length > 0) {
         console.log(`[STRATEGIC-ADVISOR] Parsing ${reasoningSteps.length} ReAct steps for governance log`);
         
