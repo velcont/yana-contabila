@@ -158,3 +158,6 @@ verify_jwt = true
 
 [functions.list-stripe-subscriptions]
 verify_jwt = true
+
+[functions.preview-subscription-invoice]
+verify_jwt = true
