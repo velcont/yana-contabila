@@ -153,8 +153,11 @@ export const AIUsageDashboard = () => {
     return Math.max(0, b - c).toFixed(2);
   })();
 
-  // Estimare sesiuni (simplificat)
-  const estimatedSessions = Math.floor(parseFloat(remainingRON) / 2); // ~2 RON per sesiune
+  // Estimare sesiuni (simplificat) - minim 1 sesiune dacă există credite
+  const remainingValue = parseFloat(remainingRON);
+  const estimatedSessions = remainingValue > 0 
+    ? Math.max(1, Math.floor(remainingValue / 2)) 
+    : 0; // ~2 RON per sesiune
 
   return (
     <div className="space-y-6">

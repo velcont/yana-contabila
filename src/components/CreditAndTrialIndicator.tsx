@@ -69,7 +69,7 @@ export const CreditAndTrialIndicator = () => {
   }
 
   // Pentru utilizatori noi care nu au consumat niciodată credite - NU afișa indicatorul
-  if (!hasEverUsedCredits && !hasFreeAccess) {
+  if (!hasEverUsedCredits) {
     return null;
   }
 
@@ -109,7 +109,9 @@ export const CreditAndTrialIndicator = () => {
   }
 
   // Estimare sesiuni rămase (simplificat, fără RON)
-  const estimatedSessions = Math.floor(remainingCredits / 2); // ~2 RON per sesiune medie
+  const estimatedSessions = remainingCredits > 0 
+    ? Math.max(1, Math.floor(remainingCredits / 2)) 
+    : 0; // ~2 RON per sesiune medie, minim 1 dacă există credite
 
   return (
     <Card className="p-3 bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
@@ -119,8 +121,10 @@ export const CreditAndTrialIndicator = () => {
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">Sesiuni disponibile</span>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            ~{estimatedSessions} {estimatedSessions === 1 ? 'sesiune' : 'sesiuni'}
+          <Badge variant={estimatedSessions <= 1 ? "destructive" : "secondary"} className="text-xs">
+            {estimatedSessions <= 1 
+              ? "Ultima sesiune" 
+              : `~${estimatedSessions} sesiuni`}
           </Badge>
         </div>
 
