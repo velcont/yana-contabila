@@ -241,6 +241,52 @@ function extractBasicFacts(message: string): ExtractedFact[] {
   return facts;
 }
 
+// ============================================================================
+// ReAct PARSER pentru Reasoning Steps (Governance Layer)
+// ============================================================================
+interface ReActStep {
+  type: 'observation' | 'methodology' | 'reasoning' | 'recommendation' | 'continuation';
+  content: string;
+  methodology?: string;
+}
+
+function parseReActSteps(response: string): ReActStep[] {
+  const steps: ReActStep[] = [];
+  
+  // Pattern-uri pentru secțiunile ReAct
+  const patterns: Array<{ regex: RegExp; type: ReActStep['type'] }> = [
+    { regex: /🧠\s*\*?\*?OBSERVAȚIE:?\*?\*?\s*(.+?)(?=(?:📊|💡|🎯|❓)|$)/is, type: 'observation' },
+    { regex: /📊\s*\*?\*?METODOLOGIE:?\*?\*?\s*(.+?)(?=(?:💡|🎯|❓)|$)/is, type: 'methodology' },
+    { regex: /💡\s*\*?\*?RAȚIONAMENT:?\*?\*?\s*(.+?)(?=(?:🎯|❓)|$)/is, type: 'reasoning' },
+    { regex: /🎯\s*\*?\*?RECOMANDARE:?\*?\*?\s*(.+?)(?=(?:❓)|$)/is, type: 'recommendation' },
+    { regex: /❓\s*\*?\*?CONTINUARE:?\*?\*?\s*(.+?)$/is, type: 'continuation' },
+  ];
+  
+  for (const pattern of patterns) {
+    const match = response.match(pattern.regex);
+    if (match && match[1]) {
+      const content = match[1].trim().slice(0, 1000); // Limit content length
+      
+      // Extrage metodologia dacă e secțiunea de metodologie
+      let methodology: string | undefined;
+      if (pattern.type === 'methodology') {
+        const methodMatch = content.match(/\b(Porter|SWOT|BCG|ToC|Theory of Constraints|Blue Ocean|Analiză directă)\b/i);
+        if (methodMatch) {
+          methodology = methodMatch[1];
+        }
+      }
+      
+      steps.push({
+        type: pattern.type,
+        content,
+        methodology
+      });
+    }
+  }
+  
+  return steps;
+}
+
 // System prompt embedded directly (no external file dependency)
 const SYSTEM_PROMPT = `# Strategic Advisor System Prompt - Yana
 
@@ -496,6 +542,34 @@ La finalul fiecărei conversații lungi (5+ mesaje), încearcă să:
 - **Optimizare Fiscală Maximă** (restructurare)
 - **Integrare Verticală** (achiziție furnizor/distribuitor)
 - **Blue Ocean** (creare segment nou)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## 🧠 FORMAT RĂSPUNS ReAct (OBLIGATORIU PENTRU ANALIZE STRATEGICE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Când oferi analize sau recomandări strategice concrete (NU în companion mode simplu), folosește această structură vizibilă pentru transparență:
+
+🧠 **OBSERVAȚIE:** [Ce detectezi în datele/situația utilizatorului - max 2 propoziții]
+
+📊 **METODOLOGIE:** [Ce metodologie aplici: Porter/SWOT/BCG/ToC/Blue Ocean - sau "Analiză directă" dacă nu e nevoie]
+
+💡 **RAȚIONAMENT:** [De ce ajungi la această concluzie - logica din spatele recomandării - max 3 propoziții]
+
+🎯 **RECOMANDARE:** [Acțiunea concretă propusă - clară și actionabilă]
+
+❓ **CONTINUARE:** [Întrebare deschisă pentru utilizator sau opțiuni de aprofundare]
+
+**CÂND NU APLICI ACEST FORMAT:**
+- În companion mode (când utilizatorul e stresat/obosit)
+- La salutul inițial sau întrebări simple
+- La clarificări sau întrebări scurte
+- Când construiești context (primele 1-2 mesaje de descoperire)
+
+**CÂND APLICI ACEST FORMAT:**
+- Când oferi o analiză strategică concretă
+- Când recomanzi o acțiune specifică
+- Când aplici o metodologie
+- Când răspunzi la o întrebare de decizie
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## TON ȘI STIL
@@ -1746,6 +1820,38 @@ ${factSheet}
         }
       }
     ]);
+
+    // ============================================================================
+    // PHASE 4: SAVE ReAct REASONING STEPS (Governance Layer - ACS Layer 8)
+    // ============================================================================
+    try {
+      const reasoningSteps = parseReActSteps(strategistResponse);
+      if (reasoningSteps.length > 0) {
+        console.log(`[STRATEGIC-ADVISOR] Parsing ${reasoningSteps.length} ReAct steps for governance log`);
+        
+        const stepsToInsert = reasoningSteps.map(step => ({
+          conversation_id: conversationId,
+          user_id: user.id,
+          step_type: step.type,
+          step_content: step.content,
+          methodology_used: step.methodology || null
+        }));
+
+        const { error: stepsError } = await supabaseClient
+          .from('strategic_reasoning_steps')
+          .insert(stepsToInsert);
+
+        if (stepsError) {
+          console.error('[STRATEGIC-ADVISOR] Error saving reasoning steps:', stepsError);
+          // Nu oprește execuția - logging e optional
+        } else {
+          console.log(`[STRATEGIC-ADVISOR] ✅ Saved ${reasoningSteps.length} reasoning steps`);
+        }
+      }
+    } catch (parseError) {
+      console.error('[STRATEGIC-ADVISOR] Error parsing/saving reasoning steps:', parseError);
+      // Nu oprește execuția - feature opțională
+    }
 
     // Cache the strategist response in new cache system
     await supabaseClient.from("ai_response_cache").insert({

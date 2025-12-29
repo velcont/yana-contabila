@@ -37,6 +37,7 @@ import { WarRoomSimulator } from "@/components/strategic/WarRoomSimulator";
 import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
 import { ConsultYanaDialog } from "@/components/ConsultYanaDialog";
 import { StrategicDocumentUploader } from "@/components/strategic/StrategicDocumentUploader";
+import { ReasoningStepsDialog } from "@/components/strategic/ReasoningStepsDialog";
 import { AlertTriangle, Plus, FileText, Bot } from "lucide-react";
 import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
@@ -118,6 +119,7 @@ export default function StrategicAdvisor() {
   }, [isMobile]);
   const [selectedConflict, setSelectedConflict] = useState<any>(null);
   const [warRoomOpen, setWarRoomOpen] = useState(false);
+  const [reasoningDialogOpen, setReasoningDialogOpen] = useState(false);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -867,6 +869,10 @@ export default function StrategicAdvisor() {
                             <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
                             War Room Simulator
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setReasoningDialogOpen(true)}>
+                            <Brain className="w-4 h-4 mr-2 text-primary" />
+                            Vezi Raționamentul
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {/* Analizează Balanța - vizibil doar pe mobil */}
                           <DropdownMenuItem 
@@ -1078,6 +1084,12 @@ export default function StrategicAdvisor() {
         onOpenChange={setShowConsultYanaFromDropdown}
         triggerButton={false}
         context={messages.map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n')}
+        conversationId={conversationId}
+      />
+      {/* Reasoning Steps Dialog - Governance Layer */}
+      <ReasoningStepsDialog
+        open={reasoningDialogOpen}
+        onOpenChange={setReasoningDialogOpen}
         conversationId={conversationId}
       />
     </div>

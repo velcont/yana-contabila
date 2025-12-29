@@ -2,15 +2,28 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { 
   TrendingUp, 
   Building2, 
   DollarSign,
   CheckCircle2,
   Calendar,
-  Briefcase
+  Briefcase,
+  Pencil,
+  Check,
+  X
 } from "lucide-react";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
 type StrategicFact = Database['public']['Tables']['strategic_advisor_facts']['Row'];
@@ -23,6 +36,11 @@ interface StrategicFactsPanelProps {
 export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPanelProps) {
   const [facts, setFacts] = useState<StrategicFact[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Correction dialog state
+  const [editingFact, setEditingFact] = useState<StrategicFact | null>(null);
+  const [newValue, setNewValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadFacts();
@@ -77,6 +95,41 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
     }
   };
 
+  // Handle opening the correction dialog
+  const handleEditClick = (fact: StrategicFact) => {
+    setEditingFact(fact);
+    setNewValue(fact.fact_value?.toString() || "");
+  };
+
+  // Handle saving the corrected value
+  const handleSaveCorrection = async () => {
+    if (!editingFact || !newValue.trim()) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('strategic_advisor_facts')
+        .update({
+          fact_value: newValue.trim(),
+          confidence: 1.0, // User confirmed = max confidence
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingFact.id);
+
+      if (error) throw error;
+      
+      toast.success("Valoare corectată cu succes");
+      setEditingFact(null);
+      setNewValue("");
+      loadFacts(); // Refresh
+    } catch (error) {
+      logger.error('❌ [FACTS-PANEL] Error saving correction:', error);
+      toast.error("Eroare la salvarea corecției");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Group facts by category
   const groupedFacts = facts.reduce((acc, fact) => {
     if (!acc[fact.fact_category]) {
@@ -100,6 +153,13 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
       return formatCurrency(Number(fact.fact_value));
     }
     return `${fact.fact_value}${fact.fact_unit ? ` ${fact.fact_unit}` : ''}`;
+  };
+
+  // Get confidence indicator color
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 0.9) return 'text-green-600';
+    if (confidence >= 0.7) return 'text-yellow-600';
+    return 'text-orange-500';
   };
 
   if (loading) {
@@ -159,53 +219,118 @@ export function StrategicFactsPanel({ userId, conversationId }: StrategicFactsPa
   };
 
   return (
-    <ScrollArea className="h-full">
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h3 className="text-lg font-semibold mb-2">Date Validate</h3>
-          <p className="text-sm text-muted-foreground">
-            {facts.length} {facts.length === 1 ? 'dată extrasă' : 'date extrase'} automat
-          </p>
-        </div>
+    <>
+      <ScrollArea className="h-full">
+        <div className="p-6 space-y-6">
+          {/* Header */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Date Validate</h3>
+            <p className="text-sm text-muted-foreground">
+              {facts.length} {facts.length === 1 ? 'dată extrasă' : 'date extrase'} automat
+            </p>
+          </div>
 
-        {/* Facts by Category */}
-        {Object.entries(groupedFacts).map(([category, categoryFacts]) => (
-          <div key={category} className="space-y-3">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              {getCategoryIcon(category)}
-              {getCategoryLabel(category)}
-            </h4>
-            <Card className="p-4 space-y-3">
-              {categoryFacts.map((fact) => (
-                <div key={fact.id} className="flex justify-between items-start gap-3">
-                  <span className="text-sm text-muted-foreground capitalize">
-                    {fact.fact_key.replace(/_/g, ' ')}
-                  </span>
-                  <div className="text-right">
-                    <span className="text-sm font-medium block">
-                      {formatValue(fact)}
+          {/* Facts by Category */}
+          {Object.entries(groupedFacts).map(([category, categoryFacts]) => (
+            <div key={category} className="space-y-3">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                {getCategoryIcon(category)}
+                {getCategoryLabel(category)}
+              </h4>
+              <Card className="p-4 space-y-3">
+                {categoryFacts.map((fact) => (
+                  <div key={fact.id} className="flex justify-between items-start gap-3 group">
+                    <span className="text-sm text-muted-foreground capitalize">
+                      {fact.fact_key.replace(/_/g, ' ')}
                     </span>
-                    {fact.confidence < 1 && (
-                      <span className="text-xs text-muted-foreground">
-                        Confidență: {(fact.confidence * 100).toFixed(0)}%
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <span className="text-sm font-medium block">
+                          {formatValue(fact)}
+                        </span>
+                        {/* Confidence indicator */}
+                        <span className={`text-xs ${getConfidenceColor(fact.confidence)}`}>
+                          {fact.confidence >= 1 ? '✓ Confirmat' : `${(fact.confidence * 100).toFixed(0)}% confidență`}
+                        </span>
+                      </div>
+                      {/* Edit button - appears on hover */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleEditClick(fact)}
+                        title="Corectează valoarea"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </Card>
-          </div>
-        ))}
+                ))}
+              </Card>
+            </div>
+          ))}
 
-        {/* Last Updated */}
-        {facts.length > 0 && (
-          <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            Ultima actualizare: {new Date(facts[0].updated_at).toLocaleString('ro-RO')}
-          </div>
-        )}
-      </div>
-    </ScrollArea>
+          {/* Last Updated */}
+          {facts.length > 0 && (
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              Ultima actualizare: {new Date(facts[0].updated_at).toLocaleString('ro-RO')}
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Correction Dialog */}
+      <Dialog open={!!editingFact} onOpenChange={(open) => !open && setEditingFact(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>✏️ Corectează valoarea</DialogTitle>
+          </DialogHeader>
+          {editingFact && (
+            <div className="space-y-4 py-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Câmp:</p>
+                <p className="font-medium capitalize">{editingFact.fact_key.replace(/_/g, ' ')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Valoare curentă:</p>
+                <p className="font-medium">{formatValue(editingFact)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Valoare corectă:</p>
+                <Input
+                  value={newValue}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  placeholder="Introdu valoarea corectă"
+                  type="text"
+                />
+                {editingFact.fact_unit && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Unitate: {editingFact.fact_unit}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditingFact(null)}
+              disabled={isSaving}
+            >
+              <X className="w-4 h-4 mr-1" />
+              Anulează
+            </Button>
+            <Button
+              onClick={handleSaveCorrection}
+              disabled={!newValue.trim() || isSaving}
+            >
+              <Check className="w-4 h-4 mr-1" />
+              {isSaving ? 'Se salvează...' : 'Salvează'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

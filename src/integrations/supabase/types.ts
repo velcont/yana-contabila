@@ -3675,6 +3675,39 @@ export type Database = {
         }
         Relationships: []
       }
+      strategic_reasoning_steps: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message_index: number | null
+          methodology_used: string | null
+          step_content: string
+          step_type: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message_index?: number | null
+          methodology_used?: string | null
+          step_content: string
+          step_type: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message_index?: number | null
+          methodology_used?: string | null
+          step_content?: string
+          step_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscription_payments: {
         Row: {
           amount_paid_cents: number
