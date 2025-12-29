@@ -5,7 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
@@ -295,8 +295,9 @@ const Admin = () => {
         </Card>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <ScrollArea className="w-full whitespace-nowrap pb-2">
-            <TabsList className="inline-flex w-max gap-2">
+          <div className="relative">
+            <ScrollArea className="w-full whitespace-nowrap pb-4">
+              <TabsList className="inline-flex w-max gap-2 pr-8">
               <TabsTrigger value="users">
                 <Users className="h-4 w-4 mr-2" />
                 Utilizatori ({profiles.length})
@@ -349,8 +350,11 @@ const Admin = () => {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Sync Stripe
               </TabsTrigger>
-            </TabsList>
-          </ScrollArea>
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+          </div>
 
           <TabsContent value="revenue">
             <Suspense fallback={<TabContentLoader />}>
