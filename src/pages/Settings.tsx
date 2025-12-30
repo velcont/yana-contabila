@@ -5,7 +5,7 @@ import { ArrowLeft, User, Bell, Shield, CreditCard, Brain } from 'lucide-react';
 import { AccountDeletion } from '@/components/AccountDeletion';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Footer } from '@/components/Footer';
+import MiniFooter from '@/components/MiniFooter';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
 import { SubscriptionDetails } from '@/components/settings/SubscriptionDetails';
 
@@ -118,7 +118,7 @@ const Settings = () => {
           </TabsContent>
         </Tabs>
       </div>
-      <Footer />
+      <MiniFooter />
     </div>
   );
 };
