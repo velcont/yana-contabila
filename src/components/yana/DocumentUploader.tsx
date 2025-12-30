@@ -2,11 +2,19 @@ import { useState, useCallback } from 'react';
 import { Upload, FileSpreadsheet, FileText, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import * as XLSX from 'xlsx';
 
 interface DocumentUploaderProps {
   onUpload: (file: File, content: string) => void;
   onClose: () => void;
+}
+
+function readAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('FileReader error'));
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(file);
+  });
 }
 
 export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
@@ -23,25 +31,20 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
       let content = '';
 
       if (['xlsx', 'xls'].includes(extension || '')) {
-        // Process Excel file
-        const buffer = await file.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: 'array' });
-        
-        // Convert all sheets to JSON
-        const sheetsData: Record<string, unknown[]> = {};
-        workbook.SheetNames.forEach(sheetName => {
-          const sheet = workbook.Sheets[sheetName];
-          sheetsData[sheetName] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        });
-        
-        content = JSON.stringify(sheetsData);
+        // IMPORTANT: analyze-balance expects Excel as base64 (data URL accepted)
+        content = await readAsDataURL(file);
       } else if (extension === 'pdf') {
-        // For PDF, we'll send it as base64 (simplified for now)
-        const buffer = await file.arrayBuffer();
-        content = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-      } else if (['doc', 'docx'].includes(extension || '')) {
-        // For Word docs, convert to text (simplified)
-        content = await file.text();
+        // Keep as data URL (base64) for backend processing if needed
+        content = await readAsDataURL(file);
+      } else if (extension === 'docx') {
+        // Extract text from DOCX
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        content = result.value;
+      } else if (extension === 'doc') {
+        // .doc is legacy binary; keep minimal placeholder
+        content = `Document Word (.doc) încărcat: ${file.name}`;
       } else {
         // Plain text
         content = await file.text();
