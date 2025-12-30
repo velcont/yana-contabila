@@ -124,19 +124,30 @@ serve(async (req) => {
     let response: Response;
 
     // If file data is provided, route based on file type
-    if (fileData) {
+    if (fileData && fileData.fileContent) {
       const docType = detectDocumentType(fileData.fileName);
       
       if (docType === 'balance_excel') {
-        // Route to analyze-balance
+        // Route to analyze-balance - it expects excelBase64
         routeDecision = {
           route: 'analyze-balance',
           payload: {
-            balanceData,
-            companyName: companyName || 'Unknown Company',
+            excelBase64: fileData.fileContent,
+            companyName: companyName || undefined,
             fileName: fileData.fileName
           },
           reason: 'Excel balance sheet uploaded'
+        };
+      } else if (docType === 'pdf' || docType === 'docx') {
+        // For business documents, use strategic-advisor
+        routeDecision = {
+          route: 'strategic-advisor',
+          payload: {
+            message: message || `Analizează documentul: ${fileData.fileName}`,
+            documentContent: fileData.fileContent,
+            documentName: fileData.fileName,
+          },
+          reason: 'Business document uploaded for strategic analysis'
         };
       } else {
         // For other documents, use chat-ai with context
