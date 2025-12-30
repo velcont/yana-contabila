@@ -1415,8 +1415,15 @@ ${simulationResult}
       enrichedMessage = `${message}${preAnalysis}`;
     }
 
+    // 🆕 FIX BUG #1: Integrare memoryContext în system prompt
+    let systemPromptWithMemory = SYSTEM_PROMPT;
+    if (memoryContext) {
+      console.log(`[STRATEGIC-ADVISOR] 📚 Memory context added to prompt (${memoryContext.length} chars)`);
+      systemPromptWithMemory = `${memoryContext}\n\n---\n\n${SYSTEM_PROMPT}`;
+    }
+
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPromptWithMemory },
       ...(history || []).map(msg => ({
         role: msg.role,
         content: msg.content
