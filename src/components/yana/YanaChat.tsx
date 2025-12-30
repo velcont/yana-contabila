@@ -7,9 +7,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { DocumentUploader } from './DocumentUploader';
 import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
+import { MiniCreditsIndicator } from './MiniCreditsIndicator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
+import { Link } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -373,19 +375,28 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
               disabled={isLoading}
             />
             
-            <Button
-              size="icon"
-              className="shrink-0 h-10 w-10"
-              onClick={() => sendMessage(input)}
-              disabled={isLoading || !input.trim()}
-            >
-              <Send className="h-5 w-5" />
-            </Button>
+            <div className="flex items-end gap-1">
+              <MiniCreditsIndicator />
+              <Button
+                size="icon"
+                className="shrink-0 h-10 w-10"
+                onClick={() => sendMessage(input)}
+                disabled={isLoading || !input.trim()}
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Yana poate face greșeli. Verifică informațiile importante.
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <p className="text-xs text-muted-foreground">
+              Yana poate face greșeli. Verifică informațiile importante.
+            </p>
+            <span className="text-xs text-muted-foreground">•</span>
+            <Link to="/contact" className="text-xs text-primary hover:underline">
+              Contact
+            </Link>
+          </div>
         </div>
       </div>
     </div>
