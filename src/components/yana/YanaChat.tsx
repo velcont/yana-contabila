@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Loader2, Paperclip } from 'lucide-react';
+import { Send, Loader2, Paperclip, Search, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DocumentUploader } from './DocumentUploader';
 import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
 import { MiniCreditsIndicator } from './MiniCreditsIndicator';
+import { SourcesDisplay } from './SourcesDisplay';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
@@ -19,6 +20,8 @@ interface Message {
   content: string;
   artifacts?: Artifact[];
   created_at: string;
+  route?: string;
+  sources?: string[];
 }
 
 interface Artifact {
@@ -204,6 +207,8 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         content: response.response || response.analysis || 'Am procesat cererea ta.',
         artifacts,
         created_at: new Date().toISOString(),
+        route: response.route,
+        sources: response.citations || response.sources,
       };
       setMessages(prev => [...prev, assistantMessage]);
 
@@ -304,7 +309,29 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                   : 'bg-muted text-foreground'
               )}
             >
+              {/* Route indicator for assistant messages */}
+              {message.role === 'assistant' && message.route && (
+                <div className="flex items-center gap-1.5 mb-2 text-xs">
+                  {message.route === 'fiscal-chat' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
+                      <Search className="h-3 w-3" />
+                      Yana Fiscală
+                    </span>
+                  ) : message.route === 'strategic-advisor' ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+                      <Lightbulb className="h-3 w-3" />
+                      Consilier Strategic
+                    </span>
+                  ) : null}
+                </div>
+              )}
+              
               <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+              
+              {/* Display sources for fiscal responses */}
+              {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                <SourcesDisplay sources={message.sources} />
+              )}
               
               {/* Render artifacts */}
               {message.artifacts && message.artifacts.length > 0 && (
