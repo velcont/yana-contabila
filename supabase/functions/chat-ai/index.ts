@@ -1111,7 +1111,9 @@ const ChatAIRequestSchema = z.object({
       finalCredit: z.number().optional(),
       accountClass: z.number().optional()
     }))
-  }).optional().nullable()
+  }).optional().nullable(),
+  // 🆕 MEMORIE: Context din conversații anterioare cu firma
+  memoryContext: z.string().max(5000, "Context memorie prea lung").optional().nullable()
 });
 
 serve(async (req) => {
@@ -1159,7 +1161,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext, memoryContext } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1167,8 +1169,10 @@ serve(async (req) => {
     console.log(`[chat-ai][${requestId}] History length: ${history.length} messages`);
     console.log(`[chat-ai][${requestId}] Stream mode: ${streamResponse}`);
     console.log(`[chat-ai][${requestId}] Summary type: ${summaryType}`);
-    // 🆕 LOGGING pentru balanceContext
+    // 🆕 LOGGING pentru balanceContext și memoryContext
     console.log(`[chat-ai][${requestId}] Balance context: ${balanceContext ? `${balanceContext.accounts?.length || 0} accounts for ${balanceContext.company || 'unknown'}` : 'null'}`);
+    console.log(`[chat-ai][${requestId}] Memory context: ${memoryContext ? `${memoryContext.length} chars` : 'null'}`);
+
 
     // Extragem user_id pentru rate limiting și caching
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1368,7 +1372,13 @@ serve(async (req) => {
       console.log(`[chat-ai][${requestId}] Balance data section added to prompt (${balanceDataSection.length} chars)`);
     }
     
-    let adaptedPrompt = SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    // 🆕 MEMORIE: Adaugă context din conversații anterioare cu firma
+    const memorySection = memoryContext ? `\n\n${memoryContext}` : '';
+    if (memoryContext) {
+      console.log(`[chat-ai][${requestId}] Memory context added to prompt (${memoryContext.length} chars)`);
+    }
+    
+    let adaptedPrompt = memorySection + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

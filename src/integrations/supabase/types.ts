@@ -4217,6 +4217,7 @@ export type Database = {
       }
       yana_conversations: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           metadata: Json | null
@@ -4225,6 +4226,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -4233,6 +4235,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           metadata?: Json | null
@@ -4240,7 +4243,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "yana_conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       yana_messages: {
         Row: {
