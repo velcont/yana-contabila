@@ -23,7 +23,7 @@ const Terms = () => {
           <CardHeader>
             <CardTitle className="text-3xl">Termeni și Condiții</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Ultima actualizare: 12 Octombrie 2025
+              Ultima actualizare: 30 Decembrie 2025
             </p>
           </CardHeader>
           <CardContent className="prose prose-sm max-w-none dark:prose-invert space-y-6">
@@ -80,26 +80,29 @@ const Terms = () => {
             <h2>6. Planuri de Abonament și Tarife</h2>
             <p>YANA oferă un singur plan de abonament simplu și complet:</p>
             <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 my-4">
-              <h3 className="font-semibold mb-2">Yana Strategic - 49 RON/lună</h3>
+              <h3 className="font-semibold mb-2">Yana Strategic - 49 RON/lună + 20 Credite AI Incluse</h3>
               <ul>
                 <li><strong>Preț:</strong> 49 lei/lună + TVA</li>
-                <li><strong>Include:</strong> Analiză financiară nelimitată, Chat AI, Dashboard interactiv, Export rapoarte PDF/Word, Yana Strategică (Consilier AI), War Room Simulator, Battle Plan Export</li>
+                <li><strong>Include:</strong> Analiză financiară NELIMITATĂ, Chat AI, Dashboard interactiv, Export rapoarte PDF/Word</li>
+                <li><strong>20 Credite AI/lună incluse:</strong> Suficient pentru ~40 sesiuni strategice cu Yana Strategică</li>
+                <li><strong>Acces complet la:</strong> Consilier Strategic AI, War Room Simulator, Battle Plan Export</li>
                 <li><strong>Pentru:</strong> Antreprenori și IMM-uri care vor decizii bazate pe date</li>
               </ul>
               <p className="text-sm mt-2 text-muted-foreground">30 de zile gratuit • Anulare oricând • Fără card inițial</p>
             </div>
             
-            <h3 className="font-semibold mt-4">6.3. Credite AI pentru Funcționalități Premium</h3>
-            <p>Unele funcționalități avansate necesită credite AI suplimentare (se plătesc separat, doar dacă le folosești):</p>
+            <h3 className="font-semibold mt-4">6.3. Credite AI Incluse și Suplimentare</h3>
+            <p>Abonamentul de 49 RON/lună <strong>include 20 credite AI lunar</strong> (suficient pentru ~40 sesiuni strategice). Aceste credite pot fi folosite pentru:</p>
             <ul>
-              <li><strong>Consilier Strategic Yana</strong> - Consultanță strategică avansată (necesită abonament plătit activ)</li>
-              <li><strong>Analiză Vocală</strong> - Interacțiune prin voce</li>
+              <li><strong>Consilier Strategic Yana</strong> - Consultanță strategică avansată</li>
+              <li><strong>War Room Simulator</strong> - Simulări de scenarii</li>
+              <li><strong>Battle Plan Export</strong> - Rapoarte strategice detaliate</li>
               <li><strong>Predicții financiare avansate</strong></li>
             </ul>
-            <div className="bg-yellow-50 dark:bg-yellow-950/20 p-3 rounded-md border border-yellow-200 dark:border-yellow-800 my-4">
+            <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-md border border-green-200 dark:border-green-800 my-4">
               <p className="text-sm m-0">
-                <strong>IMPORTANT:</strong> Consilierul Strategic este BLOCAT pentru utilizatorii cu acces gratuit sau în perioada de probă. 
-                Este disponibil DOAR pentru abonați plătitori activi.
+                <strong>INCLUS ÎN ABONAMENT:</strong> 20 credite AI/lună (~40 conversații strategice). 
+                Dacă ai nevoie de mai mult, poți cumpăra pachete suplimentare oricând.
               </p>
             </div>
 
