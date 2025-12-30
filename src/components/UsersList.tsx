@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Crown, Copy, Trash2 } from 'lucide-react';
+import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast as sonnerToast } from 'sonner';
@@ -28,7 +28,70 @@ interface Profile {
   created_at: string;
   has_free_access: boolean | null;
   trial_ends_at: string | null;
+  stripe_subscription_id: string | null;
 }
+
+// Helper pentru a determina sursa accesului unui utilizator
+type AccessSource = 'paid' | 'free_access' | 'trial' | 'expired' | 'none';
+
+const getAccessSource = (user: Profile): AccessSource => {
+  const now = new Date();
+  
+  // 1. Verifică acces gratuit manual
+  if (user.has_free_access) {
+    return 'free_access';
+  }
+  
+  // 2. Verifică abonament Stripe plătit (are stripe_subscription_id și status activ)
+  if (user.stripe_subscription_id && user.subscription_status === 'active') {
+    return 'paid';
+  }
+  
+  // 3. Verifică trial activ
+  if (user.trial_ends_at && new Date(user.trial_ends_at) > now) {
+    return 'trial';
+  }
+  
+  // 4. Verifică trial expirat
+  if (user.trial_ends_at && new Date(user.trial_ends_at) <= now) {
+    return 'expired';
+  }
+  
+  return 'none';
+};
+
+const ACCESS_SOURCE_CONFIG: Record<AccessSource, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode; className?: string }> = {
+  paid: { 
+    label: 'Plătit Stripe', 
+    variant: 'default', 
+    icon: <CreditCard className="h-3 w-3 mr-1" />,
+    className: 'bg-blue-600 hover:bg-blue-700'
+  },
+  free_access: { 
+    label: 'Acces Gratuit', 
+    variant: 'default', 
+    icon: <Crown className="h-3 w-3 mr-1" />,
+    className: 'bg-green-600 hover:bg-green-700'
+  },
+  trial: { 
+    label: 'Trial Activ', 
+    variant: 'outline', 
+    icon: <Clock className="h-3 w-3 mr-1" />,
+    className: 'text-orange-600 border-orange-600'
+  },
+  expired: { 
+    label: 'Trial Expirat', 
+    variant: 'destructive', 
+    icon: <XCircle className="h-3 w-3 mr-1" />,
+    className: ''
+  },
+  none: { 
+    label: 'Fără Acces', 
+    variant: 'secondary', 
+    icon: null,
+    className: ''
+  },
+};
 
 interface DeletedUser {
   id: string;
@@ -226,8 +289,10 @@ export const UsersList = () => {
   };
 
   const renderUserCard = (user: Profile) => {
-    const isInTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
-    const trialExpired = user.trial_ends_at && new Date(user.trial_ends_at) <= new Date();
+    const accessSource = getAccessSource(user);
+    const accessConfig = ACCESS_SOURCE_CONFIG[accessSource];
+    const isInTrial = accessSource === 'trial';
+    const trialExpired = accessSource === 'expired';
     
     return (
       <Card key={user.id}>
@@ -239,33 +304,31 @@ export const UsersList = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 Membru din: {new Date(user.created_at).toLocaleDateString('ro-RO')}
               </p>
-              {isInTrial && (
+              {isInTrial && user.trial_ends_at && (
                 <p className="text-xs text-orange-600 mt-1">
-                  Testare până: {new Date(user.trial_ends_at!).toLocaleDateString('ro-RO')}
+                  Trial până: {new Date(user.trial_ends_at).toLocaleDateString('ro-RO')}
                 </p>
               )}
-              {trialExpired && !user.has_free_access && user.subscription_status !== 'active' && (
+              {trialExpired && user.trial_ends_at && (
                 <p className="text-xs text-red-600 mt-1">
-                  Testare expirată: {new Date(user.trial_ends_at!).toLocaleDateString('ro-RO')}
+                  Trial expirat: {new Date(user.trial_ends_at).toLocaleDateString('ro-RO')}
                 </p>
               )}
             </div>
             <div className="flex flex-col gap-2 items-end">
               <div className="flex gap-2 flex-wrap justify-end">
-                <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'}>
-                  {user.subscription_status === 'active' ? 'Activ' : 'Inactiv'}
+                {/* Badge pentru sursa accesului - NOUA FUNCȚIONALITATE */}
+                <Badge 
+                  variant={accessConfig.variant} 
+                  className={accessConfig.className}
+                >
+                  {accessConfig.icon}
+                  {accessConfig.label}
                 </Badge>
-                {user.has_free_access && (
-                  <Badge variant="default" className="bg-green-600">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Gratuit
-                  </Badge>
-                )}
-                {isInTrial && !user.has_free_access && (
-                  <Badge variant="outline" className="text-orange-600 border-orange-600">
-                    Testare
-                  </Badge>
-                )}
+                <Badge variant="outline" className="text-xs">
+                  {user.subscription_type === 'entrepreneur' ? 'Antreprenor' : 
+                   user.subscription_type === 'accounting_firm' ? 'Contabil' : 'Necunoscut'}
+                </Badge>
               </div>
               <div className="flex gap-2">
                 <Button

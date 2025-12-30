@@ -5,6 +5,15 @@ import { useToast } from '@/hooks/use-toast';
 
 type SubscriptionType = 'yana_strategic' | 'entrepreneur' | 'accounting_firm'; // Legacy support
 type SubscriptionStatus = 'active' | 'inactive' | 'trial_expired' | 'loading';
+type AccessType = 'free_access' | 'trial' | 'subscription' | 'trial_expired' | null;
+
+// Label-uri prietenoase pentru afișare în UI
+export const ACCESS_TYPE_LABELS: Record<NonNullable<AccessType>, string> = {
+  free_access: 'Acces Gratuit',
+  trial: 'Trial Activ',
+  subscription: 'Abonament Plătit',
+  trial_expired: 'Trial Expirat',
+};
 
 interface SubscriptionContextType {
   subscriptionType: SubscriptionType;
@@ -14,7 +23,7 @@ interface SubscriptionContextType {
   isAccountant: boolean;
   trialExpired: boolean;
   trialDaysRemaining: number | null;
-  accessType: 'free_access' | 'trial' | 'subscription' | 'trial_expired' | null;
+  accessType: AccessType;
   checkSubscription: (showLoading?: boolean) => Promise<void>;
   loading: boolean;
 }
@@ -36,6 +45,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const checkSubscription = async (showLoading = true) => {
     if (!user) {
       setSubscriptionStatus('inactive');
+      setAccessType(null);
+      setTrialExpired(false);
       setLoading(false);
       return;
     }
@@ -44,34 +55,32 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       if (showLoading) {
         setLoading(true);
       }
-      console.log('Checking subscription status...');
+      console.log('[SubscriptionContext] Checking subscription status...');
       
-      // Get profile data for trial info
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('trial_ends_at, subscription_status, has_free_access')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-      }
-
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
       if (error) throw error;
 
-      console.log('Subscription data:', data);
+      console.log('[SubscriptionContext] Response from check-subscription:', data);
 
+      // Backend returnează access_type care determină CORECT sursa accesului:
+      // - 'free_access': has_free_access = true în profil
+      // - 'subscription': abonament Stripe activ SAU subscription manuală activă
+      // - 'trial': trial_ends_at > NOW()
+      // - 'trial_expired': trial_ends_at <= NOW() și nu are alt acces
+      // - null: fără acces
+
+      const backendAccessType = data.access_type as AccessType;
+      
       setSubscriptionType(data.subscription_type || 'entrepreneur');
       setSubscriptionStatus(data.subscription_status || 'inactive');
       setSubscriptionEnd(data.subscription_end || null);
-      setTrialExpired(data.trial_expired || false);
-      setAccessType(data.access_type || null);
+      setTrialExpired(data.trial_expired || backendAccessType === 'trial_expired');
+      setAccessType(backendAccessType);
 
       // Calculate trial days remaining ONLY for 'trial' access type
-      if (data.access_type === 'trial' && profile?.trial_ends_at) {
-        const trialEndDate = new Date(profile.trial_ends_at);
+      if (backendAccessType === 'trial' && data.subscription_end) {
+        const trialEndDate = new Date(data.subscription_end);
         const now = new Date();
         const diffTime = trialEndDate.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -95,9 +104,17 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setTrialDaysRemaining(null);
       }
+
+      console.log('[SubscriptionContext] Final state:', {
+        accessType: backendAccessType,
+        subscriptionStatus: data.subscription_status,
+        trialExpired: data.trial_expired || backendAccessType === 'trial_expired'
+      });
+
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error('[SubscriptionContext] Error checking subscription:', error);
       setSubscriptionStatus('inactive');
+      setAccessType(null);
     } finally {
       if (showLoading) {
         setLoading(false);
