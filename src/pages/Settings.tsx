@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Footer } from '@/components/Footer';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
+import { SubscriptionDetails } from '@/components/settings/SubscriptionDetails';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -91,19 +92,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Abonament și Facturare</CardTitle>
-                <CardDescription>
-                  Gestionează abonamentul și metodele de plată
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button onClick={() => navigate('/subscription')}>
-                  Vezi detalii abonament
-                </Button>
-              </CardContent>
-            </Card>
+            <SubscriptionDetails />
           </TabsContent>
 
           <TabsContent value="ai-learning" className="space-y-6">
