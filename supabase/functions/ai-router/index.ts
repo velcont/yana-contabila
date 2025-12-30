@@ -71,18 +71,44 @@ function detectIntent(message: string): RouteDecision {
     };
   }
   
-  // Strategic questions
+  // Strategic questions - EXPANDED for better detection
   if (
     lowerMessage.includes('strategi') ||
     lowerMessage.includes('war room') ||
     lowerMessage.includes('battle plan') ||
     lowerMessage.includes('simulare') ||
-    lowerMessage.includes('scenariu')
+    lowerMessage.includes('scenariu') ||
+    // Optimization & cost-related questions
+    lowerMessage.includes('costuri') ||
+    lowerMessage.includes('cost') ||
+    lowerMessage.includes('optimiz') ||
+    lowerMessage.includes('reduc') ||
+    lowerMessage.includes('cresc') ||
+    lowerMessage.includes('eficientiz') ||
+    lowerMessage.includes('recomand') ||
+    lowerMessage.includes('pe baza') ||
+    lowerMessage.includes('plan de acțiune') ||
+    lowerMessage.includes('plan de actiune') ||
+    lowerMessage.includes('pași') ||
+    lowerMessage.includes('pasi') ||
+    lowerMessage.includes('următoarele') ||
+    lowerMessage.includes('urmatoarele') ||
+    lowerMessage.includes('ce ar trebui') ||
+    lowerMessage.includes('cum să') ||
+    lowerMessage.includes('cum sa') ||
+    lowerMessage.includes('tai') ||
+    lowerMessage.includes('taie') ||
+    lowerMessage.includes('categor') ||
+    lowerMessage.includes('cheltuieli') ||
+    lowerMessage.includes('venituri') ||
+    lowerMessage.includes('profit') ||
+    lowerMessage.includes('marja') ||
+    lowerMessage.includes('buget')
   ) {
     return {
       route: 'strategic-advisor',
       payload: { message },
-      reason: 'User asked about strategic planning'
+      reason: 'User asked about strategic planning or optimization'
     };
   }
   
@@ -189,13 +215,43 @@ serve(async (req) => {
       throw new Error(`Route ${routeDecision.route} failed: ${errorText}`);
     }
 
-    const result = await response.json();
+    // Handle SSE stream or regular JSON response
+    const contentType = response.headers.get('content-type') || '';
+    let result: Record<string, unknown>;
+
+    if (contentType.includes('text/event-stream') || routeDecision.route === 'chat-ai') {
+      // Parse SSE stream - accumulate content from data: lines
+      const text = await response.text();
+      const lines = text.split('\n');
+      let accumulatedContent = '';
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'content' && data.content) {
+              accumulatedContent += data.content;
+            } else if (data.response) {
+              accumulatedContent += data.response;
+            }
+          } catch {
+            // Skip unparseable lines (could be partial JSON or [DONE])
+          }
+        }
+      }
+      
+      result = { response: accumulatedContent || text };
+      console.log('AI Router: Parsed SSE stream, content length:', accumulatedContent.length);
+    } else {
+      // Regular JSON response
+      result = await response.json();
+    }
 
     // Save routing decision to conversation
     await supabase.from('yana_messages').insert({
       conversation_id: conversationId,
       role: 'assistant',
-      content: result.response || result.analysis || result.message || 'Răspuns primit.',
+      content: (result.response as string) || (result.analysis as string) || (result.message as string) || 'Răspuns primit.',
       artifacts: result.artifacts || [],
     });
 
@@ -206,7 +262,7 @@ serve(async (req) => {
         reason: routeDecision.reason,
         structuredData: result.structuredData || null,
         grokValidation: result.grokValidation || null,
-        companyName: result.structuredData?.company || result.companyName || null,
+        companyName: (result.structuredData as Record<string, unknown>)?.company || result.companyName || null,
         ...result,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
