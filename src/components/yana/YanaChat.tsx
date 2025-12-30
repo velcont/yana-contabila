@@ -388,10 +388,14 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
             </div>
           </div>
           
-          <div className="flex items-center justify-center gap-2 mt-2">
+          <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
               Yana poate face greșeli. Verifică informațiile importante.
             </p>
+            <span className="text-xs text-muted-foreground">•</span>
+            <Link to="/pricing" className="text-xs text-primary hover:underline">
+              Prețuri
+            </Link>
             <span className="text-xs text-muted-foreground">•</span>
             <Link to="/contact" className="text-xs text-primary hover:underline">
               Contact
