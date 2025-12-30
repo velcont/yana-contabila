@@ -262,11 +262,20 @@ export function ConversationSidebar({
                               {conv.title}
                             </p>
                           )}
-                          <p className="text-xs text-muted-foreground truncate">
-                            {format(new Date(conv.updated_at), 'HH:mm', { locale: ro })}
-                          </p>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>{format(new Date(conv.updated_at), 'HH:mm', { locale: ro })}</span>
+                            {editingId !== conv.id && (
+                              <button
+                                onClick={(e) => startEditing(conv, e)}
+                                className="hover:text-foreground transition-colors p-0.5 -m-0.5 rounded"
+                                title="Redenumește"
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1">
                           {editingId === conv.id ? (
                             <Button
                               variant="ghost"
@@ -283,20 +292,12 @@ export function ConversationSidebar({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => startEditing(conv, e)}
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => deleteConversation(conv.id, e)}
                             >
-                              <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                              <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => deleteConversation(conv.id, e)}
-                          >
-                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                          </Button>
                         </div>
                       </div>
                     ))}
