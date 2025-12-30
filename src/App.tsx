@@ -42,6 +42,7 @@ const SubscriptionSuccess = lazy(() => import("./pages/SubscriptionSuccess"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const StrategicAdvisor = lazy(() => import("./pages/StrategicAdvisor"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Yana = lazy(() => import("./pages/Yana"));
 
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
@@ -147,7 +148,8 @@ const App = () => {
                       <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                       <Route path="/subscription-success" element={<PrivateRoute><SubscriptionSuccess /></PrivateRoute>} />
                       <Route path="/accept-invitation" element={<AcceptInvitation />} />
-                      <Route path="/strategic-advisor" element={<PrivateRoute><StrategicAdvisor /></PrivateRoute>} />
+                      <Route path="/strategic-advisor" element={<Navigate to="/yana" replace />} />
+                      <Route path="/yana" element={<PrivateRoute><Yana /></PrivateRoute>} />
                       
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                       <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
