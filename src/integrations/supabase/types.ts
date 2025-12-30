@@ -4215,6 +4215,116 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      yana_messages: {
+        Row: {
+          artifacts: Json | null
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          artifacts?: Json | null
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          artifacts?: Json | null
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "yana_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yana_uploaded_documents: {
+        Row: {
+          analysis_id: string | null
+          conversation_id: string
+          created_at: string
+          document_type: string
+          file_name: string
+          file_path: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          conversation_id: string
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_path?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_uploaded_documents_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yana_uploaded_documents_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "yana_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_accountant_profiles: {
