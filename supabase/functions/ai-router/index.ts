@@ -120,7 +120,13 @@ async function findSimilarConversations(
     }
     
     if (!data || !Array.isArray(data) || data.length === 0) {
-      console.log('[AI-Router] No similar conversations found');
+      console.log(`[AI-Router] No similar conversations found for company ${companyId}`);
+      // Diagnostic: verifică dacă există conversații pentru această firmă
+      const { count } = await supabase
+        .from('ai_conversations')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', companyId);
+      console.log(`[AI-Router] 📊 Total ai_conversations for company ${companyId}: ${count || 0}`);
       return [];
     }
     
