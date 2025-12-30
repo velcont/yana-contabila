@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Navigate, Link } from 'react-router-dom';
 import { Loader2, Menu, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
+import { TrialExpiredOverlay } from '@/components/yana/TrialExpiredOverlay';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Yana() {
   const { user, loading } = useAuth();
+  const { accessType, loading: subscriptionLoading } = useSubscription();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  
+  const isTrialExpired = accessType === 'trial_expired';
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,7 +24,7 @@ export default function Yana() {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  if (loading) {
+  if (loading || subscriptionLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -32,7 +37,9 @@ export default function Yana() {
   }
 
   return (
-    <div className="flex h-screen bg-background dark">
+    <div className="flex h-screen bg-background dark relative">
+      {/* Trial Expired Overlay */}
+      {isTrialExpired && <TrialExpiredOverlay />}
       {/* Sidebar */}
       <aside
         className={cn(
