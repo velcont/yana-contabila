@@ -198,6 +198,9 @@ serve(async (req) => {
         success: true,
         route: routeDecision.route,
         reason: routeDecision.reason,
+        structuredData: result.structuredData || null,
+        grokValidation: result.grokValidation || null,
+        companyName: result.structuredData?.company || result.companyName || null,
         ...result,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

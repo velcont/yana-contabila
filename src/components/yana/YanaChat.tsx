@@ -9,6 +9,7 @@ import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 
 interface Message {
   id: string;
@@ -166,12 +167,40 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
 
       if (error) throw error;
 
+      // Build artifacts array
+      const artifacts: Artifact[] = response.artifacts || [];
+
+      // Generate Word report for balance analysis
+      if (response.route === 'analyze-balance' && response.structuredData) {
+        try {
+          const { blob, fileName } = await generatePremiumWordReport({
+            structuredData: response.structuredData,
+            grokValidation: response.grokValidation || null,
+            companyInfo: {
+              name: response.structuredData.company || response.companyName || 'Companie',
+              cui: response.structuredData.cui || 'N/A'
+            }
+          });
+
+          const downloadUrl = URL.createObjectURL(blob);
+          artifacts.push({
+            type: 'download',
+            title: 'Raport Analiză Financiară',
+            fileName: fileName,
+            downloadUrl: downloadUrl,
+            data: null
+          });
+        } catch (wordError) {
+          console.error('Error generating Word report:', wordError);
+        }
+      }
+
       // Add assistant response
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
         content: response.response || response.analysis || 'Am procesat cererea ta.',
-        artifacts: response.artifacts || [],
+        artifacts,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, assistantMessage]);
