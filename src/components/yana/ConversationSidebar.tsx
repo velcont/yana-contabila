@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard } from 'lucide-react';
+import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,6 +35,8 @@ export function ConversationSidebar({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -99,6 +101,42 @@ export function ConversationSidebar({
     
     if (activeConversationId === id) {
       onNewConversation();
+    }
+  };
+
+  const startEditing = (conv: Conversation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(conv.id);
+    setEditingTitle(conv.title);
+  };
+
+  const saveTitle = async (id: string) => {
+    if (!editingTitle.trim()) {
+      setEditingId(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from('yana_conversations')
+      .update({ title: editingTitle.trim() })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating conversation title:', error);
+    } else {
+      setConversations(prev =>
+        prev.map(c => (c.id === id ? { ...c, title: editingTitle.trim() } : c))
+      );
+    }
+    setEditingId(null);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTitle(id);
+    } else if (e.key === 'Escape') {
+      setEditingId(null);
     }
   };
 
@@ -198,33 +236,69 @@ export function ConversationSidebar({
                   </h3>
                   <div className="space-y-1">
                     {convs.map(conv => (
-                      <button
+                      <div
                         key={conv.id}
-                        onClick={() => onSelectConversation(conv.id)}
+                        onClick={() => editingId !== conv.id && onSelectConversation(conv.id)}
                         className={cn(
-                          'w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors',
+                          'w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
                           'hover:bg-accent/50',
                           activeConversationId === conv.id && 'bg-accent'
                         )}
                       >
                         <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate text-foreground">
-                            {conv.title}
-                          </p>
+                          {editingId === conv.id ? (
+                            <Input
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, conv.id)}
+                              onBlur={() => saveTitle(conv.id)}
+                              className="h-6 text-sm py-0 px-1"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <p className="text-sm font-medium truncate text-foreground">
+                              {conv.title}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground truncate">
                             {format(new Date(conv.updated_at), 'HH:mm', { locale: ro })}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => deleteConversation(conv.id, e)}
-                        >
-                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                        </Button>
-                      </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {editingId === conv.id ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                saveTitle(conv.id);
+                              }}
+                            >
+                              <Check className="h-3 w-3 text-green-500" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => startEditing(conv, e)}
+                            >
+                              <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => deleteConversation(conv.id, e)}
+                          >
+                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
