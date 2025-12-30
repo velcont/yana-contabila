@@ -25,6 +25,144 @@ interface RouteDecision {
   reason: string;
 }
 
+// =============================================================================
+// MEMORIE CROSS-CONVERSAȚII - Funcții noi
+// =============================================================================
+
+// Extrage CUI din numele fișierului balanță (format: DENUMIRE_CUI.xls)
+function extractCUIFromFileName(fileName: string): string | null {
+  if (!fileName) return null;
+  // Pattern: 8 cifre înainte de .xls sau .xlsx
+  const cuiMatch = fileName.match(/(\d{6,8})\.xls/i);
+  return cuiMatch ? cuiMatch[1] : null;
+}
+
+// Găsește company_id pe baza CUI sau nume
+async function findCompanyByContext(
+  supabase: any,
+  userId: string,
+  companyName?: string,
+  cui?: string
+): Promise<{ companyId: string | null; matchedName: string | null }> {
+  // Prioritate 1: Match pe CUI (cel mai precis)
+  if (cui) {
+    const { data: cuiMatch } = await supabase
+      .from('companies')
+      .select('id, company_name')
+      .or(`managed_by_accountant_id.eq.${userId},user_id.eq.${userId}`)
+      .eq('cui', cui)
+      .limit(1)
+      .single();
+    
+    if (cuiMatch) {
+      console.log(`[AI-Router] Company found by CUI ${cui}: ${cuiMatch.company_name}`);
+      return { companyId: cuiMatch.id, matchedName: cuiMatch.company_name };
+    }
+  }
+  
+  // Prioritate 2: Match fuzzy pe nume (dacă avem companyName)
+  if (companyName && companyName.length > 3) {
+    const { data: nameMatches } = await supabase
+      .from('companies')
+      .select('id, company_name')
+      .or(`managed_by_accountant_id.eq.${userId},user_id.eq.${userId}`)
+      .ilike('company_name', `%${companyName}%`)
+      .limit(1);
+    
+    if (nameMatches && nameMatches.length > 0) {
+      console.log(`[AI-Router] Company found by name "${companyName}": ${nameMatches[0].company_name}`);
+      return { companyId: nameMatches[0].id, matchedName: nameMatches[0].company_name };
+    }
+  }
+  
+  console.log(`[AI-Router] No company found for CUI=${cui}, name=${companyName}`);
+  return { companyId: null, matchedName: null };
+}
+
+// Caută conversații similare pentru această firmă
+async function findSimilarConversations(
+  supabase: any,
+  userId: string,
+  companyId: string | null,
+  question: string,
+  limit: number = 3
+): Promise<Array<{ question: string; answer: string; created_at: string }>> {
+  if (!companyId || !question || question.length < 10) {
+    return [];
+  }
+  
+  // Extrag keywords (filtrăm stop words românești)
+  const stopWords = ['care', 'este', 'sunt', 'pentru', 'acest', 'aceasta', 'unde', 'când', 'cât', 'cum', 'ce', 'de', 'la', 'în', 'pe', 'cu', 'și', 'sau', 'dar', 'daca', 'dacă'];
+  const keywords = question
+    .toLowerCase()
+    .replace(/[^\w\săîâșț]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !stopWords.includes(w))
+    .slice(0, 5); // Max 5 keywords
+  
+  if (keywords.length === 0) {
+    return [];
+  }
+  
+  console.log(`[AI-Router] Searching similar conversations for company ${companyId} with keywords: ${keywords.join(', ')}`);
+  
+  try {
+    // Apelez funcția PostgreSQL
+    const { data, error } = await supabase.rpc('find_similar_conversations', {
+      p_company_id: companyId,
+      p_question_keywords: keywords,
+      p_limit: limit
+    });
+    
+    if (error) {
+      console.error('[AI-Router] Error finding similar conversations:', error);
+      return [];
+    }
+    
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.log('[AI-Router] No similar conversations found');
+      return [];
+    }
+    
+    console.log(`[AI-Router] Found ${data.length} similar conversations`);
+    return data.map((conv: any) => ({
+      question: conv.question,
+      answer: conv.answer,
+      created_at: conv.created_at
+    }));
+  } catch (err) {
+    console.error('[AI-Router] Exception finding similar conversations:', err);
+    return [];
+  }
+}
+
+// Construiește context din conversații similare
+function buildMemoryContext(conversations: Array<{ question: string; answer: string }>): string | null {
+  if (!conversations || conversations.length === 0) {
+    return null;
+  }
+  
+  const contextLines = conversations.map((conv, i) => {
+    const shortQuestion = conv.question.length > 100 ? conv.question.substring(0, 100) + '...' : conv.question;
+    const shortAnswer = conv.answer.length > 300 ? conv.answer.substring(0, 300) + '...' : conv.answer;
+    return `${i + 1}. Întrebare anterioară: "${shortQuestion}"\n   Răspuns util: "${shortAnswer}"`;
+  }).join('\n\n');
+  
+  return `📚 CONTEXT DIN CONVERSAȚII ANTERIOARE CU ACEASTĂ FIRMĂ:
+
+${contextLines}
+
+⚠️ Folosește aceste informații pentru a personaliza răspunsul și a menține continuitatea, dar bazează-te pe datele actuale dacă sunt disponibile.
+
+---
+
+`;
+}
+
+// =============================================================================
+// ROUTING LOGIC (original)
+// =============================================================================
+
 function detectDocumentType(fileName: string): string {
   const extension = fileName.toLowerCase().split('.').pop();
   
@@ -78,7 +216,6 @@ function detectIntent(message: string): RouteDecision {
     lowerMessage.includes('battle plan') ||
     lowerMessage.includes('simulare') ||
     lowerMessage.includes('scenariu') ||
-    // Optimization & cost-related questions
     lowerMessage.includes('costuri') ||
     lowerMessage.includes('cost') ||
     lowerMessage.includes('optimiz') ||
@@ -144,7 +281,43 @@ serve(async (req) => {
     }
 
     const requestData: RouterRequest = await req.json();
-    const { message, conversationId, fileData, balanceData, companyName } = requestData;
+    const { message, conversationId, fileData, companyName } = requestData;
+
+    // =============================================================================
+    // MEMORIE: Detectez firma și caut conversații similare
+    // =============================================================================
+    let detectedCompanyId: string | null = null;
+    let detectedCompanyName: string | null = companyName || null;
+    let memoryContext: string | null = null;
+    
+    // Dacă avem fileData (balanță încărcată), extrag CUI și caut firma
+    if (fileData && fileData.fileName) {
+      const extractedCUI = extractCUIFromFileName(fileData.fileName);
+      const companyResult = await findCompanyByContext(
+        supabase, 
+        user.id, 
+        companyName || undefined, 
+        extractedCUI || undefined
+      );
+      detectedCompanyId = companyResult.companyId;
+      detectedCompanyName = companyResult.matchedName || companyName || null;
+    }
+    
+    // Caut conversații similare doar dacă am identificat firma
+    if (detectedCompanyId && message) {
+      const similarConversations = await findSimilarConversations(
+        supabase,
+        user.id,
+        detectedCompanyId,
+        message,
+        3
+      );
+      memoryContext = buildMemoryContext(similarConversations);
+      
+      if (memoryContext) {
+        console.log(`[AI-Router] Memory context built from ${similarConversations.length} conversations`);
+      }
+    }
 
     let routeDecision: RouteDecision;
     let response: Response;
@@ -154,18 +327,17 @@ serve(async (req) => {
       const docType = detectDocumentType(fileData.fileName);
       
       if (docType === 'balance_excel') {
-        // Route to analyze-balance - it expects excelBase64
         routeDecision = {
           route: 'analyze-balance',
           payload: {
             excelBase64: fileData.fileContent,
-            companyName: companyName || undefined,
-            fileName: fileData.fileName
+            companyName: detectedCompanyName || undefined,
+            fileName: fileData.fileName,
+            memoryContext // Adaug contextul de memorie
           },
           reason: 'Excel balance sheet uploaded'
         };
       } else if (docType === 'pdf' || docType === 'docx') {
-        // For business documents, use strategic-advisor
         routeDecision = {
           route: 'strategic-advisor',
           payload: {
@@ -173,15 +345,16 @@ serve(async (req) => {
             documentContent: fileData.fileContent,
             documentName: fileData.fileName,
             conversationId: conversationId,
+            memoryContext // Adaug contextul de memorie
           },
           reason: 'Business document uploaded for strategic analysis'
         };
       } else {
-        // For other documents, use chat-ai with context
         routeDecision = {
           route: 'chat-ai',
           payload: {
             message: `Am primit un document: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
+            memoryContext // Adaug contextul de memorie
           },
           reason: 'Non-balance document uploaded'
         };
@@ -189,6 +362,8 @@ serve(async (req) => {
     } else {
       // No file, detect intent from message
       routeDecision = detectIntent(message);
+      // Adaug memoryContext la payload
+      routeDecision.payload.memoryContext = memoryContext;
     }
 
     // Add conversationId for routes that require it
@@ -196,7 +371,7 @@ serve(async (req) => {
       routeDecision.payload.conversationId = conversationId;
     }
 
-    console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}`);
+    console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}${memoryContext ? ' (with memory context)' : ''}`);
 
     // Call the appropriate edge function
     const targetUrl = `${supabaseUrl}/functions/v1/${routeDecision.route}`;
@@ -220,7 +395,6 @@ serve(async (req) => {
     let result: Record<string, unknown>;
 
     if (contentType.includes('text/event-stream') || routeDecision.route === 'chat-ai') {
-      // Parse SSE stream - accumulate content from data: lines
       const text = await response.text();
       const lines = text.split('\n');
       let accumulatedContent = '';
@@ -235,7 +409,7 @@ serve(async (req) => {
               accumulatedContent += data.response;
             }
           } catch {
-            // Skip unparseable lines (could be partial JSON or [DONE])
+            // Skip unparseable lines
           }
         }
       }
@@ -243,17 +417,41 @@ serve(async (req) => {
       result = { response: accumulatedContent || text };
       console.log('AI Router: Parsed SSE stream, content length:', accumulatedContent.length);
     } else {
-      // Regular JSON response
       result = await response.json();
     }
 
-    // Save routing decision to conversation
+    // Save routing decision to yana_messages
     await supabase.from('yana_messages').insert({
       conversation_id: conversationId,
       role: 'assistant',
       content: (result.response as string) || (result.analysis as string) || (result.message as string) || 'Răspuns primit.',
       artifacts: result.artifacts || [],
     });
+
+    // =============================================================================
+    // MEMORIE: Salvez conversația în ai_conversations pentru memorie viitoare
+    // =============================================================================
+    const assistantMessage = (result.response as string) || (result.analysis as string) || '';
+    if (message && assistantMessage && assistantMessage.length > 20) {
+      try {
+        await supabase.from('ai_conversations').insert({
+          user_id: user.id,
+          company_id: detectedCompanyId, // Poate fi NULL - safeguard #1
+          question: message.substring(0, 2000),
+          answer: assistantMessage.substring(0, 5000),
+          context: {
+            route: routeDecision.route,
+            companyName: detectedCompanyName, // Backup în metadata - safeguard #8
+            conversationId: conversationId
+          },
+          was_helpful: null // Va fi setat de feedback utilizator
+        });
+        console.log(`[AI-Router] Saved conversation to ai_conversations for memory${detectedCompanyId ? ` (company: ${detectedCompanyId})` : ''}`);
+      } catch (saveError) {
+        console.error('[AI-Router] Failed to save conversation for memory:', saveError);
+        // Nu aruncăm eroare - memoria e opțională
+      }
+    }
 
     return new Response(
       JSON.stringify({
@@ -262,7 +460,8 @@ serve(async (req) => {
         reason: routeDecision.reason,
         structuredData: result.structuredData || null,
         grokValidation: result.grokValidation || null,
-        companyName: (result.structuredData as Record<string, unknown>)?.company || result.companyName || null,
+        companyName: (result.structuredData as Record<string, unknown>)?.company || result.companyName || detectedCompanyName || null,
+        hasMemoryContext: !!memoryContext,
         ...result,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

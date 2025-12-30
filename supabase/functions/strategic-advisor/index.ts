@@ -966,7 +966,9 @@ serve(async (req) => {
         newValue: z.number(),
         unit: z.string()
       })).optional(),
-      scenario_name: z.string().optional()  // ← SCENARIU PREDEFINIT WAR ROOM
+      scenario_name: z.string().optional(),  // ← SCENARIU PREDEFINIT WAR ROOM
+      // 🆕 MEMORIE: Context din conversații anterioare cu firma
+      memoryContext: z.string().max(5000).optional().nullable()
     });
 
     // ✅ PARSE AND VALIDATE WITH ZOD
@@ -998,14 +1000,16 @@ serve(async (req) => {
       financialData,
       simulation_mode,      // ← WAR ROOM SIMULATOR
       simulation_changes,   // ← MODIFICĂRI UTILIZATOR
-      scenario_name         // ← NUME SCENARIU PREDEFINIT
+      scenario_name,        // ← NUME SCENARIU PREDEFINIT
+      memoryContext         // 🆕 MEMORIE: Context din conversații anterioare
     } = requestBody as any;
 
     console.log("[STRATEGIC-ADVISOR] Request data:", { 
       hasIndustry: !!industryType, 
       hasFinancialData: !!financialData,
       isSimulation: simulation_mode === true,
-      simulationChangesCount: simulation_changes?.length || 0
+      simulationChangesCount: simulation_changes?.length || 0,
+      hasMemoryContext: !!memoryContext
     });
 
     // ============================================================================
