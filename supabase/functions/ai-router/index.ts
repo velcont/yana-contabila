@@ -146,6 +146,7 @@ serve(async (req) => {
             message: message || `Analizează documentul: ${fileData.fileName}`,
             documentContent: fileData.fileContent,
             documentName: fileData.fileName,
+            conversationId: conversationId,
           },
           reason: 'Business document uploaded for strategic analysis'
         };
@@ -162,6 +163,11 @@ serve(async (req) => {
     } else {
       // No file, detect intent from message
       routeDecision = detectIntent(message);
+    }
+
+    // Add conversationId for routes that require it
+    if (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'fiscal-chat') {
+      routeDecision.payload.conversationId = conversationId;
     }
 
     console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}`);
