@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw, Brain } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -28,6 +28,7 @@ const AdminRevenueMonitor = lazy(() => import("@/components/AdminRevenueMonitor"
 const TestCheckout = lazy(() => import("@/components/TestCheckout").then(m => ({ default: m.TestCheckout })));
 const TextHumanizer = lazy(() => import("@/components/TextHumanizer").then(m => ({ default: m.TextHumanizer })));
 const AdminSubscriptionSync = lazy(() => import("@/components/AdminSubscriptionSync").then(m => ({ default: m.AdminSubscriptionSync })));
+const MemoryDashboard = lazy(() => import("@/components/admin/MemoryDashboard").then(m => ({ default: m.MemoryDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -349,6 +350,10 @@ const Admin = () => {
               <TabsTrigger value="sync">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Sync Stripe
+              </TabsTrigger>
+              <TabsTrigger value="memory">
+                <Brain className="h-4 w-4 mr-2" />
+                🧠 Memorie AI
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -781,6 +786,12 @@ const Admin = () => {
           <TabsContent value="sync">
             <Suspense fallback={<TabContentLoader />}>
               <AdminSubscriptionSync />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="memory">
+            <Suspense fallback={<TabContentLoader />}>
+              <MemoryDashboard />
             </Suspense>
           </TabsContent>
         </Tabs>
