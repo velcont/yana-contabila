@@ -438,21 +438,33 @@ serve(async (req) => {
     // MEMORIE: Salvez conversația în ai_conversations pentru memorie viitoare
     // =============================================================================
     const assistantMessage = (result.response as string) || (result.analysis as string) || '';
+    let savedAiConversationId: string | null = null;
+    
     if (message && assistantMessage && assistantMessage.length > 20) {
       try {
-        await supabase.from('ai_conversations').insert({
-          user_id: user.id,
-          company_id: detectedCompanyId, // Poate fi NULL - safeguard #1
-          question: message.substring(0, 2000),
-          answer: assistantMessage.substring(0, 5000),
-          context: {
-            route: routeDecision.route,
-            companyName: detectedCompanyName, // Backup în metadata - safeguard #8
-            conversationId: conversationId
-          },
-          was_helpful: null // Va fi setat de feedback utilizator
-        });
-        console.log(`[AI-Router] Saved conversation to ai_conversations for memory${detectedCompanyId ? ` (company: ${detectedCompanyId})` : ''}`);
+        const { data: savedConv, error: saveError } = await supabase
+          .from('ai_conversations')
+          .insert({
+            user_id: user.id,
+            company_id: detectedCompanyId, // Poate fi NULL - safeguard #1
+            question: message.substring(0, 2000),
+            answer: assistantMessage.substring(0, 5000),
+            context: {
+              route: routeDecision.route,
+              companyName: detectedCompanyName, // Backup în metadata - safeguard #8
+              conversationId: conversationId
+            },
+            was_helpful: null // Va fi setat de feedback utilizator
+          })
+          .select('id')
+          .single();
+        
+        if (saveError) {
+          console.error('[AI-Router] Failed to save conversation for memory:', saveError);
+        } else {
+          savedAiConversationId = savedConv?.id || null;
+          console.log(`[AI-Router] Saved conversation to ai_conversations (id: ${savedAiConversationId})${detectedCompanyId ? ` for company: ${detectedCompanyId}` : ''}`);
+        }
       } catch (saveError) {
         console.error('[AI-Router] Failed to save conversation for memory:', saveError);
         // Nu aruncăm eroare - memoria e opțională
@@ -468,6 +480,7 @@ serve(async (req) => {
         grokValidation: result.grokValidation || null,
         companyName: (result.structuredData as Record<string, unknown>)?.company || result.companyName || detectedCompanyName || null,
         hasMemoryContext: !!memoryContext,
+        aiConversationId: savedAiConversationId, // NOU: pentru feedback din UI
         ...result,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

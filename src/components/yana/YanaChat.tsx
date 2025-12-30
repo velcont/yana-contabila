@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Loader2, Paperclip, Search, Lightbulb } from 'lucide-react';
+import { Send, Loader2, Paperclip, Search, Lightbulb, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DocumentUploader } from './DocumentUploader';
@@ -22,6 +23,7 @@ interface Message {
   created_at: string;
   route?: string;
   sources?: string[];
+  aiConversationId?: string; // ID din ai_conversations pentru feedback
 }
 
 interface Artifact {
@@ -45,6 +47,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   const [showUploader, setShowUploader] = useState(false);
   const [activeContext, setActiveContext] = useState<{ companyName?: string; balanceId?: string } | null>(null);
   const [userName, setUserName] = useState<string>('');
+  const [feedbackGiven, setFeedbackGiven] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -209,6 +212,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         created_at: new Date().toISOString(),
         route: response.route,
         sources: response.citations || response.sources,
+        aiConversationId: response.aiConversationId || null, // Pentru feedback
       };
       setMessages(prev => [...prev, assistantMessage]);
 
@@ -248,6 +252,28 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       fileContent: content,
       fileType: file.type,
     });
+  };
+
+  const handleFeedback = async (messageId: string, wasHelpful: boolean) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message?.aiConversationId) {
+      console.warn('[YanaChat] No aiConversationId for feedback');
+      toast.error('Nu s-a putut salva feedback-ul');
+      return;
+    }
+    
+    const success = await saveFeedback(
+      message.aiConversationId,
+      wasHelpful,
+      wasHelpful ? 5 : 1
+    );
+    
+    if (success) {
+      setFeedbackGiven(prev => ({ ...prev, [messageId]: true }));
+      toast.success(wasHelpful ? 'Mulțumim pentru feedback pozitiv!' : 'Feedback înregistrat. Vom îmbunătăți răspunsurile!');
+    } else {
+      toast.error('Nu s-a putut salva feedback-ul');
+    }
   };
 
   const getWelcomeMessage = () => {
@@ -339,6 +365,32 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                   {message.artifacts.map((artifact, index) => (
                     <ArtifactRenderer key={index} artifact={artifact} />
                   ))}
+                </div>
+              )}
+
+              {/* Feedback buttons for assistant messages */}
+              {message.role === 'assistant' && message.aiConversationId && !feedbackGiven[message.id] && (
+                <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/30">
+                  <span className="text-xs text-muted-foreground mr-2">Util?</span>
+                  <button
+                    onClick={() => handleFeedback(message.id, true)}
+                    className="p-1.5 hover:bg-green-500/20 rounded-md transition-colors"
+                    title="Răspuns util"
+                  >
+                    <ThumbsUp className="h-3.5 w-3.5 text-muted-foreground hover:text-green-500" />
+                  </button>
+                  <button
+                    onClick={() => handleFeedback(message.id, false)}
+                    className="p-1.5 hover:bg-red-500/20 rounded-md transition-colors"
+                    title="Răspuns nu a fost util"
+                  >
+                    <ThumbsDown className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500" />
+                  </button>
+                </div>
+              )}
+              {message.role === 'assistant' && feedbackGiven[message.id] && (
+                <div className="flex items-center gap-1 mt-3 pt-2 text-xs text-muted-foreground border-t border-border/30">
+                  ✓ Mulțumim pentru feedback!
                 </div>
               )}
             </div>
