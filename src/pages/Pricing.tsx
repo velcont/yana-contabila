@@ -11,7 +11,9 @@ import {
   FileText,
   Target,
   TrendingUp,
-  MessageSquare
+  MessageSquare,
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 
 const Pricing = () => {
@@ -27,7 +29,7 @@ const Pricing = () => {
           </Button>
           <Badge className="mb-4" variant="secondary">
             <Sparkles className="h-3 w-3 mr-1" />
-            Un singur plan. Totul inclus.
+            49 RON/lună + 20 credite AI incluse
           </Badge>
           <h1 className="text-4xl md:text-5xl font-bold">Yana Strategic</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -52,7 +54,7 @@ const Pricing = () => {
                 <span className="text-muted-foreground">/lună</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                + TVA
+                + TVA • Include 20 credite AI (~40 sesiuni strategice)
               </p>
             </div>
           </CardHeader>
@@ -90,13 +92,13 @@ const Pricing = () => {
                 </div>
               </div>
               
-              <div className="flex items-start gap-4 p-4 bg-background/50 rounded-lg">
+                <div className="flex items-start gap-4 p-4 bg-background/50 rounded-lg">
                 <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
                   <MessageSquare className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h4 className="font-semibold mb-1">Discuții cu AI</h4>
-                  <p className="text-sm text-muted-foreground">Discută rezultatele direct cu motorul AI pentru clarificări</p>
+                  <h4 className="font-semibold mb-1">20 Credite AI Incluse</h4>
+                  <p className="text-sm text-muted-foreground">~40 sesiuni strategice lunar. Pachete suplimentare de la 19 RON.</p>
                 </div>
               </div>
             </div>
@@ -165,6 +167,43 @@ const Pricing = () => {
           </CardContent>
         </Card>
 
+        {/* AI Credits Info */}
+        <Card className="border-2 border-dashed border-primary/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-6 w-6 text-primary" />
+              <CardTitle>Credite AI Suplimentare</CardTitle>
+            </div>
+            <CardDescription>
+              Depășești cele 20 credite incluse? Poți cumpăra pachete suplimentare oricând.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-semibold">Starter</p>
+                <p className="text-2xl font-bold text-primary">19 RON</p>
+                <p className="text-xs text-muted-foreground">~38 sesiuni extra</p>
+              </div>
+              <div className="p-4 bg-primary/10 rounded-lg text-center border-2 border-primary">
+                <Badge className="mb-1">Popular</Badge>
+                <p className="font-semibold">Professional</p>
+                <p className="text-2xl font-bold text-primary">49 RON</p>
+                <p className="text-xs text-muted-foreground">~100 sesiuni extra</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-semibold">Enterprise</p>
+                <p className="text-2xl font-bold text-primary">129 RON</p>
+                <p className="text-xs text-muted-foreground">~260 sesiuni extra</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              <AlertTriangle className="inline h-3 w-3 mr-1" />
+              Creditele nu expiră. Poți vedea consumul în timp real din Setări.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Transparency & Legal */}
         <Card>
           <CardHeader>
@@ -177,11 +216,11 @@ const Pricing = () => {
             <ul className="space-y-2 text-sm">
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-success mt-0.5" />
-                <span><strong>Transparență totală:</strong> Un singur preț, toate funcționalitățile incluse</span>
+                <span><strong>Model hybrid clar:</strong> 49 RON/lună + 20 credite AI incluse. Pachete suplimentare doar dacă ai nevoie.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-success mt-0.5" />
-                <span><strong>Fără costuri ascunse:</strong> 49 RON/lună + TVA include totul</span>
+                <span><strong>Fără surprize:</strong> Vezi consumul în timp real. Alerte la 5 RON rămași.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-success mt-0.5" />

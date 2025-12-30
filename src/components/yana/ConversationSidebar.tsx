@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, MessageSquare, Trash2, X } from 'lucide-react';
+import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
 import { ro } from 'date-fns/locale';
+import { Link } from 'react-router-dom';
 
 interface Conversation {
   id: string;
@@ -232,6 +233,22 @@ export function ConversationSidebar({
           </div>
         )}
       </ScrollArea>
+
+      {/* Footer with quick links */}
+      <div className="p-3 border-t border-border space-y-1">
+        <Link to="/settings" className="w-full">
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
+            <Settings className="h-4 w-4" />
+            Setări & Credite
+          </Button>
+        </Link>
+        <Link to="/pricing" className="w-full">
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
+            <CreditCard className="h-4 w-4" />
+            Prețuri
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

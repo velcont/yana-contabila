@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
-import { Loader2, Menu, X } from 'lucide-react';
+import { Navigate, Link } from 'react-router-dom';
+import { Loader2, Menu, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
@@ -79,14 +79,21 @@ export default function Yana() {
             </div>
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden lg:flex"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? 'Ascunde istoric' : 'Afișează istoric'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden lg:flex"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? 'Ascunde istoric' : 'Afișează istoric'}
+            </Button>
+            <Link to="/settings">
+              <Button variant="ghost" size="icon" title="Setări cont">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </header>
 
         {/* Chat Component */}

@@ -49,31 +49,22 @@
 - ✅ **Suport prioritar** - răspuns rapid la office@velcont.com
 - ✅ **Gestionare companii multiple** - pentru antreprenori cu mai multe firme
 - ✅ **Istoric complet** - toate analizele salvate
-- ✅ **Validare Consiliu AI** - Fiecare balanță analizată este validată automat de un consiliu de 3 AI-uri independente:
-  - **Lovable AI (Google Gemini 2.5 Flash)** - Contabil Expert Român cu 20 ani experiență
-  - **Perplexity AI (Llama 3.1 Sonar)** - Auditor Financiar specializat în detectarea anomaliilor
-  - **OpenAI (GPT-4o-mini)** - CFO Strategic pentru evaluare strategică
-  
-  Sistemul de consens votează pe 10 indicatori financiari și oferă:
-  - ✓ Verificare cross-validate independentă
-  - ✓ Detecție automată anomalii și inconsistențe
-  - ✓ Recomandări strategice consolidate
-  - ✓ Alertă când AI-urile sunt în dezacord pe anumite indicatori
+- ✅ **Validare Consiliu AI** - Fiecare balanță analizată este validată automat de un consiliu de 3 AI-uri independente
 
-### ❌ CE NU ESTE INCLUS (OBLIGATORIU să cumperi credite AI):
+#### 🎁 20 Credite AI Incluse Lunar:
+- ✅ **20 RON credite AI incluse** în fiecare lună (~40 sesiuni strategice)
+- ✅ Creditele acoperă: Yana Strategică, War Room, Battle Plan, Predicții AI avansate
+- ✅ Sesiunile neutilizate NU se acumulează luna următoare
+- ✅ Dacă depășești 20 credite, poți cumpăra pachete suplimentare (de la 19 RON)
 
-**IMPORTANT LEGAL:** Următoarele funcționalități NU sunt incluse în abonamentul de 49 RON/lună și necesită OBLIGATORIU achiziționarea de credite AI separate:
+### ⚠️ CE NECESITĂ CREDITE AI (din cele 20 incluse sau suplimentare):
 
-- ❌ **Consilier Strategic Yana** (/strategic-advisor) - conversații strategice avansate AI
-- ❌ **Analiză Vocală extinsă** - peste 10 minute/lună de interacțiune vocală
-- ❌ **Predicții financiare AI intensive** - peste 5 predicții/lună
-
-### 🎁 Credite de Start:
-- Primești **10 RON credite AI** la începutul abonamentului pentru a testa Yana Strategică
-- După consumarea celor 10 RON, trebuie să achiziționezi pachete de credite AI (de la 19 lei)
-
-### Important de știut:
-**NU există acces nelimitat la Yana Strategică, indiferent de tipul de abonament!**
+**Funcționalități care consumă credite AI:**
+- 📊 **Consilier Strategic Yana** (/strategic-advisor) - ~0.50 RON/sesiune
+- 🎯 **War Room Simulator** - scenarii strategice interactive
+- 📋 **Battle Plan Export** - planuri de acțiune detaliate
+- 🔮 **Predicții financiare AI avansate** - peste 5 predicții/lună
+- 🎤 **Analiză Vocală extinsă** - peste 10 minute/lună
 
 ---
 
@@ -160,11 +151,11 @@
 
 ### Cum funcționează creditele AI:
 
-1. **Primești 10 RON credite** la începutul abonamentului pentru testare
-2. **Funcții gratuite CFO Dashboard** nu consumă credite (cash disponibil, grafice istoric, alerte)
-3. **Funcții AI Premium** consumă credite (predicții, scenarii, întrebări CFO)
-4. **Chat Strategist** consumă întotdeauna credite pentru conversații complexe
-5. După consumarea celor 10 RON, trebuie să cumperi pachete de credite pentru a folosi funcțiile AI Premium
+1. **Primești 20 RON credite lunar** incluse în abonamentul de 49 RON/lună
+2. **Funcții gratuite** (analiză balanță, chat AI, dashboard) nu consumă credite
+3. **Funcții AI Premium** (Yana Strategică, War Room, Battle Plan) consumă credite
+4. Dacă depășești 20 RON, trebuie să cumperi pachete de credite suplimentare
+5. Creditele suplimentare cumpărate NU expiră
 
 ### Control Total asupra Costurilor:
 - ✅ Tu setezi bugetul lunar pentru AI
@@ -288,22 +279,19 @@ Această politică de tarife respectă:
 Când utilizatorii întreabă despre tarife, folosește aceste template-uri:
 
 ### "Cât costă?"
-→ "Plan Antreprenor: 49 lei/lună pentru analiza balanței (nelimitată). Yana Strategică necesită credite AI separate (19-129 lei/lună, în funcție de utilizare). Primești 10 RON credite pentru testare!"
+→ "Plan Antreprenor: 49 lei/lună cu 20 credite AI incluse (~40 sesiuni strategice). Dacă depășești, pachete suplimentare de la 19 lei."
 
 ### "Ce credite AI?"
-→ "Credite AI sunt pentru funcțiile AI PREMIUM: predicții avansate, scenarii What-If, chat strategic. CFO Dashboard are funcții GRATUITE (cash, grafice, alerte) + funcții AI PREMIUM. Primești 10 RON pentru testare, apoi pachete: 19 lei (Starter), 49 lei (Professional), 129 lei (Enterprise)."
+→ "Creditele AI sunt pentru funcțiile premium: Yana Strategică, War Room, Battle Plan, predicții avansate. Primești 20 RON incluse lunar în abonament. Pachete suplimentare: 19 lei (Starter), 49 lei (Professional), 129 lei (Enterprise)."
 
-### "Include CFO Dashboard gratuit?"
-→ "DA, parțial! CFO Dashboard afișează GRATUIT: cash disponibil, grafice istorice, alerte simple. Pentru AI PREMIUM (predicții 90 zile, scenarii What-If, întrebări CFO) ai nevoie de credite AI (0.15-0.85 lei/funcție)."
-
-### "Include Chat Strategic?"
-→ "Chat Strategic consumă ÎNTOTDEAUNA credite AI (0.65-0.85 lei/conversație) pentru conversații strategice complexe. Primești 10 RON pentru testare, apoi cumperi pachete de la 19 lei."
+### "Include Yana Strategică?"
+→ "DA! Abonamentul de 49 lei/lună include 20 credite AI lunar, suficiente pentru ~40 sesiuni cu Yana Strategică. Dacă ai nevoie de mai mult, poți cumpăra pachete suplimentare."
 
 ### "Plan Contabil?"
-→ "199 lei/lună pentru clienți NELIMITAȚI + CRM complet. Yana Strategică necesită tot credite AI separate (nu e inclusă)."
+→ "199 lei/lună pentru clienți NELIMITAȚI + CRM complet. Include și 20 credite AI lunar pentru funcții premium."
 
 ### "Trial gratuit?"
-→ "30 zile gratuite, fără card bancar, FĂRĂ reînnoire automată. Primești 10 RON credite AI pentru a testa Yana Strategică. După trial: 49 lei/lună (Antreprenor) sau 199 lei/lună (Contabil)."
+→ "30 zile gratuite, fără card bancar, FĂRĂ reînnoire automată. Primești 10 RON credite AI pentru a testa Yana Strategică. După trial: 49 lei/lună (Antreprenor) sau 199 lei/lună (Contabil), ambele cu 20 credite AI incluse."
 
 ---
 
