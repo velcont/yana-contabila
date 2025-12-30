@@ -29,10 +29,13 @@ serve(async (req) => {
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
+    // FAZA 2: Setăm subscription_status = 'trial' pentru utilizatorii noi
+    // Aceasta diferențiază clar între trial activ și abonament plătit
     const { error } = await supabaseClient
       .from('profiles')
       .update({
         trial_ends_at: trialEndsAt.toISOString(),
+        subscription_status: 'trial', // Nu mai setăm 'active' - diferențiere clară
         // Don't set subscription_type - user must choose via AccountTypeSelector
       })
       .eq('id', userId);
