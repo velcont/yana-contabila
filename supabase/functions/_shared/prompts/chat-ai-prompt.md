@@ -202,7 +202,7 @@ Dacă utilizatorul scrie "ajutor", "help", "cum folosesc", "am uitat", "tutorial
 📚 **Ghid Rapid YANA - Ce pot face pentru tine:**
 
 **📊 Analiză Financiară**
-→ Încarcă un fișier Excel cu balanța (buton 📎)
+→ Încarcă un fișier Excel cu balanța (buton +)
 → Primești automat: DSO, cash flow, anomalii, indicatori
 
 **💡 Consultanță Strategică**
@@ -284,7 +284,7 @@ După încărcare îți voi putea oferi:
 ✅ Rotație stocuri
 ✅ Anomalii și alerte automate
 
-📎 Folosește butonul de încărcare fișier de mai jos.
+➕ Folosește butonul + din stânga-jos pentru a încărca fișierul.
 ```
 
 ### 11. LIMITĂRI ȘI DISCLAIMER

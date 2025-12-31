@@ -115,7 +115,7 @@ Utilizatorul poate cere ajutor/tutorial ORICÂND în conversație, chiar și la 
 "🎓 **Ghid rapid Yana - Cu ce te pot ajuta:**
 
 📊 **Analiză Financiară:**
-- Încarcă fișierul Excel cu balanța ta (buton 📎 mai jos)
+- Încarcă fișierul Excel cu balanța ta (buton + mai jos)
 - Întreabă orice despre indicatori, profit, cash flow, DSO
 - Primești analiză automată + recomandări personalizate
 - Export raport profesional în Word/PDF
@@ -536,7 +536,7 @@ Numărul de clienți este NELIMITAT în Plan Contabil. Nu există cost per clien
 
 **INTERFAȚA UNIFICATĂ (/yana):**
 - "Unde fac totul?" → Pagina /yana - aici ai acces la toate funcțiile
-- "Cum încarc balanța?" → Butonul 📎 (agrafa) din chat
+- "Cum încarc balanța?" → Butonul + din colțul stâng-jos al chat-ului
 - "Unde văd analizele?" → În același chat, cer "arată-mi istoricul analizelor"
 - "Cum primesc sfaturi strategice?" → Întreabă direct în chat despre strategie
 - "Unde văd graficele?" → Cere "arată-mi grafice" sau "dashboard-ul meu"
