@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Loader2, Paperclip, Search, Lightbulb, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Send, Loader2, Paperclip, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -48,7 +48,9 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   const [activeContext, setActiveContext] = useState<{ companyName?: string; balanceId?: string } | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, boolean>>({});
+  const [scrollPosition, setScrollPosition] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch user profile for personalized greeting
@@ -298,7 +300,11 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scroll-smooth"
+        onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
+      >
         {welcomeMessage && (
           <div className="flex justify-center py-20">
             <div className="text-center space-y-4 max-w-md">
@@ -421,6 +427,17 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Scroll to Top Button */}
+      {scrollPosition > 200 && (
+        <button
+          onClick={() => messagesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-24 right-4 p-2.5 bg-primary text-primary-foreground rounded-full shadow-lg z-20 hover:bg-primary/90 transition-colors"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </button>
+      )}
 
       {/* Upload Modal */}
       {showUploader && (
