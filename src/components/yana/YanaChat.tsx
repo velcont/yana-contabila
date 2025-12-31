@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Loader2, Paperclip, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp } from 'lucide-react';
+import { Send, Loader2, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DocumentUploader } from './DocumentUploader';
 import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
-import { MiniCreditsIndicator } from './MiniCreditsIndicator';
 import { SourcesDisplay } from './SourcesDisplay';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -306,15 +305,52 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
         {welcomeMessage && (
-          <div className="flex justify-center py-20">
-            <div className="text-center space-y-4 max-w-md">
-              <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-2xl">Y</span>
+          <div className="flex justify-center py-10 sm:py-20">
+            <div className="text-center space-y-3 sm:space-y-4 max-w-md px-4">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xl sm:text-2xl">Y</span>
               </div>
-              <h2 className="text-xl font-medium text-foreground">{welcomeMessage}</h2>
+              <h2 className="text-lg sm:text-xl font-medium text-foreground">{welcomeMessage}</h2>
               <p className="text-muted-foreground text-sm">
-                Încarcă o balanță Excel pentru analiză sau pune-mi orice întrebare despre finanțele companiei tale.
+                Cu ce te pot ajuta azi?
               </p>
+              
+              {/* Quick Actions - pentru discoverability */}
+              <div className="flex flex-wrap justify-center gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation"
+                  onClick={() => setShowUploader(true)}
+                >
+                  <BarChart3 className="h-4 w-4 mr-1.5" />
+                  Analiză financiară
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation"
+                  onClick={() => {
+                    setInput('Dă-mi un sfat strategic pentru a crește profitul companiei mele');
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  <Lightbulb className="h-4 w-4 mr-1.5" />
+                  Sfat strategic
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation"
+                  onClick={() => {
+                    setInput('Am o întrebare despre TVA și deduceri fiscale');
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  <Scale className="h-4 w-4 mr-1.5" />
+                  Întrebare fiscală
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -428,11 +464,12 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Scroll to Top Button */}
+      {/* Scroll to Top Button - pozitionat cu safe-area pentru mobil */}
       {scrollPosition > 200 && (
         <button
           onClick={() => messagesContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-24 right-4 p-2.5 bg-primary text-primary-foreground rounded-full shadow-lg z-20 hover:bg-primary/90 transition-colors"
+          className="fixed right-4 p-2.5 bg-primary text-primary-foreground rounded-full shadow-lg z-20 hover:bg-primary/90 transition-colors touch-action-manipulation"
+          style={{ bottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
           aria-label="Scroll to top"
         >
           <ChevronUp className="h-5 w-5" />
@@ -447,18 +484,19 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         />
       )}
 
-      {/* Input Area */}
-      <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4 pb-safe">
+      {/* Input Area - stil ChatGPT simplificat */}
+      <div className="border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-safe">
         <div className="max-w-3xl mx-auto">
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="shrink-0 h-10 w-10"
+              className="shrink-0 h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation"
               onClick={() => setShowUploader(true)}
               disabled={isLoading}
+              title="Încarcă document"
             >
-              <Paperclip className="h-5 w-5" />
+              <Plus className="h-5 w-5" />
             </Button>
             
             <Textarea
@@ -466,25 +504,23 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Scrie un mesaj sau încarcă o balanță..."
-              className="min-h-[44px] max-h-32 resize-none bg-background border-border"
+              placeholder="Întreabă orice despre afacerea ta..."
+              className="min-h-[44px] max-h-32 resize-none bg-background border-border text-sm sm:text-base"
               disabled={isLoading}
             />
             
-            <div className="flex items-end gap-1">
-              <MiniCreditsIndicator />
-              <Button
-                size="icon"
-                className="shrink-0 h-10 w-10"
-                onClick={() => sendMessage(input)}
-                disabled={isLoading || !input.trim()}
-              >
-                <Send className="h-5 w-5" />
-              </Button>
-            </div>
+            <Button
+              size="icon"
+              className="shrink-0 h-11 w-11 sm:h-10 sm:w-10 rounded-full touch-action-manipulation"
+              onClick={() => sendMessage(input)}
+              disabled={isLoading || !input.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
           
-          <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+          {/* Footer ascuns pe mobil */}
+          <div className="hidden sm:flex items-center justify-center gap-2 mt-2 flex-wrap">
             <p className="text-xs text-muted-foreground">
               Yana poate face greșeli. Verifică informațiile importante.
             </p>
