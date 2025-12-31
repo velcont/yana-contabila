@@ -37,7 +37,7 @@ export default function Yana() {
   }
 
   return (
-    <div className="flex h-screen bg-background dark relative">
+    <div className="flex h-dvh min-h-screen bg-background dark relative">
       {/* Trial Expired Overlay */}
       {isTrialExpired && <TrialExpiredOverlay />}
       {/* Sidebar */}
