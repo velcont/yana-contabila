@@ -431,7 +431,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       )}
 
       {/* Input Area */}
-      <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4">
+      <div className="border-t border-border bg-card/50 backdrop-blur-sm p-4 pb-safe">
         <div className="max-w-3xl mx-auto">
           <div className="relative flex items-end gap-2">
             <Button
