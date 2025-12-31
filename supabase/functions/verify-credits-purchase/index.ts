@@ -97,10 +97,26 @@ serve(async (req) => {
       );
     }
 
-    // Get customer email
-    const customerEmail = session.customer_email || session.customer_details?.email;
+    // Get customer email - multiple fallback strategies
+    let customerEmail = session.customer_email || session.customer_details?.email;
+
+    // Fallback 1: Check metadata (set during checkout creation)
+    if (!customerEmail && session.metadata?.user_email) {
+      console.log("📧 Using email from session metadata");
+      customerEmail = session.metadata.user_email;
+    }
+
+    // Fallback 2: Fetch from Stripe customer object
+    if (!customerEmail && session.customer) {
+      console.log("📧 Fetching email from Stripe customer");
+      const customer = await stripe.customers.retrieve(session.customer as string);
+      if (customer && !customer.deleted && 'email' in customer) {
+        customerEmail = customer.email;
+      }
+    }
+
     if (!customerEmail) {
-      throw new Error("No customer email found");
+      throw new Error("No customer email found in session, metadata, or customer object");
     }
 
     // Find user by email
