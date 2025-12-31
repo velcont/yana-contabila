@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
 import { TrialExpiredOverlay } from '@/components/yana/TrialExpiredOverlay';
+import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -43,11 +44,12 @@ export default function Yana() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out',
+          'fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out',
           'bg-card border-r border-border',
-          'lg:relative lg:translate-x-0',
+          'lg:relative lg:translate-x-0 lg:w-72',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
+        style={{ width: isMobile ? 'clamp(240px, 85vw, 288px)' : undefined }}
       >
         <ConversationSidebar
           activeConversationId={activeConversationId}
@@ -67,14 +69,14 @@ export default function Yana() {
 
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
+        {/* Header - Reorganizat pentru mobil */}
+        <header className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-card/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden"
+              className="h-11 w-11 sm:h-10 sm:w-10 lg:hidden touch-action-manipulation"
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -82,11 +84,11 @@ export default function Yana() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">Y</span>
               </div>
-              <span className="font-semibold text-foreground">Yana</span>
+              <span className="font-semibold text-foreground hidden sm:inline">Yana</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -95,8 +97,9 @@ export default function Yana() {
             >
               {sidebarOpen ? 'Ascunde istoric' : 'Afișează istoric'}
             </Button>
+            <MiniCreditsIndicator />
             <Link to="/settings">
-              <Button variant="ghost" size="icon" title="Setări cont">
+              <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation" title="Setări cont">
                 <Settings className="h-5 w-5" />
               </Button>
             </Link>
