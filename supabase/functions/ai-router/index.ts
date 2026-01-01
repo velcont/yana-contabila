@@ -475,25 +475,47 @@ serve(async (req) => {
     // SELF-REFLECTION: Trigger async pentru auto-evaluare (Layer 5 ACS)
     // =============================================================================
     if (message && assistantMessage && assistantMessage.length > 50) {
-      // Fire-and-forget - nu așteptăm răspunsul
-      const selfReflectUrl = `${supabaseUrl}/functions/v1/self-reflect`;
-      fetch(selfReflectUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-        },
-        body: JSON.stringify({
-          conversationId,
-          userId: user.id,
-          question: message,
-          answer: assistantMessage,
-          route: routeDecision.route,
-        }),
-      }).catch(err => {
-        console.error('[AI-Router] Self-reflect trigger failed (non-blocking):', err);
-      });
-      console.log('[AI-Router] Self-reflection triggered asynchronously');
+      // Folosim EdgeRuntime.waitUntil pentru a garanta că reflecția se finalizează
+      // chiar dacă răspunsul principal a fost deja trimis
+      const selfReflectTask = async () => {
+        try {
+          const selfReflectUrl = `${supabaseUrl}/functions/v1/self-reflect`;
+          const reflectResponse = await fetch(selfReflectUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              conversationId,
+              userId: user.id,
+              question: message,
+              answer: assistantMessage,
+              route: routeDecision.route,
+            }),
+          });
+          
+          if (!reflectResponse.ok) {
+            console.error('[AI-Router] Self-reflect failed:', await reflectResponse.text());
+          } else {
+            const reflectResult = await reflectResponse.json();
+            console.log(`[AI-Router] Self-reflection completed: score=${reflectResult.score}/10`);
+          }
+        } catch (err) {
+          console.error('[AI-Router] Self-reflect error (non-blocking):', err);
+        }
+      };
+      
+      // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(selfReflectTask());
+        console.log('[AI-Router] Self-reflection queued with EdgeRuntime.waitUntil()');
+      } else {
+        // Fallback pentru medii unde EdgeRuntime nu e disponibil
+        selfReflectTask().catch(console.error);
+        console.log('[AI-Router] Self-reflection triggered (fallback mode)');
+      }
     }
 
     return new Response(
