@@ -471,6 +471,31 @@ serve(async (req) => {
       }
     }
 
+    // =============================================================================
+    // SELF-REFLECTION: Trigger async pentru auto-evaluare (Layer 5 ACS)
+    // =============================================================================
+    if (message && assistantMessage && assistantMessage.length > 50) {
+      // Fire-and-forget - nu așteptăm răspunsul
+      const selfReflectUrl = `${supabaseUrl}/functions/v1/self-reflect`;
+      fetch(selfReflectUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          conversationId,
+          userId: user.id,
+          question: message,
+          answer: assistantMessage,
+          route: routeDecision.route,
+        }),
+      }).catch(err => {
+        console.error('[AI-Router] Self-reflect trigger failed (non-blocking):', err);
+      });
+      console.log('[AI-Router] Self-reflection triggered asynchronously');
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

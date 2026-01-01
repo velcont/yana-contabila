@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw, Brain } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw, Brain, Bot } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -29,6 +29,7 @@ const TestCheckout = lazy(() => import("@/components/TestCheckout").then(m => ({
 const TextHumanizer = lazy(() => import("@/components/TextHumanizer").then(m => ({ default: m.TextHumanizer })));
 const AdminSubscriptionSync = lazy(() => import("@/components/AdminSubscriptionSync").then(m => ({ default: m.AdminSubscriptionSync })));
 const MemoryDashboard = lazy(() => import("@/components/admin/MemoryDashboard").then(m => ({ default: m.MemoryDashboard })));
+const AIDecisionsDashboard = lazy(() => import("@/components/admin/AIDecisionsDashboard").then(m => ({ default: m.AIDecisionsDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -354,6 +355,10 @@ const Admin = () => {
               <TabsTrigger value="memory">
                 <Brain className="h-4 w-4 mr-2" />
                 🧠 Memorie AI
+              </TabsTrigger>
+              <TabsTrigger value="ai-decisions">
+                <Bot className="h-4 w-4 mr-2" />
+                🤖 AI Decisions
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -792,6 +797,12 @@ const Admin = () => {
           <TabsContent value="memory">
             <Suspense fallback={<TabContentLoader />}>
               <MemoryDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="ai-decisions">
+            <Suspense fallback={<TabContentLoader />}>
+              <AIDecisionsDashboard />
             </Suspense>
           </TabsContent>
         </Tabs>
