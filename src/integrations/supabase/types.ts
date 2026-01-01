@@ -474,6 +474,60 @@ export type Database = {
           },
         ]
       }
+      ai_reflection_logs: {
+        Row: {
+          answer_preview: string
+          confidence_level: string
+          conversation_id: string
+          created_at: string
+          id: string
+          missing_context: string | null
+          model_used: string
+          processing_time_ms: number | null
+          question: string
+          self_score: number
+          suggested_sources: string[] | null
+          tokens_used: number | null
+          user_id: string
+          what_could_improve: string[] | null
+          what_went_well: string[] | null
+        }
+        Insert: {
+          answer_preview: string
+          confidence_level: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          missing_context?: string | null
+          model_used?: string
+          processing_time_ms?: number | null
+          question: string
+          self_score: number
+          suggested_sources?: string[] | null
+          tokens_used?: number | null
+          user_id: string
+          what_could_improve?: string[] | null
+          what_went_well?: string[] | null
+        }
+        Update: {
+          answer_preview?: string
+          confidence_level?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          missing_context?: string | null
+          model_used?: string
+          processing_time_ms?: number | null
+          question?: string
+          self_score?: number
+          suggested_sources?: string[] | null
+          tokens_used?: number | null
+          user_id?: string
+          what_could_improve?: string[] | null
+          what_went_well?: string[] | null
+        }
+        Relationships: []
+      }
       ai_response_cache: {
         Row: {
           cache_key: string
