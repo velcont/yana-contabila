@@ -810,6 +810,12 @@ const Admin = () => {
               <AIDecisionsDashboard />
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="consciousness">
+            <Suspense fallback={<TabContentLoader />}>
+              <ConsciousnessDashboard />
+            </Suspense>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
