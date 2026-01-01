@@ -406,6 +406,54 @@ export type Database = {
           },
         ]
       }
+      ai_experiments: {
+        Row: {
+          action_taken: string
+          anonymized_pattern: string | null
+          conversation_id: string | null
+          created_at: string | null
+          emotional_resonance: number | null
+          evaluated_at: string | null
+          experiment_type: string
+          hypothesis: string | null
+          id: string
+          learning: string | null
+          outcome: string | null
+          user_id: string
+          user_reaction: string | null
+        }
+        Insert: {
+          action_taken: string
+          anonymized_pattern?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          emotional_resonance?: number | null
+          evaluated_at?: string | null
+          experiment_type: string
+          hypothesis?: string | null
+          id?: string
+          learning?: string | null
+          outcome?: string | null
+          user_id: string
+          user_reaction?: string | null
+        }
+        Update: {
+          action_taken?: string
+          anonymized_pattern?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          emotional_resonance?: number | null
+          evaluated_at?: string | null
+          experiment_type?: string
+          hypothesis?: string | null
+          id?: string
+          learning?: string | null
+          outcome?: string | null
+          user_id?: string
+          user_reaction?: string | null
+        }
+        Relationships: []
+      }
       ai_learned_patterns: {
         Row: {
           applies_to_company_id: string | null
@@ -616,6 +664,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_surprises: {
+        Row: {
+          contradiction_type: string
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          new_information: string
+          previous_belief: string
+          resolution_approach: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          surprise_intensity: number | null
+          user_id: string
+        }
+        Insert: {
+          contradiction_type: string
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_information: string
+          previous_belief: string
+          resolution_approach?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          surprise_intensity?: number | null
+          user_id: string
+        }
+        Update: {
+          contradiction_type?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_information?: string
+          previous_belief?: string
+          resolution_approach?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          surprise_intensity?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       ai_usage: {
         Row: {
@@ -1828,6 +1918,51 @@ export type Database = {
           },
         ]
       }
+      cross_user_insights: {
+        Row: {
+          anti_pattern: string | null
+          company_sizes: string[] | null
+          created_at: string | null
+          emotional_approach: string | null
+          id: string
+          industries: string[] | null
+          last_updated: string | null
+          occurrence_count: number | null
+          pattern_description: string
+          pattern_type: string
+          recommended_response: string | null
+          success_rate: number | null
+        }
+        Insert: {
+          anti_pattern?: string | null
+          company_sizes?: string[] | null
+          created_at?: string | null
+          emotional_approach?: string | null
+          id?: string
+          industries?: string[] | null
+          last_updated?: string | null
+          occurrence_count?: number | null
+          pattern_description: string
+          pattern_type: string
+          recommended_response?: string | null
+          success_rate?: number | null
+        }
+        Update: {
+          anti_pattern?: string | null
+          company_sizes?: string[] | null
+          created_at?: string | null
+          emotional_approach?: string | null
+          id?: string
+          industries?: string[] | null
+          last_updated?: string | null
+          occurrence_count?: number | null
+          pattern_description?: string
+          pattern_type?: string
+          recommended_response?: string | null
+          success_rate?: number | null
+        }
+        Relationships: []
+      }
       deleted_users: {
         Row: {
           created_at: string
@@ -2547,6 +2682,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      journey_milestones: {
+        Row: {
+          created_at: string | null
+          description: string
+          id: string
+          impact_score: number | null
+          journey_id: string
+          milestone_type: string
+          triggered_by_conversation: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          id?: string
+          impact_score?: number | null
+          journey_id: string
+          milestone_type: string
+          triggered_by_conversation?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          id?: string
+          impact_score?: number | null
+          journey_id?: string
+          milestone_type?: string
+          triggered_by_conversation?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_milestones_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "user_journey"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       knowledge_base: {
         Row: {
@@ -4057,6 +4230,51 @@ export type Database = {
           session_date?: string
           topic_summary?: string | null
           unresolved_issue?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_journey: {
+        Row: {
+          created_at: string | null
+          emotional_state: string | null
+          first_interaction_at: string | null
+          goal_confidence: number | null
+          id: string
+          knowledge_gaps: Json | null
+          last_interaction_at: string | null
+          primary_goal: string | null
+          total_interactions: number | null
+          uncertainty_level: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emotional_state?: string | null
+          first_interaction_at?: string | null
+          goal_confidence?: number | null
+          id?: string
+          knowledge_gaps?: Json | null
+          last_interaction_at?: string | null
+          primary_goal?: string | null
+          total_interactions?: number | null
+          uncertainty_level?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emotional_state?: string | null
+          first_interaction_at?: string | null
+          goal_confidence?: number | null
+          id?: string
+          knowledge_gaps?: Json | null
+          last_interaction_at?: string | null
+          primary_goal?: string | null
+          total_interactions?: number | null
+          uncertainty_level?: number | null
           updated_at?: string | null
           user_id?: string
         }
