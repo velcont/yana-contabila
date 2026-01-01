@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { Navigate, Link } from 'react-router-dom';
-import { Loader2, Menu, X, Settings } from 'lucide-react';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
+import { Loader2, Menu, X, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
@@ -10,15 +10,43 @@ import { TrialExpiredOverlay } from '@/components/yana/TrialExpiredOverlay';
 import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Yana() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const { accessType, loading: subscriptionLoading } = useSubscription();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   
   const isTrialExpired = accessType === 'trial_expired';
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await signOut();
+      if (error) throw error;
+      navigate('/auth');
+    } catch (error) {
+      toast({
+        title: "Eroare la deconectare",
+        description: "Nu am putut să te deconectez. Încearcă din nou.",
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     // On mobile, close sidebar by default
@@ -103,6 +131,31 @@ export default function Yana() {
                 <Settings className="h-5 w-5" />
               </Button>
             </Link>
+            
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-11 w-11 sm:h-10 sm:w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 touch-action-manipulation" 
+                  title="Deconectare"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmare deconectare</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Sigur vrei să te deconectezi din contul tău YANA?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Anulează</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSignOut}>Deconectează-mă</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </header>
 

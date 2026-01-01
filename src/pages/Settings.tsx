@@ -1,26 +1,83 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, User, Bell, Shield, CreditCard, Brain } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, CreditCard, Brain, LogOut } from 'lucide-react';
 import { AccountDeletion } from '@/components/AccountDeletion';
 import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MiniFooter from '@/components/MiniFooter';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
 import { SubscriptionDetails } from '@/components/settings/SubscriptionDetails';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await signOut();
+      if (error) throw error;
+      navigate('/auth');
+    } catch (error) {
+      toast({
+        title: "Eroare la deconectare",
+        description: "Nu am putut să te deconectez. Încearcă din nou.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Înapoi
+            <span className="hidden sm:inline">Înapoi</span>
           </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Deconectare</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmare deconectare</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Sigur vrei să te deconectezi din contul tău YANA?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Anulează</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSignOut}>Deconectează-mă</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <div className="space-y-2 mb-8">
@@ -31,28 +88,59 @@ const Settings = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="profile" className="gap-2">
-              <User className="h-4 w-4" />
-              Profil
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
-              <Bell className="h-4 w-4" />
-              Notificări
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Abonament
-            </TabsTrigger>
-            <TabsTrigger value="ai-learning" className="gap-2">
-              <Brain className="h-4 w-4" />
-              AI Learning
-            </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Securitate
-            </TabsTrigger>
-          </TabsList>
+          <TooltipProvider>
+            <TabsList className="flex w-full overflow-x-auto gap-1 p-1 no-scrollbar sm:grid sm:grid-cols-5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="profile" className="flex-shrink-0 gap-1.5 px-3 min-w-[44px]">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">Profil</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">Profil</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="notifications" className="flex-shrink-0 gap-1.5 px-3 min-w-[44px]">
+                    <Bell className="h-4 w-4" />
+                    <span className="hidden sm:inline">Notificări</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">Notificări</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="billing" className="flex-shrink-0 gap-1.5 px-3 min-w-[44px]">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="hidden sm:inline">Abonament</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">Abonament</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="ai-learning" className="flex-shrink-0 gap-1.5 px-3 min-w-[44px]">
+                    <Brain className="h-4 w-4" />
+                    <span className="hidden sm:inline">AI Learning</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">AI Learning</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <TabsTrigger value="security" className="flex-shrink-0 gap-1.5 px-3 min-w-[44px]">
+                    <Shield className="h-4 w-4" />
+                    <span className="hidden sm:inline">Securitate</span>
+                  </TabsTrigger>
+                </TooltipTrigger>
+                <TooltipContent className="sm:hidden">Securitate</TooltipContent>
+              </Tooltip>
+            </TabsList>
+          </TooltipProvider>
 
           <TabsContent value="profile" className="space-y-6">
             <Card>
