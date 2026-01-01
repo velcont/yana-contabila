@@ -30,6 +30,7 @@ const TextHumanizer = lazy(() => import("@/components/TextHumanizer").then(m => 
 const AdminSubscriptionSync = lazy(() => import("@/components/AdminSubscriptionSync").then(m => ({ default: m.AdminSubscriptionSync })));
 const MemoryDashboard = lazy(() => import("@/components/admin/MemoryDashboard").then(m => ({ default: m.MemoryDashboard })));
 const AIDecisionsDashboard = lazy(() => import("@/components/admin/AIDecisionsDashboard").then(m => ({ default: m.AIDecisionsDashboard })));
+const ConsciousnessDashboard = lazy(() => import("@/components/admin/ConsciousnessDashboard").then(m => ({ default: m.ConsciousnessDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -359,6 +360,10 @@ const Admin = () => {
               <TabsTrigger value="ai-decisions">
                 <Bot className="h-4 w-4 mr-2" />
                 🤖 AI Decisions
+              </TabsTrigger>
+              <TabsTrigger value="consciousness">
+                <Brain className="h-4 w-4 mr-2" />
+                🧠 Conștiința YANA
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
