@@ -472,7 +472,56 @@ serve(async (req) => {
     }
 
     // =============================================================================
-    // SELF-REFLECTION: Trigger async pentru auto-evaluare (Layer 5 ACS)
+    // CONSCIOUSNESS ENGINE: Încărcare context conștiință SINCRON (timeout 2s)
+    // =============================================================================
+    let consciousnessContext: Record<string, unknown> | null = null;
+    
+    if (message && user.id) {
+      try {
+        const consciousnessUrl = `${supabaseUrl}/functions/v1/consciousness-engine`;
+        const consciousnessPromise = fetch(consciousnessUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            conversationId,
+            currentMessage: message,
+            companyId: detectedCompanyId,
+          }),
+        });
+        
+        // Race cu timeout de 2 secunde
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 2000)
+        );
+        
+        const consciousnessResponse = await Promise.race([consciousnessPromise, timeoutPromise]) as Response;
+        
+        if (consciousnessResponse.ok) {
+          consciousnessContext = await consciousnessResponse.json();
+          console.log('[AI-Router] Consciousness context loaded:', {
+            hasCuriosities: !!consciousnessContext?.curiosities,
+            concernLevel: consciousnessContext?.concernLevel,
+            emotionalMode: consciousnessContext?.emotionalMode,
+          });
+        }
+      } catch (err) {
+        console.warn('[AI-Router] Consciousness engine timeout/error, proceeding without context:', err);
+        // Nu aruncăm eroare - conștiința e opțională
+      }
+    }
+    
+    // Injectează consciousness context în payload pentru routes care îl suportă
+    if (consciousnessContext && (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'chat-ai')) {
+      routeDecision.payload.consciousnessContext = consciousnessContext;
+      console.log('[AI-Router] Consciousness context injected into payload');
+    }
+
+    // =============================================================================
+    // SELF-REFLECTION + CONSCIOUSNESS ASYNC TASKS
     // =============================================================================
     if (message && assistantMessage && assistantMessage.length > 50) {
       // Folosim EdgeRuntime.waitUntil pentru a garanta că reflecția se finalizează
@@ -506,15 +555,105 @@ serve(async (req) => {
         }
       };
       
+      // Task pentru surprise-detector (detectează contradicții)
+      const surpriseDetectorTask = async () => {
+        try {
+          const surpriseUrl = `${supabaseUrl}/functions/v1/surprise-detector`;
+          await fetch(surpriseUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              conversationId,
+              userMessage: message,
+              assistantResponse: assistantMessage,
+            }),
+          });
+          console.log('[AI-Router] Surprise detector completed');
+        } catch (err) {
+          console.error('[AI-Router] Surprise detector error (non-blocking):', err);
+        }
+      };
+      
+      // Task pentru experiment-tracker (evaluează experimente YANA)
+      const experimentTrackerTask = async () => {
+        try {
+          const experimentUrl = `${supabaseUrl}/functions/v1/experiment-tracker`;
+          await fetch(experimentUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              conversationId,
+              userMessage: message,
+              assistantResponse: assistantMessage,
+              emotionalMode: consciousnessContext?.emotionalMode || null,
+            }),
+          });
+          console.log('[AI-Router] Experiment tracker completed');
+        } catch (err) {
+          console.error('[AI-Router] Experiment tracker error (non-blocking):', err);
+        }
+      };
+      
+      // Task pentru actualizare user_journey
+      const journeyUpdaterTask = async () => {
+        try {
+          // Actualizăm direct user_journey cu informații noi
+          const { error } = await supabase
+            .from('user_journey')
+            .upsert({
+              user_id: user.id,
+              last_interaction_at: new Date().toISOString(),
+              total_interactions: 1, // Se va incrementa
+            }, {
+              onConflict: 'user_id',
+              ignoreDuplicates: false,
+            });
+          
+          if (error) {
+            // Dacă nu există, creăm
+            await supabase.from('user_journey').insert({
+              user_id: user.id,
+              primary_goal: null,
+              goal_confidence: 0,
+              uncertainty_level: 5,
+              knowledge_gaps: [],
+              emotional_state: 'neutral',
+              first_interaction_at: new Date().toISOString(),
+              last_interaction_at: new Date().toISOString(),
+              total_interactions: 1,
+            });
+          }
+          console.log('[AI-Router] User journey updated');
+        } catch (err) {
+          console.error('[AI-Router] Journey updater error (non-blocking):', err);
+        }
+      };
+      
       // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
         // @ts-ignore
-        EdgeRuntime.waitUntil(selfReflectTask());
-        console.log('[AI-Router] Self-reflection queued with EdgeRuntime.waitUntil()');
+        EdgeRuntime.waitUntil(Promise.all([
+          selfReflectTask(),
+          surpriseDetectorTask(),
+          experimentTrackerTask(),
+          journeyUpdaterTask(),
+        ]));
+        console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil()');
       } else {
         // Fallback pentru medii unde EdgeRuntime nu e disponibil
-        selfReflectTask().catch(console.error);
-        console.log('[AI-Router] Self-reflection triggered (fallback mode)');
+        Promise.all([
+          selfReflectTask(),
+          surpriseDetectorTask(),
+          experimentTrackerTask(),
+          journeyUpdaterTask(),
+        ]).catch(console.error);
+        console.log('[AI-Router] All async tasks triggered (fallback mode)');
       }
     }
 
