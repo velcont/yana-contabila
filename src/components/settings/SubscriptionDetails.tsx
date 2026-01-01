@@ -47,12 +47,8 @@ export function SubscriptionDetails() {
 
   const getPlanName = () => {
     if (hasFreeAccess) return 'Acces Gratuit';
-    switch (subscriptionType) {
-      case 'yana_strategic': return 'YANA Strategic';
-      case 'entrepreneur': return 'Antreprenor';
-      case 'accounting_firm': return 'Firmă Contabilitate';
-      default: return 'Plan Standard';
-    }
+    if (subscriptionStatus === 'active' || accessType === 'trial') return 'YANA';
+    return 'Fără abonament';
   };
 
   const getStatusBadge = () => {
