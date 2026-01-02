@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, User, Bell, Shield, CreditCard, Brain, LogOut } from 'lucide-react';
+import { User, Bell, Shield, CreditCard, Brain, LogOut } from 'lucide-react';
 import { AccountDeletion } from '@/components/AccountDeletion';
 import { useAuth } from '@/hooks/useAuth';
+import { YanaHomeButton } from '@/components/YanaHomeButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MiniFooter from '@/components/MiniFooter';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
@@ -50,10 +51,7 @@ const Settings = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6 flex items-center justify-between">
-          <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Înapoi</span>
-          </Button>
+          <YanaHomeButton />
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
