@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Brain, ArrowLeft, Sparkles } from 'lucide-react';
+import { Loader2, Check, Brain, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/hooks/use-toast';
+import { YanaHomeButton } from '@/components/YanaHomeButton';
 
 // Yana Strategic - Single Plan
 const YANA_STRATEGIC_PRICE_ID = 'price_1Sd3AHBu3m83VcDAFa7QcuLM';
@@ -25,14 +26,9 @@ const Subscription = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/app')}
-            className="mb-6"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Înapoi la aplicație
-          </Button>
+          <div className="mb-6">
+            <YanaHomeButton />
+          </div>
 
           <div className="space-y-6">
             <div>
@@ -164,14 +160,9 @@ const Subscription = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/app')}
-          className="mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Înapoi la aplicație
-        </Button>
+        <div className="mb-6">
+          <YanaHomeButton />
+        </div>
 
         <div className="text-center mb-12">
           <Badge className="mb-4" variant="secondary">

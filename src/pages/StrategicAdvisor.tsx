@@ -38,6 +38,7 @@ import { BattlePlanExport } from "@/components/strategic/BattlePlanExport";
 import { ConsultYanaDialog } from "@/components/ConsultYanaDialog";
 import { StrategicDocumentUploader } from "@/components/strategic/StrategicDocumentUploader";
 import { ReasoningStepsDialog } from "@/components/strategic/ReasoningStepsDialog";
+import { YanaHomeButton } from "@/components/YanaHomeButton";
 import { AlertTriangle, Plus, FileText, Bot } from "lucide-react";
 import { detectGender, extractPreferredName } from "@/utils/genderDetection";
 import {
@@ -714,15 +715,8 @@ export default function StrategicAdvisor() {
               <div className="flex items-center justify-between mb-3 overflow-hidden">
                 {/* Left side - minimal pe mobil */}
                 <div className="flex items-center gap-2 md:gap-3 min-w-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigate('/app')}
-                    aria-label="Înapoi la aplicație"
-                    className="btn-hover-lift flex-shrink-0"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </Button>
+                  {/* Buton Home YANA */}
+                  <YanaHomeButton />
                   
                   {/* Buton Analizează Balanța - discret */}
                   <Button
