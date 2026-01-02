@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 type SubscriptionType = 'yana_strategic' | 'entrepreneur' | 'accounting_firm'; // Legacy support
 type SubscriptionStatus = 'active' | 'inactive' | 'trial_expired' | 'loading';
-type AccessType = 'free_access' | 'trial' | 'subscription' | 'trial_expired' | null;
+export type AccessType = 'free_access' | 'trial' | 'subscription' | 'trial_expired' | null;
 
 // Label-uri prietenoase pentru afișare în UI
 export const ACCESS_TYPE_LABELS: Record<NonNullable<AccessType>, string> = {

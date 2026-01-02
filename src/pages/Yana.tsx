@@ -6,7 +6,7 @@ import { Loader2, Menu, X, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
-import { TrialExpiredOverlay } from '@/components/yana/TrialExpiredOverlay';
+import { NoAccessOverlay } from '@/components/yana/NoAccessOverlay';
 import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,7 +31,8 @@ export default function Yana() {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   
-  const isTrialExpired = accessType === 'trial_expired';
+  // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
+  const hasNoValidAccess = !subscriptionLoading && (accessType === null || accessType === 'trial_expired');
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   const handleSignOut = async () => {
@@ -67,8 +68,8 @@ export default function Yana() {
 
   return (
     <div className="flex h-dvh min-h-screen bg-background dark relative">
-      {/* Trial Expired Overlay */}
-      {isTrialExpired && <TrialExpiredOverlay />}
+      {/* Access Overlay - blochează utilizatorii fără acces valid */}
+      {hasNoValidAccess && <NoAccessOverlay accessType={accessType} />}
       {/* Sidebar */}
       <aside
         className={cn(
