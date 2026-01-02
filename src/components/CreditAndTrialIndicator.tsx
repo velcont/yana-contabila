@@ -26,7 +26,8 @@ export const CreditAndTrialIndicator = () => {
   }
 
   // Mesaj elegant pentru upgrade când nu mai sunt credite
-  if (!hasCredits) {
+  // Exclude utilizatorii în trial - ei au credite incluse
+  if (!hasCredits && accessType !== 'trial') {
     return (
       <Card className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
         <div className="flex flex-col gap-3">

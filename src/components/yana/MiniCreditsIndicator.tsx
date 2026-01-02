@@ -19,23 +19,26 @@ export function MiniCreditsIndicator() {
     return null;
   }
 
+  // Utilizatorii trial au credite incluse - le tratăm ca și cum ar avea credite
+  const effectiveHasCredits = hasCredits || accessType === 'trial';
+
   // Determinare culoare bazată pe sesiuni rămase
   const getColorClass = () => {
-    if (!hasCredits || hasFreeAccess) return 'text-destructive';
+    if (!effectiveHasCredits || hasFreeAccess) return 'text-destructive';
     if (estimatedSessions <= 2) return 'text-destructive';
     if (estimatedSessions <= 5) return 'text-yellow-500 dark:text-yellow-400';
     return 'text-primary';
   };
 
   const getBgClass = () => {
-    if (!hasCredits || hasFreeAccess) return 'bg-destructive/10 border-destructive/30';
+    if (!effectiveHasCredits || hasFreeAccess) return 'bg-destructive/10 border-destructive/30';
     if (estimatedSessions <= 2) return 'bg-destructive/10 border-destructive/30';
     if (estimatedSessions <= 5) return 'bg-yellow-500/10 border-yellow-500/30';
     return 'bg-primary/10 border-primary/30';
   };
 
   const getTooltipContent = () => {
-    if (!hasCredits || hasFreeAccess) {
+    if (!effectiveHasCredits || hasFreeAccess) {
       return 'Nu mai ai credite AI. Click pentru a cumpăra.';
     }
     if (accessType === 'trial' && trialDaysRemaining !== null) {
@@ -49,14 +52,14 @@ export function MiniCreditsIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Link
-            to={hasCredits ? '/my-ai-costs' : '/pricing'}
+            to={effectiveHasCredits ? '/my-ai-costs' : '/pricing'}
             className={cn(
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors hover:opacity-80',
               getBgClass(),
               getColorClass()
             )}
           >
-            {hasCredits ? (
+            {effectiveHasCredits ? (
               <>
                 <Sparkles className="h-3 w-3" />
                 <span>{estimatedSessions}</span>
