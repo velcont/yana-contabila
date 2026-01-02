@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Send, Loader2, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, AlertTriangle } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
@@ -41,7 +42,8 @@ interface YanaChatProps {
 
 export function YanaChat({ conversationId, onConversationCreated }: YanaChatProps) {
   const { user } = useAuth();
-  const { hasCredits, hasFreeAccess } = useAICredits();
+  const { hasCredits, hasFreeAccess, isLoading: creditsLoading } = useAICredits();
+  const { accessType, loading: subLoading } = useSubscription();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -491,8 +493,8 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       {/* Input Area - stil ChatGPT simplificat */}
       <div className="border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-safe">
         <div className="max-w-3xl mx-auto">
-          {/* Warning banner când nu are credite */}
-          {!hasCredits && !hasFreeAccess && (
+          {/* Warning banner când nu are credite - exclude utilizatorii în trial */}
+          {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (
             <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
