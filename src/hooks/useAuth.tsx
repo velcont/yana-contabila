@@ -3,12 +3,44 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from '@/utils/versionRefresh';
 
+// Helper pentru logging autentificare - async, non-blocant
+const logAuthEvent = async (
+  eventType: 'AUTH_LOGIN' | 'AUTH_SESSION_RESTORED' | 'AUTH_TOKEN_REFRESH',
+  userId: string | null,
+  userEmail: string | null,
+  metadata: Record<string, unknown>
+) => {
+  try {
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      user_email: userEmail,
+      action_type: eventType,
+      table_name: 'auth',
+      metadata: {
+        ...metadata,
+        device: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        user_agent: navigator.userAgent.slice(0, 200),
+        timestamp: new Date().toISOString()
+      }
+    });
+    console.log(`[AuthLogging] ${eventType} logged for ${userEmail}`);
+  } catch (error) {
+    console.warn('[AuthLogging] Failed to log event:', error);
+    // Nu blocăm autentificarea!
+  }
+};
+
+// Export pentru useSessionGuard
+export { logAuthEvent };
+
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const sessionStartTime = Date.now();
+    
     // Timeout redus la 2 secunde pentru loading state (fix audit 2.4)
     const loadingTimeout = setTimeout(() => {
       setLoading(false);
@@ -17,7 +49,7 @@ export const useAuth = () => {
     // Set up auth state listener FIRST
     // IMPORTANT: Skip PASSWORD_RECOVERY event - let Auth.tsx handle it
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         // Skip PASSWORD_RECOVERY - Auth.tsx gestionează resetarea parolei
         if (event === 'PASSWORD_RECOVERY') {
           console.log('🔐 [useAuth] PASSWORD_RECOVERY event - skipping, Auth.tsx handles this');
@@ -29,8 +61,16 @@ export const useAuth = () => {
         setLoading(false);
         clearTimeout(loadingTimeout);
         
-        // Faza 2: Verificare versiune la SIGNED_IN
+        // Faza 2: Verificare versiune la SIGNED_IN + Logging
         if (event === 'SIGNED_IN') {
+          // Logging async pentru SIGNED_IN
+          setTimeout(() => {
+            logAuthEvent('AUTH_LOGIN', session?.user?.id || null, session?.user?.email || null, {
+              event: 'SIGNED_IN',
+              session_load_time_ms: Date.now() - sessionStartTime
+            });
+          }, 0);
+          
           // Protecție anti-loop: verificăm dacă am făcut deja refresh în această sesiune
           const refreshGuard = sessionStorage.getItem('yana_login_refresh_guard');
           if (refreshGuard === 'true') {
@@ -63,6 +103,16 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         setLoading(false);
         clearTimeout(loadingTimeout);
+        
+        // Logging pentru sesiune restaurată
+        if (session?.user) {
+          setTimeout(() => {
+            logAuthEvent('AUTH_SESSION_RESTORED', session.user.id, session.user.email || null, {
+              event: 'SESSION_RESTORED',
+              session_load_time_ms: Date.now() - sessionStartTime
+            });
+          }, 0);
+        }
       })
       .catch(() => {
         setLoading(false);

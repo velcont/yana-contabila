@@ -2,6 +2,32 @@ import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Helper pentru logging autentificare - async, non-blocant
+const logAuthEvent = async (
+  eventType: 'AUTH_LOGIN' | 'AUTH_SESSION_RESTORED' | 'AUTH_TOKEN_REFRESH',
+  userId: string | null,
+  userEmail: string | null,
+  metadata: Record<string, unknown>
+) => {
+  try {
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      user_email: userEmail,
+      action_type: eventType,
+      table_name: 'auth',
+      metadata: {
+        ...metadata,
+        device: /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        user_agent: navigator.userAgent.slice(0, 200),
+        timestamp: new Date().toISOString()
+      }
+    });
+    console.log(`[AuthLogging] ${eventType} logged for ${userEmail}`);
+  } catch (error) {
+    console.warn('[AuthLogging] Failed to log event:', error);
+  }
+};
+
 /**
  * Hook pentru monitorizarea și reîmprospătarea proactivă a sesiunii
  * Previne erori 401 prin refresh automat când token-ul este aproape de expirare
@@ -36,6 +62,16 @@ export const useSessionGuard = () => {
         
         if (refreshData.session) {
           console.log('[SessionGuard] Session refreshed successfully');
+          
+          // Logging pentru token refresh
+          setTimeout(() => {
+            logAuthEvent('AUTH_TOKEN_REFRESH', refreshData.session?.user?.id || null, refreshData.session?.user?.email || null, {
+              event: 'TOKEN_REFRESH',
+              time_left_before_refresh_seconds: timeLeft,
+              refresh_trigger: 'proactive'
+            });
+          }, 0);
+          
           return true;
         }
       }

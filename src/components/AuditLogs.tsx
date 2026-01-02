@@ -182,7 +182,12 @@ export const AuditLogs = () => {
       case "DELETE":
         return "bg-orange-500";
       case "LOGIN":
+      case "AUTH_LOGIN":
         return "bg-purple-500";
+      case "AUTH_SESSION_RESTORED":
+        return "bg-indigo-500";
+      case "AUTH_TOKEN_REFRESH":
+        return "bg-cyan-500";
       case "EXPORT":
         return "bg-yellow-500";
       default:
@@ -202,6 +207,8 @@ export const AuditLogs = () => {
         return <Mail className="h-4 w-4" />;
       case "profiles":
         return <Lock className="h-4 w-4 text-red-500" />;
+      case "auth":
+        return <Shield className="h-4 w-4 text-purple-500" />;
       default:
         return <Users className="h-4 w-4" />;
     }
@@ -220,6 +227,7 @@ export const AuditLogs = () => {
       research_data: "Date Cercetare",
       profiles: "🔒 Profile (SENSIBIL)",
       audit_logs: "🔒 Audit Logs",
+      auth: "🔐 Autentificare",
     };
     return names[tableName] || tableName;
   };
