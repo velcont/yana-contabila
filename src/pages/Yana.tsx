@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useAICredits } from '@/hooks/useAICredits';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { Loader2, Menu, X, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,13 +27,17 @@ import {
 export default function Yana() {
   const { user, loading, signOut } = useAuth();
   const { accessType, loading: subscriptionLoading } = useSubscription();
+  const { hasCredits, isLoading: creditsLoading } = useAICredits();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   
   // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
-  const hasNoValidAccess = !subscriptionLoading && (accessType === null || accessType === 'trial_expired');
+  // DAR permite accesul dacă au credite AI cumpărate
+  const hasNoValidAccess = !subscriptionLoading && !creditsLoading && 
+    (accessType === null || accessType === 'trial_expired') && 
+    !hasCredits;
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   const handleSignOut = async () => {
@@ -54,7 +59,7 @@ export default function Yana() {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  if (loading || subscriptionLoading) {
+  if (loading || subscriptionLoading || creditsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
