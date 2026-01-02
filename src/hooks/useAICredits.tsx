@@ -24,6 +24,7 @@ export function useAICredits(): AICreditsData {
   const [isLoading, setIsLoading] = useState(true);
   const [hasFreeAccess, setHasFreeAccess] = useState(false);
   const [hasEverUsedCredits, setHasEverUsedCredits] = useState(false);
+  const [profileAiCredits, setProfileAiCredits] = useState<number>(0);
 
   const fetchAIUsage = useCallback(async () => {
     try {
@@ -33,14 +34,15 @@ export function useAICredits(): AICreditsData {
         return;
       }
 
-      // Check if user has free access
+      // Check if user has free access AND ai_credits from profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('has_free_access')
+        .select('has_free_access, ai_credits')
         .eq('id', user.id)
         .single();
       
       setHasFreeAccess(profile?.has_free_access === true);
+      setProfileAiCredits(profile?.ai_credits ?? 0);
 
       // Check if user has ever used AI credits (any usage in ai_usage table)
       const { count } = await supabase
@@ -77,7 +79,8 @@ export function useAICredits(): AICreditsData {
   const remainingCredits = aiUsage ? (aiUsage.budget_cents - aiUsage.total_cost_cents) / 100 : 0;
   const usagePercent = aiUsage?.usage_percent || 0;
   // Utilizatorii cu acces gratuit NU au credite AI disponibile pentru funcții premium
-  const hasCredits = !hasFreeAccess && remainingCredits > 0;
+  // Verificăm ATÂT remainingCredits (din RPC) CÂT ȘI profileAiCredits (din profiles)
+  const hasCredits = !hasFreeAccess && remainingCredits > 0 && profileAiCredits > 0;
   // Estimare sesiuni rămase (~2 RON per sesiune medie, minim 1 dacă există credite)
   const estimatedSessions = remainingCredits > 0 
     ? Math.max(1, Math.floor(remainingCredits / 2)) 
