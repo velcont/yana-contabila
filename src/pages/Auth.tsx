@@ -420,7 +420,7 @@ const Auth = () => {
           description: "Bine ai revenit!",
         });
         
-        // Redirect logic: check for redirect param first, then marketplace, then default to strategic-advisor
+        // Redirect logic: check for redirect param first, then marketplace, then default to /yana
         const redirectTo = searchParams.get('redirect');
         const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
         if (redirectTo) {
@@ -428,7 +428,7 @@ const Auth = () => {
         } else if (isMarketplace) {
           navigate('/app?view=marketplace');
         } else {
-          navigate('/strategic-advisor');
+          navigate('/yana');
         }
       } else {
         // ✅ SIMPLIFICAT: Extrage automat numele din email (înainte de @)

@@ -377,22 +377,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                   : 'bg-muted text-foreground'
               )}
             >
-              {/* Route indicator for assistant messages */}
-              {message.role === 'assistant' && message.route && (
-                <div className="flex items-center gap-1.5 mb-2 text-xs">
-                  {message.route === 'fiscal-chat' ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
-                      <Search className="h-3 w-3" />
-                      Yana Fiscală
-                    </span>
-                  ) : message.route === 'strategic-advisor' ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-                      <Lightbulb className="h-3 w-3" />
-                      Consilier Strategic
-                    </span>
-                  ) : null}
-                </div>
-              )}
+              {/* Context indicator removed - unified YANA experience */}
               
               <p className="whitespace-pre-wrap text-sm">{message.content}</p>
               

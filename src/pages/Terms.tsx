@@ -131,7 +131,7 @@ const Terms = () => {
 
               <h4 className="font-semibold mt-3 mb-2">De ce această politică?</h4>
               <p className="text-sm">
-                Când folosești Yana Strategica, fiecare conversație consumă resurse AI reale de la furnizori externi (Lovable AI Gateway + Google Gemini/OpenAI). 
+                Când folosești YANA, fiecare conversație consumă resurse AI reale de la furnizori externi (Lovable AI Gateway + Google Gemini/OpenAI). 
                 Aceste costuri sunt plătite de noi imediat, indiferent dacă ești sau nu mulțumit de răspuns.
               </p>
 
@@ -221,13 +221,13 @@ const Terms = () => {
 
             <h2>11. LIMITARE DE RĂSPUNDERE ȘI EXCLUDERI DE GARANȚIE</h2>
             <div className="bg-red-50 dark:bg-red-950/20 p-4 rounded-md border-2 border-red-300 dark:border-red-800">
-              <p className="font-bold text-lg mb-2">⚠️ DISCLAIMER IMPORTANT - YANA STRATEGICA</p>
+              <p className="font-bold text-lg mb-2">⚠️ DISCLAIMER IMPORTANT - YANA</p>
               <p><strong>Proprietarul platformei YANA, Suciu Gyorfi Nicolae, NU OFERĂ NICIO GARANȚIE</strong> cu privire la:</p>
               <ul className="my-2">
                 <li>Acuratețea, completitudinea sau corectitudinea analizelor generate de platformă</li>
                 <li>Funcționarea neîntreruptă sau fără erori a aplicației</li>
                 <li>Adecvarea serviciului pentru anumite scopuri specifice</li>
-                <li><strong>Calitatea sau succesul strategiilor generate de Yana Strategica</strong></li>
+                <li><strong>Calitatea sau succesul strategiilor generate de YANA</strong></li>
               </ul>
               <p className="mt-3">
                 <strong>Analizele financiare generate de YANA sunt informative și NU constituie consultanță financiară, 
@@ -235,9 +235,9 @@ const Terms = () => {
                 și nu trebuie utilizate ca unic suport pentru luarea deciziilor importante de afaceri.
               </p>
 
-              <h4 className="font-bold mt-4 mb-2">Despre Yana Strategica (Consilier Strategic AI):</h4>
+              <h4 className="font-bold mt-4 mb-2">Despre YANA (Consilier Strategic AI):</h4>
               <p className="mb-2">
-                Yana Strategica este un <strong>asistent AI pentru brainstorming strategic</strong>, NU un consultant uman certificat. 
+                YANA este un <strong>asistent AI pentru brainstorming strategic</strong>, NU un consultant uman certificat. 
                 Oferă sugestii și framework-uri de gândire bazate pe date generale, dar:
               </p>
               <ul className="space-y-1 text-sm">
@@ -253,7 +253,7 @@ const Terms = () => {
               </p>
 
               <p className="mt-3">
-                <strong>Recomandare obligatorie:</strong> Folosește Yana Strategica ca punct de plecare pentru idei, 
+                <strong>Recomandare obligatorie:</strong> Folosește YANA ca punct de plecare pentru idei, 
                 dar consultă întotdeauna profesioniști umani (consultanți de business, contabili, avocați) înainte de 
                 a implementa decizii importante.
               </p>

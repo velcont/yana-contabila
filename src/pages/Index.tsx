@@ -195,22 +195,22 @@ const Index = () => {
               </CardHeader>
             </Card>
 
-            {/* Card 2: Strategic Advisor */}
+            {/* Card 2: YANA - Partenerul Tău Strategic */}
             <Card 
               className="cursor-pointer transition-all hover:shadow-lg hover:scale-105 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/20"
-              onClick={() => handleCardClick('strategic-advisor')}
-              data-tour="card-strategic-advisor"
+              onClick={() => navigate('/yana')}
+              data-tour="card-yana"
             >
               <CardHeader>
                 <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center mb-2">
                   <Sparkles className="h-6 w-6 text-white" />
                 </div>
                 <CardTitle className="flex items-center gap-2">
-                  Yana Strategică
+                  YANA
                   <span className="text-xs bg-violet-500 text-white px-2 py-0.5 rounded-full">💎 AI Premium</span>
                 </CardTitle>
                 <CardDescription>
-                  Consultanță strategică AI avansată pentru decizii de business complexe (necesită credite AI)
+                  Partenerul tău strategic AI - consultanță financiară, fiscală și de business
                 </CardDescription>
               </CardHeader>
             </Card>

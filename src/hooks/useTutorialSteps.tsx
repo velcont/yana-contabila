@@ -25,9 +25,9 @@ export const useTutorialSteps = () => {
     },
     {
       page: '/app',
-      title: '🧠 Card Strategic Advisor',
-      description: 'Consultanță strategică AI avansată. Necesită credite AI pentru conversații complexe.',
-      highlight: '[data-tour="card-strategic-advisor"]',
+      title: '🧠 YANA - Partenerul Tău Strategic',
+      description: 'Consultanță financiară, fiscală și strategică AI. Accesează toate funcționalitățile YANA dintr-un singur loc.',
+      highlight: '[data-tour="card-yana"]',
     },
     {
       page: '/app',
