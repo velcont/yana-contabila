@@ -200,35 +200,53 @@ function detectIntent(message: string): RouteDecision {
   }
   
   // Fiscal questions - EXTENDED keywords pentru legislația 2026
+  // Include forme articulate și variante pentru detecție robustă
   if (
     lowerMessage.includes('impozit') ||
+    lowerMessage.includes('impozitul') ||
     lowerMessage.includes('tva') ||
     lowerMessage.includes('fiscal') ||
     lowerMessage.includes('anaf') ||
     lowerMessage.includes('declarație') ||
     lowerMessage.includes('declaratie') ||
     lowerMessage.includes('taxe') ||
-    // Keywords noi pentru legislația 2026
+    lowerMessage.includes('taxa') ||
+    // Keywords pentru legislația 2026
     lowerMessage.includes('cass') ||
     lowerMessage.includes('cas ') ||
     lowerMessage.includes('dividend') ||
+    lowerMessage.includes('dividende') ||
     lowerMessage.includes('contribuți') ||
     lowerMessage.includes('contributii') ||
-    lowerMessage.includes('salariu minim') ||
-    lowerMessage.includes('salariu brut') ||
+    lowerMessage.includes('contribuția') ||
+    lowerMessage.includes('contributia') ||
+    // Salariu - toate variantele
+    lowerMessage.includes('salariu') ||
+    lowerMessage.includes('salariul') ||
+    lowerMessage.includes('salarii') ||
+    lowerMessage.includes('brut') ||
+    lowerMessage.includes('minim') ||
+    // Declarații
     lowerMessage.includes('d700') ||
     lowerMessage.includes('d107') ||
     lowerMessage.includes('d205') ||
+    lowerMessage.includes('d112') ||
+    lowerMessage.includes('d300') ||
     lowerMessage.includes('declarația unică') ||
     lowerMessage.includes('declaratia unica') ||
+    // Micro și regimuri
     lowerMessage.includes('microîntreprindere') ||
     lowerMessage.includes('microintreprindere') ||
+    lowerMessage.includes('micro') ||
     lowerMessage.includes('plafon') ||
     lowerMessage.includes('cotă unică') ||
     lowerMessage.includes('cota unica') ||
     lowerMessage.includes('legislație') ||
     lowerMessage.includes('legislatie') ||
-    lowerMessage.includes('cod fiscal')
+    lowerMessage.includes('cod fiscal') ||
+    // An și termeni temporali fiscali
+    lowerMessage.includes('2026') ||
+    lowerMessage.includes('2025')
   ) {
     return {
       route: 'fiscal-chat',
