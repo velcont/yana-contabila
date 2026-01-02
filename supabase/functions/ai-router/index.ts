@@ -199,14 +199,36 @@ function detectIntent(message: string): RouteDecision {
     };
   }
   
-  // Fiscal questions
+  // Fiscal questions - EXTENDED keywords pentru legislația 2026
   if (
     lowerMessage.includes('impozit') ||
     lowerMessage.includes('tva') ||
     lowerMessage.includes('fiscal') ||
     lowerMessage.includes('anaf') ||
     lowerMessage.includes('declarație') ||
-    lowerMessage.includes('taxe')
+    lowerMessage.includes('declaratie') ||
+    lowerMessage.includes('taxe') ||
+    // Keywords noi pentru legislația 2026
+    lowerMessage.includes('cass') ||
+    lowerMessage.includes('cas ') ||
+    lowerMessage.includes('dividend') ||
+    lowerMessage.includes('contribuți') ||
+    lowerMessage.includes('contributii') ||
+    lowerMessage.includes('salariu minim') ||
+    lowerMessage.includes('salariu brut') ||
+    lowerMessage.includes('d700') ||
+    lowerMessage.includes('d107') ||
+    lowerMessage.includes('d205') ||
+    lowerMessage.includes('declarația unică') ||
+    lowerMessage.includes('declaratia unica') ||
+    lowerMessage.includes('microîntreprindere') ||
+    lowerMessage.includes('microintreprindere') ||
+    lowerMessage.includes('plafon') ||
+    lowerMessage.includes('cotă unică') ||
+    lowerMessage.includes('cota unica') ||
+    lowerMessage.includes('legislație') ||
+    lowerMessage.includes('legislatie') ||
+    lowerMessage.includes('cod fiscal')
   ) {
     return {
       route: 'fiscal-chat',

@@ -33,7 +33,7 @@ const Landing = () => {
           <Button 
             size="lg" 
             className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
-            onClick={() => navigate('/auth?redirect=/strategic-advisor')}
+            onClick={() => navigate('/auth?redirect=/yana')}
           >
             <Sparkles className="mr-2 h-5 w-5" />
             Obține gratuit diagnosticul afacerii tale
