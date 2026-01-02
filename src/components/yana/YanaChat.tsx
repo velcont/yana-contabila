@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useAICredits } from '@/hooks/useAICredits';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Loader2, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale } from 'lucide-react';
+import { Send, Loader2, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, AlertTriangle } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,6 +41,7 @@ interface YanaChatProps {
 
 export function YanaChat({ conversationId, onConversationCreated }: YanaChatProps) {
   const { user } = useAuth();
+  const { hasCredits, hasFreeAccess } = useAICredits();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -233,7 +235,22 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
 
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('A apărut o eroare. Încearcă din nou.');
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      if (errorMsg.includes('credit') || errorMsg.includes('budget') || errorMsg.includes('Budget')) {
+        toast.error('Credite insuficiente', { 
+          description: 'Cumpără credite AI pentru a continua.' 
+        });
+      } else if (errorMsg.includes('rate') || errorMsg.includes('limit')) {
+        toast.error('Prea multe cereri', { 
+          description: 'Așteaptă câteva secunde și încearcă din nou.' 
+        });
+      } else if (errorMsg.includes('Unauthorized') || errorMsg.includes('token') || errorMsg.includes('401')) {
+        toast.error('Sesiune expirată', { 
+          description: 'Te rog să te reconectezi.' 
+        });
+      } else {
+        toast.error('A apărut o eroare. Încearcă din nou.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -403,6 +420,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                     onClick={() => handleFeedback(message.id, true)}
                     className="p-1.5 hover:bg-green-500/20 rounded-md transition-colors"
                     title="Răspuns util"
+                    aria-label="Marchează răspunsul ca util"
                   >
                     <ThumbsUp className="h-3.5 w-3.5 text-muted-foreground hover:text-green-500" />
                   </button>
@@ -410,6 +428,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                     onClick={() => handleFeedback(message.id, false)}
                     className="p-1.5 hover:bg-red-500/20 rounded-md transition-colors"
                     title="Răspuns nu a fost util"
+                    aria-label="Marchează răspunsul ca neutil"
                   >
                     <ThumbsDown className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500" />
                   </button>
@@ -472,6 +491,22 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       {/* Input Area - stil ChatGPT simplificat */}
       <div className="border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-safe">
         <div className="max-w-3xl mx-auto">
+          {/* Warning banner când nu are credite */}
+          {!hasCredits && !hasFreeAccess && (
+            <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Nu mai ai credite AI disponibile.
+                </p>
+              </div>
+              <Link to="/pricing">
+                <Button variant="outline" size="sm" className="shrink-0">
+                  Cumpără credite
+                </Button>
+              </Link>
+            </div>
+          )}
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"

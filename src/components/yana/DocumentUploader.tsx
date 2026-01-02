@@ -22,7 +22,15 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const MAX_FILE_SIZE_MB = 10;
+
   const processFile = async (file: File) => {
+    // Guard clause: verificare dimensiune fișier
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setError(`Fișierul este prea mare (${(file.size / 1024 / 1024).toFixed(1)}MB). Limita este ${MAX_FILE_SIZE_MB}MB.`);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
