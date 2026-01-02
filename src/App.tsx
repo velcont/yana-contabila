@@ -19,6 +19,7 @@ import { NotificationProvider } from "@/components/NotificationSystem";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { supabase } from "@/integrations/supabase/client";
 import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from "@/utils/versionRefresh";
+import { usePresenceTracking } from "@/hooks/usePresenceTracking";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -78,6 +79,12 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Wrapper pentru presence tracking - trebuie să fie în BrowserRouter
+const PresenceTracker = () => {
+  usePresenceTracking();
+  return null;
+};
+
 const App = () => {
   // Verificare inactivitate >24h la încărcarea aplicației
   useEffect(() => {
@@ -128,6 +135,7 @@ const App = () => {
                 <AppThemeProvider>
                   <NotificationProvider>
                     <TutorialProvider>
+                    <PresenceTracker />
                     <Suspense fallback={<LoadingFallback />}>
                       <Routes>
                       <Route path="/" element={<Landing />} />

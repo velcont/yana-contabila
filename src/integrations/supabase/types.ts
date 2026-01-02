@@ -180,6 +180,36 @@ export type Database = {
           },
         ]
       }
+      active_sessions: {
+        Row: {
+          current_page: string
+          email: string
+          id: string
+          last_activity: string
+          started_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          current_page?: string
+          email: string
+          id?: string
+          last_activity?: string
+          started_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          current_page?: string
+          email?: string
+          id?: string
+          last_activity?: string
+          started_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_alerts: {
         Row: {
           alert_type: string
@@ -4733,6 +4763,7 @@ export type Database = {
         }[]
       }
       cleanup_expired_cache: { Args: never; Returns: number }
+      cleanup_inactive_sessions: { Args: never; Returns: undefined }
       cleanup_old_data: { Args: never; Returns: undefined }
       deactivate_expired_subscriptions: { Args: never; Returns: undefined }
       extract_question_pattern: {

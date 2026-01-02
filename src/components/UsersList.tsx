@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle } from 'lucide-react';
+import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast as sonnerToast } from 'sonner';
@@ -32,8 +32,14 @@ interface Profile {
   stripe_subscription_id: string | null;
 }
 
+interface ActiveSession {
+  user_id: string;
+  current_page: string;
+  last_activity: string;
+}
+
 // Helper pentru a determina sursa accesului unui utilizator
-type AccessSource = 'paid' | 'free_access' | 'trial' | 'expired' | 'none';
+type AccessSource = 'paid' | 'free_access' | 'trial' | 'expired' | 'none' | 'active_now';
 
 const getAccessSource = (user: Profile): AccessSource => {
   const now = new Date();
@@ -92,6 +98,12 @@ const ACCESS_SOURCE_CONFIG: Record<AccessSource, { label: string; variant: 'defa
     icon: null,
     className: ''
   },
+  active_now: { 
+    label: 'Online', 
+    variant: 'default', 
+    icon: <Radio className="h-3 w-3 mr-1" />,
+    className: 'bg-emerald-500 hover:bg-emerald-600 animate-pulse'
+  },
 };
 
 interface DeletedUser {
@@ -110,6 +122,7 @@ interface DeletedUser {
 export const UsersList = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [deletedUsers, setDeletedUsers] = useState<DeletedUser[]>([]);
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
@@ -117,6 +130,42 @@ export const UsersList = () => {
   const { toast } = useToast();
   const [emailFilter, setEmailFilter] = useState('');
   const [accessFilter, setAccessFilter] = useState<AccessSource | 'all'>('all');
+
+  // Fetch active sessions și subscribe la realtime updates
+  useEffect(() => {
+    const fetchActiveSessions = async () => {
+      const { data, error } = await supabase
+        .from('active_sessions')
+        .select('user_id, current_page, last_activity');
+      
+      if (!error && data) {
+        setActiveSessions(data);
+      }
+    };
+
+    fetchActiveSessions();
+
+    // Realtime subscription pentru sesiuni active
+    const channel = supabase
+      .channel('active-sessions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'active_sessions'
+        },
+        () => {
+          // Re-fetch la orice schimbare
+          fetchActiveSessions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -239,9 +288,21 @@ export const UsersList = () => {
     }
   };
 
+  // Helper pentru a verifica dacă un user este activ acum
+  const isUserActive = (userId: string) => activeSessions.some(s => s.user_id === userId);
+  const getActiveSession = (userId: string) => activeSessions.find(s => s.user_id === userId);
+  const activeUserIds = activeSessions.map(s => s.user_id);
+
   const normalizedFilter = emailFilter.trim().toLowerCase();
   const emailFiltered = normalizedFilter ? users.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : users;
-  const filteredUsers = accessFilter === 'all' ? emailFiltered : emailFiltered.filter(u => getAccessSource(u) === accessFilter);
+  
+  // Filtrare extinsă cu suport pentru active_now
+  const filteredUsers = accessFilter === 'all' 
+    ? emailFiltered 
+    : accessFilter === 'active_now'
+      ? emailFiltered.filter(u => activeUserIds.includes(u.id))
+      : emailFiltered.filter(u => getAccessSource(u) === accessFilter);
+  
   const filteredDeletedUsers = normalizedFilter ? deletedUsers.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : deletedUsers;
   const freeAccessUsers = filteredUsers.filter(u => u.has_free_access);
 
@@ -294,17 +355,32 @@ export const UsersList = () => {
     const accessConfig = ACCESS_SOURCE_CONFIG[accessSource];
     const isInTrial = accessSource === 'trial';
     const trialExpired = accessSource === 'expired';
+    const userIsActive = isUserActive(user.id);
+    const activeSession = getActiveSession(user.id);
     
     return (
-      <Card key={user.id}>
+      <Card key={user.id} className={userIsActive ? 'ring-2 ring-emerald-500/50' : ''}>
         <CardContent className="pt-6">
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <h3 className="font-semibold">{user.full_name || 'Fără nume'}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold">{user.full_name || 'Fără nume'}</h3>
+                {userIsActive && (
+                  <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs animate-pulse">
+                    <span className="w-2 h-2 bg-white rounded-full mr-1 inline-block"></span>
+                    Online
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">{user.email}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Membru din: {new Date(user.created_at).toLocaleDateString('ro-RO')}
               </p>
+              {userIsActive && activeSession && (
+                <p className="text-xs text-emerald-600 mt-1">
+                  📍 pe {activeSession.current_page}
+                </p>
+              )}
               {isInTrial && user.trial_ends_at && (
                 <p className="text-xs text-orange-600 mt-1">
                   Trial până: {new Date(user.trial_ends_at).toLocaleDateString('ro-RO')}
@@ -318,7 +394,7 @@ export const UsersList = () => {
             </div>
             <div className="flex flex-col gap-2 items-end">
               <div className="flex gap-2 flex-wrap justify-end">
-                {/* Badge pentru sursa accesului - NOUA FUNCȚIONALITATE */}
+                {/* Badge pentru sursa accesului */}
                 <Badge 
                   variant={accessConfig.variant} 
                   className={accessConfig.className}
@@ -393,9 +469,17 @@ export const UsersList = () => {
       ) : (
         <Card>
       <CardHeader>
-        <CardTitle>Gestiune Utilizatori</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Gestiune Utilizatori</CardTitle>
+          {activeSessions.length > 0 && (
+            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white animate-pulse">
+              <span className="w-2 h-2 bg-white rounded-full mr-1 inline-block"></span>
+              {activeSessions.length} online acum
+            </Badge>
+          )}
+        </div>
         <CardDescription>
-          Total: {filteredUsers.length} utilizatori ({freeAccessUsers.length} cu acces gratuit)
+          Total: {filteredUsers.length} utilizatori ({freeAccessUsers.length} cu acces gratuit{activeSessions.length > 0 ? `, ${activeSessions.length} activi acum` : ''})
         </CardDescription>
         <div className="mt-3 flex gap-3">
           <Input
@@ -405,11 +489,12 @@ export const UsersList = () => {
             className="flex-1"
           />
           <Select value={accessFilter} onValueChange={(val) => setAccessFilter(val as AccessSource | 'all')}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Filtrează după acces" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toți</SelectItem>
+              <SelectItem value="active_now">🟢 Activi Acum ({activeSessions.length})</SelectItem>
               <SelectItem value="paid">🔵 Plătit Stripe</SelectItem>
               <SelectItem value="free_access">🟢 Acces Gratuit</SelectItem>
               <SelectItem value="trial">🟠 Trial Activ</SelectItem>
