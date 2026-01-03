@@ -2585,6 +2585,44 @@ export type Database = {
         }
         Relationships: []
       }
+      inactivity_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_activity_at: string
+          notification_sent: boolean | null
+          sent_at: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_activity_at: string
+          notification_sent?: boolean | null
+          sent_at?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_activity_at?: string
+          notification_sent?: boolean | null
+          sent_at?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inactivity_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_offers: {
         Row: {
           accountant_id: string
