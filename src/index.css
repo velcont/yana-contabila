@@ -264,17 +264,23 @@ All colors MUST be HSL.
   }
 }
 
-@keyframes pulse-orange {
+/* Calm pulse - YANA Sanctuary (replaced aggressive pulse-orange) */
+@keyframes pulse-calm {
   0%, 100% { 
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.7);
-    border-color: rgb(251, 146, 60);
+    opacity: 1;
   }
   50% { 
-    transform: scale(1.02);
-    box-shadow: 0 0 30px 10px rgba(251, 146, 60, 0.4),
-                0 0 50px 20px rgba(251, 191, 36, 0.2);
-    border-color: rgb(251, 191, 36);
+    opacity: 0.7;
+  }
+}
+
+/* Legacy alias for backwards compatibility */
+@keyframes pulse-orange {
+  0%, 100% { 
+    opacity: 1;
+  }
+  50% { 
+    opacity: 0.85;
   }
 }
 
@@ -298,24 +304,24 @@ All colors MUST be HSL.
   }
 }
 
-/* Button hover effects */
+/* Button hover effects - calm transitions (500ms for sanctuary feel) */
 .btn-hover-lift {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px hsl(var(--primary) / 0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.15);
 }
 
-/* Card hover effects */
+/* Card hover effects - gentle, non-aggressive */
 .card-hover-scale {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-hover-scale:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 24px -8px hsl(var(--primary) / 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px -4px hsl(var(--muted-foreground) / 0.1);
 }
 
 /* Smooth appear animation */
