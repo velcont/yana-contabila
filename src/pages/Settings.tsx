@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Bell, Shield, CreditCard, Brain, LogOut } from 'lucide-react';
+import { User, Bell, Shield, CreditCard, Brain, LogOut, RefreshCw } from 'lucide-react';
 import { AccountDeletion } from '@/components/AccountDeletion';
 import { useAuth } from '@/hooks/useAuth';
 import { YanaHomeButton } from '@/components/YanaHomeButton';
@@ -10,6 +10,7 @@ import MiniFooter from '@/components/MiniFooter';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
 import { SubscriptionDetails } from '@/components/settings/SubscriptionDetails';
 import { useToast } from '@/hooks/use-toast';
+import { performVersionRefresh } from '@/utils/versionRefresh';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,14 @@ const Settings = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleForceRefresh = async () => {
+    toast({
+      title: "Se actualizează...",
+      description: "Se curăță cache-ul și se reîncarcă aplicația.",
+    });
+    await performVersionRefresh();
   };
 
   return (
@@ -157,6 +166,25 @@ const Settings = () => {
                   <label className="text-sm font-medium">ID Utilizator</label>
                   <p className="text-sm text-muted-foreground font-mono">{user?.id}</p>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Actualizare Aplicație</CardTitle>
+                <CardDescription>
+                  Curăță cache-ul browserului pentru a vedea cele mai noi modificări
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={handleForceRefresh}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Actualizează aplicația
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
