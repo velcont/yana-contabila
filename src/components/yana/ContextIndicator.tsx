@@ -1,4 +1,4 @@
-import { Building2, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ContextIndicatorProps {
@@ -8,18 +8,17 @@ interface ContextIndicatorProps {
 
 export function ContextIndicator({ companyName, onClear }: ContextIndicatorProps) {
   return (
-    <div className="flex items-center justify-center px-4 py-2 bg-primary/5 border-b border-primary/10">
-      <div className="flex items-center gap-2 text-sm">
-        <Building2 className="h-4 w-4 text-primary" />
-        <span className="text-muted-foreground">Context activ:</span>
-        <span className="font-medium text-foreground">{companyName}</span>
+    <div className="flex items-center justify-center px-4 py-1.5 border-b border-border/30">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>Context:</span>
+        <span className="font-medium text-foreground/80">{companyName}</span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-5 w-5 ml-1"
+          className="h-4 w-4 opacity-50 hover:opacity-100"
           onClick={onClear}
         >
-          <X className="h-3 w-3" />
+          <X className="h-2.5 w-2.5" />
         </Button>
       </div>
     </div>

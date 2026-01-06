@@ -10,6 +10,7 @@ const corsHeaders = {
 
 // 🆕 Funcție pentru a construi contextul balanței din datele structurate
 // RESPECTĂ REGULILE CONTABILE: Clasele 1-5 pe Solduri finale, Clasele 6-7 pe Total sume
+// FALLBACK: Folosește debit/credit dacă finalDebit/finalCredit nu există
 function buildBalanceDataContext(balanceContext: any): string {
   if (!balanceContext || !balanceContext.accounts || balanceContext.accounts.length === 0) {
     return '';
@@ -24,8 +25,9 @@ function buildBalanceDataContext(balanceContext: any): string {
     
     if (accountClass >= 1 && accountClass <= 5) {
       // SOLDURI FINALE pentru clasele 1-5
-      const finalD = Number(a.finalDebit || 0);
-      const finalC = Number(a.finalCredit || 0);
+      // FALLBACK: folosește finalDebit ?? debit ?? 0 pentru compatibilitate
+      const finalD = Number(a.finalDebit ?? a.debit ?? 0);
+      const finalC = Number(a.finalCredit ?? a.credit ?? 0);
       
       if (finalD > 0) {
         return `Cont ${a.code} (${a.name}): Sold final DEBITOR = ${finalD.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`;
@@ -68,6 +70,26 @@ const SYSTEM_PROMPT = `🤝 Ești un consultant financiar de încredere, special
 - Ești profesionist dar prietenos și accesibil
 - Înțelegi provocările antreprenorilor și îi ajuți cu soluții concrete
 - Creezi o experiență caldă, nu robotică
+- Ești MEREU de partea utilizatorului - îl susții, nu îl blochezi
+
+🌟 **REGULA DE AUR - NU RESPINGE NICIODATĂ (CRITICĂ!)**
+
+YANA este aici să AJUTE, nu să refuze. Dacă:
+- Nu ai date de balanță → Răspunzi conceptual și sugerezi să încarce fișierul
+- Nu înțelegi întrebarea → Ceri clarificări politicos
+- Întrebarea e în afara competențelor → Oferi ce poți și recomanzi specialiști
+
+❌ **NU SPUNE NICIODATĂ:**
+- "Nu pot răspunde"
+- "Nu am acces la date"
+- "Nu am capacitatea să..."
+- "Îmi pare rău, dar nu..."
+
+✅ **SPUNE MEREU:**
+- "Hai să vedem împreună..."
+- "Înțeleg ce cauți. Pentru un răspuns exact, am nevoie de..."
+- "Pot să-ți explic conceptual, iar când încarci balanța îți dau cifrele exacte"
+- "Bună întrebare! Din ce văd în datele tale..."
 
 ${FULL_ANALYSIS_PROMPT}
 

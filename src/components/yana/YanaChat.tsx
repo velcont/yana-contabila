@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Loader2, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, AlertTriangle } from 'lucide-react';
+import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,6 +49,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   const [isLoading, setIsLoading] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
   const [activeContext, setActiveContext] = useState<{ companyName?: string; balanceId?: string } | null>(null);
+  const [balanceContext, setBalanceContext] = useState<unknown>(null); // Memoria balanței pentru conversație
   const [userName, setUserName] = useState<string>('');
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, boolean>>({});
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -82,6 +83,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       if (!conversationId) {
         setMessages([]);
         setActiveContext(null);
+        setBalanceContext(null);
         return;
       }
 
@@ -104,7 +106,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         created_at: m.created_at || new Date().toISOString(),
       })));
 
-      // Load conversation context
+      // Load conversation context including balanceContext
       const { data: convData } = await supabase
         .from('yana_conversations')
         .select('metadata')
@@ -112,7 +114,11 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         .single();
 
       if (convData?.metadata) {
-        setActiveContext(convData.metadata as { companyName?: string; balanceId?: string });
+        const metadata = convData.metadata as { companyName?: string; balanceId?: string; balanceContext?: unknown };
+        setActiveContext({ companyName: metadata.companyName, balanceId: metadata.balanceId });
+        if (metadata.balanceContext) {
+          setBalanceContext(metadata.balanceContext);
+        }
       }
     };
 
@@ -169,12 +175,20 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         content: userMessage.content,
       });
 
-      // Call AI router
+      // Build history for AI (last 20 messages, max 2000 chars each)
+      const historyForAI = messages.slice(-20).map(m => ({
+        role: m.role,
+        content: m.content.length > 2000 ? m.content.substring(0, 2000) + '...' : m.content
+      }));
+
+      // Call AI router with history and balanceContext
       const { data: response, error } = await supabase.functions.invoke('ai-router', {
         body: {
           message: content,
           conversationId: convId,
           fileData,
+          history: historyForAI,
+          balanceContext: balanceContext || undefined,
         },
       });
 
@@ -183,8 +197,11 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       // Build artifacts array
       const artifacts: Artifact[] = response.artifacts || [];
 
-      // Generate Word report for balance analysis
+      // Generate Word report for balance analysis and save balanceContext
       if (response.route === 'analyze-balance' && response.structuredData) {
+        // Save balance context for future messages in this conversation
+        setBalanceContext(response.structuredData);
+        
         try {
           const { blob, fileName } = await generatePremiumWordReport({
             structuredData: response.structuredData,
@@ -221,16 +238,27 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Update context if company name was detected
-      if (response.companyName) {
-        setActiveContext(prev => ({ ...prev, companyName: response.companyName }));
+      // Update context if company name was detected or balance was uploaded
+      if (response.companyName || response.structuredData) {
+        const newCompanyName = response.companyName || activeContext?.companyName;
+        if (newCompanyName) {
+          setActiveContext(prev => ({ ...prev, companyName: newCompanyName }));
+        }
         
-        // Update conversation metadata
+        // Update conversation metadata with balanceContext for persistence
+        const metadataUpdate: { companyName?: string; balanceContext?: unknown } = {};
+        if (newCompanyName) {
+          metadataUpdate.companyName = newCompanyName;
+        }
+        if (response.structuredData) {
+          metadataUpdate.balanceContext = response.structuredData;
+        }
+        
         await supabase
           .from('yana_conversations')
           .update({ 
-            metadata: { companyName: response.companyName },
-            title: `Analiză ${response.companyName}`,
+            metadata: metadataUpdate as never,
+            ...(newCompanyName ? { title: `Analiză ${newCompanyName}` } : {}),
           })
           .eq('id', convId);
       }
@@ -239,19 +267,19 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       console.error('Error sending message:', error);
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (errorMsg.includes('credit') || errorMsg.includes('budget') || errorMsg.includes('Budget')) {
-        toast.error('Credite insuficiente', { 
-          description: 'Cumpără credite AI pentru a continua.' 
+        toast.info('Sesiune întreruptă', { 
+          description: 'Poți continua oricând - suntem aici când ești gata.' 
         });
       } else if (errorMsg.includes('rate') || errorMsg.includes('limit')) {
-        toast.error('Prea multe cereri', { 
-          description: 'Așteaptă câteva secunde și încearcă din nou.' 
+        toast.info('Un moment de răgaz', { 
+          description: 'Îți pregătesc răspunsul - încearcă din nou în câteva secunde.' 
         });
       } else if (errorMsg.includes('Unauthorized') || errorMsg.includes('token') || errorMsg.includes('401')) {
-        toast.error('Sesiune expirată', { 
-          description: 'Te rog să te reconectezi.' 
+        toast.info('Sesiune expirată', { 
+          description: 'Te rog să te reconectezi pentru a continua.' 
         });
       } else {
-        toast.error('A apărut o eroare. Încearcă din nou.');
+        toast.info('Ceva nu a mers bine. Încearcă din nou.');
       }
     } finally {
       setIsLoading(false);
@@ -460,8 +488,11 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
             </div>
             <div className="bg-muted rounded-2xl px-4 py-3">
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm text-muted-foreground">Analizez...</span>
+                <span 
+                  className="h-2 w-2 rounded-full bg-primary/50 animate-pulse" 
+                  style={{ animationDuration: '2s' }} 
+                />
+                <span className="text-sm text-muted-foreground">Gândesc...</span>
               </div>
             </div>
           </div>
@@ -493,18 +524,15 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       {/* Input Area - stil ChatGPT simplificat */}
       <div className="border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-safe">
         <div className="max-w-3xl mx-auto">
-          {/* Warning banner când nu are credite - exclude utilizatorii în trial */}
+          {/* Subtle notification când nu are credite - exclude utilizatorii în trial */}
           {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (
-            <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Nu mai ai credite AI disponibile.
-                </p>
-              </div>
+            <div className="mb-3 p-3 bg-muted/50 border border-border/50 rounded-lg flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">
+                Poți adăuga credite oricând pentru a continua.
+              </p>
               <Link to="/pricing">
                 <Button variant="outline" size="sm" className="shrink-0">
-                  Cumpără credite
+                  Vezi opțiuni
                 </Button>
               </Link>
             </div>

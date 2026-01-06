@@ -72,7 +72,7 @@ export default function Yana() {
   }
 
   return (
-    <div className="flex h-dvh min-h-screen bg-background dark relative">
+    <div className="flex h-dvh min-h-screen bg-background relative">
       {/* Access Overlay - blochează utilizatorii fără acces valid */}
       {hasNoValidAccess && <NoAccessOverlay accessType={accessType} />}
       {/* Sidebar */}
