@@ -17,6 +17,8 @@ interface RouterRequest {
   };
   balanceData?: unknown;
   companyName?: string;
+  history?: Array<{ role: string; content: string }>;
+  balanceContext?: unknown;
 }
 
 interface RouteDecision {
@@ -327,7 +329,7 @@ serve(async (req) => {
     }
 
     const requestData: RouterRequest = await req.json();
-    const { message, conversationId, fileData, companyName } = requestData;
+    const { message, conversationId, fileData, companyName, history, balanceContext } = requestData;
 
     // =============================================================================
     // MEMORIE: Detectez firma și caut conversații similare
@@ -400,7 +402,9 @@ serve(async (req) => {
           route: 'chat-ai',
           payload: {
             message: `Am primit un document: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
-            memoryContext // Adaug contextul de memorie
+            memoryContext, // Adaug contextul de memorie
+            history, // Adaug istoricul conversației
+            balanceContext, // Adaug contextul balanței
           },
           reason: 'Non-balance document uploaded'
         };
@@ -408,8 +412,10 @@ serve(async (req) => {
     } else {
       // No file, detect intent from message
       routeDecision = detectIntent(message);
-      // Adaug memoryContext la payload
+      // Adaug memoryContext, history și balanceContext la payload
       routeDecision.payload.memoryContext = memoryContext;
+      routeDecision.payload.history = history;
+      routeDecision.payload.balanceContext = balanceContext;
     }
 
     // Add conversationId for routes that require it

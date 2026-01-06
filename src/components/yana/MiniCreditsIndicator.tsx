@@ -1,6 +1,6 @@
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
-import { Sparkles, AlertCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -22,27 +22,12 @@ export function MiniCreditsIndicator() {
   // Utilizatorii trial au credite incluse - le tratăm ca și cum ar avea credite
   const effectiveHasCredits = hasCredits || accessType === 'trial';
 
-  // Determinare culoare bazată pe sesiuni rămase
-  const getColorClass = () => {
-    if (!effectiveHasCredits || hasFreeAccess) return 'text-destructive';
-    if (estimatedSessions <= 2) return 'text-destructive';
-    if (estimatedSessions <= 5) return 'text-yellow-500 dark:text-yellow-400';
-    return 'text-primary';
-  };
-
-  const getBgClass = () => {
-    if (!effectiveHasCredits || hasFreeAccess) return 'bg-destructive/10 border-destructive/30';
-    if (estimatedSessions <= 2) return 'bg-destructive/10 border-destructive/30';
-    if (estimatedSessions <= 5) return 'bg-yellow-500/10 border-yellow-500/30';
-    return 'bg-primary/10 border-primary/30';
-  };
-
   const getTooltipContent = () => {
     if (!effectiveHasCredits || hasFreeAccess) {
-      return 'Nu mai ai credite AI. Click pentru a cumpăra.';
+      return 'Poți adăuga credite oricând dorești.';
     }
     if (accessType === 'trial' && trialDaysRemaining !== null) {
-      return `~${estimatedSessions} sesiuni disponibile • ${trialDaysRemaining} zile trial`;
+      return `~${estimatedSessions} sesiuni disponibile • ${trialDaysRemaining} zile rămase`;
     }
     return `~${estimatedSessions} sesiuni AI disponibile`;
   };
@@ -54,22 +39,12 @@ export function MiniCreditsIndicator() {
           <Link
             to={effectiveHasCredits ? '/my-ai-costs' : '/pricing'}
             className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors hover:opacity-80',
-              getBgClass(),
-              getColorClass()
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-500',
+              'bg-muted/50 border-border/50 text-muted-foreground hover:bg-muted'
             )}
           >
-            {effectiveHasCredits ? (
-              <>
-                <Sparkles className="h-3 w-3" />
-                <span>{estimatedSessions}</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="h-3 w-3" />
-                <span>0</span>
-              </>
-            )}
+            <Sparkles className="h-3 w-3" />
+            <span>{effectiveHasCredits ? estimatedSessions : '–'}</span>
           </Link>
         </TooltipTrigger>
         <TooltipContent side="bottom" className="text-xs">
