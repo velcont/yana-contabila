@@ -27,27 +27,27 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  /* Landing Theme - Violet/Indigo (Brand Identity) */
+  /* Landing Theme - Violet/Indigo (Brand Identity) - Calm Sanctuary */
   :root {
-    --background: 250 25% 98%;
-    --foreground: 250 25% 15%;
+    --background: 250 20% 98%;
+    --foreground: 250 20% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 250 25% 15%;
+    --card-foreground: 250 20% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 250 25% 15%;
-    --primary: 262 83% 58%;
+    --popover-foreground: 250 20% 18%;
+    --primary: 262 65% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 250 25% 96%;
-    --secondary-foreground: 250 25% 15%;
-    --muted: 250 25% 96%;
-    --muted-foreground: 250 15% 45%;
-    --accent: 270 75% 60%;
+    --secondary: 250 20% 96%;
+    --secondary-foreground: 250 20% 18%;
+    --muted: 250 18% 96%;
+    --muted-foreground: 250 12% 48%;
+    --accent: 270 55% 60%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 70% 58%;
     --destructive-foreground: 0 0% 98%;
-    --border: 250 20% 88%;
-    --input: 250 20% 88%;
-    --ring: 262 83% 58%;
+    --border: 250 15% 90%;
+    --input: 250 15% 90%;
+    --ring: 262 65% 58%;
     --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -55,140 +55,140 @@ All colors MUST be HSL.
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 83% 58%;
-    --chart-1: 262 83% 58%;
-    --chart-2: 270 75% 60%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 217 91% 45%;
-    --chart-5: 142 76% 36%;
-    --success: 142 76% 36%;
-    --success-foreground: 138 76% 97%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
+    --sidebar-border: 220 10% 92%;
+    --sidebar-ring: 262 65% 58%;
+    --chart-1: 262 65% 58%;
+    --chart-2: 270 55% 60%;
+    --chart-3: 38 75% 52%;
+    --chart-4: 217 70% 48%;
+    --chart-5: 142 60% 40%;
+    --success: 142 60% 40%;
+    --success-foreground: 138 60% 97%;
+    --warning: 38 75% 52%;
+    --warning-foreground: 48 80% 92%;
   }
 
-  /* Entrepreneur Theme - Blue (Trust, Business) */
+  /* Entrepreneur Theme - Blue (Trust, Business) - Calm Sanctuary */
   .theme-entrepreneur {
-    --primary: 217 91% 50%;
+    --primary: 217 70% 52%;
     --primary-foreground: 0 0% 100%;
-    --accent: 200 90% 55%;
+    --accent: 200 70% 55%;
     --accent-foreground: 0 0% 100%;
-    --ring: 217 91% 50%;
-    --sidebar-ring: 217 91% 50%;
-    --chart-1: 217 91% 50%;
-    --chart-2: 200 90% 55%;
-    --chart-3: 210 85% 60%;
-    --chart-4: 195 80% 50%;
-    --chart-5: 185 75% 55%;
-    --success: 142 76% 36%;
-    --success-foreground: 138 76% 97%;
+    --ring: 217 70% 52%;
+    --sidebar-ring: 217 70% 52%;
+    --chart-1: 217 70% 52%;
+    --chart-2: 200 70% 55%;
+    --chart-3: 210 65% 58%;
+    --chart-4: 195 60% 52%;
+    --chart-5: 185 55% 55%;
+    --success: 142 60% 40%;
+    --success-foreground: 138 60% 97%;
   }
 
-  /* Accountant Theme - Green (Growth, Financial) */
+  /* Accountant Theme - Green (Growth, Financial) - Calm Sanctuary */
   .theme-accountant {
-    --primary: 142 76% 40%;
+    --primary: 142 58% 42%;
     --primary-foreground: 0 0% 100%;
-    --accent: 160 70% 48%;
+    --accent: 160 52% 50%;
     --accent-foreground: 0 0% 100%;
-    --ring: 142 76% 40%;
-    --sidebar-ring: 142 76% 40%;
-    --chart-1: 142 76% 40%;
-    --chart-2: 160 70% 48%;
-    --chart-3: 150 65% 45%;
-    --chart-4: 135 60% 42%;
-    --chart-5: 155 75% 46%;
-    --success: 142 76% 36%;
-    --success-foreground: 138 76% 97%;
+    --ring: 142 58% 42%;
+    --sidebar-ring: 142 58% 42%;
+    --chart-1: 142 58% 42%;
+    --chart-2: 160 52% 50%;
+    --chart-3: 150 48% 48%;
+    --chart-4: 135 45% 45%;
+    --chart-5: 155 55% 48%;
+    --success: 142 58% 40%;
+    --success-foreground: 138 55% 97%;
   }
 
-  /* Admin Theme - Orange/Amber (Attention, Control) */
+  /* Admin Theme - Orange/Amber (Attention, Control) - Calm Sanctuary */
   .theme-admin {
-    --primary: 38 92% 50%;
+    --primary: 38 72% 52%;
     --primary-foreground: 0 0% 100%;
-    --accent: 30 85% 55%;
+    --accent: 30 65% 55%;
     --accent-foreground: 0 0% 100%;
-    --ring: 38 92% 50%;
-    --sidebar-ring: 38 92% 50%;
-    --chart-1: 38 92% 50%;
-    --chart-2: 30 85% 55%;
-    --chart-3: 25 80% 50%;
-    --chart-4: 35 75% 55%;
-    --chart-5: 20 90% 48%;
+    --ring: 38 72% 52%;
+    --sidebar-ring: 38 72% 52%;
+    --chart-1: 38 72% 52%;
+    --chart-2: 30 65% 55%;
+    --chart-3: 25 60% 52%;
+    --chart-4: 35 55% 55%;
+    --chart-5: 20 70% 50%;
   }
 
-  /* Dark Mode - Landing (Violet) */
+  /* Dark Mode - Landing (Violet) - Calm Sanctuary */
   .dark {
-    --background: 250 28% 8%;
-    --foreground: 250 20% 98%;
-    --card: 250 25% 12%;
-    --card-foreground: 250 20% 98%;
-    --popover: 250 25% 12%;
-    --popover-foreground: 250 20% 98%;
-    --primary: 262 83% 58%;
+    --background: 250 22% 10%;
+    --foreground: 250 15% 98%;
+    --card: 250 20% 14%;
+    --card-foreground: 250 15% 98%;
+    --popover: 250 20% 14%;
+    --popover-foreground: 250 15% 98%;
+    --primary: 262 65% 60%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 250 25% 16%;
-    --secondary-foreground: 250 20% 98%;
-    --muted: 250 25% 16%;
-    --muted-foreground: 250 15% 65%;
-    --accent: 270 75% 60%;
+    --secondary: 250 20% 18%;
+    --secondary-foreground: 250 15% 98%;
+    --muted: 250 18% 18%;
+    --muted-foreground: 250 12% 62%;
+    --accent: 270 55% 62%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 55% 35%;
     --destructive-foreground: 0 0% 98%;
-    --border: 250 25% 20%;
-    --input: 250 25% 20%;
-    --ring: 262 83% 58%;
+    --border: 250 18% 22%;
+    --input: 250 18% 22%;
+    --ring: 262 65% 60%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary: 262 65% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 262 83% 58%;
-    --chart-1: 262 83% 58%;
-    --chart-2: 270 75% 60%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 217 91% 55%;
-    --chart-5: 142 76% 40%;
-    --success: 142 71% 45%;
-    --success-foreground: 144 76% 97%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 11%;
+    --sidebar-ring: 262 65% 60%;
+    --chart-1: 262 65% 60%;
+    --chart-2: 270 55% 62%;
+    --chart-3: 38 72% 55%;
+    --chart-4: 217 70% 58%;
+    --chart-5: 142 58% 45%;
+    --success: 142 55% 48%;
+    --success-foreground: 144 55% 97%;
+    --warning: 38 72% 55%;
+    --warning-foreground: 48 75% 12%;
   }
 
-  /* Dark Mode - Entrepreneur */
+  /* Dark Mode - Entrepreneur - Calm Sanctuary */
   .dark.theme-entrepreneur {
-    --primary: 217 91% 58%;
-    --accent: 200 90% 62%;
-    --ring: 217 91% 58%;
-    --sidebar-primary: 217 91% 58%;
-    --sidebar-ring: 217 91% 58%;
-    --chart-1: 217 91% 58%;
-    --chart-2: 200 90% 62%;
-    --chart-3: 210 85% 65%;
-    --success: 142 71% 45%;
+    --primary: 217 70% 58%;
+    --accent: 200 70% 62%;
+    --ring: 217 70% 58%;
+    --sidebar-primary: 217 70% 58%;
+    --sidebar-ring: 217 70% 58%;
+    --chart-1: 217 70% 58%;
+    --chart-2: 200 70% 62%;
+    --chart-3: 210 65% 62%;
+    --success: 142 55% 48%;
   }
 
-  /* Dark Mode - Accountant */
+  /* Dark Mode - Accountant - Calm Sanctuary */
   .dark.theme-accountant {
-    --primary: 142 76% 45%;
-    --accent: 160 70% 52%;
-    --ring: 142 76% 45%;
-    --sidebar-primary: 142 76% 45%;
-    --sidebar-ring: 142 76% 45%;
-    --chart-1: 142 76% 45%;
-    --chart-2: 160 70% 52%;
-    --success: 142 71% 45%;
+    --primary: 142 55% 48%;
+    --accent: 160 50% 55%;
+    --ring: 142 55% 48%;
+    --sidebar-primary: 142 55% 48%;
+    --sidebar-ring: 142 55% 48%;
+    --chart-1: 142 55% 48%;
+    --chart-2: 160 50% 55%;
+    --success: 142 55% 48%;
   }
 
-  /* Dark Mode - Admin */
+  /* Dark Mode - Admin - Calm Sanctuary */
   .dark.theme-admin {
-    --primary: 38 92% 50%;
-    --accent: 30 85% 60%;
-    --ring: 38 92% 50%;
-    --sidebar-primary: 38 92% 50%;
-    --sidebar-ring: 38 92% 50%;
+    --primary: 38 70% 55%;
+    --accent: 30 62% 58%;
+    --ring: 38 70% 55%;
+    --sidebar-primary: 38 70% 55%;
+    --sidebar-ring: 38 70% 55%;
   }
 }
 
