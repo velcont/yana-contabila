@@ -366,6 +366,10 @@ const Admin = () => {
                 <Brain className="h-4 w-4 mr-2" />
                 🧠 Conștiința YANA
               </TabsTrigger>
+              <TabsTrigger value="corrections">
+                <PenLine className="h-4 w-4 mr-2" />
+                ✏️ Corecții AI
+              </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
@@ -815,6 +819,12 @@ const Admin = () => {
           <TabsContent value="consciousness">
             <Suspense fallback={<TabContentLoader />}>
               <ConsciousnessDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="corrections">
+            <Suspense fallback={<TabContentLoader />}>
+              <AICorrectionsPanel />
             </Suspense>
           </TabsContent>
         </Tabs>

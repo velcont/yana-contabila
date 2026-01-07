@@ -1,7 +1,15 @@
-// Force redeploy v2 - First message validation skip
+// Force redeploy v3 - Fixed assets classification + Perplexity fallback + Corrections learning
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://esm.sh/zod@3.22.4";
+
+// Import Fixed Assets Catalog
+import { 
+  findBestMatch, 
+  isFixedAssetQuestion, 
+  formatClassificationResponse,
+  CATALOG_MIJLOACE_FIXE
+} from "../_shared/clasificare-mijloace-fixe.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,6 +87,191 @@ async function generateStrategyCacheKey(
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ============================================================================
+// PERPLEXITY API - Fallback pentru clasificare mijloace fixe
+// ============================================================================
+interface PerplexityResult {
+  content: string;
+  citations: string[];
+  found: boolean;
+}
+
+async function searchPerplexityForClassification(query: string): Promise<PerplexityResult> {
+  const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY_1");
+  
+  if (!PERPLEXITY_API_KEY) {
+    console.log("[STRATEGIC-ADVISOR] Perplexity API key not configured, skipping web search");
+    return { content: "", citations: [], found: false };
+  }
+  
+  try {
+    console.log("[STRATEGIC-ADVISOR] 🔍 Searching Perplexity for:", query);
+    
+    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          { 
+            role: "system", 
+            content: `Ești expert în legislație fiscală românească, specializat în clasificarea mijloacelor fixe conform HG 2139/2004 și Catalogul privind clasificarea și duratele normale de funcționare a mijloacelor fixe.
+
+Când primești o întrebare despre clasificare mijloace fixe:
+1. Identifică codul de clasificare exact (format: X.X.X.X.X)
+2. Specifică grupa și subgrupa
+3. Oferă durata normală de amortizare (ani)
+4. Dacă există mai multe variante posibile, menționează-le
+
+Răspunde concis și precis, cu date concrete din legislație.`
+          },
+          { role: "user", content: query }
+        ],
+        search_recency_filter: "year"
+      })
+    });
+    
+    if (!response.ok) {
+      console.error("[STRATEGIC-ADVISOR] Perplexity error:", response.status);
+      return { content: "", citations: [], found: false };
+    }
+    
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    const citations = data.citations || [];
+    
+    console.log("[STRATEGIC-ADVISOR] ✅ Perplexity response received, length:", content.length);
+    
+    return { content, citations, found: content.length > 50 };
+  } catch (error) {
+    console.error("[STRATEGIC-ADVISOR] Perplexity search error:", error);
+    return { content: "", citations: [], found: false };
+  }
+}
+
+// ============================================================================
+// DETECTARE ȘI SALVARE CORECȚII UTILIZATOR
+// ============================================================================
+interface CorrectionResult {
+  isCorrection: boolean;
+  correctAnswer?: string;
+  confirmationMessage?: string;
+}
+
+const CORRECTION_PATTERNS = [
+  /răspuns(?:ul)?\s*corect\s*(?:ar fi fost|este|era)[:\s]*(.+)/i,
+  /cod(?:ul)?\s*corect\s*(?:este|era)[:\s]*(.+)/i,
+  /greșit[,!]?\s*(?:corect|de fapt)\s*(?:este|era)[:\s]*(.+)/i,
+  /nu\s*e\s*corect[,!]?\s*(?:răspunsul|codul)?\s*(?:corect|adevărat)\s*(?:este|era)[:\s]*(.+)/i,
+  /(?:ai\s*)?(?:greșit|încurcat)[,!]?\s*(?:este|era|ar fi)[:\s]*(.+)/i,
+  /(?:de\s*fapt|în\s*realitate)\s*(?:codul|răspunsul|clasificarea)\s*(?:este|era)[:\s]*(.+)/i
+];
+
+async function detectAndSaveCorrection(
+  message: string,
+  userId: string,
+  conversationId: string,
+  supabaseClient: any
+): Promise<CorrectionResult> {
+  // Verificăm dacă mesajul pare a fi o corecție
+  for (const pattern of CORRECTION_PATTERNS) {
+    const match = message.match(pattern);
+    if (match) {
+      const correctAnswer = match[1].trim();
+      
+      console.log("[STRATEGIC-ADVISOR] 📝 Correction detected:", correctAnswer);
+      
+      // Obținem ultimul mesaj pentru context
+      const { data: lastMessages } = await supabaseClient
+        .from('conversation_history')
+        .select('content, role')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(4);
+      
+      const lastUserQuestion = lastMessages?.find((m: any) => m.role === 'user' && m.content !== message)?.content || '';
+      const lastAssistantAnswer = lastMessages?.find((m: any) => m.role === 'assistant')?.content || '';
+      
+      // Salvăm corecția în tabel
+      const { error: insertError } = await supabaseClient
+        .from('ai_corrections')
+        .insert({
+          user_id: userId,
+          conversation_id: conversationId,
+          original_question: lastUserQuestion.slice(0, 2000),
+          wrong_answer: lastAssistantAnswer.slice(0, 2000),
+          correct_answer: correctAnswer.slice(0, 2000),
+          correction_type: 'clasificare_mijloace_fixe'
+        });
+      
+      if (insertError) {
+        console.error("[STRATEGIC-ADVISOR] Error saving correction:", insertError);
+      } else {
+        console.log("[STRATEGIC-ADVISOR] ✅ Correction saved to ai_corrections");
+      }
+      
+      return {
+        isCorrection: true,
+        correctAnswer,
+        confirmationMessage: `✅ **Mulțumesc pentru corecție!**
+
+Am înregistrat că răspunsul corect este: **${correctAnswer}**
+
+Această corecție va fi verificată de echipa noastră și, odată validată, va îmbunătăți calitatea răspunsurilor mele viitoare.
+
+💡 Apreciez feedback-ul tău - astfel învăț și devin mai precisă!`
+      };
+    }
+  }
+  
+  return { isCorrection: false };
+}
+
+// ============================================================================
+// VERIFICARE CORECȚII EXISTENTE VALIDATE
+// ============================================================================
+async function checkExistingCorrections(
+  message: string,
+  supabaseClient: any
+): Promise<string | null> {
+  // Extragem cuvinte cheie din mesaj
+  const keywords = message
+    .toLowerCase()
+    .replace(/[^\wăâîșțĂÂÎȘȚ\s]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 3)
+    .slice(0, 5);
+  
+  if (keywords.length === 0) return null;
+  
+  // Căutăm corecții validate care conțin cuvintele cheie
+  const { data: corrections } = await supabaseClient
+    .from('ai_corrections')
+    .select('correct_answer, original_question')
+    .eq('validated_by_admin', true)
+    .limit(10);
+  
+  if (!corrections || corrections.length === 0) return null;
+  
+  // Verificăm dacă vreo corecție se potrivește
+  for (const correction of corrections) {
+    const questionLower = (correction.original_question || '').toLowerCase();
+    const matchCount = keywords.filter(kw => questionLower.includes(kw)).length;
+    
+    // Dacă cel puțin 2 cuvinte cheie se potrivesc, folosim corecția
+    if (matchCount >= 2) {
+      console.log("[STRATEGIC-ADVISOR] 📚 Found validated correction matching query");
+      return correction.correct_answer;
+    }
+  }
+  
+  return null;
 }
 
 // ============================================================================
@@ -1331,6 +1524,127 @@ ${simulationResult}
     // ============================================================================
     // NORMAL FLOW (NON-SIMULATION)
     // ============================================================================
+
+    // ============================================================================
+    // STEP 0A: DETECTARE CORECȚII DE LA UTILIZATOR
+    // ============================================================================
+    const correctionResult = await detectAndSaveCorrection(message, user.id, conversationId, supabaseClient);
+    
+    if (correctionResult.isCorrection && correctionResult.confirmationMessage) {
+      console.log("[STRATEGIC-ADVISOR] 📝 Correction flow - returning confirmation");
+      
+      // Salvăm în istoric
+      await supabaseClient.from("conversation_history").insert([
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "user",
+          content: message,
+          metadata: { type: "strategic", module: "strategic", phase: "correction" }
+        },
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          role: "assistant",
+          content: correctionResult.confirmationMessage,
+          metadata: { type: "strategic", module: "strategic", phase: "correction_ack" }
+        }
+      ]);
+      
+      return new Response(
+        JSON.stringify({ response: correctionResult.confirmationMessage }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // ============================================================================
+    // STEP 0B: ÎNTREBĂRI DESPRE CLASIFICARE MIJLOACE FIXE
+    // ============================================================================
+    if (isFixedAssetQuestion(message)) {
+      console.log("[STRATEGIC-ADVISOR] 📋 Fixed asset classification question detected");
+      
+      // 1. Verificăm mai întâi corecțiile validate de admin
+      const existingCorrection = await checkExistingCorrections(message, supabaseClient);
+      
+      if (existingCorrection) {
+        console.log("[STRATEGIC-ADVISOR] ✅ Using validated correction from database");
+        const correctionResponse = `📋 **Clasificare Mijloace Fixe** (din baza de cunoștințe validată)
+
+${existingCorrection}
+
+---
+💡 *Răspuns bazat pe corecții anterioare validate de experți.*`;
+
+        await supabaseClient.from("conversation_history").insert([
+          { user_id: user.id, conversation_id: conversationId, role: "user", content: message, metadata: { type: "strategic", phase: "fixed_asset_correction" } },
+          { user_id: user.id, conversation_id: conversationId, role: "assistant", content: correctionResponse, metadata: { type: "strategic", phase: "fixed_asset_correction_response" } }
+        ]);
+
+        return new Response(
+          JSON.stringify({ response: correctionResponse }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+      
+      // 2. Căutăm în catalogul local
+      const catalogResults = findBestMatch(message);
+      
+      if (catalogResults.length > 0 && catalogResults[0].confidence > 0.7) {
+        console.log("[STRATEGIC-ADVISOR] 📚 Found in local catalog with confidence:", catalogResults[0].confidence);
+        const bestMatch = catalogResults[0];
+        const catalogResponse = formatClassificationResponse(bestMatch.mijlocFix, bestMatch.confidence);
+        
+        // Dacă confidența e medie (0.7-0.85), adăugăm disclaimer
+        let finalResponse = catalogResponse;
+        if (bestMatch.confidence < 0.85) {
+          finalResponse += `\n\n⚠️ *Confidența clasificării: ${(bestMatch.confidence * 100).toFixed(0)}%. Pentru cazuri specifice, verifică cu un expert contabil.*`;
+        }
+        
+        await supabaseClient.from("conversation_history").insert([
+          { user_id: user.id, conversation_id: conversationId, role: "user", content: message, metadata: { type: "strategic", phase: "fixed_asset_catalog" } },
+          { user_id: user.id, conversation_id: conversationId, role: "assistant", content: finalResponse, metadata: { type: "strategic", phase: "fixed_asset_catalog_response" } }
+        ]);
+
+        return new Response(
+          JSON.stringify({ response: finalResponse }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+      
+      // 3. Fallback: Căutare Perplexity pentru întrebări necunoscute
+      console.log("[STRATEGIC-ADVISOR] 🔍 Local catalog insufficient, trying Perplexity...");
+      const perplexityResult = await searchPerplexityForClassification(
+        `catalog clasificare mijloace fixe HG 2139/2004 România cod clasificare ${message}`
+      );
+      
+      if (perplexityResult.found) {
+        console.log("[STRATEGIC-ADVISOR] ✅ Perplexity found result");
+        
+        let perplexityResponse = `📋 **Clasificare Mijloace Fixe** (căutare web)
+
+${perplexityResult.content}`;
+
+        if (perplexityResult.citations.length > 0) {
+          perplexityResponse += `\n\n📎 **Surse:**\n${perplexityResult.citations.slice(0, 3).map(c => `• ${c}`).join('\n')}`;
+        }
+
+        perplexityResponse += `\n\n---\n⚠️ *Informații din surse web. Te rog verifică cu un expert contabil pentru confirmare.*
+💡 *Dacă răspunsul nu este corect, te rog corectează-mă spunând "răspunsul corect este..." și voi învăța pentru viitor.*`;
+
+        await supabaseClient.from("conversation_history").insert([
+          { user_id: user.id, conversation_id: conversationId, role: "user", content: message, metadata: { type: "strategic", phase: "fixed_asset_perplexity" } },
+          { user_id: user.id, conversation_id: conversationId, role: "assistant", content: perplexityResponse, metadata: { type: "strategic", phase: "fixed_asset_perplexity_response" } }
+        ]);
+
+        return new Response(
+          JSON.stringify({ response: perplexityResponse }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+      
+      // 4. Dacă nici Perplexity nu găsește, continuăm cu flow-ul normal (AI general)
+      console.log("[STRATEGIC-ADVISOR] ⚠️ No specific classification found, falling through to general AI");
+    }
 
     // VALIDARE DATE - cerere automate de completare
     let validationWarnings: string[] = [];
