@@ -415,7 +415,29 @@ serve(async (req) => {
       // Adaug memoryContext, history și balanceContext la payload
       routeDecision.payload.memoryContext = memoryContext;
       routeDecision.payload.history = history;
-      routeDecision.payload.balanceContext = balanceContext;
+      
+      // 🆕 FIX: Fallback - recover balanceContext from conversation metadata if not provided
+      let effectiveBalanceContext = balanceContext;
+      if (!effectiveBalanceContext && conversationId) {
+        try {
+          const { data: convData } = await supabase
+            .from('yana_conversations')
+            .select('metadata')
+            .eq('id', conversationId)
+            .single();
+          
+          if (convData?.metadata) {
+            const metadata = convData.metadata as { balanceContext?: unknown };
+            if (metadata.balanceContext) {
+              effectiveBalanceContext = metadata.balanceContext;
+              console.log(`[AI-Router] FALLBACK: Recovered balanceContext from conversation ${conversationId}`);
+            }
+          }
+        } catch (err) {
+          console.warn('[AI-Router] Failed to recover balanceContext:', err);
+        }
+      }
+      routeDecision.payload.balanceContext = effectiveBalanceContext;
     }
 
     // Add conversationId for routes that require it
