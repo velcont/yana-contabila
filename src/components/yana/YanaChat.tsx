@@ -77,9 +77,14 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     fetchProfile();
   }, [user]);
 
+  // Track if conversation is fully loaded (for blocking send)
+  const conversationLoadedRef = useRef(false);
+
   // Load messages when conversation changes
   useEffect(() => {
     const loadMessages = async () => {
+      conversationLoadedRef.current = false;
+      
       if (!conversationId) {
         setMessages([]);
         setActiveContext(null);
@@ -120,6 +125,8 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           setBalanceContext(metadata.balanceContext);
         }
       }
+      
+      conversationLoadedRef.current = true;
     };
 
     loadMessages();
@@ -159,6 +166,26 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         onConversationCreated(convId);
       }
 
+      // 🆕 FIX: Ensure balanceContext is loaded before sending (blocking load)
+      let effectiveBalanceContext = balanceContext;
+      if (convId && !conversationLoadedRef.current && !effectiveBalanceContext) {
+        console.log('[YanaChat] Conversation not fully loaded, fetching balanceContext from DB...');
+        const { data: convData } = await supabase
+          .from('yana_conversations')
+          .select('metadata')
+          .eq('id', convId)
+          .single();
+        
+        if (convData?.metadata) {
+          const metadata = convData.metadata as { balanceContext?: unknown };
+          if (metadata.balanceContext) {
+            effectiveBalanceContext = metadata.balanceContext;
+            setBalanceContext(metadata.balanceContext);
+            console.log('[YanaChat] Recovered balanceContext from DB');
+          }
+        }
+      }
+
       // Add user message to UI immediately
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
@@ -188,7 +215,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           conversationId: convId,
           fileData,
           history: historyForAI,
-          balanceContext: balanceContext || undefined,
+          balanceContext: effectiveBalanceContext || undefined,
         },
       });
 
@@ -254,10 +281,22 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           metadataUpdate.balanceContext = response.structuredData;
         }
         
+        // 🆕 FIX: Merge metadata instead of replacing to preserve balanceContext
+        const { data: existingConv } = await supabase
+          .from('yana_conversations')
+          .select('metadata')
+          .eq('id', convId)
+          .single();
+
+        const existingMetadata = (existingConv?.metadata || {}) as Record<string, unknown>;
+
         await supabase
           .from('yana_conversations')
           .update({ 
-            metadata: metadataUpdate as never,
+            metadata: {
+              ...existingMetadata,
+              ...metadataUpdate
+            } as never,
             ...(newCompanyName ? { title: `Analiză ${newCompanyName}` } : {}),
           })
           .eq('id', convId);

@@ -1151,7 +1151,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext, memoryContext } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1159,8 +1159,36 @@ serve(async (req) => {
     console.log(`[chat-ai][${requestId}] History length: ${history.length} messages`);
     console.log(`[chat-ai][${requestId}] Stream mode: ${streamResponse}`);
     console.log(`[chat-ai][${requestId}] Summary type: ${summaryType}`);
-    // 🆕 LOGGING pentru balanceContext și memoryContext
-    console.log(`[chat-ai][${requestId}] Balance context: ${balanceContext ? `${balanceContext.accounts?.length || 0} accounts for ${balanceContext.company || 'unknown'}` : 'null'}`);
+    console.log(`[chat-ai][${requestId}] ConversationId: ${conversationId || 'none'}`);
+    
+    // 🆕 FIX: Fallback - recover balanceContext from conversation metadata if not provided
+    let balanceContext = rawBalanceContext;
+    if (!balanceContext && conversationId) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+        
+        const { data: convData } = await supabaseAdmin
+          .from('yana_conversations')
+          .select('metadata')
+          .eq('id', conversationId)
+          .single();
+        
+        if (convData?.metadata) {
+          const metadata = convData.metadata as { balanceContext?: unknown };
+          if (metadata.balanceContext) {
+            balanceContext = metadata.balanceContext as typeof rawBalanceContext;
+            console.log(`[chat-ai][${requestId}] FALLBACK: Recovered balanceContext from conversation metadata`);
+          }
+        }
+      } catch (err) {
+        console.warn(`[chat-ai][${requestId}] Failed to recover balanceContext:`, err);
+      }
+    }
+    
+    // 🆕 LOGGING îmbunătățit pentru balanceContext și memoryContext
+    console.log(`[chat-ai][${requestId}] Balance context: ${balanceContext ? `${balanceContext.accounts?.length || 0} accounts for ${balanceContext.company || 'unknown'}` : 'null (no fallback available)'}`);
     console.log(`[chat-ai][${requestId}] Memory context: ${memoryContext ? `${memoryContext.length} chars` : 'null'}`);
 
 
