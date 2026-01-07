@@ -109,18 +109,24 @@ async function searchPerplexityForClassification(query: string): Promise<Perplex
   try {
     console.log("[STRATEGIC-ADVISOR] 🔍 Searching Perplexity for:", query);
     
-    const response = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "sonar",
-        messages: [
-          { 
-            role: "system", 
-            content: `Ești expert în legislație fiscală românească, specializat în clasificarea mijloacelor fixe conform HG 2139/2004 și Catalogul privind clasificarea și duratele normale de funcționare a mijloacelor fixe.
+    // Folosim retryWithBackoff cu timeout 15s, max 2 retry-uri, backoff 1s/2s
+    // Retry doar pentru erori temporare (timeout, 5xx), nu pentru 4xx
+    const response = await retryWithBackoff(
+      async () => {
+        const res = await fetchWithTimeout(
+          "https://api.perplexity.ai/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${PERPLEXITY_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "sonar",
+              messages: [
+                { 
+                  role: "system", 
+                  content: `Ești expert în legislație fiscală românească, specializat în clasificarea mijloacelor fixe conform HG 2139/2004 și Catalogul privind clasificarea și duratele normale de funcționare a mijloacelor fixe.
 
 Când primești o întrebare despre clasificare mijloace fixe:
 1. Identifică codul de clasificare exact (format: X.X.X.X.X)
@@ -129,15 +135,34 @@ Când primești o întrebare despre clasificare mijloace fixe:
 4. Dacă există mai multe variante posibile, menționează-le
 
 Răspunde concis și precis, cu date concrete din legislație.`
+                },
+                { role: "user", content: query }
+              ],
+              search_recency_filter: "year"
+            })
           },
-          { role: "user", content: query }
-        ],
-        search_recency_filter: "year"
-      })
-    });
+          15000 // Timeout: 15 secunde
+        );
+        
+        // Verificare status și decizie retry
+        if (!res.ok) {
+          if (res.status >= 500) {
+            // 5xx - erori server temporare, reîncercăm
+            console.warn(`[STRATEGIC-ADVISOR] Perplexity server error ${res.status}, retrying...`);
+            throw new Error(`Perplexity server error: ${res.status}`);
+          }
+          // 4xx - erori client permanente, NU reîncercăm
+          console.error(`[STRATEGIC-ADVISOR] Perplexity client error: ${res.status}`);
+          return res;
+        }
+        return res;
+      },
+      2,    // Max 2 retry-uri (total 3 încercări)
+      1000  // Backoff: 1s, 2s (exponențial)
+    );
     
     if (!response.ok) {
-      console.error("[STRATEGIC-ADVISOR] Perplexity error:", response.status);
+      // 4xx error - nu s-a reîncercat, returnăm fallback
       return { content: "", citations: [], found: false };
     }
     
