@@ -436,6 +436,57 @@ export type Database = {
           },
         ]
       }
+      ai_corrections: {
+        Row: {
+          admin_notes: string | null
+          applied_to_knowledge: boolean | null
+          conversation_id: string | null
+          correct_answer: string
+          correction_type: string | null
+          created_at: string | null
+          id: string
+          original_question: string
+          updated_at: string | null
+          user_id: string
+          validated_at: string | null
+          validated_by: string | null
+          validated_by_admin: boolean | null
+          wrong_answer: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          applied_to_knowledge?: boolean | null
+          conversation_id?: string | null
+          correct_answer: string
+          correction_type?: string | null
+          created_at?: string | null
+          id?: string
+          original_question: string
+          updated_at?: string | null
+          user_id: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validated_by_admin?: boolean | null
+          wrong_answer?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          applied_to_knowledge?: boolean | null
+          conversation_id?: string | null
+          correct_answer?: string
+          correction_type?: string | null
+          created_at?: string | null
+          id?: string
+          original_question?: string
+          updated_at?: string | null
+          user_id?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validated_by_admin?: boolean | null
+          wrong_answer?: string | null
+        }
+        Relationships: []
+      }
       ai_experiments: {
         Row: {
           action_taken: string
