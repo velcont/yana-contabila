@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio } from 'lucide-react';
+import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio, TrendingUp, Heart } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast as sonnerToast } from 'sonner';
@@ -31,6 +32,25 @@ interface Profile {
   trial_ends_at: string | null;
   stripe_subscription_id: string | null;
 }
+
+interface YanaRelationship {
+  user_id: string;
+  hook_score: number;
+  relationship_score: number;
+  hook_reached_at: string | null;
+  total_conversations: number;
+  last_interaction_at: string | null;
+  consecutive_return_days: number;
+}
+
+// Helper pentru engagement status
+const getEngagementStatus = (score: number) => {
+  if (score >= 8) return { label: 'Loial', color: 'bg-emerald-500', textColor: 'text-emerald-600' };
+  if (score >= 6) return { label: 'Atașat', color: 'bg-green-500', textColor: 'text-green-600' };
+  if (score >= 4) return { label: 'Angajat', color: 'bg-yellow-500', textColor: 'text-yellow-600' };
+  if (score >= 2) return { label: 'Interesat', color: 'bg-orange-500', textColor: 'text-orange-600' };
+  return { label: 'Nou', color: 'bg-gray-400', textColor: 'text-gray-500' };
+};
 
 interface ActiveSession {
   user_id: string;
