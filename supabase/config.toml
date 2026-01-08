@@ -200,3 +200,6 @@ verify_jwt = false
 
 [functions.dream-generator]
 verify_jwt = false
+
+[functions.cleanup-yana-data]
+verify_jwt = false

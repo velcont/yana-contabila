@@ -134,6 +134,39 @@ serve(async (req) => {
       console.warn("user_roles delete warning:", rolesDelError);
     }
 
+    // 🆕 GDPR: Ștergere date YANA Existential Continuity
+    console.log(`[delete-user] Cleaning up YANA data for user ${userId}...`);
+    
+    // Șterge yana_relationships
+    const { error: yanaRelError } = await supabaseClient
+      .from("yana_relationships")
+      .delete()
+      .eq("user_id", userId);
+    if (yanaRelError) console.warn("yana_relationships delete warning:", yanaRelError);
+    
+    // Șterge yana_journal
+    const { error: yanaJournalError } = await supabaseClient
+      .from("yana_journal")
+      .delete()
+      .eq("user_id", userId);
+    if (yanaJournalError) console.warn("yana_journal delete warning:", yanaJournalError);
+    
+    // Șterge hook_signals
+    const { error: hookSignalsError } = await supabaseClient
+      .from("hook_signals")
+      .delete()
+      .eq("user_id", userId);
+    if (hookSignalsError) console.warn("hook_signals delete warning:", hookSignalsError);
+    
+    // Șterge user_journey (dacă există)
+    const { error: userJourneyError } = await supabaseClient
+      .from("user_journey")
+      .delete()
+      .eq("user_id", userId);
+    if (userJourneyError) console.warn("user_journey delete warning:", userJourneyError);
+    
+    console.log(`[delete-user] YANA data cleanup completed for user ${userId}`);
+
     console.log(`User ${userId} deleted successfully by admin ${requestingUser.email}`);
 
     // Trimite email de confirmare ștergere (nu blochez ștergerea dacă emailul eșuează)
