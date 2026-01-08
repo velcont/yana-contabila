@@ -1796,6 +1796,46 @@ serve(async (req) => {
           }
           // === END TRACKING ===
 
+          // === HOOK SIGNALS: Detectează semnale de engagement (fire and forget) ===
+          if (userId && conversationId && accumulatedContent.length > 0) {
+            // Fire and forget - nu blochează răspunsul
+            (async () => {
+              try {
+                const hookPayload = {
+                  userId,
+                  conversationId,
+                  messages: [
+                    { role: 'user', content: message, timestamp: new Date().toISOString() },
+                    { role: 'assistant', content: accumulatedContent, timestamp: new Date().toISOString() }
+                  ],
+                  sessionId: requestId
+                };
+                
+                const hookResponse = await fetch(
+                  `${Deno.env.get("SUPABASE_URL")}/functions/v1/detect-hook-signals`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+                    },
+                    body: JSON.stringify(hookPayload)
+                  }
+                );
+                
+                if (hookResponse.ok) {
+                  const hookResult = await hookResponse.json();
+                  console.log(`[chat-ai][${requestId}] Hook signals detected: score=${hookResult.sessionScore}, signals=${hookResult.signalsCount}`);
+                } else {
+                  console.warn(`[chat-ai][${requestId}] Hook signals failed:`, hookResponse.status);
+                }
+              } catch (hookError) {
+                console.warn(`[chat-ai][${requestId}] Hook signals error:`, hookError);
+              }
+            })();
+          }
+          // === END HOOK SIGNALS ===
+
           // === ÎNVĂȚARE AUTOMATĂ: Salvăm răspunsul și extragem pattern-ul ===
           const responseTime = Date.now() - startTime;
           

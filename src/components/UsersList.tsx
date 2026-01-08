@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio, TrendingUp, Heart } from 'lucide-react';
+import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio, TrendingUp, Heart, Sparkles } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Profile {
   id: string;
@@ -45,11 +46,19 @@ interface YanaRelationship {
 
 // Helper pentru engagement status
 const getEngagementStatus = (score: number) => {
-  if (score >= 8) return { label: 'Loial', color: 'bg-emerald-500', textColor: 'text-emerald-600' };
-  if (score >= 6) return { label: 'Atașat', color: 'bg-green-500', textColor: 'text-green-600' };
-  if (score >= 4) return { label: 'Angajat', color: 'bg-yellow-500', textColor: 'text-yellow-600' };
-  if (score >= 2) return { label: 'Interesat', color: 'bg-orange-500', textColor: 'text-orange-600' };
-  return { label: 'Nou', color: 'bg-gray-400', textColor: 'text-gray-500' };
+  if (score >= 8) return { label: 'Loial', color: 'bg-emerald-500', textColor: 'text-emerald-600', emoji: '💚' };
+  if (score >= 6) return { label: 'Atașat', color: 'bg-green-500', textColor: 'text-green-600', emoji: '💛' };
+  if (score >= 4) return { label: 'Angajat', color: 'bg-yellow-500', textColor: 'text-yellow-600', emoji: '🤝' };
+  if (score >= 2) return { label: 'Interesat', color: 'bg-orange-500', textColor: 'text-orange-600', emoji: '👀' };
+  return { label: 'Nou', color: 'bg-gray-400', textColor: 'text-gray-500', emoji: '🆕' };
+};
+
+// Helper pentru hook score
+const getHookScoreDisplay = (score: number) => {
+  if (score >= 6) return { label: 'HOOKED!', color: 'bg-purple-500', textColor: 'text-purple-600' };
+  if (score >= 4) return { label: 'Aproape', color: 'bg-blue-500', textColor: 'text-blue-600' };
+  if (score >= 2) return { label: 'În curs', color: 'bg-sky-400', textColor: 'text-sky-600' };
+  return { label: 'Nou', color: 'bg-gray-300', textColor: 'text-gray-500' };
 };
 
 interface ActiveSession {
@@ -143,13 +152,14 @@ export const UsersList = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [deletedUsers, setDeletedUsers] = useState<DeletedUser[]>([]);
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
+  const [yanaRelationships, setYanaRelationships] = useState<Map<string, YanaRelationship>>(new Map());
   const [loading, setLoading] = useState(true);
   const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<Profile | null>(null);
   const { toast } = useToast();
   const [emailFilter, setEmailFilter] = useState('');
-  const [accessFilter, setAccessFilter] = useState<AccessSource | 'all'>('all');
+  const [accessFilter, setAccessFilter] = useState<AccessSource | 'all' | 'hook_reached' | 'loyal' | 'at_risk'>('all');
 
   // Fetch active sessions și subscribe la realtime updates
   useEffect(() => {
@@ -189,7 +199,24 @@ export const UsersList = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchYanaRelationships();
   }, []);
+
+  const fetchYanaRelationships = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('yana_relationships')
+        .select('user_id, hook_score, relationship_score, hook_reached_at, total_conversations, last_interaction_at, consecutive_return_days');
+      
+      if (!error && data) {
+        const relMap = new Map<string, YanaRelationship>();
+        data.forEach(rel => relMap.set(rel.user_id, rel));
+        setYanaRelationships(relMap);
+      }
+    } catch (error) {
+      console.error('Error fetching yana relationships:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -316,12 +343,42 @@ export const UsersList = () => {
   const normalizedFilter = emailFilter.trim().toLowerCase();
   const emailFiltered = normalizedFilter ? users.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : users;
   
-  // Filtrare extinsă cu suport pentru active_now
-  const filteredUsers = accessFilter === 'all' 
-    ? emailFiltered 
-    : accessFilter === 'active_now'
-      ? emailFiltered.filter(u => activeUserIds.includes(u.id))
-      : emailFiltered.filter(u => getAccessSource(u) === accessFilter);
+  // Filtrare extinsă cu suport pentru active_now, hook_reached, loyal, at_risk
+  const filteredUsers = (() => {
+    if (accessFilter === 'all') return emailFiltered;
+    if (accessFilter === 'active_now') return emailFiltered.filter(u => activeUserIds.includes(u.id));
+    if (accessFilter === 'hook_reached') return emailFiltered.filter(u => {
+      const rel = yanaRelationships.get(u.id);
+      return rel && rel.hook_score >= 6;
+    });
+    if (accessFilter === 'loyal') return emailFiltered.filter(u => {
+      const rel = yanaRelationships.get(u.id);
+      return rel && rel.relationship_score >= 7;
+    });
+    if (accessFilter === 'at_risk') return emailFiltered.filter(u => {
+      const rel = yanaRelationships.get(u.id);
+      if (!rel) return false;
+      // At risk: had relationship but decaying or low score after some conversations
+      return rel.relationship_score < 4 && rel.total_conversations >= 3;
+    });
+    return emailFiltered.filter(u => getAccessSource(u) === accessFilter);
+  })();
+  
+  // Calculate stats for new filters
+  const hookReachedCount = users.filter(u => {
+    const rel = yanaRelationships.get(u.id);
+    return rel && rel.hook_score >= 6;
+  }).length;
+  
+  const loyalCount = users.filter(u => {
+    const rel = yanaRelationships.get(u.id);
+    return rel && rel.relationship_score >= 7;
+  }).length;
+  
+  const atRiskCount = users.filter(u => {
+    const rel = yanaRelationships.get(u.id);
+    return rel && rel.relationship_score < 4 && rel.total_conversations >= 3;
+  }).length;
   
   const filteredDeletedUsers = normalizedFilter ? deletedUsers.filter(u => (u.email || '').toLowerCase().includes(normalizedFilter)) : deletedUsers;
   const freeAccessUsers = filteredUsers.filter(u => u.has_free_access);
@@ -377,6 +434,9 @@ export const UsersList = () => {
     const trialExpired = accessSource === 'expired';
     const userIsActive = isUserActive(user.id);
     const activeSession = getActiveSession(user.id);
+    const yanaRel = yanaRelationships.get(user.id);
+    const engagementStatus = yanaRel ? getEngagementStatus(yanaRel.relationship_score) : null;
+    const hookDisplay = yanaRel ? getHookScoreDisplay(yanaRel.hook_score) : null;
     
     return (
       <Card key={user.id} className={userIsActive ? 'ring-2 ring-emerald-500/50' : ''}>
@@ -410,6 +470,55 @@ export const UsersList = () => {
                 <p className="text-xs text-red-600 mt-1">
                   Trial expirat: {new Date(user.trial_ends_at).toLocaleDateString('ro-RO')}
                 </p>
+              )}
+              
+              {/* YANA Relationship Display */}
+              {yanaRel && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles className="h-3.5 w-3.5 text-purple-500" />
+                            <span className="text-xs font-medium">Hook:</span>
+                            <Badge className={`text-xs ${hookDisplay?.color} text-white`}>
+                              {yanaRel.hook_score}/10 {hookDisplay?.label}
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Hook Score: Indicator de engagement în sesiune</p>
+                          {yanaRel.hook_reached_at && (
+                            <p className="text-xs text-muted-foreground">
+                              Hooked la: {new Date(yanaRel.hook_reached_at).toLocaleDateString('ro-RO')}
+                            </p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1.5">
+                            <Heart className="h-3.5 w-3.5 text-rose-500" />
+                            <span className="text-xs font-medium">Relație:</span>
+                            <Badge className={`text-xs ${engagementStatus?.color} text-white`}>
+                              {engagementStatus?.emoji} {yanaRel.relationship_score}/10 {engagementStatus?.label}
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Relationship Score: Loialitate în timp</p>
+                          <p className="text-xs text-muted-foreground">
+                            {yanaRel.total_conversations} conversații • {yanaRel.consecutive_return_days} zile consecutive
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
               )}
             </div>
             <div className="flex flex-col gap-2 items-end">
@@ -508,13 +617,16 @@ export const UsersList = () => {
             placeholder="Caută după email (ex: nume@domeniu.ro)"
             className="flex-1"
           />
-          <Select value={accessFilter} onValueChange={(val) => setAccessFilter(val as AccessSource | 'all')}>
+          <Select value={accessFilter} onValueChange={(val) => setAccessFilter(val as any)}>
             <SelectTrigger className="w-[220px]">
               <SelectValue placeholder="Filtrează după acces" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toți</SelectItem>
               <SelectItem value="active_now">🟢 Activi Acum ({activeSessions.length})</SelectItem>
+              <SelectItem value="hook_reached">💜 Hook Reached ({hookReachedCount})</SelectItem>
+              <SelectItem value="loyal">💚 Loiali ({loyalCount})</SelectItem>
+              <SelectItem value="at_risk">⚠️ At Risk ({atRiskCount})</SelectItem>
               <SelectItem value="paid">🔵 Plătit Stripe</SelectItem>
               <SelectItem value="free_access">🟢 Acces Gratuit</SelectItem>
               <SelectItem value="trial">🟠 Trial Activ</SelectItem>
