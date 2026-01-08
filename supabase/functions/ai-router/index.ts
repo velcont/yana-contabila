@@ -463,7 +463,7 @@ serve(async (req) => {
     }
 
     // Add conversationId for routes that require it
-    if (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'fiscal-chat') {
+    if (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'fiscal-chat' || routeDecision.route === 'chat-ai') {
       routeDecision.payload.conversationId = conversationId;
     }
 
