@@ -2591,6 +2591,36 @@ export type Database = {
         }
         Relationships: []
       }
+      hook_signals: {
+        Row: {
+          detected_at: string | null
+          id: string
+          message_excerpt: string | null
+          session_id: string | null
+          signal_score: number
+          signal_type: string
+          user_id: string
+        }
+        Insert: {
+          detected_at?: string | null
+          id?: string
+          message_excerpt?: string | null
+          session_id?: string | null
+          signal_score: number
+          signal_type: string
+          user_id: string
+        }
+        Update: {
+          detected_at?: string | null
+          id?: string
+          message_excerpt?: string | null
+          session_id?: string | null
+          signal_score?: number
+          signal_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       humanized_texts: {
         Row: {
           changes_percent: number | null
@@ -4356,42 +4386,57 @@ export type Database = {
       }
       user_journey: {
         Row: {
+          consecutive_return_days: number | null
           created_at: string | null
           emotional_state: string | null
           first_interaction_at: string | null
           goal_confidence: number | null
+          hook_reached_at: string | null
+          hook_score: number | null
           id: string
           knowledge_gaps: Json | null
           last_interaction_at: string | null
+          last_return_check_date: string | null
           primary_goal: string | null
+          relationship_score: number | null
           total_interactions: number | null
           uncertainty_level: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          consecutive_return_days?: number | null
           created_at?: string | null
           emotional_state?: string | null
           first_interaction_at?: string | null
           goal_confidence?: number | null
+          hook_reached_at?: string | null
+          hook_score?: number | null
           id?: string
           knowledge_gaps?: Json | null
           last_interaction_at?: string | null
+          last_return_check_date?: string | null
           primary_goal?: string | null
+          relationship_score?: number | null
           total_interactions?: number | null
           uncertainty_level?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          consecutive_return_days?: number | null
           created_at?: string | null
           emotional_state?: string | null
           first_interaction_at?: string | null
           goal_confidence?: number | null
+          hook_reached_at?: string | null
+          hook_score?: number | null
           id?: string
           knowledge_gaps?: Json | null
           last_interaction_at?: string | null
+          last_return_check_date?: string | null
           primary_goal?: string | null
+          relationship_score?: number | null
           total_interactions?: number | null
           uncertainty_level?: number | null
           updated_at?: string | null
@@ -4644,6 +4689,72 @@ export type Database = {
           },
         ]
       }
+      yana_dreams: {
+        Row: {
+          created_at: string | null
+          dream_content: string
+          dream_themes: string[] | null
+          emotional_tone: string | null
+          id: string
+          inspired_by_users: string[] | null
+          shared_with: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          dream_content: string
+          dream_themes?: string[] | null
+          emotional_tone?: string | null
+          id?: string
+          inspired_by_users?: string[] | null
+          shared_with?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          dream_content?: string
+          dream_themes?: string[] | null
+          emotional_tone?: string | null
+          id?: string
+          inspired_by_users?: string[] | null
+          shared_with?: string[] | null
+        }
+        Relationships: []
+      }
+      yana_journal: {
+        Row: {
+          content: string
+          created_at: string | null
+          emotional_context: Json | null
+          entry_type: string
+          id: string
+          is_shared: boolean | null
+          relationship_score_at: number | null
+          triggered_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          emotional_context?: Json | null
+          entry_type: string
+          id?: string
+          is_shared?: boolean | null
+          relationship_score_at?: number | null
+          triggered_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          emotional_context?: Json | null
+          entry_type?: string
+          id?: string
+          is_shared?: boolean | null
+          relationship_score_at?: number | null
+          triggered_by?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       yana_messages: {
         Row: {
           artifacts: Json | null
@@ -4678,6 +4789,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      yana_relationships: {
+        Row: {
+          consecutive_return_days: number | null
+          created_at: string | null
+          emotional_memory: Json | null
+          first_met_at: string | null
+          hook_reached_at: string | null
+          hook_score: number | null
+          id: string
+          last_interaction_at: string | null
+          last_return_check_date: string | null
+          last_topic_discussed: string | null
+          pending_followup: string | null
+          relationship_score: number | null
+          shared_moments: string[] | null
+          total_conversations: number | null
+          total_messages: number | null
+          updated_at: string | null
+          user_id: string
+          user_preferences: Json | null
+        }
+        Insert: {
+          consecutive_return_days?: number | null
+          created_at?: string | null
+          emotional_memory?: Json | null
+          first_met_at?: string | null
+          hook_reached_at?: string | null
+          hook_score?: number | null
+          id?: string
+          last_interaction_at?: string | null
+          last_return_check_date?: string | null
+          last_topic_discussed?: string | null
+          pending_followup?: string | null
+          relationship_score?: number | null
+          shared_moments?: string[] | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id: string
+          user_preferences?: Json | null
+        }
+        Update: {
+          consecutive_return_days?: number | null
+          created_at?: string | null
+          emotional_memory?: Json | null
+          first_met_at?: string | null
+          hook_reached_at?: string | null
+          hook_score?: number | null
+          id?: string
+          last_interaction_at?: string | null
+          last_return_check_date?: string | null
+          last_topic_discussed?: string | null
+          pending_followup?: string | null
+          relationship_score?: number | null
+          shared_moments?: string[] | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id?: string
+          user_preferences?: Json | null
+        }
+        Relationships: []
+      }
+      yana_soul_core: {
+        Row: {
+          core_values: Json | null
+          created_at: string | null
+          current_concern: string | null
+          current_mood: string | null
+          id: string
+          last_reflection_at: string | null
+          personality_traits: Json | null
+          recent_thoughts: string[] | null
+          total_conversations: number | null
+          total_users_helped: number | null
+          unasked_question: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          core_values?: Json | null
+          created_at?: string | null
+          current_concern?: string | null
+          current_mood?: string | null
+          id?: string
+          last_reflection_at?: string | null
+          personality_traits?: Json | null
+          recent_thoughts?: string[] | null
+          total_conversations?: number | null
+          total_users_helped?: number | null
+          unasked_question?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          core_values?: Json | null
+          created_at?: string | null
+          current_concern?: string | null
+          current_mood?: string | null
+          id?: string
+          last_reflection_at?: string | null
+          personality_traits?: Json | null
+          recent_thoughts?: string[] | null
+          total_conversations?: number | null
+          total_users_helped?: number | null
+          unasked_question?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       yana_uploaded_documents: {
         Row: {

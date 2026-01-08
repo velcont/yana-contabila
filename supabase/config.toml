@@ -182,3 +182,21 @@ verify_jwt = true
 
 [functions.send-inactivity-reminder]
 verify_jwt = false
+
+[functions.detect-hook-signals]
+verify_jwt = false
+
+[functions.capture-soul-state]
+verify_jwt = false
+
+[functions.awaken-yana]
+verify_jwt = false
+
+[functions.update-relationship-decay]
+verify_jwt = false
+
+[functions.silence-thoughts]
+verify_jwt = false
+
+[functions.dream-generator]
+verify_jwt = false
