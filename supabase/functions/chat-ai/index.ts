@@ -1913,6 +1913,9 @@ serve(async (req) => {
           try {
             // 1. Salvăm răspunsul asistentului în conversation_history
             if (userId) {
+              // 🆕 ENGAGEMENT TRACKING: Detectăm dacă răspunsul se termină cu întrebare
+              const endsWithQuestion = accumulatedContent.trim().endsWith('?');
+              
               const { data: savedMessage, error: saveError } = await supabase
                 .from("conversation_history")
                 .insert({
@@ -1927,6 +1930,23 @@ serve(async (req) => {
                 })
                 .select("id")
                 .single();
+
+              // 🆕 Salvăm și în yana_messages cu tracking engagement
+              if (conversationId) {
+                await supabase
+                  .from("yana_messages")
+                  .insert({
+                    conversation_id: conversationId,
+                    role: "assistant",
+                    content: accumulatedContent,
+                    ends_with_question: endsWithQuestion,
+                    question_responded: null // Se va actualiza când utilizatorul răspunde
+                  });
+                
+                if (endsWithQuestion) {
+                  console.log(`[chat-ai][${requestId}] Response ends with question - tracking enabled`);
+                }
+              }
 
               if (!saveError && savedMessage) {
                 assistantMessageId = savedMessage.id;

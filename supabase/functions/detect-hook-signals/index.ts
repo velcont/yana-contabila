@@ -85,6 +85,7 @@ const SIGNAL_SCORES: Record<string, number> = {
   odd_hours: 0.5,
   emotional_expression: 1.0,
   name_usage: 0.5,
+  engagement_question_response: 0.5, // Utilizatorul a răspuns la întrebarea YANA
 };
 
 function detectSignals(messages: Array<{ content: string; role: string; created_at?: string }>): HookSignal[] {
@@ -217,6 +218,38 @@ serve(async (req) => {
     // Detectează semnale din mesaje
     const detectedSignals = detectSignals(messages || []);
     console.log(`[detect-hook-signals] User ${userId}: detected ${detectedSignals.length} signals`);
+
+    // 🆕 ENGAGEMENT TRACKING: Verifică dacă utilizatorul a răspuns la întrebarea YANA
+    if (conversationId && messages && messages.length >= 2) {
+      // Găsim ultimul mesaj YANA care s-a terminat cu întrebare
+      const { data: lastYanaQuestion } = await supabase
+        .from('yana_messages')
+        .select('id, content')
+        .eq('conversation_id', conversationId)
+        .eq('role', 'assistant')
+        .eq('ends_with_question', true)
+        .is('question_responded', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (lastYanaQuestion) {
+        // Utilizatorul tocmai a răspuns la întrebarea YANA!
+        detectedSignals.push({
+          type: 'engagement_question_response',
+          score: SIGNAL_SCORES.engagement_question_response,
+          excerpt: `Responded to YANA question: "${lastYanaQuestion.content?.substring(0, 50)}..."`,
+        });
+
+        // Actualizăm question_responded = true
+        await supabase
+          .from('yana_messages')
+          .update({ question_responded: true })
+          .eq('id', lastYanaQuestion.id);
+
+        console.log(`[detect-hook-signals] User responded to YANA question (id: ${lastYanaQuestion.id})`);
+      }
+    }
 
     // Verifică revenire în 24h
     const { data: relationship } = await supabase
