@@ -4761,7 +4761,9 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          ends_with_question: boolean | null
           id: string
+          question_responded: boolean | null
           role: string
         }
         Insert: {
@@ -4769,7 +4771,9 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string
+          ends_with_question?: boolean | null
           id?: string
+          question_responded?: boolean | null
           role: string
         }
         Update: {
@@ -4777,7 +4781,9 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          ends_with_question?: boolean | null
           id?: string
+          question_responded?: boolean | null
           role?: string
         }
         Relationships: [
