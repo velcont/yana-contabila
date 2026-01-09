@@ -203,3 +203,6 @@ verify_jwt = false
 
 [functions.cleanup-yana-data]
 verify_jwt = false
+
+[functions.backfill-engagement-data]
+verify_jwt = false
