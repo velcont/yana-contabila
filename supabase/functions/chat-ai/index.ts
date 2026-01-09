@@ -1913,8 +1913,26 @@ serve(async (req) => {
           try {
             // 1. Salvăm răspunsul asistentului în conversation_history
             if (userId) {
-              // 🆕 ENGAGEMENT TRACKING: Detectăm dacă răspunsul se termină cu întrebare
-              const endsWithQuestion = accumulatedContent.trim().endsWith('?');
+              // 🆕 ENGAGEMENT TRACKING: Detectăm dacă răspunsul conține întrebare de engagement
+              // Funcție robustă care detectează întrebări chiar și când sunt urmate de date/exemple
+              const detectsEngagementQuestion = (text: string): boolean => {
+                const trimmed = text.trim();
+                
+                // Cazul simplu: se termină direct cu ?
+                if (trimmed.endsWith('?')) return true;
+                
+                // Căutăm ? în text - dacă există și după el sunt < 100 caractere, e întrebare de engagement
+                const lastQuestionIndex = trimmed.lastIndexOf('?');
+                if (lastQuestionIndex > -1) {
+                  const afterQuestion = trimmed.substring(lastQuestionIndex + 1).trim();
+                  // Dacă după ? sunt mai puțin de 100 caractere (ex: bullets, emoji, exemplu scurt)
+                  if (afterQuestion.length < 100) return true;
+                }
+                
+                return false;
+              };
+              
+              const endsWithQuestion = detectsEngagementQuestion(accumulatedContent);
               
               const { data: savedMessage, error: saveError } = await supabase
                 .from("conversation_history")
