@@ -23,7 +23,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Randează aplicația imediat - versioning-ul se face prin UpdateNotificationBanner
+// Randează aplicația imediat - versioning-ul se face prin VersionUpdateBanner
 const root = createRoot(document.getElementById("root")!);
 root.render(<App />);
 
