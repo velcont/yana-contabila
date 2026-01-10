@@ -5,6 +5,9 @@ import { componentTagger } from "lovable-tagger";
 import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Generăm versiunea la build time (timestamp unic)
+const BUILD_VERSION = `v${Date.now()}`;
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -21,6 +24,13 @@ export default defineConfig(({ mode }) => ({
       gzipSize: true,
       brotliSize: true,
     }),
+    // Plugin pentru a înlocui __BUILD_VERSION__ în index.html
+    {
+      name: 'html-version-inject',
+      transformIndexHtml(html: string) {
+        return html.replace(/__BUILD_VERSION__/g, BUILD_VERSION);
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon-512.png', 'icon-192.png'],

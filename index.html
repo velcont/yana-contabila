@@ -6,6 +6,48 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
+    <!-- PWA VERSION CHECK: Rulează ÎNAINTE de React pentru a curăța cache-uri vechi -->
+    <script>
+      (function() {
+        var BUILD_VERSION = '__BUILD_VERSION__';
+        var storedVersion = localStorage.getItem('yana_app_version');
+        
+        // Dacă versiunea stocată e diferită de cea curentă (utilizator nou sau versiune veche)
+        if (storedVersion !== BUILD_VERSION) {
+          console.log('[PWA_VERSION] Version mismatch: stored=' + storedVersion + ', build=' + BUILD_VERSION);
+          
+          // Curăță Service Worker-uri
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              registrations.forEach(function(registration) {
+                registration.unregister();
+                console.log('[PWA_VERSION] Unregistered SW:', registration.scope);
+              });
+            });
+          }
+          
+          // Curăță toate cache-urile
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              names.forEach(function(name) { 
+                caches.delete(name);
+                console.log('[PWA_VERSION] Deleted cache:', name);
+              });
+            });
+          }
+          
+          // Salvează versiunea nouă
+          localStorage.setItem('yana_app_version', BUILD_VERSION);
+          
+          // Dacă exista o versiune veche (nu primul load), forțează reload
+          if (storedVersion && storedVersion !== BUILD_VERSION) {
+            console.log('[PWA_VERSION] Forcing reload for version update');
+            window.location.reload();
+          }
+        }
+      })();
+    </script>
+    
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-996832923"></script>
     <script>
