@@ -64,6 +64,8 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [language, setLanguage] = useState<'ro' | 'en'>('ro');
+  const [analyzedDocumentName, setAnalyzedDocumentName] = useState<string>("");
+  const [contentPreview, setContentPreview] = useState<string>("");
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -137,10 +139,11 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
 
       if (uploadedFile) {
         setProgress(20);
-        setCurrentStep("Extragere text din document...");
+        setCurrentStep(`Extragere text din: ${uploadedFile.name}...`);
         content = await extractTextFromWord(uploadedFile);
         chapterNumber = 0;
         chapterTitle = uploadedFile.name.replace(/\.(docx|doc)$/i, '');
+        setAnalyzedDocumentName(uploadedFile.name);
       } else if (selectedChapterId) {
         const chapter = chapters.find(ch => ch.id === selectedChapterId);
         if (!chapter) throw new Error("Capitol nu a fost găsit");
@@ -165,6 +168,7 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
 
         chapterNumber = chapter.chapter_number;
         chapterTitle = chapter.chapter_title;
+        setAnalyzedDocumentName(`Capitol ${chapter.chapter_number}: ${chapter.chapter_title}`);
       } else {
         throw new Error("Te rog selectează un capitol sau încarcă un document");
       }
@@ -173,8 +177,11 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
         throw new Error("Documentul este prea scurt pentru analiză (minim 100 caractere)");
       }
 
+      // Salvează un preview al conținutului pentru confirmare vizuală
+      setContentPreview(content.substring(0, 150).trim() + "...");
+
       setProgress(40);
-      setCurrentStep("Analizare pe 8 criterii anti-plagiat...");
+      setCurrentStep(`Verificare standarde academice (${content.length.toLocaleString()} caractere)...`);
 
       const { data, error } = await supabase.functions.invoke('analyze-plagiarism', {
         body: { content, chapterNumber, chapterTitle, language }
@@ -266,14 +273,14 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
         attributionErrors: { name: "Attribution Errors", max: 5 },
       }
     : {
-        typographyVariations: { name: "Variații Tipografice", max: 20 },
-        translationErrors: { name: "Erori de Traducere", max: 20 },
-        styleInconsistency: { name: "Stil Incoerent", max: 15 },
-        structureLogic: { name: "Structură Ilogică", max: 10 },
-        personInconsistency: { name: "Inconsistențe de Persoană", max: 15 },
-        citationInconsistency: { name: "Inconsistențe Citări", max: 10 },
-        bibliographyIssues: { name: "Probleme Bibliografice", max: 5 },
-        attributionErrors: { name: "Erori de Atribuire", max: 5 },
+        typographyVariations: { name: "Consistența Formatării (fonturi, spațiere)", max: 20 },
+        translationErrors: { name: "Consistența Limbajului", max: 20 },
+        styleInconsistency: { name: "Uniformitatea Stilului de Scriere", max: 15 },
+        structureLogic: { name: "Coerența Structurii", max: 10 },
+        personInconsistency: { name: "Consistența Persoanei Gramaticale", max: 15 },
+        citationInconsistency: { name: "Uniformitatea Stilului de Citare", max: 10 },
+        bibliographyIssues: { name: "Actualitatea Referințelor Bibliografice", max: 5 },
+        attributionErrors: { name: "Atribuirea Corectă a Ideilor", max: 5 },
       };
 
   return (
@@ -282,10 +289,10 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
-            🔍 Analiză Anti-Plagiat Academic
+            📊 Analiză Conformitate Academică
           </CardTitle>
           <CardDescription>
-            Verificare pe 8 criterii profesionale de detectare a plagiatului
+            Verificare pe 8 criterii de conformitate cu standardele academice de formatare, citare și stil
           </CardDescription>
           <div className="mt-4">
             <label className="text-sm font-medium block mb-2">
@@ -392,24 +399,46 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
 
       {report && (
         <div className="space-y-6">
+          {/* Document Info Card */}
+          <Card className="bg-muted/50 border-dashed">
+            <CardContent className="pt-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="font-medium">Document analizat:</span>
+                  <span className="text-muted-foreground">{analyzedDocumentName}</span>
+                </div>
+                {contentPreview && (
+                  <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
+                    <span className="font-medium">Preview conținut: </span>
+                    "{contentPreview}"
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Overall Score Card */}
           <Card className={`border-2 ${getRiskColor(report.riskLevel)}`}>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   {getRiskIcon(report.riskLevel)}
-                  📊 SCOR GENERAL: {report.overallScore}/100
+                  📊 SCOR CONFORMITATE: {report.overallScore}/100
                 </span>
                 <Badge variant="outline" className={getRiskColor(report.riskLevel)}>
-                  RISC: {report.riskLevel}
+                  NIVEL: {report.riskLevel}
                 </Badge>
               </CardTitle>
+              <CardDescription className="text-sm mt-2">
+                Acest scor măsoară respectarea standardelor academice de formatare, citare și stil - <strong>NU indică plagiat direct</strong>.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Probabilitate Plagiat: {report.plagiarismProbability}%</span>
-                  <span>{100 - report.plagiarismProbability}% Original</span>
+                  <span>Probleme de conformitate: {report.plagiarismProbability}%</span>
+                  <span>{100 - report.plagiarismProbability}% Conform standardelor</span>
                 </div>
                 <Progress value={100 - report.plagiarismProbability} className="h-3" />
               </div>
@@ -418,9 +447,9 @@ export function PlagiarismAnalyzer({ chapters, onAnalysisComplete }: PlagiarismA
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   {report.riskLevel === 'LOW' && '✅ Textul respectă criteriile academice. Revizuire finală recomandată.'}
-                  {report.riskLevel === 'MEDIUM' && '⚠️ Câteva aspecte necesită atenție. Revizuiește recomandările de mai jos.'}
-                  {report.riskLevel === 'HIGH' && '🚨 Probleme importante detectate. Revizuire substanțială necesară.'}
-                  {report.riskLevel === 'CRITICAL' && '🔴 CRITIC! Consultă îndrumătorul și revizuiește complet textul.'}
+                  {report.riskLevel === 'MEDIUM' && '⚠️ Câteva aspecte de formatare/citare necesită atenție.'}
+                  {report.riskLevel === 'HIGH' && '🚨 Probleme de conformitate detectate. Revizuire recomandată.'}
+                  {report.riskLevel === 'CRITICAL' && '🔴 Multiple standarde academice nerespectate. Revizuire necesară.'}
                 </AlertDescription>
               </Alert>
             </CardContent>
