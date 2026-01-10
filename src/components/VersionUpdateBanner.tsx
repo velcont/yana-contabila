@@ -5,10 +5,16 @@ import { performVersionRefresh } from '@/utils/versionRefresh';
 import { RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
+const DB_VERSION_KEY = 'yana_db_version';
+
 /**
  * Faza 2.5: Banner persistent pentru utilizatori deja logați
  * Verifică periodic dacă există o versiune nouă și afișează un banner
  * pentru ca utilizatorul să poată actualiza manual.
+ * 
+ * NOTĂ: Folosește `yana_db_version` pentru versiunea semantică din DB,
+ * separat de `yana_app_version` folosit pentru PWA cache busting.
  */
 export const VersionUpdateBanner = () => {
   const [dismissed, setDismissed] = useState(false);
@@ -33,9 +39,9 @@ export const VersionUpdateBanner = () => {
     refetchOnWindowFocus: true,
   });
   
-  // Verifică versiunea locală
+  // Verifică versiunea locală (din DB, NU BUILD_VERSION)
   const localVersion = typeof window !== 'undefined' 
-    ? localStorage.getItem('yana_app_version') 
+    ? localStorage.getItem(DB_VERSION_KEY) 
     : null;
   
   // Determină dacă există o versiune nouă
@@ -44,7 +50,7 @@ export const VersionUpdateBanner = () => {
   // Salvează versiunea curentă la prima vizită (dacă nu există)
   useEffect(() => {
     if (currentVersion && !localVersion) {
-      localStorage.setItem('yana_app_version', currentVersion);
+      localStorage.setItem(DB_VERSION_KEY, currentVersion);
     }
   }, [currentVersion, localVersion]);
   
@@ -53,7 +59,7 @@ export const VersionUpdateBanner = () => {
     try {
       // Salvează noua versiune înainte de refresh
       if (currentVersion) {
-        localStorage.setItem('yana_app_version', currentVersion);
+        localStorage.setItem(DB_VERSION_KEY, currentVersion);
       }
       await performVersionRefresh();
     } catch (error) {

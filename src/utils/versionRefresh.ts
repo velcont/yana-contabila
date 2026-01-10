@@ -1,3 +1,8 @@
+// KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
+// yana_app_version = BUILD_VERSION (timestamp) - folosit în index.html pentru PWA cache busting
+// yana_db_version = versiunea semantică din DB (ex: 4.0.0) - folosit pentru VersionUpdateBanner
+const DB_VERSION_KEY = 'yana_db_version';
+
 /**
  * Funcție comună pentru refresh-ul aplicației cu curățare completă a cache-ului
  * Folosită la login, logout recovery și verificare inactivitate >24h
@@ -31,6 +36,7 @@ export const performVersionRefresh = async () => {
 
 /**
  * Verifică dacă există o versiune nouă în DB față de localStorage
+ * Folosește DB_VERSION_KEY pentru versiunea semantică
  */
 export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
   try {
@@ -43,7 +49,7 @@ export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
     
     if (error || !data) return false;
     
-    const localVersion = localStorage.getItem('yana_app_version');
+    const localVersion = localStorage.getItem(DB_VERSION_KEY);
     return data.version !== localVersion;
   } catch (error) {
     console.warn('[VERSION_CHECK] Failed to check version:', error);
@@ -53,6 +59,7 @@ export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
 
 /**
  * Salvează versiunea curentă în localStorage
+ * Folosește DB_VERSION_KEY pentru versiunea semantică
  */
 export const saveCurrentVersion = async (supabase: any): Promise<void> => {
   try {
@@ -64,7 +71,7 @@ export const saveCurrentVersion = async (supabase: any): Promise<void> => {
       .single();
     
     if (data?.version) {
-      localStorage.setItem('yana_app_version', data.version);
+      localStorage.setItem(DB_VERSION_KEY, data.version);
     }
   } catch (error) {
     console.warn('[VERSION_SAVE] Failed to save version:', error);
