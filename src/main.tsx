@@ -15,6 +15,14 @@ performanceMonitor.mark('app-init');
 const savedTheme = localStorage.getItem('theme') || 'dark';
 document.documentElement.classList.toggle('dark', savedTheme === 'dark');
 
+// PWA: Listener pentru SW controller change - forțează reload când SW nou preia controlul
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    console.log('[PWA] Service Worker controller changed - reloading');
+    window.location.reload();
+  });
+}
+
 // Randează aplicația imediat - versioning-ul se face prin UpdateNotificationBanner
 const root = createRoot(document.getElementById("root")!);
 root.render(<App />);
