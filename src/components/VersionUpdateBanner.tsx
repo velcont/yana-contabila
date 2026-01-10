@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 
 // KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
 const DB_VERSION_KEY = 'yana_db_version';
+const DISMISSED_VERSION_KEY = 'yana_version_dismissed';
 
 /**
  * Faza 2.5: Banner persistent pentru utilizatori deja logați
@@ -15,6 +16,9 @@ const DB_VERSION_KEY = 'yana_db_version';
  * 
  * NOTĂ: Folosește `yana_db_version` pentru versiunea semantică din DB,
  * separat de `yana_app_version` folosit pentru PWA cache busting.
+ * 
+ * Dismiss-ul persistă per versiune - utilizatorul nu va fi deranjat repetat
+ * pentru aceeași versiune, dar banner-ul va reapărea pentru versiuni noi.
  */
 export const VersionUpdateBanner = () => {
   const [dismissed, setDismissed] = useState(false);
@@ -44,8 +48,15 @@ export const VersionUpdateBanner = () => {
     ? localStorage.getItem(DB_VERSION_KEY) 
     : null;
   
-  // Determină dacă există o versiune nouă
-  const hasNewVersion = currentVersion && localVersion && currentVersion !== localVersion;
+  // Verifică dacă această versiune a fost deja dismissed
+  const dismissedVersion = typeof window !== 'undefined'
+    ? localStorage.getItem(DISMISSED_VERSION_KEY)
+    : null;
+  
+  // Determină dacă există o versiune nouă care NU a fost dismissed
+  const hasNewVersion = currentVersion && localVersion && 
+    currentVersion !== localVersion && 
+    currentVersion !== dismissedVersion;
   
   // Salvează versiunea curentă la prima vizită (dacă nu există)
   useEffect(() => {
@@ -53,6 +64,14 @@ export const VersionUpdateBanner = () => {
       localStorage.setItem(DB_VERSION_KEY, currentVersion);
     }
   }, [currentVersion, localVersion]);
+  
+  // Handler pentru dismiss - persistă pentru această versiune
+  const handleDismiss = () => {
+    if (currentVersion) {
+      localStorage.setItem(DISMISSED_VERSION_KEY, currentVersion);
+    }
+    setDismissed(true);
+  };
   
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -98,7 +117,7 @@ export const VersionUpdateBanner = () => {
           </Button>
           
           <button
-            onClick={() => setDismissed(true)}
+            onClick={handleDismiss}
             className="p-1 hover:bg-primary-foreground/20 rounded-full transition-colors"
             aria-label="Închide"
           >
