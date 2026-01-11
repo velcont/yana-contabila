@@ -334,21 +334,33 @@ serve(async (req) => {
 
     console.log("[dream-generator] Starting world-aware dream generation with structured output...");
 
-    // 1. Găsește utilizatori cu relationship_score >= 7
+    // 1. Găsește utilizatori cu threshold dinamic: score>=4, convos>=5, hook>=3
     const { data: loyalRelationships, error: fetchError } = await supabase
       .from('yana_relationships')
-      .select('user_id, relationship_score')
-      .gte('relationship_score', 7)
+      .select('user_id, relationship_score, total_conversations, hook_score')
+      .gte('relationship_score', 4)
+      .gte('total_conversations', 5)
+      .gte('hook_score', 3)
       .limit(20);
 
     if (fetchError) {
       throw fetchError;
     }
 
+    // Logging detaliat pentru monitorizare
+    console.log(`[dream-generator] Found ${loyalRelationships?.length || 0} eligible users for dreams`);
+    if (loyalRelationships && loyalRelationships.length > 0) {
+      console.log(`[dream-generator] Eligible users:`, loyalRelationships.map(r => ({
+        score: r.relationship_score,
+        convos: r.total_conversations,
+        hook: r.hook_score
+      })));
+    }
+
     if (!loyalRelationships || loyalRelationships.length === 0) {
-      console.log("[dream-generator] No loyal relationships for dreams");
+      console.log("[dream-generator] No eligible relationships (requires: score>=4, conversations>=5, hook>=3)");
       return new Response(
-        JSON.stringify({ success: true, dreams_generated: 0, reason: 'no_loyal_users' }),
+        JSON.stringify({ success: true, dreams_generated: 0, reason: 'no_eligible_users' }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
