@@ -4747,31 +4747,46 @@ export type Database = {
         Row: {
           created_at: string | null
           dream_content: string
+          dream_insights: Json | null
           dream_themes: string[] | null
+          emotional_shift: number | null
           emotional_tone: string | null
           id: string
+          insight_about_self: string | null
+          insight_about_users: string | null
           inspired_by_users: string[] | null
           shared_with: string[] | null
+          updated_goal: string | null
           world_sources: Json | null
         }
         Insert: {
           created_at?: string | null
           dream_content: string
+          dream_insights?: Json | null
           dream_themes?: string[] | null
+          emotional_shift?: number | null
           emotional_tone?: string | null
           id?: string
+          insight_about_self?: string | null
+          insight_about_users?: string | null
           inspired_by_users?: string[] | null
           shared_with?: string[] | null
+          updated_goal?: string | null
           world_sources?: Json | null
         }
         Update: {
           created_at?: string | null
           dream_content?: string
+          dream_insights?: Json | null
           dream_themes?: string[] | null
+          emotional_shift?: number | null
           emotional_tone?: string | null
           id?: string
+          insight_about_self?: string | null
+          insight_about_users?: string | null
           inspired_by_users?: string[] | null
           shared_with?: string[] | null
+          updated_goal?: string | null
           world_sources?: Json | null
         }
         Relationships: []

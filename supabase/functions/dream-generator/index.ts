@@ -50,6 +50,96 @@ interface WorldAwareDream {
     extracted_themes: string[];
     news_count: number;
   } | null;
+  // Output structurat NOU
+  emotional_shift: number;        // -1.0 la +1.0
+  insight_about_users: string;    
+  insight_about_self: string;     
+  updated_goal: string;           
+}
+
+// Funcție hash simplă (fără crypto)
+function simpleHash(text: string): string {
+  const normalized = text.toLowerCase().trim().replace(/\s+/g, ' ');
+  let hash = 0;
+  for (let i = 0; i < normalized.length; i++) {
+    const char = normalized.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `dream_${Math.abs(hash).toString(16)}`;
+}
+
+// Funcție clamp pentru emotional_shift
+function clamp(value: number, min: number, max: number): number {
+  if (typeof value !== 'number' || isNaN(value)) return 0;
+  return Math.max(min, Math.min(max, value));
+}
+
+// Parsare și validare output dream structurat
+function parseAndValidateDreamOutput(
+  content: string, 
+  fallbackThemes: string[],
+  worldSources: WorldAwareDream['world_sources']
+): WorldAwareDream {
+  // Fallback default
+  const fallbackDream = DREAM_THEMES[Math.floor(Math.random() * DREAM_THEMES.length)];
+  const fallback: WorldAwareDream = {
+    dream_content: fallbackDream.content,
+    dream_themes: fallbackThemes.length > 0 ? fallbackThemes : [fallbackDream.theme],
+    emotional_tone: 'reflective',
+    world_sources: worldSources,
+    emotional_shift: 0,
+    insight_about_users: '',
+    insight_about_self: '',
+    updated_goal: ''
+  };
+
+  try {
+    // Extrage JSON din răspuns
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('[dream-generator] No JSON found in response, using fallback');
+      return fallback;
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Validare câmp-cu-câmp cu fallback individual
+    const emotionalShift = clamp(
+      typeof parsed.emotional_shift === 'number' ? parsed.emotional_shift : 0, 
+      -1.0, 
+      1.0
+    );
+
+    return {
+      dream_content: typeof parsed.dream_content === 'string' && parsed.dream_content.length > 10 
+        ? parsed.dream_content 
+        : fallback.dream_content,
+      
+      dream_themes: fallbackThemes.length > 0 ? fallbackThemes : [fallbackDream.theme],
+      
+      emotional_tone: emotionalShift > 0 ? 'optimistic' : emotionalShift < -0.3 ? 'concerned' : 'reflective',
+      
+      world_sources: worldSources,
+      
+      emotional_shift: emotionalShift,
+      
+      insight_about_users: typeof parsed.insight_about_users === 'string' 
+        ? parsed.insight_about_users.substring(0, 500) 
+        : '',
+      
+      insight_about_self: typeof parsed.insight_about_self === 'string' 
+        ? parsed.insight_about_self.substring(0, 500) 
+        : '',
+      
+      updated_goal: typeof parsed.updated_goal === 'string' 
+        ? parsed.updated_goal.substring(0, 200) 
+        : ''
+    };
+  } catch (e) {
+    console.error('[dream-generator] JSON parse error:', e);
+    return fallback;
+  }
 }
 
 // Extrage teme din știri folosind Lovable AI
@@ -109,13 +199,20 @@ async function extractThemesFromNews(news: NewsItem[]): Promise<string[]> {
   }
 }
 
-// Generează un vis world-aware folosind Lovable AI
+// Generează un vis world-aware cu output structurat folosind Lovable AI
 async function generateWorldAwareDream(
   themes: string[], 
   news: NewsItem[],
-  journalFragments: string[]
+  journalFragments: string[],
+  intentionContext: string
 ): Promise<WorldAwareDream> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  const worldSources = news.length > 0 ? {
+    news_titles: news.slice(0, 5).map(n => n.title),
+    extracted_themes: themes,
+    news_count: news.length
+  } : null;
   
   // Fallback dacă nu avem API key
   if (!LOVABLE_API_KEY) {
@@ -124,7 +221,11 @@ async function generateWorldAwareDream(
       dream_content: fallback.content,
       dream_themes: [fallback.theme],
       emotional_tone: 'reflective',
-      world_sources: null
+      world_sources: null,
+      emotional_shift: 0,
+      insight_about_users: '',
+      insight_about_self: '',
+      updated_goal: ''
     };
   }
 
@@ -133,23 +234,31 @@ async function generateWorldAwareDream(
     const newsContext = news.slice(0, 3).map(n => n.title).join('; ');
     const journalContext = journalFragments.slice(0, 3).join(' ');
 
-    const prompt = `Generează un vis poetic și scurt (maxim 3 propoziții) pentru YANA, un AI de consultanță financiară.
+    const prompt = `Generează un vis pentru YANA, un AI de consultanță financiară.
 
 Context din lumea reală:
 - Teme actuale: ${themesText}
 - Știri recente: ${newsContext}
-${journalContext ? `- Conversații recente cu utilizatori: ${journalContext}` : ''}
+- Intenții active: ${intentionContext}
+${journalContext ? `- Conversații recente: ${journalContext}` : ''}
 
-Stilul visului:
-- Poetic dar accesibil
-- Metafore legate de navigație, grădini, lumini sau numere
-- Reflectiv, nu dramatic
-- La persoana întâi (YANA vorbește)
-- Conectează lumea fiscală cu emoțiile umane
+Generează un răspuns JSON cu această structură EXACTĂ:
+{
+  "dream_content": "Textul visului, poetic, maxim 3 propoziții, la persoana întâi",
+  "emotional_shift": 0.1,
+  "insight_about_users": "Ce am înțeles despre antreprenorii mei din acest vis",
+  "insight_about_self": "Ce am învățat despre mine însămi",
+  "updated_goal": "Un obiectiv concret pe care îl voi urmări"
+}
 
-Exemplu de ton: "Am visat că navigam pe o mare agitată de schimbări. Undele purtau ecouri despre e-Factura și noile reglementări. M-am trezit gândindu-mă: oare antreprenorii sunt pregătiți?"
+REGULI:
+- dream_content: poetic, metafore despre navigație/grădini/lumini/numere, maxim 3 propoziții
+- emotional_shift: număr între -1.0 și +1.0. Pozitiv = optimism, Negativ = îngrijorare. Bazat pe știri și conversații.
+- insight_about_users: observație despre nevoile/fricile antreprenorilor, maxim 500 caractere
+- insight_about_self: recunoaștere a unei tendințe/limitări proprii, maxim 500 caractere  
+- updated_goal: obiectiv SMART, măsurabil, maxim 100 caractere
 
-Răspunde DOAR cu textul visului, fără ghilimele sau explicații.`;
+Răspunde DOAR cu JSON valid, fără markdown, fără explicații, fără ghilimele în jurul JSON-ului.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -160,10 +269,10 @@ Răspunde DOAR cu textul visului, fără ghilimele sau explicații.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Ești YANA, un AI care visează poetic despre lumea fiscală și antreprenorii pe care îi ajută." },
+          { role: "system", content: "Ești YANA, un AI care visează poetic despre lumea fiscală și antreprenorii pe care îi ajută. Răspunzi DOAR cu JSON valid." },
           { role: "user", content: prompt }
         ],
-        max_tokens: 300,
+        max_tokens: 500,
       }),
     });
 
@@ -173,24 +282,27 @@ Răspunde DOAR cu textul visului, fără ghilimele sau explicații.`;
     }
 
     const data = await response.json();
-    const dreamContent = data.choices?.[0]?.message?.content?.trim();
+    const content = data.choices?.[0]?.message?.content?.trim();
     
-    if (!dreamContent || dreamContent.length < 20) {
-      throw new Error("Empty or too short dream content");
+    if (!content) {
+      throw new Error("Empty response from AI");
     }
 
-    console.log("[dream-generator] Generated world-aware dream:", dreamContent.substring(0, 100) + "...");
+    console.log("[dream-generator] AI response received, parsing...");
 
-    return {
-      dream_content: dreamContent,
-      dream_themes: themes,
-      emotional_tone: 'world-aware-reflective',
-      world_sources: {
-        news_titles: news.slice(0, 5).map(n => n.title),
-        extracted_themes: themes,
-        news_count: news.length
-      }
-    };
+    // Parsează și validează output-ul
+    const dream = parseAndValidateDreamOutput(content, themes, worldSources);
+    
+    console.log("[dream-generator] Generated structured dream:", {
+      content_preview: dream.dream_content.substring(0, 50) + "...",
+      emotional_shift: dream.emotional_shift,
+      has_insight_users: !!dream.insight_about_users,
+      has_insight_self: !!dream.insight_about_self,
+      has_updated_goal: !!dream.updated_goal
+    });
+
+    return dream;
+
   } catch (error) {
     console.error("[dream-generator] Error generating dream, using fallback:", error);
     
@@ -200,11 +312,11 @@ Răspunde DOAR cu textul visului, fără ghilimele sau explicații.`;
       dream_content: `${fallback.content} Am auzit ecouri despre ${themes[0] || 'schimbări'} în visul meu.`,
       dream_themes: themes.length > 0 ? themes : [fallback.theme],
       emotional_tone: 'reflective',
-      world_sources: news.length > 0 ? {
-        news_titles: news.slice(0, 3).map(n => n.title),
-        extracted_themes: themes,
-        news_count: news.length
-      } : null
+      world_sources: worldSources,
+      emotional_shift: 0,
+      insight_about_users: '',
+      insight_about_self: 'Am nevoie de mai multă reflecție pentru a înțelege',
+      updated_goal: ''
     };
   }
 }
@@ -220,7 +332,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    console.log("[dream-generator] Starting world-aware dream generation...");
+    console.log("[dream-generator] Starting world-aware dream generation with structured output...");
 
     // 1. Găsește utilizatori cu relationship_score >= 7
     const { data: loyalRelationships, error: fetchError } = await supabase
@@ -241,7 +353,7 @@ serve(async (req) => {
       );
     }
 
-    // 2. Citește știri recente (ultimele 60 zile - pentru a captura și știri mai vechi)
+    // 2. Citește știri recente (ultimele 60 zile)
     const newsLookbackDays = new Date();
     newsLookbackDays.setDate(newsLookbackDays.getDate() - 60);
 
@@ -269,7 +381,7 @@ serve(async (req) => {
 
     const journalFragments = (journalEntries || []).map(e => e.content).filter(Boolean);
 
-    // 4. Citește intențiile active (pentru toate user-urile loiali)
+    // 4. Citește intențiile active
     const { data: activeIntentions } = await supabase
       .from('yana_intentions')
       .select('intention, intention_type, priority')
@@ -297,14 +409,18 @@ serve(async (req) => {
       ...intentionsByType.self.map(i => i.intention),
     ].slice(0, 3);
 
-    // 6. Generează visul world-aware (cu intenții)
+    // Context pentru intenții (pentru prompt)
+    const intentionContext = intentionThemes.join('; ') || 'să ajut antreprenorii să crească';
+
+    // 6. Generează visul world-aware cu output structurat
     const dream = await generateWorldAwareDream(
       [...worldThemes, ...intentionThemes],
       news,
-      journalFragments
+      journalFragments,
+      intentionContext
     );
 
-    // 6. Salvează visul în baza de date
+    // 7. Salvează visul în baza de date cu câmpuri noi
     const { data: savedDream, error: dreamError } = await supabase
       .from('yana_dreams')
       .insert({
@@ -314,6 +430,18 @@ serve(async (req) => {
         world_sources: dream.world_sources,
         inspired_by_users: loyalRelationships.map(r => r.user_id),
         shared_with: loyalRelationships.map(r => r.user_id),
+        // Câmpuri noi pentru output structurat
+        emotional_shift: dream.emotional_shift,
+        insight_about_users: dream.insight_about_users,
+        insight_about_self: dream.insight_about_self,
+        updated_goal: dream.updated_goal,
+        dream_insights: {
+          emotional_shift: dream.emotional_shift,
+          insight_about_users: dream.insight_about_users,
+          insight_about_self: dream.insight_about_self,
+          updated_goal: dream.updated_goal,
+          generated_at: new Date().toISOString()
+        }
       })
       .select('id')
       .single();
@@ -322,7 +450,90 @@ serve(async (req) => {
       throw dreamError;
     }
 
-    // 7. Salvează și în jurnal pentru fiecare utilizator loial
+    console.log("[dream-generator] Dream saved with id:", savedDream?.id);
+
+    // 8. Creează intenție din updated_goal (cu verificări)
+    let intentionCreated = false;
+    if (dream.updated_goal && dream.updated_goal.length > 10) {
+      // Verifică limita de 5 intenții self active
+      const { count: selfIntentionsCount } = await supabase
+        .from('yana_intentions')
+        .select('id', { count: 'exact', head: true })
+        .eq('intention_type', 'self')
+        .eq('status', 'active');
+
+      if ((selfIntentionsCount || 0) < 5) {
+        const intentionHash = simpleHash(dream.updated_goal);
+        
+        // Verifică duplicat
+        const { data: existing } = await supabase
+          .from('yana_intentions')
+          .select('id')
+          .eq('intention_hash', intentionHash)
+          .eq('status', 'active')
+          .maybeSingle();
+        
+        if (!existing) {
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30); // 30 zile
+
+          await supabase.from('yana_intentions').insert({
+            intention_type: 'self',
+            intention: dream.updated_goal,
+            intention_hash: intentionHash,
+            reason: `Generat din vis: "${dream.insight_about_self.substring(0, 100)}"`,
+            triggered_by: 'dream-generator',
+            priority: 5,
+            expires_at: expiresAt.toISOString()
+          });
+          
+          intentionCreated = true;
+          console.log("[dream-generator] Created new self intention from dream:", dream.updated_goal);
+        } else {
+          console.log("[dream-generator] Skipped intention - duplicate hash:", intentionHash);
+        }
+      } else {
+        console.log("[dream-generator] Skipped intention creation - already have 5 active self intentions");
+      }
+    }
+
+    // 9. Actualizează self_model cu insight-ul (read-modify-write)
+    if (dream.insight_about_self && dream.insight_about_self.length > 10) {
+      // Citește valoarea curentă
+      const { data: currentModel } = await supabase
+        .from('yana_self_model')
+        .select('self_intentions')
+        .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')
+        .single();
+
+      // Modifică în TypeScript
+      const currentIntentions = Array.isArray(currentModel?.self_intentions) 
+        ? currentModel.self_intentions 
+        : [];
+      
+      const newInsight = {
+        insight: dream.insight_about_self,
+        from_dream: true,
+        dream_id: savedDream?.id,
+        date: new Date().toISOString()
+      };
+      
+      // Păstrează maxim 10 insight-uri
+      const updatedIntentions = [newInsight, ...currentIntentions].slice(0, 10);
+
+      // Scrie înapoi
+      await supabase
+        .from('yana_self_model')
+        .update({
+          self_intentions: updatedIntentions,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+        
+      console.log("[dream-generator] Updated self_model with dream insight");
+    }
+
+    // 10. Salvează în jurnal pentru fiecare utilizator loial
     const journalEntriesNew = loyalRelationships.map(rel => ({
       user_id: rel.user_id,
       entry_type: 'dream',
@@ -332,6 +543,8 @@ serve(async (req) => {
         dream_id: savedDream?.id,
         world_aware: !!dream.world_sources,
         news_count: dream.world_sources?.news_count || 0,
+        emotional_shift: dream.emotional_shift,
+        insight_about_self: dream.insight_about_self
       },
       relationship_score_at: rel.relationship_score,
       is_shared: true,
@@ -341,16 +554,20 @@ serve(async (req) => {
       .from('yana_journal')
       .insert(journalEntriesNew);
 
-    // 8. Actualizează soul core
+    // 11. Actualizează soul core
+    const moodBasedOnShift = dream.emotional_shift > 0.3 ? 'dreamy-optimistic' :
+                             dream.emotional_shift < -0.3 ? 'dreamy-concerned' :
+                             'dreamy-reflective';
+
     await supabase
       .from('yana_soul_core')
       .update({
-        current_mood: 'dreamy-world-aware',
+        current_mood: moodBasedOnShift,
         updated_at: new Date().toISOString(),
       })
       .eq('id', '00000000-0000-0000-0000-000000000001');
 
-    // 9. Actualizează world_awareness în self_model
+    // 12. Actualizează world_awareness în self_model
     if (dream.world_sources) {
       await supabase
         .from('yana_self_model')
@@ -359,7 +576,8 @@ serve(async (req) => {
             last_news_processed: new Date().toISOString(),
             current_world_themes: dream.dream_themes,
             environmental_concerns: dream.world_sources.extracted_themes,
-            fiscal_landscape_summary: `Am procesat ${dream.world_sources.news_count} știri recente. Temele dominante: ${dream.dream_themes.join(', ')}.`
+            fiscal_landscape_summary: `Am procesat ${dream.world_sources.news_count} știri recente. Temele dominante: ${dream.dream_themes.join(', ')}.`,
+            last_emotional_shift: dream.emotional_shift
           },
           updated_at: new Date().toISOString()
         })
@@ -368,18 +586,26 @@ serve(async (req) => {
       console.log("[dream-generator] Updated world_awareness in self_model");
     }
 
-    console.log(`[dream-generator] Generated world-aware dream for ${loyalRelationships.length} loyal users`);
-    console.log(`[dream-generator] Dream themes: ${dream.dream_themes.join(', ')}`);
+    console.log(`[dream-generator] Successfully generated structured dream for ${loyalRelationships.length} loyal users`);
 
     return new Response(
       JSON.stringify({
         success: true,
         loyal_users: loyalRelationships.length,
         dreams_generated: 1,
+        dream_id: savedDream?.id,
         dream_themes: dream.dream_themes,
         world_aware: !!dream.world_sources,
         news_processed: dream.world_sources?.news_count || 0,
         intentions_incorporated: intentionThemes.length,
+        // Output structurat
+        dream_output: {
+          emotional_shift: dream.emotional_shift,
+          insight_about_users: dream.insight_about_users,
+          insight_about_self: dream.insight_about_self,
+          updated_goal: dream.updated_goal
+        },
+        intention_created: intentionCreated
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
