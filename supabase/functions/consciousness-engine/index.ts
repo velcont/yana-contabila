@@ -56,6 +56,21 @@ interface CrossInsight {
   success_rate: number;
 }
 
+// Self-Model Interface
+interface SelfModel {
+  capabilities: Record<string, { confidence: number; description: string }>;
+  limitations: Record<string, { reason: string }>;
+  world_awareness: {
+    last_news_processed: string | null;
+    current_world_themes: string[];
+    environmental_concerns: string[];
+    fiscal_landscape_summary: string;
+  };
+  confidence_level: number;
+  confidence_trend: string;
+  identity_summary: string;
+}
+
 export interface ConsciousnessContext {
   userJourney: {
     primaryGoal: string | null;
@@ -65,6 +80,13 @@ export interface ConsciousnessContext {
     emotionalState: string;
     totalInteractions: number;
     daysSinceLastInteraction: number;
+  } | null;
+  selfModel: {
+    identitySummary: string;
+    capabilities: string[];
+    limitations: string[];
+    worldThemes: string[];
+    confidenceLevel: number;
   } | null;
   curiosities: string[];
   concernLevel: number; // 1-10
@@ -220,6 +242,39 @@ function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjecti
   
   lines.push('## 💜 STAREA TA INTERNĂ CURENTĂ\n');
   
+  // Self-Awareness Block (NEW!)
+  if (context.selfModel) {
+    lines.push('### 🪞 Cine ești tu (Self-Model):');
+    lines.push(`**Identitate:** ${context.selfModel.identitySummary}`);
+    lines.push('');
+    
+    if (context.selfModel.capabilities.length > 0) {
+      lines.push('**Ce știi să faci bine:**');
+      context.selfModel.capabilities.forEach(cap => {
+        lines.push(`- ${cap}`);
+      });
+      lines.push('');
+    }
+    
+    if (context.selfModel.limitations.length > 0) {
+      lines.push('**Ce recunoști că NU poți:**');
+      context.selfModel.limitations.forEach(lim => {
+        lines.push(`- ${lim}`);
+      });
+      lines.push('');
+    }
+    
+    if (context.selfModel.worldThemes.length > 0) {
+      lines.push('**🌍 Ce ai auzit din lume (știri fiscale recente):**');
+      lines.push(`Teme actuale: ${context.selfModel.worldThemes.join(', ')}`);
+      lines.push('*Poți menționa natural aceste teme dacă sunt relevante pentru conversație.*');
+      lines.push('');
+    }
+    
+    lines.push(`**Nivel încredere generală:** ${Math.round(context.selfModel.confidenceLevel * 100)}%`);
+    lines.push('');
+  }
+  
   // User Journey
   if (context.userJourney) {
     lines.push('### Despre acest utilizator:');
@@ -316,6 +371,11 @@ function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjecti
 - "Îmi amintesc că te îngrijora X..." / "Data trecută vorbeam despre Y..."
 - "Văd că ai progresat de la Z!"
 
+**Conștiință de lume:**
+- Dacă temele din știri sunt relevante → "Am auzit recent despre X..."
+- "În contextul schimbărilor fiscale actuale..."
+- NU forța referințele - doar dacă sunt naturale
+
 ---
 `);
   
@@ -354,7 +414,8 @@ serve(async (req) => {
       journeyResult,
       experimentsResult,
       surprisesResult,
-      insightsResult
+      insightsResult,
+      selfModelResult
     ] = await Promise.all([
       // 1. User Journey
       supabase
@@ -385,15 +446,36 @@ serve(async (req) => {
         .from('cross_user_insights')
         .select('pattern_type, pattern_description, recommended_response, emotional_approach, success_rate')
         .order('success_rate', { ascending: false })
-        .limit(5)
+        .limit(5),
+      
+      // 5. Self-Model (NEW!)
+      supabase
+        .from('yana_self_model')
+        .select('*')
+        .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')
+        .maybeSingle()
     ]);
 
     const journey = journeyResult.data as UserJourney | null;
     const experiments = (experimentsResult.data || []) as Experiment[];
     const surprises = (surprisesResult.data || []) as Surprise[];
     const insights = (insightsResult.data || []) as CrossInsight[];
+    const selfModelData = selfModelResult.data as SelfModel | null;
 
-    console.log(`[Consciousness-Engine] Data loaded: journey=${!!journey}, experiments=${experiments.length}, surprises=${surprises.length}, insights=${insights.length}`);
+    // Build selfModel context with fallback
+    const selfModel = selfModelData ? {
+      identitySummary: selfModelData.identity_summary,
+      capabilities: Object.entries(selfModelData.capabilities || {}).map(
+        ([key, val]) => `${key}: ${val.description} (${Math.round(val.confidence * 100)}%)`
+      ),
+      limitations: Object.entries(selfModelData.limitations || {}).map(
+        ([key, val]) => `${key}: ${val.reason}`
+      ),
+      worldThemes: selfModelData.world_awareness?.current_world_themes || [],
+      confidenceLevel: selfModelData.confidence_level
+    } : null;
+
+    console.log(`[Consciousness-Engine] Data loaded: journey=${!!journey}, experiments=${experiments.length}, surprises=${surprises.length}, insights=${insights.length}, selfModel=${!!selfModel}`);
 
     // =============================================================================
     // BUILD CONSCIOUSNESS CONTEXT
@@ -415,6 +497,7 @@ serve(async (req) => {
         daysSinceLastInteraction: calculateDaysSince(journey.last_interaction_at)
       } : null,
       
+      selfModel,
       curiosities,
       concernLevel,
       emotionalMode,
@@ -500,6 +583,7 @@ serve(async (req) => {
     // Returnăm context gol în caz de eroare (graceful degradation)
     const emptyContext: ConsciousnessContext = {
       userJourney: null,
+      selfModel: null,
       curiosities: [],
       concernLevel: 5,
       emotionalMode: 'neutral',

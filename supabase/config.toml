@@ -206,3 +206,6 @@ verify_jwt = false
 
 [functions.backfill-engagement-data]
 verify_jwt = false
+
+[functions.update-self-model]
+verify_jwt = false
