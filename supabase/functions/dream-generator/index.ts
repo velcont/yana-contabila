@@ -241,14 +241,14 @@ serve(async (req) => {
       );
     }
 
-    // 2. Citește știri recente (ultimele 7 zile)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // 2. Citește știri recente (ultimele 60 zile - pentru a captura și știri mai vechi)
+    const newsLookbackDays = new Date();
+    newsLookbackDays.setDate(newsLookbackDays.getDate() - 60);
 
     const { data: recentNews, error: newsError } = await supabase
       .from('fiscal_news')
       .select('title, description, source, published_at')
-      .gte('published_at', sevenDaysAgo.toISOString())
+      .gte('published_at', newsLookbackDays.toISOString())
       .order('published_at', { ascending: false })
       .limit(10);
 

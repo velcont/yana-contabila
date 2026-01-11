@@ -40,13 +40,13 @@ serve(async (req) => {
     // =============================================================================
     
     try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const newsLookbackDays = new Date();
+      newsLookbackDays.setDate(newsLookbackDays.getDate() - 60);
 
       const { data: recentNews, error: newsError } = await supabase
         .from('fiscal_news')
         .select('title, description, source, published_at')
-        .gte('published_at', sevenDaysAgo.toISOString())
+        .gte('published_at', newsLookbackDays.toISOString())
         .order('published_at', { ascending: false })
         .limit(20);
 
@@ -66,7 +66,7 @@ serve(async (req) => {
           last_news_processed: new Date().toISOString(),
           current_world_themes: keywords.slice(0, 5),
           environmental_concerns: keywords.slice(5, 10),
-          fiscal_landscape_summary: `Am analizat ${news.length} știri din ultimele 7 zile. Surse: ${sources.slice(0, 3).join(', ')}. Teme principale: ${keywords.slice(0, 3).join(', ')}.`,
+          fiscal_landscape_summary: `Am analizat ${news.length} știri din ultimele 60 de zile. Surse: ${sources.slice(0, 3).join(', ')}. Teme principale: ${keywords.slice(0, 3).join(', ')}.`,
           sources_monitored: sources,
           news_volume: news.length
         };
