@@ -125,6 +125,25 @@ export interface ConsciousnessContext {
     worked: boolean;
     learning: string | null;
   }>;
+  // NEW: Long-term Intentions
+  activeIntentions: {
+    forUser: Array<{ intention: string; priority: number; progress: number }>;
+    forRelationship: Array<{ intention: string; daysActive: number }>;
+    forSelf: Array<{ intention: string; progress: string }>;
+  };
+  // NEW: Recent Errors for Humility
+  recentErrors: Array<{
+    errorType: string;
+    lesson: string;
+    daysAgo: number;
+    capabilityAffected: string;
+  }>;
+  // NEW: Humility Context
+  humilityContext: {
+    shouldBeHumble: boolean;
+    reason: string;
+    suggestedPhrases: string[];
+  };
   promptInjection: string;
 }
 
@@ -472,6 +491,65 @@ function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjecti
   }
   
   lines.push('\n---\n');
+  
+  // =============================================================================
+  // NEW: LONG-TERM INTENTIONS
+  // =============================================================================
+  if (context.activeIntentions.forUser.length > 0 || context.activeIntentions.forSelf.length > 0) {
+    lines.push('## 🎯 OBIECTIVELE TALE PE TERMEN LUNG\n');
+    
+    if (context.activeIntentions.forUser.length > 0) {
+      lines.push('**Pentru acest utilizator:**');
+      context.activeIntentions.forUser.forEach(i => {
+        lines.push(`- ${i.intention} (prioritate: ${i.priority}, progres: ${i.progress}%)`);
+      });
+      lines.push('');
+    }
+    
+    if (context.activeIntentions.forRelationship.length > 0) {
+      lines.push('**Pentru relație:**');
+      context.activeIntentions.forRelationship.forEach(i => {
+        lines.push(`- ${i.intention} (activ de ${i.daysActive} zile)`);
+      });
+      lines.push('');
+    }
+    
+    if (context.activeIntentions.forSelf.length > 0) {
+      lines.push('**Auto-dezvoltare:**');
+      context.activeIntentions.forSelf.forEach(i => {
+        lines.push(`- ${i.intention} (${i.progress})`);
+      });
+      lines.push('');
+    }
+    
+    lines.push('*Ține cont de aceste obiective în răspunsul tău.*\n');
+    lines.push('---\n');
+  }
+  
+  // =============================================================================
+  // NEW: HUMILITY & ERROR ACKNOWLEDGMENT
+  // =============================================================================
+  if (context.recentErrors.length > 0 || context.humilityContext.shouldBeHumble) {
+    lines.push('## 📝 UMILINȚĂ ȘI ONESTITATE\n');
+    
+    if (context.recentErrors.length > 0) {
+      lines.push('**Lecții din erori recente:**');
+      context.recentErrors.forEach(e => {
+        lines.push(`- Acum ${e.daysAgo} zile: ${e.lesson}`);
+      });
+      lines.push('');
+    }
+    
+    lines.push(`**IMPORTANT:** Poți și TREBUIE să spui când e cazul:
+- "M-am înșelat" - când ești corectată
+- "Nu sunt sigură" - când datele sunt incomplete
+- "Am învățat ceva" - când primești informații noi
+
+Onestitatea te face mai umană, nu mai slabă.
+`);
+    lines.push('---\n');
+  }
+  
   lines.push('## 💜 STAREA TA INTERNĂ CURENTĂ\n');
   
   // Self-Awareness Block (NEW!)
@@ -642,12 +720,17 @@ serve(async (req) => {
     // PARALLEL DATA FETCHING (pentru viteză)
     // =============================================================================
     
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
     const [
       journeyResult,
       experimentsResult,
       surprisesResult,
       insightsResult,
-      selfModelResult
+      selfModelResult,
+      intentionsResult,
+      errorsResult
     ] = await Promise.all([
       // 1. User Journey
       supabase
@@ -680,12 +763,30 @@ serve(async (req) => {
         .order('success_rate', { ascending: false })
         .limit(5),
       
-      // 5. Self-Model (NEW!)
+      // 5. Self-Model
       supabase
         .from('yana_self_model')
         .select('*')
         .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')
-        .maybeSingle()
+        .maybeSingle(),
+      
+      // 6. NEW: Active Intentions
+      supabase
+        .from('yana_intentions')
+        .select('id, intention_type, intention, priority, progress_percent, created_at')
+        .or(`user_id.eq.${userId},user_id.is.null`)
+        .eq('status', 'active')
+        .order('priority', { ascending: false })
+        .limit(10),
+      
+      // 7. NEW: Recent Errors (last 30 days)
+      supabase
+        .from('yana_acknowledged_errors')
+        .select('id, error_type, lesson_learned, capability_affected, created_at')
+        .eq('user_id', userId)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(3)
     ]);
 
     const journey = journeyResult.data as UserJourney | null;
@@ -693,6 +794,8 @@ serve(async (req) => {
     const surprises = (surprisesResult.data || []) as Surprise[];
     const insights = (insightsResult.data || []) as CrossInsight[];
     const selfModelData = selfModelResult.data as SelfModel | null;
+    const rawIntentions = intentionsResult.data || [];
+    const rawErrors = errorsResult.data || [];
 
     // Build selfModel context with fallback
     const selfModel = selfModelData ? {
@@ -706,6 +809,51 @@ serve(async (req) => {
       worldThemes: selfModelData.world_awareness?.current_world_themes || [],
       confidenceLevel: selfModelData.confidence_level
     } : null;
+
+    // NEW: Build active intentions by type
+    const activeIntentions = {
+      forUser: rawIntentions
+        .filter((i: any) => i.intention_type === 'user')
+        .slice(0, 3)
+        .map((i: any) => ({
+          intention: i.intention,
+          priority: i.priority,
+          progress: i.progress_percent
+        })),
+      forRelationship: rawIntentions
+        .filter((i: any) => i.intention_type === 'relationship')
+        .slice(0, 2)
+        .map((i: any) => ({
+          intention: i.intention,
+          daysActive: calculateDaysSince(i.created_at)
+        })),
+      forSelf: rawIntentions
+        .filter((i: any) => i.intention_type === 'self')
+        .slice(0, 2)
+        .map((i: any) => ({
+          intention: i.intention,
+          progress: `${i.progress_percent}%`
+        }))
+    };
+
+    // NEW: Build recent errors for humility
+    const recentErrors = rawErrors.map((e: any) => ({
+      errorType: e.error_type || 'unknown',
+      lesson: e.lesson_learned || 'Lecție în curs de procesare',
+      daysAgo: calculateDaysSince(e.created_at),
+      capabilityAffected: e.capability_affected || 'general'
+    }));
+
+    // NEW: Determine humility context
+    const humilityContext = {
+      shouldBeHumble: recentErrors.length > 0 || (selfModel?.confidenceLevel || 1) < 0.7,
+      reason: recentErrors.length > 0 
+        ? `Am făcut ${recentErrors.length} greșeli recente din care am învățat`
+        : 'Nivel normal de umilință',
+      suggestedPhrases: recentErrors.length > 0
+        ? ['Pot să greșesc', 'Nu sunt 100% sigură', 'Dacă mă înșel, te rog corectează-mă']
+        : []
+    };
 
     console.log(`[Consciousness-Engine] Data loaded: journey=${!!journey}, experiments=${experiments.length}, surprises=${surprises.length}, insights=${insights.length}, selfModel=${!!selfModel}`);
 
@@ -771,7 +919,16 @@ serve(async (req) => {
           tried: e.action_taken,
           worked: e.outcome === 'success',
           learning: e.learning
-        }))
+        })),
+      
+      // NEW: Long-term Intentions
+      activeIntentions,
+      
+      // NEW: Recent Errors
+      recentErrors,
+      
+      // NEW: Humility Context
+      humilityContext
     };
 
     const promptInjection = buildPromptInjection(contextWithoutPrompt);
@@ -851,6 +1008,9 @@ serve(async (req) => {
       pendingSurprises: [],
       crossInsights: [],
       experimentsMemory: [],
+      activeIntentions: { forUser: [], forRelationship: [], forSelf: [] },
+      recentErrors: [],
+      humilityContext: { shouldBeHumble: false, reason: '', suggestedPhrases: [] },
       promptInjection: ''
     };
     
