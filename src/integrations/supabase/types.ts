@@ -4698,6 +4698,7 @@ export type Database = {
           id: string
           inspired_by_users: string[] | null
           shared_with: string[] | null
+          world_sources: Json | null
         }
         Insert: {
           created_at?: string | null
@@ -4707,6 +4708,7 @@ export type Database = {
           id?: string
           inspired_by_users?: string[] | null
           shared_with?: string[] | null
+          world_sources?: Json | null
         }
         Update: {
           created_at?: string | null
@@ -4716,6 +4718,7 @@ export type Database = {
           id?: string
           inspired_by_users?: string[] | null
           shared_with?: string[] | null
+          world_sources?: Json | null
         }
         Relationships: []
       }
@@ -4856,6 +4859,42 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           user_preferences?: Json | null
+        }
+        Relationships: []
+      }
+      yana_self_model: {
+        Row: {
+          capabilities: Json
+          confidence_level: number
+          confidence_trend: string
+          created_at: string
+          id: string
+          identity_summary: string
+          limitations: Json
+          updated_at: string
+          world_awareness: Json
+        }
+        Insert: {
+          capabilities?: Json
+          confidence_level?: number
+          confidence_trend?: string
+          created_at?: string
+          id?: string
+          identity_summary?: string
+          limitations?: Json
+          updated_at?: string
+          world_awareness?: Json
+        }
+        Update: {
+          capabilities?: Json
+          confidence_level?: number
+          confidence_trend?: string
+          created_at?: string
+          id?: string
+          identity_summary?: string
+          limitations?: Json
+          updated_at?: string
+          world_awareness?: Json
         }
         Relationships: []
       }
