@@ -29,7 +29,7 @@ serve(async (req) => {
 
     console.log("[silence-thoughts] Generating introspective thoughts...");
 
-    // Găsește utilizatori cu relationship_score >= 3 care au fost activi recent
+    // Găsește utilizatori cu relationship_score >= 3, total_conversations >= 3 care au fost activi recent
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: activeRelationships, error: fetchError } = await supabase
