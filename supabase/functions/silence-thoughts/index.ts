@@ -88,6 +88,21 @@ serve(async (req) => {
 
       if (!insertError) {
         thoughtsGenerated++;
+        
+        // YANA INITIATIVE: Dacă gândul e shared, creează și inițiativă learning_share
+        if (rel.relationship_score >= 5 && (rel.total_conversations || 0) >= 10) {
+          await supabase
+            .from('yana_initiatives')
+            .insert({
+              user_id: rel.user_id,
+              initiative_type: 'learning_share',
+              content: thought,
+              triggering_insight: `Gând introspectiv generat pentru utilizator cu relationship_score=${rel.relationship_score}`,
+              priority: 4,
+              scheduled_for: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // +24h
+            });
+          console.log(`[silence-thoughts] Created learning_share initiative for user ${rel.user_id}`);
+        }
       }
     }
 

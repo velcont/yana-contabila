@@ -83,6 +83,19 @@ serve(async (req) => {
                 relationship_score_at: newScore,
                 is_shared: false, // Nu arătăm utilizatorului imediat
               });
+            
+            // YANA INITIATIVE: Creează inițiativă de relationship_checkin
+            await supabase
+              .from('yana_initiatives')
+              .insert({
+                user_id: rel.user_id,
+                initiative_type: 'relationship_checkin',
+                content: `Am observat că nu am mai vorbit de ${weeksInactive} săptămâni. Sper că totul e în regulă! Sunt aici dacă ai nevoie de ceva.`,
+                triggering_insight: `Inactivitate de ${weeksInactive} săptămâni, relationship score a scăzut de la ${currentScore.toFixed(2)} la ${newScore.toFixed(2)}`,
+                priority: 7,
+                scheduled_for: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // +2h
+              });
+            console.log(`[update-relationship-decay] Created relationship_checkin initiative for user ${rel.user_id}`);
           }
         }
       }
