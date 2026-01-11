@@ -3324,6 +3324,7 @@ export type Database = {
           trial_credit_remaining: number | null
           trial_ends_at: string | null
           updated_at: string
+          yana_initiatives_opt_out: boolean | null
         }
         Insert: {
           account_type_selected?: boolean | null
@@ -3345,6 +3346,7 @@ export type Database = {
           trial_credit_remaining?: number | null
           trial_ends_at?: string | null
           updated_at?: string
+          yana_initiatives_opt_out?: boolean | null
         }
         Update: {
           account_type_selected?: boolean | null
@@ -3366,6 +3368,7 @@ export type Database = {
           trial_credit_remaining?: number | null
           trial_ends_at?: string | null
           updated_at?: string
+          yana_initiatives_opt_out?: boolean | null
         }
         Relationships: []
       }
@@ -4790,6 +4793,56 @@ export type Database = {
           world_sources?: Json | null
         }
         Relationships: []
+      }
+      yana_initiatives: {
+        Row: {
+          cancelled_reason: string | null
+          content: string
+          created_at: string
+          id: string
+          initiative_type: string
+          priority: number | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          triggering_insight: string | null
+          user_id: string
+        }
+        Insert: {
+          cancelled_reason?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          initiative_type: string
+          priority?: number | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          triggering_insight?: string | null
+          user_id: string
+        }
+        Update: {
+          cancelled_reason?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          initiative_type?: string
+          priority?: number | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          triggering_insight?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_initiatives_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       yana_intentions: {
         Row: {
