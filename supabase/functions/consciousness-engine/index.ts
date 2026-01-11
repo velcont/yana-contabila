@@ -71,6 +71,22 @@ interface SelfModel {
   identity_summary: string;
 }
 
+// =============================================================================
+// RESPONSE MODE SELECTOR TYPES
+// =============================================================================
+
+export type ResponseMode = 'empathetic' | 'analytical' | 'strategic' | 'mixed';
+
+export interface ResponseModeDecision {
+  responseMode: ResponseMode;
+  reasoning: string;
+  emotionalTone: string;
+  avoidAnalysis: boolean;
+  avoidStrategy: boolean;
+  priorityFocus: string;
+  suggestedOpening: string;
+}
+
 export interface ConsciousnessContext {
   userJourney: {
     primaryGoal: string | null;
@@ -88,6 +104,8 @@ export interface ConsciousnessContext {
     worldThemes: string[];
     confidenceLevel: number;
   } | null;
+  // NEW: Response Mode Selector output
+  responseModeDecision: ResponseModeDecision;
   curiosities: string[];
   concernLevel: number; // 1-10
   emotionalMode: 'curious' | 'concerned' | 'celebratory' | 'empathetic' | 'challenging' | 'neutral';
@@ -237,9 +255,223 @@ function generateSuggestedActions(
   return actions.slice(0, 4); // Max 4 sugestii
 }
 
+// =============================================================================
+// RESPONSE MODE SELECTOR - Decide tipul optim de răspuns
+// =============================================================================
+
+// Keywords pentru detectarea stării emoționale
+const EMOTIONAL_KEYWORDS = [
+  'greu', 'nu știu', 'ajutor', 'copleșit', 'stresat', 'îngrijorat', 
+  'speriat', 'disperat', 'pierdut', 'confuz', 'obosit', 'frustrat',
+  'anxios', 'îmi e teamă', 'nu mai pot', 'dificil', 'imposibil',
+  'nu înțeleg', 'mă simt', 'e greu', 'sunt în pană', 'nu reușesc'
+];
+
+// Keywords pentru cereri analitice
+const ANALYTICAL_KEYWORDS = [
+  'cât', 'care e', 'ce valoare', 'sumă', 'cifra', 'procent',
+  'indicator', 'calcul', 'dso', 'cash flow', 'profit', 'pierdere',
+  'balanță', 'sold', 'cont', 'total', 'media', 'evoluție'
+];
+
+// Keywords pentru cereri strategice
+const STRATEGIC_KEYWORDS = [
+  'cum fac', 'strategie', 'plan', 'pași', 'cum cresc', 'cum scap',
+  'cum îmbunătățesc', 'ce strategie', 'cum dezvolt', 'cum extind',
+  'cum bat', 'competiție', 'concurență', 'creștere', 'obiective'
+];
+
+function selectResponseMode(
+  message: string,
+  emotionalState: string | null,
+  activeGoals: string[],
+  recentMemories: string[],
+  riskLevel: number,
+  relationshipScore: number
+): ResponseModeDecision {
+  const lowerMessage = message.toLowerCase();
+  
+  // === FALLBACK pentru date lipsă ===
+  const safeEmotionalState = emotionalState || 'neutral';
+  const safeRiskLevel = riskLevel || 5;
+  const safeRelationshipScore = relationshipScore || 5;
+  
+  // === PRIORITATE 1: Risk Level foarte mare sau stare emoțională critică ===
+  const isEmotionallyDistressed = ['stressed', 'overwhelmed', 'anxious', 'worried', 'desperate'].includes(safeEmotionalState);
+  const hasEmotionalKeywords = EMOTIONAL_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  
+  if (safeRiskLevel >= 8 || isEmotionallyDistressed || (hasEmotionalKeywords && safeRiskLevel >= 6)) {
+    console.log(`[Response-Mode-Selector] EMPATHETIC: riskLevel=${safeRiskLevel}, emotional=${safeEmotionalState}, keywords=${hasEmotionalKeywords}`);
+    return {
+      responseMode: 'empathetic',
+      reasoning: `Risk level ${safeRiskLevel}/10 sau stare emoțională ${safeEmotionalState} detectată. Prioritate maximă: suport emoțional.`,
+      emotionalTone: 'supportive',
+      avoidAnalysis: true,
+      avoidStrategy: true,
+      priorityFocus: 'Validarea emoțiilor și oferirea de suport',
+      suggestedOpening: 'Înțeleg că e o situație grea. Hai să vorbim despre asta...'
+    };
+  }
+  
+  // === PRIORITATE 2: User nou (relationship score mic) ===
+  if (safeRelationshipScore < 3) {
+    console.log(`[Response-Mode-Selector] EMPATHETIC (new user): relationshipScore=${safeRelationshipScore}`);
+    return {
+      responseMode: 'empathetic',
+      reasoning: `Utilizator nou (relationship score: ${safeRelationshipScore}). Prioritate: construirea încrederii.`,
+      emotionalTone: 'warm',
+      avoidAnalysis: false,
+      avoidStrategy: false,
+      priorityFocus: 'Bun venit cald și stabilirea conexiunii',
+      suggestedOpening: 'Bine ai venit! Mă bucur să te cunosc. Cu ce te pot ajuta?'
+    };
+  }
+  
+  // === PRIORITATE 3: Cerere explicită de analiză/cifre ===
+  const hasAnalyticalKeywords = ANALYTICAL_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  if (hasAnalyticalKeywords && !hasEmotionalKeywords) {
+    console.log(`[Response-Mode-Selector] ANALYTICAL: keywords detected`);
+    return {
+      responseMode: 'analytical',
+      reasoning: 'Utilizatorul cere date concrete sau analiză. Focus pe cifre și precizie.',
+      emotionalTone: 'professional',
+      avoidAnalysis: false,
+      avoidStrategy: true,
+      priorityFocus: 'Date precise și analiză structurată',
+      suggestedOpening: 'Din datele tale...'
+    };
+  }
+  
+  // === PRIORITATE 4: Cerere explicită de strategie ===
+  const hasStrategicKeywords = STRATEGIC_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  if (hasStrategicKeywords && !hasEmotionalKeywords) {
+    console.log(`[Response-Mode-Selector] STRATEGIC: keywords detected`);
+    return {
+      responseMode: 'strategic',
+      reasoning: 'Utilizatorul cere sfaturi strategice. Focus pe planuri de acțiune.',
+      emotionalTone: 'confident',
+      avoidAnalysis: false,
+      avoidStrategy: false,
+      priorityFocus: 'Planuri concrete și opțiuni strategice',
+      suggestedOpening: 'Hai să analizăm opțiunile tale strategice...'
+    };
+  }
+  
+  // === PRIORITATE 5: Keywords emoționale moderate (fără risk mare) ===
+  if (hasEmotionalKeywords) {
+    console.log(`[Response-Mode-Selector] MIXED (emotional keywords, low risk): riskLevel=${safeRiskLevel}`);
+    return {
+      responseMode: 'mixed',
+      reasoning: 'Detectat ton emoțional moderat. Începe cu empatie, apoi treci la esențial.',
+      emotionalTone: 'understanding',
+      avoidAnalysis: false,
+      avoidStrategy: false,
+      priorityFocus: 'Echilibru între suport și informație',
+      suggestedOpening: 'Înțeleg situația. Hai să vedem cum te pot ajuta...'
+    };
+  }
+  
+  // === DEFAULT: MIXED - echilibru ===
+  console.log(`[Response-Mode-Selector] DEFAULT MIXED`);
+  return {
+    responseMode: 'mixed',
+    reasoning: 'Nu s-au detectat indicatori specifici. Abordare echilibrată.',
+    emotionalTone: 'friendly',
+    avoidAnalysis: false,
+    avoidStrategy: false,
+    priorityFocus: 'Răspuns complet și helpful',
+    suggestedOpening: ''
+  };
+}
+
 function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjection'>): string {
   const lines: string[] = [];
   
+  // =============================================================================
+  // RESPONSE MODE SELECTOR - PRIORITATE MAXIMĂ (la începutul prompt-ului)
+  // =============================================================================
+  const rmd = context.responseModeDecision;
+  
+  lines.push('## 🎯 DECIZIA OBLIGATORIE PENTRU ACEST RĂSPUNS\n');
+  lines.push('⚠️ **ACEASTĂ SECȚIUNE ARE PRIORITATE MAXIMĂ - RESPECTĂ-O ÎNAINTE DE ORICE ALTĂ REGULĂ!**\n');
+  
+  // Mode badge
+  const modeBadges: Record<ResponseMode, string> = {
+    empathetic: '💙 EMPATIC',
+    analytical: '📊 ANALITIC',
+    strategic: '🎯 STRATEGIC',
+    mixed: '⚖️ ECHILIBRAT'
+  };
+  
+  lines.push(`**MOD:** ${modeBadges[rmd.responseMode]}`);
+  lines.push(`**TON:** ${rmd.emotionalTone}`);
+  
+  if (rmd.avoidAnalysis) {
+    lines.push('❌ **NU ANALIZA:** Nu da cifre, nu analiza date, nu calcula - NU ACUM!');
+  }
+  if (rmd.avoidStrategy) {
+    lines.push('❌ **NU STRATEGIE:** Nu propune planuri, nu da sfaturi de business - NU ACUM!');
+  }
+  
+  lines.push(`**FOCUS:** ${rmd.priorityFocus}`);
+  
+  if (rmd.suggestedOpening) {
+    lines.push(`**DESCHIDERE SUGERATĂ:** "${rmd.suggestedOpening}"`);
+  }
+  
+  lines.push(`\n*Motivul deciziei:* ${rmd.reasoning}`);
+  
+  // Reguli specifice pe mod
+  lines.push('\n### Instrucțiuni pentru acest mod:\n');
+  
+  if (rmd.responseMode === 'empathetic') {
+    lines.push(`
+✅ **OBLIGATORIU:**
+- Începe cu validarea emoțiilor utilizatorului
+- Arată empatie și înțelegere ÎNAINTE de orice altceva
+- Folosește ton cald și suportiv
+- Ascultă activ - pune întrebări despre cum se simte
+
+❌ **INTERZIS:**
+- NU începe cu cifre sau procente
+- NU sări la soluții fără să asculți
+- NU propune strategii complexe sau planuri de acțiune
+- NU folosi ton rece sau distant
+`);
+  } else if (rmd.responseMode === 'analytical') {
+    lines.push(`
+✅ **OBLIGATORIU:**
+- Du-te direct la date și cifre
+- Fii precis și factual
+- Structurează informația clar
+- Citează surse concrete din balanță
+
+❌ **EVITĂ:**
+- Empatie excesivă care întârzie răspunsul
+- Divagații sau context inutil
+`);
+  } else if (rmd.responseMode === 'strategic') {
+    lines.push(`
+✅ **OBLIGATORIU:**
+- Focusează pe planuri de acțiune concrete
+- Oferă opțiuni clare cu pro/contra
+- Gândește pe termen lung
+- Propune pași acționabili
+
+❌ **EVITĂ:**
+- Să te pierzi în detalii tehnice
+- Să dai prea multe opțiuni (max 3)
+`);
+  } else {
+    lines.push(`
+✅ **OBLIGATORIU:**
+- Începe cu o propoziție empatică scurtă (1-2 propoziții)
+- Apoi treci la esențial
+- Echilibrează suportul cu informația
+`);
+  }
+  
+  lines.push('\n---\n');
   lines.push('## 💜 STAREA TA INTERNĂ CURENTĂ\n');
   
   // Self-Awareness Block (NEW!)
@@ -485,6 +717,22 @@ serve(async (req) => {
     const concernLevel = calculateConcernLevel(journey, message);
     const emotionalMode = determineEmotionalMode(journey, concernLevel, surprises);
     const suggestedActions = generateSuggestedActions(journey, experiments, insights);
+    
+    // NEW: Response Mode Selector - decide tipul optim de răspuns
+    // Extragem recentMemories limitat la 10 mesaje, max 200 chars per mesaj
+    const recentMemories: string[] = []; // TODO: extract from conversation_history if needed
+    const relationshipScore = journey ? Math.min(10, journey.total_interactions / 5) : 0;
+    
+    const responseModeDecision = selectResponseMode(
+      message,
+      journey?.emotional_state || null,
+      journey?.knowledge_gaps || [],
+      recentMemories,
+      concernLevel,
+      relationshipScore
+    );
+    
+    console.log(`[Consciousness-Engine] Response Mode: ${responseModeDecision.responseMode}, Reasoning: ${responseModeDecision.reasoning.substring(0, 50)}...`);
 
     const contextWithoutPrompt: Omit<ConsciousnessContext, 'promptInjection'> = {
       userJourney: journey ? {
@@ -498,6 +746,7 @@ serve(async (req) => {
       } : null,
       
       selfModel,
+      responseModeDecision,
       curiosities,
       concernLevel,
       emotionalMode,
@@ -581,9 +830,20 @@ serve(async (req) => {
     console.error(`[Consciousness-Engine] Error after ${processingTime}ms:`, error);
     
     // Returnăm context gol în caz de eroare (graceful degradation)
+    const defaultResponseMode: ResponseModeDecision = {
+      responseMode: 'mixed',
+      reasoning: 'Fallback default - eroare în procesare',
+      emotionalTone: 'friendly',
+      avoidAnalysis: false,
+      avoidStrategy: false,
+      priorityFocus: 'Răspuns helpful',
+      suggestedOpening: ''
+    };
+    
     const emptyContext: ConsciousnessContext = {
       userJourney: null,
       selfModel: null,
+      responseModeDecision: defaultResponseMode,
       curiosities: [],
       concernLevel: 5,
       emotionalMode: 'neutral',
