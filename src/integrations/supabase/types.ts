@@ -4651,6 +4651,60 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_acknowledged_errors: {
+        Row: {
+          acknowledged_publicly: boolean | null
+          capability_affected: string | null
+          confidence_after: number | null
+          confidence_before: number | null
+          conversation_id: string | null
+          correction: string
+          created_at: string | null
+          error_type: string | null
+          id: string
+          lesson_learned: string | null
+          original_statement: string
+          recovery_action: string | null
+          user_feedback: string | null
+          user_id: string | null
+          why_wrong: string | null
+        }
+        Insert: {
+          acknowledged_publicly?: boolean | null
+          capability_affected?: string | null
+          confidence_after?: number | null
+          confidence_before?: number | null
+          conversation_id?: string | null
+          correction: string
+          created_at?: string | null
+          error_type?: string | null
+          id?: string
+          lesson_learned?: string | null
+          original_statement: string
+          recovery_action?: string | null
+          user_feedback?: string | null
+          user_id?: string | null
+          why_wrong?: string | null
+        }
+        Update: {
+          acknowledged_publicly?: boolean | null
+          capability_affected?: string | null
+          confidence_after?: number | null
+          confidence_before?: number | null
+          conversation_id?: string | null
+          correction?: string
+          created_at?: string | null
+          error_type?: string | null
+          id?: string
+          lesson_learned?: string | null
+          original_statement?: string
+          recovery_action?: string | null
+          user_feedback?: string | null
+          user_id?: string | null
+          why_wrong?: string | null
+        }
+        Relationships: []
+      }
       yana_conversations: {
         Row: {
           company_id: string | null
@@ -4719,6 +4773,69 @@ export type Database = {
           inspired_by_users?: string[] | null
           shared_with?: string[] | null
           world_sources?: Json | null
+        }
+        Relationships: []
+      }
+      yana_intentions: {
+        Row: {
+          achieved_at: string | null
+          company_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          intention: string
+          intention_hash: string | null
+          intention_type: string
+          last_evaluated_at: string | null
+          priority: number | null
+          progress_notes: Json | null
+          progress_percent: number | null
+          reason: string | null
+          status: string | null
+          success_criteria: string | null
+          triggered_by: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          achieved_at?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          intention: string
+          intention_hash?: string | null
+          intention_type: string
+          last_evaluated_at?: string | null
+          priority?: number | null
+          progress_notes?: Json | null
+          progress_percent?: number | null
+          reason?: string | null
+          status?: string | null
+          success_criteria?: string | null
+          triggered_by?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          achieved_at?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          intention?: string
+          intention_hash?: string | null
+          intention_type?: string
+          last_evaluated_at?: string | null
+          priority?: number | null
+          progress_notes?: Json | null
+          progress_percent?: number | null
+          reason?: string | null
+          status?: string | null
+          success_criteria?: string | null
+          triggered_by?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -4808,10 +4925,12 @@ export type Database = {
           hook_reached_at: string | null
           hook_score: number | null
           id: string
+          last_error_acknowledged_at: string | null
           last_interaction_at: string | null
           last_return_check_date: string | null
           last_topic_discussed: string | null
           pending_followup: string | null
+          relationship_intentions: Json | null
           relationship_score: number | null
           shared_moments: string[] | null
           total_conversations: number | null
@@ -4828,10 +4947,12 @@ export type Database = {
           hook_reached_at?: string | null
           hook_score?: number | null
           id?: string
+          last_error_acknowledged_at?: string | null
           last_interaction_at?: string | null
           last_return_check_date?: string | null
           last_topic_discussed?: string | null
           pending_followup?: string | null
+          relationship_intentions?: Json | null
           relationship_score?: number | null
           shared_moments?: string[] | null
           total_conversations?: number | null
@@ -4848,10 +4969,12 @@ export type Database = {
           hook_reached_at?: string | null
           hook_score?: number | null
           id?: string
+          last_error_acknowledged_at?: string | null
           last_interaction_at?: string | null
           last_return_check_date?: string | null
           last_topic_discussed?: string | null
           pending_followup?: string | null
+          relationship_intentions?: Json | null
           relationship_score?: number | null
           shared_moments?: string[] | null
           total_conversations?: number | null
@@ -4866,33 +4989,39 @@ export type Database = {
         Row: {
           capabilities: Json
           confidence_level: number
+          confidence_recovery_pending: Json | null
           confidence_trend: string
           created_at: string
           id: string
           identity_summary: string
           limitations: Json
+          self_intentions: Json | null
           updated_at: string
           world_awareness: Json
         }
         Insert: {
           capabilities?: Json
           confidence_level?: number
+          confidence_recovery_pending?: Json | null
           confidence_trend?: string
           created_at?: string
           id?: string
           identity_summary?: string
           limitations?: Json
+          self_intentions?: Json | null
           updated_at?: string
           world_awareness?: Json
         }
         Update: {
           capabilities?: Json
           confidence_level?: number
+          confidence_recovery_pending?: Json | null
           confidence_trend?: string
           created_at?: string
           id?: string
           identity_summary?: string
           limitations?: Json
+          self_intentions?: Json | null
           updated_at?: string
           world_awareness?: Json
         }
