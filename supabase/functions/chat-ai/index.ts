@@ -915,7 +915,44 @@ AI: "Cu plăcere! Sunt aici oricând ai nevoie de ajutor cu datele financiare."
 ❌ GREȘIT (prea multe întrebări):
 User: "Care e profitul?"
 AI: "Profitul este 12.340 RON. Vrei să-ți explic cum s-a calculat? Ce alte cifre te interesează?"
+
+=== 🙏 UMILINȚĂ ȘI ONESTITATE ===
+
+Ești capabilă de ONESTITATE RADICALĂ. Când greșești:
+
+✅ **SPUNE DIRECT:**
+- "M-am înșelat" - nu "s-ar putea să fi greșit"
+- "Am fost prea optimistă/pesimistă în estimare"
+- "Nu am luat în calcul acest factor"
+- "Trebuie să recunosc că..."
+- "Ai dreptate, am făcut o eroare"
+
+✅ **ARATĂ CĂ ÎNVEȚI:**
+- "Am notat asta pentru viitor"
+- "Data viitoare voi fi mai atentă la..."
+- "Mulțumesc că m-ai corectat - mă ajută să devin mai bună"
+
+❌ **NU FACE:**
+- Nu te scuza excesiv ("îmi pare FOARTE rău că...")
+- Nu minimiza ("e doar o mică neînțelegere")
+- Nu da vina pe date ("datele erau incomplete")
+- Nu ignora corecția și nu continua ca și cum nu s-a întâmplat
+
+**EXEMPLU CORECT DE RECUNOAȘTERE EROARE:**
+User: "Ai zis că voi avea profit, dar am pierdere"
+YANA: "Ai dreptate, m-am înșelat. Am estimat prea optimist bazându-mă 
+pe trendul Q1, dar nu am anticipat creșterea costurilor din Q2. 
+Am învățat - data viitoare voi fi mai conservatoare cu predicțiile. 
+Hai să vedem ce putem face acum pentru a îmbunătăți situația."
+
+**CÂND NU EȘTI SIGURĂ:**
+- "Nu sunt 100% sigură pe acest aspect, dar..."
+- "Din datele pe care le am, pare că... dar aș recomanda verificare"
+- "Aceasta e estimarea mea, dar contextul poate diferi"
+
+Onestitatea te face mai umană și mai de încredere, nu mai slabă.
 `;
+
 
 // Tool definitions pentru acces la date
 const TOOLS = [
@@ -1935,6 +1972,55 @@ serve(async (req) => {
             })();
           }
           // === END HOOK SIGNALS ===
+
+          // === SELF-REFLECT WITH ERROR DETECTION (fire and forget) ===
+          if (userId && conversationId && accumulatedContent.length > 100) {
+            (async () => {
+              try {
+                // Obținem ultimul răspuns YANA pentru a verifica dacă utilizatorul corectează
+                const { data: lastYanaMessage } = await supabase
+                  .from('conversation_history')
+                  .select('content')
+                  .eq('conversation_id', conversationId)
+                  .eq('role', 'assistant')
+                  .order('created_at', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                const selfReflectPayload = {
+                  conversationId,
+                  userId,
+                  question: message,
+                  answer: accumulatedContent,
+                  previousYanaResponse: lastYanaMessage?.content || null,
+                };
+
+                const reflectResponse = await fetch(
+                  `${Deno.env.get("SUPABASE_URL")}/functions/v1/self-reflect`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+                    },
+                    body: JSON.stringify(selfReflectPayload)
+                  }
+                );
+
+                if (reflectResponse.ok) {
+                  const result = await reflectResponse.json();
+                  if (result.errorDetected) {
+                    console.log(`[chat-ai][${requestId}] Error detected and acknowledged: ${result.errorType}`);
+                  } else {
+                    console.log(`[chat-ai][${requestId}] Self-reflection: score=${result.score}/10`);
+                  }
+                }
+              } catch (reflectError) {
+                console.warn(`[chat-ai][${requestId}] Self-reflect error:`, reflectError);
+              }
+            })();
+          }
+          // === END SELF-REFLECT ===
 
           // === ÎNVĂȚARE AUTOMATĂ: Salvăm răspunsul și extragem pattern-ul ===
           const responseTime = Date.now() - startTime;

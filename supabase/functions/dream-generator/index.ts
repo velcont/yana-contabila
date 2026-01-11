@@ -269,14 +269,40 @@ serve(async (req) => {
 
     const journalFragments = (journalEntries || []).map(e => e.content).filter(Boolean);
 
-    // 4. Extrage teme din știri
+    // 4. Citește intențiile active (pentru toate user-urile loiali)
+    const { data: activeIntentions } = await supabase
+      .from('yana_intentions')
+      .select('intention, intention_type, priority')
+      .eq('status', 'active')
+      .order('priority', { ascending: false })
+      .limit(10);
+
+    const intentionsByType = {
+      user: (activeIntentions || []).filter(i => i.intention_type === 'user').slice(0, 3),
+      self: (activeIntentions || []).filter(i => i.intention_type === 'self').slice(0, 2),
+      relationship: (activeIntentions || []).filter(i => i.intention_type === 'relationship').slice(0, 2),
+    };
+
+    console.log(`[dream-generator] Found ${activeIntentions?.length || 0} active intentions`);
+
+    // 5. Extrage teme din știri
     let worldThemes: string[] = [];
     if (news.length > 0) {
       worldThemes = await extractThemesFromNews(news);
     }
 
-    // 5. Generează visul world-aware
-    const dream = await generateWorldAwareDream(worldThemes, news, journalFragments);
+    // Adaugă intențiile ca teme pentru vis
+    const intentionThemes = [
+      ...intentionsByType.user.map(i => i.intention),
+      ...intentionsByType.self.map(i => i.intention),
+    ].slice(0, 3);
+
+    // 6. Generează visul world-aware (cu intenții)
+    const dream = await generateWorldAwareDream(
+      [...worldThemes, ...intentionThemes],
+      news,
+      journalFragments
+    );
 
     // 6. Salvează visul în baza de date
     const { data: savedDream, error: dreamError } = await supabase
@@ -353,6 +379,7 @@ serve(async (req) => {
         dream_themes: dream.dream_themes,
         world_aware: !!dream.world_sources,
         news_processed: dream.world_sources?.news_count || 0,
+        intentions_incorporated: intentionThemes.length,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

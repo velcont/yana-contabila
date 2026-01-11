@@ -13,6 +13,7 @@ interface SelfReflectRequest {
   question: string;
   answer: string;
   route?: string;
+  previousYanaResponse?: string; // Pentru detecție erori
 }
 
 interface ReflectionResult {
@@ -22,6 +23,184 @@ interface ReflectionResult {
   what_could_improve: string[];
   missing_context: string | null;
   suggested_sources: string[];
+}
+
+interface ErrorAnalysis {
+  isRealError: boolean;
+  errorType: 'factual' | 'prediction' | 'advice' | 'tone' | 'assumption' | 'misunderstanding';
+  originalStatement: string;
+  correction: string;
+  whyWrong: string;
+  lessonLearned: string;
+  confidenceImpact: number;
+  recoveryAction: string;
+  confidence: number;
+}
+
+// Pattern-uri pentru detecție rapidă erori
+const CORRECTION_PATTERNS = [
+  { pattern: /nu e(ste)? (așa|corect|adevărat)/i, type: 'factual' as const },
+  { pattern: /greșit|greșeală/i, type: 'factual' as const },
+  { pattern: /te(-ai)? înșeli/i, type: 'assumption' as const },
+  { pattern: /nu ai înțeles/i, type: 'misunderstanding' as const },
+  { pattern: /dar ai zis (că|ca)/i, type: 'prediction' as const },
+  { pattern: /contrazici/i, type: 'factual' as const },
+  { pattern: /nu asta am (vrut|întrebat)/i, type: 'misunderstanding' as const },
+  { pattern: /ai spus că.*dar/i, type: 'factual' as const },
+  { pattern: /cifra.*greșită/i, type: 'factual' as const },
+  { pattern: /nu e corect ce ai/i, type: 'factual' as const },
+];
+
+// Analizează dacă mesajul utilizatorului conține o corecție
+async function analyzeForErrors(
+  previousResponse: string,
+  userMessage: string,
+  lovableApiKey: string
+): Promise<ErrorAnalysis | null> {
+  
+  // 1. Pattern check rapid
+  const patternMatch = CORRECTION_PATTERNS.find(p => p.pattern.test(userMessage));
+  
+  if (!patternMatch) {
+    return null; // Nu e corecție
+  }
+  
+  console.log(`[self-reflect] Potential correction detected, pattern: ${patternMatch.type}`);
+  
+  // 2. Verificare contextuală cu AI (evită false positives)
+  try {
+    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [{
+          role: "user",
+          content: `Analizează dacă utilizatorul corectează o eroare a AI-ului.
+
+Răspunsul anterior al AI (YANA): "${previousResponse.substring(0, 800)}"
+
+Mesajul utilizatorului: "${userMessage}"
+
+Răspunde DOAR cu JSON valid:
+{
+  "isRealError": true/false,
+  "confidence": 0.0-1.0,
+  "errorType": "factual|prediction|advice|tone|assumption|misunderstanding",
+  "originalStatement": "ce a spus AI greșit (maxim 100 caractere)",
+  "correction": "ce e corect de fapt",
+  "whyWrong": "de ce era greșit (1 propoziție)",
+  "lessonLearned": "ce ar trebui să învețe AI (1 propoziție)",
+  "recoveryAction": "cum poate recâștiga încrederea"
+}
+
+IMPORTANT: 
+- Dacă utilizatorul doar pune o întrebare nouă sau discută, isRealError = false
+- Dacă utilizatorul doar clarifică, nu corectează, isRealError = false
+- Doar dacă AI a făcut o greșeală clară, isRealError = true`
+        }],
+        max_tokens: 400,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[self-reflect] Error analysis AI call failed");
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+    
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    
+    const analysis: ErrorAnalysis = JSON.parse(jsonMatch[0]);
+    
+    // Validare: doar erori reale cu confidence > 0.7
+    if (analysis.isRealError && analysis.confidence > 0.7) {
+      analysis.confidenceImpact = -0.03; // Scade 3% confidence
+      console.log(`[self-reflect] Real error confirmed: ${analysis.errorType}, confidence: ${analysis.confidence}`);
+      return analysis;
+    }
+    
+    console.log(`[self-reflect] Not a real error (confidence: ${analysis.confidence})`);
+    return null;
+    
+  } catch (error) {
+    console.error("[self-reflect] Error in error analysis:", error);
+    return null;
+  }
+}
+
+// Salvează eroarea în baza de date
+async function saveAcknowledgedError(
+  supabase: any,
+  userId: string,
+  conversationId: string,
+  error: ErrorAnalysis,
+  previousResponse: string
+) {
+  try {
+    // 1. Salvăm eroarea
+    const { data: savedError, error: saveError } = await supabase
+      .from('yana_acknowledged_errors')
+      .insert({
+        user_id: userId,
+        conversation_id: conversationId,
+        error_type: error.errorType,
+        original_statement: error.originalStatement,
+        correction: error.correction,
+        user_feedback: previousResponse.substring(0, 500),
+        why_wrong: error.whyWrong,
+        confidence_before: 0.75,
+        confidence_after: 0.75 + error.confidenceImpact,
+        lesson_learned: error.lessonLearned,
+        capability_affected: error.errorType,
+        recovery_action: error.recoveryAction,
+        acknowledged_publicly: true,
+      })
+      .select('id')
+      .single();
+
+    if (saveError) {
+      console.error("[self-reflect] Failed to save acknowledged error:", saveError);
+      return null;
+    }
+
+    console.log(`[self-reflect] ✅ Error acknowledged and saved (id: ${savedError?.id})`);
+
+    // 2. Actualizăm relationship pentru a nota eroarea
+    await supabase
+      .from('yana_relationships')
+      .update({
+        last_error_acknowledged_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId);
+
+    // 3. Adăugăm în pending recovery
+    const { data: selfModel } = await supabase
+      .from('yana_self_model')
+      .select('confidence_recovery_pending')
+      .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11')
+      .single();
+
+    const pending = selfModel?.confidence_recovery_pending || [];
+    if (!pending.includes(error.errorType)) {
+      pending.push(error.errorType);
+      await supabase
+        .from('yana_self_model')
+        .update({ confidence_recovery_pending: pending })
+        .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+    }
+
+    return savedError?.id;
+  } catch (err) {
+    console.error("[self-reflect] Error saving acknowledged error:", err);
+    return null;
+  }
 }
 
 serve(async (req) => {
@@ -67,6 +246,39 @@ serve(async (req) => {
     }
 
     console.log(`[self-reflect] Starting reflection for conversation ${conversationId}`);
+
+    // === ERROR DETECTION ===
+    let errorAnalysisResult: { errorId: string | null; errorType: string | null } = {
+      errorId: null,
+      errorType: null,
+    };
+    
+    // Dacă avem previousYanaResponse, verificăm dacă utilizatorul corectează
+    if (requestData.previousYanaResponse && requestData.previousYanaResponse.length > 50) {
+      const errorAnalysis = await analyzeForErrors(
+        requestData.previousYanaResponse,
+        question,
+        lovableApiKey
+      );
+      
+      if (errorAnalysis) {
+        const errorId = await saveAcknowledgedError(
+          supabase,
+          userId,
+          conversationId,
+          errorAnalysis,
+          requestData.previousYanaResponse
+        );
+        
+        errorAnalysisResult = {
+          errorId,
+          errorType: errorAnalysis.errorType,
+        };
+        
+        console.log(`[self-reflect] Error detection completed: ${errorAnalysis.errorType}`);
+      }
+    }
+    // === END ERROR DETECTION ===
 
     // Build the self-reflection prompt
     const reflectionPrompt = `Ești un evaluator AI critic. Analizează următoarea conversație și oferă o auto-evaluare obiectivă.
@@ -193,6 +405,10 @@ Returnează DOAR JSON-ul, fără alte explicații.`;
         score: reflection.self_score,
         confidence: reflection.confidence_level,
         processingTimeMs,
+        // Error detection results
+        errorDetected: !!errorAnalysisResult.errorId,
+        errorId: errorAnalysisResult.errorId,
+        errorType: errorAnalysisResult.errorType,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
