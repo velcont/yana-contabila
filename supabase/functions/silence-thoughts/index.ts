@@ -34,8 +34,9 @@ serve(async (req) => {
 
     const { data: activeRelationships, error: fetchError } = await supabase
       .from('yana_relationships')
-      .select('user_id, relationship_score, last_topic_discussed, total_conversations')
+      .select('user_id, relationship_score, last_topic_discussed, total_conversations, hook_score')
       .gte('relationship_score', 3)
+      .gte('total_conversations', 3)
       .gte('last_interaction_at', threeDaysAgo)
       .limit(50); // Limitează pentru a controla costurile
 
@@ -82,7 +83,7 @@ serve(async (req) => {
             relationship_level: rel.relationship_score,
           },
           relationship_score_at: rel.relationship_score,
-          is_shared: rel.relationship_score >= 7, // Împărtășim doar pentru score ridicat
+          is_shared: rel.relationship_score >= 4 && (rel.total_conversations || 0) >= 5 && (rel.hook_score || 0) >= 3,
         });
 
       if (!insertError) {
