@@ -1319,7 +1319,20 @@ const ChatAIRequestSchema = z.object({
     }))
   }).optional().nullable(),
   // 🆕 MEMORIE: Context din conversații anterioare cu firma
-  memoryContext: z.string().max(5000, "Context memorie prea lung").optional().nullable()
+  memoryContext: z.string().max(5000, "Context memorie prea lung").optional().nullable(),
+  // 🆕 CONSCIOUSNESS: Context de conștiință pentru personalizare
+  consciousnessContext: z.object({
+    success: z.boolean().optional(),
+    context: z.object({
+      promptInjection: z.string().optional(),
+      userJourney: z.any().optional(),
+      selfModel: z.any().optional(),
+      responseModeDecision: z.any().optional(),
+      emotionalMode: z.string().optional(),
+      concernLevel: z.number().optional()
+    }).optional(),
+    processingTimeMs: z.number().optional()
+  }).optional().nullable()
 });
 
 serve(async (req) => {
@@ -1367,7 +1380,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1640,7 +1653,15 @@ serve(async (req) => {
       console.log(`[chat-ai][${requestId}] Memory context added to prompt (${memoryContext.length} chars)`);
     }
     
-    let adaptedPrompt = memorySection + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    // 🆕 CONSCIOUSNESS: Adaugă prompt injection din consciousness-engine pentru personalizare
+    const consciousnessSection = consciousnessContext?.context?.promptInjection 
+      ? `\n\n=== CONSCIOUSNESS CONTEXT (PRIORITATE MARE) ===\n${consciousnessContext.context.promptInjection}\n=== END CONSCIOUSNESS ===\n` 
+      : '';
+    if (consciousnessContext?.context?.promptInjection) {
+      console.log(`[chat-ai][${requestId}] Consciousness context added to prompt (${consciousnessContext.context.promptInjection.length} chars)`);
+    }
+    
+    let adaptedPrompt = consciousnessSection + memorySection + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

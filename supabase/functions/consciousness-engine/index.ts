@@ -403,8 +403,19 @@ function selectResponseMode(
   };
 }
 
-function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjection'>): string {
+function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjection'>, profileName?: string | null): string {
   const lines: string[] = [];
+  
+  // =============================================================================
+  // USER NAME - PERSONALIZARE CU NUMELE UTILIZATORULUI
+  // =============================================================================
+  if (profileName) {
+    lines.push(`## 👤 NUMELE UTILIZATORULUI\n`);
+    lines.push(`**Utilizatorul se numește:** ${profileName}`);
+    lines.push(`Folosește-i numele ocazional în conversație pentru a crea o conexiune personală.`);
+    lines.push(`Când te întreabă "cum mă cheamă?" sau similar, răspunde că îl cheamă "${profileName}".\n`);
+    lines.push('---\n');
+  }
   
   // =============================================================================
   // RESPONSE MODE SELECTOR - PRIORITATE MAXIMĂ (la începutul prompt-ului)
@@ -730,7 +741,8 @@ serve(async (req) => {
       insightsResult,
       selfModelResult,
       intentionsResult,
-      errorsResult
+      errorsResult,
+      profileResult
     ] = await Promise.all([
       // 1. User Journey
       supabase
@@ -786,7 +798,14 @@ serve(async (req) => {
         .eq('user_id', userId)
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: false })
-        .limit(3)
+        .limit(3),
+      
+      // 8. NEW: User Profile (for name)
+      supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle()
     ]);
 
     const journey = journeyResult.data as UserJourney | null;
@@ -796,6 +815,9 @@ serve(async (req) => {
     const selfModelData = selfModelResult.data as SelfModel | null;
     const rawIntentions = intentionsResult.data || [];
     const rawErrors = errorsResult.data || [];
+    const profileName = profileResult.data?.full_name || null;
+    
+    console.log(`[Consciousness-Engine] Profile name: ${profileName || 'NOT FOUND'}`);
 
     // Build selfModel context with fallback
     const selfModel = selfModelData ? {
@@ -931,7 +953,7 @@ serve(async (req) => {
       humilityContext
     };
 
-    const promptInjection = buildPromptInjection(contextWithoutPrompt);
+    const promptInjection = buildPromptInjection(contextWithoutPrompt, profileName);
 
     const fullContext: ConsciousnessContext = {
       ...contextWithoutPrompt,

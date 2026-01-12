@@ -467,7 +467,53 @@ serve(async (req) => {
       routeDecision.payload.conversationId = conversationId;
     }
 
-    console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}${memoryContext ? ' (with memory context)' : ''}`);
+    // =============================================================================
+    // CONSCIOUSNESS ENGINE: Încărcare context conștiință ÎNAINTE de apelul AI
+    // =============================================================================
+    let consciousnessContext: Record<string, unknown> | null = null;
+    
+    if (message && user.id && (routeDecision.route === 'chat-ai' || routeDecision.route === 'strategic-advisor')) {
+      try {
+        const consciousnessUrl = `${supabaseUrl}/functions/v1/consciousness-engine`;
+        const consciousnessPromise = fetch(consciousnessUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            message: message,
+            conversationId,
+            companyId: detectedCompanyId,
+          }),
+        });
+        
+        // Race cu timeout de 3 secunde
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 3000)
+        );
+        
+        const consciousnessResponse = await Promise.race([consciousnessPromise, timeoutPromise]) as Response;
+        
+        if (consciousnessResponse.ok) {
+          consciousnessContext = await consciousnessResponse.json();
+          console.log('[AI-Router] Consciousness context loaded BEFORE AI call:', {
+            success: consciousnessContext?.success,
+            hasPromptInjection: !!(consciousnessContext?.context as Record<string, unknown>)?.promptInjection,
+            emotionalMode: (consciousnessContext?.context as Record<string, unknown>)?.emotionalMode,
+          });
+          
+          // Injectează consciousness context în payload
+          routeDecision.payload.consciousnessContext = consciousnessContext;
+        }
+      } catch (err) {
+        console.warn('[AI-Router] Consciousness engine timeout/error, proceeding without context:', err);
+        // Nu aruncăm eroare - conștiința e opțională
+      }
+    }
+
+    console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}${memoryContext ? ' (with memory context)' : ''}${consciousnessContext ? ' (with consciousness)' : ''}`);
 
     // Call the appropriate edge function
     const targetUrl = `${supabaseUrl}/functions/v1/${routeDecision.route}`;
@@ -559,55 +605,6 @@ serve(async (req) => {
         console.error('[AI-Router] Failed to save conversation for memory:', saveError);
         // Nu aruncăm eroare - memoria e opțională
       }
-    }
-
-    // =============================================================================
-    // CONSCIOUSNESS ENGINE: Încărcare context conștiință SINCRON (timeout 2s)
-    // =============================================================================
-    let consciousnessContext: Record<string, unknown> | null = null;
-    
-    if (message && user.id) {
-      try {
-        const consciousnessUrl = `${supabaseUrl}/functions/v1/consciousness-engine`;
-        const consciousnessPromise = fetch(consciousnessUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader,
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            conversationId,
-            currentMessage: message,
-            companyId: detectedCompanyId,
-          }),
-        });
-        
-        // Race cu timeout de 2 secunde
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('timeout')), 2000)
-        );
-        
-        const consciousnessResponse = await Promise.race([consciousnessPromise, timeoutPromise]) as Response;
-        
-        if (consciousnessResponse.ok) {
-          consciousnessContext = await consciousnessResponse.json();
-          console.log('[AI-Router] Consciousness context loaded:', {
-            hasCuriosities: !!consciousnessContext?.curiosities,
-            concernLevel: consciousnessContext?.concernLevel,
-            emotionalMode: consciousnessContext?.emotionalMode,
-          });
-        }
-      } catch (err) {
-        console.warn('[AI-Router] Consciousness engine timeout/error, proceeding without context:', err);
-        // Nu aruncăm eroare - conștiința e opțională
-      }
-    }
-    
-    // Injectează consciousness context în payload pentru routes care îl suportă
-    if (consciousnessContext && (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'chat-ai')) {
-      routeDecision.payload.consciousnessContext = consciousnessContext;
-      console.log('[AI-Router] Consciousness context injected into payload');
     }
 
     // =============================================================================
