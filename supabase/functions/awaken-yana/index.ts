@@ -10,10 +10,11 @@ const corsHeaders = {
 function generatePersonalizedPrompt(
   relationship: any,
   soulCore: any,
-  recentJournalEntries: any[]
+  recentJournalEntries: any[],
+  profileName: string | null
 ): string {
   const score = relationship?.relationship_score || 1;
-  const userName = relationship?.user_preferences?.name || null;
+  const userName = profileName || relationship?.user_preferences?.name || null;
   const lastTopic = relationship?.last_topic_discussed || null;
   const totalConversations = relationship?.total_conversations || 0;
   const consecutiveDays = relationship?.consecutive_return_days || 0;
@@ -117,7 +118,7 @@ serve(async (req) => {
     );
 
     // Fetch all needed data in parallel
-    const [relationshipResult, soulCoreResult, journalResult] = await Promise.all([
+    const [relationshipResult, soulCoreResult, journalResult, profileResult] = await Promise.all([
       supabase
         .from('yana_relationships')
         .select('*')
@@ -134,17 +135,24 @@ serve(async (req) => {
         .eq('is_shared', true)
         .order('created_at', { ascending: false })
         .limit(5),
+      supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .maybeSingle(),
     ]);
 
     const relationship = relationshipResult.data;
     const soulCore = soulCoreResult.data;
     const journalEntries = journalResult.data || [];
+    const profile = profileResult.data;
 
     // Generează prompt personalizat
     const promptInjection = generatePersonalizedPrompt(
       relationship,
       soulCore,
-      journalEntries
+      journalEntries,
+      profile?.full_name || null
     );
 
     console.log(`[awaken-yana] Generated prompt for user ${userId}, score: ${relationship?.relationship_score || 1}`);
