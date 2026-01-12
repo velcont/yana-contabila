@@ -5423,6 +5423,15 @@ export type Database = {
         Args: { event_details?: Json; event_type: string }
         Returns: undefined
       }
+      verify_ai_access: {
+        Args: { p_endpoint?: string; p_user_id: string }
+        Returns: {
+          access_type: string
+          can_proceed: boolean
+          message: string
+          remaining_cents: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
