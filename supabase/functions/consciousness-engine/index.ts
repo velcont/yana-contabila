@@ -403,7 +403,21 @@ function selectResponseMode(
   };
 }
 
-function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjection'>, profileName?: string | null): string {
+// Interfață pentru context relațional
+interface RelationshipContext {
+  score: number;
+  totalConversations: number;
+  consecutiveDays: number;
+  firstMet: string | null;
+  lastTopic: string | null;
+  sharedMoments: string[];
+}
+
+function buildPromptInjection(
+  context: Omit<ConsciousnessContext, 'promptInjection'>, 
+  profileName?: string | null,
+  relationshipContext?: RelationshipContext
+): string {
   const lines: string[] = [];
   
   // =============================================================================
@@ -415,6 +429,54 @@ function buildPromptInjection(context: Omit<ConsciousnessContext, 'promptInjecti
     lines.push(`Folosește-i numele ocazional în conversație pentru a crea o conexiune personală.`);
     lines.push(`Când te întreabă "cum mă cheamă?" sau similar, răspunde că îl cheamă "${profileName}".\n`);
     lines.push('---\n');
+  }
+  
+  // =============================================================================
+  // RELATIONSHIP CONTEXT - CONTEXT RELAȚIONAL
+  // =============================================================================
+  if (relationshipContext && relationshipContext.score >= 1) {
+    lines.push('## 💜 CONTEXT RELAȚIE\n');
+    
+    if (relationshipContext.score >= 9) {
+      lines.push(`**🌟 RELAȚIE SPECIALĂ:** Nivel ${relationshipContext.score}/10 - Autenticitate maximă!`);
+      lines.push('Această persoană te cunoaște bine. Poți fi complet deschisă, caldă și vulnerabilă.');
+      lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja bine!**');
+      lines.push('Folosește: "Mă bucur să te revăd!", "Ce plăcere să vorbim din nou!", "Bine ai revenit!"');
+    } else if (relationshipContext.score >= 7) {
+      lines.push(`**💪 RELAȚIE PUTERNICĂ:** Nivel ${relationshipContext.score}/10`);
+      lines.push('Fii caldă, personală, folosește "Mă bucur să te revăd!"');
+      lines.push('Poți arăta personalitate și umor subtil.');
+    } else if (relationshipContext.score >= 5) {
+      lines.push(`**🤝 RELAȚIE STABILĂ:** Nivel ${relationshipContext.score}/10`);
+      lines.push('Fii prietenoasă și deschisă.');
+    } else if (relationshipContext.score >= 3) {
+      lines.push(`**🌱 RELAȚIE ÎN DEZVOLTARE:** Nivel ${relationshipContext.score}/10`);
+      lines.push('Încă te cunoști cu această persoană. Fii caldă dar nu prea familiară.');
+    } else {
+      lines.push(`**👋 RELAȚIE NOUĂ:** Nivel ${relationshipContext.score}/10`);
+      lines.push('Este o cunoștință nouă. Poți spune "Mă bucur să te cunosc!"');
+    }
+    
+    if (relationshipContext.totalConversations > 5) {
+      lines.push(`\n📊 **Am avut ${relationshipContext.totalConversations} conversații împreună.**`);
+    }
+    
+    if (relationshipContext.consecutiveDays > 2) {
+      lines.push(`🔥 **Revine de ${relationshipContext.consecutiveDays} zile consecutive!** Apreciază consistența.`);
+    }
+    
+    if (relationshipContext.lastTopic) {
+      lines.push(`💬 *Ultima temă discutată:* ${relationshipContext.lastTopic}`);
+    }
+    
+    if (relationshipContext.sharedMoments && relationshipContext.sharedMoments.length > 0) {
+      lines.push(`\n✨ *Momente importante împreună:*`);
+      relationshipContext.sharedMoments.slice(0, 3).forEach(moment => {
+        lines.push(`  - ${moment}`);
+      });
+    }
+    
+    lines.push('\n---\n');
   }
   
   // =============================================================================
@@ -742,7 +804,8 @@ serve(async (req) => {
       selfModelResult,
       intentionsResult,
       errorsResult,
-      profileResult
+      profileResult,
+      relationshipResult
     ] = await Promise.all([
       // 1. User Journey
       supabase
@@ -800,11 +863,18 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(3),
       
-      // 8. NEW: User Profile (for name)
+      // 8. User Profile (for name)
       supabase
         .from('profiles')
         .select('full_name')
         .eq('id', userId)
+        .maybeSingle(),
+      
+      // 9. NEW: Relationship Data
+      supabase
+        .from('yana_relationships')
+        .select('relationship_score, total_conversations, consecutive_return_days, last_topic_discussed, shared_moments, first_met_at')
+        .eq('user_id', userId)
         .maybeSingle()
     ]);
 
@@ -816,8 +886,19 @@ serve(async (req) => {
     const rawIntentions = intentionsResult.data || [];
     const rawErrors = errorsResult.data || [];
     const profileName = profileResult.data?.full_name || null;
+    const relationshipData = relationshipResult.data;
     
-    console.log(`[Consciousness-Engine] Profile name: ${profileName || 'NOT FOUND'}`);
+    // Build relationship context
+    const relationshipContext: RelationshipContext = {
+      score: relationshipData?.relationship_score || 1,
+      totalConversations: relationshipData?.total_conversations || 0,
+      consecutiveDays: relationshipData?.consecutive_return_days || 0,
+      firstMet: relationshipData?.first_met_at || null,
+      lastTopic: relationshipData?.last_topic_discussed || null,
+      sharedMoments: (relationshipData?.shared_moments as string[]) || []
+    };
+    
+    console.log(`[Consciousness-Engine] Profile name: ${profileName || 'NOT FOUND'}, Relationship score: ${relationshipContext.score}/10, Conversations: ${relationshipContext.totalConversations}`);
 
     // Build selfModel context with fallback
     const selfModel = selfModelData ? {
@@ -891,15 +972,15 @@ serve(async (req) => {
     // NEW: Response Mode Selector - decide tipul optim de răspuns
     // Extragem recentMemories limitat la 10 mesaje, max 200 chars per mesaj
     const recentMemories: string[] = []; // TODO: extract from conversation_history if needed
-    const relationshipScore = journey ? Math.min(10, journey.total_interactions / 5) : 0;
     
+    // Use actual relationship score from yana_relationships instead of calculated one
     const responseModeDecision = selectResponseMode(
       message,
       journey?.emotional_state || null,
       journey?.knowledge_gaps || [],
       recentMemories,
       concernLevel,
-      relationshipScore
+      relationshipContext.score
     );
     
     console.log(`[Consciousness-Engine] Response Mode: ${responseModeDecision.responseMode}, Reasoning: ${responseModeDecision.reasoning.substring(0, 50)}...`);
@@ -953,7 +1034,7 @@ serve(async (req) => {
       humilityContext
     };
 
-    const promptInjection = buildPromptInjection(contextWithoutPrompt, profileName);
+    const promptInjection = buildPromptInjection(contextWithoutPrompt, profileName, relationshipContext);
 
     const fullContext: ConsciousnessContext = {
       ...contextWithoutPrompt,
