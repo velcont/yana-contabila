@@ -69,7 +69,7 @@ async function analyzeForErrors(
   
   // 2. Verificare contextuală cu AI (evită false positives)
   try {
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${lovableApiKey}`,
@@ -312,7 +312,7 @@ CRITERII DE EVALUARE:
 Returnează DOAR JSON-ul, fără alte explicații.`;
 
     // Call Lovable AI for reflection
-    const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${lovableApiKey}`,
