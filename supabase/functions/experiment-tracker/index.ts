@@ -34,7 +34,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { userId, conversationId, userMessage, assistantResponse }: ExperimentTrackerRequest = await req.json();
@@ -130,8 +130,8 @@ serve(async (req) => {
     // DETECT NEW EXPERIMENTS IN ASSISTANT RESPONSE
     // =============================================================================
     
-    if (!openRouterKey) {
-      console.log('[Experiment-Tracker] No OpenRouter key, skipping AI detection');
+    if (!lovableApiKey) {
+      console.log('[Experiment-Tracker] No Lovable API key, skipping AI detection');
       return new Response(
         JSON.stringify({ success: true, skipped: true, reason: 'no_api_key' }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -165,19 +165,16 @@ RĂSPUNDE în format JSON STRICT:
 Detectează MAXIMUM 2 experimente cele mai semnificative.
 Dacă nu există experimente clare, returnează: {"experiments": []}`;
 
-    const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openRouterKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://yana.ro',
-        'X-Title': 'YANA Experiment Tracker'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview-05-20',
+        model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: detectionPrompt }],
         max_tokens: 400,
-        temperature: 0.2
       })
     });
 

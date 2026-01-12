@@ -35,6 +35,31 @@ serve(async (req) => {
 
     console.log("[yana-initiative-scheduler] Starting processing...");
     const now = new Date();
+
+    // =====================================================
+    // PASUL 0: Rulare cross-learner pentru insights zilnice
+    // =====================================================
+    try {
+      const crossLearnerUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/cross-learner`;
+      const crossLearnerPromise = fetch(crossLearnerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ scheduled: true }),
+      });
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('timeout')), 10000)
+      );
+      
+      await Promise.race([crossLearnerPromise, timeoutPromise]);
+      console.log("[yana-initiative-scheduler] ✓ Cross-learner completed");
+    } catch (err) {
+      console.warn("[yana-initiative-scheduler] Cross-learner skipped:", err);
+      // Nu oprim execuția - cross-learner e opțional
+    }
     const stats = {
       processed: 0,
       sent: 0,
