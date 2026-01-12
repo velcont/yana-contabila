@@ -35,7 +35,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { userId, conversationId, userMessage, assistantResponse }: SurpriseDetectorRequest = await req.json();
@@ -93,8 +93,8 @@ serve(async (req) => {
     // DETECȚIE CONTRADICȚII CU AI
     // =============================================================================
     
-    if (!openRouterKey) {
-      console.log('[Surprise-Detector] No OpenRouter key, skipping AI detection');
+    if (!lovableApiKey) {
+      console.log('[Surprise-Detector] No Lovable API key, skipping AI detection');
       return new Response(
         JSON.stringify({ success: true, skipped: true, reason: 'no_api_key' }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -148,19 +148,16 @@ Dacă NU există contradicții semnificative, returnează:
 
 IMPORTANT: Detectează doar surprize REALE și SEMNIFICATIVE, nu variații minore.`;
 
-    const aiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openRouterKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://yana.ro',
-        'X-Title': 'YANA Surprise Detector'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview-05-20',
+        model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: detectionPrompt }],
         max_tokens: 500,
-        temperature: 0.3
       })
     });
 
