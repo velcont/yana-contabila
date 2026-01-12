@@ -42,8 +42,35 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    // 🆕 FAZA 3: Setăm automat bugetul AI pentru trial
+    // Acest pas asigură că toți utilizatorii noi au un buget AI setat
+    const { error: budgetError } = await supabaseClient
+      .from('ai_budget_limits')
+      .upsert({
+        user_id: userId,
+        monthly_budget_cents: 1000,      // 10 RON buget lunar
+        trial_credits_cents: 1000,       // 10 RON credite trial
+        trial_credits_used_cents: 0,     // 0 folosit
+        trial_credits_granted_at: new Date().toISOString(),
+        is_active: true
+      }, { 
+        onConflict: 'user_id',
+        ignoreDuplicates: false 
+      });
+
+    if (budgetError) {
+      console.error('Error setting AI budget for trial user:', budgetError);
+      // Nu blocăm utilizatorul dacă setarea bugetului eșuează
+    } else {
+      console.log('AI budget set for trial user:', userId);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, trial_ends_at: trialEndsAt }),
+      JSON.stringify({ 
+        success: true, 
+        trial_ends_at: trialEndsAt,
+        ai_budget_set: !budgetError
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {

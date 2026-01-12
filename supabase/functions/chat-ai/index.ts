@@ -1426,11 +1426,39 @@ serve(async (req) => {
     }
 
     // ========================================
-    // Chat AI pentru analiza balanței - INCLUS în abonament
-    // NU necesită verificare credite AI (e parte din funcționalitatea de bază)
+    // VERIFICARE ACCES AI - Securitate îmbunătățită
+    // Verificăm dacă utilizatorul are dreptul să folosească AI
     // ========================================
     console.log(`[chat-ai][${requestId}] User authenticated: ${userId}`);
     console.log(`[chat-ai][${requestId}] User email: ${user?.email || 'unknown'}`);
+    
+    // Verificare acces AI folosind funcția centralizată
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: accessCheck, error: accessError } = await supabaseAdmin.rpc('verify_ai_access', { 
+      p_user_id: userId,
+      p_endpoint: 'chat-ai'
+    });
+    
+    if (accessError) {
+      console.error(`[chat-ai][${requestId}] Access check error:`, accessError);
+      // În caz de eroare la verificare, permitem accesul pentru a nu bloca utilizatorii
+      console.log(`[chat-ai][${requestId}] FALLBACK: Allowing access due to verification error`);
+    } else if (accessCheck && accessCheck.length > 0 && !accessCheck[0].can_proceed) {
+      console.warn(`[chat-ai][${requestId}] ACCESS DENIED: ${accessCheck[0].message}`);
+      console.log(`[chat-ai][${requestId}] Access type: ${accessCheck[0].access_type}`);
+      return new Response(
+        JSON.stringify({ 
+          error: accessCheck[0].message || 'Acces limitat. Activează un abonament sau cumpără credite.',
+          needsUpgrade: true,
+          accessType: accessCheck[0].access_type
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else if (accessCheck && accessCheck.length > 0) {
+      console.log(`[chat-ai][${requestId}] ACCESS GRANTED: ${accessCheck[0].access_type} (${accessCheck[0].remaining_cents} cents remaining)`);
+    }
 
     // DETECTARE "ȚINE MINTE" - Salvare în knowledge base
     const rememberRegex = /^(ține\s+minte|tine\s+minte)[:\s]+(.+)/i;
