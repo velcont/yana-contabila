@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw, Brain, Bot, PenLine } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw, Brain, Bot, PenLine, Heart } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -32,6 +32,7 @@ const MemoryDashboard = lazy(() => import("@/components/admin/MemoryDashboard").
 const AIDecisionsDashboard = lazy(() => import("@/components/admin/AIDecisionsDashboard").then(m => ({ default: m.AIDecisionsDashboard })));
 const ConsciousnessDashboard = lazy(() => import("@/components/admin/ConsciousnessDashboard").then(m => ({ default: m.ConsciousnessDashboard })));
 const AICorrectionsPanel = lazy(() => import("@/components/admin/AICorrectionsPanel").then(m => ({ default: m.AICorrectionsPanel })));
+const YanaInitiativesPanel = lazy(() => import("@/components/admin/YanaInitiativesPanel").then(m => ({ default: m.YanaInitiativesPanel })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -369,6 +370,10 @@ const Admin = () => {
               <TabsTrigger value="corrections">
                 <PenLine className="h-4 w-4 mr-2" />
                 ✏️ Corecții AI
+              </TabsTrigger>
+              <TabsTrigger value="initiatives">
+                <Heart className="h-4 w-4 mr-2" />
+                💝 Inițiative YANA
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -825,6 +830,12 @@ const Admin = () => {
           <TabsContent value="corrections">
             <Suspense fallback={<TabContentLoader />}>
               <AICorrectionsPanel />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="initiatives">
+            <Suspense fallback={<TabContentLoader />}>
+              <YanaInitiativesPanel />
             </Suspense>
           </TabsContent>
         </Tabs>
