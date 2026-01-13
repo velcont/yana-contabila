@@ -314,6 +314,7 @@ function getInitiativeSubject(type: string): string {
     goal_proposal: 'YANA: Am o sugestie pentru tine',
     learning_share: 'YANA: Am învățat ceva ce te-ar putea ajuta',
     celebration: 'YANA: Hai să sărbătorim împreună!',
+    self_correction_apology: 'YANA: Am ceva să-ți spun despre conversația noastră',
   };
   return subjects[type] || 'YANA are un mesaj pentru tine';
 }
