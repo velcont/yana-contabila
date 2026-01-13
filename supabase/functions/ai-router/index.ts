@@ -486,6 +486,7 @@ serve(async (req) => {
             message: message,
             conversationId,
             companyId: detectedCompanyId,
+            history: history, // 🆕 FIX: Trimitem history pentru detectarea primului mesaj și topic
           }),
         });
         
@@ -523,6 +524,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
+        'x-called-from-router': 'true', // FIX DUPLICATE: chat-ai verifică acest header pentru a nu salva dublu
       },
       body: JSON.stringify(routeDecision.payload),
     });
@@ -562,13 +564,22 @@ serve(async (req) => {
       result = await response.json();
     }
 
-    // Save routing decision to yana_messages
+    // Save routing decision to yana_messages with ends_with_question tracking
+    const assistantContent = (result.response as string) || (result.analysis as string) || (result.message as string) || 'Răspuns primit.';
+    const endsWithQuestion = assistantContent.trim().endsWith('?');
+    
     await supabase.from('yana_messages').insert({
       conversation_id: conversationId,
       role: 'assistant',
-      content: (result.response as string) || (result.analysis as string) || (result.message as string) || 'Răspuns primit.',
+      content: assistantContent,
       artifacts: result.artifacts || [],
+      ends_with_question: endsWithQuestion,
+      question_responded: null,
     });
+    
+    if (endsWithQuestion) {
+      console.log(`[AI-Router] Response ends with question - engagement tracking enabled`);
+    }
 
     // =============================================================================
     // MEMORIE: Salvez conversația în ai_conversations pentru memorie viitoare
