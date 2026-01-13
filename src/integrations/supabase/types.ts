@@ -3332,6 +3332,7 @@ export type Database = {
           trial_credit_remaining: number | null
           trial_ends_at: string | null
           updated_at: string
+          yana_emails_enabled: boolean | null
           yana_initiatives_opt_out: boolean | null
         }
         Insert: {
@@ -3354,6 +3355,7 @@ export type Database = {
           trial_credit_remaining?: number | null
           trial_ends_at?: string | null
           updated_at?: string
+          yana_emails_enabled?: boolean | null
           yana_initiatives_opt_out?: boolean | null
         }
         Update: {
@@ -3376,6 +3378,7 @@ export type Database = {
           trial_credit_remaining?: number | null
           trial_ends_at?: string | null
           updated_at?: string
+          yana_emails_enabled?: boolean | null
           yana_initiatives_opt_out?: boolean | null
         }
         Relationships: []
