@@ -171,9 +171,9 @@ serve(async (req: Request): Promise<Response> => {
     const subject = getSubject(initiative_type);
     const html = generateEmailHTML(name, content, initiative_type, unsubscribeUrl, appUrl);
 
-    // Trimite emailul (temporar folosim onboarding@resend.dev până verificăm domeniul)
+    // Trimite emailul
     const emailResponse = await resend.emails.send({
-      from: "YANA <onboarding@resend.dev>",
+      from: "YANA <yana@velcont.com>",
       to: [email],
       subject: subject,
       html: html,
