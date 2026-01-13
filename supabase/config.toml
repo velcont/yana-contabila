@@ -212,3 +212,6 @@ verify_jwt = false
 
 [functions.yana-initiative-scheduler]
 verify_jwt = false
+
+[functions.generate-apology-initiative]
+verify_jwt = false

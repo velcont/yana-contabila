@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale } from 'lucide-react';
+import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
+import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
 
 interface Message {
   id: string;
@@ -53,6 +54,11 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   const [userName, setUserName] = useState<string>('');
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, boolean>>({});
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [proactiveInitiative, setProactiveInitiative] = useState<{
+    id: string;
+    content: string;
+    initiative_type: string;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -75,6 +81,49 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     };
     
     fetchProfile();
+  }, [user]);
+
+  // Fetch proactive initiatives (e.g., apology messages from YANA)
+  useEffect(() => {
+    const fetchProactiveInitiatives = async () => {
+      if (!user) return;
+      
+      // Caută inițiative trimise în ultimele 7 zile care nu au fost afișate
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { data: initiatives, error } = await supabase
+        .from('yana_initiatives')
+        .select('id, content, initiative_type, sent_at')
+        .eq('user_id', user.id)
+        .eq('status', 'sent')
+        .gte('sent_at', sevenDaysAgo.toISOString())
+        .order('sent_at', { ascending: false })
+        .limit(1);
+      
+      if (error) {
+        console.error('[YanaChat] Error fetching initiatives:', error);
+        return;
+      }
+      
+      if (initiatives && initiatives.length > 0) {
+        const initiative = initiatives[0];
+        // Verifică dacă a fost deja afișat (dismissed) în localStorage
+        const dismissedKey = `yana_initiative_dismissed_${initiative.id}`;
+        const isDismissed = localStorage.getItem(dismissedKey);
+        
+        if (!isDismissed) {
+          setProactiveInitiative({
+            id: initiative.id,
+            content: initiative.content,
+            initiative_type: initiative.initiative_type,
+          });
+          console.log('[YanaChat] Showing proactive initiative:', initiative.initiative_type);
+        }
+      }
+    };
+    
+    fetchProactiveInitiatives();
   }, [user]);
 
   // Track if conversation is fully loaded (for blocking send)
@@ -363,6 +412,14 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     }
   };
 
+  const handleDismissInitiative = () => {
+    if (proactiveInitiative) {
+      // Salvează în localStorage ca afișat/dismissed
+      localStorage.setItem(`yana_initiative_dismissed_${proactiveInitiative.id}`, 'true');
+      setProactiveInitiative(null);
+    }
+  };
+
   const getWelcomeMessage = () => {
     if (messages.length > 0) return null;
     
@@ -439,6 +496,15 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
               </div>
             </div>
           </div>
+        )}
+
+        {/* Proactive Initiative Card - displayed before messages */}
+        {proactiveInitiative && (
+          <ProactiveInitiativeCard
+            content={proactiveInitiative.content}
+            initiativeType={proactiveInitiative.initiative_type}
+            onDismiss={handleDismissInitiative}
+          />
         )}
 
         {messages.map((message) => (
