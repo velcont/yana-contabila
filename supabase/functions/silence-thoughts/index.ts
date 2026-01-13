@@ -90,18 +90,34 @@ serve(async (req) => {
         thoughtsGenerated++;
         
         // YANA INITIATIVE: Dacă gândul e shared, creează și inițiativă learning_share
+        // DAR doar dacă nu există deja una pending sau trimisă recent (48h) pentru acest utilizator
         if (rel.relationship_score >= 5 && (rel.total_conversations || 0) >= 10) {
-          await supabase
+          const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+          
+          const { data: existingInitiative } = await supabase
             .from('yana_initiatives')
-            .insert({
-              user_id: rel.user_id,
-              initiative_type: 'learning_share',
-              content: thought,
-              triggering_insight: `Gând introspectiv generat pentru utilizator cu relationship_score=${rel.relationship_score}`,
-              priority: 4,
-              scheduled_for: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // +24h
-            });
-          console.log(`[silence-thoughts] Created learning_share initiative for user ${rel.user_id}`);
+            .select('id')
+            .eq('user_id', rel.user_id)
+            .eq('initiative_type', 'learning_share')
+            .or(`status.eq.pending,and(status.eq.sent,sent_at.gte.${fortyEightHoursAgo})`)
+            .limit(1);
+          
+          // Creează doar dacă NU există una recentă
+          if (!existingInitiative || existingInitiative.length === 0) {
+            await supabase
+              .from('yana_initiatives')
+              .insert({
+                user_id: rel.user_id,
+                initiative_type: 'learning_share',
+                content: thought,
+                triggering_insight: `Gând introspectiv generat pentru utilizator cu relationship_score=${rel.relationship_score}`,
+                priority: 4,
+                scheduled_for: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // +24h
+              });
+            console.log(`[silence-thoughts] Created learning_share initiative for user ${rel.user_id}`);
+          } else {
+            console.log(`[silence-thoughts] Skipped learning_share for user ${rel.user_id} - already exists`);
+          }
         }
       }
     }
