@@ -65,11 +65,38 @@ serve(async (req) => {
       sent: 0,
       cancelled: 0,
       expired: 0,
+      duplicates_cleaned: 0,
       skipped_quiet_hours: 0,
       skipped_rate_limit: 0,
       skipped_opt_out: 0,
       skipped_low_score: 0,
     };
+
+    // =====================================================
+    // PASUL 0.5: Curăță inițiativele duplicate (păstrează doar cea mai recentă per user+tip)
+    // =====================================================
+    const { data: allPending } = await supabase
+      .from('yana_initiatives')
+      .select('id, user_id, initiative_type, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (allPending && allPending.length > 0) {
+      const seen = new Set<string>();
+      for (const init of allPending) {
+        const key = `${init.user_id}-${init.initiative_type}`;
+        if (seen.has(key)) {
+          // Aceasta e o duplicată - o anulăm
+          await cancelInitiative(supabase, init.id, 'Duplicate cleanup - păstrăm doar cea mai recentă');
+          stats.duplicates_cleaned++;
+        } else {
+          seen.add(key);
+        }
+      }
+      if (stats.duplicates_cleaned > 0) {
+        console.log(`[yana-initiative-scheduler] Cleaned ${stats.duplicates_cleaned} duplicate initiatives`);
+      }
+    }
 
     // =====================================================
     // PASUL 1: Marchează inițiativele expirate
