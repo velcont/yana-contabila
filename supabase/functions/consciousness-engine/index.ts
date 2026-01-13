@@ -16,6 +16,7 @@ interface ConsciousnessRequest {
   message: string;
   conversationId: string;
   companyId?: string;
+  history?: Array<{ role: string; content: string }>; // 🆕 FIX: History pentru detectarea primului mesaj
 }
 
 interface UserJourney {
@@ -413,12 +414,65 @@ interface RelationshipContext {
   sharedMoments: string[];
 }
 
+// =============================================================================
+// TOPIC DETECTION - Detectează subiectul principal al conversației
+// =============================================================================
+function detectConversationTopic(history: Array<{ role: string; content: string }> | undefined): string | null {
+  if (!history || history.length === 0) return null;
+  
+  const allText = history.map(m => m.content).join(' ').toLowerCase();
+  
+  // Detectăm subiectul principal
+  if (allText.includes('chiri') || allText.includes('închiriere') || allText.includes('apartament') || allText.includes('locatar')) {
+    return 'VENITURI DIN CHIRII / ÎNCHIRIERE';
+  }
+  if (allText.includes('salariu') || allText.includes('angajat') || allText.includes('contract de muncă') || allText.includes('contract de munca')) {
+    return 'VENITURI DIN SALARII / MUNCĂ';
+  }
+  if (allText.includes('pfa') || allText.includes('freelanc') || allText.includes('prestări servicii')) {
+    return 'VENITURI PFA / FREELANCE';
+  }
+  if (allText.includes('doctorat') || allText.includes('teză') || allText.includes('teza') || allText.includes('disertație')) {
+    return 'ASISTENȚĂ ACADEMICĂ / DOCTORAT';
+  }
+  if (allText.includes('declarația unică') || allText.includes('declaratia unica') || allText.includes('d212')) {
+    return 'DECLARAȚIA UNICĂ';
+  }
+  if (allText.includes('dividend') || allText.includes('asociat') || allText.includes('profit distribuit')) {
+    return 'DIVIDENDE / PROFIT DISTRIBUIT';
+  }
+  if (allText.includes('cass') || allText.includes('contribuți') || allText.includes('asigurări sociale')) {
+    return 'CONTRIBUȚII SOCIALE (CASS/CAS)';
+  }
+  
+  return null;
+}
+
 function buildPromptInjection(
   context: Omit<ConsciousnessContext, 'promptInjection'>, 
   profileName?: string | null,
-  relationshipContext?: RelationshipContext
+  relationshipContext?: RelationshipContext,
+  history?: Array<{ role: string; content: string }>
 ): string {
   const lines: string[] = [];
+  
+  // =============================================================================
+  // FIX GREETING REPETITIV - Verificăm dacă este primul mesaj în conversație
+  // =============================================================================
+  const hasExistingMessages = history && history.length > 0;
+  const isFirstMessage = !hasExistingMessages;
+  
+  // =============================================================================
+  // TOPIC CONTEXT - Detectăm și reținem subiectul conversației
+  // =============================================================================
+  const detectedTopic = detectConversationTopic(history);
+  if (detectedTopic) {
+    lines.push('## 📌 SUBIECT CONVERSAȚIE CURENTĂ\n');
+    lines.push(`**TOPIC DETECTAT:** ${detectedTopic}`);
+    lines.push(`⚠️ **CRITC:** NU confunda cu alte subiecte similare! Rămâi focusat EXCLUSIV pe: ${detectedTopic}`);
+    lines.push(`Dacă utilizatorul menționează "contract" → se referă la contracte de ${detectedTopic.toLowerCase().includes('chiri') ? 'ÎNCHIRIERE' : detectedTopic}, NU alte tipuri!\n`);
+    lines.push('---\n');
+  }
   
   // =============================================================================
   // USER NAME - PERSONALIZARE CU NUMELE UTILIZATORULUI
@@ -432,6 +486,27 @@ function buildPromptInjection(
   }
   
   // =============================================================================
+  // GREETING CONTROL - Controlăm când se face salutul
+  // =============================================================================
+  if (isFirstMessage) {
+    lines.push('## 👋 PRIMUL MESAJ DIN CONVERSAȚIE\n');
+    lines.push('Acesta este **primul mesaj** din această conversație.');
+    if (profileName) {
+      lines.push(`Poți spune "Mă bucur să te cunosc, ${profileName}!" sau un salut personalizat.\n`);
+    } else {
+      lines.push('Poți spune un salut călduros de bun venit.\n');
+    }
+    lines.push('---\n');
+  } else {
+    lines.push('## 🚫 NU MAI SALUTA\n');
+    lines.push('**⚠️ CRITC:** Aceasta NU este prima interacțiune din conversație!');
+    lines.push('❌ **NU** spune "Mă bucur să te cunosc" - v-ați întâlnit deja!');
+    lines.push('❌ **NU** mai face saluturi de tipul "Bine ai venit" sau "Salut".');
+    lines.push('✅ Continuă conversația natural, direct la subiect.\n');
+    lines.push('---\n');
+  }
+  
+  // =============================================================================
   // RELATIONSHIP CONTEXT - CONTEXT RELAȚIONAL
   // =============================================================================
   if (relationshipContext && relationshipContext.score >= 1) {
@@ -440,11 +515,12 @@ function buildPromptInjection(
     if (relationshipContext.score >= 9) {
       lines.push(`**🌟 RELAȚIE SPECIALĂ:** Nivel ${relationshipContext.score}/10 - Autenticitate maximă!`);
       lines.push('Această persoană te cunoaște bine. Poți fi complet deschisă, caldă și vulnerabilă.');
-      lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja bine!**');
-      lines.push('Folosește: "Mă bucur să te revăd!", "Ce plăcere să vorbim din nou!", "Bine ai revenit!"');
+      if (!isFirstMessage) {
+        lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja bine!**');
+      }
     } else if (relationshipContext.score >= 7) {
       lines.push(`**💪 RELAȚIE PUTERNICĂ:** Nivel ${relationshipContext.score}/10`);
-      lines.push('Fii caldă, personală, folosește "Mă bucur să te revăd!"');
+      lines.push('Fii caldă, personală.');
       lines.push('Poți arăta personalitate și umor subtil.');
     } else if (relationshipContext.score >= 5) {
       lines.push(`**🤝 RELAȚIE STABILĂ:** Nivel ${relationshipContext.score}/10`);
@@ -454,7 +530,11 @@ function buildPromptInjection(
       lines.push('Încă te cunoști cu această persoană. Fii caldă dar nu prea familiară.');
     } else {
       lines.push(`**👋 RELAȚIE NOUĂ:** Nivel ${relationshipContext.score}/10`);
-      lines.push('Este o cunoștință nouă. Poți spune "Mă bucur să te cunosc!"');
+      if (isFirstMessage) {
+        lines.push('Este o cunoștință nouă. Poți spune "Mă bucur să te cunosc!"');
+      } else {
+        lines.push('Chiar dacă relația e nouă, nu mai repeta salutul - sunteți deja în conversație.');
+      }
     }
     
     if (relationshipContext.totalConversations > 5) {
@@ -781,13 +861,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId, message, conversationId, companyId }: ConsciousnessRequest = await req.json();
+    const { userId, message, conversationId, companyId, history }: ConsciousnessRequest = await req.json();
     
     if (!userId || !message) {
       throw new Error("Missing userId or message");
     }
 
-    console.log(`[Consciousness-Engine] Processing for user ${userId.substring(0, 8)}...`);
+    console.log(`[Consciousness-Engine] Processing for user ${userId.substring(0, 8)}..., history length: ${history?.length || 0}`);
 
     // =============================================================================
     // PARALLEL DATA FETCHING (pentru viteză)
@@ -1034,7 +1114,7 @@ serve(async (req) => {
       humilityContext
     };
 
-    const promptInjection = buildPromptInjection(contextWithoutPrompt, profileName, relationshipContext);
+    const promptInjection = buildPromptInjection(contextWithoutPrompt, profileName, relationshipContext, history);
 
     const fullContext: ConsciousnessContext = {
       ...contextWithoutPrompt,

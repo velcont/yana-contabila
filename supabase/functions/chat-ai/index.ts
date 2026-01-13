@@ -2113,8 +2113,12 @@ serve(async (req) => {
                 .select("id")
                 .single();
 
-              // 🆕 Salvăm și în yana_messages cu tracking engagement
-              if (conversationId) {
+              // 🆕 FIX DUPLICATE: Salvăm în yana_messages DOAR dacă nu suntem apelați de ai-router
+              // ai-router salvează deja mesajul, deci evităm duplicarea
+              const calledFromRouter = req.headers.get('x-called-from-router') === 'true';
+              
+              if (conversationId && !calledFromRouter) {
+                // Salvăm doar când chat-ai e apelat direct (ex: AcademicThesisAssistant)
                 await supabase
                   .from("yana_messages")
                   .insert({
@@ -2122,12 +2126,14 @@ serve(async (req) => {
                     role: "assistant",
                     content: accumulatedContent,
                     ends_with_question: endsWithQuestion,
-                    question_responded: null // Se va actualiza când utilizatorul răspunde
+                    question_responded: null
                   });
                 
                 if (endsWithQuestion) {
-                  console.log(`[chat-ai][${requestId}] Response ends with question - tracking enabled`);
+                  console.log(`[chat-ai][${requestId}] Response ends with question - tracking enabled (direct call)`);
                 }
+              } else if (calledFromRouter) {
+                console.log(`[chat-ai][${requestId}] Skipping yana_messages save - already saved by ai-router`);
               }
 
               if (!saveError && savedMessage) {

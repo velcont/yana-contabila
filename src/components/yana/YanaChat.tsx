@@ -202,10 +202,10 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         content: userMessage.content,
       });
 
-      // Build history for AI (last 20 messages, max 2000 chars each)
-      const historyForAI = messages.slice(-20).map(m => ({
+      // Build history for AI (last 25 messages, max 2500 chars each) - FIX context loss
+      const historyForAI = messages.slice(-25).map(m => ({
         role: m.role,
-        content: m.content.length > 2000 ? m.content.substring(0, 2000) + '...' : m.content
+        content: m.content.length > 2500 ? m.content.substring(0, 2500) + '...' : m.content
       }));
 
       // Call AI router with history and balanceContext
