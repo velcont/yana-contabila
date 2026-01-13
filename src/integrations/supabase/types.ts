@@ -485,7 +485,15 @@ export type Database = {
           validated_by_admin?: boolean | null
           wrong_answer?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_corrections_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_experiments: {
         Row: {
