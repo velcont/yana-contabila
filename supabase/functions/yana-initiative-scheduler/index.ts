@@ -342,7 +342,7 @@ serve(async (req) => {
         await supabase
           .from('email_logs')
           .insert({
-            user_id: initiative.user_id,
+            recipient_user_id: initiative.user_id,
             email_type: 'yana_initiative',
             recipient_email: profile.email,
             subject: getInitiativeSubject(initiative.initiative_type),

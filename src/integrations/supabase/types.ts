@@ -4810,6 +4810,7 @@ export type Database = {
           cancelled_reason: string | null
           content: string
           created_at: string
+          email_sent_at: string | null
           id: string
           initiative_type: string
           priority: number | null
@@ -4823,6 +4824,7 @@ export type Database = {
           cancelled_reason?: string | null
           content: string
           created_at?: string
+          email_sent_at?: string | null
           id?: string
           initiative_type: string
           priority?: number | null
@@ -4836,6 +4838,7 @@ export type Database = {
           cancelled_reason?: string | null
           content?: string
           created_at?: string
+          email_sent_at?: string | null
           id?: string
           initiative_type?: string
           priority?: number | null
