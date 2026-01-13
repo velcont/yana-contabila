@@ -94,7 +94,7 @@ ${content}
                 <a href="${unsubscribeUrl}" style="color: #64748b; text-decoration: underline;">Dezabonare</a>
               </p>
               <p style="margin: 16px 0 0 0; color: #cbd5e1; font-size: 11px; text-align: center;">
-                © ${new Date().getFullYear()} YANA Contabilă • yanacontabila.ro
+                © ${new Date().getFullYear()} YANA Contabilă • yana-contabila.velcont.com
               </p>
             </td>
           </tr>
@@ -164,7 +164,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Generează URL-uri
-    const appUrl = "https://yanacontabila.ro/yana";
+    const appUrl = "https://yana-contabila.velcont.com/yana";
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${user_id}&token=${initiative_id}`;
 
     // Generează email HTML
