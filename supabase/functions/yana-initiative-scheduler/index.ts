@@ -20,6 +20,7 @@ const CONFIG = {
   QUIET_HOURS_END: 8,             // 08:00
   EXPIRY_DAYS: 7,                 // Expiră după 7 zile
   BATCH_SIZE: 50,                 // Procesează max 50 per run
+  EMAIL_DELAY_MS: 500,            // Delay între emailuri pentru rate limit Resend
 };
 
 serve(async (req) => {
@@ -70,6 +71,9 @@ serve(async (req) => {
       skipped_rate_limit: 0,
       skipped_opt_out: 0,
       skipped_low_score: 0,
+      skipped_emails_disabled: 0,
+      emails_sent: 0,
+      emails_failed: 0,
     };
 
     // =====================================================
@@ -181,10 +185,10 @@ serve(async (req) => {
     for (const initiative of pendingInitiatives) {
       stats.processed++;
 
-      // 4a. Verifică profilul utilizatorului (opt-out + relationship score)
+      // 4a. Verifică profilul utilizatorului (opt-out + relationship score + yana_emails_enabled)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('email, full_name, yana_initiatives_opt_out')
+        .select('email, full_name, yana_initiatives_opt_out, yana_emails_enabled')
         .eq('id', initiative.user_id)
         .single();
 
@@ -195,13 +199,21 @@ serve(async (req) => {
         continue;
       }
 
-      // 4b. Verifică opt-out
+      // 4b. Verifică opt-out pentru inițiative
       if (profile.yana_initiatives_opt_out) {
-        console.log(`[yana-initiative-scheduler] User ${initiative.user_id} opted out`);
-        await cancelInitiative(supabase, initiative.id, 'User opted out');
+        console.log(`[yana-initiative-scheduler] User ${initiative.user_id} opted out of initiatives`);
+        await cancelInitiative(supabase, initiative.id, 'User opted out of initiatives');
         stats.skipped_opt_out++;
         stats.cancelled++;
         continue;
+      }
+
+      // 4b2. Verifică opt-out pentru emailuri YANA
+      if (profile.yana_emails_enabled === false) {
+        console.log(`[yana-initiative-scheduler] User ${initiative.user_id} has YANA emails disabled`);
+        // Nu anulăm inițiativa - o procesăm dar fără email
+        stats.skipped_emails_disabled++;
+        // Continuăm procesarea dar vom marca că nu trebuie email
       }
 
       // 4c. Verifică relationship score
@@ -276,7 +288,57 @@ serve(async (req) => {
             is_shared: true, // Vizibil pentru utilizator
           });
 
-        // Log în email_logs pentru tracking
+        // =====================================================
+        // PASUL 5.5: Trimite email real dacă utilizatorul are emailurile activate
+        // =====================================================
+        if (profile.yana_emails_enabled !== false) {
+          try {
+            const emailPayload = {
+              initiative_id: initiative.id,
+              user_id: initiative.user_id,
+              email: profile.email,
+              name: profile.full_name?.split(' ')[0] || 'prietene',
+              content: initiative.content,
+              initiative_type: initiative.initiative_type,
+            };
+
+            console.log(`[yana-initiative-scheduler] Sending email to ${profile.email}...`);
+
+            const emailResponse = await fetch(
+              `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-initiative-email`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(emailPayload),
+              }
+            );
+
+            const emailResult = await emailResponse.json();
+
+            if (emailResponse.ok && emailResult.success) {
+              console.log(`[yana-initiative-scheduler] ✓ Email sent to ${profile.email}`);
+              stats.emails_sent++;
+            } else {
+              console.error(`[yana-initiative-scheduler] Email failed:`, emailResult);
+              stats.emails_failed++;
+            }
+
+            // Delay între emailuri pentru a evita rate limits Resend
+            await new Promise(resolve => setTimeout(resolve, CONFIG.EMAIL_DELAY_MS));
+
+          } catch (emailError) {
+            console.error(`[yana-initiative-scheduler] Email error:`, emailError);
+            stats.emails_failed++;
+            // Nu oprim procesarea - inițiativa e deja marcată ca trimisă în DB
+          }
+        } else {
+          console.log(`[yana-initiative-scheduler] Skipping email for ${initiative.user_id} (emails disabled)`);
+        }
+
+        // Log în email_logs pentru tracking (indiferent dacă s-a trimis email sau nu)
         await supabase
           .from('email_logs')
           .insert({
@@ -288,12 +350,13 @@ serve(async (req) => {
               initiative_id: initiative.id,
               initiative_type: initiative.initiative_type,
               triggering_insight: initiative.triggering_insight,
+              email_actually_sent: profile.yana_emails_enabled !== false,
             },
-            status: 'processed',
+            status: profile.yana_emails_enabled !== false ? 'sent' : 'skipped_opt_out',
             sent_at: now.toISOString(),
           });
 
-        console.log(`[yana-initiative-scheduler] ✓ Sent ${initiative.initiative_type} to user ${initiative.user_id}`);
+        console.log(`[yana-initiative-scheduler] ✓ Processed ${initiative.initiative_type} for user ${initiative.user_id}`);
         stats.sent++;
 
       } catch (sendError) {

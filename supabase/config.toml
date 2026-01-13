@@ -215,3 +215,9 @@ verify_jwt = false
 
 [functions.generate-apology-initiative]
 verify_jwt = false
+
+[functions.send-initiative-email]
+verify_jwt = false
+
+[functions.unsubscribe-yana-emails]
+verify_jwt = false
