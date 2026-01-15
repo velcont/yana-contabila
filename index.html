@@ -16,38 +16,51 @@
         if (storedVersion !== BUILD_VERSION) {
           console.log('[PWA_VERSION] Version mismatch: stored=' + storedVersion + ', build=' + BUILD_VERSION);
           
+          // Salvează versiunea nouă ÎNAINTE de orice altceva pentru a preveni loop infinit
+          localStorage.setItem('yana_app_version', BUILD_VERSION);
+          
+          // Colectăm toate promisiunile de curățare
+          var cleanupPromises = [];
+          
           // Curăță Service Worker-uri
           if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              registrations.forEach(function(registration) {
-                registration.unregister();
-                console.log('[PWA_VERSION] Unregistered SW:', registration.scope);
-              });
-            });
+            cleanupPromises.push(
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                return Promise.all(registrations.map(function(registration) {
+                  console.log('[PWA_VERSION] Unregistering SW:', registration.scope);
+                  return registration.unregister();
+                }));
+              }).catch(function(err) {
+                console.log('[PWA_VERSION] SW cleanup error:', err);
+              })
+            );
           }
           
           // Curăță toate cache-urile
           if ('caches' in window) {
-            caches.keys().then(function(names) {
-              names.forEach(function(name) { 
-                caches.delete(name);
-                console.log('[PWA_VERSION] Deleted cache:', name);
-              });
-            });
+            cleanupPromises.push(
+              caches.keys().then(function(names) {
+                return Promise.all(names.map(function(name) { 
+                  console.log('[PWA_VERSION] Deleting cache:', name);
+                  return caches.delete(name);
+                }));
+              }).catch(function(err) {
+                console.log('[PWA_VERSION] Cache cleanup error:', err);
+              })
+            );
           }
           
-          // Salvează versiunea nouă ÎNAINTE de reload pentru a preveni loop infinit
-          localStorage.setItem('yana_app_version', BUILD_VERSION);
-          
-          // Forțează reload pentru TOȚI utilizatorii cu versiune diferită (inclusiv noi)
-          // Nu e loop infinit pentru că am salvat BUILD_VERSION deja
-          if (storedVersion !== null) {
-            // Utilizator existent cu versiune veche - reload
-            console.log('[PWA_VERSION] Existing user - forcing reload for version update');
-            window.location.reload();
+          // După ce toate cache-urile sunt curățate, facem reload
+          // Funcționează atât pentru utilizatori noi cât și pentru cei existenți
+          if (cleanupPromises.length > 0) {
+            Promise.all(cleanupPromises).then(function() {
+              console.log('[PWA_VERSION] All caches cleared, reloading...');
+              window.location.reload();
+            });
           } else {
-            // Utilizator NOU - primul load, cache-urile au fost curățate, nu e nevoie de reload
-            console.log('[PWA_VERSION] New user - caches cleared, no reload needed');
+            // Niciun cache de curățat, doar reload
+            console.log('[PWA_VERSION] No caches to clear, reloading...');
+            window.location.reload();
           }
         }
       })();
