@@ -36,13 +36,18 @@
             });
           }
           
-          // Salvează versiunea nouă
+          // Salvează versiunea nouă ÎNAINTE de reload pentru a preveni loop infinit
           localStorage.setItem('yana_app_version', BUILD_VERSION);
           
-          // Dacă exista o versiune veche (nu primul load), forțează reload
-          if (storedVersion && storedVersion !== BUILD_VERSION) {
-            console.log('[PWA_VERSION] Forcing reload for version update');
+          // Forțează reload pentru TOȚI utilizatorii cu versiune diferită (inclusiv noi)
+          // Nu e loop infinit pentru că am salvat BUILD_VERSION deja
+          if (storedVersion !== null) {
+            // Utilizator existent cu versiune veche - reload
+            console.log('[PWA_VERSION] Existing user - forcing reload for version update');
             window.location.reload();
+          } else {
+            // Utilizator NOU - primul load, cache-urile au fost curățate, nu e nevoie de reload
+            console.log('[PWA_VERSION] New user - caches cleared, no reload needed');
           }
         }
       })();
