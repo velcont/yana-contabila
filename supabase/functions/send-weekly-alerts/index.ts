@@ -10,6 +10,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function for delay between batches
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Send emails in batches to respect Resend rate limit (2 req/sec)
+async function sendEmailsInBatches<T>(
+  items: T[],
+  sendFn: (item: T) => Promise<{ success: boolean; email: string; error?: any }>,
+  batchSize: number = 2,
+  delayMs: number = 1100
+): Promise<{ success: boolean; email: string; error?: any }[]> {
+  const results: { success: boolean; email: string; error?: any }[] = [];
+  const totalBatches = Math.ceil(items.length / batchSize);
+  
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchNumber = Math.floor(i / batchSize) + 1;
+    console.log(`[BATCH] Sending batch ${batchNumber}/${totalBatches} (${batch.length} emails)`);
+    
+    // Send batch in parallel
+    const batchResults = await Promise.all(batch.map(item => sendFn(item)));
+    results.push(...batchResults);
+    
+    // Log batch progress
+    const batchSuccess = batchResults.filter(r => r.success).length;
+    console.log(`[BATCH] Batch ${batchNumber} complete: ${batchSuccess}/${batch.length} successful`);
+    
+    // Delay between batches (skip after last batch)
+    if (i + batchSize < items.length) {
+      console.log(`[BATCH] Waiting ${delayMs}ms before next batch...`);
+      await delay(delayMs);
+    }
+  }
+  
+  return results;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -73,6 +109,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    console.log(`[INFO] Preparing to send emails to ${profiles.length} users for ${updates.length} update(s)`);
+
     // Build updates HTML
     const updatesHtml = updates.map(update => `
       <div style="background: white; padding: 20px; margin: 15px 0; border-left: 4px solid #667eea; border-radius: 5px;">
@@ -86,8 +124,10 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `).join('');
 
-    // Send email to all users
-    const emailPromises = profiles.map(async (profile) => {
+    const emailSubject = `🚀 Noutăți Yana - ${updates.length} ${updates.length === 1 ? 'update nou' : 'update-uri noi'}!`;
+
+    // Function to send a single email
+    const sendSingleEmail = async (profile: { email: string }) => {
       try {
         const emailResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -98,7 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
           body: JSON.stringify({
             from: Deno.env.get("RESEND_FROM_EMAIL") || "Yana Updates <onboarding@resend.dev>",
             to: [profile.email],
-            subject: `🚀 Noutăți Yana - ${updates.length} ${updates.length === 1 ? 'update nou' : 'update-uri noi'}!`,
+            subject: emailSubject,
             html: `
               <!DOCTYPE html>
               <html>
@@ -125,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
                       ${updatesHtml}
                       
                       <p style="text-align: center;">
-                        <a href="${supabaseUrl.replace('https://ygfsuoloxzjpiulogrjz.supabase.co', 'https://ygfsuoloxzjpiulogrjz.lovable.app')}" class="button">
+                        <a href="${supabaseUrl.replace('https://ygfsuoloxzjpiulogrjz.supabase.co', 'https://yana-contabila.lovable.app')}" class="button">
                           Explorează Noile Funcționalități
                         </a>
                       </p>
@@ -153,21 +193,40 @@ const handler = async (req: Request): Promise<Response> => {
         await supabase.from('email_logs').insert({
           email_type: 'weekly_update',
           recipient_email: profile.email,
-          subject: `🚀 Noutăți Yana - ${updates.length} ${updates.length === 1 ? 'update nou' : 'update-uri noi'}!`,
+          subject: emailSubject,
           status: 'sent',
           metadata: { updates_count: updates.length }
         });
 
-        console.log(`Email sent to ${profile.email}`);
+        console.log(`[SUCCESS] Email sent to ${profile.email}`);
         return { success: true, email: profile.email };
-      } catch (error) {
-        console.error(`Failed to send email to ${profile.email}:`, error);
-        return { success: false, email: profile.email, error };
+      } catch (error: any) {
+        console.error(`[ERROR] Failed to send email to ${profile.email}:`, error.message || error);
+        
+        // Log failed email attempt (fire and forget)
+        try {
+          await supabase.from('email_logs').insert({
+            email_type: 'weekly_update',
+            recipient_email: profile.email,
+            subject: emailSubject,
+            status: 'failed',
+            metadata: { error: error.message || 'Unknown error' }
+          });
+        } catch (logErr) {
+          console.error('[LOG ERROR]', logErr);
+        }
+        
+        return { success: false, email: profile.email, error: error.message };
       }
-    });
+    };
 
-    const results = await Promise.all(emailPromises);
+    // Send emails in batches (2 emails per batch, 1.1s delay between batches)
+    // This respects Resend's rate limit of 2 requests per second
+    console.log(`[INFO] Starting batch email sending (batch size: 2, delay: 1100ms)`);
+    const results = await sendEmailsInBatches(profiles, sendSingleEmail, 2, 1100);
+    
     const successCount = results.filter(r => r.success).length;
+    const failedCount = results.filter(r => !r.success).length;
 
     // Reset include_in_next_email flag for sent updates
     await supabase
@@ -175,11 +234,13 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ include_in_next_email: false })
       .eq('include_in_next_email', true);
 
-    console.log(`Sent ${successCount}/${profiles.length} emails successfully`);
+    console.log(`[COMPLETE] Sent ${successCount}/${profiles.length} emails successfully, ${failedCount} failed`);
 
     return new Response(
       JSON.stringify({ 
         message: `Sent ${successCount}/${profiles.length} emails`,
+        success: successCount,
+        failed: failedCount,
         results 
       }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
