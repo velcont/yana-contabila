@@ -131,7 +131,9 @@ export const useAuth = () => {
       password,
     });
     
-    // Verificare versiune după autentificare reușită
+    // Verificare versiune după autentificare reușită - DOAR pentru pending_refresh de la logout
+    // Nota: Verificarea normală de versiune nouă se face în onAuthStateChange (SIGNED_IN event)
+    // pentru a evita race condition și refresh-uri duplicate
     if (!error) {
       // Verificăm dacă există flag de refresh pending de la logout
       const pendingRefresh = localStorage.getItem('pending_refresh');
@@ -141,15 +143,7 @@ export const useAuth = () => {
         await performVersionRefresh();
         return { error }; // Nu ajunge aici, pagina se reîncarcă
       }
-      
-      // Verificare normală de versiune nouă
-      setTimeout(async () => {
-        const hasNewVersion = await checkForNewVersion(supabase);
-        if (hasNewVersion) {
-          await saveCurrentVersion(supabase);
-          await performVersionRefresh();
-        }
-      }, 0);
+      // NU mai facem verificare versiune aici - onAuthStateChange se ocupă de asta
     }
     
     return { error };
