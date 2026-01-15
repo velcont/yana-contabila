@@ -582,6 +582,94 @@ serve(async (req) => {
     }
 
     // =============================================================================
+    // 🆕 FAZA 2 + 4: CONSECVENȚĂ CONVERSAȚII - Salvare context + Update titlu
+    // =============================================================================
+    if (conversationId && message) {
+      try {
+        // Preluăm metadata existentă
+        const { data: existingConv } = await supabase
+          .from('yana_conversations')
+          .select('metadata, title')
+          .eq('id', conversationId)
+          .single();
+        
+        const existingMetadata = (existingConv?.metadata || {}) as {
+          lastTopic?: string;
+          messageCount?: number;
+          lastInteraction?: string;
+        };
+        
+        // FAZA 2: Extragere topic din mesajul utilizatorului
+        const extractTopicFromMessage = (msg: string): string | null => {
+          const topicPatterns = [
+            /(?:despre|legat de|referitor la|întreb despre|vreau să știu despre)\s+([^,.!?]+)/i,
+            /(?:ce|cât|care|cum)\s+(?:este|sunt|e)\s+([^,.!?]+)/i,
+            /(?:analizează|verifică|arată-mi|spune-mi despre)\s+([^,.!?]+)/i,
+          ];
+          
+          for (const pattern of topicPatterns) {
+            const match = msg.match(pattern);
+            if (match && match[1]) {
+              return match[1].trim().substring(0, 100); // Max 100 chars
+            }
+          }
+          
+          // Fallback: primele 50 caractere din mesaj ca topic generic
+          if (msg.length > 10) {
+            return msg.substring(0, 50).replace(/[?!.]+$/, '').trim();
+          }
+          
+          return null;
+        };
+        
+        const detectedTopic = extractTopicFromMessage(message);
+        
+        // Construim metadata actualizată
+        const updatedMetadata = {
+          ...existingMetadata,
+          lastTopic: detectedTopic || existingMetadata.lastTopic || 'conversație generală',
+          lastInteraction: new Date().toISOString(),
+          messageCount: (existingMetadata.messageCount || 0) + 2, // +2 pentru user + assistant
+        };
+        
+        // FAZA 4: Update titlu dacă e generic și avem topic
+        let newTitle = existingConv?.title;
+        if (existingConv?.title === 'Conversație nouă' && detectedTopic) {
+          // Creăm un titlu mai descriptiv
+          const truncatedTopic = detectedTopic.length > 40 
+            ? detectedTopic.substring(0, 40) + '...' 
+            : detectedTopic;
+          newTitle = `Discuție: ${truncatedTopic}`;
+        }
+        
+        // Salvăm în baza de date
+        const updatePayload: Record<string, unknown> = {
+          metadata: updatedMetadata,
+          updated_at: new Date().toISOString(),
+        };
+        
+        if (newTitle && newTitle !== existingConv?.title) {
+          updatePayload.title = newTitle;
+          console.log(`[AI-Router] Faza 4: Updated conversation title to "${newTitle}"`);
+        }
+        
+        await supabase
+          .from('yana_conversations')
+          .update(updatePayload)
+          .eq('id', conversationId);
+        
+        console.log(`[AI-Router] Faza 2: Saved conversation context - topic: "${updatedMetadata.lastTopic}", messageCount: ${updatedMetadata.messageCount}`);
+        
+      } catch (err) {
+        console.warn('[AI-Router] Failed to update conversation context (non-blocking):', err);
+        // Nu blocăm - contextul e opțional
+      }
+    }
+    // =============================================================================
+    // END CONSECVENȚĂ CONVERSAȚII
+    // =============================================================================
+
+    // =============================================================================
     // MEMORIE: Salvez conversația în ai_conversations pentru memorie viitoare
     // =============================================================================
     const assistantMessage = (result.response as string) || (result.analysis as string) || '';

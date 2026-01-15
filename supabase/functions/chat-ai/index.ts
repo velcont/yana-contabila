@@ -1661,7 +1661,74 @@ serve(async (req) => {
       console.log(`[chat-ai][${requestId}] Consciousness context added to prompt (${consciousnessContext.context.promptInjection.length} chars)`);
     }
     
-    let adaptedPrompt = consciousnessSection + memorySection + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    // =============================================================================
+    // 🆕 FAZA 1 + 3: CONSECVENȚĂ CONVERSAȚII - Flag conversație existentă + context salvat
+    // =============================================================================
+    let conversationConsistencyPrompt = '';
+    
+    // FAZA 1: Detectăm dacă e conversație existentă (are history)
+    const isExistingConversation = history && history.length > 0;
+    if (isExistingConversation) {
+      conversationConsistencyPrompt += `
+⚠️ CONTEXT IMPORTANT - CONVERSAȚIE ÎN DESFĂȘURARE:
+Aceasta NU este prima interacțiune cu acest utilizator în această conversație.
+Există ${history.length} mesaje anterioare în acest dialog.
+❌ NU spune "Mă bucur să te cunosc", "Bine ai venit" sau alte salutări de început.
+❌ NU te prezenta ca și cum ar fi prima întâlnire.
+✅ Continuă conversația NATURAL, făcând referire la ce s-a discutat anterior dacă e relevant.
+✅ Răspunde direct la întrebare, fără introduceri formale.
+
+`;
+      console.log(`[chat-ai][${requestId}] Faza 1: Existing conversation flag added (${history.length} previous messages)`);
+    }
+    
+    // FAZA 3: Citim metadata din yana_conversations pentru context salvat persistent
+    if (conversationId) {
+      try {
+        const { data: convData } = await supabase
+          .from('yana_conversations')
+          .select('metadata, title')
+          .eq('id', conversationId)
+          .single();
+        
+        if (convData?.metadata) {
+          const meta = convData.metadata as { 
+            lastTopic?: string; 
+            messageCount?: number;
+            lastInteraction?: string;
+          };
+          
+          // Doar dacă avem mai mult de 1 mesaj (conversație reală, nu prima interacțiune)
+          if (meta.messageCount && meta.messageCount > 1) {
+            const daysSinceLastInteraction = meta.lastInteraction 
+              ? Math.floor((Date.now() - new Date(meta.lastInteraction).getTime()) / (1000 * 60 * 60 * 24))
+              : 0;
+            
+            conversationConsistencyPrompt += `
+📋 CONTEXT CONVERSAȚIE SALVAT (PERSISTENT):
+- Subiect discutat anterior: ${meta.lastTopic || 'conversație generală'}
+- Total mesaje în această conversație: ${meta.messageCount}
+- Titlu conversație: ${convData.title || 'Conversație'}
+${daysSinceLastInteraction > 0 ? `- Ultima interacțiune: acum ${daysSinceLastInteraction} zile` : ''}
+
+⚠️ Folosește aceste informații pentru a menține continuitatea. 
+Utilizatorul se așteaptă să-ți amintești de ce am discutat!
+${daysSinceLastInteraction >= 7 ? '💡 Au trecut câteva zile - poți face o scurtă referire la discuția anterioară.' : ''}
+
+`;
+            console.log(`[chat-ai][${requestId}] Faza 3: Saved context injected - topic: "${meta.lastTopic}", messageCount: ${meta.messageCount}`);
+          }
+        }
+      } catch (err) {
+        console.warn(`[chat-ai][${requestId}] Faza 3: Failed to load conversation metadata:`, err);
+        // Nu blocăm - continuăm fără context salvat
+      }
+    }
+    // =============================================================================
+    // END CONSECVENȚĂ CONVERSAȚII
+    // =============================================================================
+    
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + memorySection + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
