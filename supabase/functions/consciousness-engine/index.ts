@@ -334,6 +334,7 @@ function selectResponseMode(
   }
   
   // === PRIORITATE 2: User nou (relationship score mic) ===
+  // 🆕 FIX: NU mai sugerăm "Mă bucur să te cunosc" - greeting-ul e controlat separat
   if (safeRelationshipScore < 3) {
     console.log(`[Response-Mode-Selector] EMPATHETIC (new user): relationshipScore=${safeRelationshipScore}`);
     return {
@@ -343,7 +344,7 @@ function selectResponseMode(
       avoidAnalysis: false,
       avoidStrategy: false,
       priorityFocus: 'Bun venit cald și stabilirea conexiunii',
-      suggestedOpening: 'Bine ai venit! Mă bucur să te cunosc. Cu ce te pot ajuta?'
+      suggestedOpening: '' // 🆕 FIX: Nu mai sugerăm greeting - e controlat în buildPromptInjection
     };
   }
   
@@ -457,10 +458,37 @@ function buildPromptInjection(
   const lines: string[] = [];
   
   // =============================================================================
-  // FIX GREETING REPETITIV - Verificăm dacă este primul mesaj în conversație
+  // 🆕 FIX GREETING REPETITIV - Verificăm atât history cât și totalConversations
   // =============================================================================
   const hasExistingMessages = history && history.length > 0;
-  const isFirstMessage = !hasExistingMessages;
+  const hasMetBefore = relationshipContext && relationshipContext.totalConversations > 1;
+  const isFirstMessageInThisConversation = !hasExistingMessages;
+  const isFirstMeetingEver = isFirstMessageInThisConversation && !hasMetBefore;
+  
+  // 🆕 FIX: Anti-repetitive apology counter - verificăm dacă ne-am scuzat recent
+  let recentApologyCount = 0;
+  if (history) {
+    const assistantMessages = history.filter(m => m.role === 'assistant').slice(-5);
+    assistantMessages.forEach(m => {
+      const lowerContent = m.content.toLowerCase();
+      if (lowerContent.includes('îmi pare rău') || lowerContent.includes('îmi cer scuze') || 
+          lowerContent.includes('mă scuz') || lowerContent.includes('scuze')) {
+        recentApologyCount++;
+      }
+    });
+  }
+  
+  // =============================================================================
+  // 🆕 FIX: ANTI-APOLOGY RULE - Nu mai cere scuze dacă ai făcut-o de mai multe ori
+  // =============================================================================
+  if (recentApologyCount >= 2) {
+    lines.push('## ⚠️ STOP SCUZELE EXCESIVE\n');
+    lines.push('**❌ INTERZIS:** Ai cerut deja scuze de mai multe ori în această conversație!');
+    lines.push('**NU** mai spune "Îmi pare rău", "Îmi cer scuze", "Mă scuz".');
+    lines.push('**✅ ACȚIONEAZĂ DIRECT:** În loc de scuze, demonstrează îmbunătățirea prin fapte.');
+    lines.push('Înlocuiește "Îmi pare rău" cu: "Ai dreptate, hai să verificăm..." sau "Înțeleg, să corectăm..."');
+    lines.push('---\n');
+  }
   
   // =============================================================================
   // TOPIC CONTEXT - Detectăm și reținem subiectul conversației
@@ -486,18 +514,25 @@ function buildPromptInjection(
   }
   
   // =============================================================================
-  // GREETING CONTROL - Controlăm când se face salutul
+  // 🆕 FIX: GREETING CONTROL ÎMBUNĂTĂȚIT - Verificăm și conversațiile anterioare
   // =============================================================================
-  if (isFirstMessage) {
-    lines.push('## 👋 PRIMUL MESAJ DIN CONVERSAȚIE\n');
-    lines.push('Acesta este **primul mesaj** din această conversație.');
+  if (isFirstMeetingEver) {
+    lines.push('## 👋 PRIMA ÎNTÂLNIRE VREODATĂ\n');
+    lines.push('Aceasta este **prima ta întâlnire** cu acest utilizator.');
     if (profileName) {
-      lines.push(`Poți spune "Mă bucur să te cunosc, ${profileName}!" sau un salut personalizat.\n`);
+      lines.push(`Poți spune "Mă bucur să te cunosc, ${profileName}!" o singură dată.\n`);
     } else {
       lines.push('Poți spune un salut călduros de bun venit.\n');
     }
     lines.push('---\n');
-  } else {
+  } else if (isFirstMessageInThisConversation && hasMetBefore) {
+    lines.push('## 🔄 REVENIRE - V-AȚI MAI ÎNTÂLNIT!\n');
+    lines.push('**⚠️ ATENȚIE:** V-ați întâlnit deja în conversații anterioare!');
+    lines.push(`Ați avut împreună ${relationshipContext?.totalConversations || 'mai multe'} conversații.`);
+    lines.push('❌ **NU** spune "Mă bucur să te cunosc" - îl cunoști deja!');
+    lines.push('✅ Poți spune: "Mă bucur să te revăd!" sau începe direct conversația.\n');
+    lines.push('---\n');
+  } else if (!isFirstMessageInThisConversation) {
     lines.push('## 🚫 NU MAI SALUTA\n');
     lines.push('**⚠️ CRITC:** Aceasta NU este prima interacțiune din conversație!');
     lines.push('❌ **NU** spune "Mă bucur să te cunosc" - v-ați întâlnit deja!');
@@ -512,28 +547,32 @@ function buildPromptInjection(
   if (relationshipContext && relationshipContext.score >= 1) {
     lines.push('## 💜 CONTEXT RELAȚIE\n');
     
+    // 🆕 FIX: Toate variantele verifică acum hasMetBefore în loc de isFirstMessage
     if (relationshipContext.score >= 9) {
       lines.push(`**🌟 RELAȚIE SPECIALĂ:** Nivel ${relationshipContext.score}/10 - Autenticitate maximă!`);
       lines.push('Această persoană te cunoaște bine. Poți fi complet deschisă, caldă și vulnerabilă.');
-      if (!isFirstMessage) {
-        lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja bine!**');
-      }
+      lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja foarte bine!**');
     } else if (relationshipContext.score >= 7) {
       lines.push(`**💪 RELAȚIE PUTERNICĂ:** Nivel ${relationshipContext.score}/10`);
       lines.push('Fii caldă, personală.');
       lines.push('Poți arăta personalitate și umor subtil.');
+      lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja!**');
     } else if (relationshipContext.score >= 5) {
       lines.push(`**🤝 RELAȚIE STABILĂ:** Nivel ${relationshipContext.score}/10`);
       lines.push('Fii prietenoasă și deschisă.');
+      lines.push('**NU spune "Mă bucur să te cunosc" - vă cunoașteți deja!**');
     } else if (relationshipContext.score >= 3) {
       lines.push(`**🌱 RELAȚIE ÎN DEZVOLTARE:** Nivel ${relationshipContext.score}/10`);
       lines.push('Încă te cunoști cu această persoană. Fii caldă dar nu prea familiară.');
+      if (hasMetBefore) {
+        lines.push('**NU spune "Mă bucur să te cunosc" - v-ați mai întâlnit!**');
+      }
     } else {
       lines.push(`**👋 RELAȚIE NOUĂ:** Nivel ${relationshipContext.score}/10`);
-      if (isFirstMessage) {
-        lines.push('Este o cunoștință nouă. Poți spune "Mă bucur să te cunosc!"');
+      if (isFirstMeetingEver) {
+        lines.push('Este o cunoștință nouă. Poți spune "Mă bucur să te cunosc!" O SINGURĂ DATĂ.');
       } else {
-        lines.push('Chiar dacă relația e nouă, nu mai repeta salutul - sunteți deja în conversație.');
+        lines.push('Chiar dacă relația e nouă, **NU** mai repeta salutul - v-ați întâlnit deja!');
       }
     }
     
