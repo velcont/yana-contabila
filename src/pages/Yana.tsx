@@ -38,7 +38,23 @@ export default function Yana() {
   const hasNoValidAccess = !subscriptionLoading && !creditsLoading && 
     (accessType === null || accessType === 'trial_expired') && 
     !hasCredits;
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  // Persistență conversație activă - păstrează ultima conversație deschisă între sesiuni
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('yana_last_conversation_id');
+    return saved || null;
+  });
+  
+  // Handler pentru selectare conversație cu persistență
+  const handleSelectConversation = (id: string) => {
+    setActiveConversationId(id);
+    localStorage.setItem('yana_last_conversation_id', id);
+  };
+  
+  // Handler pentru conversație nouă - șterge persistența
+  const handleNewConversation = () => {
+    setActiveConversationId(null);
+    localStorage.removeItem('yana_last_conversation_id');
+  };
 
   const handleSignOut = async () => {
     try {
@@ -87,8 +103,8 @@ export default function Yana() {
       >
         <ConversationSidebar
           activeConversationId={activeConversationId}
-          onSelectConversation={setActiveConversationId}
-          onNewConversation={() => setActiveConversationId(null)}
+          onSelectConversation={handleSelectConversation}
+          onNewConversation={handleNewConversation}
           onClose={() => setSidebarOpen(false)}
         />
       </aside>
