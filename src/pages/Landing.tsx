@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Server } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -10,52 +9,46 @@ const Landing = () => {
       <div className="max-w-xl mx-auto text-center space-y-8">
         
         {/* Headline */}
-        <h1 className="text-3xl md:text-5xl font-bold leading-tight">
-          Află de ce contul tău e gol — 
-          <span className="text-primary"> chiar dacă ai profit pe hârtie</span>
-        </h1>
-
-        {/* Subheadline - clarificare CE e Yana */}
-        <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-          Yana e partenerul tău strategic AI —<br />
-          te ascultă, analizează cifrele și te ajută să iei decizii clare.
-        </p>
-
-        {/* Micro-poziționare emoțională */}
-        <div className="text-sm md:text-base text-muted-foreground/80 space-y-1">
-          <p>Unii vin să vorbească.</p>
-          <p>Alții vin pentru strategie.</p>
-          <p className="font-medium text-foreground">Yana știe diferența.</p>
+        <div className="space-y-2">
+          <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+            Yana nu e un chatbot.
+          </h1>
+          <p className="text-3xl md:text-5xl font-bold text-primary">
+            Este un AI pentru business.
+          </p>
         </div>
 
-        {/* CTA Principal - Orientat pe REZULTAT */}
+        {/* Micro-copy */}
+        <div className="text-lg md:text-xl text-muted-foreground space-y-1">
+          <p>Îți analizează cifrele.</p>
+          <p>Te ascultă.</p>
+          <p>Te ajută să decizi.</p>
+        </div>
+
+        {/* CTA Principal */}
         <div className="space-y-3">
           <Button 
             size="lg" 
             className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
             onClick={() => navigate('/auth?redirect=/yana')}
           >
-            <Sparkles className="mr-2 h-5 w-5" />
-            Obține gratuit diagnosticul afacerii tale
+            Începe o conversație
           </Button>
           <p className="text-sm text-muted-foreground">
-            Fără card, fără obligații. Vezi în timp real unde poți crește profitul.
+            Fără card, fără obligații.
           </p>
         </div>
 
         {/* Trust Badges */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-            <Shield className="h-3.5 w-3.5 text-green-600" />
-            <span>GDPR compliant</span>
+          <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+            GDPR compliant
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-            <Lock className="h-3.5 w-3.5 text-green-600" />
-            <span>Date criptate</span>
+          <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+            Date criptate
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
-            <Server className="h-3.5 w-3.5 text-green-600" />
-            <span>Servere în UE</span>
+          <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+            Servere în UE
           </div>
         </div>
 
