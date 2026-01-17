@@ -251,8 +251,23 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         content: userMessage.content,
       });
 
-      // Build history for AI (last 25 messages, max 2500 chars each) - FIX context loss
-      const historyForAI = messages.slice(-25).map(m => ({
+      // 🆕 FIX STEP 2: Build history from FRESH DB data to avoid stale closure
+      // Fetch fresh message history from DB to ensure we have complete context
+      const { data: freshMessages } = await supabase
+        .from('yana_messages')
+        .select('role, content')
+        .eq('conversation_id', convId)
+        .order('created_at', { ascending: true })
+        .limit(30);
+      
+      // Include the current user message in history
+      const allMessages = [
+        ...(freshMessages || []),
+        { role: 'user', content: content }
+      ];
+      
+      // Build history for AI (last 25 messages, max 2500 chars each)
+      const historyForAI = allMessages.slice(-25).map(m => ({
         role: m.role,
         content: m.content.length > 2500 ? m.content.substring(0, 2500) + '...' : m.content
       }));
