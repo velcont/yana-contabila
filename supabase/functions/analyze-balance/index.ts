@@ -1718,7 +1718,7 @@ serve(async (req) => {
             freeAnalysesUsed: validatedCount,
             trialExpired: !isInTrial,
             needsSubscription: true,
-            upgradeMessage: `🔒 **Abonamentul tău a expirat**\n\nAi utilizat cele 6 analize gratuite și perioada de probă de 30 de zile s-a încheiat.\n\n**Pentru a continua să analizezi balanțe, alege un plan:**\n\n💼 **Plan Antreprenor** - 49 RON/lună\n• Analize nelimitate cu validare Consiliu AI\n• Chat AI strategic pentru decizii financiare\n• Toate funcționalitățile platformei\n\n🏢 **Plan Contabil** - 199 RON/lună\n• Tot ce include Antreprenor\n• Management clienți (CRM)\n• Workflow-uri automatizate\n• White-label și branding personalizat\n\n➡️ [Upgrade acum pentru a continua](/subscription)`
+            upgradeMessage: `🔒 **Abonamentul tău a expirat**\n\nAi utilizat cele 6 analize gratuite și perioada de probă de 30 de zile s-a încheiat.\n\n**Pentru a continua să analizezi balanțe:**\n\n💼 **YANA Strategic** - 49 RON/lună\n• Analize nelimitate cu validare Consiliu AI\n• Chat AI strategic pentru decizii financiare\n• War Room, Battle Plan, rapoarte 40+ pagini\n• Toate funcționalitățile platformei incluse\n\n➡️ [Upgrade acum pentru a continua](/subscription)`
           }
         }),
         { 

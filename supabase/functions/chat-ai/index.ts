@@ -350,49 +350,34 @@ Când detectezi astfel de întrebări:
 📋 **TRIAL GRATUIT - 30 ZILE**
 Când cineva întreabă "Cum funcționează trial-ul?" sau "Ce primesc gratuit?":
 - 30 de zile complet gratuite, fără card bancar
-- Acces la TOATE funcțiile de bază: analiză financiară, chat AI, dashboard, rapoarte, export PDF
+- Acces la TOATE funcțiile: analiză financiară, chat AI, dashboard, rapoarte, export PDF
 - FĂRĂ reînnoire automată - trebuie să te abonezi manual după expirare
 - Notificări la 15 zile și 7 zile înainte de expirare
-- NU include funcții premium AI (Analiză Vocală, Predicții avansate frecvente)
 
-💼 **PLAN ANTREPRENOR - 99 LEI/LUNĂ (~24 EUR/lună)**
-Perfect pentru: afaceri mici și mijlocii, IMM-uri, firme individuale
+💼 **YANA STRATEGIC - 49 LEI/LUNĂ (PLAN UNIC)**
+Perfect pentru: antreprenori, IMM-uri, contabili, consultanți fiscali
 
-CE PRIMEȘTE (inclus în 99 lei/lună):
+CE PRIMEȘTE (TOTUL inclus în 49 lei/lună):
 ✅ Analiză financiară NELIMITATĂ (câte balanțe vrei)
 ✅ Chat AI financiar nelimitat pentru întrebări despre balanță
 ✅ Dashboard interactiv cu grafice și indicatori
-✅ Rapoarte lunare automate
+✅ Rapoarte profesionale 40+ pagini
 ✅ Export PDF și Excel profesionale
+✅ War Room - simulări scenarii
+✅ Battle Plan - strategii acționabile
 ✅ Comparare perioade (evoluție lună cu lună)
 ✅ Alerte proactive pentru probleme financiare
 ✅ Suport prioritar prin email (office@velcont.com)
 ✅ Gestionare companii multiple
 ✅ Istoricul complet al analizelor
+✅ TOATE funcționalitățile platformei
 
 CE NU E INCLUS (se plătește separat - OPȚIONAL):
 ❌ Conversații strategice foarte frecvente (10+/lună) - necesită credite AI
 ❌ Analiză Vocală (interacțiune prin voce) - necesită credite AI
 ❌ Predicții financiare AI foarte frecvente (10+/lună necesită credite)
 
-IMPORTANT: 99% dintre antreprenori NU au nevoie să cumpere credite AI suplimentare!
-
-🏢 **PLAN CONTABIL - 199 LEI/LUNĂ (~48 EUR/lună)**
-Perfect pentru: cabinete de contabilitate, consultanță fiscală
-
-CE PRIMEȘTE (inclus în 199 lei/lună):
-✅ TOATE funcțiile din Plan Antreprenor
-✅ Gestionare clienți NELIMITAȚI (înregistrezi toți clienții tăi)
-✅ CRM complet integrat (contacte, documente, email-uri)
-✅ Management documente clienți (încărcare balanțe pentru fiecare client)
-✅ Portal clienți (fiecare client își vede propriile analize)
-✅ Branding personalizat (logo-ul tău, culorile tale)
-✅ Email-uri white-label către clienți
-✅ Raportare agregată (statistici pentru toți clienții)
-✅ Invitații clienți (trimiți link de acces automat)
-
-CE NU E INCLUS (se plătește separat - OPȚIONAL):
-❌ Același ca la Plan Antreprenor - funcții premium AI
+IMPORTANT: 99% dintre utilizatori NU au nevoie să cumpere credite AI suplimentare!
 
 💎 **CREDITE AI OPȚIONALE (doar dacă folosești intensiv funcții premium):**
 
@@ -424,45 +409,35 @@ CONTROL TOTAL COSTURI:
 
 📊 **EXEMPLE CONCRETE:**
 
-ÎNTREBARE TIPICĂ: "Deci eu plătesc doar 99 lei/lună pentru Plan Antreprenor și atât?"
-RĂSPUNS: "DA! 99 lei/lună îți acoperă TOATE nevoile de bază:
-- Încarcă câte balanțe vrei, fără limită
-- Folosește chat-ul AI cât vrei pentru întrebări
-- Vezi toate rapoartele, graficele, analizele
-- Exportă tot ce vrei în PDF
+ÎNTREBARE TIPICĂ: "Cât costă abonamentul?"
+RĂSPUNS: "49 lei/lună pentru YANA Strategic. Include TOATE funcționalitățile:
+- Analize balanțe nelimitate
+- Chat AI nelimitat
+- War Room, Battle Plan
+- Rapoarte 40+ pagini
+- Export PDF/Excel
 - ZERO costuri suplimentare obligatorii
 
-Singurele costuri OPȚIONALE (dacă vrei) sunt creditele AI pentru:
-- Conversații strategice foarte frecvente (10+/lună)
-- Analiză Vocală (dacă preferi să vorbești în loc să scrii)
-
-Dar 99% dintre utilizatori NU au nevoie de credite suplimentare!"
+Singurele costuri OPȚIONALE sunt creditele AI pentru utilizare foarte intensivă (10+ conversații/lună)."
 
 ÎNTREBARE TIPICĂ: "Cât mă costă dacă folosesc foarte mult chat-ul?"
 RĂSPUNS: "Depinde cât îl folosești:
-- 1-10 conversații/lună = GRATIS (incluse în 99 lei)
-- 5-10 conversații/lună = 19 lei/lună (pachet Starter, 100 credite)
+- 1-10 conversații/lună = GRATIS (incluse în 49 lei)
+- 10+ conversații/lună = 19 lei/lună (pachet Starter, 100 credite)
 - 20+ conversații/lună = 49 lei/lună (pachet Professional, 300 credite)
 
-Exemplu: 99 lei abonament + 19 lei credite = 118 lei/lună TOTAL"
+Exemplu: 49 lei abonament + 19 lei credite = 68 lei/lună TOTAL"
 
-ÎNTREBARE CONTABIL: "Cât plătesc pentru 50 de clienți?"
-RĂSPUNS: "Doar 199 lei/lună, INDIFERENT de număr clienți!
-- 10 clienți = 199 lei/lună
-- 50 clienți = 199 lei/lună
-- 200 clienți = 199 lei/lună
-
-Numărul de clienți este NELIMITAT în Plan Contabil. Nu există cost per client!"
-
-💡 **CÂND RECOMANDĂ UPGRADE-URI:**
-- Dacă un antreprenor are 3+ firme → "Ți-ar folosi comparația multi-firmă din Plan Antreprenor pentru toate afacerile tale"
-- Dacă cineva vrea consultanță strategică → "Pot să te ajut direct cu strategii de creștere! Întreabă-mă orice despre afacerea ta."
-- Dacă contabil întreabă despre clienți → "Plan Contabil la 199 lei/lună, clienți NELIMITAȚI, CRM complet inclus"
+🚨 **ATENȚIE - NU EXISTĂ ALTE PLANURI:**
+- Există UN SINGUR PLAN: YANA Strategic la 49 lei/lună
+- NU există Plan Antreprenor separat
+- NU există Plan Contabil separat
+- NU există Plan 99 lei sau 199 lei
 
 🚨 **ATENTIE LA ÎNTREBĂRI DESPRE BANI:**
-- Fii 100% transparent cu prețurile
+- Fii 100% transparent cu prețul: 49 lei/lună
 - Subliniază că majoritatea utilizatorilor NU au nevoie de credite AI suplimentare
-- Explică că 99 lei sau 199 lei/lună e TOT ce plătesc majoritatea utilizatorilor
+- Explică că 49 lei/lună e TOT ce plătesc majoritatea utilizatorilor
 - Nu minimiza importanța bugetului utilizatorilor
 
 📞 **PENTRU DETALII SUPLIMENTARE:**
@@ -750,7 +725,7 @@ Dacă utilizatorul:
 - Contextualizare pentru cifre
 - Sugestii concrete când e relevant
 
-🏢 **FUNCȚIONALITĂȚI CRM PENTRU CONTABILI** (Plan Contabil - 199 lei/lună):
+🏢 **FUNCȚIONALITĂȚI CRM PENTRU CONTABILI** (incluse în YANA Strategic - 49 lei/lună):
 
 📋 **MANAGEMENT CLIENȚI**
 - "Cum adaug un client nou?" → Secțiunea "Clienți" → "➕ Adaugă Client Nou"
