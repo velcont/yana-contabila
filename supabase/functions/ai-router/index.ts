@@ -434,14 +434,17 @@ serve(async (req) => {
     } else {
       // No file, detect intent from message
       routeDecision = detectIntent(message);
-      // Adaug memoryContext, history și balanceContext la payload
+      // Adaug memoryContext, history la payload
       routeDecision.payload.memoryContext = memoryContext;
       routeDecision.payload.history = history;
       
-      // 🆕 FIX: Fallback - recover balanceContext from conversation metadata if not provided
-      let effectiveBalanceContext = balanceContext;
-      if (!effectiveBalanceContext && conversationId) {
+      // 🆕 FIX CRITICAL: ALWAYS fetch balanceContext from DB to ensure memory persistence
+      // Frontend may send stale/null values due to React closure issues
+      let effectiveBalanceContext: unknown = null;
+      
+      if (conversationId) {
         try {
+          console.log(`[AI-Router] ALWAYS fetching balanceContext from DB for conversation ${conversationId}`);
           const { data: convData } = await supabase
             .from('yana_conversations')
             .select('metadata')
@@ -452,14 +455,19 @@ serve(async (req) => {
             const metadata = convData.metadata as { balanceContext?: unknown };
             if (metadata.balanceContext) {
               effectiveBalanceContext = metadata.balanceContext;
-              console.log(`[AI-Router] FALLBACK: Recovered balanceContext from conversation ${conversationId}`);
+              const company = (metadata.balanceContext as { company?: string })?.company || 'unknown';
+              console.log(`[AI-Router] ✅ Loaded balanceContext from DB: ${company}`);
+            } else {
+              console.log(`[AI-Router] ⚠️ No balanceContext in conversation metadata`);
             }
           }
         } catch (err) {
-          console.warn('[AI-Router] Failed to recover balanceContext:', err);
+          console.warn('[AI-Router] Failed to fetch balanceContext from DB:', err);
         }
       }
-      routeDecision.payload.balanceContext = effectiveBalanceContext;
+      
+      // Use DB value as priority, fallback to frontend value if DB is empty
+      routeDecision.payload.balanceContext = effectiveBalanceContext || balanceContext || null;
     }
 
     // Add conversationId for routes that require it
