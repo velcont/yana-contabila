@@ -202,8 +202,7 @@ Analiză verificată cu consens parțial
 ### Subscription Tiers:
 1. **Free (first 6 analyses)** - Consiliu included
 2. **Trial (30 days)** - Consiliu included
-3. **Entrepreneur Plan (49 RON/month)** - Consiliu included unlimited
-4. **Accountant Plan (199 RON/month)** - Consiliu included unlimited for all clients
+3. **Yana Strategic (49 RON/month)** - Consiliu included unlimited
 
 ### Logic in `analyze-balance`:
 ```typescript
@@ -284,5 +283,5 @@ const councilResponse = await supabaseClient.functions.invoke('validate-analysis
 
 ---
 
-**Last Updated:** 2025-11-01
-**Version:** 2.0.0 (Parallel execution with 3 real AI providers)
+**Last Updated:** 2025-01-22
+**Version:** 3.0.0 (Unified Yana Strategic 49 RON plan)
