@@ -2156,6 +2156,9 @@ ${factSheet}
         model: "google/gemini-2.5-pro",
         messages: strategistMessages,
         max_completion_tokens: 8192,
+        // FAZA 2.1: Parametri pentru naturalețe (conservator pentru strategie)
+        temperature: 0.6,
+        presence_penalty: 0.2
       }),
       });
 

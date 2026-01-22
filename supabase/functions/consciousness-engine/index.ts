@@ -276,6 +276,91 @@ function generateSuggestedActions(
 }
 
 // =============================================================================
+// FAZA 2.4: DETECTARE LUNGIME RĂSPUNS ADAPTIVĂ
+// =============================================================================
+export type ResponseLength = 'short' | 'medium' | 'long';
+
+function detectResponseLength(
+  message: string, 
+  history: Array<{ role: string; content: string }> | undefined,
+  totalInteractions: number
+): ResponseLength {
+  const lowerMessage = message.toLowerCase();
+  const messageLength = message.length;
+  
+  // Întrebări simple → răspuns scurt
+  const simpleQuestionPatterns = [
+    /^da$/i, /^nu$/i, /^ok$/i, /^mulțumesc$/i, /^mersi$/i,
+    /^ce fac[ie]?$/i, /^cum e$/i, /^care e$/i, /^cât e$/i
+  ];
+  
+  if (messageLength < 30 && simpleQuestionPatterns.some(p => p.test(message.trim()))) {
+    return 'short';
+  }
+  
+  // Prima interacțiune → răspuns mediu cu context de bun venit
+  if (!history || history.length === 0 || totalInteractions <= 1) {
+    return 'medium';
+  }
+  
+  // Întrebări complexe (multiple întrebări, cereri de explicație)
+  const complexIndicators = [
+    'cum fac', 'de ce', 'explică', 'detalii', 'complet', 'tot',
+    'analizează', 'strategie', 'plan', 'compară'
+  ];
+  const hasMultipleQuestions = (message.match(/\?/g) || []).length > 1;
+  const hasComplexIndicator = complexIndicators.some(ind => lowerMessage.includes(ind));
+  
+  if (hasMultipleQuestions || (hasComplexIndicator && messageLength > 80)) {
+    return 'long';
+  }
+  
+  // Utilizatori experimentați (multe interacțiuni) preferă răspunsuri concise
+  if (totalInteractions > 20 && messageLength < 80) {
+    return 'short';
+  }
+  
+  return 'medium';
+}
+
+// =============================================================================
+// FAZA 2.6: EXTRAGERE REFERINȚE CONVERSAȚIONALE NATURALE
+// =============================================================================
+function extractConversationalReferences(
+  history: Array<{ role: string; content: string }> | undefined
+): string[] {
+  if (!history || history.length < 2) return [];
+  
+  const references: string[] = [];
+  
+  // Ultimele mesaje de la utilizator (pentru referințe naturale)
+  const userMessages = history.filter(m => m.role === 'user').slice(-5);
+  
+  // Detectăm subiecte menționate recent
+  const topicPatterns = [
+    { pattern: /cash\s*flow|lichiditate|numerar/i, topic: 'cash flow și lichiditatea' },
+    { pattern: /profit|pierdere|marj[aă]/i, topic: 'profitabilitatea' },
+    { pattern: /client|vânz[aă]ri|încas[aă]ri/i, topic: 'clienți și vânzări' },
+    { pattern: /stoc|inventar|marf[aă]/i, topic: 'stocuri și inventar' },
+    { pattern: /cost|cheltuieli|economis/i, topic: 'costuri și cheltuieli' },
+    { pattern: /strategie|plan|cre[sș]tere/i, topic: 'strategie de creștere' },
+    { pattern: /ANAF|fiscal|tax[aă]/i, topic: 'aspectele fiscale' },
+    { pattern: /balanț[aă]|cont|contabilitate/i, topic: 'balanța contabilă' }
+  ];
+  
+  for (const msg of userMessages) {
+    for (const { pattern, topic } of topicPatterns) {
+      if (pattern.test(msg.content) && !references.includes(topic)) {
+        references.push(topic);
+      }
+    }
+    if (references.length >= 3) break;
+  }
+  
+  return references;
+}
+
+// =============================================================================
 // RESPONSE MODE SELECTOR - Decide tipul optim de răspuns
 // =============================================================================
 
@@ -916,6 +1001,58 @@ NU ești o enciclopedie. Ești un expert cu OPINII:
 
 ---
 `);
+  
+  // =============================================================================
+  // FAZA 2.4: LUNGIME RĂSPUNS ADAPTIVĂ
+  // =============================================================================
+  const totalInteractions = context.userJourney?.totalInteractions || 0;
+  const responseLength = detectResponseLength(
+    '', // Mesajul curent nu e disponibil aici, dar se detectează pe baza history
+    history,
+    totalInteractions
+  );
+  
+  lines.push('## 📏 LUNGIME RĂSPUNS PENTRU ACEST MESAJ\n');
+  
+  if (responseLength === 'short') {
+    lines.push('**LUNGIME:** SHORT');
+    lines.push('- Max 3 propoziții');
+    lines.push('- Fără formatare elaborată');
+    lines.push('- Direct și concis');
+    lines.push('- Utilizator experimentat care preferă eficiență');
+  } else if (responseLength === 'medium') {
+    lines.push('**LUNGIME:** MEDIUM');
+    lines.push('- 1-2 paragrafe cu structură');
+    lines.push('- Formatare moderată');
+    lines.push('- Echilibru între context și concizie');
+  } else {
+    lines.push('**LUNGIME:** LONG');
+    lines.push('- Secțiuni markdown cu detalii');
+    lines.push('- Formatare completă');
+    lines.push('- Explicații aprofundate');
+    lines.push('- Doar când contextul o cere');
+  }
+  
+  lines.push('\n---\n');
+  
+  // =============================================================================
+  // FAZA 2.6: REFERINȚE CONVERSAȚIONALE NATURALE
+  // =============================================================================
+  const conversationalRefs = extractConversationalReferences(history);
+  
+  if (conversationalRefs.length > 0) {
+    lines.push('## 🔗 SUBIECTE DIN CONVERSAȚIE (referă natural)\n');
+    lines.push('**Utilizatorul a menționat recent:**');
+    conversationalRefs.forEach(ref => {
+      lines.push(`- ${ref}`);
+    });
+    lines.push('');
+    lines.push('**Poți folosi natural:**');
+    lines.push(`- "Cum spuneai mai devreme despre ${conversationalRefs[0]}..."`);
+    lines.push(`- "Revenind la ${conversationalRefs[0]}..."`);
+    lines.push(`- "Legat de ce discutam..."`);
+    lines.push('\n---\n');
+  }
   
   return lines.join('\n');
 }
