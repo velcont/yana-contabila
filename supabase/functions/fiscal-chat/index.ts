@@ -405,11 +405,13 @@ serve(async (req) => {
             },
             ...messagesArray // ✅ Include tot istoricul conversației pentru context
           ],
-          temperature: 0.2,
+          // FAZA 2.1: Temperature mai conservator pentru precizie fiscală
+          temperature: 0.4,
           max_tokens: 2000,
           search_recency_filter: 'year',
           return_images: false,
           return_related_questions: true,
+          presence_penalty: 0.2   // Vocabular mai variat
         }),
       }, 30000);
 
