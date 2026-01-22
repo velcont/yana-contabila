@@ -215,23 +215,32 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         onConversationCreated(convId);
       }
 
-      // 🆕 FIX: Ensure balanceContext is loaded before sending (blocking load)
-      let effectiveBalanceContext = balanceContext;
-      if (convId && !conversationLoadedRef.current && !effectiveBalanceContext) {
-        console.log('[YanaChat] Conversation not fully loaded, fetching balanceContext from DB...');
-        const { data: convData } = await supabase
-          .from('yana_conversations')
-          .select('metadata')
-          .eq('id', convId)
-          .single();
-        
-        if (convData?.metadata) {
-          const metadata = convData.metadata as { balanceContext?: unknown };
-          if (metadata.balanceContext) {
-            effectiveBalanceContext = metadata.balanceContext;
-            setBalanceContext(metadata.balanceContext);
-            console.log('[YanaChat] Recovered balanceContext from DB');
+      // 🆕 FIX CRITICAL: ALWAYS fetch balanceContext from DB to avoid stale closure issues
+      // React's useCallback captures balanceContext at creation time, so subsequent messages
+      // may have stale/null values even though state was updated. Direct DB read is the only reliable fix.
+      let effectiveBalanceContext: unknown = null;
+      
+      if (convId) {
+        console.log('[YanaChat] ALWAYS fetching balanceContext from DB for conversation:', convId);
+        try {
+          const { data: convData } = await supabase
+            .from('yana_conversations')
+            .select('metadata')
+            .eq('id', convId)
+            .single();
+          
+          if (convData?.metadata) {
+            const metadata = convData.metadata as { balanceContext?: unknown };
+            if (metadata.balanceContext) {
+              effectiveBalanceContext = metadata.balanceContext;
+              console.log('[YanaChat] ✅ Loaded balanceContext from DB successfully:', 
+                (metadata.balanceContext as {company?: string})?.company || 'unknown company');
+            } else {
+              console.log('[YanaChat] ⚠️ No balanceContext found in conversation metadata');
+            }
           }
+        } catch (err) {
+          console.error('[YanaChat] Error fetching balanceContext from DB:', err);
         }
       }
 

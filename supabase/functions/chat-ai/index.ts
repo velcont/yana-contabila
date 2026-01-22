@@ -1390,10 +1390,13 @@ serve(async (req) => {
     console.log(`[chat-ai][${requestId}] Summary type: ${summaryType}`);
     console.log(`[chat-ai][${requestId}] ConversationId: ${conversationId || 'none'}`);
     
-    // 🆕 FIX: Fallback - recover balanceContext from conversation metadata if not provided
+    // 🆕 FIX CRITICAL: ALWAYS fetch balanceContext from DB to ensure memory persistence
+    // Frontend and ai-router may send stale/null values due to React closure issues
     let balanceContext = rawBalanceContext;
-    if (!balanceContext && conversationId) {
+    
+    if (conversationId) {
       try {
+        console.log(`[chat-ai][${requestId}] ALWAYS fetching balanceContext from DB for conversation ${conversationId}`);
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -1407,18 +1410,23 @@ serve(async (req) => {
         if (convData?.metadata) {
           const metadata = convData.metadata as { balanceContext?: unknown };
           if (metadata.balanceContext) {
+            // DB value takes priority over any value passed from frontend/router
             balanceContext = metadata.balanceContext as typeof rawBalanceContext;
-            console.log(`[chat-ai][${requestId}] FALLBACK: Recovered balanceContext from conversation metadata`);
+            const company = (metadata.balanceContext as { company?: string })?.company || 'unknown';
+            console.log(`[chat-ai][${requestId}] ✅ Loaded balanceContext from DB: ${company}`);
+          } else {
+            console.log(`[chat-ai][${requestId}] ⚠️ No balanceContext in conversation metadata`);
           }
         }
       } catch (err) {
-        console.warn(`[chat-ai][${requestId}] Failed to recover balanceContext:`, err);
+        console.warn(`[chat-ai][${requestId}] Failed to fetch balanceContext from DB:`, err);
       }
     }
     
     // 🆕 LOGGING îmbunătățit pentru balanceContext și memoryContext
-    console.log(`[chat-ai][${requestId}] Balance context: ${balanceContext ? `${balanceContext.accounts?.length || 0} accounts for ${balanceContext.company || 'unknown'}` : 'null (no fallback available)'}`);
+    console.log(`[chat-ai][${requestId}] Balance context: ${balanceContext ? `${balanceContext.accounts?.length || 0} accounts for ${balanceContext.company || 'unknown'}` : 'null'}`);
     console.log(`[chat-ai][${requestId}] Memory context: ${memoryContext ? `${memoryContext.length} chars` : 'null'}`);
+
 
 
     // Extragem user_id pentru rate limiting și caching
