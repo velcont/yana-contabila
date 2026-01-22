@@ -435,9 +435,36 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     }
   };
 
+  // Check if this is a new user (no previous conversations)
+  const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const checkNewUser = async () => {
+      if (!user) return;
+      
+      const { count } = await supabase
+        .from('yana_conversations')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      
+      setIsNewUser(count === 0 || count === null);
+    };
+    
+    checkNewUser();
+  }, [user]);
+
   const getWelcomeMessage = () => {
     if (messages.length > 0) return null;
     
+    // New user gets a disclaimer-style welcome
+    if (isNewUser === true) {
+      if (userName) {
+        return `Salut, ${userName}! Sunt Yana. Te pot ajuta cu fiscalitate, analiză financiară și strategie de business. O precizare: nu sunt expert autorizat - când situația devine complexă sau riscantă, îți voi recomanda să consulți un specialist. Cu ce începem?`;
+      }
+      return `Salut! Sunt Yana. Te pot ajuta cu fiscalitate, analiză financiară și strategie de business. O precizare: nu sunt expert autorizat - când situația devine complexă sau riscantă, îți voi recomanda să consulți un specialist. Cu ce începem?`;
+    }
+    
+    // Returning user gets a shorter message
     if (userName) {
       return `Salut, ${userName}! Mă bucur că te văd din nou. Cu ce te pot ajuta astăzi?`;
     }
