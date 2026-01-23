@@ -82,7 +82,8 @@ serve(async (req) => {
     const { data: soulCore } = await supabase
       .from('yana_soul_core')
       .select('recent_thoughts, total_conversations')
-      .single();
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .maybeSingle();
 
     if (soulCore) {
       const recentThoughts = soulCore.recent_thoughts || [];
