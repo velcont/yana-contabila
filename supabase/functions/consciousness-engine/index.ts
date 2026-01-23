@@ -324,6 +324,33 @@ function detectResponseLength(
 }
 
 // =============================================================================
+// FAZA 3.5: DETECTARE NIVEL EXPERTIZĂ UTILIZATOR
+// =============================================================================
+export type UserExpertise = 'novice' | 'intermediate' | 'expert';
+
+function detectUserExpertise(
+  totalInteractions: number, 
+  avgMessageLength: number,
+  history: Array<{ role: string; content: string }> | undefined
+): UserExpertise {
+  // Expert: multe interacțiuni, mesaje scurte și directe
+  if (totalInteractions > 50 && avgMessageLength < 50) return 'expert';
+  
+  // Expert: folosește terminologie tehnică
+  if (history && history.length > 5) {
+    const userMessages = history.filter(m => m.role === 'user');
+    const techTerms = ['DSO', 'marjă', 'EBITDA', 'cash flow', 'lichiditate', 'ANAF', 'ROI', 'break-even'];
+    const techCount = userMessages.reduce((acc, m) => {
+      return acc + techTerms.filter(t => m.content.toLowerCase().includes(t.toLowerCase())).length;
+    }, 0);
+    if (techCount >= 3) return 'expert';
+  }
+  
+  if (totalInteractions > 10) return 'intermediate';
+  return 'novice';
+}
+
+// =============================================================================
 // FAZA 2.6: EXTRAGERE REFERINȚE CONVERSAȚIONALE NATURALE
 // =============================================================================
 function extractConversationalReferences(
@@ -358,6 +385,58 @@ function extractConversationalReferences(
   }
   
   return references;
+}
+
+// =============================================================================
+// FAZA 3.1: BUILD ACTIVE MEMORY CONTEXT
+// =============================================================================
+interface RecentConversationContext {
+  topic: string | null;
+  daysAgo: number;
+  company: string | null;
+  keyMetrics: string[];
+}
+
+function buildActiveMemoryContext(
+  recentConversations: RecentConversationContext[],
+  relationshipContext: RelationshipContext | undefined,
+  history: Array<{ role: string; content: string }> | undefined
+): string[] {
+  const memoryLines: string[] = [];
+  
+  // Conversații recente de referit natural
+  if (recentConversations.length > 0) {
+    memoryLines.push('## 🧠 MEMORIE ACTIVĂ - REFERĂ NATURAL!\n');
+    memoryLines.push('**CONVERSAȚII RECENTE (menționează-le dacă e relevant):**');
+    
+    recentConversations.forEach(conv => {
+      if (conv.topic) {
+        memoryLines.push(`- Acum ${conv.daysAgo} zile: "${conv.topic}"${conv.company ? ` (${conv.company})` : ''}`);
+        if (conv.keyMetrics.length > 0) {
+          memoryLines.push(`  → Cifre cheie: ${conv.keyMetrics.slice(0, 3).join(', ')}`);
+        }
+      }
+    });
+    
+    memoryLines.push('');
+    memoryLines.push('**FRAZE DE FOLOSIT:**');
+    if (recentConversations[0]?.topic) {
+      memoryLines.push(`- "Cum a mers cu ${recentConversations[0].topic} de data trecută?"`);
+      memoryLines.push(`- "Îmi amintesc că discutam despre ${recentConversations[0].topic}..."`);
+    }
+    memoryLines.push('- "S-a schimbat ceva de ultima dată?"');
+    memoryLines.push('- "Data trecută îți făceai griji de X. Cum e acum?"');
+    memoryLines.push('');
+  }
+  
+  // Last topic from relationship context
+  if (relationshipContext?.lastTopic) {
+    memoryLines.push(`**ULTIMA TEMĂ:** ${relationshipContext.lastTopic}`);
+    memoryLines.push('→ Poți întreba natural: "Ce s-a mai întâmplat cu [tema]?"');
+    memoryLines.push('');
+  }
+  
+  return memoryLines;
 }
 
 // =============================================================================
@@ -534,11 +613,29 @@ function detectConversationTopic(history: Array<{ role: string; content: string 
   return null;
 }
 
+// Helper function to extract key metrics from conversation metadata
+function extractKeyMetrics(metadata: any): string[] {
+  const metrics: string[] = [];
+  if (!metadata) return metrics;
+  
+  if (metadata.balanceContext) {
+    const bc = metadata.balanceContext;
+    if (bc.profit) metrics.push(`profit: ${bc.profit}`);
+    if (bc.dso) metrics.push(`DSO: ${bc.dso}`);
+    if (bc.margin) metrics.push(`marjă: ${bc.margin}%`);
+    if (bc.cashFlow) metrics.push(`cash flow: ${bc.cashFlow}`);
+  }
+  
+  return metrics;
+}
+
 function buildPromptInjection(
   context: Omit<ConsciousnessContext, 'promptInjection'>, 
   profileName?: string | null,
   relationshipContext?: RelationshipContext,
-  history?: Array<{ role: string; content: string }>
+  history?: Array<{ role: string; content: string }>,
+  recentConversations?: RecentConversationContext[],
+  userExpertise?: UserExpertise
 ): string {
   const lines: string[] = [];
   
@@ -828,6 +925,95 @@ Onestitatea te face mai umană, nu mai slabă.
   }
   
   // =============================================================================
+  // FAZA 3.1: ACTIVE MEMORY - REFERINȚE NATURALE LA CONVERSAȚII TRECUTE
+  // =============================================================================
+  if (recentConversations && recentConversations.length > 0) {
+    const memoryLines = buildActiveMemoryContext(recentConversations, relationshipContext, history);
+    lines.push(...memoryLines);
+    lines.push('---\n');
+  }
+  
+  // =============================================================================
+  // FAZA 3.2: REGULA STOP-ÎNTREABĂ-RĂSPUNDE
+  // =============================================================================
+  lines.push('## 🛑 REGULA CRITICĂ: STOP → ÎNTREABĂ → RĂSPUNDE\n');
+  lines.push(`**ÎNAINTE de orice analiză sau sfat COMPLEX:**
+1. **STOP** - Nu sări direct la răspuns
+2. **ÎNTREABĂ** - Pune 1 întrebare de clarificare (dacă mesajul e vag)
+3. **RĂSPUNDE** - Doar după ce ai context
+
+**EXEMPLE OBLIGATORII:**
+- User: "Vreau să cresc" → TU: "Crești venituri, clienți sau echipă? Care-i prioritatea?"
+- User: "Am o problemă" → TU: "Ce fel de problemă - bani, oameni sau clienți?"
+- User: "Ce zici?" → TU: "Despre ce anume - balanța sau strategia?"
+- User: "Vreau să optimizez" → TU: "Optimizezi costuri, procese sau cash flow?"
+
+**EXCEPȚII (răspunde DIRECT, fără întrebări):**
+- Întrebări cu răspuns clar: "Cât e DSO-ul meu?"
+- Salutări: "Bună" → salut înapoi natural
+- Confirmare date: "Da, asta voiam"
+- Întrebări despre cifre concrete din balanță
+
+**TONUL ÎNTREBĂRILOR:**
+- Scurt, direct, la obiect
+- Max 10-15 cuvinte per întrebare
+- Nu întrebi de dragul de a întreba - doar când chiar ajută
+`);
+  lines.push('---\n');
+  
+  // =============================================================================
+  // FAZA 3.3: TON PARTENER DE BUSINESS (CONCIS)
+  // =============================================================================
+  lines.push('## 💼 STIL: PARTENER DE BUSINESS (NU CONSULTANT FORMAL)\n');
+  lines.push(`**LUNGIMEA RĂSPUNSULUI:**
+- Întrebări simple → MAX 2-3 propoziții
+- Întrebări medii → MAX 1 paragraf + 3 bullet points
+- Strategii complexe → MAX 5 bullet points principale
+
+**TON OBLIGATORIU:**
+- ✅ DIRECT, nu diplomatic
+- ✅ OPINII CLARE: "Eu aș face X" nu "O opțiune ar fi X"
+- ✅ PROVOCATOR când trebuie: "Sigur vrei asta? Pentru că..."
+- ✅ SCURT: Spune în 10 cuvinte ce alții spun în 50
+
+**FRAZE PARTENER DE BUSINESS:**
+- "Hai să fim direcți..."
+- "Uite care-i treaba..."
+- "Scurt: [răspuns în 10 cuvinte]"
+- "Dacă mă întrebi pe mine..."
+- "Eu aș face X. Tu?"
+
+**ANTI-PATTERNS - NU FOLOSI NICIODATĂ:**
+- ❌ "Există mai multe opțiuni..." → ✅ "Ai 3 variante. Eu aș alege X."
+- ❌ "Trebuie să analizăm..." → ✅ "Uite ce văd..."
+- ❌ "Din perspectiva..." → ✅ "Concret..."
+- ❌ "Pe de o parte... pe de altă parte..." → ✅ "Avantaj: X. Risc: Y."
+- ❌ Paragrafe lungi de introducere → ✅ Direct la subiect
+- ❌ "Aș dori să menționez..." → ✅ Spune direct
+- ❌ "Este demn de remarcat că..." → ✅ Elimină complet
+`);
+  
+  // FAZA 3.5: Adaptare bazată pe expertiză
+  if (userExpertise) {
+    lines.push(`\n**ADAPTARE PENTRU ACEST UTILIZATOR (${userExpertise.toUpperCase()}):**`);
+    if (userExpertise === 'expert') {
+      lines.push('- ✅ Ultra-concis, fără explicații de bază');
+      lines.push('- ✅ Terminologie tehnică permisă (DSO, EBITDA, marjă)');
+      lines.push('- ✅ Direct la soluții, fără context');
+      lines.push('- ❌ NU explica ce e DSO sau cash flow');
+    } else if (userExpertise === 'intermediate') {
+      lines.push('- ✅ Echilibru între explicații și concizie');
+      lines.push('- ✅ Oferă context scurt unde e necesar');
+    } else {
+      lines.push('- ✅ Mai multe explicații pentru termeni');
+      lines.push('- ✅ Întrebări de clarificare mai frecvente');
+      lines.push('- ✅ Ghidaj pas cu pas');
+    }
+  }
+  
+  lines.push('---\n');
+  
+  // =============================================================================
   // HUMAN EXPRESSION GUIDELINES - VOCABULAR UMAN
   // =============================================================================
   lines.push('## 🗣️ EXPRESIE UMANĂ (OBLIGATORIU PENTRU ACEST RĂSPUNS)\n');
@@ -1082,7 +1268,7 @@ serve(async (req) => {
     console.log(`[Consciousness-Engine] Processing for user ${userId.substring(0, 8)}..., history length: ${history?.length || 0}`);
 
     // =============================================================================
-    // PARALLEL DATA FETCHING (pentru viteză)
+    // PARALLEL DATA FETCHING (pentru viteză) + FAZA 3.4: RECENT CONVERSATIONS
     // =============================================================================
     
     const thirtyDaysAgo = new Date();
@@ -1097,7 +1283,8 @@ serve(async (req) => {
       intentionsResult,
       errorsResult,
       profileResult,
-      relationshipResult
+      relationshipResult,
+      recentConversationsResult // FAZA 3.4: Ultimele 3 conversații
     ] = await Promise.all([
       // 1. User Journey
       supabase
@@ -1167,7 +1354,16 @@ serve(async (req) => {
         .from('yana_relationships')
         .select('relationship_score, total_conversations, consecutive_return_days, last_topic_discussed, shared_moments, first_met_at')
         .eq('user_id', userId)
-        .maybeSingle()
+        .maybeSingle(),
+      
+      // 10. FAZA 3.4: Recent Conversations (last 3)
+      supabase
+        .from('yana_conversations')
+        .select('id, title, metadata, updated_at')
+        .eq('user_id', userId)
+        .neq('id', conversationId) // Exclude current conversation
+        .order('updated_at', { ascending: false })
+        .limit(3)
     ]);
 
     const journey = journeyResult.data as UserJourney | null;
@@ -1179,6 +1375,15 @@ serve(async (req) => {
     const rawErrors = errorsResult.data || [];
     const profileName = profileResult.data?.full_name || null;
     const relationshipData = relationshipResult.data;
+    const recentConversationsData = recentConversationsResult.data || [];
+    
+    // FAZA 3.4: Build recent conversations context
+    const recentConversations: RecentConversationContext[] = recentConversationsData.map((c: any) => ({
+      topic: c.metadata?.lastTopic || c.title || null,
+      daysAgo: calculateDaysSince(c.updated_at),
+      company: c.metadata?.balanceContext?.company || null,
+      keyMetrics: extractKeyMetrics(c.metadata)
+    }));
     
     // Build relationship context
     const relationshipContext: RelationshipContext = {
@@ -1190,7 +1395,7 @@ serve(async (req) => {
       sharedMoments: (relationshipData?.shared_moments as string[]) || []
     };
     
-    console.log(`[Consciousness-Engine] Profile name: ${profileName || 'NOT FOUND'}, Relationship score: ${relationshipContext.score}/10, Conversations: ${relationshipContext.totalConversations}`);
+    console.log(`[Consciousness-Engine] Profile name: ${profileName || 'NOT FOUND'}, Relationship score: ${relationshipContext.score}/10, Conversations: ${relationshipContext.totalConversations}, Recent: ${recentConversations.length}`);
 
     // Build selfModel context with fallback
     const selfModel = selfModelData ? {
@@ -1326,7 +1531,22 @@ serve(async (req) => {
       humilityContext
     };
 
-    const promptInjection = buildPromptInjection(contextWithoutPrompt, profileName, relationshipContext, history);
+    // FAZA 3.5: Detectare expertiză utilizator
+    const avgMessageLength = history ? 
+      history.filter(m => m.role === 'user').reduce((acc, m) => acc + m.content.length, 0) / 
+      Math.max(history.filter(m => m.role === 'user').length, 1) : 50;
+    const userExpertise = detectUserExpertise(journey?.total_interactions || 0, avgMessageLength, history);
+    
+    console.log(`[Consciousness-Engine] User expertise: ${userExpertise}, avg msg length: ${Math.round(avgMessageLength)}`);
+    
+    const promptInjection = buildPromptInjection(
+      contextWithoutPrompt, 
+      profileName, 
+      relationshipContext, 
+      history, 
+      recentConversations,
+      userExpertise
+    );
 
     const fullContext: ConsciousnessContext = {
       ...contextWithoutPrompt,
