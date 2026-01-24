@@ -270,14 +270,18 @@ const Auth = () => {
       console.log('🔐 [AUTH] Starting password reset...');
       
       // FIX CRITIC: Verificăm sesiunea cu retry-uri dacă token-ul e încă în procesare
+      // Redus la 2 încercări cu exponential backoff pentru a preveni rate limiting
       let session = (await supabase.auth.getSession()).data.session;
       console.log('🔐 [AUTH] Initial session check:', session?.user?.email);
       
-      // Dacă nu există sesiune, încercăm de 3 ori cu pauză (Supabase poate procesa async)
+      // Dacă nu există sesiune, încercăm de 2 ori cu delay exponențial (previne rate limiting)
       if (!session) {
-        console.log('🔐 [AUTH] No session - attempting retries...');
-        for (let i = 0; i < 3; i++) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('🔐 [AUTH] No session - attempting retries with exponential backoff...');
+        for (let i = 0; i < 2; i++) {
+          // Exponential backoff: 2s, 4s
+          const delay = 2000 * Math.pow(2, i);
+          console.log(`🔐 [AUTH] Waiting ${delay}ms before retry ${i + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
           session = (await supabase.auth.getSession()).data.session;
           console.log(`🔐 [AUTH] Retry ${i + 1}: session =`, session?.user?.email);
           if (session) break;
