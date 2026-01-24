@@ -275,10 +275,18 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         { role: 'user', content: content }
       ];
       
-      // Build history for AI (last 25 messages, max 2500 chars each)
+      // 🆕 FIX: Truncare inteligentă - păstrează primul 500 + ultimul 2000 caractere
+      // Astfel păstrăm atât contextul inițial cât și cel recent/relevant
+      const smartTruncate = (text: string, maxLen: number = 2500): string => {
+        if (text.length <= maxLen) return text;
+        const keepStart = 500;
+        const keepEnd = maxLen - keepStart - 10; // 10 chars for separator
+        return text.substring(0, keepStart) + '\n[...]\n' + text.substring(text.length - keepEnd);
+      };
+      
       const historyForAI = allMessages.slice(-25).map(m => ({
         role: m.role,
-        content: m.content.length > 2500 ? m.content.substring(0, 2500) + '...' : m.content
+        content: smartTruncate(m.content)
       }));
 
       // Call AI router with history and balanceContext

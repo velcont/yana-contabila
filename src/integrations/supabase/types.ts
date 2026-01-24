@@ -5403,6 +5403,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_user_interactions: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       increment_voice_usage: {
         Args: { minutes_to_add: number }
         Returns: {

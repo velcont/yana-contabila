@@ -39,12 +39,13 @@ function extractCUIFromFileName(fileName: string): string | null {
   return cuiMatch ? cuiMatch[1] : null;
 }
 
-// Găsește company_id pe baza CUI sau nume
+// Găsește company_id pe baza CUI sau nume - CU FALLBACK-uri multiple
 async function findCompanyByContext(
   supabase: any,
   userId: string,
   companyName?: string,
-  cui?: string
+  cui?: string,
+  conversationId?: string
 ): Promise<{ companyId: string | null; matchedName: string | null }> {
   // Prioritate 1: Match pe CUI (cel mai precis)
   if (cui) {
@@ -77,7 +78,39 @@ async function findCompanyByContext(
     }
   }
   
-  console.log(`[AI-Router] No company found for CUI=${cui}, name=${companyName}`);
+  // 🆕 FIX Prioritate 3: Fallback din metadata conversație (balanceContext.company)
+  if (conversationId) {
+    try {
+      const { data: convData } = await supabase
+        .from('yana_conversations')
+        .select('metadata')
+        .eq('id', conversationId)
+        .single();
+      
+      if (convData?.metadata) {
+        const metadata = convData.metadata as { balanceContext?: { company?: string } };
+        const savedCompanyName = metadata.balanceContext?.company;
+        
+        if (savedCompanyName && savedCompanyName.length > 3) {
+          const { data: metaMatches } = await supabase
+            .from('companies')
+            .select('id, company_name')
+            .or(`managed_by_accountant_id.eq.${userId},user_id.eq.${userId}`)
+            .ilike('company_name', `%${savedCompanyName}%`)
+            .limit(1);
+          
+          if (metaMatches && metaMatches.length > 0) {
+            console.log(`[AI-Router] Company found via conversation metadata: ${metaMatches[0].company_name}`);
+            return { companyId: metaMatches[0].id, matchedName: metaMatches[0].company_name };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[AI-Router] Failed to check conversation metadata for company:', err);
+    }
+  }
+  
+  console.log(`[AI-Router] No company found for CUI=${cui}, name=${companyName}, conversationId=${conversationId}`);
   return { companyId: null, matchedName: null };
 }
 
@@ -367,7 +400,19 @@ serve(async (req) => {
         supabase, 
         user.id, 
         companyName || undefined, 
-        extractedCUI || undefined
+        extractedCUI || undefined,
+        conversationId || undefined // 🆕 FIX: Adaugă conversationId pentru fallback
+      );
+      detectedCompanyId = companyResult.companyId;
+      detectedCompanyName = companyResult.matchedName || companyName || null;
+    } else if (conversationId) {
+      // 🆕 FIX: Dacă nu avem fișier dar avem conversație, încearcă din metadata
+      const companyResult = await findCompanyByContext(
+        supabase, 
+        user.id, 
+        companyName || undefined, 
+        undefined,
+        conversationId
       );
       detectedCompanyId = companyResult.companyId;
       detectedCompanyName = companyResult.matchedName || companyName || null;
@@ -794,36 +839,19 @@ serve(async (req) => {
         }
       };
       
-      // Task pentru actualizare user_journey
+      // Task pentru actualizare user_journey - FOLOSIM RPC pentru increment atomic
       const journeyUpdaterTask = async () => {
         try {
-          // Actualizăm direct user_journey cu informații noi
-          const { error } = await supabase
-            .from('user_journey')
-            .upsert({
-              user_id: user.id,
-              last_interaction_at: new Date().toISOString(),
-              total_interactions: 1, // Se va incrementa
-            }, {
-              onConflict: 'user_id',
-              ignoreDuplicates: false,
-            });
+          // 🆕 FIX: Apelăm funcția PostgreSQL pentru increment atomic
+          const { error } = await supabase.rpc('increment_user_interactions', {
+            p_user_id: user.id
+          });
           
           if (error) {
-            // Dacă nu există, creăm
-            await supabase.from('user_journey').insert({
-              user_id: user.id,
-              primary_goal: null,
-              goal_confidence: 0,
-              uncertainty_level: 5,
-              knowledge_gaps: [],
-              emotional_state: 'neutral',
-              first_interaction_at: new Date().toISOString(),
-              last_interaction_at: new Date().toISOString(),
-              total_interactions: 1,
-            });
+            console.error('[AI-Router] increment_user_interactions RPC error:', error);
+          } else {
+            console.log('[AI-Router] User journey interaction count incremented successfully');
           }
-          console.log('[AI-Router] User journey updated');
         } catch (err) {
           console.error('[AI-Router] Journey updater error (non-blocking):', err);
         }
