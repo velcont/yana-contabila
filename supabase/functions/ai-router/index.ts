@@ -841,19 +841,20 @@ serve(async (req) => {
       
       // Task pentru actualizare user_journey - FOLOSIM RPC pentru increment atomic
       const journeyUpdaterTask = async () => {
+        console.log(`[AI-Router] 🎯 CALLING increment_user_interactions for user: ${user.id}`);
         try {
           // 🆕 FIX: Apelăm funcția PostgreSQL pentru increment atomic
-          const { error } = await supabase.rpc('increment_user_interactions', {
+          const { error, data } = await supabase.rpc('increment_user_interactions', {
             p_user_id: user.id
           });
           
           if (error) {
-            console.error('[AI-Router] increment_user_interactions RPC error:', error);
+            console.error(`[AI-Router] ❌ increment_user_interactions RPC error for ${user.id}:`, error);
           } else {
-            console.log('[AI-Router] User journey interaction count incremented successfully');
+            console.log(`[AI-Router] ✅ User journey interaction incremented for ${user.id}. Result:`, data);
           }
         } catch (err) {
-          console.error('[AI-Router] Journey updater error (non-blocking):', err);
+          console.error(`[AI-Router] ❌ Journey updater exception for ${user.id}:`, err);
         }
       };
       
