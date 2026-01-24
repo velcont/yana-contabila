@@ -913,7 +913,7 @@ const Auth = () => {
                   </Link>
                 </div>
                 <div>
-                  <Link to="/my-ai-costs" className="text-primary hover:underline font-medium">
+                  <Link to="/pricing" className="text-primary hover:underline font-medium">
                     📋 Vezi Politica de Tarife și Costuri
                   </Link>
                 </div>
