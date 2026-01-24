@@ -95,31 +95,27 @@ const Contact = () => {
             </p>
             
             <div className="border-t pt-4">
-              <h3 className="font-semibold mb-3">De ce să alegi Yana?</h3>
+              <h3 className="font-semibold mb-3">Ce poate face Yana pentru tine?</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-1">✓</span>
-                  <span>Analiză managerială completă în câteva secunde</span>
+                  <span>Analiză completă a balanței contabile cu AI</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-1">✓</span>
-                  <span>Indicatori CEO avansați (DSO, DPO, Cash Conversion Cycle, EBITDA)</span>
+                  <span>Chat conversațional pentru întrebări despre cifre</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-1">✓</span>
-                  <span>Export PDF profesional pentru prezentări</span>
+                  <span>Consilier strategic pentru decizii de business</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-1">✓</span>
-                  <span>Istoric complet al analizelor tale</span>
+                  <span>Istoric salvat al tuturor analizelor tale</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-1">✓</span>
-                  <span>Chat AI pentru întrebări suplimentare</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-1">✓</span>
-                  <span>Compatibil cu toate programele de contabilitate (SmartBill, WizOne, Saga, etc.)</span>
+                  <span>Funcționează cu export Excel din orice program contabil</span>
                 </li>
               </ul>
             </div>
