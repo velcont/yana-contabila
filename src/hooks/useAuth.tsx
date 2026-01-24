@@ -39,17 +39,22 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Flag pentru cleanup și prevenire memory leaks
+    let mounted = true;
     const sessionStartTime = Date.now();
     
     // Timeout redus la 2 secunde pentru loading state (fix audit 2.4)
     const loadingTimeout = setTimeout(() => {
-      setLoading(false);
+      if (mounted) setLoading(false);
     }, 2000);
 
     // Set up auth state listener FIRST
     // IMPORTANT: Skip PASSWORD_RECOVERY event - let Auth.tsx handle it
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Prevenire actualizări după unmount
+        if (!mounted) return;
+        
         // Skip PASSWORD_RECOVERY - Auth.tsx gestionează resetarea parolei
         if (event === 'PASSWORD_RECOVERY') {
           console.log('🔐 [useAuth] PASSWORD_RECOVERY event - skipping, Auth.tsx handles this');
@@ -65,6 +70,7 @@ export const useAuth = () => {
         if (event === 'SIGNED_IN') {
           // Logging async pentru SIGNED_IN
           setTimeout(() => {
+            if (!mounted) return;
             logAuthEvent('AUTH_LOGIN', session?.user?.id || null, session?.user?.email || null, {
               event: 'SIGNED_IN',
               session_load_time_ms: Date.now() - sessionStartTime
@@ -80,6 +86,7 @@ export const useAuth = () => {
           
           // Delay mic pentru a evita deadlock Supabase
           setTimeout(async () => {
+            if (!mounted) return;
             try {
               const hasNewVersion = await checkForNewVersion(supabase);
               if (hasNewVersion) {
@@ -99,6 +106,7 @@ export const useAuth = () => {
     // THEN check for existing session
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -107,6 +115,7 @@ export const useAuth = () => {
         // Logging pentru sesiune restaurată
         if (session?.user) {
           setTimeout(() => {
+            if (!mounted) return;
             logAuthEvent('AUTH_SESSION_RESTORED', session.user.id, session.user.email || null, {
               event: 'SESSION_RESTORED',
               session_load_time_ms: Date.now() - sessionStartTime
@@ -115,11 +124,12 @@ export const useAuth = () => {
         }
       })
       .catch(() => {
-        setLoading(false);
+        if (mounted) setLoading(false);
         clearTimeout(loadingTimeout);
       });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       clearTimeout(loadingTimeout);
     };

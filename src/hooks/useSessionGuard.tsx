@@ -1,6 +1,10 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Constante pentru protecție anti-loop
+const MIN_REFRESH_INTERVAL = 30000; // 30 secunde între refresh-uri
+const MAX_REFRESH_ATTEMPTS = 3; // Maxim 3 încercări pe minut
 
 // Helper pentru logging autentificare - async, non-blocant
 const logAuthEvent = async (
@@ -31,12 +35,38 @@ const logAuthEvent = async (
 /**
  * Hook pentru monitorizarea și reîmprospătarea proactivă a sesiunii
  * Previne erori 401 prin refresh automat când token-ul este aproape de expirare
+ * Include protecție anti-loop pentru a preveni rate limiting
  */
 export const useSessionGuard = () => {
   const { toast } = useToast();
+  
+  // Tracking pentru protecție anti-loop
+  const lastRefreshAttempt = useRef<number>(0);
+  const refreshAttempts = useRef<number>(0);
+  const refreshWindowStart = useRef<number>(Date.now());
 
-  // Funcție pentru verificarea și refresh-ul sesiunii
+  // Funcție pentru verificarea și refresh-ul sesiunii cu protecție anti-loop
   const refreshSessionIfNeeded = useCallback(async () => {
+    const now = Date.now();
+    
+    // Reset counter la fiecare minut
+    if (now - refreshWindowStart.current > 60000) {
+      refreshAttempts.current = 0;
+      refreshWindowStart.current = now;
+    }
+    
+    // Protecție anti-loop: verifică dacă am depășit limita
+    if (refreshAttempts.current >= MAX_REFRESH_ATTEMPTS) {
+      console.log('[SessionGuard] Max refresh attempts reached - skipping');
+      return false;
+    }
+    
+    // Protecție anti-loop: verifică intervalul minim
+    if (now - lastRefreshAttempt.current < MIN_REFRESH_INTERVAL) {
+      console.log('[SessionGuard] Skipping refresh - too soon (debounce)');
+      return true; // Return true pentru a nu declanșa erori
+    }
+    
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -47,11 +77,15 @@ export const useSessionGuard = () => {
 
       // Verifică dacă token-ul expiră în mai puțin de 5 minute
       const expiresAt = session.expires_at;
-      const now = Math.floor(Date.now() / 1000);
-      const timeLeft = expiresAt ? expiresAt - now : 0;
+      const nowSeconds = Math.floor(now / 1000);
+      const timeLeft = expiresAt ? expiresAt - nowSeconds : 0;
 
       if (timeLeft < 300) { // 5 minute
         console.log('[SessionGuard] Token expiring soon, refreshing...', { timeLeft });
+        
+        // Actualizăm tracking-ul ÎNAINTE de refresh
+        lastRefreshAttempt.current = now;
+        refreshAttempts.current++;
         
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
@@ -68,7 +102,8 @@ export const useSessionGuard = () => {
             logAuthEvent('AUTH_TOKEN_REFRESH', refreshData.session?.user?.id || null, refreshData.session?.user?.email || null, {
               event: 'TOKEN_REFRESH',
               time_left_before_refresh_seconds: timeLeft,
-              refresh_trigger: 'proactive'
+              refresh_trigger: 'proactive',
+              attempt_number: refreshAttempts.current
             });
           }, 0);
           
