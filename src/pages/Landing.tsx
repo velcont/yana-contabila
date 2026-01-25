@@ -32,11 +32,12 @@ const Landing = () => {
             className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
             onClick={() => navigate('/auth?redirect=/yana')}
           >
-            Începe o conversație
+            Încearcă Yana gratuit
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Fără card, fără obligații.
-          </p>
+          <div className="text-sm text-muted-foreground space-y-0.5">
+            <p>Doar email și parolă. 30 secunde.</p>
+            <p>Primești 30 de zile să testezi tot.</p>
+          </div>
         </div>
 
         {/* Trust Badges */}
