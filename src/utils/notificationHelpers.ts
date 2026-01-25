@@ -47,7 +47,7 @@ export async function notifyAnalysisComplete(userId: string, fileName: string, a
     title: 'Analiză completă',
     message: `Analiza pentru ${fileName} a fost finalizată cu succes`,
     type: 'success',
-    actionUrl: `/app?analysis=${analysisId}`,
+    actionUrl: `/yana?analysis=${analysisId}`,
     metadata: { analysisId, fileName }
   });
 }
