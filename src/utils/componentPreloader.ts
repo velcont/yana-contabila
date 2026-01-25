@@ -56,7 +56,7 @@ export const preloadCriticalComponents = (): void => {
  */
 export const preloadForRoute = (route: string): void => {
   switch (route) {
-    case '/app':
+    case '/yana':
       preloadComponents(['chatAI', 'dashboard', 'analytics']);
       break;
     default:

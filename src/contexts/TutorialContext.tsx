@@ -34,12 +34,12 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
 
   const currentStep = steps[currentStepIndex];
 
-  // Activează și focalizează elementul țintă; dacă suntem pe /app și
+  // Activează și focalizează elementul țintă; dacă suntem pe /yana și
   // elementul nu există încă, deschide Dashboard-ul și încearcă din nou.
   const activateTarget = useCallback((selector?: string) => {
     if (!selector) return;
     let attempts = 0;
-    const isApp = window.location.pathname === '/app';
+    const isApp = window.location.pathname === '/yana';
 
     const tryActivate = () => {
       const el = document.querySelector(selector!) as HTMLElement | null;

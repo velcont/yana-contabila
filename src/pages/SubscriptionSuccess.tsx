@@ -140,7 +140,7 @@ const SubscriptionSuccess = () => {
               Vezi Abonamentul
             </Button>
             <Button
-              onClick={() => navigate('/app')}
+              onClick={() => navigate('/yana')}
               className="flex-1"
             >
               Mergi la Aplicație

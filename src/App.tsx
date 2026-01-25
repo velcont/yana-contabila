@@ -158,7 +158,7 @@ const App = () => {
                       <Route path="/yana" element={<PrivateRoute><Yana /></PrivateRoute>} />
                       
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
-                      <Route path="/app" element={<PrivateRoute><Index /></PrivateRoute>} />
+                      <Route path="/app" element={<Navigate to="/yana" replace />} />
                       
                       <Route path="/generate-literature-review" element={<GenerateLiteratureReview />} />
                       <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />

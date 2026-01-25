@@ -371,7 +371,7 @@ const Auth = () => {
         description: "Parola ta a fost schimbată cu succes.",
       });
       
-      navigate('/app');
+      navigate('/yana');
     } catch (error: any) {
       console.error('🔴 [AUTH] Password reset error:', error);
       logError(error instanceof Error ? error : new Error('Update password error'), { context: 'reset_password' });
@@ -430,7 +430,7 @@ const Auth = () => {
         if (redirectTo) {
           navigate(redirectTo);
         } else if (isMarketplace) {
-          navigate('/app?view=marketplace');
+          navigate('/yana');
         } else {
           navigate('/yana');
         }
