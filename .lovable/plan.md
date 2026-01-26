@@ -1,64 +1,107 @@
 
 
-# Plan: Listare Detaliată a Celor 6 Modele AI
+# Plan: Widget Monitorizare Statusul API-urilor în Admin
 
 ## Obiectiv
 
-Actualizăm secțiunea "AI Models" pentru a lista toate cele 6 modele distincte, justificând astfel cifra "6 AI-uri premium".
+Crearea unui widget compact în pagina `/admin` care arată statusul tuturor API-urilor într-o singură vedere, cu indicatori vizuali de sănătate și linkuri rapide pentru reîncărcare.
 
-## Modele de Listat
+## API-uri de Monitorizat
 
-| Brand | Modele | Count |
-|-------|--------|-------|
-| Google Gemini | Pro + Flash | 2 |
-| Claude | Sonnet + Haiku | 2 |
-| OpenAI | GPT-5 | 1 |
-| xAI | Grok | 1 |
-| **Total** | | **6** |
+| Provider | Secret Key | Verificare Balanță Posibilă? |
+|----------|------------|------------------------------|
+| Lovable AI | `LOVABLE_API_KEY` | Da (monitorizat intern) |
+| Anthropic (Claude) | `ANTHROPIC_API_KEY` | Nu - dashboard extern |
+| OpenAI (GPT-5) | `OPENAI_API_KEY` | Nu - dashboard extern |
+| xAI (Grok) | `GROK_API_KEY` | Nu - dashboard extern |
+| Perplexity | `PERPLEXITY_API_KEY` | Nu - dashboard extern |
 
-## Modificare Propusă
+## Soluție Propusă
 
-### Fișier: `src/pages/Landing.tsx`
+### Componentă Nouă: `ApiStatusWidget.tsx`
 
-Liniile 48-56 (lista de AI-uri) vor fi înlocuite cu:
+Un card compact care arată:
+- Status fiecărui API (Activ / Nesetat / Eroare)
+- Link rapid către dashboard-ul extern al fiecărui provider
+- Warning general dacă vreun API are probleme
 
-```tsx
-<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-  <span className="text-xs text-muted-foreground">Gemini Pro</span>
-  <span className="text-muted-foreground/30">•</span>
-  <span className="text-xs text-muted-foreground">Gemini Flash</span>
-  <span className="text-muted-foreground/30">•</span>
-  <span className="text-xs text-muted-foreground">Claude Sonnet</span>
-  <span className="text-muted-foreground/30">•</span>
-  <span className="text-xs text-muted-foreground">Claude Haiku</span>
-  <span className="text-muted-foreground/30">•</span>
-  <span className="text-xs text-muted-foreground">GPT-5</span>
-  <span className="text-muted-foreground/30">•</span>
-  <span className="text-xs text-muted-foreground">Grok</span>
-</div>
-```
-
-## Rezultat Vizual
+### Secțiuni Widget
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
+│  🔌 Status API-uri                        [Refresh]     │
+├─────────────────────────────────────────────────────────┤
 │                                                         │
-│      6 AI-uri premium. Un singur abonament.             │
+│  ✅ Lovable AI      250.00 RON   [View Dashboard]      │
+│  ✅ Anthropic       Activ        [View Dashboard]      │
+│  ✅ OpenAI          Activ        [View Dashboard]      │
+│  ✅ Grok            Activ        [View Dashboard]      │
+│  ✅ Perplexity      Activ        [View Dashboard]      │
 │                                                         │
-│  Gemini Pro • Gemini Flash • Claude Sonnet • Claude     │
-│  Haiku • GPT-5 • Grok                                   │
-│                                                         │
-│           Toate incluse în 49 RON/lună                  │
+│  ⚠️ Resend          Nesetat      [Configurează]        │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Ajustări Styling
+### Logică Verificare
 
-- `gap-x-3` în loc de `gap-x-4` pentru a încăpea mai bine pe mobile
-- `flex-wrap` asigură că lista se rupe elegant pe ecrane mici
+1. **Lovable AI**: Verificare balanță din `platformCredits` + autonomie din `PlatformCosts`
+2. **Alte API-uri**: Verificăm doar dacă secretul este setat (nu putem verifica balanța externă)
+3. **Indicator vizual**:
+   - 🟢 Verde = Secret setat, funcționează
+   - 🟡 Galben = Secret setat dar risc scăzut de credite
+   - 🔴 Roșu = Secret nesetat sau eroare
 
-## Timp Estimat
+### Linkuri Externe Dashboard
 
-2 minute
+| Provider | Dashboard URL |
+|----------|---------------|
+| Lovable | `https://lovable.dev/settings/workspace/usage` |
+| Anthropic | `https://console.anthropic.com/settings/billing` |
+| OpenAI | `https://platform.openai.com/usage` |
+| xAI (Grok) | `https://console.x.ai/` |
+| Perplexity | `https://www.perplexity.ai/settings/api` |
+
+## Fișiere de Creat/Modificat
+
+### 1. Componentă Nouă: `src/components/admin/ApiStatusWidget.tsx`
+
+```tsx
+// Widget compact pentru status API-uri
+// - Listează toate API-urile cu status
+// - Link rapid către dashboard extern
+// - Verifică dacă secretele sunt setate
+// - Indicator vizual per API
+```
+
+### 2. Modificare: `src/pages/Admin.tsx`
+
+- Import lazy al noii componente
+- Adăugare widget în partea de sus a paginii (sub Quick Access Card pentru Platform Costs)
+
+## Implementare Tehnică
+
+### Verificare Secreturi
+
+Vom verifica existența secreturilor prin apelarea edge function-urilor și handling erorilor:
+- Dacă un edge function returnează eroare de API key missing → marcat ca nesetat
+- Dacă funcționează → marcat ca activ
+
+**Alternativă simplificată**: Afișăm doar link-urile și utilizatorul verifică manual. Widget-ul servește ca "checklist" centralizat.
+
+### Estimare Timp
+
+| Task | Timp |
+|------|------|
+| Creare `ApiStatusWidget.tsx` | 15 min |
+| Integrare în `Admin.tsx` | 5 min |
+| **Total** | **20 min** |
+
+## Rezultat Final
+
+Un widget compact în `/admin` care:
+1. Arată toate API-urile folosite de YANA
+2. Indicator dacă secretul e setat
+3. Link rapid către dashboard-ul fiecărui provider
+4. Servește ca "checklist" pentru admin să verifice periodic creditele
 
