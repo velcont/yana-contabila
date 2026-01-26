@@ -951,6 +951,35 @@ serve(async (req) => {
         }
       };
       
+      // 🆕 Task pentru capture-soul-state - salvează last_topic în yana_relationships
+      const captureSoulStateTask = async () => {
+        try {
+          const captureSoulUrl = `${supabaseUrl}/functions/v1/capture-soul-state`;
+          const response = await fetch(captureSoulUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              conversationId,
+              lastMessage: message.substring(0, 200),
+              lastResponse: assistantMessage.substring(0, 200),
+              emotionalTone: consciousnessContext?.emotionalMode || null,
+            }),
+          });
+          
+          if (!response.ok) {
+            console.error('[AI-Router] capture-soul-state failed:', await response.text());
+          } else {
+            console.log('[AI-Router] ✅ Soul state captured - last_topic saved to yana_relationships');
+          }
+        } catch (err) {
+          console.error('[AI-Router] capture-soul-state error (non-blocking):', err);
+        }
+      };
+      
       // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
         // @ts-ignore
@@ -959,6 +988,7 @@ serve(async (req) => {
           surpriseDetectorTask(),
           experimentTrackerTask(),
           journeyUpdaterTask(),
+          captureSoulStateTask(), // 🆕 Salvează last_topic în yana_relationships
         ]));
         console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil()');
       } else {
@@ -968,6 +998,7 @@ serve(async (req) => {
           surpriseDetectorTask(),
           experimentTrackerTask(),
           journeyUpdaterTask(),
+          captureSoulStateTask(), // 🆕 Salvează last_topic în yana_relationships
         ]).catch(console.error);
         console.log('[AI-Router] All async tasks triggered (fallback mode)');
       }
