@@ -689,7 +689,7 @@ export default function StrategicAdvisor() {
           }}
           secondaryAction={{
             label: "Înapoi la Dashboard",
-            onClick: () => navigate("/app")
+            onClick: () => navigate("/yana")
           }}
         />
       </div>
@@ -722,7 +722,7 @@ export default function StrategicAdvisor() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate('/app')}
+                    onClick={() => navigate('/yana')}
                     className="hidden md:flex items-center gap-1.5 text-xs"
                   >
                     <span>📊</span>
@@ -871,7 +871,7 @@ export default function StrategicAdvisor() {
                           {/* Analizează Balanța - vizibil doar pe mobil */}
                           <DropdownMenuItem 
                             className="md:hidden"
-                            onClick={() => navigate('/app')}
+                            onClick={() => navigate('/yana')}
                           >
                             <span className="mr-2">📊</span>
                             Analizează Balanța

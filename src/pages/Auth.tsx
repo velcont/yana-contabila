@@ -498,7 +498,7 @@ const Auth = () => {
               });
 
               const redirectTo = searchParams.get('redirect');
-              navigate(redirectTo || '/app');
+              navigate(redirectTo || '/yana');
               return;
             } else {
               // 3) Parola nu e corectă – trimitem automat email de resetare
@@ -582,9 +582,9 @@ const Auth = () => {
         if (redirectTo) {
           navigate(redirectTo);
         } else if (isMarketplace) {
-          navigate('/app?view=marketplace');
+          navigate('/yana?view=marketplace');
         } else {
-          navigate('/app');
+          navigate('/yana');
         }
       }
     } catch (error: any) {
