@@ -6,6 +6,29 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Detectare locală a stării emoționale din text (fallback)
+function detectLocalEmotionalTone(message: string): string {
+  const lowerMessage = message?.toLowerCase() || '';
+  
+  // Pattern-uri în ordine de prioritate (cele mai specifice primele)
+  const patterns: Record<string, RegExp> = {
+    stressed: /urgent|stres|panic[aă]|criz[aă]|ajutor|nu [șs]tiu ce s[aă] fac|disperat/i,
+    frustrated: /nu func[țt]ioneaz[aă]|de ce|iar[aă]?[șs]i|problem[aă]|enervant/i,
+    happy: /mul[țt]umesc|super|perfect|excelent|grozav|bravo|minunat|genial|m-ai ajutat/i,
+    confused: /nu [îi]n[țt]eleg|cum adic[aă]|po[țt]i s[aă] explici|ce [îi]nseamn[aă]|confuz/i,
+    curious: /m[aă] [îi]ntreb|cum pot|vreau s[aă] [șs]tiu|este posibil|curios/i,
+    worried: /[îi]ngrijorat|team[aă]|risc|pericol|ce se [îi]nt[aâ]mpl[aă]/i,
+  };
+  
+  for (const [tone, pattern] of Object.entries(patterns)) {
+    if (pattern.test(lowerMessage)) {
+      return tone;
+    }
+  }
+  
+  return 'neutral';
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,6 +49,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Detectare emoțională: prioritate consciousness-engine, fallback local
+    const detectedTone = emotionalTone || detectLocalEmotionalTone(lastMessage);
+
     // Obține relația existentă
     const { data: relationship } = await supabase
       .from('yana_relationships')
@@ -34,21 +60,24 @@ serve(async (req) => {
       .single();
 
     if (!relationship) {
-      // Creează relație nouă
+      // Creează relație nouă cu emotional_memory populat
       await supabase
         .from('yana_relationships')
         .insert({
           user_id: userId,
           last_topic_discussed: lastMessage?.substring(0, 200),
-          emotional_memory: emotionalTone ? { last_tone: emotionalTone } : {},
+          emotional_memory: {
+            last_tone: detectedTone,
+            last_updated: new Date().toISOString(),
+            detection_source: emotionalTone ? 'consciousness-engine' : 'local-pattern'
+          },
         });
     } else {
-      // Actualizează starea emoțională
+      // Actualizează starea emoțională - ÎNTOTDEAUNA populată acum
       const emotionalMemory = relationship.emotional_memory || {};
-      if (emotionalTone) {
-        emotionalMemory.last_tone = emotionalTone;
-        emotionalMemory.last_updated = new Date().toISOString();
-      }
+      emotionalMemory.last_tone = detectedTone;
+      emotionalMemory.last_updated = new Date().toISOString();
+      emotionalMemory.detection_source = emotionalTone ? 'consciousness-engine' : 'local-pattern';
 
       // Detectează momente importante (pentru shared_moments)
       const sharedMoments = relationship.shared_moments || [];
@@ -89,7 +118,6 @@ serve(async (req) => {
       const recentThoughts = soulCore.recent_thoughts || [];
       
       // Adaugă un gând despre conversație (fără date personale!)
-      // Exemplu: "Am ajutat pe cineva cu analiza financiară"
       const topicKeywords = lastMessage?.toLowerCase() || '';
       let thoughtTopic = 'o întrebare generală';
       
@@ -121,10 +149,10 @@ serve(async (req) => {
         .eq('id', '00000000-0000-0000-0000-000000000001');
     }
 
-    console.log(`[capture-soul-state] State captured for user ${userId}`);
+    console.log(`[capture-soul-state] State captured for user ${userId}, tone: ${detectedTone} (source: ${emotionalTone ? 'consciousness-engine' : 'local-pattern'})`);
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, detectedTone }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
