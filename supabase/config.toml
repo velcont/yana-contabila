@@ -221,3 +221,6 @@ verify_jwt = false
 
 [functions.unsubscribe-yana-emails]
 verify_jwt = false
+
+[functions.claude-empathy-agent]
+verify_jwt = false

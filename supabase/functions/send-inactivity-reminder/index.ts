@@ -10,9 +10,9 @@ const corsHeaders = {
 const INACTIVITY_DAYS = 14;
 const MAX_EMAILS_PER_RUN = 50;
 
-// Exact email text as provided by user
-const EMAIL_SUBJECT = "Firul neterminat";
-const EMAIL_BODY = `Nu ai mai revenit de ceva timp.
+// Fallback email text (used when Claude fails)
+const FALLBACK_EMAIL_SUBJECT = "Firul neterminat";
+const FALLBACK_EMAIL_BODY = `Nu ai mai revenit de ceva timp.
 
 Nu știu dacă a fost oboseală, dezamăgire sau pur și simplu viața. 
 Nu contează. Am presupus că ai avut motive bune.
@@ -33,14 +33,115 @@ Atât.
 
 — YANA`;
 
+interface ClaudeEmailResult {
+  subject: string;
+  body: string;
+}
+
+async function generateEmailWithClaude(
+  supabaseUrl: string,
+  userName: string,
+  userEmail: string,
+  lastTopic: string,
+  daysInactive: number,
+  userId: string
+): Promise<ClaudeEmailResult | null> {
+  try {
+    console.log(`🎭 Calling Claude for personalized email: ${userEmail}`);
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/claude-empathy-agent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        task: "reengagement",
+        context: {
+          userName: userName || userEmail.split("@")[0],
+          userEmail,
+          lastTopic: lastTopic || "planurile tale de afaceri",
+          daysInactive,
+          userId,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`❌ Claude API failed: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data.success || !data.result) {
+      console.error("❌ Claude returned invalid response");
+      return null;
+    }
+
+    // Parse Claude's response to extract subject and body
+    const result = data.result as string;
+    const subjectMatch = result.match(/SUBJECT:\s*(.+?)(?:\n|---)/);
+    const subject = subjectMatch ? subjectMatch[1].trim() : FALLBACK_EMAIL_SUBJECT;
+    
+    // Extract body (everything after the subject line)
+    const bodyMatch = result.match(/---\n([\s\S]*?)(?:\n—\s*YANA|$)/);
+    const body = bodyMatch ? bodyMatch[1].trim() + "\n\n— YANA" : result;
+
+    console.log(`✅ Claude generated email: subject="${subject}"`);
+    return { subject, body };
+  } catch (error) {
+    console.error("❌ Error calling Claude:", error);
+    return null;
+  }
+}
+
+async function getLastConversationTopic(
+  supabase: any,
+  userId: string
+): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("ai_conversations")
+      .select("question")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data?.question) {
+      // Extract first 50 chars as topic hint
+      return data.question.substring(0, 50);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function getUserName(
+  supabase: any,
+  userId: string
+): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .single();
+
+    return data?.full_name || null;
+  } catch {
+    return null;
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("🔔 Starting inactivity reminder check...");
+    console.log("🔔 Starting inactivity reminder check with Claude empathy...");
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -60,9 +161,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`📅 Looking for users inactive since: ${cutoffISO}`);
 
-    // Find users who:
-    // 1. Have their last login more than 14 days ago (from audit_logs)
-    // 2. Have NOT received the inactivity email yet
+    // Find users who have their last login more than 14 days ago
     const { data: inactiveUsers, error: queryError } = await supabase
       .from("audit_logs")
       .select("user_id, user_email, created_at")
@@ -123,20 +222,52 @@ const handler = async (req: Request): Promise<Response> => {
 
     let sentCount = 0;
     let failedCount = 0;
+    let claudeUsedCount = 0;
+    let fallbackUsedCount = 0;
 
     for (const user of usersToEmail) {
       try {
-        console.log(`📤 Sending email to: ${user.email}`);
+        console.log(`📤 Processing: ${user.email}`);
 
-        // Send plain text email
+        // Get user context for Claude
+        const userName = await getUserName(supabase, user.userId);
+        const lastTopic = await getLastConversationTopic(supabase, user.userId);
+        const daysInactive = Math.floor(
+          (Date.now() - new Date(user.lastLogin).getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // Try Claude-generated personalized email
+        let emailSubject = FALLBACK_EMAIL_SUBJECT;
+        let emailBody = FALLBACK_EMAIL_BODY;
+        let usedClaude = false;
+
+        const claudeEmail = await generateEmailWithClaude(
+          supabaseUrl,
+          userName || user.email.split("@")[0],
+          user.email,
+          lastTopic || "planurile tale",
+          daysInactive,
+          user.userId
+        );
+
+        if (claudeEmail) {
+          emailSubject = claudeEmail.subject;
+          emailBody = claudeEmail.body;
+          usedClaude = true;
+          claudeUsedCount++;
+        } else {
+          fallbackUsedCount++;
+        }
+
+        // Send email
         const emailResult = await resend.emails.send({
           from: "YANA <noreply@velcont.com>",
           to: [user.email],
-          subject: EMAIL_SUBJECT,
-          text: EMAIL_BODY,
+          subject: emailSubject,
+          text: emailBody,
         });
 
-        console.log(`✅ Email sent to ${user.email}:`, emailResult);
+        console.log(`✅ Email sent to ${user.email} (claude=${usedClaude}):`, emailResult);
 
         // Record notification as sent
         const { error: upsertError } = await supabase
@@ -155,7 +286,7 @@ const handler = async (req: Request): Promise<Response> => {
           console.error(`⚠️ Error recording notification for ${user.email}:`, upsertError);
         }
 
-        // Log to email_logs
+        // Log to email_logs with Claude metadata
         await supabase.from("email_logs").insert({
           user_id: user.userId,
           email_type: "inactivity_reminder",
@@ -163,7 +294,10 @@ const handler = async (req: Request): Promise<Response> => {
           status: "sent",
           metadata: {
             last_activity: user.lastLogin,
-            days_inactive: INACTIVITY_DAYS,
+            days_inactive: daysInactive,
+            used_claude: usedClaude,
+            email_subject: emailSubject,
+            last_topic: lastTopic,
           },
         });
 
@@ -193,6 +327,8 @@ const handler = async (req: Request): Promise<Response> => {
       alreadyNotified: alreadyNotifiedIds.size,
       sent: sentCount,
       failed: failedCount,
+      claudeUsed: claudeUsedCount,
+      fallbackUsed: fallbackUsedCount,
       timestamp: new Date().toISOString(),
     };
 
