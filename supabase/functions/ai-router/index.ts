@@ -22,7 +22,7 @@ interface RouterRequest {
 }
 
 interface RouteDecision {
-  route: 'analyze-balance' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'direct-response';
+  route: 'analyze-balance' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response';
   payload: Record<string, unknown>;
   reason: string;
 }
@@ -219,6 +219,29 @@ function detectDocumentType(fileName: string): string {
 
 function detectIntent(message: string): RouteDecision {
   const lowerMessage = message.toLowerCase();
+  
+  // ANAF Risk detection - MUST BE BEFORE general fiscal detection
+  if (
+    lowerMessage.includes('risc anaf') ||
+    lowerMessage.includes('risc de control') ||
+    lowerMessage.includes('control anaf') ||
+    lowerMessage.includes('inspecție anaf') ||
+    lowerMessage.includes('inspectie anaf') ||
+    lowerMessage.includes('risc fiscal') ||
+    lowerMessage.includes('probabilitate control') ||
+    lowerMessage.includes('șanse control') ||
+    lowerMessage.includes('sanse control') ||
+    lowerMessage.includes('risc de inspecție') ||
+    lowerMessage.includes('risc de inspectie') ||
+    lowerMessage.includes('scor risc anaf') ||
+    (lowerMessage.includes('anaf') && (lowerMessage.includes('risc') || lowerMessage.includes('control') || lowerMessage.includes('verificare')))
+  ) {
+    return {
+      route: 'calculate-anaf-risk',
+      payload: { message },
+      reason: 'User requested ANAF risk analysis'
+    };
+  }
   
   // Resilience detection
   if (
@@ -516,8 +539,14 @@ serve(async (req) => {
     }
 
     // Add conversationId for routes that require it
-    if (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'fiscal-chat' || routeDecision.route === 'chat-ai') {
+    if (routeDecision.route === 'strategic-advisor' || routeDecision.route === 'fiscal-chat' || routeDecision.route === 'chat-ai' || routeDecision.route === 'calculate-anaf-risk') {
       routeDecision.payload.conversationId = conversationId;
+    }
+    
+    // 🆕 Special handling for ANAF risk - needs balanceContext
+    if (routeDecision.route === 'calculate-anaf-risk') {
+      routeDecision.payload.balanceContext = routeDecision.payload.balanceContext || balanceContext;
+      routeDecision.payload.generateReport = true;
     }
 
     // =============================================================================
@@ -591,7 +620,48 @@ serve(async (req) => {
     const contentType = response.headers.get('content-type') || '';
     let result: Record<string, unknown>;
 
-    if (contentType.includes('text/event-stream') || routeDecision.route === 'chat-ai') {
+    // Special handling for ANAF risk response
+    if (routeDecision.route === 'calculate-anaf-risk') {
+      result = await response.json();
+      
+      // Format the response for chat display
+      if (result.success) {
+        const riskData = result as {
+          overallScore: number;
+          riskLevel: string;
+          factors: Array<{ name: string; severity: string; description: string; recommendation: string }>;
+          summary: string;
+          recommendations: string[];
+          reportText?: string;
+        };
+        
+        // Build a human-readable response
+        let formattedResponse = `**ANALIZĂ RISC CONTROL ANAF**\n\n`;
+        formattedResponse += `📊 **Scor risc: ${riskData.overallScore}/100** - Nivel: **${riskData.riskLevel.toUpperCase()}**\n\n`;
+        formattedResponse += `${riskData.summary}\n\n`;
+        
+        if (riskData.factors && riskData.factors.length > 0) {
+          formattedResponse += `**Factori de risc identificați:**\n`;
+          riskData.factors.slice(0, 5).forEach((f, i) => {
+            const severityEmoji = f.severity === 'critical' ? '🔴' : f.severity === 'high' ? '🟠' : f.severity === 'medium' ? '🟡' : '🟢';
+            formattedResponse += `${i + 1}. ${severityEmoji} **${f.name}** - ${f.description}\n`;
+          });
+          formattedResponse += `\n`;
+        }
+        
+        if (riskData.recommendations && riskData.recommendations.length > 0) {
+          formattedResponse += `**Recomandări:**\n`;
+          riskData.recommendations.forEach((r, i) => {
+            formattedResponse += `${i + 1}. ${r}\n`;
+          });
+        }
+        
+        result.response = formattedResponse;
+        result.route = 'calculate-anaf-risk';
+      } else {
+        result.response = result.error || 'Nu am putut calcula riscul ANAF. Asigură-te că ai încărcat o balanță.';
+      }
+    } else if (contentType.includes('text/event-stream') || routeDecision.route === 'chat-ai') {
       const text = await response.text();
       const lines = text.split('\n');
       let accumulatedContent = '';

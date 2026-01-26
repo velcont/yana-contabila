@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles } from 'lucide-react';
+import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles, ShieldAlert } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -551,6 +551,18 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                 >
                   <Scale className="h-4 w-4 mr-1.5" />
                   Întrebare fiscală
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
+                  onClick={() => {
+                    setInput('Care e riscul meu de control ANAF pe baza balanței?');
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
+                  Risc ANAF
                 </Button>
               </div>
             </div>
