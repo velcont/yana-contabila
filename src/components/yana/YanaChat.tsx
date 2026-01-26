@@ -557,8 +557,8 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
                   size="sm"
                   className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
                   onClick={() => {
-                    setInput('Care e riscul meu de control ANAF pe baza balanței?');
-                    textareaRef.current?.focus();
+                    // Send the message directly - ai-router will handle missing balance gracefully
+                    sendMessage('Care e riscul meu de control ANAF pe baza balanței?');
                   }}
                 >
                   <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
