@@ -46,10 +46,14 @@ const Landing = () => {
             6 AI-uri premium. Un singur abonament.
           </p>
           
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <span className="text-xs text-muted-foreground">Google Gemini</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+            <span className="text-xs text-muted-foreground">Gemini Pro</span>
             <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">Claude</span>
+            <span className="text-xs text-muted-foreground">Gemini Flash</span>
+            <span className="text-muted-foreground/30">•</span>
+            <span className="text-xs text-muted-foreground">Claude Sonnet</span>
+            <span className="text-muted-foreground/30">•</span>
+            <span className="text-xs text-muted-foreground">Claude Haiku</span>
             <span className="text-muted-foreground/30">•</span>
             <span className="text-xs text-muted-foreground">GPT-5</span>
             <span className="text-muted-foreground/30">•</span>
