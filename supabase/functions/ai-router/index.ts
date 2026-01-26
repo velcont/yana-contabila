@@ -543,9 +543,17 @@ serve(async (req) => {
       routeDecision.payload.conversationId = conversationId;
     }
     
-    // 🆕 Special handling for ANAF risk - needs balanceContext
+    // 🆕 Special handling for ANAF risk - needs balanceContext from DB first
     if (routeDecision.route === 'calculate-anaf-risk') {
-      routeDecision.payload.balanceContext = routeDecision.payload.balanceContext || balanceContext;
+      // Priority: DB value (effectiveBalanceContext) > frontend value (balanceContext)
+      // This ensures we always use persisted balance data for ANAF risk calculation
+      const anafBalanceContext = routeDecision.payload.balanceContext;
+      if (!anafBalanceContext) {
+        console.log('[AI-Router] ⚠️ ANAF Risk requested but no balanceContext - user will receive friendly message');
+      } else {
+        const company = (anafBalanceContext as { company?: string })?.company || 'unknown';
+        console.log(`[AI-Router] ✅ ANAF Risk calculation with balance for: ${company}`);
+      }
       routeDecision.payload.generateReport = true;
     }
 
