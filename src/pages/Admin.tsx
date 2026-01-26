@@ -33,6 +33,7 @@ const AIDecisionsDashboard = lazy(() => import("@/components/admin/AIDecisionsDa
 const ConsciousnessDashboard = lazy(() => import("@/components/admin/ConsciousnessDashboard").then(m => ({ default: m.ConsciousnessDashboard })));
 const AICorrectionsPanel = lazy(() => import("@/components/admin/AICorrectionsPanel").then(m => ({ default: m.AICorrectionsPanel })));
 const YanaInitiativesPanel = lazy(() => import("@/components/admin/YanaInitiativesPanel").then(m => ({ default: m.YanaInitiativesPanel })));
+const ApiStatusWidget = lazy(() => import("@/components/admin/ApiStatusWidget").then(m => ({ default: m.ApiStatusWidget })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -298,6 +299,13 @@ const Admin = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* API Status Widget */}
+        <Suspense fallback={<TabContentLoader />}>
+          <div className="mb-6">
+            <ApiStatusWidget />
+          </div>
+        </Suspense>
 
         <Tabs defaultValue="users" className="space-y-6">
           <div className="relative">
