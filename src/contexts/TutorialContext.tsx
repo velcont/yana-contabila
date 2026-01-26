@@ -52,7 +52,7 @@ export const TutorialProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Prima încercare: dacă suntem pe /app și Dashboard-ul nu e deschis, apasă butonul
+      // Prima încercare: dacă suntem pe /yana și Dashboard-ul nu e deschis, apasă butonul
       if (attempts === 0 && isApp) {
         const dashBtn = document.querySelector('[data-tour="dashboard-button"]') as HTMLElement | null;
         if (dashBtn) {
