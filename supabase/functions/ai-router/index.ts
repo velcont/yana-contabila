@@ -606,8 +606,12 @@ serve(async (req) => {
 
     console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}${memoryContext ? ' (with memory context)' : ''}${consciousnessContext ? ' (with consciousness)' : ''}`);
 
-    // Call the appropriate edge function
-    const targetUrl = `${supabaseUrl}/functions/v1/${routeDecision.route}`;
+  // Call the appropriate edge function
+  // Use enhanced ANAF risk analysis with Claude AI
+  const effectiveRoute = routeDecision.route === 'calculate-anaf-risk' 
+    ? 'calculate-anaf-risk-enhanced' 
+    : routeDecision.route;
+  const targetUrl = `${supabaseUrl}/functions/v1/${effectiveRoute}`;
     
     response = await fetch(targetUrl, {
       method: 'POST',
@@ -643,7 +647,7 @@ serve(async (req) => {
     const contentType = response.headers.get('content-type') || '';
     let result: Record<string, unknown>;
 
-    // Special handling for ANAF risk response
+    // Special handling for ANAF risk response (Enhanced with Claude AI)
     if (routeDecision.route === 'calculate-anaf-risk') {
       result = await response.json();
       
@@ -656,15 +660,41 @@ serve(async (req) => {
           summary: string;
           recommendations: string[];
           reportText?: string;
+          // AI Enhanced fields
+          aiEnhanced?: boolean;
+          contextualInterpretation?: string;
+          personalizedRecommendations?: string[];
+          anomaliesDetected?: string[];
+          aiInsights?: string;
         };
         
-        // Build a human-readable response
-        let formattedResponse = `**ANALIZĂ RISC CONTROL ANAF**\n\n`;
+        // Build a human-readable response with AI enhancement
+        let formattedResponse = `**🧠 ANALIZĂ AVANSATĂ RISC CONTROL ANAF**\n`;
+        formattedResponse += `*Îmbunătățită cu Inteligență Artificială*\n\n`;
         formattedResponse += `📊 **Scor risc: ${riskData.overallScore}/100** - Nivel: **${riskData.riskLevel.toUpperCase()}**\n\n`;
-        formattedResponse += `${riskData.summary}\n\n`;
         
+        // AI Insights first (most important)
+        if (riskData.aiInsights) {
+          formattedResponse += `💡 **Insight cheie:** ${riskData.aiInsights}\n\n`;
+        }
+        
+        // Contextual interpretation from Claude
+        if (riskData.contextualInterpretation) {
+          formattedResponse += `---\n\n**🔍 Interpretare contextuală:**\n${riskData.contextualInterpretation}\n\n`;
+        }
+        
+        // Anomalies detected by AI
+        if (riskData.anomaliesDetected && riskData.anomaliesDetected.length > 0) {
+          formattedResponse += `---\n\n**⚠️ Anomalii detectate de AI:**\n`;
+          riskData.anomaliesDetected.forEach((a, i) => {
+            formattedResponse += `${i + 1}. ${a}\n`;
+          });
+          formattedResponse += `\n`;
+        }
+        
+        // Risk factors
         if (riskData.factors && riskData.factors.length > 0) {
-          formattedResponse += `**Factori de risc identificați:**\n`;
+          formattedResponse += `---\n\n**📋 Factori de risc identificați:**\n`;
           riskData.factors.slice(0, 5).forEach((f, i) => {
             const severityEmoji = f.severity === 'critical' ? '🔴' : f.severity === 'high' ? '🟠' : f.severity === 'medium' ? '🟡' : '🟢';
             formattedResponse += `${i + 1}. ${severityEmoji} **${f.name}** - ${f.description}\n`;
@@ -672,9 +702,14 @@ serve(async (req) => {
           formattedResponse += `\n`;
         }
         
-        if (riskData.recommendations && riskData.recommendations.length > 0) {
-          formattedResponse += `**Recomandări:**\n`;
-          riskData.recommendations.forEach((r, i) => {
+        // Personalized AI recommendations (priority) or fallback to original
+        const recommendations = riskData.personalizedRecommendations?.length 
+          ? riskData.personalizedRecommendations 
+          : riskData.recommendations;
+        
+        if (recommendations && recommendations.length > 0) {
+          formattedResponse += `---\n\n**✅ Recomandări personalizate:**\n`;
+          recommendations.forEach((r, i) => {
             formattedResponse += `${i + 1}. ${r}\n`;
           });
         }
