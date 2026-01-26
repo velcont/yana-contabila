@@ -40,6 +40,27 @@ const Landing = () => {
           </div>
         </div>
 
+        {/* AI Models Section */}
+        <div className="border border-border/50 rounded-xl p-6 bg-muted/30 space-y-3">
+          <p className="text-sm font-medium text-foreground">
+            6 AI-uri premium. Un singur abonament.
+          </p>
+          
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <span className="text-xs text-muted-foreground">Google Gemini</span>
+            <span className="text-muted-foreground/30">•</span>
+            <span className="text-xs text-muted-foreground">Claude</span>
+            <span className="text-muted-foreground/30">•</span>
+            <span className="text-xs text-muted-foreground">GPT-5</span>
+            <span className="text-muted-foreground/30">•</span>
+            <span className="text-xs text-muted-foreground">Grok</span>
+          </div>
+          
+          <p className="text-xs text-primary font-medium">
+            Toate incluse în 49 RON/lună
+          </p>
+        </div>
+
         {/* Trust Badges */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
           <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
