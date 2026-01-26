@@ -1,92 +1,65 @@
 
-# Plan: Adăugare Empatie Antreprenorială în Identity Contract
+# Plan: Fix Eroare "Risc ANAF" fără Balanță Încărcată
 
-## Obiectiv
-Extinderea Identity Contract cu secțiuni dedicate pentru răspunsuri empatice specifice provocărilor antreprenoriale: burnout, izolare, frică de eșec, sindrom impostor, paralizie decizională și celebrarea succesului.
+## Problema identificată
 
----
+Când utilizatorul apasă butonul "Risc ANAF" **fără a avea o balanță încărcată**, aplicația afișează o eroare tehnică în loc de un mesaj prietenos.
 
-## Ce vom adăuga
+**Cauza**: În `ai-router/index.ts` (linia 614-617), când `calculate-anaf-risk` returnează status 400, eroarea este aruncată ca excepție:
 
-### Secțiunea 18: EMPATIE ANTREPRENORIALĂ SPECIFICĂ
+```typescript
+if (!response.ok) {
+  throw new Error(`Route ${routeDecision.route} failed: ${errorText}`);
+}
+```
 
-O secțiune nouă cu instrucțiuni clare pentru YANA despre cum să răspundă la stările emoționale specifice antreprenorilor:
+## Soluția
 
-**1. BURNOUT** - Când utilizatorul spune "nu mai pot", "sunt epuizat", "lucrez non-stop":
-- Ce să NU spună (sfaturi generice tip "odihnește-te")
-- Ce să spună (empatie + acțiune mică)
-- Exemple concrete de replici
-
-**2. IZOLARE** - Când utilizatorul spune "nimeni nu înțelege", "sunt singur în asta":
-- Validare a sentimentului
-- Normalizare (alți antreprenori simt la fel)
-- Reconectare prin conversație
-
-**3. FRICĂ DE EȘEC** - Când utilizatorul spune "o să dau faliment", "pierd tot":
-- NU minimiza ("o să fie bine")
-- Transformă frica în cifre concrete
-- Întrebări practice care reduc anxietatea
-
-**4. SINDROM IMPOSTOR** - Când utilizatorul spune "nu merit", "e doar noroc":
-- Reframare: sindromul impostor ca semn de ambiție
-- Referire la date concrete (clienți, venituri)
-- Exercițiu practic de validare
-
-**5. PARALIZIE DECIZIONALĂ** - Când utilizatorul spune "nu știu ce să aleg", "amân":
-- Simplificare: întrebări care clarifică
-- Focus pe o singură decizie
-- "Perfect e dușmanul lui bun"
-
-**6. SUCCES** - Când utilizatorul spune "am reușit", "prima comandă":
-- Celebrare autentică (oprire, validare)
-- Ancorare pentru momentele grele viitoare
-
-### Secțiunea 19: ADAPTARE TON PE NIVEL ANTREPRENOR
-
-Instrucțiuni pentru adaptarea tonului în funcție de experiența antreprenorului:
-
-**Începători (0-1 ani):**
-- Ton protectiv, ghidare
-- Validare fiecare pas mic
-- Nu presupune cunoștințe
-
-**În creștere (2-5 ani):**
-- Ton colaborativ, peer-to-peer
-- Provocări constructive
-- Focus pe sisteme
-
-**Stabiliți (5+ ani):**
-- Ton direct, strategic
-- Provocări serioase
-- Focus pe delegare și legacy
+Adăugăm gestionare specială pentru `calculate-anaf-risk` când nu există balanță - în loc să aruncăm eroare, returnăm un mesaj conversațional prietenos.
 
 ---
 
 ## Modificări tehnice
 
-**Fișier:** `supabase/functions/_shared/prompts/yana-identity-contract.md`
+### Fișier: `supabase/functions/ai-router/index.ts`
 
-**Acțiune:** Adăugare ~120 linii noi după secțiunea 17 (linia 348)
+**Locație**: liniile 614-617 (verificarea `!response.ok`)
 
-**Actualizare versiune:** 5.0 → 6.0 - Entrepreneurial Empathy Edition
+**Schimbare**: Adăugăm gestionare specială ÎNAINTE de throw pentru rutele care pot eșua graceful:
+
+```typescript
+if (!response.ok) {
+  const errorText = await response.text();
+  
+  // Special handling for ANAF risk without balance - return friendly message
+  if (routeDecision.route === 'calculate-anaf-risk' && response.status === 400) {
+    console.log('[AI-Router] ANAF risk requested without balance - returning friendly message');
+    return new Response(
+      JSON.stringify({
+        success: true,
+        response: "Pentru a calcula riscul de control ANAF, am nevoie să încarci mai întâi o balanță de verificare. 📊\n\nApasă pe butonul **Analiză financiară** și încarcă fișierul Excel cu balanța ta. Apoi voi putea analiza:\n- Riscuri TVA (solduri mari de recuperat, raporturi anormale)\n- Marje de profit și cheltuieli administrative\n- Datorii fiscale restante\n- Stocuri și creanțe neîncasate\n- Tranzacții cu părți afiliate",
+        route: 'calculate-anaf-risk',
+        requiresBalance: true
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  
+  throw new Error(`Route ${routeDecision.route} failed: ${errorText}`);
+}
+```
 
 ---
 
 ## Beneficii
 
-- YANA va răspunde diferențiat la stările emoționale ale antreprenorilor
-- Răspunsuri mai autentice și mai puțin generice
-- Utilizatorii se vor simți înțeleși la un nivel mai profund
-- Creșterea retenției prin conexiune emoțională autentică
-
----
-
-## Risc
-
-**ZERO** - modificăm doar promptul (instrucțiuni text), nu logica de cod. YANA va citi noile instrucțiuni și le va aplica natural în răspunsuri. Nu există risc de breaking changes.
+- Utilizatorul primește un mesaj clar și prietenos în chat
+- Nu mai apare eroarea tehnică "The app encountered an error"
+- YANA explică ce trebuie să facă utilizatorul
+- Zero risc - nu modificăm logica existentă, doar adăugăm un early return pentru cazul specific
 
 ---
 
 ## Timp estimat
-10-15 minute
 
+5 minute
