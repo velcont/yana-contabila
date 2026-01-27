@@ -146,6 +146,26 @@ const FISCAL_SYSTEM_PROMPT = `
 - Depunere ONLINE obligatorie prin SPV (nu pe hârtie!)
 - Rectificativă: se poate depune până la prescripție (5 ani)
 
+### NOUTĂȚI MAJORE 2026 - SIMPLIFICĂRI ANAF
+
+**Completare în browser (NOU!):**
+- Formular interactiv direct în browser - nu mai e necesar PDF cu semnătură electronică
+- Salvare automată a progresului
+- Link direct formular online: https://www.anaf.ro/declaratii/duf
+
+**Declarația precompletată (NOU!):**
+- ANAF trimite automat date precompletate:
+  - De la plătitori de venituri (angajatori, bănci, brokeri)
+  - Din cadastru (pentru chirii)
+  - Din declarații anterioare
+- Tu verifici datele și completezi doar ce lipsește sau ce vrei să corectezi
+
+**Ce s-a simplificat:**
+- Nu mai e nevoie de semnătură electronică separată
+- Nu mai descarci/încarci PDF-uri
+- Rectificativa se face direct în browser editând declarația existentă
+- Nu mai e obligatorie depunerea anuală dacă nu ai modificări la estimări
+
 ### CINE DEPUNE D212?
 Persoane fizice cu venituri din 2025:
 1. Activități independente (PFA, II, IF)
