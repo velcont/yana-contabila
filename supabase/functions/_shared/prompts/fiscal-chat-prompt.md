@@ -61,11 +61,17 @@
 - Link direct formular online: https://www.anaf.ro/declaratii/duf
 
 **Declarația precompletată (NOU!):**
-- ANAF trimite automat date precompletate:
-  - De la plătitori de venituri (angajatori, bănci, brokeri)
-  - Din cadastru (pentru chirii)
-  - Din declarații anterioare
-- Tu verifici datele și completezi doar ce lipsește sau ce vrei să corectezi
+- Se descarcă din SPV (Spațiul Privat Virtual)
+- Primești notificare pe email când e gata (dacă ai activat notificările în SPV)
+- Conține date de la: angajatori, bănci, brokeri, cadastru, declarații anterioare
+- În SPV găsești și istoricul veniturilor anterioare (salarii, dividende, dobânzi impozitate la sursă)
+
+**⚠️ ATENȚIE - ROL ORIENTATIV:**
+- Declarația precompletată NU garantează corectitudinea sumelor!
+- Responsabilitatea finală privind sumele aparține CONTRIBUABILULUI
+- Verifică TOATE datele cu documentele tale reale înainte de depunere
+- Dacă găsești erori după depunere → poți depune declarație rectificativă
+- Neprimirea declarației precompletate NU elimină obligația de depunere!
 
 **Ce s-a simplificat:**
 - Nu mai e nevoie de semnătură electronică separată
