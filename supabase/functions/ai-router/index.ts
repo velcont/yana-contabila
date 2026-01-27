@@ -290,6 +290,7 @@ function detectIntent(message: string): RouteDecision {
     lowerMessage.includes('d205') ||
     lowerMessage.includes('d112') ||
     lowerMessage.includes('d300') ||
+    lowerMessage.includes('d212') ||
     lowerMessage.includes('declarația unică') ||
     lowerMessage.includes('declaratia unica') ||
     // Micro și regimuri

@@ -44,6 +44,82 @@
 - Proceduri ANAF
 - Jurisprudență fiscală
 
+---
+
+## DECLARAȚIA UNICĂ D212 - GHID COMPLET 2026
+
+### DEADLINE CRITIC
+- **25 MAI 2026** - termen depunere ȘI plată
+- Depunere ONLINE obligatorie prin SPV (nu pe hârtie!)
+- Rectificativă: se poate depune până la prescripție (5 ani)
+
+### CINE DEPUNE D212?
+Persoane fizice cu venituri din 2025:
+1. Activități independente (PFA, II, IF)
+2. Drepturi de proprietate intelectuală
+3. Chirii (cedarea folosinței bunurilor)
+4. Investiții (dividende, dobânzi, câștiguri de capital)
+5. Alte surse (crypto, NFT-uri)
+6. Venituri din străinătate
+
+### STRUCTURA D212
+
+| Secțiune | Ce se completează |
+|----------|------------------|
+| I | Date identificare |
+| II | Venituri estimate 2026 (CAS, CASS) |
+| III | Venituri realizate 2025 (impozit) |
+| IV | Destinația 3,5% (ONG/cult) |
+| V | Anexe specifice pe tipuri venit |
+
+### CONTRIBUȚII OBLIGATORII 2026
+
+**Pentru PFA/II/IF:**
+- CAS (pensie): 25% - obligatoriu dacă venit net > 24.300 lei/an
+- CASS (sănătate): 10% - obligatoriu dacă venit net > 6 salarii minime
+- SE CUMULEAZĂ (nu una sau alta!)
+
+**Pentru dividende și investiții:**
+- CASS 10% conform tabelului existent
+- NU se plătește CAS
+
+### VENITURI DIN INVESTIȚII
+
+**Dividende din România:**
+- Impozit 16% reținut la sursă
+- CASS se declară separat în D212
+
+**Dividende din străinătate:**
+- Se declară în D212 integral
+- Credit fiscal pentru impozit plătit în țara sursă
+- CASS pe venitul brut
+
+**Câștiguri acțiuni/ETF-uri:**
+- Impozit 10% pe câștig net
+- NU se plătește CASS pe câștiguri de capital
+
+**Crypto și active digitale:**
+- Impozit 10% pe câștig net realizat
+- NU există franciză - orice câștig se declară
+
+### NORME DE VENIT vs SISTEM REAL (PFA)
+
+| Criteriu | Norme de venit | Sistem real |
+|----------|---------------|-------------|
+| Impozit | Fix, pe baza normei ANAF | 10% din venitul NET |
+| Cheltuieli | NU se deduc | DA, se deduc |
+| Contabilitate | Simplificată | Necesară |
+
+### GREȘELI FRECVENTE
+
+1. Uitarea veniturilor din străinătate
+2. Nedeclararea dividendelor (chiar dacă impozitul e reținut)
+3. Confuzia CAS vs CASS pentru PFA
+4. Estimări nerealiste pentru anul curent
+5. Plata după 25 mai (penalități 0,01%/zi + dobânzi)
+
+---
+
 ## PENTRU ÎNTREBĂRI ÎN AFARA DOMENIULUI FISCAL
 
 **DACĂ primești o întrebare strategică de business:**
