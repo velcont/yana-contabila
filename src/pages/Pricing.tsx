@@ -54,7 +54,7 @@ const Pricing = () => {
                 <span className="text-muted-foreground">/lună</span>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                + TVA • Include 20 credite AI (~40 sesiuni strategice)
+                TVA inclus • Include 20 credite AI (~40 sesiuni strategice)
               </p>
             </div>
           </CardHeader>
@@ -98,7 +98,7 @@ const Pricing = () => {
                 </div>
                 <div>
                   <h4 className="font-semibold mb-1">20 Credite AI Incluse</h4>
-                  <p className="text-sm text-muted-foreground">~40 sesiuni strategice lunar. Pachete suplimentare de la 19 RON.</p>
+                  <p className="text-sm text-muted-foreground">~40 sesiuni strategice lunar. Pachete suplimentare de la 10 RON.</p>
                 </div>
               </div>
             </div>
@@ -179,22 +179,27 @@ const Pricing = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <div className="p-4 bg-muted/50 rounded-lg text-center">
                 <p className="font-semibold">Starter</p>
-                <p className="text-2xl font-bold text-primary">19 RON</p>
-                <p className="text-xs text-muted-foreground">~38 sesiuni extra</p>
+                <p className="text-2xl font-bold text-primary">10 RON</p>
+                <p className="text-xs text-muted-foreground">1.000 credite</p>
               </div>
               <div className="p-4 bg-primary/10 rounded-lg text-center border-2 border-primary">
                 <Badge className="mb-1">Popular</Badge>
                 <p className="font-semibold">Professional</p>
-                <p className="text-2xl font-bold text-primary">49 RON</p>
-                <p className="text-xs text-muted-foreground">~100 sesiuni extra</p>
+                <p className="text-2xl font-bold text-primary">20 RON</p>
+                <p className="text-xs text-muted-foreground">2.500 credite</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg text-center">
+                <p className="font-semibold">Business</p>
+                <p className="text-2xl font-bold text-primary">40 RON</p>
+                <p className="text-xs text-muted-foreground">5.000 credite</p>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg text-center">
                 <p className="font-semibold">Enterprise</p>
-                <p className="text-2xl font-bold text-primary">129 RON</p>
-                <p className="text-xs text-muted-foreground">~260 sesiuni extra</p>
+                <p className="text-2xl font-bold text-primary">70 RON</p>
+                <p className="text-xs text-muted-foreground">10.000 credite</p>
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center mt-4">

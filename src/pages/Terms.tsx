@@ -80,9 +80,9 @@ const Terms = () => {
             <h2>6. Planuri de Abonament și Tarife</h2>
             <p>YANA oferă un singur plan de abonament simplu și complet:</p>
             <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 my-4">
-              <h3 className="font-semibold mb-2">Yana Strategic - 49 RON/lună + 20 Credite AI Incluse</h3>
+              <h3 className="font-semibold mb-2">Yana Strategic - 49 RON/lună (TVA inclus) + 20 Credite AI Incluse</h3>
               <ul>
-                <li><strong>Preț:</strong> 49 lei/lună + TVA</li>
+                <li><strong>Preț:</strong> 49 RON/lună (TVA inclus)</li>
                 <li><strong>Include:</strong> Analiză financiară NELIMITATĂ, Chat AI, Dashboard interactiv, Export rapoarte PDF/Word</li>
                 <li><strong>20 Credite AI/lună incluse:</strong> Suficient pentru ~40 sesiuni strategice cu Yana Strategică</li>
                 <li><strong>Acces complet la:</strong> Consilier Strategic AI, War Room Simulator, Battle Plan Export</li>
@@ -92,7 +92,7 @@ const Terms = () => {
             </div>
             
             <h3 className="font-semibold mt-4">6.3. Credite AI Incluse și Suplimentare</h3>
-            <p>Abonamentul de 49 RON/lună <strong>include 20 credite AI lunar</strong> (suficient pentru ~40 sesiuni strategice). Aceste credite pot fi folosite pentru:</p>
+            <p>Abonamentul de 49 RON/lună (TVA inclus) <strong>include 20 credite AI lunar</strong> (suficient pentru ~40 sesiuni strategice). Aceste credite pot fi folosite pentru:</p>
             <ul>
               <li><strong>Consilier Strategic Yana</strong> - Consultanță strategică avansată</li>
               <li><strong>War Room Simulator</strong> - Simulări de scenarii</li>
@@ -106,11 +106,12 @@ const Terms = () => {
               </p>
             </div>
 
-            <h4 className="font-semibold mt-3">Pachete Credite AI:</h4>
+            <h4 className="font-semibold mt-3">Pachete Credite AI (prețuri cu TVA inclus):</h4>
             <ul>
-              <li><strong>Starter:</strong> 19 lei - 100 credite (~50 conversații)</li>
-              <li><strong>Professional:</strong> 49 lei - 300 credite (~150 conversații)</li>
-              <li><strong>Enterprise:</strong> 129 lei - 1000 credite (~500 conversații)</li>
+              <li><strong>Starter:</strong> 10 RON - 1.000 credite (~100 analize AI)</li>
+              <li><strong>Professional:</strong> 20 RON - 2.500 credite (~250 analize AI)</li>
+              <li><strong>Business:</strong> 40 RON - 5.000 credite (~500 analize AI)</li>
+              <li><strong>Enterprise:</strong> 70 RON - 10.000 credite (~1.000 analize AI)</li>
             </ul>
             <p className="text-sm">
               <strong>Control complet:</strong> Setezi tu bugetul lunar pentru AI, primești alerte la 80% din buget, 
