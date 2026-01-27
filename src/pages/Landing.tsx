@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ const Landing = () => {
             <span className="text-muted-foreground/30">•</span>
             <span className="text-xs text-muted-foreground">Claude Haiku</span>
             <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">GPT-5</span>
+            <span className="text-xs text-muted-foreground">GPT-4o</span>
             <span className="text-muted-foreground/30">•</span>
             <span className="text-xs text-muted-foreground">Grok</span>
           </div>
@@ -88,6 +88,30 @@ const Landing = () => {
             Autentifică-te
           </button>
         </p>
+
+        {/* Footer Legal */}
+        <div className="pt-8 border-t border-border/40 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            <Link to="/terms" className="hover:text-primary transition-colors">
+              Termeni și condiții
+            </Link>
+            <span className="text-muted-foreground/30">•</span>
+            <Link to="/privacy" className="hover:text-primary transition-colors">
+              Confidențialitate
+            </Link>
+            <span className="text-muted-foreground/30">•</span>
+            <Link to="/contact" className="hover:text-primary transition-colors">
+              Contact
+            </Link>
+          </div>
+          <div className="text-xs text-muted-foreground/60 text-center">
+            <a href="mailto:office@velcont.com" className="hover:text-primary transition-colors">
+              office@velcont.com
+            </a>
+            <span className="mx-2">•</span>
+            © {new Date().getFullYear()} YANA by Velcont
+          </div>
+        </div>
 
       </div>
     </div>
