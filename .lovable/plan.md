@@ -1,50 +1,44 @@
 
 
-# Plan: Actualizare YANA cu Noutățile D212 2026 și Link-ul ANAF
+# Plan: Completare Informații Oficiale despre Declarația Precompletată
 
 ## Obiectiv
-Completarea informațiilor despre Declarația Unică cu noutățile 2026 menționate în video-ul tău, astfel încât YANA să poată răspunde corect inclusiv cu link-ul oficial ANAF.
+Actualizarea YANA cu informațiile oficiale din comunicatul Ministerului Finanțelor pentru a oferi răspunsuri complete și corecte despre declarația unică precompletată.
+
+---
+
+## Ce lipsește acum
+
+Din comunicatul oficial lipsesc aceste aspecte importante:
+
+1. **Disclaimer critic**: Declarația precompletată are ROL ORIENTATIV - nu garantează corectitudinea sumelor
+2. **Responsabilitate**: Responsabilitatea finală privind sumele aparține contribuabililor
+3. **Notificări**: Contribuabilii sunt notificați prin email când declarația e gata (dacă au activat opțiunea)
+4. **Istoric SPV**: În SPV se găsesc și informații despre veniturile anilor anteriori impozitate la sursă
+5. **Rectificativă**: Dacă se constată erori ulterior, se poate depune declarația rectificativă
 
 ---
 
 ## Modificări Propuse
 
-### 1. Actualizare secțiune D212 în fiscal-chat/index.ts
+### Actualizare secțiunea "Declarația precompletată" în fiscal-chat/index.ts
 
-**Locație:** Secțiunea "DECLARAȚIA UNICĂ D212" (liniile 142-220)
-
-Se adaugă:
+Înlocuiesc secțiunea actuală cu una completă:
 
 ```text
-### NOUTĂȚI MAJORE 2026 - SIMPLIFICĂRI ANAF
+**Declarația precompletată (NOU!):**
+- Se descarcă din SPV (Spațiul Privat Virtual)
+- Primești notificare pe email când e gata (dacă ai activat notificările)
+- Conține date de la: angajatori, bănci, brokeri, cadastru, declarații anterioare
+- În SPV găsești și istoricul veniturilor anterioare (salarii, dividende, dobânzi)
 
-**Completare în browser (NOU 2026):**
-- Nu mai e necesar PDF + semnătură electronică
-- Formular interactiv direct în browser
-- Se salvează automat progresul
-- Link direct: https://www.anaf.ro/declaratii/duf
-
-**Declarația precompletată (NOU 2026):**
-- ANAF trimite automat date precompletate din:
-  - Plătitori de venituri (angajatori, bănci, brokeri)
-  - Cadastru (chirii)
-  - Declarații anterioare
-- Verifici datele și completezi doar ce lipsește
-
-**Obligații eliminate:**
-- Nu mai e obligatorie depunerea anuală dacă nu ai modificări
-- Rectificativa simplificată - se editează direct
+**ATENȚIE - ROL ORIENTATIV:**
+- Declarația precompletată NU garantează corectitudinea sumelor
+- Responsabilitatea finală privind sumele aparține CONTRIBUABILULUI
+- Verifică toate datele cu documentele tale reale
+- Dacă găsești erori după depunere, poți depune rectificativă
+- Neprimirea declarației precompletate NU elimină obligația de depunere
 ```
-
-### 2. Adăugare keyword "duf" în ai-router
-
-**Fișier:** `supabase/functions/ai-router/index.ts`
-
-Adaug `lowerMessage.includes('duf')` în blocul de detecție fiscală pentru a capta și varianta "DUF" (Declarația Unică Formular).
-
-### 3. Sincronizare în fiscal-chat-prompt.md
-
-Actualizez secțiunea D212 cu aceleași noutăți pentru consistență.
 
 ---
 
@@ -52,67 +46,36 @@ Actualizez secțiunea D212 cu aceleași noutăți pentru consistență.
 
 | Fișier | Modificare |
 |--------|------------|
-| `supabase/functions/ai-router/index.ts` | Adaug keyword "duf" |
-| `supabase/functions/fiscal-chat/index.ts` | Adaug noutățile 2026 + link ANAF |
-| `supabase/functions/_shared/prompts/fiscal-chat-prompt.md` | Sincronizez informațiile |
+| `supabase/functions/fiscal-chat/index.ts` | Actualizez secțiunea declarație precompletată |
+| `supabase/functions/_shared/prompts/fiscal-chat-prompt.md` | Sincronizez modificările |
+
+---
+
+## Impact
+
+Cu aceste modificări, YANA va răspunde corect și complet la:
+
+1. "Ce e declarația precompletată?" - Va include disclaimer-ul oficial
+2. "Pot avea încredere în sumele din declarația precompletată?" - Va explica caracterul orientativ
+3. "Cine e responsabil pentru sume?" - Contribuabilul, nu ANAF
+4. "Cum aflu când e gata declarația precompletată?" - Notificare email prin SPV
+5. "Ce fac dacă am greșit?" - Declarație rectificativă
 
 ---
 
 ## Detalii Tehnice
 
-### Modificare 1: ai-router/index.ts
+### Locație modificare: fiscal-chat/index.ts (liniile 156-167)
 
-În blocul de detecție fiscală (~linia 291), adaug:
-
-```typescript
-lowerMessage.includes('duf') ||
-```
-
-### Modificare 2: fiscal-chat/index.ts
-
-După "DEADLINE CRITIC" (linia 145), adaug o nouă secțiune:
-
+Înlocuiesc:
 ```text
-### NOUTĂȚI MAJORE 2026 - SIMPLIFICĂRI ANAF
-
-**Completare în browser (NOU!):**
-- Formular interactiv direct în browser - nu mai e necesar PDF cu semnătură electronică
-- Salvare automată a progresului
-- Link direct formular online: https://www.anaf.ro/declaratii/duf
-
 **Declarația precompletată (NOU!):**
 - ANAF trimite automat date precompletate:
   - De la plătitori de venituri (angajatori, bănci, brokeri)
   - Din cadastru (pentru chirii)
   - Din declarații anterioare
 - Tu verifici datele și completezi doar ce lipsește sau ce vrei să corectezi
-
-**Ce s-a simplificat:**
-- Nu mai e nevoie de semnătură electronică separată
-- Nu mai descarci/încarci PDF-uri
-- Rectificativa se face direct în browser editând declarația existentă
-- Nu mai e obligatorie depunerea anuală dacă nu ai modificări la estimări
 ```
 
----
-
-## Întrebări Acoperite După Actualizare
-
-Cu aceste modificări, YANA va putea răspunde corect la:
-
-1. "Unde completez Declarația Unică?" → Link: https://www.anaf.ro/declaratii/duf
-2. "Ce s-a schimbat la declarația unică în 2026?" → Completare în browser, declarație precompletată
-3. "Mai am nevoie de semnătură electronică?" → Nu, se face direct în browser
-4. "Ce e DUF?" → Declarația Unică Formular, formularul online
-5. "ANAF îmi trimite declarația precompletată?" → Da, cu date de la angajatori, bănci, etc.
-6. "Mai trebuie să depun anual?" → Doar dacă ai modificări la estimări
-
----
-
-## Rezultat Final
-
-Utilizatorii care vin din comentariile video-ului tău vor primi:
-- **Link-ul corect** pentru formularul online ANAF
-- **Informații actualizate** despre simplificările 2026
-- **Răspunsuri complete** despre noul sistem de completare în browser
+Cu versiunea completă care include disclaimer-ul oficial.
 
