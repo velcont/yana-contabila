@@ -1,107 +1,190 @@
 
-
-# Plan: Widget Monitorizare Statusul API-urilor în Admin
+# Plan: Actualizare YANA pentru Declarația Unică D212 2026
 
 ## Obiectiv
+Pregătirea YANA să răspundă corect și complet la întrebări despre Declarația Unică 2026, astfel încât utilizatorii din comentariile video-ului tău să primească informații corecte și actualizate.
 
-Crearea unui widget compact în pagina `/admin` care arată statusul tuturor API-urilor într-o singură vedere, cu indicatori vizuali de sănătate și linkuri rapide pentru reîncărcare.
+---
 
-## API-uri de Monitorizat
+## Modificări Propuse
 
-| Provider | Secret Key | Verificare Balanță Posibilă? |
-|----------|------------|------------------------------|
-| Lovable AI | `LOVABLE_API_KEY` | Da (monitorizat intern) |
-| Anthropic (Claude) | `ANTHROPIC_API_KEY` | Nu - dashboard extern |
-| OpenAI (GPT-5) | `OPENAI_API_KEY` | Nu - dashboard extern |
-| xAI (Grok) | `GROK_API_KEY` | Nu - dashboard extern |
-| Perplexity | `PERPLEXITY_API_KEY` | Nu - dashboard extern |
+### 1. Adăugare keyword "d212" în ai-router
 
-## Soluție Propusă
+**Fișier:** `supabase/functions/ai-router/index.ts`  
+**Locație:** Linia ~290, în blocul de detecție fiscală
 
-### Componentă Nouă: `ApiStatusWidget.tsx`
+Se adaugă `lowerMessage.includes('d212')` în lista de keywords care declanșează rutarea către `fiscal-chat`.
 
-Un card compact care arată:
-- Status fiecărui API (Activ / Nesetat / Eroare)
-- Link rapid către dashboard-ul extern al fiecărui provider
-- Warning general dacă vreun API are probleme
+### 2. Adăugare secțiune completă D212 în fiscal-chat
 
-### Secțiuni Widget
+**Fișier:** `supabase/functions/fiscal-chat/index.ts`  
+**Locație:** După linia 138 (după termene critice), înainte de "REGULI DE CĂUTARE"
+
+Se adaugă o secțiune nouă de aproximativ 80-100 linii care acoperă:
+
+| Subiect | Detalii |
+|---------|---------|
+| **Deadline critic** | 25 MAI 2026, depunere online obligatorie |
+| **Cine depune** | PFA, chirii, dividende, investiții, crypto, venituri din străinătate |
+| **Structura D212** | Secțiunile I-V explicate clar |
+| **CAS vs CASS pentru PFA** | 25% CAS pensie + 10% CASS sănătate |
+| **Venituri din investiții** | Dividende RO/străinătate, acțiuni, ETF-uri, crypto |
+| **Norme de venit vs Real** | Când e avantajos fiecare sistem |
+| **Greșeli frecvente** | Top 5 erori de evitat |
+
+### 3. Sincronizare prompt markdown
+
+**Fișier:** `supabase/functions/_shared/prompts/fiscal-chat-prompt.md`
+
+Se adaugă aceleași informații pentru consistență cu fișierul inline.
+
+---
+
+## Detalii Tehnice
+
+### Modificare 1: ai-router/index.ts
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│  🔌 Status API-uri                        [Refresh]     │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ✅ Lovable AI      250.00 RON   [View Dashboard]      │
-│  ✅ Anthropic       Activ        [View Dashboard]      │
-│  ✅ OpenAI          Activ        [View Dashboard]      │
-│  ✅ Grok            Activ        [View Dashboard]      │
-│  ✅ Perplexity      Activ        [View Dashboard]      │
-│                                                         │
-│  ⚠️ Resend          Nesetat      [Configurează]        │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+Linia ~290, adaug în blocul de detecție fiscală:
+lowerMessage.includes('d212') ||
 ```
 
-### Logică Verificare
+Aceasta asigură că utilizatorii care scriu "D212" sau "d212" sunt direcționați automat către modulul fiscal, nu către chat-ul general.
 
-1. **Lovable AI**: Verificare balanță din `platformCredits` + autonomie din `PlatformCosts`
-2. **Alte API-uri**: Verificăm doar dacă secretul este setat (nu putem verifica balanța externă)
-3. **Indicator vizual**:
-   - 🟢 Verde = Secret setat, funcționează
-   - 🟡 Galben = Secret setat dar risc scăzut de credite
-   - 🔴 Roșu = Secret nesetat sau eroare
+### Modificare 2: fiscal-chat/index.ts - Conținut adăugat
 
-### Linkuri Externe Dashboard
+```text
+## DECLARAȚIA UNICĂ D212 - GHID COMPLET 2026
 
-| Provider | Dashboard URL |
-|----------|---------------|
-| Lovable | `https://lovable.dev/settings/workspace/usage` |
-| Anthropic | `https://console.anthropic.com/settings/billing` |
-| OpenAI | `https://platform.openai.com/usage` |
-| xAI (Grok) | `https://console.x.ai/` |
-| Perplexity | `https://www.perplexity.ai/settings/api` |
+### DEADLINE CRITIC
+- **25 MAI 2026** - termen depunere ȘI plată
+- Depunere ONLINE obligatorie prin SPV (nu pe hârtie!)
+- Rectificativă: se poate depune până la prescripție (5 ani)
 
-## Fișiere de Creat/Modificat
+### CINE DEPUNE D212?
+Persoane fizice cu venituri din 2025:
+1. Activități independente (PFA, II, IF)
+2. Drepturi de proprietate intelectuală
+3. Chirii (cedarea folosinței bunurilor)
+4. Investiții (dividende, dobânzi, câștiguri de capital)
+5. Alte surse (crypto, NFT-uri)
+6. Venituri din străinătate
 
-### 1. Componentă Nouă: `src/components/admin/ApiStatusWidget.tsx`
+### STRUCTURA D212
 
-```tsx
-// Widget compact pentru status API-uri
-// - Listează toate API-urile cu status
-// - Link rapid către dashboard extern
-// - Verifică dacă secretele sunt setate
-// - Indicator vizual per API
+| Secțiune | Ce se completează |
+|----------|------------------|
+| I | Date identificare |
+| II | Venituri estimate 2026 (CAS, CASS) |
+| III | Venituri realizate 2025 (impozit) |
+| IV | Destinația 3,5% (ONG/cult) |
+| V | Anexe specifice pe tipuri venit |
+
+### CONTRIBUȚII OBLIGATORII 2026
+
+**Pentru PFA/II/IF:**
+- CAS (pensie): 25% - obligatoriu dacă venit net > 24.300 lei/an
+- CASS (sănătate): 10% - obligatoriu dacă venit net > 6 salarii minime
+- SE CUMULEAZĂ (nu una sau alta!)
+
+**Pentru dividende și investiții:**
+- CASS 10% (conform tabelului existent)
+- NU se plătește CAS
+
+### VENITURI DIN INVESTIȚII - DETALII
+
+**Dividende din România:**
+- Impozit 16% reținut la sursă
+- CASS se declară separat în D212
+
+**Dividende din străinătate:**
+- Se declară în D212 integral
+- Credit fiscal pentru impozit plătit în țara sursă
+- CASS pe venitul brut
+
+**Câștiguri acțiuni/ETF-uri:**
+- Impozit 10% pe câștig net (vânzare - achiziție - comisioane)
+- NU se plătește CASS pe câștiguri de capital
+
+**Crypto și active digitale:**
+- Impozit 10% pe câștig net realizat
+- NU există franciză - orice câștig se declară
+- Dovadă achiziție: extrase exchange, istoric tranzacții
+
+### NORME DE VENIT vs SISTEM REAL (PFA)
+
+| Criteriu | Norme de venit | Sistem real |
+|----------|---------------|-------------|
+| Impozit | Fix, pe baza normei ANAF | 10% din venitul NET |
+| Cheltuieli | NU se deduc | DA, se deduc |
+| Contabilitate | Simplificată | Necesară |
+| Avantaj | Venituri mari, cheltuieli mici | Cheltuieli mari |
+
+### GREȘELI FRECVENTE DE EVITAT
+
+1. Uitarea veniturilor din străinătate
+2. Nedeclararea dividendelor (chiar dacă impozitul e reținut)
+3. Confuzia CAS vs CASS pentru PFA
+4. Estimări nerealiste pentru anul curent
+5. Plata după 25 mai (penalități 0,01%/zi + dobânzi)
 ```
 
-### 2. Modificare: `src/pages/Admin.tsx`
+---
 
-- Import lazy al noii componente
-- Adăugare widget în partea de sus a paginii (sub Quick Access Card pentru Platform Costs)
+## Fișiere de Modificat
 
-## Implementare Tehnică
+| Fișier | Modificare |
+|--------|------------|
+| `supabase/functions/ai-router/index.ts` | Adaug keyword "d212" (1 linie) |
+| `supabase/functions/fiscal-chat/index.ts` | Adaug secțiune D212 (~80 linii) |
+| `supabase/functions/_shared/prompts/fiscal-chat-prompt.md` | Sincronizez informațiile D212 |
 
-### Verificare Secreturi
+---
 
-Vom verifica existența secreturilor prin apelarea edge function-urilor și handling erorilor:
-- Dacă un edge function returnează eroare de API key missing → marcat ca nesetat
-- Dacă funcționează → marcat ca activ
+## Testare Post-Implementare
 
-**Alternativă simplificată**: Afișăm doar link-urile și utilizatorul verifică manual. Widget-ul servește ca "checklist" centralizat.
+După implementare, vom testa cu întrebări tipice din comentarii YouTube:
 
-### Estimare Timp
+1. "Cum completez D212 pentru dividende?"
+2. "Am venituri din acțiuni pe Trading 212, ce declar?"
+3. "Sunt PFA, plătesc CAS sau CASS?"
+4. "Am primit dividende de la o firmă din SUA, ce fac?"
+5. "Când e termenul pentru declarația unică?"
+6. "Am crypto, trebuie să declar?"
+7. "Ce e diferența între norma de venit și sistemul real?"
+
+---
+
+## Riscuri și Mitigări
+
+| Risc | Nivel | Mitigare |
+|------|-------|----------|
+| Keyword "d212" nu se detectează | Scăzut | Test direct după deploy |
+| Informații fiscale incorecte | Mediu | Bazat pe surse oficiale ANAF |
+| Prompt prea lung | Scăzut | Adăugăm ~80 linii la un prompt de ~200 |
+
+---
+
+## Estimare Timp Implementare
 
 | Task | Timp |
 |------|------|
-| Creare `ApiStatusWidget.tsx` | 15 min |
-| Integrare în `Admin.tsx` | 5 min |
-| **Total** | **20 min** |
+| Modificare ai-router (keyword d212) | 2 min |
+| Actualizare fiscal-chat/index.ts | 10 min |
+| Sincronizare fiscal-chat-prompt.md | 5 min |
+| Deploy edge functions | 2 min |
+| Testare cu întrebări reale | 10 min |
+| **Total** | **~30 min** |
+
+---
 
 ## Rezultat Final
 
-Un widget compact în `/admin` care:
-1. Arată toate API-urile folosite de YANA
-2. Indicator dacă secretul e setat
-3. Link rapid către dashboard-ul fiecărui provider
-4. Servește ca "checklist" pentru admin să verifice periodic creditele
+YANA va putea răspunde cu încredere la orice întrebare despre Declarația Unică 2026:
+- Structura formularului D212 cu secțiunile I-V
+- Diferența CAS vs CASS pentru PFA
+- Venituri din investiții (dividende, acțiuni, crypto)
+- Termene și penalități
+- Norme de venit vs sistem real
 
+Utilizatorii din comentariile video-ului vor primi răspunsuri complete și corecte.
