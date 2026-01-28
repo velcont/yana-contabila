@@ -55,7 +55,7 @@ const Landing = () => {
             <span className="text-muted-foreground/30">•</span>
             <span className="text-xs text-muted-foreground">Claude Haiku</span>
             <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">GPT-4o</span>
+            <span className="text-xs text-muted-foreground">GPT-5</span>
             <span className="text-muted-foreground/30">•</span>
             <span className="text-xs text-muted-foreground">Grok</span>
           </div>
