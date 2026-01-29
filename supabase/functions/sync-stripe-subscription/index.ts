@@ -28,6 +28,12 @@ serve(async (req) => {
       body = {};
     }
 
+    logStep("Request body parsed", { 
+      hasBody: !!body, 
+      requestedEmail: body?.email || 'none',
+      bodyKeys: Object.keys(body || {})
+    });
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -100,6 +106,7 @@ serve(async (req) => {
     });
 
     // Find customer by email
+    logStep("Searching Stripe for email", { targetEmail, isAdminOverride: targetEmail !== user.email });
     const customers = await stripe.customers.list({ email: targetEmail, limit: 1 });
     
     if (customers.data.length === 0) {
