@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -9,6 +11,7 @@ export const TestCheckout = () => {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [sessionId, setSessionId] = useState("");
+  const [syncEmail, setSyncEmail] = useState("");
 
   const testCheckout = async () => {
     setLoading(true);
@@ -54,7 +57,8 @@ export const TestCheckout = () => {
   const syncStripeSubscription = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-stripe-subscription');
+      const body = syncEmail.trim() ? { email: syncEmail.trim() } : {};
+      const { data, error } = await supabase.functions.invoke('sync-stripe-subscription', { body });
       
       if (error) throw error;
       
@@ -145,8 +149,20 @@ export const TestCheckout = () => {
       <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4">Sincronizare Subscripție Stripe</h3>
         <p className="text-sm text-muted-foreground mb-3">
-          Sincronizează subscripția din Stripe cu profilul utilizatorului autentificat
+          Dacă introduci email, sincronizează acel utilizator (doar admin). Dacă lași gol, sincronizează utilizatorul autentificat.
         </p>
+
+        <div className="space-y-2 mb-3">
+          <Label htmlFor="sync-email">Email utilizator (opțional)</Label>
+          <Input
+            id="sync-email"
+            type="email"
+            placeholder="timoficiuc.g@gmail.com"
+            value={syncEmail}
+            onChange={(e) => setSyncEmail(e.target.value)}
+            disabled={loading}
+          />
+        </div>
         
         <Button 
           onClick={syncStripeSubscription} 
