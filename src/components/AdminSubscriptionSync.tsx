@@ -41,21 +41,29 @@ export function AdminSubscriptionSync() {
 
       if (error) throw error;
 
+      const success = typeof data?.success === 'boolean' ? data.success : true;
+
       setResult({
-        success: true,
-        message: data.message || 'Sincronizare reușită',
+        success,
+        message: data?.message || (success ? 'Sincronizare reușită' : 'Sincronizare eșuată'),
         details: {
-          subscription_status: data.subscription_status,
-          subscription_type: data.subscription_type,
-          subscription_ends_at: data.subscription_ends_at,
-          stripe_customer_id: data.stripe_customer_id,
-          stripe_subscription_id: data.stripe_subscription_id
+          subscription_status: data?.subscription_status,
+          subscription_type: data?.subscription_type,
+          subscription_ends_at: data?.subscription_ends_at,
+          stripe_customer_id: data?.stripe_customer_id,
+          stripe_subscription_id: data?.stripe_subscription_id
         }
       });
 
-      toast.success("Sincronizare reușită!", {
-        description: `Status: ${data.subscription_status || 'N/A'}`
-      });
+      if (success) {
+        toast.success("Sincronizare reușită!", {
+          description: `Status: ${data?.subscription_status || 'N/A'}`
+        });
+      } else {
+        toast.error("Nu s-a putut sincroniza", {
+          description: data?.message || 'Verifică dacă există un abonament activ.'
+        });
+      }
     } catch (error: any) {
       console.error("Sync error:", error);
       setResult({
