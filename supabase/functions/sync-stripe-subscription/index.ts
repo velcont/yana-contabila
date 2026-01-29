@@ -154,7 +154,32 @@ serve(async (req) => {
     }
 
     const subscription = subscriptions.data[0];
-    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+
+    // Stripe can (rarely) return unexpected types; guard against invalid date conversions.
+    const periodEndSeconds = Number((subscription as any)?.current_period_end);
+    if (!Number.isFinite(periodEndSeconds) || periodEndSeconds <= 0) {
+      logStep("Invalid subscription current_period_end", {
+        subscriptionId: subscription?.id,
+        current_period_end: (subscription as any)?.current_period_end,
+        type: typeof (subscription as any)?.current_period_end,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message:
+            'Stripe a returnat o dată invalidă pentru perioada subscripției. Te rog încearcă din nou sau contactează suport.',
+          subscription_status: 'inactive',
+          subscription_type: null,
+          subscription_ends_at: null,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: subscription?.id ?? null,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    const subscriptionEnd = new Date(periodEndSeconds * 1000).toISOString();
     const priceId = subscription.items.data[0].price.id;
     
     logStep("Active subscription found", { 
@@ -325,12 +350,15 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
+
+    // Keep status 200 to avoid frontend FunctionsHttpError crashes; surface error via payload.
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: false,
-        error: errorMessage 
+        error: errorMessage,
+        message: 'Eroare la sincronizarea subscripției. Încearcă din nou.',
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   }
 });
