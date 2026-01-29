@@ -1,83 +1,77 @@
 
 
-# Plan: Reparare sincronizare Stripe Webhook pentru plăți recurente
+# Plan: Reparare sincronizare Admin pentru utilizatori individuali
 
 ## Problema identificată
 
-Pentru `timoficiuc.g@gmail.com`:
-- **Plata inițială** (29 Dec 2025): `in_1SjiWHBu3m83VcDANbR7vR2r` - 49 RON - ✅ Sincronizată manual
-- **Plata reînnoire** (29 Jan 2026): `in_1SuxJaBu3m83VcDApyjyPIqB` - 49 RON - ❌ **Lipsește din baza de date**
+Funcția `sync-stripe-subscription` nu procesează corect parametrul `email` trimis din Admin. Logurile arată că folosește email-ul admin-ului în loc de email-ul clientului țintă:
 
-Webhook-ul `stripe-webhook` nu procesează corect evenimentele `invoice.paid` pentru reînnoiri.
-
----
-
-## Soluție imediată (rezolvă problema curentă)
-
-### 1. Rulează funcția `sync-stripe-payments` din Admin
-
-Această funcție va sincroniza manual toate facturile plătite din Stripe cu baza de date, inclusiv factura `in_1SuxJaBu3m83VcDApyjyPIqB`.
-
-După sincronizare, poți genera factura SmartBill pentru client.
-
----
-
-## Soluție pe termen lung (previne problema în viitor)
-
-### 2. Îmbunătățire Webhook cu logging extins
-
-**Fișier: `supabase/functions/stripe-webhook/index.ts`**
-
-Adaug logging detaliat pentru a vedea DE CE facturile nu se sincronizează:
-
-```typescript
-// După primirea invoice.paid
-console.log(`📧 Processing invoice.paid: ${invoice.id}, email: ${invoice.customer_email}, subscription: ${invoice.subscription}`);
-
-// Dacă nu găsește profilul
-if (!profile) {
-  console.error(`❌ NO PROFILE FOUND for email: ${customerEmail}`);
-  
-  await supabaseClient.from('admin_alerts').insert({
-    alert_type: 'INVOICE_PROFILE_NOT_FOUND',
-    severity: 'warning',
-    title: `Invoice Paid but Profile Not Found: ${customerEmail}`,
-    description: 'An invoice was paid but no matching profile exists in database.',
-    details: { invoice_id: invoice.id, email: customerEmail, subscription_id: invoice.subscription }
-  });
-}
+```
+User authenticated - {"email":"office@velcont.com"}  // Admin
+Customer found - {"customerId":"cus_RlfpbEsIYezc71"} // Customer ID greșit
+No active subscription                                // Normal - admin nu are subscripție
 ```
 
-### 3. Adăugare monitorizare pentru plăți lipsă
-
-**Fișier nou: `supabase/functions/stripe-monitoring/index.ts`** (actualizare)
-
-Adaug verificare automată care compară facturile Stripe cu baza de date și alertează dacă lipsesc:
-
-```typescript
-// Periodic check (daily cron) 
-// Compară toate invoice.paid din Stripe cu subscription_payments
-// Alertează dacă găsește discrepanțe
-```
+Cauză probabilă: deploy-ul anterior nu s-a finalizat sau există un bug în logica de parsing a body-ului.
 
 ---
 
-## Verificări suplimentare necesare
+## Soluție
 
-1. **Verificare configurare webhook în Stripe Dashboard**:
-   - URL endpoint corect: `https://ygfsuoloxzjpiulogrjz.supabase.co/functions/v1/stripe-webhook`
-   - Evenimente activate: `invoice.paid`, `checkout.session.completed`, `customer.subscription.*`
-   - Secret webhook setat corect în Supabase Secrets
+### 1. Adaugă logging suplimentar pentru debug
 
-2. **Verificare dacă webhook-ul primește evenimente**:
-   - Logs în Stripe Dashboard → Developers → Webhooks → Recent events
-   - Verificare dacă apar erori 4xx/5xx pentru endpoint
+În `supabase/functions/sync-stripe-subscription/index.ts`, adaug log-uri pentru a vedea exact ce primește funcția:
+
+```typescript
+// După parsarea body-ului (linia ~28)
+logStep("Request body parsed", { 
+  hasBody: !!body, 
+  requestedEmail: body?.email || 'none',
+  bodyKeys: Object.keys(body || {})
+});
+```
+
+### 2. Corectează logica de override email
+
+Adaug un log explicit când se face switch-ul de email:
+
+```typescript
+// Înainte de căutarea customerului în Stripe (linia ~102)
+logStep("Searching Stripe for email", { targetEmail });
+```
+
+### 3. Re-deploy funcția
+
+După modificări, re-deploy funcția pentru a asigura că versiunea corectă rulează.
 
 ---
 
 ## Rezultat așteptat
 
-- Toate plățile de reînnoire vor fi înregistrate automat
-- Admin-ul va primi alerte dacă webhook-ul eșuează
-- Facturile SmartBill se vor genera automat
+- Când admin-ul sincronizează `timoficiuc.g@gmail.com`, funcția va:
+  1. Log: `Request body parsed - {"requestedEmail":"timoficiuc.g@gmail.com"}`
+  2. Log: `Admin sync requested - {"requestedEmail":"timoficiuc.g@gmail.com"}`
+  3. Căuta customerul corect în Stripe (`cus_Th6jWYK9CKkwOh`)
+  4. Găsi subscripția activă și actualiza profilul
+
+---
+
+## Technical Details
+
+Modificări în `supabase/functions/sync-stripe-subscription/index.ts`:
+
+1. Adaug log după parsarea body-ului (linia 29):
+```typescript
+logStep("Request body parsed", { 
+  hasBody: !!body, 
+  requestedEmail: body?.email || 'none'
+});
+```
+
+2. Adaug log înainte de căutarea Stripe (linia 102):
+```typescript
+logStep("Searching Stripe for email", { targetEmail, isAdminOverride: targetEmail !== user.email });
+```
+
+3. Re-deploy funcția pentru a aplica modificările
 
