@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const logStep = (step: string, details?: any) => {
@@ -19,6 +19,14 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    // Body is optional. In Admin we may pass { email }.
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -38,22 +46,76 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    const requestedEmail = typeof body?.email === 'string' ? body.email.trim() : '';
+    let targetEmail = user.email;
+    let targetUserId = user.id;
+
+    // Allow syncing another user's subscription only for admins.
+    if (requestedEmail && requestedEmail !== user.email) {
+      const { data: isAdmin, error: roleError } = await supabaseClient.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+
+      if (roleError || !isAdmin) {
+        logStep("Unauthorized email override attempt", { requester: user.email, requestedEmail });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Nu ai permisiuni pentru a sincroniza alt utilizator.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+
+      const { data: targetProfile, error: targetProfileError } = await supabaseClient
+        .from('profiles')
+        .select('id, email, subscription_status, subscription_ends_at, subscription_type, has_free_access, trial_ends_at')
+        .eq('email', requestedEmail)
+        .maybeSingle();
+
+      if (targetProfileError) {
+        logStep("Error fetching target profile", { requestedEmail, error: targetProfileError });
+        throw new Error(`Failed to fetch profile for ${requestedEmail}: ${targetProfileError.message}`);
+      }
+
+      if (!targetProfile) {
+        logStep("No profile found for requested email", { requestedEmail });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Nu s-a găsit un profil pentru email-ul dat.'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+
+      targetEmail = targetProfile.email;
+      targetUserId = targetProfile.id;
+      logStep("Admin sync requested", { requestedEmail: targetEmail, targetUserId });
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
     });
 
     // Find customer by email
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: targetEmail, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found");
+      logStep("No customer found", { targetEmail });
       
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Nu s-a găsit un customer Stripe pentru acest email.'
+          message: 'Nu s-a găsit un customer Stripe pentru acest email.',
+          subscription_status: 'inactive',
+          subscription_type: null,
+          subscription_ends_at: null,
+          stripe_customer_id: null,
+          stripe_subscription_id: null,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
@@ -73,9 +135,14 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Nu s-a găsit o subscripție activă pentru acest customer.'
+          message: 'Nu s-a găsit o subscripție activă pentru acest customer.',
+          subscription_status: 'inactive',
+          subscription_type: null,
+          subscription_ends_at: null,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: null,
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
@@ -102,11 +169,27 @@ serve(async (req) => {
     logStep("Subscription type determined", { subscriptionType });
 
     // 🔒 BUG FIX #1: Check if user has manual subscription - DON'T overwrite
-    const { data: currentProfile } = await supabaseClient
+    const { data: currentProfile, error: currentProfileError } = await supabaseClient
       .from('profiles')
       .select('subscription_status, subscription_ends_at, subscription_type, has_free_access, trial_ends_at')
-      .eq('id', user.id)
-      .single();
+      .eq('id', targetUserId)
+      .maybeSingle();
+
+    if (currentProfileError) {
+      logStep("Error reading current profile", { targetUserId, error: currentProfileError });
+      throw new Error(`Failed to load current profile: ${currentProfileError.message}`);
+    }
+
+    if (!currentProfile) {
+      logStep("No profile found for target user id", { targetUserId, targetEmail });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Nu s-a găsit profilul utilizatorului în baza de date.',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
 
     // If user has ACTIVE manual subscription (not expired), create alert instead of overwriting
     if (currentProfile?.subscription_status === 'active' && 
@@ -123,11 +206,11 @@ serve(async (req) => {
       await supabaseClient.from('admin_alerts').insert({
         alert_type: 'SUBSCRIPTION_CONFLICT',
         severity: 'high',
-        title: `Subscription Conflict for ${user.email}`,
+        title: `Subscription Conflict for ${targetEmail}`,
         description: `User has active manual subscription but also has Stripe subscription. Manual review required.`,
         details: {
-          userId: user.id,
-          userEmail: user.email,
+          userId: targetUserId,
+          userEmail: targetEmail,
           currentSubscription: {
             status: currentProfile.subscription_status,
             type: currentProfile.subscription_type,
@@ -203,7 +286,7 @@ serve(async (req) => {
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update(updateData)
-      .eq('id', user.id);
+      .eq('id', targetUserId);
 
     if (updateError) {
       logStep("Error updating profile", { error: updateError });
@@ -216,6 +299,11 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: 'Subscripția a fost sincronizată cu succes!',
+        subscription_status: 'active',
+        subscription_type: subscriptionType,
+        subscription_ends_at: subscriptionEnd,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
         data: {
           subscribed: true,
           subscription_type: subscriptionType,
