@@ -154,21 +154,30 @@ serve(async (req) => {
     }
 
     const subscription = subscriptions.data[0];
+    
+    // In Stripe API 2025+, current_period_end is on items, not on subscription root
+    const firstItem = subscription.items?.data?.[0];
+    const periodEndSeconds = Number(
+      (firstItem as any)?.current_period_end ?? (subscription as any)?.current_period_end
+    );
+    
+    logStep("Period end extraction", {
+      subscriptionId: subscription.id,
+      fromItem: (firstItem as any)?.current_period_end,
+      fromRoot: (subscription as any)?.current_period_end,
+      resolved: periodEndSeconds
+    });
 
-    // Stripe can (rarely) return unexpected types; guard against invalid date conversions.
-    const periodEndSeconds = Number((subscription as any)?.current_period_end);
     if (!Number.isFinite(periodEndSeconds) || periodEndSeconds <= 0) {
       logStep("Invalid subscription current_period_end", {
         subscriptionId: subscription?.id,
-        current_period_end: (subscription as any)?.current_period_end,
-        type: typeof (subscription as any)?.current_period_end,
+        periodEndSeconds,
       });
 
       return new Response(
         JSON.stringify({
           success: false,
-          message:
-            'Stripe a returnat o dată invalidă pentru perioada subscripției. Te rog încearcă din nou sau contactează suport.',
+          message: 'Stripe a returnat o dată invalidă pentru perioada subscripției.',
           subscription_status: 'inactive',
           subscription_type: null,
           subscription_ends_at: null,
@@ -180,7 +189,7 @@ serve(async (req) => {
     }
 
     const subscriptionEnd = new Date(periodEndSeconds * 1000).toISOString();
-    const priceId = subscription.items.data[0].price.id;
+    const priceId = firstItem?.price?.id ?? subscription.items.data[0].price.id;
     
     logStep("Active subscription found", { 
       subscriptionId: subscription.id, 
