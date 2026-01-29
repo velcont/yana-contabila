@@ -38,6 +38,15 @@ const Landing = () => {
             <p>Doar email și parolă. 30 secunde.</p>
             <p>Primești 30 de zile să testezi tot.</p>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Ai deja cont?{' '}
+            <button 
+              onClick={() => navigate('/auth')} 
+              className="text-primary hover:underline"
+            >
+              Autentifică-te
+            </button>
+          </p>
         </div>
 
         {/* AI Models Section */}
@@ -77,17 +86,6 @@ const Landing = () => {
             Servere în UE
           </div>
         </div>
-
-        {/* Link secundar */}
-        <p className="text-sm text-muted-foreground">
-          Ai deja cont?{' '}
-          <button 
-            onClick={() => navigate('/auth')} 
-            className="text-primary hover:underline"
-          >
-            Autentifică-te
-          </button>
-        </p>
 
         {/* Footer Legal */}
         <div className="pt-8 border-t border-border/40 space-y-3">
