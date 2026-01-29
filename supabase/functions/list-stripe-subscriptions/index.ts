@@ -69,12 +69,79 @@ serve(async (req) => {
 
     logStep("Admin verified", { userId: user.id, email: user.email });
 
+    // Check if we're fetching invoices for a specific user
+    let userEmail: string | null = null;
+    try {
+      const body = await req.json();
+      userEmail = body.userEmail || null;
+    } catch {
+      // No body, continue with default behavior
+    }
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2025-08-27.basil',
       timeout: 30000,
       maxNetworkRetries: 2,
     });
 
+    // If userEmail is provided, fetch invoices for that user
+    if (userEmail) {
+      logStep("Fetching invoices for specific user", { userEmail });
+      
+      // Find customer by email
+      const customers = await stripe.customers.list({
+        email: userEmail,
+        limit: 1
+      });
+      
+      if (customers.data.length === 0) {
+        logStep("No Stripe customer found for email", { userEmail });
+        return new Response(
+          JSON.stringify({ success: true, invoices: [], message: 'No Stripe customer found' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        );
+      }
+      
+      const customerId = customers.data[0].id;
+      logStep("Found customer", { customerId });
+      
+      // Fetch invoices for this customer
+      const invoices = await stripe.invoices.list({
+        customer: customerId,
+        limit: 20,
+        status: 'paid'
+      });
+      
+      logStep("Fetched invoices", { count: invoices.data.length });
+      
+      // Check which invoices already have SmartBill invoices
+      const invoiceIds = invoices.data.map((inv: Stripe.Invoice) => inv.id);
+      const { data: existingSmartBill } = await supabaseClient
+        .from('smartbill_invoices')
+        .select('stripe_invoice_id')
+        .in('stripe_invoice_id', invoiceIds)
+        .eq('status', 'success');
+      
+      const invoicedIds = new Set((existingSmartBill || []).map(i => i.stripe_invoice_id));
+      
+      const enrichedInvoices = invoices.data.map((inv: Stripe.Invoice) => ({
+        id: inv.id,
+        amount_paid: inv.amount_paid || 0,
+        billing_reason: inv.billing_reason || 'unknown',
+        created: inv.created,
+        invoice_pdf: inv.invoice_pdf,
+        status: inv.status,
+        already_invoiced: invoicedIds.has(inv.id),
+        subscription_id: inv.subscription || null
+      }));
+      
+      return new Response(
+        JSON.stringify({ success: true, invoices: enrichedInvoices }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
+
+    // Default behavior: fetch all subscriptions
     // Fetch all subscriptions (all statuses)
     const subscriptions = await stripe.subscriptions.list({
       limit: 100,

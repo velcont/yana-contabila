@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio, TrendingUp, Heart, Sparkles } from 'lucide-react';
+import { Loader2, Crown, Copy, Trash2, CreditCard, Clock, XCircle, Radio, TrendingUp, Heart, Sparkles, Receipt, FileText } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +21,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface StripeInvoice {
+  id: string;
+  amount_paid: number;
+  billing_reason: string;
+  created: number;
+  invoice_pdf: string | null;
+  status: string;
+  already_invoiced: boolean;
+  subscription_id: string;
+}
 
 interface Profile {
   id: string;
@@ -160,6 +178,13 @@ export const UsersList = () => {
   const { toast } = useToast();
   const [emailFilter, setEmailFilter] = useState('');
   const [accessFilter, setAccessFilter] = useState<AccessSource | 'all' | 'hook_reached' | 'loyal' | 'at_risk'>('all');
+  
+  // Invoice dialog state
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false);
+  const [selectedUserForInvoice, setSelectedUserForInvoice] = useState<Profile | null>(null);
+  const [userInvoices, setUserInvoices] = useState<StripeInvoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [generatingInvoice, setGeneratingInvoice] = useState<string | null>(null);
 
   // Fetch active sessions și subscribe la realtime updates
   useEffect(() => {
@@ -332,6 +357,91 @@ export const UsersList = () => {
     } catch (error) {
       console.error("Error copying to clipboard:", error);
       sonnerToast.error("Eroare la copierea datelor");
+    }
+  };
+
+  // Fetch Stripe invoices for a user to generate SmartBill invoices
+  const fetchUserInvoices = async (user: Profile) => {
+    setSelectedUserForInvoice(user);
+    setInvoiceDialogOpen(true);
+    setLoadingInvoices(true);
+    setUserInvoices([]);
+    
+    try {
+      // Call edge function to get user's Stripe invoices
+      const { data, error } = await supabase.functions.invoke('list-stripe-subscriptions', {
+        body: { userEmail: user.email }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.success && data?.invoices) {
+        setUserInvoices(data.invoices);
+      } else if (data?.subscriptions && data.subscriptions.length > 0) {
+        // If we got subscriptions, show a simplified view
+        const sub = data.subscriptions.find((s: any) => s.customer_email === user.email);
+        if (sub) {
+          // Create synthetic invoices from subscription data
+          const syntheticInvoices: StripeInvoice[] = [{
+            id: sub.id,
+            amount_paid: sub.amount_cents,
+            billing_reason: 'subscription_cycle',
+            created: new Date(sub.current_period_start).getTime() / 1000,
+            invoice_pdf: null,
+            status: 'paid',
+            already_invoiced: false,
+            subscription_id: sub.id
+          }];
+          setUserInvoices(syntheticInvoices);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user invoices:', error);
+      toast({
+        title: "Eroare",
+        description: "Nu s-au putut încărca facturile Stripe",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingInvoices(false);
+    }
+  };
+
+  // Generate SmartBill invoice for a Stripe invoice/subscription
+  const handleGenerateInvoice = async (invoiceId: string) => {
+    setGeneratingInvoice(invoiceId);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-generate-invoice', {
+        body: { 
+          sessionId: invoiceId,
+          paymentType: 'subscription'
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data && !data.success) {
+        throw new Error(data.error || data.message || 'Eroare necunoscută');
+      }
+      
+      toast({
+        title: "✅ Factură generată",
+        description: `Factură SmartBill: ${data.invoice?.series}-${data.invoice?.number}`,
+      });
+      
+      // Mark this invoice as already generated
+      setUserInvoices(prev => prev.map(inv => 
+        inv.id === invoiceId ? { ...inv, already_invoiced: true } : inv
+      ));
+      
+    } catch (error: any) {
+      toast({
+        title: "❌ Eroare",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingInvoice(null);
     }
   };
 
@@ -536,7 +646,19 @@ export const UsersList = () => {
                    user.subscription_type === 'accounting_firm' ? 'Contabil' : 'Necunoscut'}
                 </Badge>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {/* Buton Facturare - doar pentru paid */}
+                {accessSource === 'paid' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                    onClick={() => fetchUserInvoices(user)}
+                  >
+                    <Receipt className="h-4 w-4" />
+                    Emite Factură
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant={user.has_free_access ? "destructive" : "default"}
@@ -590,6 +712,88 @@ export const UsersList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog Facturare Directă */}
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Emite Factură SmartBill
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUserForInvoice?.full_name || selectedUserForInvoice?.email}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {loadingInvoices ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Se încarcă...</span>
+              </div>
+            ) : userInvoices.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Nu s-au găsit invoice-uri Stripe pentru acest utilizator.</p>
+                <p className="text-sm mt-2">Verifică în tab-ul "Facturare & Venituri" pentru mai multe opțiuni.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {userInvoices.map((invoice) => (
+                  <Card key={invoice.id} className={invoice.already_invoiced ? 'opacity-60' : ''}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">
+                            {invoice.billing_reason === 'subscription_create' ? 'Prima subscripție' : 
+                             invoice.billing_reason === 'subscription_cycle' ? 'Reînnoire lunară' : 
+                             invoice.billing_reason}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(invoice.created * 1000).toLocaleDateString('ro-RO', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </p>
+                          <p className="text-sm font-mono text-muted-foreground mt-1">
+                            {invoice.id.substring(0, 20)}...
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-lg">
+                            {(invoice.amount_paid / 100).toFixed(2)} RON
+                          </p>
+                          {invoice.already_invoiced ? (
+                            <Badge variant="secondary" className="mt-2">
+                              ✓ Deja facturată
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="mt-2 gap-1"
+                              onClick={() => handleGenerateInvoice(invoice.id)}
+                              disabled={generatingInvoice === invoice.id}
+                            >
+                              {generatingInvoice === invoice.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Receipt className="h-4 w-4" />
+                              )}
+                              Generează Factură
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex justify-center py-8">
