@@ -71,6 +71,13 @@ serve(async (req) => {
     if (event.type === "invoice.paid") {
       const invoice = event.data.object as Stripe.Invoice;
       
+      // 🔒 FIX: Enhanced logging for debugging renewal issues
+      console.log(`📧 [invoice.paid] Processing invoice: ${invoice.id}`);
+      console.log(`   → Email: ${invoice.customer_email}`);
+      console.log(`   → Subscription: ${invoice.subscription}`);
+      console.log(`   → Amount: ${invoice.amount_paid} ${invoice.currency}`);
+      console.log(`   → Billing reason: ${invoice.billing_reason}`);
+      
       // Skip if not a subscription invoice
       if (!invoice.subscription) {
         console.log("Invoice not associated with subscription, skipping");
@@ -107,61 +114,128 @@ serve(async (req) => {
       // Find user by customer email
       const customerEmail = invoice.customer_email;
       if (!customerEmail) {
-        console.error("No customer email found in invoice");
+        console.error("❌ No customer email found in invoice");
+        
+        // 🔒 FIX: Create admin alert for missing email
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'INVOICE_NO_EMAIL',
+          severity: 'critical',
+          title: `Invoice Paid Without Email: ${invoice.id}`,
+          description: 'An invoice was paid but no customer email was provided by Stripe.',
+          details: {
+            invoice_id: invoice.id,
+            subscription_id: invoice.subscription,
+            customer_id: invoice.customer,
+            amount_paid: invoice.amount_paid,
+            event_id: event.id
+          }
+        });
+        
         return new Response("No email", { status: 400 });
       }
 
-      const { data: profile } = await supabaseClient
+      const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .select('id, email, subscription_type')
         .eq('email', customerEmail)
         .single();
 
-      if (profile) {
-        // 🔒 BUG FIX #3: Use UPSERT with ON CONFLICT to prevent race condition duplicates
-        const { error: paymentError } = await supabaseClient.from('subscription_payments').upsert({
-          user_id: profile.id,
-          stripe_subscription_id: subscription.id,
-          stripe_invoice_id: invoice.id,
-          stripe_payment_intent_id: invoice.payment_intent as string,
-          amount_paid_cents: invoice.amount_paid,
-          currency: invoice.currency?.toUpperCase() || 'RON',
-          subscription_type: profile.subscription_type || 'entrepreneur',
-          period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          payment_date: new Date(invoice.created * 1000).toISOString(),
-          status: 'paid',
-          metadata: {
-            invoice_number: invoice.number,
-            hosted_invoice_url: invoice.hosted_invoice_url
-          }
-        }, {
-          onConflict: 'stripe_invoice_id',
-          ignoreDuplicates: true
-        });
-
-        if (paymentError) {
-          console.error("❌ Failed to record subscription payment:", paymentError);
-          throw new Error(`Payment recording failed: ${paymentError.message}`);
-        }
-
-        // Log audit event
-        await supabaseClient.from('audit_logs').insert({
-          user_id: profile.id,
-          user_email: profile.email,
-          action_type: 'SUBSCRIPTION_PAYMENT_RECEIVED',
-          table_name: 'subscription_payments',
-          metadata: {
-            amount_cents: invoice.amount_paid,
-            subscription_id: subscription.id,
+      // 🔒 FIX: Alert if profile not found for a paying customer
+      if (!profile) {
+        console.error(`❌ NO PROFILE FOUND for email: ${customerEmail}`);
+        console.error(`   → Invoice: ${invoice.id}`);
+        console.error(`   → Profile lookup error: ${profileError?.message}`);
+        
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'INVOICE_PROFILE_NOT_FOUND',
+          severity: 'critical',
+          title: `Invoice Paid but Profile Not Found: ${customerEmail}`,
+          description: 'A subscription invoice was paid but no matching profile exists in database. Payment NOT recorded!',
+          details: {
             invoice_id: invoice.id,
-            period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            period_end: new Date(subscription.current_period_end * 1000).toISOString()
+            email: customerEmail,
+            subscription_id: invoice.subscription,
+            amount_paid: invoice.amount_paid,
+            billing_reason: invoice.billing_reason,
+            customer_id: invoice.customer,
+            event_id: event.id,
+            error: profileError?.message
           }
         });
-
-        console.log(`✅ Recorded subscription payment for user ${profile.id}`);
+        
+        // Still return 200 to acknowledge webhook receipt
+        return new Response(JSON.stringify({ 
+          received: true, 
+          warning: 'Profile not found',
+          email: customerEmail
+        }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200 
+        });
       }
+
+      console.log(`✅ Profile found: ${profile.id} (${profile.email})`);
+
+      // 🔒 BUG FIX #3: Use UPSERT with ON CONFLICT to prevent race condition duplicates
+      const { error: paymentError } = await supabaseClient.from('subscription_payments').upsert({
+        user_id: profile.id,
+        stripe_subscription_id: subscription.id,
+        stripe_invoice_id: invoice.id,
+        stripe_payment_intent_id: invoice.payment_intent as string,
+        amount_paid_cents: invoice.amount_paid,
+        currency: invoice.currency?.toUpperCase() || 'RON',
+        subscription_type: profile.subscription_type || 'entrepreneur',
+        period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+        period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        payment_date: new Date(invoice.created * 1000).toISOString(),
+        status: 'paid',
+        metadata: {
+          invoice_number: invoice.number,
+          hosted_invoice_url: invoice.hosted_invoice_url,
+          billing_reason: invoice.billing_reason // 🔒 FIX: Track if it's initial or renewal
+        }
+      }, {
+        onConflict: 'stripe_invoice_id',
+        ignoreDuplicates: true
+      });
+
+      if (paymentError) {
+        console.error("❌ Failed to record subscription payment:", paymentError);
+        
+        // 🔒 FIX: Alert admin on payment recording failure
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'PAYMENT_RECORD_FAILED',
+          severity: 'critical',
+          title: `Failed to Record Payment for ${customerEmail}`,
+          description: 'Subscription payment received but database insert failed.',
+          details: {
+            invoice_id: invoice.id,
+            email: customerEmail,
+            user_id: profile.id,
+            error: paymentError.message
+          }
+        });
+        
+        throw new Error(`Payment recording failed: ${paymentError.message}`);
+      }
+
+      // Log audit event
+      await supabaseClient.from('audit_logs').insert({
+        user_id: profile.id,
+        user_email: profile.email,
+        action_type: 'SUBSCRIPTION_PAYMENT_RECEIVED',
+        table_name: 'subscription_payments',
+        metadata: {
+          amount_cents: invoice.amount_paid,
+          subscription_id: subscription.id,
+          invoice_id: invoice.id,
+          billing_reason: invoice.billing_reason,
+          period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          period_end: new Date(subscription.current_period_end * 1000).toISOString()
+        }
+      });
+
+      console.log(`✅ Recorded subscription payment for user ${profile.id} (${invoice.billing_reason})`);
 
       // 🔒 BUG FIX #12: Audit log pentru plată subscription
       if (profile) {

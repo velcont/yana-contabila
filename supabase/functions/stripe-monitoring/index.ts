@@ -11,14 +11,22 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-MONITORING] ${step}${detailsStr}`);
 };
 
+import Stripe from "https://esm.sh/stripe@18.5.0";
+
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+  apiVersion: "2025-08-27.basil",
+  timeout: 15000,
+  maxNetworkRetries: 2,
+});
+
 /**
- * 🔒 FIX #10: Stripe API Usage & Cost Monitoring
+ * 🔒 FIX #10: Stripe API Usage & Cost Monitoring + Invoice Discrepancy Detection
  * 
- * This edge function tracks all Stripe API calls made by YANA to:
- * 1. Monitor API request volume
- * 2. Estimate costs (Stripe charges per API call for high volume)
- * 3. Detect unusual patterns (potential abuse/bugs)
- * 4. Generate alerts when thresholds are exceeded
+ * This edge function:
+ * 1. Tracks all Stripe API calls made by YANA
+ * 2. Monitors API request volume and costs
+ * 3. 🆕 Compares Stripe invoices with subscription_payments to detect missing records
+ * 4. Creates admin alerts for discrepancies
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -55,19 +63,95 @@ serve(async (req) => {
 
     logStep("Admin authenticated", { adminId: user.id });
 
-    // Get Stripe API usage from audit logs
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // ============================================
+    // 🆕 SECTION 1: Check for missing invoices
+    // ============================================
+    logStep("Checking for missing invoices in database...");
+    
+    const thirtyDaysAgo = Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60);
+    
+    // Get all paid invoices from Stripe (last 30 days)
+    const stripeInvoices = await stripe.invoices.list({
+      status: 'paid',
+      created: { gte: thirtyDaysAgo },
+      limit: 100
+    });
+    
+    logStep(`Found ${stripeInvoices.data.length} paid invoices in Stripe`);
+    
+    // Get all recorded payments from our database
+    const { data: dbPayments, error: dbError } = await supabaseClient
+      .from('subscription_payments')
+      .select('stripe_invoice_id')
+      .gte('payment_date', new Date(thirtyDaysAgo * 1000).toISOString());
+    
+    if (dbError) {
+      logStep("Error fetching DB payments", { error: dbError });
+    }
+    
+    const dbInvoiceIds = new Set(dbPayments?.map(p => p.stripe_invoice_id) || []);
+    
+    // Find missing invoices (in Stripe but not in DB)
+    const missingInvoices = stripeInvoices.data.filter(
+      (inv: Stripe.Invoice) => inv.subscription && !dbInvoiceIds.has(inv.id)
+    );
+    
+    logStep(`Found ${missingInvoices.length} missing invoices`);
+    
+    // Create alerts for each missing invoice
+    const invoiceAlerts = [];
+    for (const invoice of missingInvoices) {
+      const alertData = {
+        alert_type: 'MISSING_INVOICE_PAYMENT',
+        severity: 'critical',
+        title: `Missing Payment Record: ${invoice.customer_email || 'Unknown'}`,
+        description: `Invoice ${invoice.id} was paid on Stripe but NOT recorded in subscription_payments.`,
+        details: {
+          invoice_id: invoice.id,
+          customer_email: invoice.customer_email,
+          customer_id: invoice.customer,
+          subscription_id: invoice.subscription,
+          amount_paid: invoice.amount_paid,
+          currency: invoice.currency,
+          billing_reason: invoice.billing_reason,
+          created: new Date(invoice.created * 1000).toISOString(),
+          invoice_url: invoice.hosted_invoice_url
+        }
+      };
+      
+      // Check if alert already exists to avoid duplicates
+      const { data: existingAlert } = await supabaseClient
+        .from('admin_alerts')
+        .select('id')
+        .eq('alert_type', 'MISSING_INVOICE_PAYMENT')
+        .contains('details', { invoice_id: invoice.id })
+        .single();
+      
+      if (!existingAlert) {
+        await supabaseClient.from('admin_alerts').insert(alertData);
+        invoiceAlerts.push({
+          invoice_id: invoice.id,
+          email: invoice.customer_email,
+          amount: invoice.amount_paid
+        });
+        logStep(`Created alert for missing invoice: ${invoice.id}`);
+      }
+    }
+
+    // ============================================
+    // SECTION 2: API Usage Statistics
+    // ============================================
+    const thirtyDaysAgoISO = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     
     const { data: stripeApiCalls, error: logsError } = await supabaseClient
       .from('audit_logs')
       .select('action_type, created_at, metadata')
       .or('action_type.like.%STRIPE%,action_type.like.%CHECKOUT%,action_type.like.%SUBSCRIPTION%')
-      .gte('created_at', thirtyDaysAgo)
+      .gte('created_at', thirtyDaysAgoISO)
       .order('created_at', { ascending: false });
 
     if (logsError) {
       logStep("Error fetching logs", { error: logsError });
-      throw logsError;
     }
 
     // Aggregate statistics
@@ -77,23 +161,21 @@ serve(async (req) => {
       callsByDay: {} as Record<string, number>,
       estimatedCost: 0,
       averageCallsPerDay: 0,
+      missingInvoicesCount: missingInvoices.length,
+      stripeInvoicesCount: stripeInvoices.data.length,
+      dbPaymentsCount: dbPayments?.length || 0
     };
 
     stripeApiCalls?.forEach(log => {
-      // Count by type
       stats.callsByType[log.action_type] = (stats.callsByType[log.action_type] || 0) + 1;
-      
-      // Count by day
       const day = log.created_at.split('T')[0];
       stats.callsByDay[day] = (stats.callsByDay[day] || 0) + 1;
     });
 
-    // Estimate costs (Stripe API is free for most use cases, but monitor anyway)
-    // Stripe charges for high-volume API usage (>1M requests/month)
     stats.averageCallsPerDay = stats.totalCalls / 30;
-    stats.estimatedCost = Math.max(0, (stats.totalCalls - 100000) * 0.0001); // Rough estimate
+    stats.estimatedCost = Math.max(0, (stats.totalCalls - 100000) * 0.0001);
 
-    // Check for alerts
+    // Check for usage alerts
     const alerts = [];
     
     if (stats.averageCallsPerDay > 1000) {
@@ -113,28 +195,33 @@ serve(async (req) => {
       });
     }
 
-    // Create admin alerts if necessary
+    // Create usage alerts
     for (const alert of alerts) {
       await supabaseClient.from('admin_alerts').insert({
         alert_type: 'STRIPE_API_USAGE',
         severity: alert.severity,
         title: alert.title,
         description: alert.description,
-        details: {
-          stats,
-          timestamp: new Date().toISOString()
-        }
+        details: { stats, timestamp: new Date().toISOString() }
       });
     }
 
-    logStep("Monitoring completed", { stats, alertsCreated: alerts.length });
+    logStep("Monitoring completed", { 
+      stats, 
+      alertsCreated: alerts.length,
+      missingInvoicesAlerted: invoiceAlerts.length
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
         stats,
         alerts,
+        missingInvoices: invoiceAlerts,
         recommendations: [
+          missingInvoices.length > 0 
+            ? `⚠️ ${missingInvoices.length} invoice(s) missing from database. Run sync-stripe-payments to fix.`
+            : null,
           stats.averageCallsPerDay > 500 
             ? "Consider caching Stripe data to reduce API calls" 
             : null,
