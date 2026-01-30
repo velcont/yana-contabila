@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, RefreshCw, Brain, Bot, PenLine, Heart } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -24,10 +24,7 @@ const StorageManager = lazy(() => import("@/components/StorageManager").then(m =
 const StrategicConversationsViewer = lazy(() => import("@/components/StrategicConversationsViewer").then(m => ({ default: m.StrategicConversationsViewer })));
 const IntellectualPropertyCertificate = lazy(() => import("@/components/IntellectualPropertyCertificate").then(m => ({ default: m.IntellectualPropertyCertificate })));
 const AdminCostsDashboard = lazy(() => import("@/components/AdminCostsDashboard").then(m => ({ default: m.AdminCostsDashboard })));
-const AdminRevenueMonitor = lazy(() => import("@/components/AdminRevenueMonitor"));
-const TestCheckout = lazy(() => import("@/components/TestCheckout").then(m => ({ default: m.TestCheckout })));
 const TextHumanizer = lazy(() => import("@/components/TextHumanizer").then(m => ({ default: m.TextHumanizer })));
-const AdminSubscriptionSync = lazy(() => import("@/components/AdminSubscriptionSync").then(m => ({ default: m.AdminSubscriptionSync })));
 const MemoryDashboard = lazy(() => import("@/components/admin/MemoryDashboard").then(m => ({ default: m.MemoryDashboard })));
 const AIDecisionsDashboard = lazy(() => import("@/components/admin/AIDecisionsDashboard").then(m => ({ default: m.AIDecisionsDashboard })));
 const ConsciousnessDashboard = lazy(() => import("@/components/admin/ConsciousnessDashboard").then(m => ({ default: m.ConsciousnessDashboard })));
@@ -315,14 +312,6 @@ const Admin = () => {
                 <Users className="h-4 w-4 mr-2" />
                 Utilizatori ({profiles.length})
               </TabsTrigger>
-              <TabsTrigger value="revenue">
-                <DollarSign className="h-4 w-4 mr-2" />
-                💰 Facturare & Venituri
-              </TabsTrigger>
-              <TabsTrigger value="test">
-                <Package className="h-4 w-4 mr-2" />
-                Test Checkout
-              </TabsTrigger>
               <TabsTrigger value="analyses">
                 <FileText className="h-4 w-4 mr-2" />
                 Analize ({analyses.length})
@@ -359,10 +348,6 @@ const Admin = () => {
                 <Sparkles className="h-4 w-4 mr-2" />
                 Text Humanizer
               </TabsTrigger>
-              <TabsTrigger value="sync">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync Stripe
-              </TabsTrigger>
               <TabsTrigger value="memory">
                 <Brain className="h-4 w-4 mr-2" />
                 🧠 Memorie AI
@@ -389,11 +374,6 @@ const Admin = () => {
             <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
           </div>
 
-          <TabsContent value="revenue">
-            <Suspense fallback={<TabContentLoader />}>
-              <AdminRevenueMonitor />
-            </Suspense>
-          </TabsContent>
 
           <TabsContent value="users">
             <UsersList />
@@ -799,11 +779,6 @@ const Admin = () => {
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="test">
-            <Suspense fallback={<TabContentLoader />}>
-              <TestCheckout />
-            </Suspense>
-          </TabsContent>
 
           <TabsContent value="humanizer">
             <Suspense fallback={<TabContentLoader />}>
@@ -811,11 +786,6 @@ const Admin = () => {
             </Suspense>
           </TabsContent>
 
-          <TabsContent value="sync">
-            <Suspense fallback={<TabContentLoader />}>
-              <AdminSubscriptionSync />
-            </Suspense>
-          </TabsContent>
 
           <TabsContent value="memory">
             <Suspense fallback={<TabContentLoader />}>
