@@ -1,77 +1,89 @@
 
+# Plan Simplificat: Curățare Tab-uri Admin
 
-# Plan: Reparare sincronizare Admin pentru utilizatori individuali
+## Situația Actuală
 
-## Problema identificată
+Ai **DEJA** totul necesar în tab-ul "Utilizatori":
+- Filtrul "Plătit Stripe" pentru clienții cu abonament activ
+- Butonul "Emite Factură" pe fiecare card
+- Dialog cu lista invoice-urilor Stripe și opțiune generare SmartBill
 
-Funcția `sync-stripe-subscription` nu procesează corect parametrul `email` trimis din Admin. Logurile arată că folosește email-ul admin-ului în loc de email-ul clientului țintă:
+**Tab-uri redundante care fac confuzie:**
 
-```
-User authenticated - {"email":"office@velcont.com"}  // Admin
-Customer found - {"customerId":"cus_RlfpbEsIYezc71"} // Customer ID greșit
-No active subscription                                // Normal - admin nu are subscripție
-```
-
-Cauză probabilă: deploy-ul anterior nu s-a finalizat sau există un bug în logica de parsing a body-ului.
-
----
-
-## Soluție
-
-### 1. Adaugă logging suplimentar pentru debug
-
-În `supabase/functions/sync-stripe-subscription/index.ts`, adaug log-uri pentru a vedea exact ce primește funcția:
-
-```typescript
-// După parsarea body-ului (linia ~28)
-logStep("Request body parsed", { 
-  hasBody: !!body, 
-  requestedEmail: body?.email || 'none',
-  bodyKeys: Object.keys(body || {})
-});
-```
-
-### 2. Corectează logica de override email
-
-Adaug un log explicit când se face switch-ul de email:
-
-```typescript
-// Înainte de căutarea customerului în Stripe (linia ~102)
-logStep("Searching Stripe for email", { targetEmail });
-```
-
-### 3. Re-deploy funcția
-
-După modificări, re-deploy funcția pentru a asigura că versiunea corectă rulează.
+| Tab | Ce face | De ce e redundant |
+|-----|---------|-------------------|
+| "💰 Facturare & Venituri" | Listă plăți, statistici | Duplicate - filtrezi tot din Utilizatori |
+| "Test Checkout" | Sincronizare subscripție, trimite email | Sincronizarea se face din Settings |
+| "Sync Stripe" | Sincronizare manuală | Același lucru ca "Test Checkout" |
 
 ---
 
-## Rezultat așteptat
+## Propunere: Ștergere Tab-uri
 
-- Când admin-ul sincronizează `timoficiuc.g@gmail.com`, funcția va:
-  1. Log: `Request body parsed - {"requestedEmail":"timoficiuc.g@gmail.com"}`
-  2. Log: `Admin sync requested - {"requestedEmail":"timoficiuc.g@gmail.com"}`
-  3. Căuta customerul corect în Stripe (`cus_Th6jWYK9CKkwOh`)
-  4. Găsi subscripția activă și actualiza profilul
+Ștergem tab-urile inutile și păstrăm doar ce e important:
+
+```text
+DE ȘTERS:
+- "💰 Facturare & Venituri" → funcționalitate deja în Utilizatori
+- "Test Checkout" → rar folosit, mutat în Settings dacă e nevoie
+- "Sync Stripe" → rar folosit
+
+RĂMÂN (13 tab-uri în loc de 16):
+- Utilizatori (cu emitere facturi)
+- Analize
+- Conversații
+- Strategic Advisor
+- Email Anunț
+- Storage
+- Audit Logs
+- Copyright
+- Asistent Doctorat
+- Text Humanizer
+- Memorie AI
+- AI Decisions
+- Conștiința YANA / Corecții AI / Inițiative YANA
+```
 
 ---
 
-## Technical Details
+## Îmbunătățiri Tab "Utilizatori"
 
-Modificări în `supabase/functions/sync-stripe-subscription/index.ts`:
+Pe lângă ștergerea tab-urilor, adăugăm câteva îmbunătățiri mici:
 
-1. Adaug log după parsarea body-ului (linia 29):
-```typescript
-logStep("Request body parsed", { 
-  hasBody: !!body, 
-  requestedEmail: body?.email || 'none'
-});
+1. **Mini-statistici în header** (doar când filtrul e "Plătit Stripe"):
+   - Total abonați: X
+   - MRR estimat: X RON
+   - De facturat: X
+
+2. **Indicator vizual** pe facturi:
+   - ✅ Verde = facturat SmartBill
+   - 🔴 Roșu = de facturat
+
+---
+
+## Fișiere Modificate
+
+| Fișier | Acțiune |
+|--------|---------|
+| `src/pages/Admin.tsx` | Ștergere 3 tab-uri |
+| `src/components/UsersList.tsx` | Adăugare mini-statistici în header când filtrul e "Plătit Stripe" |
+
+---
+
+## Componente de ȘTERS (opțional - pot fi păstrate pentru viitor)
+
+| Componentă | Notă |
+|------------|------|
+| `AdminRevenueMonitor.tsx` | Păstrată, dar nefolosită |
+| `TestCheckout.tsx` | Păstrată, dar nefolosită |
+| `AdminSubscriptionSync.tsx` | Păstrată, dar nefolosită |
+
+---
+
+## Flux Simplificat Final
+
+```text
+Admin → Utilizatori → Filtru "Plătit Stripe" → Card utilizator → "Emite Factură" → Selectează invoice → Generează SmartBill
+
+Un singur loc. Un singur flux. Zero confuzie.
 ```
-
-2. Adaug log înainte de căutarea Stripe (linia 102):
-```typescript
-logStep("Searching Stripe for email", { targetEmail, isAdminOverride: targetEmail !== user.email });
-```
-
-3. Re-deploy funcția pentru a aplica modificările
-
