@@ -1,8 +1,25 @@
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
+import { analytics } from '@/utils/analytics';
 
 const Landing = () => {
   const navigate = useNavigate();
+
+  // Track page view on mount
+  useEffect(() => {
+    analytics.pageView('landing');
+  }, []);
+
+  const handlePrimaryCTA = () => {
+    analytics.landingCtaClick('primary', 'hero');
+    navigate('/auth?redirect=/yana');
+  };
+
+  const handleLoginCTA = () => {
+    analytics.landingCtaClick('login', 'hero');
+    navigate('/auth');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
@@ -30,7 +47,7 @@ const Landing = () => {
           <Button 
             size="lg" 
             className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
-            onClick={() => navigate('/auth?redirect=/yana')}
+            onClick={handlePrimaryCTA}
           >
             Încearcă Yana gratuit
           </Button>
@@ -41,7 +58,7 @@ const Landing = () => {
           <p className="text-sm text-muted-foreground">
             Ai deja cont?{' '}
             <button 
-              onClick={() => navigate('/auth')} 
+              onClick={handleLoginCTA} 
               className="text-primary hover:underline"
             >
               Autentifică-te

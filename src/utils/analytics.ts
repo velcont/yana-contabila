@@ -25,7 +25,19 @@ export type AnalyticsEvent =
   | 'ai_query'
   | 'email_sent'
   | 'file_upload'
-  | 'navigation';
+  | 'navigation'
+  // Funnel tracking events
+  | 'landing_cta_click'
+  | 'auth_page_view'
+  | 'auth_form_started'
+  | 'auth_signup_success'
+  | 'auth_login_success'
+  | 'yana_page_view'
+  | 'yana_first_message'
+  | 'yana_conversation_started'
+  | 'trial_banner_shown'
+  | 'pricing_page_view'
+  | 'checkout_started';
 
 interface TrackEventParams {
   eventName: AnalyticsEvent;
@@ -171,5 +183,84 @@ export const analytics = {
   navigation: (from: string, to: string) => trackEvent({
     eventName: 'navigation',
     eventData: { from, to }
+  }),
+
+  // ====== FUNNEL TRACKING ======
+  
+  // Landing page
+  landingCtaClick: (ctaType: 'primary' | 'secondary' | 'login', source?: string) => trackEvent({
+    eventName: 'landing_cta_click',
+    eventData: { 
+      cta_type: ctaType, 
+      source: source || 'direct',
+      referrer: document.referrer || 'none'
+    }
+  }),
+
+  // Auth page
+  authPageView: (mode: 'login' | 'signup' | 'reset', source?: string) => trackEvent({
+    eventName: 'auth_page_view',
+    eventData: { 
+      mode, 
+      source: source || 'direct',
+      referrer: document.referrer || 'none'
+    }
+  }),
+
+  authFormStarted: (mode: 'login' | 'signup') => trackEvent({
+    eventName: 'auth_form_started',
+    eventData: { mode }
+  }),
+
+  authSignupSuccess: (method: 'email', hasMarketplaceEntry: boolean) => trackEvent({
+    eventName: 'auth_signup_success',
+    eventData: { 
+      method, 
+      has_marketplace_entry: hasMarketplaceEntry,
+      referrer: document.referrer || 'none'
+    }
+  }),
+
+  authLoginSuccess: (method: 'email') => trackEvent({
+    eventName: 'auth_login_success',
+    eventData: { method }
+  }),
+
+  // Yana page
+  yanaPageView: (accessType: string | null, hasCredits: boolean) => trackEvent({
+    eventName: 'yana_page_view',
+    eventData: { 
+      access_type: accessType || 'none',
+      has_credits: hasCredits
+    }
+  }),
+
+  yanaFirstMessage: (messageLength: number, hasDocuments: boolean) => trackEvent({
+    eventName: 'yana_first_message',
+    eventData: { 
+      message_length: messageLength,
+      has_documents: hasDocuments
+    }
+  }),
+
+  yanaConversationStarted: (conversationType: 'new' | 'continued') => trackEvent({
+    eventName: 'yana_conversation_started',
+    eventData: { type: conversationType }
+  }),
+
+  // Trial & Pricing
+  trialBannerShown: (daysRemaining: number, location: string) => trackEvent({
+    eventName: 'trial_banner_shown',
+    eventData: { days_remaining: daysRemaining, location }
+  }),
+
+  pricingPageView: (source: string) => trackEvent({
+    eventName: 'pricing_page_view',
+    eventData: { source }
+  }),
+
+  checkoutStarted: (planType: string, price: number) => trackEvent({
+    eventName: 'checkout_started',
+    eventData: { plan_type: planType, price }
   }),
 };

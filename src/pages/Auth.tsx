@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; // v3.0.0 - single unified plan
+import { useState, useEffect, useRef } from 'react'; // v3.0.0 - single unified plan
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { logError } from '@/utils/sentry';
 import MiniFooter from '@/components/MiniFooter';
+import { analytics } from '@/utils/analytics';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -41,6 +42,18 @@ const Auth = () => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const hasTrackedPageView = useRef(false);
+  const hasTrackedFormStart = useRef(false);
+
+  // Track auth page view
+  useEffect(() => {
+    if (!hasTrackedPageView.current) {
+      hasTrackedPageView.current = true;
+      const mode = isResetMode ? 'reset' : (isLogin ? 'login' : 'signup');
+      const source = searchParams.get('redirect') ? 'redirect' : 'direct';
+      analytics.authPageView(mode, source);
+    }
+  }, [isResetMode, isLogin, searchParams]);
 
   // Marketplace entry detection
   useEffect(() => {
@@ -424,6 +437,9 @@ const Auth = () => {
           description: "Bine ai revenit!",
         });
         
+        // Track login success
+        analytics.authLoginSuccess('email');
+        
         // Redirect logic: check for redirect param first, then marketplace, then default to /yana
         const redirectTo = searchParams.get('redirect');
         const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
@@ -578,10 +594,14 @@ const Auth = () => {
         
         // Redirect logic: check for redirect param first, then marketplace, then default
         const redirectTo = searchParams.get('redirect');
-        const isMarketplace = localStorage.getItem('marketplace_entry') === 'true';
+        const isMarketplaceEntry = localStorage.getItem('marketplace_entry') === 'true';
+        
+        // Track signup success
+        analytics.authSignupSuccess('email', isMarketplaceEntry);
+        
         if (redirectTo) {
           navigate(redirectTo);
-        } else if (isMarketplace) {
+        } else if (isMarketplaceEntry) {
           navigate('/yana?view=marketplace');
         } else {
           navigate('/yana');

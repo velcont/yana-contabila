@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAICredits } from '@/hooks/useAICredits';
@@ -12,6 +12,7 @@ import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
+import { analytics } from '@/utils/analytics';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ export default function Yana() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const hasTrackedPageView = useRef(false);
   
   // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
   // DAR permite accesul dacă au credite AI cumpărate
@@ -44,6 +46,18 @@ export default function Yana() {
     return saved || null;
   });
   
+  // Track Yana page view once when loaded
+  useEffect(() => {
+    if (!loading && !subscriptionLoading && !creditsLoading && user && !hasTrackedPageView.current) {
+      hasTrackedPageView.current = true;
+      analytics.yanaPageView(accessType, hasCredits);
+      
+      // Track conversation type
+      const conversationType = activeConversationId ? 'continued' : 'new';
+      analytics.yanaConversationStarted(conversationType);
+    }
+  }, [loading, subscriptionLoading, creditsLoading, user, accessType, hasCredits, activeConversationId]);
+  
   // Handler pentru selectare conversație cu persistență
   const handleSelectConversation = (id: string) => {
     setActiveConversationId(id);
@@ -54,6 +68,7 @@ export default function Yana() {
   const handleNewConversation = () => {
     setActiveConversationId(null);
     localStorage.removeItem('yana_last_conversation_id');
+    analytics.yanaConversationStarted('new');
   };
 
   const handleSignOut = async () => {
