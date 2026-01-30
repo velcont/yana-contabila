@@ -50,6 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { FunnelAnalytics } from '@/components/analytics/FunnelAnalytics';
 
 interface PatternStats {
   question_pattern: string;
@@ -347,6 +348,11 @@ export default function Analytics() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Funnel Tracking */}
+      <div className="mb-8">
+        <FunnelAnalytics />
       </div>
 
       {/* Grafice principale */}
