@@ -814,6 +814,28 @@ export const UsersList = () => {
         <CardDescription>
           Total: {filteredUsers.length} utilizatori ({freeAccessUsers.length} cu acces gratuit{activeSessions.length > 0 ? `, ${activeSessions.length} activi acum` : ''})
         </CardDescription>
+        
+        {/* Mini-statistici facturare când filtrul e Plătit Stripe */}
+        {accessFilter === 'paid' && (() => {
+          const paidUsers = users.filter(u => getAccessSource(u) === 'paid');
+          const estimatedMRR = paidUsers.length * 49; // 49 RON per abonat
+          return (
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{paidUsers.length}</p>
+                <p className="text-xs text-muted-foreground">Abonați Activi</p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{estimatedMRR} RON</p>
+                <p className="text-xs text-muted-foreground">MRR Estimat</p>
+              </div>
+              <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">—</p>
+                <p className="text-xs text-muted-foreground">De Facturat</p>
+              </div>
+            </div>
+          );
+        })()}
         <div className="mt-3 flex gap-3">
           <Input
             value={emailFilter}
