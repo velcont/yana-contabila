@@ -30,17 +30,26 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
   const [showSignupOverlay, setShowSignupOverlay] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load from localStorage on mount
+  // Proactive greeting - YANA speaks first
+  const YANA_GREETING = "Salut! Sunt Yana. 👋\n\nCe te frământă azi legat de business? Poți să-mi spui orice — de la cifre până la decizii care te țin treaz noaptea.";
+
+  // Load from localStorage on mount + add greeting if new conversation
   useEffect(() => {
     const savedMessages = localStorage.getItem(STORAGE_KEY);
     const savedCount = localStorage.getItem(COUNT_KEY);
     
     if (savedMessages) {
       try {
-        setMessages(JSON.parse(savedMessages));
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed);
       } catch (e) {
         console.error('Failed to parse saved messages');
+        // Start fresh with greeting
+        setMessages([{ role: 'assistant', content: YANA_GREETING }]);
       }
+    } else {
+      // New conversation - YANA speaks first
+      setMessages([{ role: 'assistant', content: YANA_GREETING }]);
     }
     
     if (savedCount) {
@@ -147,7 +156,8 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
   const resetDemo = () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(COUNT_KEY);
-    setMessages([]);
+    // Reset with YANA greeting
+    setMessages([{ role: 'assistant', content: YANA_GREETING }]);
     setQuestionCount(0);
     setShowSignupOverlay(false);
   };
@@ -189,12 +199,8 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
                 <MessageCircle className="w-8 h-8 text-primary" />
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-foreground">
-                  Salut! Sunt YANA.
-                </h4>
                 <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                  Ai 5 întrebări gratuite să mă testezi. Întreabă-mă despre strategii de business, 
-                  analiză financiară, sau orice altceva legat de afacerea ta.
+                  Se încarcă...
                 </p>
               </div>
             </div>
