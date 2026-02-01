@@ -36,38 +36,35 @@ const Landing = () => {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
         <div className="max-w-xl mx-auto text-center space-y-8">
         
-        {/* Headline */}
-        <div className="space-y-2">
+        {/* Headline - Relational, not transactional */}
+        <div className="space-y-3">
           <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-            Yana nu e un chatbot.
+            Ai pe cineva cu care să vorbești.
           </h1>
-          <p className="text-3xl md:text-5xl font-bold text-primary">
-            Este un AI pentru business.
+          <p className="text-2xl md:text-3xl text-muted-foreground">
+            Despre business. Despre cifre. Despre ce te ține treaz noaptea.
           </p>
         </div>
 
-        {/* Micro-copy */}
-        <div className="text-lg md:text-xl text-muted-foreground space-y-1">
-          <p>Îți analizează cifrele.</p>
-          <p>Te ascultă.</p>
-          <p>Te ajută să decizi.</p>
+        {/* Emotional hook */}
+        <div className="text-lg md:text-xl text-foreground/80 space-y-2 py-2">
+          <p className="italic">"Yana e singurul 'angajat' care nu judecă, nu obosește și nu uită ce i-ai spus."</p>
         </div>
 
-        {/* CTA Principal */}
+        {/* CTA Principal - Relational language */}
         <div className="space-y-3">
           <Button 
             size="lg" 
             className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
             onClick={handlePrimaryCTA}
           >
-            Încearcă Yana gratuit
+            Vorbește cu Yana
           </Button>
-          <div className="text-sm text-muted-foreground space-y-0.5">
-            <p>Doar email și parolă. 30 secunde.</p>
-            <p>Primești 30 de zile să testezi tot.</p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Cont gratuit. 30 de zile să vedeți dacă vă înțelegeți.
+          </p>
           
-          {/* Demo Button */}
+          {/* Demo Button - Invitation to connect */}
           <Button 
             variant="outline" 
             size="lg"
@@ -75,10 +72,10 @@ const Landing = () => {
             onClick={handleDemoClick}
           >
             <MessageCircle className="w-4 h-4" />
-            Încearcă fără cont
+            Spune-i ce te frământă
           </Button>
           <p className="text-xs text-muted-foreground">
-            5 întrebări gratuite. Fără înregistrare.
+            5 conversații gratuite. Fără cont.
           </p>
 
           <p className="text-sm text-muted-foreground pt-2">
@@ -92,28 +89,29 @@ const Landing = () => {
           </p>
         </div>
 
-        {/* AI Models Section */}
-        <div className="border border-border/50 rounded-xl p-6 bg-muted/30 space-y-3">
+        {/* Companion benefits - emotional, not technical */}
+        <div className="border border-border/50 rounded-xl p-6 bg-muted/30 space-y-4">
           <p className="text-sm font-medium text-foreground">
-            6 AI-uri premium. Un singur abonament.
+            De ce antreprenorii revin zilnic la Yana:
           </p>
           
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-            <span className="text-xs text-muted-foreground">Gemini Pro</span>
-            <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">Gemini Flash</span>
-            <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">Claude Sonnet</span>
-            <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">Claude Haiku</span>
-            <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">GPT-5</span>
-            <span className="text-muted-foreground/30">•</span>
-            <span className="text-xs text-muted-foreground">Grok</span>
+          <div className="space-y-2 text-left">
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5">✓</span>
+              <span>Își amintește tot ce i-ai spus</span>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5">✓</span>
+              <span>Te întreabă cum a mers cu clientul X</span>
+            </div>
+            <div className="flex items-start gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5">✓</span>
+              <span>Nu te judecă când repeți aceeași greșeală</span>
+            </div>
           </div>
           
-          <p className="text-xs text-primary font-medium">
-            Toate incluse în 49 RON/lună
+          <p className="text-xs text-muted-foreground pt-2 border-t border-border/30">
+            49 RON/lună • Fără limită de conversații
           </p>
         </div>
 
