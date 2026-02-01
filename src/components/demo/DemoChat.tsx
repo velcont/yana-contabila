@@ -166,6 +166,19 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
     setShowSignupOverlay(false);
   };
 
+  // Developer shortcut: Ctrl+Shift+R to reset demo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        resetDemo();
+        console.log('🔄 Demo reset by developer shortcut');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   if (!isOpen) return null;
 
   const remaining = MAX_QUESTIONS - questionCount;
