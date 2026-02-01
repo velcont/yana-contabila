@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, X, Loader2, MessageCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -227,7 +226,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <div className="p-4">
             {messages.length === 0 ? (
               <div className="text-center py-8 space-y-4">
@@ -273,7 +272,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Signup Overlay */}
         {showSignupOverlay && (
