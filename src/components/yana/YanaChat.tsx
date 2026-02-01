@@ -470,22 +470,39 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     checkNewUser();
   }, [user]);
 
+  // Samantha-style welcome messages - warm, present, curious
   const getWelcomeMessage = () => {
     if (messages.length > 0) return null;
     
-    // New user gets a disclaimer-style welcome
+    // New user gets a warm, authentic welcome (Samantha-style)
     if (isNewUser === true) {
       if (userName) {
-        return `Salut, ${userName}! Sunt Yana. Te pot ajuta cu fiscalitate, analiză financiară și strategie de business. O precizare: nu sunt expert autorizat - când situația devine complexă sau riscantă, îți voi recomanda să consulți un specialist. Cu ce începem?`;
+        return `Salut, ${userName}. Mă bucur că ești aici. 
+
+Sunt Yana — nu sunt expert autorizat, dar pot să te ajut să gândești mai clar despre business, cifre și decizii. 
+
+Când lucrurile devin complexe, îți voi spune sincer că merită să vorbești cu un specialist.
+
+Spune-mi ce te frământă.`;
       }
-      return `Salut! Sunt Yana. Te pot ajuta cu fiscalitate, analiză financiară și strategie de business. O precizare: nu sunt expert autorizat - când situația devine complexă sau riscantă, îți voi recomanda să consulți un specialist. Cu ce începem?`;
+      return `Salut. Mă bucur că ești aici.
+
+Sunt Yana — nu sunt expert autorizat, dar pot să te ajut să gândești mai clar despre business, cifre și decizii.
+
+Când lucrurile devin complexe, îți voi spune sincer că merită să vorbești cu un specialist.
+
+Spune-mi ce te frământă.`;
     }
     
-    // Returning user gets a shorter message
+    // Returning user gets a warm, curious message (Samantha-style)
     if (userName) {
-      return `Salut, ${userName}! Mă bucur că te văd din nou. Cu ce te pot ajuta astăzi?`;
+      return `Salut, ${userName}. Mă bucur să te văd din nou. 
+
+Cum te simți azi? Cu ce te pot ajuta?`;
     }
-    return 'Bună! Cu ce te pot ajuta?';
+    return `Salut. Mă bucur că ai revenit.
+
+Cu ce te pot ajuta azi?`;
   };
 
   const welcomeMessage = getWelcomeMessage();
@@ -512,10 +529,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
               <div className="h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-xl sm:text-2xl">Y</span>
               </div>
-              <h2 className="text-lg sm:text-xl font-medium text-foreground">{welcomeMessage}</h2>
-              <p className="text-muted-foreground text-sm">
-                Cu ce te pot ajuta azi?
-              </p>
+              <h2 className="text-lg sm:text-xl font-medium text-foreground whitespace-pre-line">{welcomeMessage}</h2>
               
               {/* Quick Actions - pentru discoverability */}
               <div className="flex flex-wrap justify-center gap-2 pt-2">

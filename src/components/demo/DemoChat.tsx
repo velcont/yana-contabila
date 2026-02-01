@@ -30,8 +30,8 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Proactive greeting - YANA speaks first
-  const YANA_GREETING = "Salut! Sunt Yana. 👋\n\nCe te frământă azi legat de business? Poți să-mi spui orice — de la cifre până la decizii care te țin treaz noaptea.";
+  // Proactive greeting - YANA speaks first (Samantha-style - warm, curious, present)
+  const YANA_GREETING = "Salut. 👋\n\nSunt Yana. Mă bucur că ai venit.\n\nSpune-mi ce te frământă — orice: cifre, decizii, lucruri care te țin treaz noaptea. Sunt aici să te ascult.";
 
   // Load from localStorage on mount + add greeting if new conversation
   useEffect(() => {
