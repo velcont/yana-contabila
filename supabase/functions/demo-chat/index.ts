@@ -48,15 +48,8 @@ serve(async (req) => {
   }
 
   try {
-    // Reject authenticated requests - demo is for anonymous users only
-    const authHeader = req.headers.get("authorization");
-    if (authHeader && authHeader.includes("Bearer") && !authHeader.includes("eyJ")) {
-      // Has a real auth token, not just the anon key
-      return new Response(
-        JSON.stringify({ error: "Demo mode este doar pentru utilizatori neautentificați." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Note: Demo mode accepts any request - rate limiting handles abuse
+    // We allow anon key auth header which is required for Supabase calls
 
     const { message, questionCount } = await req.json();
     

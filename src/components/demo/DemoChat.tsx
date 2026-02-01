@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, X, Loader2, MessageCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { analytics } from '@/utils/analytics';
 
 interface DemoMessage {
   role: 'user' | 'assistant';
@@ -27,7 +28,6 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [questionCount, setQuestionCount] = useState(0);
   const [showSignupOverlay, setShowSignupOverlay] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount
@@ -65,8 +65,9 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
 
   // Scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [messages]);
 
@@ -113,6 +114,9 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
       setQuestionCount(data.questionCount);
+      
+      // Track demo usage
+      analytics.featureUsed('demo_chat', data.questionCount);
 
       if (data.limitReached) {
         setShowSignupOverlay(true);
@@ -178,7 +182,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <ScrollArea className="flex-1 p-4">
           {messages.length === 0 ? (
             <div className="text-center py-8 space-y-4">
               <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
