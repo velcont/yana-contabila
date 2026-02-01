@@ -1,20 +1,64 @@
 
-# Implementare Widget Monitoring - EXECUȚIE IMEDIATĂ
+# Plan: Remediere Completă Cache Landing Page
 
-Bazat pe aprobarea ta, voi crea acum:
+## Cauza Rădăcină Identificată
 
-## 1. Componentă nouă: `src/components/admin/VersionRefreshMonitor.tsx`
-- Widget complet pentru monitorizare version refresh
-- Query la `analytics_events` pentru ultimele 24h
-- Alertă vizuală pentru refresh-uri > 5 secunde
-- Tabel cu ultimele 10 refresh-uri
-- Auto-refresh la 60 secunde
+Tabelul `app_updates` are RLS activat cu o singură politică care permite citirea doar pentru **administratori**. Când un utilizator neautentificat vizitează landing-ul:
 
-## 2. Modificare: `src/pages/Admin.tsx`
-- Lazy import pentru VersionRefreshMonitor
-- Tab nou "Version Refresh" în TabsList
-- TabsContent corespunzător
+1. Query-ul pentru versiune returnează `[]` (array gol)
+2. `VersionUpdateBanner` nu detectează nicio versiune nouă
+3. Service Worker-ul continuă să servească bundle-ul vechi din cache
 
----
+## Soluție Propusă
 
-**Confirmă cu un mesaj simplu (ex: "da" sau "implementează") și voi crea fișierele imediat.**
+### Pasul 1: Adăugare Politică RLS Publică pentru `app_updates`
+
+```sql
+CREATE POLICY "Public can view published updates" 
+ON app_updates 
+FOR SELECT 
+USING (status = 'published');
+```
+
+**Efect:** Toți utilizatorii (inclusiv vizitatori neautentificați) vor putea citi versiunile publicate, declanșând corect mecanismul de refresh.
+
+### Pasul 2: Îmbunătățire `VersionUpdateBanner.tsx`
+
+Adaug logging pentru debugging și un fallback pentru cazul în care query-ul eșuează:
+
+```typescript
+// Logging pentru debugging
+console.log('[VersionBanner] DB version:', currentVersion, 'Local:', localVersion);
+
+// Fallback: dacă nu putem citi din DB, verificăm BUILD_VERSION
+if (!currentVersion && typeof window !== 'undefined') {
+  const buildVersion = (window as any).BUILD_VERSION;
+  // Compară cu versiunea din localStorage
+}
+```
+
+### Pasul 3: Verificare și Curățare Politici Duplicate
+
+Verific dacă există politici conflictuale sau duplicate pe `app_updates` și le curăț dacă e cazul.
+
+## Fișiere Afectate
+
+| Fișier/Resursă | Modificare |
+|----------------|-----------|
+| Migrație SQL | Adăugare politică RLS publică |
+| `VersionUpdateBanner.tsx` | Logging + fallback îmbunătățit |
+
+## Beneficii
+
+- Utilizatorii neautentificați vor primi notificări de update
+- Mecanismul de refresh va funcționa corect pentru toți
+- Landing-ul vechi nu va mai apărea din cache
+
+## Riscuri
+
+- **Scăzut**: Politica expune doar câmpurile publice (version, status) ale update-urilor published
+- **Niciun risc de securitate**: Nu se expun date sensibile
+
+## Timp Estimat
+
+~5 minute pentru implementare completă
