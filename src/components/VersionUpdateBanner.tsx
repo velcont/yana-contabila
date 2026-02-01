@@ -24,7 +24,7 @@ export const VersionUpdateBanner = () => {
   const forceRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Fetch versiunea curentă din DB
+  // Fetch versiunea curentă din DB - folosește maybeSingle() pentru a evita erori 406
   const { data: currentVersion } = useQuery({
     queryKey: ['app-version-check'],
     queryFn: async () => {
@@ -33,14 +33,18 @@ export const VersionUpdateBanner = () => {
         .select('version')
         .eq('is_current_version', true)
         .eq('status', 'published')
-        .single();
+        .maybeSingle();
       
-      if (error) return null;
+      if (error) {
+        console.warn('[VersionBanner] Query error:', error.message);
+        return null;
+      }
       return data?.version || null;
     },
-    refetchInterval: 2 * 60 * 1000, // Verifică la fiecare 2 minute (mai frecvent)
-    staleTime: 60 * 1000, // Cache 1 minut
+    refetchInterval: 2 * 60 * 1000,
+    staleTime: 60 * 1000,
     refetchOnWindowFocus: true,
+    retry: false, // Nu reîncerca dacă nu există date
   });
   
   // Verifică versiunea locală (din DB, NU BUILD_VERSION)

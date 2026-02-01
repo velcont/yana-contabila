@@ -45,8 +45,9 @@ export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
       .select('version')
       .eq('is_current_version', true)
       .eq('status', 'published')
-      .single();
+      .maybeSingle();
     
+    // Dacă nu există versiune în DB, nu forța refresh
     if (error || !data) return false;
     
     const localVersion = localStorage.getItem(DB_VERSION_KEY);
@@ -68,7 +69,7 @@ export const saveCurrentVersion = async (supabase: any): Promise<void> => {
       .select('version')
       .eq('is_current_version', true)
       .eq('status', 'published')
-      .single();
+      .maybeSingle();
     
     if (data?.version) {
       localStorage.setItem(DB_VERSION_KEY, data.version);
