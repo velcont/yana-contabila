@@ -2097,6 +2097,27 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_rate_limits: {
+        Row: {
+          first_request_at: string | null
+          ip_hash: string
+          last_request_at: string | null
+          request_count: number | null
+        }
+        Insert: {
+          first_request_at?: string | null
+          ip_hash: string
+          last_request_at?: string | null
+          request_count?: number | null
+        }
+        Update: {
+          first_request_at?: string | null
+          ip_hash?: string
+          last_request_at?: string | null
+          request_count?: number | null
+        }
+        Relationships: []
+      }
       doctorate_chapter_files: {
         Row: {
           chapter_number: number
@@ -5329,6 +5350,7 @@ export type Database = {
       cleanup_expired_cache: { Args: never; Returns: number }
       cleanup_inactive_sessions: { Args: never; Returns: undefined }
       cleanup_old_data: { Args: never; Returns: undefined }
+      cleanup_old_demo_rate_limits: { Args: never; Returns: undefined }
       deactivate_expired_subscriptions: { Args: never; Returns: undefined }
       extract_question_pattern: {
         Args: { question_text: string }

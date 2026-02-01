@@ -224,3 +224,6 @@ verify_jwt = false
 
 [functions.claude-empathy-agent]
 verify_jwt = false
+
+[functions.demo-chat]
+verify_jwt = false
