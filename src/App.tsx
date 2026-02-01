@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { supabase } from "@/integrations/supabase/client";
 import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from "@/utils/versionRefresh";
 import { usePresenceTracking } from "@/hooks/usePresenceTracking";
+import { useVersionUpdateToast } from "@/hooks/useVersionUpdateToast";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -84,6 +85,12 @@ const PresenceTracker = () => {
   return null;
 };
 
+// Wrapper pentru toast update - trebuie să fie în context providers
+const VersionUpdateToast = () => {
+  useVersionUpdateToast();
+  return null;
+};
+
 const App = () => {
   // Verificare inactivitate >24h la încărcarea aplicației
   useEffect(() => {
@@ -134,6 +141,7 @@ const App = () => {
                   <NotificationProvider>
                     <TutorialProvider>
                     <PresenceTracker />
+                    <VersionUpdateToast />
                     <Suspense fallback={<LoadingFallback />}>
                       <Routes>
                       <Route path="/" element={<Landing />} />

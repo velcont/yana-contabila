@@ -10,7 +10,32 @@
     <script>
       (function() {
         var BUILD_VERSION = '__BUILD_VERSION__';
-        var storedVersion = localStorage.getItem('yana_app_version');
+        var VERSION_KEY = 'yana_db_version';
+        var LOGS_KEY = 'yana_version_logs';
+        var MAX_LOGS = 50;
+        
+        // Funcție pentru logging în localStorage (max 50 entries)
+        function logVersionEvent(action, details) {
+          try {
+            var logs = JSON.parse(localStorage.getItem(LOGS_KEY) || '[]');
+            logs.push({
+              timestamp: new Date().toISOString(),
+              action: action,
+              details: details,
+              url: window.location.href
+            });
+            // Păstrează doar ultimele MAX_LOGS intrări
+            if (logs.length > MAX_LOGS) {
+              logs = logs.slice(-MAX_LOGS);
+            }
+            localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+          } catch (e) {
+            console.warn('[PWA_VERSION] Log error:', e);
+          }
+        }
+        
+        var storedVersion = localStorage.getItem(VERSION_KEY);
+        var refreshStartTime = Date.now();
         
         // Anti-loop: verificăm dacă am făcut refresh recent (în ultimele 10 secunde)
         var lastRefresh = parseInt(localStorage.getItem('yana_last_refresh') || '0');
@@ -20,26 +45,45 @@
         // Dacă versiunea stocată e diferită de cea curentă și nu e refresh recent
         if (storedVersion !== BUILD_VERSION && !isRecentRefresh) {
           console.log('[PWA_VERSION] Version mismatch: stored=' + storedVersion + ', build=' + BUILD_VERSION);
+          logVersionEvent('VERSION_MISMATCH', { from: storedVersion, to: BUILD_VERSION });
           
           // Salvăm timestamp-ul refresh-ului pentru anti-loop
           localStorage.setItem('yana_last_refresh', now.toString());
           // Salvăm versiunea nouă ÎNAINTE de orice altceva pentru a preveni loop infinit
-          localStorage.setItem('yana_app_version', BUILD_VERSION);
+          localStorage.setItem(VERSION_KEY, BUILD_VERSION);
+          
+          // Marker pentru a afișa toast după refresh
+          localStorage.setItem('yana_just_updated', JSON.stringify({
+            from: storedVersion,
+            to: BUILD_VERSION,
+            timestamp: now
+          }));
           
           // Colectăm toate promisiunile de curățare
           var cleanupPromises = [];
           
-          // Curăță Service Worker-uri
+          // Curăță Service Worker-uri cu try-catch robust
           if ('serviceWorker' in navigator) {
             cleanupPromises.push(
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                return Promise.all(registrations.map(function(registration) {
-                  console.log('[PWA_VERSION] Unregistering SW:', registration.scope);
-                  return registration.unregister();
-                }));
-              }).catch(function(err) {
-                console.log('[PWA_VERSION] SW cleanup error:', err);
-              })
+              (function() {
+                try {
+                  return navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    return Promise.all(registrations.map(function(registration) {
+                      console.log('[PWA_VERSION] Unregistering SW:', registration.scope);
+                      logVersionEvent('SW_UNREGISTER', { scope: registration.scope });
+                      return registration.unregister();
+                    }));
+                  }).catch(function(err) {
+                    console.log('[PWA_VERSION] SW cleanup error:', err);
+                    logVersionEvent('SW_ERROR', { error: err.message });
+                    return Promise.resolve();
+                  });
+                } catch (swError) {
+                  console.log('[PWA_VERSION] SW access error:', swError);
+                  logVersionEvent('SW_ACCESS_ERROR', { error: swError.message });
+                  return Promise.resolve();
+                }
+              })()
             );
           }
           
@@ -47,31 +91,42 @@
           if ('caches' in window) {
             cleanupPromises.push(
               caches.keys().then(function(names) {
+                logVersionEvent('CACHE_CLEANUP', { caches: names });
                 return Promise.all(names.map(function(name) { 
                   console.log('[PWA_VERSION] Deleting cache:', name);
                   return caches.delete(name);
                 }));
               }).catch(function(err) {
                 console.log('[PWA_VERSION] Cache cleanup error:', err);
+                logVersionEvent('CACHE_ERROR', { error: err.message });
               })
             );
           }
           
           // După ce toate cache-urile sunt curățate, facem reload HARD (bypass cache)
-          if (cleanupPromises.length > 0) {
-            Promise.all(cleanupPromises).then(function() {
-              console.log('[PWA_VERSION] All caches cleared, hard reloading...');
-              // Hard reload cu bypass cache complet
-              window.location.href = window.location.href.split('?')[0] + '?_v=' + BUILD_VERSION;
+          var performReload = function() {
+            var duration = Date.now() - refreshStartTime;
+            logVersionEvent('HARD_RELOAD', { 
+              from: storedVersion, 
+              to: BUILD_VERSION, 
+              trigger: 'version_mismatch',
+              duration_ms: duration 
             });
+            console.log('[PWA_VERSION] All caches cleared, hard reloading...');
+            window.location.href = window.location.href.split('?')[0] + '?_v=' + BUILD_VERSION;
+          };
+          
+          if (cleanupPromises.length > 0) {
+            Promise.all(cleanupPromises).then(performReload).catch(performReload);
           } else {
             console.log('[PWA_VERSION] No caches to clear, hard reloading...');
-            window.location.href = window.location.href.split('?')[0] + '?_v=' + BUILD_VERSION;
+            performReload();
           }
         } else if (storedVersion !== BUILD_VERSION && isRecentRefresh) {
           // Am făcut refresh recent dar versiunea tot nu s-a actualizat - salvăm și continuăm
           console.log('[PWA_VERSION] Recent refresh detected, saving version and continuing');
-          localStorage.setItem('yana_app_version', BUILD_VERSION);
+          logVersionEvent('RECENT_REFRESH_SKIP', { from: storedVersion, to: BUILD_VERSION });
+          localStorage.setItem(VERSION_KEY, BUILD_VERSION);
         }
       })();
     </script>
