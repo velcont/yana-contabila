@@ -92,7 +92,10 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    
+    // Add user message immediately and wait for state to update
+    const newMessages: DemoMessage[] = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
     setIsLoading(true);
 
     try {
@@ -121,6 +124,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
         throw new Error(data.error || 'Eroare la procesare');
       }
 
+      // Add assistant response to the already updated messages
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
       setQuestionCount(data.questionCount);
       
