@@ -188,7 +188,7 @@ export const analytics = {
   // ====== FUNNEL TRACKING ======
   
   // Landing page
-  landingCtaClick: (ctaType: 'primary' | 'secondary' | 'login', source?: string) => trackEvent({
+  landingCtaClick: (ctaType: 'primary' | 'secondary' | 'login' | 'demo', source?: string) => trackEvent({
     eventName: 'landing_cta_click',
     eventData: { 
       cta_type: ctaType, 

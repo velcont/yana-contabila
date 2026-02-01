@@ -1,15 +1,23 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
+import { DemoChat } from '@/components/demo/DemoChat';
+import { MessageCircle } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [showDemo, setShowDemo] = useState(false);
 
   // Track page view on mount
   useEffect(() => {
     analytics.pageView('landing');
   }, []);
+
+  const handleDemoClick = () => {
+    analytics.landingCtaClick('demo', 'hero');
+    setShowDemo(true);
+  };
 
   const handlePrimaryCTA = () => {
     analytics.landingCtaClick('primary', 'hero');
@@ -22,8 +30,11 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-      <div className="max-w-xl mx-auto text-center space-y-8">
+    <>
+      <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} />
+      
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+        <div className="max-w-xl mx-auto text-center space-y-8">
         
         {/* Headline */}
         <div className="space-y-2">
@@ -55,7 +66,22 @@ const Landing = () => {
             <p>Doar email și parolă. 30 secunde.</p>
             <p>Primești 30 de zile să testezi tot.</p>
           </div>
-          <p className="text-sm text-muted-foreground">
+          
+          {/* Demo Button */}
+          <Button 
+            variant="outline" 
+            size="lg"
+            className="w-full gap-2"
+            onClick={handleDemoClick}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Încearcă fără cont
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            5 întrebări gratuite. Fără înregistrare.
+          </p>
+
+          <p className="text-sm text-muted-foreground pt-2">
             Ai deja cont?{' '}
             <button 
               onClick={handleLoginCTA} 
@@ -130,6 +156,7 @@ const Landing = () => {
 
       </div>
     </div>
+    </>
   );
 };
 
