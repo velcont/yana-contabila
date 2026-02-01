@@ -53,6 +53,14 @@ export const VersionUpdateBanner = () => {
     ? localStorage.getItem(DB_VERSION_KEY) 
     : null;
   
+  // Fallback: verifică BUILD_VERSION dacă DB nu returnează nimic
+  const buildVersion = typeof window !== 'undefined' 
+    ? (window as any).BUILD_VERSION 
+    : null;
+  
+  // Debug logging pentru investigare
+  console.log('[VersionBanner] DB version:', currentVersion, '| Local:', localVersion, '| Build:', buildVersion);
+  
   // Determină dacă există o versiune nouă
   const hasNewVersion = currentVersion && localVersion && 
     currentVersion !== localVersion;
@@ -61,6 +69,7 @@ export const VersionUpdateBanner = () => {
   useEffect(() => {
     if (currentVersion && !localVersion) {
       localStorage.setItem(DB_VERSION_KEY, currentVersion);
+      console.log('[VersionBanner] Salvat versiunea inițială:', currentVersion);
     }
   }, [currentVersion, localVersion]);
   
