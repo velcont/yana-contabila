@@ -51,15 +51,9 @@ serve(async (req) => {
     // Note: Demo mode accepts any request - rate limiting handles abuse
     // We allow anon key auth header which is required for Supabase calls
 
-    const { message, questionCount } = await req.json();
+    const body = await req.json();
+    const { message, questionCount, devReset } = body;
     
-    if (!message || typeof message !== "string") {
-      return new Response(
-        JSON.stringify({ error: "Mesajul este obligatoriu." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // Initialize Supabase client with service role for rate limiting
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -68,6 +62,26 @@ serve(async (req) => {
     // Get and hash client IP
     const clientIP = getClientIP(req);
     const ipHash = await hashIP(clientIP);
+
+    // Developer reset - delete rate limit for this IP
+    if (devReset === true) {
+      await supabase
+        .from("demo_rate_limits")
+        .delete()
+        .eq("ip_hash", ipHash);
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "Rate limit reset for development" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!message || typeof message !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Mesajul este obligatoriu." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Check rate limit
     const { data: rateData, error: rateError } = await supabase

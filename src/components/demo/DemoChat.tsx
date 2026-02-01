@@ -157,10 +157,30 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
     navigate('/auth?redirect=/yana');
   };
 
-  const resetDemo = () => {
+  const resetDemo = async () => {
+    // Reset localStorage
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(COUNT_KEY);
-    // Reset with YANA greeting
+    
+    // Also reset server-side rate limit for developers
+    try {
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/demo-chat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ devReset: true }),
+        }
+      );
+      console.log('🔄 Server-side rate limit reset');
+    } catch (e) {
+      console.error('Failed to reset server-side limit:', e);
+    }
+    
+    // Reset UI with YANA greeting
     setMessages([{ role: 'assistant', content: YANA_GREETING }]);
     setQuestionCount(0);
     setShowSignupOverlay(false);
