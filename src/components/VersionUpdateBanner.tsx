@@ -79,9 +79,16 @@ export const VersionUpdateBanner = () => {
   const hasNewVersion = currentVersion && localVersion && 
     currentVersion !== localVersion;
   
-  // Salvează versiunea curentă la prima vizită (dacă nu există)
+  // Salvează versiunea curentă la prima vizită (dacă nu există sau e invalidă)
   useEffect(() => {
-    if (currentVersion && !localVersion) {
+    // Curăță valori invalide (timestamp-uri din index.html cu prefix 'v')
+    if (localVersion && localVersion.startsWith('v')) {
+      console.log('[VersionBanner] Curățăm valoare invalidă:', localVersion);
+      localStorage.removeItem(DB_VERSION_KEY);
+    }
+    
+    const cleanLocalVersion = localStorage.getItem(DB_VERSION_KEY);
+    if (currentVersion && !cleanLocalVersion) {
       localStorage.setItem(DB_VERSION_KEY, currentVersion);
       console.log('[VersionBanner] Salvat versiunea inițială:', currentVersion);
     }
