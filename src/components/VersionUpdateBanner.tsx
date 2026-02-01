@@ -2,12 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { performVersionRefresh } from '@/utils/versionRefresh';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
 const DB_VERSION_KEY = 'yana_db_version';
-const DISMISSED_VERSION_KEY = 'yana_version_dismissed';
 const FORCE_REFRESH_TIMEOUT = 60000; // 60 secunde înainte de force refresh
 
 /**
