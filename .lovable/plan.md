@@ -1,164 +1,84 @@
 
+# Widget Monitoring Alerts pentru Version Refresh în /admin
 
-# Plan: Demo Mode cu Countdown (5 întrebări gratuite)
-
-## Obiectiv
-Implementarea unui mod Demo pe landing page care permite utilizatorilor să pună 5 întrebări gratuite FĂRĂ cont, cu YANA informându-i după fiecare răspuns câte întrebări mai au disponibile.
-
----
-
-## Arhitectura Soluției
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          LANDING PAGE                                   │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │                     DemoChat Component                             │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐  │ │
-│  │  │ Mesaj YANA: "Salut! Ai 5 întrebări gratuite. Cu ce începem?"│  │ │
-│  │  └─────────────────────────────────────────────────────────────┘  │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐  │ │
-│  │  │ User: "Care sunt indicatorii cheie pentru profit?"          │  │ │
-│  │  └─────────────────────────────────────────────────────────────┘  │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐  │ │
-│  │  │ YANA: "[Răspuns] Mai ai 4 întrebări în modul Demo."         │  │ │
-│  │  └─────────────────────────────────────────────────────────────┘  │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-│                              ↓                                          │
-│                    După 5 întrebări:                                    │
-│  ┌───────────────────────────────────────────────────────────────────┐ │
-│  │ YANA: "Mi-a făcut plăcere să discutăm! Creează-ți un cont        │ │
-│  │ gratuit pentru a continua - ai 30 de zile să testezi tot."       │ │
-│  │ [Buton: Creează cont gratuit]                                     │ │
-│  └───────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+## Rezumat
+Voi crea un widget dedicat în pagina Admin care monitorizează performanța sistemului de Version Refresh și generează alerte vizuale când refresh-ul durează mai mult de 5 secunde.
 
 ---
 
-## Ce se creează
-
-### 1. Edge Function: `demo-chat` (NOU)
-**Locație:** `supabase/functions/demo-chat/index.ts`
-
-**Responsabilități:**
-- Procesează mesaje demo FĂRĂ autentificare
-- Verifică IP rate limiting (max 5 mesaje per IP per 24h)
-- Apelează AI (Lovable AI - nu necesită API key extern)
-- NU salvează nimic în baza de date
-- Adaugă automat countdown-ul la sfârșitul răspunsului
-
-**Logică Countdown:**
-```text
-Întrebarea 1 → Răspuns + "📝 Mai ai 4 întrebări în modul Demo."
-Întrebarea 2 → Răspuns + "📝 Mai ai 3 întrebări în modul Demo."
-Întrebarea 3 → Răspuns + "📝 Mai ai 2 întrebări în modul Demo."
-Întrebarea 4 → Răspuns + "📝 Aceasta e ultima întrebare gratuită!"
-Întrebarea 5 → Răspuns + CTA pentru creare cont
-```
-
-### 2. Componenta: `DemoChat.tsx` (NOU)
-**Locație:** `src/components/demo/DemoChat.tsx`
-
-**Caracteristici:**
-- UI simplificat bazat pe design-ul YanaChat
-- Stare locală (localStorage) pentru mesaje demo
-- Contador vizibil: "Demo Mode • 3/5 întrebări rămase"
-- După 5 întrebări: overlay cu CTA pentru signup
-- NU apelează funcții care necesită autentificare
-
-### 3. Actualizare: `Landing.tsx`
-**Modificări:**
-- Adaugă buton "Încearcă fără cont" sub CTA principal
-- Toggle pentru afișarea DemoChat ca modal/expandable
-- Tracking analytics pentru utilizarea demo-ului
-
----
-
-## Detalii Tehnice
-
-### Edge Function `demo-chat`
-
-**Securitate IP Rate Limiting:**
-```text
-1. Extrage IP din headers (x-forwarded-for sau x-real-ip)
-2. Verifică în tabel demo_rate_limits dacă IP-ul are < 5 cereri în ultimele 24h
-3. Incrementează counter pentru IP
-4. Respinge cu mesaj prietenos dacă limit atins
-```
-
-**Prompt AI dedicat:**
-```text
-Ești Yana, asistent AI pentru business. Acesta e un mod DEMO - 
-răspunde concis (max 150 cuvinte), prietenos, și profesional.
-Focus pe valoarea pe care o poți oferi cu un cont complet.
-```
-
-### Componenta DemoChat
-
-**State Management:**
-```text
-- demoMessages: array în localStorage
-- demoCount: număr (0-5) în localStorage
-- showSignupOverlay: boolean când count >= 5
-```
-
-**Mesaje Countdown (adăugate de backend):**
-- Count 1: "📝 Mai ai **4 întrebări** în modul Demo. Creează cont pentru acces nelimitat!"
-- Count 2: "📝 Mai ai **3 întrebări** în modul Demo."
-- Count 3: "📝 Mai ai **2 întrebări** în modul Demo."
-- Count 4: "📝 Aceasta e **ultima întrebare** gratuită!"
-- Count 5: Mesaj final cu CTA
-
----
-
-## Garanții de Securitate
-
-| Aspect | Implementare |
-|--------|--------------|
-| Nu se poate bypassa limita prin cache clear | IP rate limiting pe server |
-| Utilizatorii autentificați nu pot abuza | Demo-chat verifică să NU existe auth header |
-| Funcțiile principale rămân protejate | ai-router, strategic-advisor etc. cer auth |
-| Nu se salvează date sensibile | Demo nu scrie în DB (doar rate limit counter) |
-| Trial-ul de 30 zile rămâne intact | set-trial-for-new-users trigger neschimbat |
-
----
-
-## Fișiere Afectate
+## Fișiere de creat/modificat
 
 | Fișier | Acțiune | Descriere |
 |--------|---------|-----------|
-| `supabase/functions/demo-chat/index.ts` | CREARE | Edge function pentru demo |
-| `src/components/demo/DemoChat.tsx` | CREARE | Componenta chat demo |
-| `src/pages/Landing.tsx` | MODIFICARE | Adaugă buton și integrare demo |
-| `supabase/config.toml` | MODIFICARE | Adaugă config pentru demo-chat (verify_jwt=false) |
+| `src/components/admin/VersionRefreshMonitor.tsx` | **CREAT** | Componentă nouă pentru monitorizare |
+| `src/pages/Admin.tsx` | **MODIFICAT** | Lazy import + Tab nou |
 
 ---
 
-## Migrare DB necesară
+## Detalii Implementare
 
-Tabel nou pentru rate limiting:
-```sql
-CREATE TABLE demo_rate_limits (
-  ip_hash TEXT PRIMARY KEY,  -- Hash pentru GDPR
-  request_count INTEGER DEFAULT 1,
-  first_request_at TIMESTAMPTZ DEFAULT now(),
-  last_request_at TIMESTAMPTZ DEFAULT now()
-);
+### 1. Componentă nouă: VersionRefreshMonitor.tsx
+
+**Funcționalități:**
+- Query la `analytics_events` pentru evenimente `version_refresh` din ultimele 24h
+- Statistici agregate: total refresh-uri, durată medie, procent refresh-uri lente
+- Alertă vizuală roșie când există refresh-uri > 5 secunde
+- Tabel cu ultimele 10 refresh-uri și detalii (durată, trigger, status)
+- Auto-refresh la 60 secunde
+
+**Threshold alertă:** `SLOW_THRESHOLD_MS = 5000` (5 secunde)
+
+### 2. Modificări Admin.tsx
+
+- Lazy load componentă nouă
+- Tab nou "Version Refresh" cu icon RefreshCw
+- TabsContent cu Suspense wrapper
+
+---
+
+## UI Preview
+
+```text
+┌─────────────────────────────────────────────────┐
+│ ⏱️ Monitoring Version Refresh                  │
+├─────────────────────────────────────────────────┤
+│ Ultimele 24h:                                   │
+│   • Total refresh-uri: 47                       │
+│   • Durată medie: 2.3s                          │
+│   • Refresh-uri lente (>5s): 3 (6.4%)           │
+│                                                 │
+│ ⚠️ ALERTĂ: 3 refresh-uri au durat >5s          │
+│                                                 │
+│ Ultimele 10 refresh-uri:                        │
+│ ┌────────────┬────────┬──────────┬───────────┐ │
+│ │ Data       │ Durată │ Trigger  │ Status    │ │
+│ ├────────────┼────────┼──────────┼───────────┤ │
+│ │ 14:32      │ 1.2s   │ banner   │ ✓         │ │
+│ │ 14:15      │ 7.8s   │ timeout  │ ⚠️ LENT   │ │
+│ └────────────┴────────┴──────────┴───────────┘ │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Fluxul Utilizatorului
+## Query SQL
 
-1. **Vizitator pe landing** → Vede "Încearcă fără cont" sub CTA principal
-2. **Click** → Se deschide DemoChat cu mesaj: "Salut! Ai 5 întrebări gratuite..."
-3. **Pune întrebare** → Primește răspuns + countdown
-4. **După 5 întrebări** → Overlay: "Creează cont gratuit pentru a continua"
-5. **Click signup** → Redirect la /auth?redirect=/yana cu trial 30 zile activat
+```typescript
+const { data } = await supabase
+  .from('analytics_events')
+  .select('event_data, created_at, user_id')
+  .eq('event_name', 'version_refresh')
+  .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+  .order('created_at', { ascending: false })
+  .limit(100);
+```
 
 ---
 
-## Timp estimat implementare
-~2-3 sesiuni de lucru
+## Componente UI folosite
 
+- Card, CardHeader, CardTitle, CardContent (layout)
+- Badge cu variante: default (normal), destructive (alert)
+- Table, TableHeader, TableBody, TableRow, TableCell
+- Alert cu AlertCircle pentru alertele active
+- RefreshCw icon pentru refresh manual
