@@ -1,64 +1,91 @@
 
-# Plan: Remediere Completă Cache Landing Page
+# Plan: Remediere Conflict Chei Versiune
 
-## Cauza Rădăcină Identificată
+## Problema Identificată
 
-Tabelul `app_updates` are RLS activat cu o singură politică care permite citirea doar pentru **administratori**. Când un utilizator neautentificat vizitează landing-ul:
+Există un conflict între două sisteme de versiuni care folosesc aceeași cheie `yana_db_version`:
 
-1. Query-ul pentru versiune returnează `[]` (array gol)
-2. `VersionUpdateBanner` nu detectează nicio versiune nouă
-3. Service Worker-ul continuă să servească bundle-ul vechi din cache
+| Script | Ce scrie în localStorage | Exemplu |
+|--------|--------------------------|---------|
+| `index.html` | `BUILD_VERSION` (timestamp) | `v1769953356507` |
+| `VersionUpdateBanner.tsx` | Versiune din DB (semantică) | `4.0.0.1` |
+
+**Rezultat:** Banner-ul de actualizare apare **permanent** deoarece comparația `4.0.0.1 !== v1769953356507` este mereu adevărată.
 
 ## Soluție Propusă
 
-### Pasul 1: Adăugare Politică RLS Publică pentru `app_updates`
+Separăm cele două sisteme folosind **chei diferite** în localStorage:
 
-```sql
-CREATE POLICY "Public can view published updates" 
-ON app_updates 
-FOR SELECT 
-USING (status = 'published');
+| Cheie | Scop | Folosită de |
+|-------|------|-------------|
+| `yana_build_version` | Timestamp build PWA | `index.html` |
+| `yana_db_version` | Versiune semantică din DB | `VersionUpdateBanner.tsx` |
+
+## Pași de Implementare
+
+### Pasul 1: Modificare `index.html`
+
+Schimbăm cheia folosită de scriptul de cache busting:
+
+```javascript
+// ÎNAINTE
+var VERSION_KEY = 'yana_db_version';
+
+// DUPĂ
+var VERSION_KEY = 'yana_build_version';
 ```
 
-**Efect:** Toți utilizatorii (inclusiv vizitatori neautentificați) vor putea citi versiunile publicate, declanșând corect mecanismul de refresh.
+Acest lucru va face ca:
+- Scriptul din `index.html` să folosească `yana_build_version` pentru timestamp-uri
+- `VersionUpdateBanner.tsx` să continue să folosească `yana_db_version` pentru versiuni semantice
 
-### Pasul 2: Îmbunătățire `VersionUpdateBanner.tsx`
+### Pasul 2: Verificare `VersionUpdateBanner.tsx`
 
-Adaug logging pentru debugging și un fallback pentru cazul în care query-ul eșuează:
+Confirmăm că componenta folosește corect `yana_db_version` și nu citește din cheia greșită.
 
-```typescript
-// Logging pentru debugging
-console.log('[VersionBanner] DB version:', currentVersion, 'Local:', localVersion);
+### Pasul 3: Migrare Date Vechi (Opțional)
 
-// Fallback: dacă nu putem citi din DB, verificăm BUILD_VERSION
-if (!currentVersion && typeof window !== 'undefined') {
-  const buildVersion = (window as any).BUILD_VERSION;
-  // Compară cu versiunea din localStorage
-}
+Adăugăm un script de curățare care:
+1. Verifică dacă `yana_db_version` conține un timestamp (prefix `v`)
+2. Dacă da, îl șterge pentru a permite sincronizarea corectă
+
+## Diagrama Fluxului Corectat
+
+```text
+┌──────────────────┐     ┌──────────────────┐
+│   index.html     │     │ VersionBanner    │
+│                  │     │                  │
+│ BUILD_VERSION    │     │ DB Query         │
+│ (timestamp)      │     │ (semantic)       │
+│        │         │     │        │         │
+│        ▼         │     │        ▼         │
+│ yana_build_ver   │     │ yana_db_version  │
+│ (v176995335...)  │     │ (4.0.0.1)        │
+└──────────────────┘     └──────────────────┘
+        ↓                        ↓
+   Cache busting           Afișare banner
+   (PWA refresh)           (doar când DB > local)
 ```
-
-### Pasul 3: Verificare și Curățare Politici Duplicate
-
-Verific dacă există politici conflictuale sau duplicate pe `app_updates` și le curăț dacă e cazul.
 
 ## Fișiere Afectate
 
-| Fișier/Resursă | Modificare |
-|----------------|-----------|
-| Migrație SQL | Adăugare politică RLS publică |
-| `VersionUpdateBanner.tsx` | Logging + fallback îmbunătățit |
+| Fișier | Modificare |
+|--------|------------|
+| `index.html` | Schimbă `VERSION_KEY` la `yana_build_version` |
+| `VersionUpdateBanner.tsx` | Adaugă logică de curățare a valorilor invalide |
 
 ## Beneficii
 
-- Utilizatorii neautentificați vor primi notificări de update
-- Mecanismul de refresh va funcționa corect pentru toți
-- Landing-ul vechi nu va mai apărea din cache
+1. Cele două sisteme funcționează independent
+2. Banner-ul apare DOAR când versiunea din DB se schimbă efectiv
+3. Cache busting-ul PWA continuă să funcționeze normal
+4. Se rezolvă loop-ul infinit de afișare a banner-ului
 
-## Riscuri
+## Riscuri și Mitigare
 
-- **Scăzut**: Politica expune doar câmpurile publice (version, status) ale update-urilor published
-- **Niciun risc de securitate**: Nu se expun date sensibile
+- **Risc scăzut**: Utilizatorii existenți pot avea `yana_db_version` cu valoare invalidă
+- **Mitigare**: Adăugăm validare care șterge valorile cu prefix `v` și permite sincronizarea corectă
 
 ## Timp Estimat
 
-~5 minute pentru implementare completă
+~3 minute pentru implementare completă
