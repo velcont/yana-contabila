@@ -29,6 +29,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
   const [questionCount, setQuestionCount] = useState(0);
   const [showSignupOverlay, setShowSignupOverlay] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Proactive greeting - YANA speaks first
   const YANA_GREETING = "Salut! Sunt Yana. 👋\n\nCe te frământă azi legat de business? Poți să-mi spui orice — de la cifre până la decizii care te țin treaz noaptea.";
@@ -74,11 +75,8 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
 
   // Scroll to bottom on new messages
   useEffect(() => {
-    const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
-    }
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   // Focus input when opened
   useEffect(() => {
@@ -229,7 +227,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 min-h-0 h-[50vh]">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-4">
             {messages.length === 0 ? (
               <div className="text-center py-8 space-y-4">
@@ -271,6 +269,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
                     </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
