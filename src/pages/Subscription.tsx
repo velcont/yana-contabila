@@ -190,7 +190,7 @@ const Subscription = () => {
               <span className="text-2xl font-semibold">RON</span>
               <span className="text-muted-foreground">/lună</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">+ TVA</p>
+            <p className="text-sm text-muted-foreground mt-1">TVA inclus</p>
           </CardHeader>
 
           <CardContent className="pt-6">
