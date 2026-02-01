@@ -74,9 +74,10 @@ const Landing = () => {
             <MessageCircle className="w-4 h-4" />
             Spune-i ce te frământă
           </Button>
-          <p className="text-xs text-muted-foreground">
-            5 conversații gratuite. Fără cont.
-          </p>
+          <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-medium">
+            <span>🎁</span>
+            <span>5 conversații gratuite. Fără cont.</span>
+          </div>
 
           <p className="text-sm text-muted-foreground pt-2">
             Ai deja cont?{' '}
