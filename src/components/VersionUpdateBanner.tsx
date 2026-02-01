@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 
 // KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
 const DB_VERSION_KEY = 'yana_db_version';
+const JUST_REFRESHED_KEY = 'yana_just_refreshed';
 const FORCE_REFRESH_TIMEOUT = 60000; // 60 secunde înainte de force refresh
 
 /**
@@ -22,8 +23,21 @@ const FORCE_REFRESH_TIMEOUT = 60000; // 60 secunde înainte de force refresh
 export const VersionUpdateBanner = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [justRefreshed, setJustRefreshed] = useState(false);
   const forceRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Verifică dacă tocmai s-a făcut refresh - și curăță flag-ul
+  useEffect(() => {
+    const wasJustRefreshed = sessionStorage.getItem(JUST_REFRESHED_KEY);
+    if (wasJustRefreshed) {
+      console.log('[VersionBanner] ✅ Refresh recent detectat, ascund banner-ul');
+      setJustRefreshed(true);
+      sessionStorage.removeItem(JUST_REFRESHED_KEY);
+      // După 5 secunde, resetează flag-ul pentru a permite detectarea viitoare
+      setTimeout(() => setJustRefreshed(false), 5000);
+    }
+  }, []);
   
   // Fetch versiunea curentă din DB - folosește maybeSingle() pentru a evita erori 406
   const { data: currentVersion } = useQuery({
@@ -131,6 +145,10 @@ export const VersionUpdateBanner = () => {
       if (currentVersion) {
         localStorage.setItem(DB_VERSION_KEY, currentVersion);
       }
+      
+      // Setează flag că tocmai s-a făcut refresh (folosim sessionStorage pentru a supraviețui refresh-ului)
+      sessionStorage.setItem(JUST_REFRESHED_KEY, 'true');
+      
       await performVersionRefresh();
     } catch (error) {
       console.error('[VersionUpdateBanner] Refresh failed:', error);
@@ -138,8 +156,8 @@ export const VersionUpdateBanner = () => {
     }
   };
   
-  // Nu afișa dacă nu există versiune nouă sau se face refresh
-  if (!hasNewVersion) {
+  // Nu afișa dacă nu există versiune nouă, se face refresh, sau tocmai s-a făcut refresh
+  if (!hasNewVersion || justRefreshed) {
     return null;
   }
   
