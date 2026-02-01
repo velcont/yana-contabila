@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { performVersionRefresh } from '@/utils/versionRefresh';
@@ -8,21 +8,22 @@ import { Button } from '@/components/ui/button';
 // KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
 const DB_VERSION_KEY = 'yana_db_version';
 const DISMISSED_VERSION_KEY = 'yana_version_dismissed';
+const FORCE_REFRESH_TIMEOUT = 60000; // 60 secunde înainte de force refresh
 
 /**
- * Faza 2.5: Banner persistent pentru utilizatori deja logați
- * Verifică periodic dacă există o versiune nouă și afișează un banner
- * pentru ca utilizatorul să poată actualiza manual.
+ * Faza 2.5 AGRESIVĂ: Banner cu countdown + force refresh
  * 
- * NOTĂ: Folosește `yana_db_version` pentru versiunea semantică din DB,
- * separat de `yana_app_version` folosit pentru PWA cache busting.
- * 
- * Dismiss-ul persistă per versiune - utilizatorul nu va fi deranjat repetat
- * pentru aceeași versiune, dar banner-ul va reapărea pentru versiuni noi.
+ * Când detectează versiune nouă:
+ * 1. Afișează banner cu countdown de 60 secunde
+ * 2. Utilizatorul poate da click pentru refresh imediat
+ * 3. Dacă ignoră, refresh-ul se face automat după 60s
+ * 4. Dismiss-ul NU persistă - banner-ul reapare la fiecare încărcare
  */
 export const VersionUpdateBanner = () => {
-  const [dismissed, setDismissed] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const forceRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Fetch versiunea curentă din DB
   const { data: currentVersion } = useQuery({
@@ -38,8 +39,8 @@ export const VersionUpdateBanner = () => {
       if (error) return null;
       return data?.version || null;
     },
-    refetchInterval: 5 * 60 * 1000, // Verifică la fiecare 5 minute
-    staleTime: 2 * 60 * 1000, // Cache 2 minute
+    refetchInterval: 2 * 60 * 1000, // Verifică la fiecare 2 minute (mai frecvent)
+    staleTime: 60 * 1000, // Cache 1 minut
     refetchOnWindowFocus: true,
   });
   
@@ -48,15 +49,9 @@ export const VersionUpdateBanner = () => {
     ? localStorage.getItem(DB_VERSION_KEY) 
     : null;
   
-  // Verifică dacă această versiune a fost deja dismissed
-  const dismissedVersion = typeof window !== 'undefined'
-    ? localStorage.getItem(DISMISSED_VERSION_KEY)
-    : null;
-  
-  // Determină dacă există o versiune nouă care NU a fost dismissed
+  // Determină dacă există o versiune nouă
   const hasNewVersion = currentVersion && localVersion && 
-    currentVersion !== localVersion && 
-    currentVersion !== dismissedVersion;
+    currentVersion !== localVersion;
   
   // Salvează versiunea curentă la prima vizită (dacă nu există)
   useEffect(() => {
@@ -65,16 +60,50 @@ export const VersionUpdateBanner = () => {
     }
   }, [currentVersion, localVersion]);
   
-  // Handler pentru dismiss - persistă pentru această versiune
-  const handleDismiss = () => {
-    if (currentVersion) {
-      localStorage.setItem(DISMISSED_VERSION_KEY, currentVersion);
+  // AGRESIV: Când detectăm versiune nouă, pornim countdown pentru force refresh
+  useEffect(() => {
+    if (hasNewVersion && !isRefreshing) {
+      console.log('[VersionBanner] Versiune nouă detectată:', currentVersion, '- pornesc countdown');
+      
+      // Pornim countdown vizual
+      setCountdown(60);
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      // Pornim timer pentru force refresh
+      forceRefreshTimerRef.current = setTimeout(async () => {
+        console.log('[VersionBanner] Force refresh după timeout');
+        await handleRefresh();
+      }, FORCE_REFRESH_TIMEOUT);
+      
+      return () => {
+        if (forceRefreshTimerRef.current) {
+          clearTimeout(forceRefreshTimerRef.current);
+        }
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+        }
+      };
     }
-    setDismissed(true);
-  };
+  }, [hasNewVersion, currentVersion, isRefreshing]);
   
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    
+    // Curățăm timer-ele
+    if (forceRefreshTimerRef.current) {
+      clearTimeout(forceRefreshTimerRef.current);
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+    
     try {
       // Salvează noua versiune înainte de refresh
       if (currentVersion) {
@@ -87,43 +116,30 @@ export const VersionUpdateBanner = () => {
     }
   };
   
-  // Nu afișa dacă:
-  // - Nu există versiune nouă
-  // - Banner-ul a fost închis
-  // - Se face refresh
-  if (!hasNewVersion || dismissed) {
+  // Nu afișa dacă nu există versiune nouă sau se face refresh
+  if (!hasNewVersion) {
     return null;
   }
   
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] bg-primary text-primary-foreground shadow-lg animate-in slide-in-from-top duration-300">
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-destructive text-destructive-foreground shadow-lg animate-in slide-in-from-top duration-300">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span className="text-sm font-medium">
-            O versiune nouă YANA este disponibilă ({currentVersion})
+            ⚠️ Versiune nouă YANA ({currentVersion}) - Actualizare automată în {countdown}s
           </span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-          >
-            {isRefreshing ? 'Se actualizează...' : 'Actualizează acum'}
-          </Button>
-          
-          <button
-            onClick={handleDismiss}
-            className="p-1 hover:bg-primary-foreground/20 rounded-full transition-colors"
-            aria-label="Închide"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="bg-white text-destructive hover:bg-white/90 font-semibold"
+        >
+          {isRefreshing ? 'Se actualizează...' : 'Actualizează ACUM'}
+        </Button>
       </div>
     </div>
   );
