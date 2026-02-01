@@ -192,49 +192,51 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
-          {messages.length === 0 ? (
-            <div className="text-center py-8 space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                <MessageCircle className="w-8 h-8 text-primary" />
+        <ScrollArea className="flex-1 min-h-0 h-[50vh]">
+          <div className="p-4">
+            {messages.length === 0 ? (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                  <MessageCircle className="w-8 h-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Se încarcă...
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                  Se încarcă...
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    "flex",
-                    msg.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
+            ) : (
+              <div className="space-y-4">
+                {messages.map((msg, idx) => (
                   <div
+                    key={idx}
                     className={cn(
-                      "max-w-[85%] rounded-2xl px-4 py-3 text-sm",
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground'
+                      "flex",
+                      msg.role === 'user' ? 'justify-end' : 'justify-start'
                     )}
                   >
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                    <div
+                      className={cn(
+                        "max-w-[85%] rounded-2xl px-4 py-3 text-sm",
+                        msg.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-foreground'
+                      )}
+                    >
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-2xl px-4 py-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted rounded-2xl px-4 py-3">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
+          </div>
         </ScrollArea>
 
         {/* Signup Overlay */}
