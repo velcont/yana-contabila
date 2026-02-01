@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -31,6 +31,7 @@ const ConsciousnessDashboard = lazy(() => import("@/components/admin/Consciousne
 const AICorrectionsPanel = lazy(() => import("@/components/admin/AICorrectionsPanel").then(m => ({ default: m.AICorrectionsPanel })));
 const YanaInitiativesPanel = lazy(() => import("@/components/admin/YanaInitiativesPanel").then(m => ({ default: m.YanaInitiativesPanel })));
 const ApiStatusWidget = lazy(() => import("@/components/admin/ApiStatusWidget").then(m => ({ default: m.ApiStatusWidget })));
+const VersionRefreshMonitor = lazy(() => import("@/components/admin/VersionRefreshMonitor").then(m => ({ default: m.VersionRefreshMonitor })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -367,6 +368,10 @@ const Admin = () => {
               <TabsTrigger value="initiatives">
                 <Heart className="h-4 w-4 mr-2" />
                 💝 Inițiative YANA
+              </TabsTrigger>
+              <TabsTrigger value="version-refresh">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                ⏱️ Version Refresh
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -814,6 +819,12 @@ const Admin = () => {
           <TabsContent value="initiatives">
             <Suspense fallback={<TabContentLoader />}>
               <YanaInitiativesPanel />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="version-refresh">
+            <Suspense fallback={<TabContentLoader />}>
+              <VersionRefreshMonitor />
             </Suspense>
           </TabsContent>
         </Tabs>
