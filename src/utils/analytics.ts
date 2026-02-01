@@ -37,7 +37,9 @@ export type AnalyticsEvent =
   | 'yana_conversation_started'
   | 'trial_banner_shown'
   | 'pricing_page_view'
-  | 'checkout_started';
+  | 'checkout_started'
+  // Version refresh tracking
+  | 'version_refresh';
 
 interface TrackEventParams {
   eventName: AnalyticsEvent;
@@ -262,5 +264,23 @@ export const analytics = {
   checkoutStarted: (planType: string, price: number) => trackEvent({
     eventName: 'checkout_started',
     eventData: { plan_type: planType, price }
+  }),
+
+  // ====== VERSION REFRESH TRACKING ======
+  
+  versionRefresh: (data: { 
+    from: string | null; 
+    to: string; 
+    trigger: 'version_mismatch' | 'banner_click' | 'banner_timeout' | 'manual';
+    duration_ms: number;
+  }) => trackEvent({
+    eventName: 'version_refresh' as AnalyticsEvent,
+    eventData: { 
+      from_version: data.from,
+      to_version: data.to,
+      trigger: data.trigger,
+      duration_ms: data.duration_ms,
+      user_agent: navigator.userAgent
+    }
   }),
 };

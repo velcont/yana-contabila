@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { performVersionRefresh } from '@/utils/versionRefresh';
+import { analytics } from '@/utils/analytics';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -82,7 +83,7 @@ export const VersionUpdateBanner = () => {
       // Pornim timer pentru force refresh
       forceRefreshTimerRef.current = setTimeout(async () => {
         console.log('[VersionBanner] Force refresh după timeout');
-        await handleRefresh();
+        await handleRefresh('banner_timeout');
       }, FORCE_REFRESH_TIMEOUT);
       
       return () => {
@@ -96,7 +97,8 @@ export const VersionUpdateBanner = () => {
     }
   }, [hasNewVersion, currentVersion, isRefreshing]);
   
-  const handleRefresh = async () => {
+  const handleRefresh = async (trigger: 'banner_click' | 'banner_timeout' = 'banner_click') => {
+    const startTime = Date.now();
     setIsRefreshing(true);
     
     // Curățăm timer-ele
@@ -108,6 +110,14 @@ export const VersionUpdateBanner = () => {
     }
     
     try {
+      // Trimite analytics
+      analytics.versionRefresh({
+        from: localVersion,
+        to: currentVersion!,
+        trigger,
+        duration_ms: Date.now() - startTime
+      });
+      
       // Salvează noua versiune înainte de refresh
       if (currentVersion) {
         localStorage.setItem(DB_VERSION_KEY, currentVersion);
@@ -137,7 +147,7 @@ export const VersionUpdateBanner = () => {
         <Button
           size="sm"
           variant="secondary"
-          onClick={handleRefresh}
+          onClick={() => handleRefresh('banner_click')}
           disabled={isRefreshing}
           className="bg-white text-destructive hover:bg-white/90 font-semibold"
         >
