@@ -1,91 +1,45 @@
 
-# Plan: Remediere Conflict Chei Versiune
+# Plan: Fix Scroll în DemoChat
 
-## Problema Identificată
+## Problema identificată
+Scroll-ul nu funcționează pentru că **Radix ScrollArea Viewport nu primește height explicit**. În componenta `scroll-area.tsx`, viewport-ul are doar `h-full w-full`, dar într-un layout flex, `h-full` fără un parent cu height explicit nu calculează corect.
 
-Există un conflict între două sisteme de versiuni care folosesc aceeași cheie `yana_db_version`:
+## Soluția tehnică
+Vom folosi aceeași abordare ca în `YanaChat.tsx` - **messagesEndRef + scrollIntoView** în loc de manipulare DOM directă. Această metodă e dovedită stabilă și nu depinde de quirks-urile Radix.
 
-| Script | Ce scrie în localStorage | Exemplu |
-|--------|--------------------------|---------|
-| `index.html` | `BUILD_VERSION` (timestamp) | `v1769953356507` |
-| `VersionUpdateBanner.tsx` | Versiune din DB (semantică) | `4.0.0.1` |
+### Modificări în `src/components/demo/DemoChat.tsx`:
 
-**Rezultat:** Banner-ul de actualizare apare **permanent** deoarece comparația `4.0.0.1 !== v1769953356507` este mereu adevărată.
-
-## Soluție Propusă
-
-Separăm cele două sisteme folosind **chei diferite** în localStorage:
-
-| Cheie | Scop | Folosită de |
-|-------|------|-------------|
-| `yana_build_version` | Timestamp build PWA | `index.html` |
-| `yana_db_version` | Versiune semantică din DB | `VersionUpdateBanner.tsx` |
-
-## Pași de Implementare
-
-### Pasul 1: Modificare `index.html`
-
-Schimbăm cheia folosită de scriptul de cache busting:
-
-```javascript
-// ÎNAINTE
-var VERSION_KEY = 'yana_db_version';
-
-// DUPĂ
-var VERSION_KEY = 'yana_build_version';
+1. **Adăugare ref pentru scroll anchor**:
+```tsx
+const messagesEndRef = useRef<HTMLDivElement>(null);
 ```
 
-Acest lucru va face ca:
-- Scriptul din `index.html` să folosească `yana_build_version` pentru timestamp-uri
-- `VersionUpdateBanner.tsx` să continue să folosească `yana_db_version` pentru versiuni semantice
-
-### Pasul 2: Verificare `VersionUpdateBanner.tsx`
-
-Confirmăm că componenta folosește corect `yana_db_version` și nu citește din cheia greșită.
-
-### Pasul 3: Migrare Date Vechi (Opțional)
-
-Adăugăm un script de curățare care:
-1. Verifică dacă `yana_db_version` conține un timestamp (prefix `v`)
-2. Dacă da, îl șterge pentru a permite sincronizarea corectă
-
-## Diagrama Fluxului Corectat
-
-```text
-┌──────────────────┐     ┌──────────────────┐
-│   index.html     │     │ VersionBanner    │
-│                  │     │                  │
-│ BUILD_VERSION    │     │ DB Query         │
-│ (timestamp)      │     │ (semantic)       │
-│        │         │     │        │         │
-│        ▼         │     │        ▼         │
-│ yana_build_ver   │     │ yana_db_version  │
-│ (v176995335...)  │     │ (4.0.0.1)        │
-└──────────────────┘     └──────────────────┘
-        ↓                        ↓
-   Cache busting           Afișare banner
-   (PWA refresh)           (doar când DB > local)
+2. **Înlocuire logica scroll (liniile 75-81)**:
+```tsx
+// Scroll to bottom on new messages
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+}, [messages, isLoading]);
 ```
 
-## Fișiere Afectate
+3. **Adăugare div anchor după mesaje (după linia 273, înainte de închiderea `</div>` din space-y-4)**:
+```tsx
+<div ref={messagesEndRef} />
+```
 
-| Fișier | Modificare |
-|--------|------------|
-| `index.html` | Schimbă `VERSION_KEY` la `yana_build_version` |
-| `VersionUpdateBanner.tsx` | Adaugă logică de curățare a valorilor invalide |
+4. **Simplificare ScrollArea className** (opțional, pentru claritate):
+```tsx
+<ScrollArea className="flex-1 min-h-0">
+```
+Păstrăm `flex-1 min-h-0` care forțează flexbox să respecte max-height-ul părințelui.
 
-## Beneficii
+## De ce funcționează
+- `scrollIntoView()` forțează browser-ul să aducă elementul în vizor, indiferent de layoutul Radix
+- Ref-ul `messagesEndRef` e întotdeauna la sfârșitul listei de mesaje
+- `isLoading` în dependency array asigură scroll și când apare loader-ul
 
-1. Cele două sisteme funcționează independent
-2. Banner-ul apare DOAR când versiunea din DB se schimbă efectiv
-3. Cache busting-ul PWA continuă să funcționeze normal
-4. Se rezolvă loop-ul infinit de afișare a banner-ului
+## Fișiere modificate
+- `src/components/demo/DemoChat.tsx` - 4 modificări minore
 
-## Riscuri și Mitigare
-
-- **Risc scăzut**: Utilizatorii existenți pot avea `yana_db_version` cu valoare invalidă
-- **Mitigare**: Adăugăm validare care șterge valorile cu prefix `v` și permite sincronizarea corectă
-
-## Timp Estimat
-
-~3 minute pentru implementare completă
+## Risc
+**Foarte scăzut** - e aceeași tehnică folosită în `YanaChat.tsx` și `ChatAI.tsx`, dovedită stabilă în producție.
