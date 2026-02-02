@@ -64,16 +64,27 @@ const Landing = () => {
             Cont gratuit. 30 de zile să vedeți dacă vă înțelegeți.
           </p>
           
-          {/* Demo Button - Invitation to connect */}
-          <Button 
-            variant="outline" 
-            size="lg"
-            className="w-full gap-2"
+          {/* Demo Button - Fake Input Style */}
+          <button
             onClick={handleDemoClick}
+            className="w-full flex items-center gap-3 px-4 py-4 
+                       bg-card border-2 border-primary/30 rounded-xl
+                       hover:border-primary hover:shadow-lg
+                       transition-all duration-300 group text-left"
           >
-            <MessageCircle className="w-4 h-4" />
-            Spune-i ce te frământă
-          </Button>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <MessageCircle className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <span className="truncate">Scrie ce te frământă...</span>
+                <span className="animate-pulse">|</span>
+              </div>
+              <p className="text-xs text-muted-foreground/60 mt-0.5">
+                Click pentru a vorbi cu Yana
+              </p>
+            </div>
+          </button>
           <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-medium">
             <span>🎁</span>
             <span>5 conversații gratuite. Fără cont.</span>
