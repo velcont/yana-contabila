@@ -741,8 +741,36 @@ serve(async (req) => {
         }
       }
       
-      result = { response: accumulatedContent || text };
-      console.log('AI Router: Parsed SSE stream, content length:', accumulatedContent.length);
+      // 🆕 Parse artifacts from response (format: ```artifact ... ```)
+      const parsedArtifacts: Array<{type: string; title?: string; data: unknown; downloadUrl?: string; fileName?: string}> = [];
+      const artifactRegex = /```artifact\s*\n?([\s\S]*?)```/g;
+      let match;
+      let cleanedContent = accumulatedContent;
+      
+      while ((match = artifactRegex.exec(accumulatedContent)) !== null) {
+        try {
+          const artifactJson = match[1].trim();
+          const artifact = JSON.parse(artifactJson);
+          if (artifact.type && artifact.data) {
+            parsedArtifacts.push(artifact);
+            console.log(`[AI-Router] Parsed artifact: ${artifact.type} - ${artifact.title || 'no title'}`);
+          }
+        } catch (parseErr) {
+          console.warn('[AI-Router] Failed to parse artifact JSON:', parseErr);
+        }
+      }
+      
+      // Remove artifact blocks from visible content (they will be rendered as charts)
+      if (parsedArtifacts.length > 0) {
+        cleanedContent = accumulatedContent.replace(artifactRegex, '').trim();
+        console.log(`[AI-Router] Extracted ${parsedArtifacts.length} artifacts from response`);
+      }
+      
+      result = { 
+        response: cleanedContent || text,
+        artifacts: parsedArtifacts.length > 0 ? parsedArtifacts : undefined
+      };
+      console.log('AI Router: Parsed SSE stream, content length:', cleanedContent.length, 'artifacts:', parsedArtifacts.length);
     } else {
       result = await response.json();
     }
