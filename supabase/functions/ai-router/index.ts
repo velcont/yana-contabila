@@ -219,6 +219,28 @@ function detectDocumentType(fileName: string): string {
 
 function detectIntent(message: string): RouteDecision {
   const lowerMessage = message.toLowerCase();
+
+  // =============================================================================
+  // GRAPH / VISUALIZATION REQUESTS (MUST OVERRIDE strategic detection)
+  // =============================================================================
+  // If user explicitly asks for a chart/graph/table visualization, we MUST route to
+  // chat-ai so it can return ```artifact ...``` blocks rendered in-chat.
+  // Otherwise, strategic-advisor may respond conversationally and ignore artifacts.
+  const isGraphRequest =
+    /\b(grafic|grafice|chart|diagram(ă|a)|vizualiz(are|ări|ari)|tabel|tabele)\b/i.test(message) ||
+    /\b(bar(_|\s)?chart|line(_|\s)?chart|radar(_|\s)?chart)\b/i.test(message);
+
+  if (isGraphRequest) {
+    return {
+      route: 'chat-ai',
+      payload: {
+        message,
+        // Hint for downstream prompts (safe to ignore if not used)
+        graphRequest: true,
+      },
+      reason: 'User requested a chart/visualization (graph request)'
+    };
+  }
   
   // ANAF Risk detection - MUST BE BEFORE general fiscal detection
   if (
