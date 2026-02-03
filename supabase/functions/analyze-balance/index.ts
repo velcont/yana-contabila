@@ -2314,52 +2314,45 @@ serve(async (req) => {
     if (enableAdvancedValidations) {
       console.log("🔍 [VALIDATION LAYER] Validări avansate ACTIVE");
       
-      // VALIDARE 1: Total Activ = Total Pasiv
-      console.log("🔍 [VALIDATION LAYER] Verificare echilibru balanță (Activ = Pasiv)...");
-      
-      const totalActiv = [
-        ...groupedBalance.class1.filter((a: any) => a.balanceType === 'debit'),
-        ...groupedBalance.class2.filter((a: any) => a.balanceType === 'debit'),
-        ...groupedBalance.class3.filter((a: any) => a.balanceType === 'debit'),
-        ...groupedBalance.class4.filter((a: any) => a.balanceType === 'debit'),
-        ...groupedBalance.class5.filter((a: any) => a.balanceType === 'debit')
-      ].reduce((sum: number, acc: any) => sum + acc.netBalance, 0);
+      // VALIDARE 1: Total Sold final Debitor = Total Sold final Creditor
+      // IMPORTANT: o „Balanță de verificare” se validează prin egalitatea totalurilor de solduri finale,
+      // NU printr-o separare Activ/Pasiv (care ar necesita o clasificare de bilanț, nu de balanță).
+      console.log("🔍 [VALIDATION LAYER] Verificare echilibru balanță (Sold final Debitor = Sold final Creditor)...");
 
-      // 🔧 FIX BUG VALIDARE: PASIV = toate conturile credit din clasele 1, 4, 5
-      // Clasa 1: Capital (10x), Rezerve (11x), Rezultat (121), Provizioane (15x), Împrumuturi (16x), etc.
-      // Clasa 4: Furnizori, datorii fiscale, salariale
-      // Clasa 5: Credite bancare pe termen scurt (519) - rar, dar posibil
-      const totalPasiv = [
-        // Clasa 1 - TOATE conturile cu sold creditor (nu doar 10x, 11x, 121)
-        ...groupedBalance.class1.filter((a: any) => a.balanceType === 'credit'),
-        // Clasa 4 - Datorii
-        ...groupedBalance.class4.filter((a: any) => a.balanceType === 'credit'),
-        // Clasa 5 - Credite pe termen scurt (ex: 519)
-        ...groupedBalance.class5.filter((a: any) => a.balanceType === 'credit')
-      ].reduce((sum: number, acc: any) => sum + Math.abs(acc.netBalance), 0);
+      const all1to5 = [
+        ...groupedBalance.class1,
+        ...groupedBalance.class2,
+        ...groupedBalance.class3,
+        ...groupedBalance.class4,
+        ...groupedBalance.class5,
+      ];
 
-      const diferentaBilant = Math.abs(totalActiv - totalPasiv);
+      const totalSoldFinalDebitor = all1to5.reduce(
+        (sum: number, acc: any) => sum + (Number(acc.finalBalanceDebit) || 0),
+        0
+      );
+      const totalSoldFinalCreditor = all1to5.reduce(
+        (sum: number, acc: any) => sum + (Number(acc.finalBalanceCredit) || 0),
+        0
+      );
 
-      if (diferentaBilant > 10) {
-        const bilantErrorWarning = 
-          `🔴 **EROARE CRITICĂ BALANȚĂ - NEECHILIBRATĂ!**\n\n` +
-          `• Total ACTIV: ${totalActiv.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Total PASIV: ${totalPasiv.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• **DIFERENȚĂ: ${diferentaBilant.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON** ⚠️\n\n` +
+      const diferentaSolduriFinale = Math.abs(totalSoldFinalDebitor - totalSoldFinalCreditor);
+
+      // Prag de semnificație: 10 RON (evită noise din rotunjiri / exporturi)
+      if (diferentaSolduriFinale > 10) {
+        const bilantErrorWarning =
+          `🔴 **EROARE CRITICĂ BALANȚĂ - SOLDURI FINALE NEECHILIBRATE!**\n\n` +
+          `• Total Sold final **DEBITOR**: ${totalSoldFinalDebitor.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON\n` +
+          `• Total Sold final **CREDITOR**: ${totalSoldFinalCreditor.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON\n` +
+          `• **DIFERENȚĂ: ${diferentaSolduriFinale.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON** ⚠️\n\n` +
           `**CAUZE POSIBILE:**\n` +
-          `1. Balanță NEVALIDATĂ din programul contabil\n` +
-          `2. Înregistrări contabile incomplete sau eronate\n` +
-          `3. Lipsă regularizări de inventar/amortizare\n` +
-          `4. Diferențe din evaluare la cursul valutar (dacă aveți tranzacții în valută)\n\n` +
-          `**ACȚIUNE URGENTĂ NECESARĂ:**\n` +
-          `✓ Verificați în programul contabil raportul "Balanță de verificare"\n` +
-          `✓ Asigurați-vă că Total Activ = Total Pasiv înainte de export\n` +
-          `✓ Validați toate înregistrările contabile din perioada curentă\n` +
-          `✓ Contactați un contabil autorizat pentru corectarea erorilor\n\n` +
-          `⛔ **ACEASTĂ BALANȚĂ NU POATE FI FOLOSITĂ PENTRU RAPORTĂRI OFICIALE!**`;
-        
+          `1. Export incomplet / coloană greșită (nu sunt „Solduri finale”)\n` +
+          `2. Note contabile neînchise / erori de postare\n` +
+          `3. Balanță generată pe o perioadă neînchisă\n\n` +
+          `**ACȚIUNE:** Re-exportați „Balanță de verificare” cu „Solduri finale (Debit/Credit)” și verificați totalurile de la final.`;
+
         validationWarnings.push(bilantErrorWarning);
-        console.error(`🔴 [VALIDATION] BALANȚĂ NEECHILIBRATĂ! Diferență: ${diferentaBilant} RON`);
+        console.error(`🔴 [VALIDATION] SOLDURI FINALE NEECHILIBRATE! Diferență: ${diferentaSolduriFinale} RON`);
       }
 
       // VALIDARE 2: Profit = Venituri - Cheltuieli
@@ -2441,10 +2434,10 @@ serve(async (req) => {
           ...(detectedColumns.totalCredit < 0 ? ['⚠️ Total/Rulaj CREDIT nedetectat - verificați structura balanței'] : [])
         ],
         balanceValidation: {
-          totalActiv,
-          totalPasiv,
-          diferenta: diferentaBilant,
-          status: diferentaBilant <= 10 ? 'OK' : 'ERROR'
+          totalSoldFinalDebitor,
+          totalSoldFinalCreditor,
+          diferenta: diferentaSolduriFinale,
+          status: diferentaSolduriFinale <= 10 ? 'OK' : 'ERROR'
         },
         profitValidation: {
           totalVenituri: revenueFinal,
