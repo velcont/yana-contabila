@@ -1,143 +1,167 @@
 
-# Plan de Remediere: Bug Neconcordanță Rezultat Financiar
+# Plan de Remediere: YANA Halucinează Funcționalități Inexistente
 
 ## Problema Identificată
 
-YANA afișează o **diferență falsă de 1.927,36 RON** pentru balanța VALMANSHOP care este de fapt **perfect echilibrată**.
+Utilizatorul `suciugyorfinicolae@gmail.com` a raportat că YANA descrie funcționalități care **nu există în aplicație**, creând confuzie și frustrare.
 
-### Date din balanță:
-- **Cont 121**: Sold final DEBITOR = 963,68 RON (= PIERDERE)
-- **Total clasa 7** (Venituri): 49,48 RON
-- **Total clasa 6** (Cheltuieli): 1.013,16 RON
-- **Rezultat corect**: 49,48 - 1.013,16 = **-963,68 RON** (pierdere)
-- **Sold cont 121**: 963,68 RON (debitor = pierdere)
+### Neconcordanțele Găsite (din conversația de azi):
 
-Balanța este corect închisă! Nu există nicio neconcordanță reală.
+| Ce spune YANA | Realitatea |
+|--------------|-----------|
+| "Marketplace: Un loc unde antreprenorii pot găsi contabili" | **NU EXISTĂ** - nicio componentă Marketplace în aplicație |
+| "Card verde Marketplace din pagina /app" | **NU EXISTĂ** - nu există card Marketplace |
+| "Postează Anunț Caut Contabil", "Trimite Ofertă" | **NU EXISTĂ** - funcții inexistente |
+| War Room cu modificare manuală a variabilelor (venituri, costuri, prețuri) | **PARȚIAL** - există War Room dar doar cu scenarii predefinite |
 
-### Cauza tehnică:
-În `analyze-balance/index.ts`, linia 2380:
+### Sursa Problemelor
 
-```text
-netBalance = finalDebit - finalCredit = 963.68 (pozitiv pentru pierdere)
-rezultatCalculatFinal = Venituri - Cheltuieli = -963.68 (negativ pentru pierdere)
+Am identificat 3 locuri unde YANA primește informații greșite:
 
-diferentaRezultat = Math.abs((-963.68) - Math.abs(963.68))
-                  = Math.abs(-963.68 - 963.68)
-                  = 1927.36 RON  <-- EROARE! Ar trebui să fie 0!
-```
+1. **`supabase/functions/chat-ai/index.ts`** (linii 656-665)
+   - Conține instrucțiuni complete despre un Marketplace inexistent
+   
+2. **`src/hooks/useTutorialSteps.tsx`** (linii 32-37)
+   - Menționează "Card Marketplace" în tutorial
+
+3. **`supabase/functions/consult-yana/index.ts`**
+   - Nu are restricții clare despre ce funcții există
 
 ---
 
 ## Soluția Propusă
 
-### Modificări în `analyze-balance/index.ts`
+### Pas 1: Șterge referințele false din promptul Chat AI
 
-**Zona 1 - Linia 2366-2380** - Corectare formulă:
+**Fișier:** `supabase/functions/chat-ai/index.ts`
 
+**Acțiune:** Elimină secțiunea Marketplace (linii 656-665):
 ```typescript
-// Actual (ERONAT):
-const rezultatCont121 = groupedBalance.class1.find(...)?.netBalance || 0;
-const diferentaRezultat = Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121));
-
-// Corectie propusă:
-const cont121Raw = groupedBalance.class1.find((a: any) => a.accountCode === '121');
-// netBalance = finalDebit - finalCredit
-// Pozitiv = PIERDERE (sold debitor), Negativ = PROFIT (sold creditor)
-// Trebuie inversat pentru a alinia cu semantica (Venituri - Cheltuieli)
-const rezultatCont121 = cont121Raw ? -(cont121Raw.netBalance) : 0;
-// Acum: Negativ = PIERDERE, Pozitiv = PROFIT (aliniat cu V - C)
-
-const diferentaRezultat = Math.abs(rezultatCalculatFinal - rezultatCont121);
+// DE ȘTERS:
+💼 **MARKETPLACE YANA**
+- "Unde e Marketplace?" → Card verde "Marketplace"...
+...toate liniile 656-665
 ```
 
-**Zona 2 - Liniile 2388, 2443-2445** - Actualizare afișare și audit trail pentru a folosi formula corectată.
+**Înlocuire cu:**
+```typescript
+💼 **FUNCȚIONALITĂȚI DISPONIBILE**
+Aplicația YANA include:
+- ✅ Analiză balanțe contabile (încarcă Excel)
+- ✅ Dashboard cu grafice și alerte proactive
+- ✅ Consultanță strategică (Yana Strategică)
+- ✅ War Room (scenarii predefinite: Criză Cash, Pierdere Client, Recesiune)
+- ✅ Battle Plan (export PDF strategie)
+- ✅ Rapoarte profesionale (export PDF/Word)
+- ✅ Comparare perioade și multi-firmă
+- ❌ Marketplace NU este disponibil momentan (în dezvoltare)
+```
+
+### Pas 2: Șterge tutorial-ul Marketplace
+
+**Fișier:** `src/hooks/useTutorialSteps.tsx`
+
+**Acțiune:** Elimină pasul despre Marketplace (linii 32-37):
+```typescript
+// DE ȘTERS:
+{
+  page: '/yana',
+  title: '💼 Card Marketplace',
+  description: 'Găsește contabilul perfect...',
+  highlight: '[data-tour="card-marketplace"]',
+},
+```
+
+### Pas 3: Adaugă reguli clare de auto-cunoaștere în prompturi
+
+**Fișier:** `supabase/functions/chat-ai/index.ts`
+
+**Adaugă în secțiunea de reguli:**
+```typescript
+🚫 **REGULI DE AUTO-CUNOAȘTERE (CRITICE)**
+Când ești întrebată despre funcționalitățile aplicației:
+1. NICIODATĂ nu inventa funcții care nu există
+2. Dacă nu ești sigură că o funcție există, spune: "Nu sunt sigură dacă această funcție este disponibilă. Te rog să verifici în aplicație sau să contactezi office@velcont.com."
+3. NU descrie în detaliu funcții pe care nu le-ai văzut în acțiune
+
+FUNCȚII CONFIRMATE (poți vorbi despre ele):
+✅ Încărcare balanță Excel
+✅ Dashboard cu grafice (Analytics Charts)
+✅ Alerte Proactive
+✅ Comparare Perioade
+✅ War Room (doar scenarii predefinite)
+✅ Battle Plan Export
+✅ Rapoarte PDF/Word
+
+FUNCȚII INEXISTENTE (NU le menționa):
+❌ Marketplace antreprenori-contabili
+❌ Postări anunțuri "Caut Contabil"
+❌ Sistem de oferte
+```
+
+### Pas 4: Actualizează promptul demo-chat
+
+**Fișier:** `supabase/functions/demo-chat/index.ts`
+
+**Adaugă în systemPrompt:**
+```typescript
+### FUNCȚII DISPONIBILE (doar astea poți descrie):
+- Analiză balanță contabilă (Excel)
+- Chat AI pentru întrebări financiare
+- Consultanță strategică
+- Rapoarte premium (PDF/Word)
+- War Room cu scenarii predefinite
+- Alerte proactive
+
+NU menționa: Marketplace, CRM complex, sau funcții pe care nu le-ai văzut.
+```
+
+### Pas 5: Actualizează promptul consult-yana
+
+**Fișier:** `supabase/functions/consult-yana/index.ts`
+
+**Adaugă restricție similară în system prompt.**
 
 ---
 
-## Analiza Riscurilor
+## Verificare și Testare
 
-### Risc Scăzut
-
-| Risc | Probabilitate | Impact | Mitigare |
-|------|---------------|--------|----------|
-| **Regresie pe balanțe cu PROFIT** | Scăzut | Mediu | Formula inversată funcționează corect și pentru profit: `-(−X) = X` |
-| **Balanțe fără cont 121** | Scăzut | Scăzut | Codul are fallback `|| 0` deja implementat |
-
-### Risc Mediu
-
-| Risc | Probabilitate | Impact | Mitigare |
-|------|---------------|--------|----------|
-| **Alte funcții cu același bug** | Scăzut | Mediu | Am verificat - bug-ul e izolat DOAR în `analyze-balance`. `chat-ai` și `consult-yana` NU au această logică. |
-| **Formatare negativă în UI** | Mediu | Scăzut | Voi folosi `Math.abs()` pentru afișare, păstrând semnul doar pentru calcul |
-
-### Risc Zero
-
-| Verificare | Status |
-|------------|--------|
-| Impact pe alte edge functions | Bug izolat în `analyze-balance/index.ts` |
-| Impact pe raportul Word Premium | NU - folosește metadata deja corectată |
-| Impact pe Memory Engine | NU - nu afectează stocarea |
-
----
-
-## Verificări Înainte de Deploy
-
-1. **Test cu balanță PIERDERE** (VALMANSHOP): diferența trebuie să fie 0
-2. **Test cu balanță PROFIT**: diferența trebuie să rămână 0
-3. **Test cu balanță fără cont 121**: nu trebuie să dea eroare
-
----
-
-## Impactul Corecției
-
-| Scenariul | Înainte | După |
-|-----------|---------|------|
-| Balanță cu PIERDERE (cont 121 debitor) | Diferență falsă (2x valoarea) | 0 (corect) |
-| Balanță cu PROFIT (cont 121 creditor) | Funcționa corect | Continuă să funcționeze |
-| Balanță cu erori reale | Detecta incorect | Detectează corect |
-
----
-
-## Pași de Implementare
-
-1. **Fix principal**: Corectez formula în liniile 2366-2380
-2. **Fix afișare**: Actualizez liniile 2388, 2443-2445 
-3. **Deploy**: Deploy automat edge function
-4. **Validare**: Test cu balanța VALMANSHOP pentru confirmare
+După implementare:
+1. Întreabă YANA: "Ce funcționalități are aplicația?"
+2. Întreabă YANA: "Ce este Marketplace?"
+3. Verifică că răspunde: "Marketplace nu este disponibil momentan"
 
 ---
 
 ## Secțiune Tehnică
 
-### Formulele matematice corecte:
+### Fișiere de Modificat
 
-Pentru contul 121:
-- `finalDebit > 0, finalCredit = 0` - PIERDERE de valoare `finalDebit`
-- `finalDebit = 0, finalCredit > 0` - PROFIT de valoare `finalCredit`
+| Fișier | Tip modificare | Risc |
+|--------|---------------|------|
+| `supabase/functions/chat-ai/index.ts` | Ștergere Marketplace + adăugare reguli | Scăzut |
+| `supabase/functions/demo-chat/index.ts` | Adăugare restricții | Scăzut |
+| `supabase/functions/consult-yana/index.ts` | Adăugare restricții | Scăzut |
+| `src/hooks/useTutorialSteps.tsx` | Ștergere pas Marketplace | Scăzut |
 
-Comparație corectă:
-```text
-rezultat_calculat = Clasa7_Credit - Clasa6_Debit
-rezultat_cont_121 = -(finalDebit_121 - finalCredit_121)
+### Deploy
 
-diferenta = |rezultat_calculat - rezultat_cont_121|
-```
+Toate edge functions trebuie redeployed după modificări.
 
-Exemplu VALMANSHOP:
-```text
-rezultat_calculat = 49.48 - 1013.16 = -963.68 (pierdere)
-rezultat_cont_121 = -(963.68 - 0) = -963.68 (pierdere)
-diferenta = |-963.68 - (-963.68)| = 0
-```
+### Impactul Corecției
+
+| Înainte | După |
+|---------|------|
+| YANA descrie Marketplace inexistent în detaliu | YANA spune "nu este disponibil" |
+| Utilizatorii caută funcții care nu există | Utilizatorii știu ce există real |
+| Frustrare și neîncredere | Încredere în informații corecte |
 
 ---
 
 ## Concluzie
 
-**Riscul general al implementării: SCĂZUT**
+**Cauza:** YANA primește informații false în prompturi despre funcționalități planificate dar neimplementate (Marketplace).
 
-- Bug izolat într-o singură funcție
-- Formula corectată este matematică pură (inversare semn)
-- Nu afectează alte componente ale sistemului
-- Test de validare simplu cu balanța existentă
+**Soluția:** Curățăm toate referințele la funcții inexistente și adăugăm reguli stricte de auto-cunoaștere.
 
+**Riscul implementării:** SCĂZUT - modificări doar în texte/prompturi, nu în logică.
