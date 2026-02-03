@@ -1,6 +1,6 @@
-# Plan: Reparare Sistem Grafice În Chat - ✅ IMPLEMENTAT
+# Plan: Reparare Sistem Grafice În Chat - ✅ IMPLEMENTAT (v2)
 
-## Status: FINALIZAT
+## Status: FINALIZAT + FIX SUPLIMENTAR
 
 Toate modificările au fost aplicate și deploy-uite cu succes.
 
@@ -31,13 +31,20 @@ Toate modificările au fost aplicate și deploy-uite cu succes.
 - Forțează rutarea către `chat-ai` chiar dacă mesajul conține cuvinte strategice (ex: "cheltuieli")
 - Log explicit: `[AI-Router] ⚡ GRAPH REQUEST DETECTED`
 
+### 6. ✅ FIX NOU: Inline System Message pentru Graph Requests
+- Când se detectează cerere de grafic + balanță încărcată:
+  - Se adaugă un mesaj assistant fictiv care confirmă că are datele
+  - Se adaugă un mesaj system INLINE direct înainte de user message
+  - Aceasta forțează AI-ul să execute, nu să converseze
+
 ## Fișiere modificate:
-- `supabase/functions/chat-ai/index.ts`
+- `supabase/functions/chat-ai/index.ts` ← FIX PRINCIPAL v2
 - `supabase/functions/consult-yana/index.ts`
 - `supabase/functions/demo-chat/index.ts`
-- `supabase/functions/ai-router/index.ts` ← FIX ADIȚIONAL
+- `supabase/functions/ai-router/index.ts`
 
 ## Test recomandat:
-Încarcă o balanță și întreabă: **"arată-mi graficul cheltuielilor"**
+1. Încarcă o balanță pe /yana
+2. Întreabă: **"arată-mi graficul cheltuielilor"**
 
 Rezultat așteptat: YANA generează grafic bar_chart inline cu datele reale din balanță, fără să ceară cifre de la utilizator.
