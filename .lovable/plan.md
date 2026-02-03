@@ -1,167 +1,113 @@
 
-# Plan de Remediere: YANA Halucinează Funcționalități Inexistente
+# Plan: Actualizare Prompturi - Totul Este În Chat
 
-## Problema Identificată
+## Situația Curentă
 
-Utilizatorul `suciugyorfinicolae@gmail.com` a raportat că YANA descrie funcționalități care **nu există în aplicație**, creând confuzie și frustrare.
+Sistemul de **Artifacts** este deja implementat și funcțional:
+- `ArtifactRenderer.tsx` suportă: grafice radar, bar, line, tabele, download, war_room, battle_plan
+- Toate se afișează **inline în chat** exact ca la ChatGPT/Claude
 
-### Neconcordanțele Găsite (din conversația de azi):
+Dar prompturile încă vorbesc despre "Dashboard separat" ceea ce confuzează utilizatorii.
 
-| Ce spune YANA | Realitatea |
-|--------------|-----------|
-| "Marketplace: Un loc unde antreprenorii pot găsi contabili" | **NU EXISTĂ** - nicio componentă Marketplace în aplicație |
-| "Card verde Marketplace din pagina /app" | **NU EXISTĂ** - nu există card Marketplace |
-| "Postează Anunț Caut Contabil", "Trimite Ofertă" | **NU EXISTĂ** - funcții inexistente |
-| War Room cu modificare manuală a variabilelor (venituri, costuri, prețuri) | **PARȚIAL** - există War Room dar doar cu scenarii predefinite |
+## Modificări Propuse
 
-### Sursa Problemelor
+### 1. Actualizare `chat-ai/index.ts` (linii 662-670)
 
-Am identificat 3 locuri unde YANA primește informații greșite:
-
-1. **`supabase/functions/chat-ai/index.ts`** (linii 656-665)
-   - Conține instrucțiuni complete despre un Marketplace inexistent
-   
-2. **`src/hooks/useTutorialSteps.tsx`** (linii 32-37)
-   - Menționează "Card Marketplace" în tutorial
-
-3. **`supabase/functions/consult-yana/index.ts`**
-   - Nu are restricții clare despre ce funcții există
-
----
-
-## Soluția Propusă
-
-### Pas 1: Șterge referințele false din promptul Chat AI
-
-**Fișier:** `supabase/functions/chat-ai/index.ts`
-
-**Acțiune:** Elimină secțiunea Marketplace (linii 656-665):
-```typescript
-// DE ȘTERS:
-💼 **MARKETPLACE YANA**
-- "Unde e Marketplace?" → Card verde "Marketplace"...
-...toate liniile 656-665
-```
-
-**Înlocuire cu:**
-```typescript
-💼 **FUNCȚIONALITĂȚI DISPONIBILE**
-Aplicația YANA include:
-- ✅ Analiză balanțe contabile (încarcă Excel)
-- ✅ Dashboard cu grafice și alerte proactive
-- ✅ Consultanță strategică (Yana Strategică)
-- ✅ War Room (scenarii predefinite: Criză Cash, Pierdere Client, Recesiune)
-- ✅ Battle Plan (export PDF strategie)
-- ✅ Rapoarte profesionale (export PDF/Word)
-- ✅ Comparare perioade și multi-firmă
-- ❌ Marketplace NU este disponibil momentan (în dezvoltare)
-```
-
-### Pas 2: Șterge tutorial-ul Marketplace
-
-**Fișier:** `src/hooks/useTutorialSteps.tsx`
-
-**Acțiune:** Elimină pasul despre Marketplace (linii 32-37):
-```typescript
-// DE ȘTERS:
-{
-  page: '/yana',
-  title: '💼 Card Marketplace',
-  description: 'Găsește contabilul perfect...',
-  highlight: '[data-tour="card-marketplace"]',
-},
-```
-
-### Pas 3: Adaugă reguli clare de auto-cunoaștere în prompturi
-
-**Fișier:** `supabase/functions/chat-ai/index.ts`
-
-**Adaugă în secțiunea de reguli:**
-```typescript
-🚫 **REGULI DE AUTO-CUNOAȘTERE (CRITICE)**
-Când ești întrebată despre funcționalitățile aplicației:
-1. NICIODATĂ nu inventa funcții care nu există
-2. Dacă nu ești sigură că o funcție există, spune: "Nu sunt sigură dacă această funcție este disponibilă. Te rog să verifici în aplicație sau să contactezi office@velcont.com."
-3. NU descrie în detaliu funcții pe care nu le-ai văzut în acțiune
-
+**Înainte:**
+```text
 FUNCȚII CONFIRMATE (poți vorbi despre ele):
 ✅ Încărcare balanță Excel
 ✅ Dashboard cu grafice (Analytics Charts)
 ✅ Alerte Proactive
 ✅ Comparare Perioade
-✅ War Room (doar scenarii predefinite)
-✅ Battle Plan Export
-✅ Rapoarte PDF/Word
-
-FUNCȚII INEXISTENTE (NU le menționa):
-❌ Marketplace antreprenori-contabili
-❌ Postări anunțuri "Caut Contabil"
-❌ Sistem de oferte
+...
 ```
 
-### Pas 4: Actualizează promptul demo-chat
+**După:**
+```text
+FUNCȚII CONFIRMATE (TOATE ÎN CHAT):
+✅ Încărcare balanță Excel - direct în chat
+✅ Grafice și vizualizări - apar inline în chat ca artefacte
+✅ Alerte Proactive - le primești în chat
+✅ Comparare Perioade - rezultate în chat
+✅ War Room (scenarii predefinite) - disponibil prin chat
+✅ Battle Plan Export (PDF) - download din chat
+✅ Rapoarte profesionale (PDF/Word) - generate și descărcate din chat
+✅ Consultanță strategică - conversație directă
 
-**Fișier:** `supabase/functions/demo-chat/index.ts`
+NOTĂ IMPORTANTĂ:
+Toată experiența YANA este în această interfață de chat.
+Graficele, tabelele, rapoartele - toate apar direct aici, inline.
+NU există un "Dashboard separat" - totul e în conversație, ca la ChatGPT.
+```
 
-**Adaugă în systemPrompt:**
-```typescript
+### 2. Actualizare `consult-yana/index.ts` (linii 85-94)
+
+**Înainte:**
+```text
+FUNCȚII CONFIRMATE care EXISTĂ:
+✅ Analiză balanțe Excel, Dashboard grafice, Alerte Proactive
+```
+
+**După:**
+```text
+FUNCȚII CONFIRMATE (TOATE ÎN CHAT):
+✅ Analiză balanțe Excel - încarcă și primești rezultate în chat
+✅ Grafice/Vizualizări - apar ca artefacte inline în conversație
+✅ Alerte Proactive - primite în chat
+✅ War Room (scenarii predefinite), Battle Plan Export
+✅ Rapoarte PDF/Word - descărcabile din chat
+
+IMPORTANT: NU există Dashboard separat. TOTUL e în chat.
+```
+
+### 3. Actualizare `demo-chat/index.ts` (linii 250-261)
+
+**Înainte:**
+```text
 ### FUNCȚII DISPONIBILE (doar astea poți descrie):
 - Analiză balanță contabilă (Excel)
 - Chat AI pentru întrebări financiare
-- Consultanță strategică
-- Rapoarte premium (PDF/Word)
-- War Room cu scenarii predefinite
-- Alerte proactive
-
-NU menționa: Marketplace, CRM complex, sau funcții pe care nu le-ai văzut.
+...
 ```
 
-### Pas 5: Actualizează promptul consult-yana
+**După:**
+```text
+### FUNCȚII DISPONIBILE (TOATE ÎN CHAT):
+- Încărcare și analiză balanță Excel - rezultatele apar direct în conversație
+- Grafice și vizualizări - afișate inline ca artefacte (ca la ChatGPT)
+- Rapoarte profesionale (PDF/Word) - generate și descărcate din chat
+- War Room cu scenarii predefinite
+- Consultanță financiară, fiscală, strategică
 
-**Fișier:** `supabase/functions/consult-yana/index.ts`
-
-**Adaugă restricție similară în system prompt.**
-
----
-
-## Verificare și Testare
-
-După implementare:
-1. Întreabă YANA: "Ce funcționalități are aplicația?"
-2. Întreabă YANA: "Ce este Marketplace?"
-3. Verifică că răspunde: "Marketplace nu este disponibil momentan"
-
----
-
-## Secțiune Tehnică
-
-### Fișiere de Modificat
-
-| Fișier | Tip modificare | Risc |
-|--------|---------------|------|
-| `supabase/functions/chat-ai/index.ts` | Ștergere Marketplace + adăugare reguli | Scăzut |
-| `supabase/functions/demo-chat/index.ts` | Adăugare restricții | Scăzut |
-| `supabase/functions/consult-yana/index.ts` | Adăugare restricții | Scăzut |
-| `src/hooks/useTutorialSteps.tsx` | Ștergere pas Marketplace | Scăzut |
-
-### Deploy
-
-Toate edge functions trebuie redeployed după modificări.
-
-### Impactul Corecției
-
-| Înainte | După |
-|---------|------|
-| YANA descrie Marketplace inexistent în detaliu | YANA spune "nu este disponibil" |
-| Utilizatorii caută funcții care nu există | Utilizatorii știu ce există real |
-| Frustrare și neîncredere | Încredere în informații corecte |
+IMPORTANT: TOTUL se întâmplă în această conversație.
+NU există Dashboard separat, NU există pagini externe.
+Graficele, tabelele, rapoartele - toate apar aici, inline.
+```
 
 ---
 
-## Concluzie
+## Rezumat Modificări
 
-**Cauza:** YANA primește informații false în prompturi despre funcționalități planificate dar neimplementate (Marketplace).
+| Fișier | Ce se modifică |
+|--------|----------------|
+| `supabase/functions/chat-ai/index.ts` | Rescrie secțiunea "FUNCȚII CONFIRMATE" să specifice că totul e în chat |
+| `supabase/functions/consult-yana/index.ts` | Aceeași clarificare |
+| `supabase/functions/demo-chat/index.ts` | Aceeași clarificare |
 
-**Soluția:** Curățăm toate referințele la funcții inexistente și adăugăm reguli stricte de auto-cunoaștere.
+---
 
-**Riscul implementării:** SCĂZUT - modificări doar în texte/prompturi, nu în logică.
+## Impactul Schimbării
+
+| Întrebare utilizator | Răspuns YANA înainte | Răspuns YANA după |
+|---------------------|---------------------|-------------------|
+| "Unde văd graficele?" | "Pe Dashboard" | "Apar direct aici în chat când analizez balanța" |
+| "Există Dashboard?" | "Da, cu grafice..." | "Totul e în acest chat - graficele, rapoartele apar inline" |
+| "Cum accesez analizele?" | "Pagina principală..." | "Încarcă balanța aici și îți arăt tot direct în conversație" |
+
+---
+
+## Risc: SCĂZUT
+- Doar modificări de text în prompturi
+- Nu afectează logica sau funcționalitatea
+- Aliniază descrierea cu realitatea UI
