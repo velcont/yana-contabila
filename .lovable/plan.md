@@ -25,10 +25,17 @@ Toate modificările au fost aplicate și deploy-uite cu succes.
 - Aceleași instrucțiuni pentru artefacte
 - Format JSON documentat
 
+### 5. ✅ FIX CRITIC: Priority Override în ai-router
+- Detecția pentru grafice/vizualizări acum este **PRIORITARĂ** (Priority 0)
+- Cuvinte cheie: grafic, grafice, chart, diagrama, vizualiz, tabel, tabele
+- Forțează rutarea către `chat-ai` chiar dacă mesajul conține cuvinte strategice (ex: "cheltuieli")
+- Log explicit: `[AI-Router] ⚡ GRAPH REQUEST DETECTED`
+
 ## Fișiere modificate:
 - `supabase/functions/chat-ai/index.ts`
 - `supabase/functions/consult-yana/index.ts`
 - `supabase/functions/demo-chat/index.ts`
+- `supabase/functions/ai-router/index.ts` ← FIX ADIȚIONAL
 
 ## Test recomandat:
 Încarcă o balanță și întreabă: **"arată-mi graficul cheltuielilor"**
