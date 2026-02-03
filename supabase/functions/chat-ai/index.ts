@@ -1806,6 +1806,46 @@ ${daysSinceLastInteraction >= 7 ? '💡 Au trecut câteva zile - poți face o sc
       adaptedPrompt += `\n\n🎯 MOD ACTION POINTS:\n- Răspunde DOAR cu acțiuni concrete\n- Format: Listă numerotată de pași executabili\n- Pentru fiecare acțiune:\n  • Ce trebuie făcut (verb de acțiune + obiect)\n  • Deadline recomandat (ore/zile)\n  • Impact așteptat (ROI/economie)\n- Fără analize sau explicații\n- Maximum 5-7 action points, prioritizate\n- Exemplu: "1. ✅ Trimite reminder la 15 facturi restante (astăzi, recuperare ~8,500 RON)"`;
     }
     
+    // 🆕 DETECTARE CERERI DE GRAFICE - Injectează reminder forțat pentru a genera artefacte
+    const graphKeywords = ['grafic', 'graf', 'chart', 'vizualiz', 'arată-mi', 'arata-mi', 'vezi cheltuieli', 'cheltuieli pe', 'venituri pe', 'structura', 'distribuți', 'diagrama', 'pie', 'bar', 'linie'];
+    const isGraphRequest = graphKeywords.some(kw => message.toLowerCase().includes(kw));
+    const hasBalanceData = balanceDataSection && balanceDataSection.length > 100;
+    
+    let graphReminder = '';
+    if (isGraphRequest && hasBalanceData) {
+      graphReminder = `
+
+🚨 **CERERE GRAFIC DETECTATĂ - INSTRUCȚIUNI OBLIGATORII:**
+Utilizatorul a cerut un grafic/vizualizare. Ai datele balanței mai sus.
+TREBUIE să:
+1. EXTRAGI datele DIRECT din conturile de mai sus
+2. GENEREZI un artefact JSON în formatul:
+\`\`\`artifact
+{
+  "type": "bar_chart",
+  "title": "Titlu relevant",
+  "data": {"Categorie1": valoare1, "Categorie2": valoare2}
+}
+\`\`\`
+3. NU ceri date suplimentare de la utilizator
+4. Dacă cere cheltuieli → folosește conturile 6xx din lista de mai sus
+5. Dacă cere venituri → folosește conturile 7xx din lista de mai sus
+
+ESTE INTERZIS să răspunzi "am nevoie de date" sau "trimite-mi cifrele" - datele SUNT DEJA în context!
+`;
+      console.log(`[chat-ai][${requestId}] 📊 Graph request detected, reminder injected`);
+    } else if (isGraphRequest && !hasBalanceData) {
+      graphReminder = `
+
+📊 **CERERE GRAFIC - FĂRĂ BALANȚĂ:**
+Utilizatorul cere un grafic, dar NU ai date de balanță încărcate.
+Răspunde cald: "Pentru a-ți genera graficul, am nevoie de balanța ta. Încarcă un fișier Excel (SmartBill sau Saga) și instant îți arăt vizualizarea."
+`;
+      console.log(`[chat-ai][${requestId}] 📊 Graph request detected, but no balance data`);
+    }
+    
+    adaptedPrompt += graphReminder;
+    
     // Construiește conversația cu system prompt și istoric
     const messages = [
       { role: "system", content: adaptedPrompt },
