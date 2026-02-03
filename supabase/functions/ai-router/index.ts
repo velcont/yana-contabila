@@ -1017,6 +1017,37 @@ serve(async (req) => {
         }
       };
       
+      // 🆕 Task pentru extract-learnings - sistem de auto-învățare YANA
+      const extractLearningsTask = async () => {
+        try {
+          const learningsUrl = `${supabaseUrl}/functions/v1/extract-learnings`;
+          const response = await fetch(learningsUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              conversationId,
+              userId: user.id,
+              userMessage: message,
+              aiResponse: assistantMessage,
+              emotionalState: consciousnessContext?.emotionalMode || null,
+              balanceContext: balanceContext || null,
+            }),
+          });
+          
+          if (!response.ok) {
+            console.error('[AI-Router] extract-learnings failed:', await response.text());
+          } else {
+            const result = await response.json();
+            console.log('[AI-Router] ✅ Learning extraction completed:', result.extracted);
+          }
+        } catch (err) {
+          console.error('[AI-Router] extract-learnings error (non-blocking):', err);
+        }
+      };
+      
       // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
         // @ts-ignore
@@ -1025,7 +1056,8 @@ serve(async (req) => {
           surpriseDetectorTask(),
           experimentTrackerTask(),
           journeyUpdaterTask(),
-          captureSoulStateTask(), // 🆕 Salvează last_topic în yana_relationships
+          captureSoulStateTask(),
+          extractLearningsTask(), // 🆕 Extrage learnings pentru auto-învățare
         ]));
         console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil()');
       } else {
@@ -1035,7 +1067,8 @@ serve(async (req) => {
           surpriseDetectorTask(),
           experimentTrackerTask(),
           journeyUpdaterTask(),
-          captureSoulStateTask(), // 🆕 Salvează last_topic în yana_relationships
+          captureSoulStateTask(),
+          extractLearningsTask(), // 🆕 Extrage learnings pentru auto-învățare
         ]).catch(console.error);
         console.log('[AI-Router] All async tasks triggered (fallback mode)');
       }
