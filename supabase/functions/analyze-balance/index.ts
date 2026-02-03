@@ -967,10 +967,66 @@ serve(async (req) => {
             class: acc.accountClass
           })));
         }
-        return { cui, company, accounts };
+        
+        // ✅ EXTRAGE TOTALURI DIN RÂNDUL "TOTAL GENERAL" (dacă există)
+        // Aceasta este sursa de adevăr pentru validarea balanței
+        let totalGeneralDebit = 0;
+        let totalGeneralCredit = 0;
+        let totalGeneralFound = false;
+        
+        console.log("🔍 [TOTAL-GENERAL] Căutare rând Total general...");
+        
+        for (let i = data.length - 1; i >= Math.max(0, data.length - 20); i--) {
+          const row = data[i];
+          if (!row || row.length === 0) continue;
+          
+          // Caută "total general", "total", "totaluri" în prima celulă sau oriunde în rând
+          const rowStr = row.map((cell: any) => String(cell || '').toLowerCase()).join(' ');
+          
+          if (
+            rowStr.includes('total general') ||
+            rowStr.includes('totaluri generale') ||
+            (rowStr.includes('total') && !rowStr.match(/\d{3,}/)) // "Total" fără cod cont
+          ) {
+            // Extrage valorile din coloanele de solduri finale
+            if (indices.soldFinalDebitCol >= 0) {
+              totalGeneralDebit = toNumber(row[indices.soldFinalDebitCol]);
+            }
+            if (indices.soldFinalCreditCol >= 0) {
+              totalGeneralCredit = toNumber(row[indices.soldFinalCreditCol]);
+            }
+            
+            // Validare: totalurile trebuie să fie > 0 pentru a fi considerate valide
+            if (totalGeneralDebit > 0 || totalGeneralCredit > 0) {
+              totalGeneralFound = true;
+              console.log(`✅ [TOTAL-GENERAL] GĂSIT la rândul ${i}: Debit=${totalGeneralDebit.toFixed(2)}, Credit=${totalGeneralCredit.toFixed(2)}`);
+              break;
+            }
+          }
+        }
+        
+        if (!totalGeneralFound) {
+          console.log("⚠️ [TOTAL-GENERAL] Rând Total general NU a fost găsit - se va folosi suma calculată");
+        }
+        
+        return { 
+          cui, 
+          company, 
+          accounts,
+          totalGeneralDebit,
+          totalGeneralCredit,
+          totalGeneralFound
+        };
       } catch (error) {
         console.error('📊 [STRUCTURED-DATA] Eroare extragere:', error);
-        return { cui: '', company: '', accounts: [] };
+        return { 
+          cui: '', 
+          company: '', 
+          accounts: [],
+          totalGeneralDebit: 0,
+          totalGeneralCredit: 0,
+          totalGeneralFound: false
+        };
       }
     };
 
@@ -2358,30 +2414,44 @@ serve(async (req) => {
       // NU printr-o separare Activ/Pasiv (care ar necesita o clasificare de bilanț, nu de balanță).
       console.log("🔍 [VALIDATION LAYER] Verificare echilibru balanță (Sold final Debitor = Sold final Creditor)...");
 
-      // 🔧 FIX: Folosim DIRECT structuredData.accounts (sursa Excel) nu groupedBalance (parsing text incomplet)
-      const accounts1to5 = structuredData.accounts.filter((acc: any) => 
-        acc.accountClass >= 1 && acc.accountClass <= 5
-      );
+      let totalSoldFinalDebitor = 0;
+      let totalSoldFinalCreditor = 0;
+      let validationSource = 'calculated';
       
-      console.log(`📊 [VALIDATION] Conturi clase 1-5 găsite: ${accounts1to5.length}`);
+      // ✅ PRIORITATE 1: Folosește rândul "Total general" dacă a fost găsit
+      if (structuredData.totalGeneralFound && 
+          (structuredData.totalGeneralDebit > 0 || structuredData.totalGeneralCredit > 0)) {
+        totalSoldFinalDebitor = structuredData.totalGeneralDebit;
+        totalSoldFinalCreditor = structuredData.totalGeneralCredit;
+        validationSource = 'total_general_row';
+        console.log(`✅ [VALIDATION] Folosim TOTAL GENERAL din Excel: Debit=${totalSoldFinalDebitor.toFixed(2)}, Credit=${totalSoldFinalCreditor.toFixed(2)}`);
+      } else {
+        // ✅ FALLBACK: Calculează suma din conturi dacă Total general nu există
+        const accounts1to5 = structuredData.accounts.filter((acc: any) => 
+          acc.accountClass >= 1 && acc.accountClass <= 5
+        );
+        
+        console.log(`📊 [VALIDATION] Total general NU găsit - calculăm din ${accounts1to5.length} conturi clase 1-5`);
+        
+        totalSoldFinalDebitor = accounts1to5.reduce(
+          (sum: number, acc: any) => sum + (Number(acc.finalDebit) || 0),
+          0
+        );
+        totalSoldFinalCreditor = accounts1to5.reduce(
+          (sum: number, acc: any) => sum + (Number(acc.finalCredit) || 0),
+          0
+        );
+      }
       
-      const totalSoldFinalDebitor = accounts1to5.reduce(
-        (sum: number, acc: any) => sum + (Number(acc.finalDebit) || 0),
-        0
-      );
-      const totalSoldFinalCreditor = accounts1to5.reduce(
-        (sum: number, acc: any) => sum + (Number(acc.finalCredit) || 0),
-        0
-      );
-      
-      console.log(`📊 [VALIDATION] Total SF Debitor: ${totalSoldFinalDebitor.toFixed(2)}, Total SF Creditor: ${totalSoldFinalCreditor.toFixed(2)}`);
+      console.log(`📊 [VALIDATION] Sursă: ${validationSource} | Total SF Debitor: ${totalSoldFinalDebitor.toFixed(2)}, Total SF Creditor: ${totalSoldFinalCreditor.toFixed(2)}`);
 
       const diferentaSolduriFinale = Math.abs(totalSoldFinalDebitor - totalSoldFinalCreditor);
 
       // Prag de semnificație: 10 RON (evită noise din rotunjiri / exporturi)
       if (diferentaSolduriFinale > 10) {
+        const sourceLabel = validationSource === 'total_general_row' ? '(din Total general)' : '(calculat)';
         const bilantErrorWarning =
-          `🔴 **EROARE CRITICĂ BALANȚĂ - SOLDURI FINALE NEECHILIBRATE!**\n\n` +
+          `🔴 **EROARE CRITICĂ BALANȚĂ - SOLDURI FINALE NEECHILIBRATE!** ${sourceLabel}\n\n` +
           `• Total Sold final **DEBITOR**: ${totalSoldFinalDebitor.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON\n` +
           `• Total Sold final **CREDITOR**: ${totalSoldFinalCreditor.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON\n` +
           `• **DIFERENȚĂ: ${diferentaSolduriFinale.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON** ⚠️\n\n` +
@@ -2392,9 +2462,10 @@ serve(async (req) => {
           `**ACȚIUNE:** Re-exportați „Balanță de verificare” cu „Solduri finale (Debit/Credit)” și verificați totalurile de la final.`;
 
         validationWarnings.push(bilantErrorWarning);
-        console.error(`🔴 [VALIDATION] SOLDURI FINALE NEECHILIBRATE! Diferență: ${diferentaSolduriFinale} RON`);
+        console.error(`🔴 [VALIDATION] SOLDURI FINALE NEECHILIBRATE! Diferență: ${diferentaSolduriFinale} RON (sursă: ${validationSource})`);
       } else {
-        console.log(`✅ [VALIDATION] Balanță echilibrată! Diferență: ${diferentaSolduriFinale.toFixed(2)} RON`);
+        const sourceLabel = validationSource === 'total_general_row' ? '(din Total general)' : '(calculat)';
+        console.log(`✅ [VALIDATION] Balanță echilibrată ${sourceLabel}! Diferență: ${diferentaSolduriFinale.toFixed(2)} RON`);
       }
 
       // VALIDARE 2: Profit = Venituri - Cheltuieli
