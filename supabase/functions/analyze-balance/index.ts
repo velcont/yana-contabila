@@ -2363,7 +2363,12 @@ serve(async (req) => {
       const totalVenituri = groupedActivity.class7.reduce((sum: number, acc: any) => sum + acc.totalCredit, 0);
       const totalCheltuieli = groupedActivity.class6.reduce((sum: number, acc: any) => sum + acc.totalDebit, 0);
       const rezultatCalculat = totalVenituri - totalCheltuieli;
-      const rezultatCont121 = groupedBalance.class1.find((a: any) => a.accountCode === '121')?.netBalance || 0;
+      // FIX: netBalance = finalDebit - finalCredit
+      // Pozitiv = PIERDERE (sold debitor), Negativ = PROFIT (sold creditor)
+      // Trebuie inversat pentru a alinia cu semantica (Venituri - Cheltuieli)
+      const cont121Raw = groupedBalance.class1.find((a: any) => a.accountCode === '121');
+      const rezultatCont121 = cont121Raw ? -(cont121Raw.netBalance) : 0;
+      // Acum: Negativ = PIERDERE, Pozitiv = PROFIT (aliniat cu V - C)
 
       // Use unified, prioritized revenue/expenses for validations (R2)
       const revenueFinal = (typeof revenue_from_structured === 'number' && revenue_from_structured > 0)
@@ -2377,7 +2382,7 @@ serve(async (req) => {
           ? deterministic_metadata.expenses
           : totalCheltuieli;
       const rezultatCalculatFinal = revenueFinal - expensesFinal;
-      const diferentaRezultat = Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121));
+      const diferentaRezultat = Math.abs(rezultatCalculatFinal - rezultatCont121);
 
       if (diferentaRezultat > 10) {
         const profitMismatchWarning = 
@@ -2440,9 +2445,10 @@ serve(async (req) => {
           totalVenituri: revenueFinal,
           totalCheltuieli: expensesFinal,
           rezultatCalculat: rezultatCalculatFinal,
-          rezultatCont121: Math.abs(rezultatCont121),
-          diferenta: Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121)),
-          status: Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121)) <= 10 ? 'OK' : 'WARNING'
+          rezultatCont121: rezultatCont121, // Păstrăm semnul pentru audit
+          rezultatCont121Display: Math.abs(rezultatCont121), // Pentru afișare
+          diferenta: diferentaRezultat,
+          status: diferentaRezultat <= 10 ? 'OK' : 'WARNING'
         },
         tvaValidation: (tvColectata > 0 || tvDeductibila > 0) ? {
           tvColectata: Math.abs(tvColectata),
