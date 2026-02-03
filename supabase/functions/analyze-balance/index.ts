@@ -2325,12 +2325,17 @@ serve(async (req) => {
         ...groupedBalance.class5.filter((a: any) => a.balanceType === 'debit')
       ].reduce((sum: number, acc: any) => sum + acc.netBalance, 0);
 
+      // 🔧 FIX BUG VALIDARE: PASIV = toate conturile credit din clasele 1, 4, 5
+      // Clasa 1: Capital (10x), Rezerve (11x), Rezultat (121), Provizioane (15x), Împrumuturi (16x), etc.
+      // Clasa 4: Furnizori, datorii fiscale, salariale
+      // Clasa 5: Credite bancare pe termen scurt (519) - rar, dar posibil
       const totalPasiv = [
-        ...groupedBalance.class1.filter((a: any) => 
-          (a.accountCode.startsWith('10') || a.accountCode.startsWith('11') || a.accountCode === '121') && 
-          a.balanceType === 'credit'
-        ),
-        ...groupedBalance.class4.filter((a: any) => a.balanceType === 'credit')
+        // Clasa 1 - TOATE conturile cu sold creditor (nu doar 10x, 11x, 121)
+        ...groupedBalance.class1.filter((a: any) => a.balanceType === 'credit'),
+        // Clasa 4 - Datorii
+        ...groupedBalance.class4.filter((a: any) => a.balanceType === 'credit'),
+        // Clasa 5 - Credite pe termen scurt (ex: 519)
+        ...groupedBalance.class5.filter((a: any) => a.balanceType === 'credit')
       ].reduce((sum: number, acc: any) => sum + Math.abs(acc.netBalance), 0);
 
       const diferentaBilant = Math.abs(totalActiv - totalPasiv);
