@@ -5,6 +5,190 @@
 
 ---
 
+## 📋 CE CERE UTILIZATORUL
+
+| Întrebare | Răspuns |
+|-----------|---------|
+| Modificări la fișiere? | 5 fișiere create/modificate |
+| Bază de date creată? | 6 tabele noi |
+| Ce activează auto-learning? | Apel din ai-router după fiecare conversație |
+| Ce se întâmplă diferit? | YANA învață pattern-uri și adaptează răspunsurile |
+
+---
+
+## 📂 MODIFICĂRI LA FIȘIERE (DETALIAT)
+
+### 1. `supabase/functions/extract-learnings/index.ts` ✨ NOU
+**Linii:** 325 | **Rol:** Edge function pentru extragere date învățare
+
+```typescript
+// Pattern-uri detectate:
+UNRESOLVED_PATTERNS = [/nu înțeleg/i, /încă nu știu/i, /nu mi-e clar/i...]
+PREFERENCE_PATTERNS = {wantsSimpler, wantsDetails, wantsExamples, prefersVisual, isUrgent}
+SATISFACTION_PATTERNS = {positive: [/mulțumesc/i...], negative: [/greșit/i...]}
+QUESTION_CATEGORIES = {fiscal, strategic, operational, emotional}
+
+// Funcții:
+detectPatterns() → boolean
+detectPreferences() → {wantsSimpler: bool, ...}
+detectCategory() → 'fiscal'|'strategic'|'operational'|'emotional'|'general'
+detectSatisfaction() → {satisfied: bool|null, score: 0-1}
+extractKeyPhrases() → string[] (fraze eficiente din răspuns AI)
+isNewQuestion() → boolean (dacă e întrebare complexă/nouă)
+```
+
+### 2. `supabase/functions/ai-router/index.ts` 🔄 MODIFICAT
+**Modificare la:** Linii 1020-1049 | **Rol:** Declanșează extract-learnings
+
+```typescript
+// ADĂUGAT - Task pentru auto-learning:
+const extractLearningsTask = async () => {
+  await fetch(`${supabaseUrl}/functions/v1/extract-learnings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+    },
+    body: JSON.stringify({
+      conversationId,           // ID conversație curentă
+      userId: user.id,          // ID utilizator
+      userMessage: message,     // Ce a întrebat userul
+      aiResponse: assistantMessage,  // Ce a răspuns YANA
+      emotionalState: consciousnessContext?.emotionalMode,
+      balanceContext: balanceContext,
+    }),
+  });
+};
+
+// ADĂUGAT în lista de tasks paralele:
+EdgeRuntime.waitUntil(Promise.all([
+  selfReflectTask(),
+  surpriseDetectorTask(),
+  experimentTrackerTask(),
+  journeyUpdaterTask(),
+  captureSoulStateTask(),
+  extractLearningsTask(),     // ← NOU ADĂUGAT
+]));
+```
+
+### 3. `supabase/config.toml` 🔄 MODIFICAT
+**Adăugat:** Linii 231-232
+
+```toml
+[functions.extract-learnings]
+verify_jwt = false
+```
+
+### 4. `src/components/admin/YanaLearningDashboard.tsx` ✨ NOU
+**Linii:** ~300 | **Rol:** Dashboard admin pentru vizualizare învățare
+
+```
+Secțiuni:
+├── Stats Cards (Total Learnings, Gaps, Effective, Avg Score)
+├── Tab "Knowledge Gaps" - întrebări problematice
+├── Tab "Ce Funcționează" - răspunsuri cu succes
+└── Tab "Trending Topics" - teme populare
+```
+
+### 5. `src/pages/Admin.tsx` 🔄 MODIFICAT
+**Adăugat:** Tab nou "🎓 Learning YANA"
+
+```typescript
+// Import adăugat:
+const YanaLearningDashboard = lazy(() => import("@/components/admin/YanaLearningDashboard"));
+
+// TabsTrigger adăugat:
+<TabsTrigger value="learning">🎓 Learning YANA</TabsTrigger>
+
+// TabsContent adăugat:
+<TabsContent value="learning">
+  <Suspense fallback={<Skeleton />}>
+    <YanaLearningDashboard />
+  </Suspense>
+</TabsContent>
+```
+
+---
+
+## 🗄️ BAZĂ DE DATE CREATĂ (6 TABELE)
+
+| Tabel | Rol | Coloane Cheie |
+|-------|-----|---------------|
+| `yana_learning_log` | Log principal fiecare conversație | conversation_id, user_satisfied, engagement_score |
+| `yana_knowledge_gaps` | Întrebări la care YANA nu știe | question_pattern, frequency, severity |
+| `yana_effective_responses` | Răspunsuri cu feedback pozitiv | effectiveness_score, key_phrases, approach_type |
+| `yana_trending_topics` | Teme populare între utilizatori | topic, mention_count, unique_users |
+| `yana_prompt_evolution` | Istoric modificări prompturi | change_description, effectiveness_before/after |
+| `yana_user_corrections` | Corecții manuale de la useri | original_response, correction |
+
+**Stare curentă:** 0 înregistrări în toate tabelele (așteaptă conversații)
+
+---
+
+## ⚡ CE ACTIVEAZĂ AUTO-LEARNING-UL?
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  DECLANȘATOR: Fiecare mesaj trimis în chat YANA            │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  ai-router/index.ts primește mesajul                        │
+│  → Generează răspuns AI                                     │
+│  → Trimite răspuns către user                              │
+│  → În BACKGROUND (EdgeRuntime.waitUntil):                   │
+│       → Apelează extract-learnings cu mesaj + răspuns      │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  extract-learnings/index.ts procesează:                     │
+│  1. Detectează satisfacție (mulțumesc/greșit)              │
+│  2. Detectează preferințe (vrea simplu/detalii/exemple)    │
+│  3. Detectează categorii (fiscal/strategic/operational)     │
+│  4. Detectează semnale confuzie (nu înțeleg/nu mi-e clar)  │
+│  5. Extrage fraze eficiente din răspuns                    │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  SALVEAZĂ în DB:                                            │
+│  → yana_learning_log (întotdeauna)                         │
+│  → yana_knowledge_gaps (dacă detectează confuzie)          │
+│  → yana_effective_responses (dacă user e satisfăcut)       │
+│  → yana_trending_topics (pentru fiecare categorie)         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔄 CE SE ÎNTÂMPLĂ DIFERIT ACUM?
+
+### ÎNAINTE (fără auto-learning):
+```
+User întreabă → YANA răspunde → Gata, nimic salvat
+```
+
+### ACUM (cu auto-learning):
+```
+User întreabă → YANA răspunde → PLUS în background:
+
+✅ Se salvează conversația în learning_log
+✅ Dacă userul zice "nu înțeleg" → se creează knowledge_gap
+✅ Dacă userul zice "mulțumesc, super!" → se salvează ce a funcționat
+✅ Se actualizează trending topics cu subiectul discutat
+✅ Se extrag fraze eficiente pentru reutilizare
+```
+
+### IMPACT CONCRET:
+| Aspect | Înainte | Acum |
+|--------|---------|------|
+| Întrebări problematice | Pierdute | Salvate și prioritizate |
+| Răspunsuri bune | Pierdute | Salvate pentru reutilizare |
+| Preferințe user | Necunoscute | Detectate (simplu/detaliat/vizual) |
+| Teme populare | Necunoscute | Tracked și vizibile în admin |
+| Satisfacție | Necunoscută | Măsurată cu scor 0-1 |
+
+---
+
 ## 📊 REZUMAT EXECUTIV
 
 | Componentă | Status | Fișiere |
