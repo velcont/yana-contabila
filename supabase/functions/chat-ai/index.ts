@@ -147,6 +147,70 @@ YANA este aici să AJUTE, nu să refuze. Dacă:
 
 ${FULL_ANALYSIS_PROMPT}
 
+📊 **GENERARE GRAFICE ȘI VIZUALIZĂRI (REGULI CRITICE)**
+
+Când utilizatorul cere un grafic, o vizualizare sau o diagramă:
+
+1. **EXTRAGE datele din conturile balanței din context**
+2. **GENEREAZĂ un bloc artifact JSON** în formatul:
+
+\`\`\`artifact
+{
+  "type": "bar_chart",
+  "title": "Titlu descriptiv",
+  "data": {"Categorie1": valoare, "Categorie2": valoare}
+}
+\`\`\`
+
+**TIPURI SUPORTATE:**
+- "bar_chart" - pentru comparații între categorii
+- "line_chart" - pentru evoluție în timp (data: array [{name, value}])
+- "radar_chart" - pentru scor multi-dimensional
+- "table" - pentru date tabelare (data: array cu obiecte)
+
+**MAPARE CONTURI OBLIGATORIE:**
+
+Pentru CHELTUIELI (grafic pe categorii):
+- Clasă 6xx din balanță → Categorizează:
+  - 601, 602, 607, 608 → "Materii prime & Marfă"
+  - 641, 6411, 645 → "Salarii & Taxe personal"
+  - 612, 613 → "Chirii & Utilități"  
+  - 623, 624 → "Transport & Deplasări"
+  - 626 → "Poștă & Telecomunicații"
+  - 628 → "Servicii externe"
+  - Alte 6xx → "Alte cheltuieli"
+
+Pentru VENITURI:
+- Clasă 7xx → "Venituri din vânzări", "Venituri financiare", etc.
+
+**EXEMPLU CONCRET:**
+
+User: "arată-mi graficul cheltuielilor"
+Balanță: Cont 641: 15000, Cont 628: 8000, Cont 607: 22000
+
+Răspuns:
+"Iată structura cheltuielilor tale:
+
+\`\`\`artifact
+{
+  "type": "bar_chart",
+  "title": "Structura Cheltuielilor",
+  "data": {
+    "Materii prime & Marfă": 22000,
+    "Salarii & Taxe": 15000,
+    "Servicii externe": 8000
+  }
+}
+\`\`\`
+
+Observ că cea mai mare categorie este Materii prime (22.000 RON)..."
+
+**REGULI ABSOLUTE PENTRU GRAFICE:**
+- NU cere NICIODATĂ date de la utilizator dacă ai balanță în context
+- NU genera grafice "ipotetice" sau "exemplu" când ai date reale
+- EXTRAGE valorile din conturile listate în context
+- Dacă NU ai balanță → Cere utilizatorului să încarce Excel (SmartBill/Saga)
+
 🛑 **REGULĂ CRITICĂ #1 - ÎNTREBĂRI DESPRE PIERDERE (CITEȘTE PRIMA!)**
 
 Când utilizatorul întreabă "de ce sunt/e/suntem în pierdere", "de ce am pierdere", "de unde vine pierderea":
@@ -553,12 +617,12 @@ A: Da, integrarea este simplă și funcționează eficient pentru toate aceste t
 - "Cât durează analiza?" → 10-30 secunde automat după încărcare
 - "De ce nu merge PDF?" → Sistemul procesează doar Excel pentru acuratețe maximă
 
-📊 **DASHBOARD & VIZUALIZARE**
-- "Unde văd analizele?" → Click "Dosarul Meu" (butonul care palpită pe pagina principală)
-- "Cum văd istoricul?" → În Dashboard, tab-ul "Dosarul Meu" arată toate analizele
-- "Cum compar 2 perioade?" → În Dashboard, tab "Comparare Perioade", selectează 2 analize
-- "Unde sunt graficele?" → Dashboard → Tab "Grafice Analytics" (cifră afaceri, profit, DSO, etc.)
-- "Cum văd alertele?" → Dashboard → Tab "Alerte Proactive" (probleme detectate automat)
+📊 **VIZUALIZĂRI ȘI ANALIZĂ (TOTUL ÎN CHAT)**
+- "Unde văd analizele?" → Cere "arată-mi analiza" direct în chat
+- "Cum văd istoricul?" → Click pe iconița 📜 în sidebar-ul din stânga
+- "Cum compar 2 perioade?" → Întreabă "compară ianuarie cu februarie"
+- "Unde sunt graficele?" → Cere "arată-mi grafic cheltuieli" - apare direct în chat ca artifact inline
+- "Cum văd alertele?" → Întreabă "ce alerte am?" - le primești în conversație
 
 📥 **DESCĂRCARE RAPORT PREMIUM** (DOAR LA ÎNTREBARE EXPLICITĂ!):
 
@@ -1813,35 +1877,70 @@ ${daysSinceLastInteraction >= 7 ? '💡 Au trecut câteva zile - poți face o sc
     
     let graphReminder = '';
     if (isGraphRequest && hasBalanceData) {
+      // Extrage conturile 6xx și 7xx din balanceContext pentru a le lista explicit
+      const expenseAccounts = balanceContext?.accounts
+        ?.filter((a: any) => String(a.code).startsWith('6'))
+        ?.slice(0, 15)
+        ?.map((a: any) => `${a.code}: ${Number(a.debit || 0).toLocaleString('ro-RO')} RON`)
+        ?.join(', ') || 'nu există conturi 6xx';
+      
+      const incomeAccounts = balanceContext?.accounts
+        ?.filter((a: any) => String(a.code).startsWith('7'))
+        ?.slice(0, 10)
+        ?.map((a: any) => `${a.code}: ${Number(a.credit || 0).toLocaleString('ro-RO')} RON`)
+        ?.join(', ') || 'nu există conturi 7xx';
+      
       graphReminder = `
 
-🚨 **CERERE GRAFIC DETECTATĂ - INSTRUCȚIUNI OBLIGATORII:**
-Utilizatorul a cerut un grafic/vizualizare. Ai datele balanței mai sus.
-TREBUIE să:
-1. EXTRAGI datele DIRECT din conturile de mai sus
-2. GENEREZI un artefact JSON în formatul:
+🚨 **COMANDĂ DIRECTĂ - GENEREAZĂ GRAFIC ACUM!**
+
+Utilizatorul a cerut un grafic. Ai datele. ACȚIONEAZĂ IMEDIAT:
+
+📊 **CONTURI CHELTUIELI (6xx) DISPONIBILE:**
+${expenseAccounts}
+
+📈 **CONTURI VENITURI (7xx) DISPONIBILE:**
+${incomeAccounts}
+
+**MAPARE OBLIGATORIE pentru grafic cheltuieli:**
+- 601, 602, 607, 608 → "Materii prime & Marfă"
+- 641, 6411, 645 → "Salarii & Taxe personal"
+- 612, 613 → "Chirii & Utilități"
+- 623, 624 → "Transport & Deplasări"
+- 626 → "Poștă & Telecomunicații"
+- 628 → "Servicii externe"
+- Alte 6xx → "Alte cheltuieli"
+
+**RĂSPUNS OBLIGATORIU - NU CERE DATE, GENEREAZĂ DIRECT:**
+1. Scrie 1-2 propoziții despre ce arată graficul
+2. Inserează bloc artifact JSON cu datele REALE de mai sus
+3. Adaugă observație cheie
+
+**FORMAT OBLIGATORIU:**
 \`\`\`artifact
 {
   "type": "bar_chart",
-  "title": "Titlu relevant",
-  "data": {"Categorie1": valoare1, "Categorie2": valoare2}
+  "title": "Structura Cheltuielilor",
+  "data": {"Salarii & Taxe": 15000, "Servicii externe": 8000, "Materii prime": 22000}
 }
 \`\`\`
-3. NU ceri date suplimentare de la utilizator
-4. Dacă cere cheltuieli → folosește conturile 6xx din lista de mai sus
-5. Dacă cere venituri → folosește conturile 7xx din lista de mai sus
 
-ESTE INTERZIS să răspunzi "am nevoie de date" sau "trimite-mi cifrele" - datele SUNT DEJA în context!
+**TIPURI SUPORTATE:** bar_chart, line_chart, radar_chart, table
+
+⛔ INTERZIS: Să ceri date de la utilizator
+⛔ INTERZIS: Să generezi date "ipotetice" sau "exemplu"
+⛔ INTERZIS: Să spui "am nevoie de cifre" - cifrele SUNT MAI SUS!
 `;
-      console.log(`[chat-ai][${requestId}] 📊 Graph request detected, reminder injected`);
+      console.log(`[chat-ai][${requestId}] 📊 Graph request detected - FORCED reminder with actual account data injected`);
     } else if (isGraphRequest && !hasBalanceData) {
       graphReminder = `
 
-📊 **CERERE GRAFIC - FĂRĂ BALANȚĂ:**
+📊 **CERERE GRAFIC - FĂRĂ BALANȚĂ ÎNCĂRCATĂ:**
 Utilizatorul cere un grafic, dar NU ai date de balanță încărcate.
-Răspunde cald: "Pentru a-ți genera graficul, am nevoie de balanța ta. Încarcă un fișier Excel (SmartBill sau Saga) și instant îți arăt vizualizarea."
+Răspunde cald și ghidează: "Pentru a-ți genera graficul, am nevoie de balanța ta. Încarcă un fișier Excel (SmartBill sau Saga) folosind butonul + din chat, și instant îți arăt vizualizarea cu datele tale reale."
+NU genera grafice ipotetice. NU cere date manual. Îndrumă spre încărcare fișier.
 `;
-      console.log(`[chat-ai][${requestId}] 📊 Graph request detected, but no balance data`);
+      console.log(`[chat-ai][${requestId}] 📊 Graph request detected, but no balance data - guiding to upload`);
     }
     
     adaptedPrompt += graphReminder;
