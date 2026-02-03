@@ -32,6 +32,7 @@ const AICorrectionsPanel = lazy(() => import("@/components/admin/AICorrectionsPa
 const YanaInitiativesPanel = lazy(() => import("@/components/admin/YanaInitiativesPanel").then(m => ({ default: m.YanaInitiativesPanel })));
 const ApiStatusWidget = lazy(() => import("@/components/admin/ApiStatusWidget").then(m => ({ default: m.ApiStatusWidget })));
 const VersionRefreshMonitor = lazy(() => import("@/components/admin/VersionRefreshMonitor").then(m => ({ default: m.VersionRefreshMonitor })));
+const YanaLearningDashboard = lazy(() => import("@/components/admin/YanaLearningDashboard"));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -372,6 +373,10 @@ const Admin = () => {
               <TabsTrigger value="version-refresh">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 ⏱️ Version Refresh
+              </TabsTrigger>
+              <TabsTrigger value="learning">
+                <Brain className="h-4 w-4 mr-2" />
+                🎓 Learning YANA
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -825,6 +830,12 @@ const Admin = () => {
           <TabsContent value="version-refresh">
             <Suspense fallback={<TabContentLoader />}>
               <VersionRefreshMonitor />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="learning">
+            <Suspense fallback={<TabContentLoader />}>
+              <YanaLearningDashboard />
             </Suspense>
           </TabsContent>
         </Tabs>

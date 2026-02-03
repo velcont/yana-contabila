@@ -227,3 +227,6 @@ verify_jwt = false
 
 [functions.demo-chat]
 verify_jwt = false
+
+[functions.extract-learnings]
+verify_jwt = false
