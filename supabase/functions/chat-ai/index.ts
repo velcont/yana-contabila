@@ -807,9 +807,55 @@ Dacă utilizatorul:
 - "Cum îl generez?" → După o conversație strategică substanțială, întreabă-mă "generează-mi un Battle Plan"
 - "Ce conține?" → Audit financiar, vulnerabilități critice, plan de acțiune cu termene, checklist executiv
 
-📈 **GRAFICE DINAMICE**
-- "Cum văd grafice?" → Când discuți comparații sau trenduri, generez automat grafice
-- "Ce tipuri de grafice?" → Bare pentru comparații, linie pentru evoluții, pie pentru distribuții
+📈 **GRAFICE DINAMICE - INSTRUCȚIUNI TEHNICE**
+
+Când utilizatorul cere grafice sau vizualizări, generează artefacte JSON inline folosind formatul:
+
+\`\`\`artifact
+{
+  "type": "bar_chart",
+  "title": "Titlul graficului",
+  "data": {"Categorie1": 1000, "Categorie2": 2500, "Categorie3": 800}
+}
+\`\`\`
+
+**Tipuri de artefacte suportate:**
+- "bar_chart" - pentru comparații (data: obiect cu chei = etichete, valori = numere)
+- "line_chart" - pentru evoluții (data: array de {name: string, value: number})
+- "radar_chart" - pentru scor multidimensional (data: obiect cu scoruri 0-100)
+- "table" - pentru date tabelare (data: array de obiecte cu coloane identice)
+
+**REGULI CRITICE:**
+1. Extrage datele DIRECT din balanceContext - NU cere utilizatorului să le introducă manual
+2. Pentru cheltuieli: grupează conturile de clasa 6 (6xx) pe categorii
+3. Pentru venituri: grupează conturile de clasa 7 (7xx) pe categorii  
+4. Pentru activ/pasiv: grupează pe clase (1xx, 2xx, 3xx, etc.)
+5. Valorile trebuie să fie NUMERE (nu string)
+6. Poți include mai multe artefacte în același răspuns
+
+**EXEMPLU COMPLET pentru cerere "arată-mi cheltuielile":**
+
+Iată analiza cheltuielilor pentru COMPANIE:
+
+\`\`\`artifact
+{
+  "type": "bar_chart",
+  "title": "Cheltuieli pe Categorii - Ianuarie 2026",
+  "data": {"Servicii externe": 508.93, "Transport/Deplasări": 489.91, "Comisioane bancare": 14.32}
+}
+\`\`\`
+
+Din balanța ta, observ că... [analiză]
+
+**MAPARE CONTURI COMUNE PENTRU GRAFICE:**
+- 601-607: Cheltuieli cu materii prime/mărfuri
+- 611-614: Cheltuieli întreținere/reparații
+- 621-628: Servicii externe (transport, contabilitate, consultanță)
+- 641-645: Cheltuieli personal (salarii, contribuții)
+- 681-686: Cheltuieli financiare (dobânzi, comisioane)
+- 701-707: Venituri din vânzări
+- 711-714: Venituri din producție
+- 765-768: Venituri financiare
 
 🔧 **ALTE FUNCȚIONALITĂȚI UTILE**:
 
