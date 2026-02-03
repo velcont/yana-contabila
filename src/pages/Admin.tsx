@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap, Activity } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -382,6 +382,10 @@ const Admin = () => {
               <TabsTrigger value="agentic">
                 <Zap className="h-4 w-4 mr-2" />
                 🤖 Sistem Agentic
+              </TabsTrigger>
+              <TabsTrigger value="consciousness">
+                <Sparkles className="h-4 w-4 mr-2" />
+                🧠 Consciousness
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -847,6 +851,12 @@ const Admin = () => {
           <TabsContent value="agentic">
             <Suspense fallback={<TabContentLoader />}>
               <AgenticDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="consciousness">
+            <Suspense fallback={<TabContentLoader />}>
+              <ConsciousnessDashboard />
             </Suspense>
           </TabsContent>
         </Tabs>

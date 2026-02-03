@@ -4904,6 +4904,99 @@ export type Database = {
           },
         ]
       }
+      yana_decision_audit_trail: {
+        Row: {
+          action_by: string
+          action_details: Json | null
+          action_type: string
+          created_at: string | null
+          data_snapshot: Json | null
+          decision_id: string
+          id: string
+          impact_assessment: Json | null
+          reasoning: string | null
+          rollback_possible: boolean | null
+        }
+        Insert: {
+          action_by: string
+          action_details?: Json | null
+          action_type: string
+          created_at?: string | null
+          data_snapshot?: Json | null
+          decision_id: string
+          id?: string
+          impact_assessment?: Json | null
+          reasoning?: string | null
+          rollback_possible?: boolean | null
+        }
+        Update: {
+          action_by?: string
+          action_details?: Json | null
+          action_type?: string
+          created_at?: string | null
+          data_snapshot?: Json | null
+          decision_id?: string
+          id?: string
+          impact_assessment?: Json | null
+          reasoning?: string | null
+          rollback_possible?: boolean | null
+        }
+        Relationships: []
+      }
+      yana_decision_loops: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          decisions_made: number | null
+          decisions_successful: number | null
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          last_run_duration_ms: number | null
+          last_run_results: Json | null
+          last_run_status: string | null
+          loop_name: string
+          loop_type: string
+          trigger_conditions: Json | null
+          trigger_schedule: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          decisions_made?: number | null
+          decisions_successful?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          last_run_duration_ms?: number | null
+          last_run_results?: Json | null
+          last_run_status?: string | null
+          loop_name: string
+          loop_type: string
+          trigger_conditions?: Json | null
+          trigger_schedule?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          decisions_made?: number | null
+          decisions_successful?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          last_run_duration_ms?: number | null
+          last_run_results?: Json | null
+          last_run_status?: string | null
+          loop_name?: string
+          loop_type?: string
+          trigger_conditions?: Json | null
+          trigger_schedule?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       yana_dreams: {
         Row: {
           created_at: string | null
@@ -5000,6 +5093,111 @@ export type Database = {
           times_used?: number | null
           tone_used?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      yana_emotional_patterns: {
+        Row: {
+          created_at: string | null
+          first_detected_at: string | null
+          frequency: string | null
+          id: string
+          intervention_effectiveness: number | null
+          intervention_strategy: string | null
+          last_occurrence_at: string | null
+          occurrence_count: number | null
+          pattern_description: string | null
+          pattern_type: string
+          resolved: boolean | null
+          resolved_at: string | null
+          severity: string | null
+          trigger_factors: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          first_detected_at?: string | null
+          frequency?: string | null
+          id?: string
+          intervention_effectiveness?: number | null
+          intervention_strategy?: string | null
+          last_occurrence_at?: string | null
+          occurrence_count?: number | null
+          pattern_description?: string | null
+          pattern_type: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          severity?: string | null
+          trigger_factors?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          first_detected_at?: string | null
+          frequency?: string | null
+          id?: string
+          intervention_effectiveness?: number | null
+          intervention_strategy?: string | null
+          last_occurrence_at?: string | null
+          occurrence_count?: number | null
+          pattern_description?: string | null
+          pattern_type?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          severity?: string | null
+          trigger_factors?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      yana_expertise_levels: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          current_level: string
+          domain: string
+          escalations_needed: number | null
+          id: string
+          knowledge_gaps_identified: string[] | null
+          last_training_date: string | null
+          next_level_requirements: Json | null
+          performance_trend: string | null
+          successful_resolutions: number | null
+          total_questions_handled: number | null
+          training_data_sources: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          current_level?: string
+          domain: string
+          escalations_needed?: number | null
+          id?: string
+          knowledge_gaps_identified?: string[] | null
+          last_training_date?: string | null
+          next_level_requirements?: Json | null
+          performance_trend?: string | null
+          successful_resolutions?: number | null
+          total_questions_handled?: number | null
+          training_data_sources?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          current_level?: string
+          domain?: string
+          escalations_needed?: number | null
+          id?: string
+          knowledge_gaps_identified?: string[] | null
+          last_training_date?: string | null
+          next_level_requirements?: Json | null
+          performance_trend?: string | null
+          successful_resolutions?: number | null
+          total_questions_handled?: number | null
+          training_data_sources?: string[] | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -5355,6 +5553,123 @@ export type Database = {
           },
         ]
       }
+      yana_personalization_recommendations: {
+        Row: {
+          applied: boolean | null
+          applied_at: string | null
+          based_on_data: Json | null
+          confidence_score: number | null
+          created_at: string | null
+          current_preference: Json | null
+          id: string
+          recommendation_type: string
+          recommended_change: Json | null
+          result_after_application: Json | null
+          user_id: string
+        }
+        Insert: {
+          applied?: boolean | null
+          applied_at?: string | null
+          based_on_data?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          current_preference?: Json | null
+          id?: string
+          recommendation_type: string
+          recommended_change?: Json | null
+          result_after_application?: Json | null
+          user_id: string
+        }
+        Update: {
+          applied?: boolean | null
+          applied_at?: string | null
+          based_on_data?: Json | null
+          confidence_score?: number | null
+          created_at?: string | null
+          current_preference?: Json | null
+          id?: string
+          recommendation_type?: string
+          recommended_change?: Json | null
+          result_after_application?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      yana_proactive_alerts: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          alert_type: string
+          channel: string | null
+          clicked_at: string | null
+          conversion_achieved: boolean | null
+          conversion_action: string | null
+          created_at: string | null
+          created_by: string | null
+          dismissed_at: string | null
+          expires_at: string | null
+          id: string
+          message: string
+          opened_at: string | null
+          priority: number | null
+          scheduled_for: string | null
+          sent_at: string | null
+          severity: string
+          target_segment: string | null
+          target_user_id: string | null
+          title: string
+          trigger_conditions: Json
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          alert_type: string
+          channel?: string | null
+          clicked_at?: string | null
+          conversion_achieved?: boolean | null
+          conversion_action?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dismissed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          message: string
+          opened_at?: string | null
+          priority?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          severity?: string
+          target_segment?: string | null
+          target_user_id?: string | null
+          title: string
+          trigger_conditions: Json
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          alert_type?: string
+          channel?: string | null
+          clicked_at?: string | null
+          conversion_achieved?: boolean | null
+          conversion_action?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          dismissed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          message?: string
+          opened_at?: string | null
+          priority?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          severity?: string
+          target_segment?: string | null
+          target_user_id?: string | null
+          title?: string
+          trigger_conditions?: Json
+        }
+        Relationships: []
+      }
       yana_proactive_patterns: {
         Row: {
           activation_count: number | null
@@ -5451,6 +5766,123 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_prompt_versions: {
+        Row: {
+          ab_experiment_id: string | null
+          activated_at: string | null
+          change_summary: string | null
+          change_type: string
+          created_at: string | null
+          created_by: string | null
+          deactivated_at: string | null
+          effectiveness_after: Json | null
+          effectiveness_before: Json | null
+          id: string
+          improvement_percentage: number | null
+          is_active: boolean | null
+          is_rollback_target: boolean | null
+          parent_version_id: string | null
+          prompt_content: string
+          prompt_section: string
+          triggered_by: string | null
+          version_number: number
+        }
+        Insert: {
+          ab_experiment_id?: string | null
+          activated_at?: string | null
+          change_summary?: string | null
+          change_type: string
+          created_at?: string | null
+          created_by?: string | null
+          deactivated_at?: string | null
+          effectiveness_after?: Json | null
+          effectiveness_before?: Json | null
+          id?: string
+          improvement_percentage?: number | null
+          is_active?: boolean | null
+          is_rollback_target?: boolean | null
+          parent_version_id?: string | null
+          prompt_content: string
+          prompt_section: string
+          triggered_by?: string | null
+          version_number: number
+        }
+        Update: {
+          ab_experiment_id?: string | null
+          activated_at?: string | null
+          change_summary?: string | null
+          change_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          deactivated_at?: string | null
+          effectiveness_after?: Json | null
+          effectiveness_before?: Json | null
+          id?: string
+          improvement_percentage?: number | null
+          is_active?: boolean | null
+          is_rollback_target?: boolean | null
+          parent_version_id?: string | null
+          prompt_content?: string
+          prompt_section?: string
+          triggered_by?: string | null
+          version_number?: number
+        }
+        Relationships: []
+      }
+      yana_question_clusters: {
+        Row: {
+          avg_satisfaction: number | null
+          best_performing_response_id: string | null
+          category: string
+          centroid_embedding: Json | null
+          cluster_description: string | null
+          cluster_name: string
+          complexity_level: string | null
+          created_at: string | null
+          id: string
+          optimal_response_strategy: string | null
+          question_count: number | null
+          requires_expertise: string[] | null
+          sample_questions: string[] | null
+          subcategory: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avg_satisfaction?: number | null
+          best_performing_response_id?: string | null
+          category: string
+          centroid_embedding?: Json | null
+          cluster_description?: string | null
+          cluster_name: string
+          complexity_level?: string | null
+          created_at?: string | null
+          id?: string
+          optimal_response_strategy?: string | null
+          question_count?: number | null
+          requires_expertise?: string[] | null
+          sample_questions?: string[] | null
+          subcategory?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avg_satisfaction?: number | null
+          best_performing_response_id?: string | null
+          category?: string
+          centroid_embedding?: Json | null
+          cluster_description?: string | null
+          cluster_name?: string
+          complexity_level?: string | null
+          created_at?: string | null
+          id?: string
+          optimal_response_strategy?: string | null
+          question_count?: number | null
+          requires_expertise?: string[] | null
+          sample_questions?: string[] | null
+          subcategory?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       yana_relationships: {
         Row: {
           consecutive_return_days: number | null
@@ -5517,6 +5949,122 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
           user_preferences?: Json | null
+        }
+        Relationships: []
+      }
+      yana_response_effectiveness: {
+        Row: {
+          avg_conversation_length: number | null
+          avg_follow_up_questions: number | null
+          category: string
+          cluster_id: string | null
+          created_at: string | null
+          effectiveness_score: number | null
+          id: string
+          length_category: string | null
+          negative_reactions: number | null
+          neutral_reactions: number | null
+          positive_reactions: number | null
+          response_hash: string
+          response_template: string
+          times_used: number | null
+          tone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avg_conversation_length?: number | null
+          avg_follow_up_questions?: number | null
+          category: string
+          cluster_id?: string | null
+          created_at?: string | null
+          effectiveness_score?: number | null
+          id?: string
+          length_category?: string | null
+          negative_reactions?: number | null
+          neutral_reactions?: number | null
+          positive_reactions?: number | null
+          response_hash: string
+          response_template: string
+          times_used?: number | null
+          tone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avg_conversation_length?: number | null
+          avg_follow_up_questions?: number | null
+          category?: string
+          cluster_id?: string | null
+          created_at?: string | null
+          effectiveness_score?: number | null
+          id?: string
+          length_category?: string | null
+          negative_reactions?: number | null
+          neutral_reactions?: number | null
+          positive_reactions?: number | null
+          response_hash?: string
+          response_template?: string
+          times_used?: number | null
+          tone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_response_effectiveness_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "yana_question_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yana_satisfaction_metrics: {
+        Row: {
+          category: string | null
+          conversation_id: string | null
+          created_at: string | null
+          dissatisfaction_signals: Json | null
+          explicit_rating: number | null
+          id: string
+          implicit_satisfaction: number | null
+          improvement_suggestions: string[] | null
+          message_id: string | null
+          period_end: string | null
+          period_start: string | null
+          response_quality_factors: Json | null
+          satisfaction_signals: Json | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          dissatisfaction_signals?: Json | null
+          explicit_rating?: number | null
+          id?: string
+          implicit_satisfaction?: number | null
+          improvement_suggestions?: string[] | null
+          message_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          response_quality_factors?: Json | null
+          satisfaction_signals?: Json | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          dissatisfaction_signals?: Json | null
+          explicit_rating?: number | null
+          id?: string
+          implicit_satisfaction?: number | null
+          improvement_suggestions?: string[] | null
+          message_id?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          response_quality_factors?: Json | null
+          satisfaction_signals?: Json | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -5604,6 +6152,66 @@ export type Database = {
           total_users_helped?: number | null
           unasked_question?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      yana_therapy_sessions: {
+        Row: {
+          breakthroughs: Json | null
+          challenges_identified: Json | null
+          coping_strategies_suggested: string[] | null
+          created_at: string | null
+          emotional_state_end: string | null
+          emotional_state_start: string | null
+          follow_up_scheduled: string | null
+          homework_assigned: string | null
+          homework_completed: boolean | null
+          id: string
+          satisfaction_score: number | null
+          session_date: string
+          session_notes: string | null
+          session_type: string | null
+          topics_discussed: string[] | null
+          user_feedback: string | null
+          user_id: string
+        }
+        Insert: {
+          breakthroughs?: Json | null
+          challenges_identified?: Json | null
+          coping_strategies_suggested?: string[] | null
+          created_at?: string | null
+          emotional_state_end?: string | null
+          emotional_state_start?: string | null
+          follow_up_scheduled?: string | null
+          homework_assigned?: string | null
+          homework_completed?: boolean | null
+          id?: string
+          satisfaction_score?: number | null
+          session_date?: string
+          session_notes?: string | null
+          session_type?: string | null
+          topics_discussed?: string[] | null
+          user_feedback?: string | null
+          user_id: string
+        }
+        Update: {
+          breakthroughs?: Json | null
+          challenges_identified?: Json | null
+          coping_strategies_suggested?: string[] | null
+          created_at?: string | null
+          emotional_state_end?: string | null
+          emotional_state_start?: string | null
+          follow_up_scheduled?: string | null
+          homework_assigned?: string | null
+          homework_completed?: boolean | null
+          id?: string
+          satisfaction_score?: number | null
+          session_date?: string
+          session_notes?: string | null
+          session_type?: string | null
+          topics_discussed?: string[] | null
+          user_feedback?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -5708,6 +6316,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      yana_user_behavior: {
+        Row: {
+          created_at: string | null
+          emotional_state: string | null
+          event_data: Json | null
+          event_type: string
+          id: string
+          interaction_depth: number | null
+          page_context: string | null
+          session_id: string | null
+          time_spent_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          emotional_state?: string | null
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          interaction_depth?: number | null
+          page_context?: string | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          emotional_state?: string | null
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          interaction_depth?: number | null
+          page_context?: string | null
+          session_id?: string | null
+          time_spent_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       yana_user_context_evolution: {
         Row: {
@@ -5943,6 +6590,14 @@ export type Database = {
       cleanup_old_data: { Args: never; Returns: undefined }
       cleanup_old_demo_rate_limits: { Args: never; Returns: undefined }
       deactivate_expired_subscriptions: { Args: never; Returns: undefined }
+      detect_emotional_pattern: {
+        Args: {
+          p_emotional_state: string
+          p_trigger_factors?: Json
+          p_user_id: string
+        }
+        Returns: string
+      }
       extract_question_pattern: {
         Args: { question_text: string }
         Returns: {

@@ -236,3 +236,6 @@ verify_jwt = false
 
 [functions.pattern-analyzer]
 verify_jwt = false
+
+[functions.experiment-tracker]
+verify_jwt = false
