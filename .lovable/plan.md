@@ -1,119 +1,143 @@
 
-# Plan: Transformare "Spune-i ce te frământă" în Input Vizual Clar
+# Plan de Remediere: Bug Neconcordanță Rezultat Financiar
 
-## 1. Problema Identificată
+## Problema Identificată
 
-Utilizatorii nu înțeleg că zona "Spune-i ce te frământă" este interactivă și pot scrie acolo. Aceasta se întâmplă pentru că:
+YANA afișează o **diferență falsă de 1.927,36 RON** pentru balanța VALMANSHOP care este de fapt **perfect echilibrată**.
 
-- **Design actual**: Este un `<Button>` standard cu text static
-- **Nu arată ca un input**: Lipsesc indiciile vizuale (placeholder, cursor, bordură de input)
-- **Percepție**: Utilizatorii cred că e un buton care face ceva, nu un loc de scriere
+### Date din balanță:
+- **Cont 121**: Sold final DEBITOR = 963,68 RON (= PIERDERE)
+- **Total clasa 7** (Venituri): 49,48 RON
+- **Total clasa 6** (Cheltuieli): 1.013,16 RON
+- **Rezultat corect**: 49,48 - 1.013,16 = **-963,68 RON** (pierdere)
+- **Sold cont 121**: 963,68 RON (debitor = pierdere)
 
----
+Balanța este corect închisă! Nu există nicio neconcordanță reală.
 
-## 2. Soluția Propusă
+### Cauza tehnică:
+În `analyze-balance/index.ts`, linia 2380:
 
-Transformăm butonul într-un **"fake input"** (input imitator) care:
-- Arată ca un câmp de text unde poți scrie
-- Are cursor care clipește pentru a atrage atenția
-- Include placeholder animat/dinamic
-- La click, deschide DemoChat și focalizează automat inputul
+```text
+netBalance = finalDebit - finalCredit = 963.68 (pozitiv pentru pierdere)
+rezultatCalculatFinal = Venituri - Cheltuieli = -963.68 (negativ pentru pierdere)
 
----
-
-## 3. Modificări Planificate
-
-### Fișier: `src/pages/Landing.tsx`
-
-**Înainte (liniile 68-76):**
-```tsx
-<Button 
-  variant="outline" 
-  size="lg"
-  className="w-full gap-2"
-  onClick={handleDemoClick}
->
-  <MessageCircle className="w-4 h-4" />
-  Spune-i ce te frământă
-</Button>
-```
-
-**După:**
-```tsx
-<button
-  onClick={handleDemoClick}
-  className="w-full flex items-center gap-3 px-4 py-4 
-             bg-card border-2 border-primary/30 rounded-xl
-             hover:border-primary hover:shadow-lg
-             transition-all duration-300 group text-left"
->
-  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-    <MessageCircle className="w-5 h-5 text-primary" />
-  </div>
-  <div className="flex-1 min-w-0">
-    <div className="flex items-center gap-1 text-muted-foreground">
-      <span className="truncate">Scrie ce te frământă...</span>
-      <span className="animate-pulse">|</span>
-    </div>
-    <p className="text-xs text-muted-foreground/60 mt-0.5">
-      Click pentru a vorbi cu Yana
-    </p>
-  </div>
-</button>
-```
-
-### Fișier: `src/index.css` (opțional)
-
-Adăugare animație cursor care clipește:
-```css
-@keyframes blink-cursor {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-.animate-cursor-blink {
-  animation: blink-cursor 1s infinite;
-}
+diferentaRezultat = Math.abs((-963.68) - Math.abs(963.68))
+                  = Math.abs(-963.68 - 963.68)
+                  = 1927.36 RON  <-- EROARE! Ar trebui să fie 0!
 ```
 
 ---
 
-## 4. Beneficii UX
+## Soluția Propusă
 
-| Aspect | Înainte | După |
-|--------|---------|------|
-| **Vizual** | Buton standard | Arată ca un input |
-| **Indicator scriere** | Lipsă | Cursor clipind |
-| **Text helper** | Lipsă | "Click pentru a vorbi" |
-| **Call to action** | Ambiguu | Clar: scrie aici |
-| **Hover feedback** | Minimal | Border + shadow |
+### Modificări în `analyze-balance/index.ts`
+
+**Zona 1 - Linia 2366-2380** - Corectare formulă:
+
+```typescript
+// Actual (ERONAT):
+const rezultatCont121 = groupedBalance.class1.find(...)?.netBalance || 0;
+const diferentaRezultat = Math.abs(rezultatCalculatFinal - Math.abs(rezultatCont121));
+
+// Corectie propusă:
+const cont121Raw = groupedBalance.class1.find((a: any) => a.accountCode === '121');
+// netBalance = finalDebit - finalCredit
+// Pozitiv = PIERDERE (sold debitor), Negativ = PROFIT (sold creditor)
+// Trebuie inversat pentru a alinia cu semantica (Venituri - Cheltuieli)
+const rezultatCont121 = cont121Raw ? -(cont121Raw.netBalance) : 0;
+// Acum: Negativ = PIERDERE, Pozitiv = PROFIT (aliniat cu V - C)
+
+const diferentaRezultat = Math.abs(rezultatCalculatFinal - rezultatCont121);
+```
+
+**Zona 2 - Liniile 2388, 2443-2445** - Actualizare afișare și audit trail pentru a folosi formula corectată.
 
 ---
 
-## 5. Alternativă Avansată (Opțională)
+## Analiza Riscurilor
 
-Dacă vrei să mergi mai departe, putem adăuga:
+### Risc Scăzut
 
-1. **Placeholder rotativ** - textul se schimbă automat:
-   - "Ce te ține treaz noaptea?"
-   - "Ai o întrebare despre cifre?"
-   - "Spune-mi ce te preocupă..."
+| Risc | Probabilitate | Impact | Mitigare |
+|------|---------------|--------|----------|
+| **Regresie pe balanțe cu PROFIT** | Scăzut | Mediu | Formula inversată funcționează corect și pentru profit: `-(−X) = X` |
+| **Balanțe fără cont 121** | Scăzut | Scăzut | Codul are fallback `|| 0` deja implementat |
 
-2. **Typing animation** - textul se "scrie" singur pentru a arăta că poți scrie
+### Risc Mediu
+
+| Risc | Probabilitate | Impact | Mitigare |
+|------|---------------|--------|----------|
+| **Alte funcții cu același bug** | Scăzut | Mediu | Am verificat - bug-ul e izolat DOAR în `analyze-balance`. `chat-ai` și `consult-yana` NU au această logică. |
+| **Formatare negativă în UI** | Mediu | Scăzut | Voi folosi `Math.abs()` pentru afișare, păstrând semnul doar pentru calcul |
+
+### Risc Zero
+
+| Verificare | Status |
+|------------|--------|
+| Impact pe alte edge functions | Bug izolat în `analyze-balance/index.ts` |
+| Impact pe raportul Word Premium | NU - folosește metadata deja corectată |
+| Impact pe Memory Engine | NU - nu afectează stocarea |
 
 ---
 
-## 6. Secțiune Tehnică
+## Verificări Înainte de Deploy
 
-### Fișiere afectate:
-- `src/pages/Landing.tsx` - modificare buton demo
+1. **Test cu balanță PIERDERE** (VALMANSHOP): diferența trebuie să fie 0
+2. **Test cu balanță PROFIT**: diferența trebuie să rămână 0
+3. **Test cu balanță fără cont 121**: nu trebuie să dea eroare
 
-### Dependențe:
-- Niciuna nouă necesară
+---
 
-### Timp implementare estimat:
-- ~15 minute
+## Impactul Corecției
 
-### Compatibilitate:
-- Mobile-first (design responsive)
-- Accessibility: păstrăm `button` semantic pentru keyboard navigation
-- Touch-friendly: zona de atingere mărită (py-4)
+| Scenariul | Înainte | După |
+|-----------|---------|------|
+| Balanță cu PIERDERE (cont 121 debitor) | Diferență falsă (2x valoarea) | 0 (corect) |
+| Balanță cu PROFIT (cont 121 creditor) | Funcționa corect | Continuă să funcționeze |
+| Balanță cu erori reale | Detecta incorect | Detectează corect |
+
+---
+
+## Pași de Implementare
+
+1. **Fix principal**: Corectez formula în liniile 2366-2380
+2. **Fix afișare**: Actualizez liniile 2388, 2443-2445 
+3. **Deploy**: Deploy automat edge function
+4. **Validare**: Test cu balanța VALMANSHOP pentru confirmare
+
+---
+
+## Secțiune Tehnică
+
+### Formulele matematice corecte:
+
+Pentru contul 121:
+- `finalDebit > 0, finalCredit = 0` - PIERDERE de valoare `finalDebit`
+- `finalDebit = 0, finalCredit > 0` - PROFIT de valoare `finalCredit`
+
+Comparație corectă:
+```text
+rezultat_calculat = Clasa7_Credit - Clasa6_Debit
+rezultat_cont_121 = -(finalDebit_121 - finalCredit_121)
+
+diferenta = |rezultat_calculat - rezultat_cont_121|
+```
+
+Exemplu VALMANSHOP:
+```text
+rezultat_calculat = 49.48 - 1013.16 = -963.68 (pierdere)
+rezultat_cont_121 = -(963.68 - 0) = -963.68 (pierdere)
+diferenta = |-963.68 - (-963.68)| = 0
+```
+
+---
+
+## Concluzie
+
+**Riscul general al implementării: SCĂZUT**
+
+- Bug izolat într-o singură funcție
+- Formula corectată este matematică pură (inversare semn)
+- Nu afectează alte componente ale sistemului
+- Test de validare simplu cu balanța existentă
+
