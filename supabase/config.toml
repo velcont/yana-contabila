@@ -1,5 +1,8 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
+[functions.validate-knowledge]
+verify_jwt = false
+
 [functions.self-reflect]
 verify_jwt = false
 
