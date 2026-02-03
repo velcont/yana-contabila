@@ -230,3 +230,9 @@ verify_jwt = false
 
 [functions.extract-learnings]
 verify_jwt = false
+
+[functions.auto-optimizer]
+verify_jwt = false
+
+[functions.pattern-analyzer]
+verify_jwt = false
