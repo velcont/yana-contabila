@@ -722,7 +722,14 @@ serve(async (req) => {
       // PASUL 1: Detectează header pe 2 rânduri
       for (let i = 0; i < Math.min(15, data.length); i++) {
         const rowStr = data[i].join('|').toLowerCase();
-        if ((rowStr.includes('solduri finale') || rowStr.includes('sold final')) && mainHeaderRow < 0) {
+        // ✅ VELCONT & alte exporturi pot avea "SOLD" și "FINAL" în celule separate (ex: "sold|final"),
+        // deci nu ne bazăm strict pe expresia "sold final" ca substring.
+        const hasSoldFinalPhrase = rowStr.includes('solduri finale') || rowStr.includes('sold final');
+        const hasSoldAndFinalWords =
+          (rowStr.includes('sold') && rowStr.includes('final')) ||
+          (rowStr.includes('solduri') && rowStr.includes('finale'));
+
+        if ((hasSoldFinalPhrase || hasSoldAndFinalWords) && mainHeaderRow < 0) {
           mainHeaderRow = i;
           subHeaderRow = i + 1;
           headerRowIndex = i;
@@ -753,9 +760,37 @@ serve(async (req) => {
         
         for (let j = 0; j < mainHeader.length; j++) {
           const cell = String(mainHeader[j]).toLowerCase().trim();
-          if ((cell.includes('solduri finale') || cell.includes('sold final')) && soldFinalStartCol < 0) soldFinalStartCol = j;
+          const nextCell = String(mainHeader[j + 1] ?? '').toLowerCase().trim();
+          const combined = `${cell} ${nextCell}`.replace(/\s+/g, ' ').trim();
+
+          // Solduri finale (acceptă și "sold" + "final" pe celule separate)
+          if (
+            soldFinalStartCol < 0 &&
+            (
+              cell.includes('solduri finale') ||
+              cell.includes('sold final') ||
+              (cell.includes('sold') && cell.includes('final')) ||
+              combined.includes('sold final') ||
+              combined.includes('solduri finale') ||
+              (cell.includes('sold') && nextCell.includes('final'))
+            )
+          ) {
+            soldFinalStartCol = j;
+          }
+
           if (cell.includes('rulaj') && rulajStartCol < 0) rulajStartCol = j;
-          if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj'))) && totalSumeStartCol < 0) totalSumeStartCol = j;
+
+          // Total sume (acceptă și "total" + "sume" pe celule separate)
+          if (
+            totalSumeStartCol < 0 &&
+            (
+              (cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj'))) ||
+              combined.includes('total sume') ||
+              (cell.includes('total') && nextCell.includes('sume'))
+            )
+          ) {
+            totalSumeStartCol = j;
+          }
         }
         
         // Solduri finale
