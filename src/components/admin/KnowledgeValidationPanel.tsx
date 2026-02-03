@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -14,7 +15,12 @@ import {
   BookOpen,
   Scale,
   Clock,
-  Eye
+  Eye,
+  AlertOctagon,
+  Gavel,
+  Lock,
+  Unlock,
+  UserCheck
 } from 'lucide-react';
 
 interface FlaggedLearning {
@@ -37,6 +43,8 @@ interface VerifiedKnowledge {
   verified_value: any;
   source_reference: string;
   confidence_score: number;
+  credibility_tier: string;
+  is_ground_truth: boolean;
 }
 
 interface SourceCredibility {
@@ -46,15 +54,43 @@ interface SourceCredibility {
   requires_verification: boolean;
 }
 
+interface GroundTruth {
+  id: string;
+  category: string;
+  subcategory: string;
+  fact_key: string;
+  fact_value: any;
+  legal_source: string;
+  effective_from: string;
+  effective_until: string | null;
+}
+
+interface Escalation {
+  id: string;
+  user_id: string;
+  escalation_type: string;
+  severity: string;
+  proposed_knowledge: any;
+  ground_truth_value: any;
+  clarification_requested: string;
+  user_clarification: string;
+  resolution_status: string;
+  created_at: string;
+}
+
 export function KnowledgeValidationPanel() {
   const [flaggedItems, setFlaggedItems] = useState<FlaggedLearning[]>([]);
   const [verifiedKnowledge, setVerifiedKnowledge] = useState<VerifiedKnowledge[]>([]);
   const [credibilityConfig, setCredibilityConfig] = useState<SourceCredibility[]>([]);
+  const [groundTruth, setGroundTruth] = useState<GroundTruth[]>([]);
+  const [escalations, setEscalations] = useState<Escalation[]>([]);
   const [stats, setStats] = useState({
     pending: 0,
     approved: 0,
     rejected: 0,
-    contradictions: 0
+    contradictions: 0,
+    escalations: 0,
+    groundTruthCount: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -65,39 +101,36 @@ export function KnowledgeValidationPanel() {
   async function loadData() {
     setLoading(true);
     try {
-      // Load flagged learnings
-      const { data: flagged } = await supabase
-        .from('yana_flagged_learnings')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Load all data in parallel
+      const [flaggedRes, verifiedRes, credibilityRes, groundTruthRes, escalationsRes] = await Promise.all([
+        supabase.from('yana_flagged_learnings').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('yana_verified_knowledge').select('*').order('updated_at', { ascending: false }).limit(100),
+        supabase.from('yana_source_credibility').select('*').order('credibility_score', { ascending: false }),
+        supabase.from('yana_ground_truth').select('*').order('category', { ascending: true }),
+        supabase.from('yana_learning_escalations').select('*').order('created_at', { ascending: false }).limit(50)
+      ]);
       
-      setFlaggedItems(flagged || []);
+      setFlaggedItems(flaggedRes.data || []);
+      setVerifiedKnowledge(verifiedRes.data || []);
+      setCredibilityConfig(credibilityRes.data || []);
+      setGroundTruth(groundTruthRes.data || []);
+      setEscalations(escalationsRes.data || []);
 
       // Calculate stats
-      const pending = flagged?.filter(f => f.admin_decision === 'pending').length || 0;
-      const approved = flagged?.filter(f => f.admin_decision === 'approved').length || 0;
-      const rejected = flagged?.filter(f => f.admin_decision === 'rejected').length || 0;
-      const contradictions = flagged?.filter(f => f.flag_reason === 'contradiction').length || 0;
+      const pending = flaggedRes.data?.filter(f => f.admin_decision === 'pending').length || 0;
+      const approved = flaggedRes.data?.filter(f => f.admin_decision === 'approved').length || 0;
+      const rejected = flaggedRes.data?.filter(f => f.admin_decision === 'rejected').length || 0;
+      const contradictions = flaggedRes.data?.filter(f => f.flag_reason === 'contradiction').length || 0;
+      const escalationsCount = escalationsRes.data?.filter(e => e.resolution_status === 'pending').length || 0;
       
-      setStats({ pending, approved, rejected, contradictions });
-
-      // Load verified knowledge
-      const { data: verified } = await supabase
-        .from('yana_verified_knowledge')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(100);
-      
-      setVerifiedKnowledge(verified || []);
-
-      // Load credibility config
-      const { data: credibility } = await supabase
-        .from('yana_source_credibility')
-        .select('*')
-        .order('credibility_score', { ascending: false });
-      
-      setCredibilityConfig(credibility || []);
+      setStats({ 
+        pending, 
+        approved, 
+        rejected, 
+        contradictions, 
+        escalations: escalationsCount,
+        groundTruthCount: groundTruthRes.data?.length || 0
+      });
 
     } catch (error) {
       console.error('Error loading knowledge validation data:', error);
@@ -120,7 +153,6 @@ export function KnowledgeValidationPanel() {
       if (error) throw error;
 
       if (decision === 'approved') {
-        // If approved, add to verified knowledge
         const item = flaggedItems.find(f => f.id === itemId);
         if (item?.proposed_knowledge) {
           await supabase.from('yana_verified_knowledge').upsert({
@@ -128,7 +160,8 @@ export function KnowledgeValidationPanel() {
             knowledge_key: item.proposed_knowledge.key,
             verified_value: item.new_value,
             verified_by: 'admin',
-            confidence_score: 1.0
+            confidence_score: 1.0,
+            credibility_tier: 'admin_overridable'
           }, {
             onConflict: 'knowledge_category,knowledge_key'
           });
@@ -143,22 +176,60 @@ export function KnowledgeValidationPanel() {
     }
   }
 
+  async function handleEscalationResolve(escalationId: string, status: 'resolved' | 'dismissed' | 'confirmed_error') {
+    try {
+      const { error } = await supabase
+        .from('yana_learning_escalations')
+        .update({
+          resolution_status: status,
+          resolved_at: new Date().toISOString()
+        })
+        .eq('id', escalationId);
+
+      if (error) throw error;
+
+      toast.success(`Escalare ${status === 'resolved' ? 'rezolvată' : status === 'dismissed' ? 'respinsă' : 'confirmată ca eroare'}`);
+      loadData();
+    } catch (error) {
+      console.error('Error resolving escalation:', error);
+      toast.error('Eroare la rezolvare');
+    }
+  }
+
   function getFlagReasonLabel(reason: string): string {
     const labels: Record<string, string> = {
       'contradiction': '⚠️ Contradicție',
       'low_credibility': '📉 Credibilitate scăzută',
       'rule_violation': '❌ Regulă încălcată',
       'fiscal_validation_failed': '🏛️ Validare fiscală eșuată',
+      'ground_truth_violation': '🚨 Încalcă legislația',
+      'admin_override_required': '👤 Necesită aprobare admin',
       'unverifiable': '❓ Neverificabil'
     };
     return labels[reason] || reason;
   }
 
   function getCredibilityColor(score: number): string {
-    if (score >= 0.9) return 'bg-green-500';
-    if (score >= 0.7) return 'bg-blue-500';
-    if (score >= 0.5) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (score >= 0.9) return 'bg-green-600';
+    if (score >= 0.7) return 'bg-blue-600';
+    if (score >= 0.5) return 'bg-yellow-600';
+    return 'bg-red-600';
+  }
+
+  function getTierIcon(tier: string) {
+    switch (tier) {
+      case 'immutable': return <Lock className="h-4 w-4 text-red-500" />;
+      case 'admin_overridable': return <UserCheck className="h-4 w-4 text-orange-500" />;
+      default: return <Unlock className="h-4 w-4 text-green-500" />;
+    }
+  }
+
+  function getTierLabel(tier: string): string {
+    switch (tier) {
+      case 'immutable': return 'IMUABIL';
+      case 'admin_overridable': return 'Admin Only';
+      default: return 'User Override';
+    }
   }
 
   if (loading) {
@@ -168,7 +239,19 @@ export function KnowledgeValidationPanel() {
   return (
     <div className="space-y-6">
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <AlertOctagon className="h-5 w-5 text-red-600" />
+              <div>
+                <p className="text-2xl font-bold text-red-700">{stats.escalations}</p>
+                <p className="text-xs text-muted-foreground">Escalări critice</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -181,12 +264,24 @@ export function KnowledgeValidationPanel() {
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+        <Card className="border-purple-200 bg-purple-50 dark:bg-purple-950/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <Gavel className="h-5 w-5 text-purple-600" />
               <div>
-                <p className="text-2xl font-bold text-red-700">{stats.contradictions}</p>
+                <p className="text-2xl font-bold text-purple-700">{stats.groundTruthCount}</p>
+                <p className="text-xs text-muted-foreground">Ground Truth</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <div>
+                <p className="text-2xl font-bold text-yellow-700">{stats.contradictions}</p>
                 <p className="text-xs text-muted-foreground">Contradicții</p>
               </div>
             </div>
@@ -218,21 +313,129 @@ export function KnowledgeValidationPanel() {
         </Card>
       </div>
 
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="escalations" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="escalations" className="flex items-center gap-2">
+            <AlertOctagon className="h-4 w-4" />
+            🚨 Escalări ({stats.escalations})
+          </TabsTrigger>
           <TabsTrigger value="pending" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Review ({stats.pending})
           </TabsTrigger>
-          <TabsTrigger value="verified" className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4" />
-            Baza de cunoștințe
+          <TabsTrigger value="ground-truth" className="flex items-center gap-2">
+            <Gavel className="h-4 w-4" />
+            Ground Truth
           </TabsTrigger>
           <TabsTrigger value="credibility" className="flex items-center gap-2">
             <Scale className="h-4 w-4" />
             Credibilitate
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="escalations">
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-700">
+                <AlertOctagon className="h-5 w-5" />
+                🚨 Escalări Critice - Învățare BLOCATĂ
+              </CardTitle>
+              <CardDescription>
+                YANA a detectat încercări de a învăța informații care contravin legislației sau regulilor imuabile
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-4">
+                  {escalations
+                    .filter(e => e.resolution_status === 'pending')
+                    .map(escalation => (
+                      <Card key={escalation.id} className="border-red-300 bg-red-50/50 dark:bg-red-950/10">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <Badge variant="destructive" className="mb-2">
+                                {escalation.escalation_type.replace(/_/g, ' ').toUpperCase()}
+                              </Badge>
+                              <Badge variant="outline" className="ml-2 mb-2">
+                                Severitate: {escalation.severity}
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(escalation.created_at).toLocaleString('ro-RO')}
+                            </span>
+                          </div>
+
+                          {escalation.clarification_requested && (
+                            <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded border border-red-300 mb-4">
+                              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                                {escalation.clarification_requested}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded border border-green-200">
+                              <p className="text-xs text-green-600 font-medium mb-1 flex items-center gap-1">
+                                <Lock className="h-3 w-3" /> Ground Truth (IMUABIL)
+                              </p>
+                              <pre className="text-sm overflow-auto font-bold">
+                                {JSON.stringify(escalation.ground_truth_value, null, 2)}
+                              </pre>
+                            </div>
+                            <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded border border-red-200">
+                              <p className="text-xs text-red-600 font-medium mb-1">❌ Valoare propusă (INCORECTĂ)</p>
+                              <pre className="text-sm overflow-auto">
+                                {JSON.stringify(escalation.proposed_knowledge, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-green-600 hover:bg-green-50"
+                              onClick={() => handleEscalationResolve(escalation.id, 'resolved')}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" />
+                              Rezolvat
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-orange-600 hover:bg-orange-50"
+                              onClick={() => handleEscalationResolve(escalation.id, 'dismissed')}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Respinge
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="text-red-600 hover:bg-red-50"
+                              onClick={() => handleEscalationResolve(escalation.id, 'confirmed_error')}
+                            >
+                              <AlertOctagon className="h-4 w-4 mr-1" />
+                              Confirmă Eroare AI
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  
+                  {escalations.filter(e => e.resolution_status === 'pending').length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                      <p>✅ Nu există escalări critice</p>
+                      <p className="text-sm">Sistemul protejează cunoștințele imuabile</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="pending">
           <Card>
@@ -242,7 +445,7 @@ export function KnowledgeValidationPanel() {
                 Cunoștințe marcate pentru revizuire
               </CardTitle>
               <CardDescription>
-                YANA a detectat informații potențial false sau contradictorii
+                Informații non-critice care necesită verificare
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -263,40 +466,16 @@ export function KnowledgeValidationPanel() {
                               </p>
                             </div>
                             <div className="flex items-center gap-1">
-                              <div 
-                                className={`w-3 h-3 rounded-full ${getCredibilityColor(item.credibility_score)}`}
-                              />
-                              <span className="text-sm">
-                                {(item.credibility_score * 100).toFixed(0)}%
-                              </span>
+                              <div className={`w-3 h-3 rounded-full ${getCredibilityColor(item.credibility_score)}`} />
+                              <span className="text-sm">{(item.credibility_score * 100).toFixed(0)}%</span>
                             </div>
                           </div>
 
-                          {item.flag_reason === 'contradiction' && (
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                              <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded border border-green-200">
-                                <p className="text-xs text-green-600 font-medium mb-1">✅ Valoare verificată</p>
-                                <pre className="text-xs overflow-auto">
-                                  {JSON.stringify(item.existing_value, null, 2)}
-                                </pre>
-                              </div>
-                              <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded border border-red-200">
-                                <p className="text-xs text-red-600 font-medium mb-1">❌ Valoare propusă</p>
-                                <pre className="text-xs overflow-auto">
-                                  {JSON.stringify(item.new_value, null, 2)}
-                                </pre>
-                              </div>
-                            </div>
-                          )}
-
-                          {item.flag_reason !== 'contradiction' && (
-                            <div className="p-3 bg-muted rounded mb-4">
-                              <p className="text-xs text-muted-foreground mb-1">Cunoștință propusă:</p>
-                              <pre className="text-xs overflow-auto">
-                                {JSON.stringify(item.proposed_knowledge, null, 2)}
-                              </pre>
-                            </div>
-                          )}
+                          <div className="p-3 bg-muted rounded mb-4">
+                            <pre className="text-xs overflow-auto">
+                              {JSON.stringify(item.proposed_knowledge, null, 2)}
+                            </pre>
+                          </div>
 
                           <div className="flex gap-2">
                             <Button 
@@ -317,14 +496,6 @@ export function KnowledgeValidationPanel() {
                               <XCircle className="h-4 w-4 mr-1" />
                               Respinge
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="ml-auto"
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Context
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -332,9 +503,8 @@ export function KnowledgeValidationPanel() {
                   
                   {flaggedItems.filter(item => item.admin_decision === 'pending').length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Shield className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                      <p>Nu există cunoștințe marcate pentru revizuire</p>
-                      <p className="text-sm">Sistemul validează automat informațiile primite</p>
+                      <CheckCircle2 className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                      <p>Nu există cunoștințe în așteptare</p>
                     </div>
                   )}
                 </div>
@@ -343,41 +513,50 @@ export function KnowledgeValidationPanel() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="verified">
+        <TabsContent value="ground-truth">
           <Card>
             <CardHeader>
-              <CardTitle>Baza de cunoștințe verificate</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Gavel className="h-5 w-5" />
+                🏛️ Ground Truth - Legislație IMUABILĂ
+              </CardTitle>
               <CardDescription>
-                Informații validate folosite ca sursă de adevăr
+                Baza de date cu legi și reglementări fiscale care NU POT fi modificate de utilizatori sau AI
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[500px]">
                 <div className="space-y-2">
-                  {verifiedKnowledge.map(item => (
+                  {groundTruth.map(gt => (
                     <div 
-                      key={item.id}
+                      key={gt.id}
                       className="flex items-center justify-between p-3 border rounded hover:bg-muted/50"
                     >
-                      <div>
-                        <Badge variant="secondary" className="mb-1">
-                          {item.knowledge_category}
-                        </Badge>
-                        <p className="font-medium text-sm">{item.knowledge_key}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {typeof item.verified_value === 'object' 
-                            ? JSON.stringify(item.verified_value)
-                            : String(item.verified_value)}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <Lock className="h-4 w-4 text-red-500" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{gt.category}</Badge>
+                            {gt.subcategory && <Badge variant="outline">{gt.subcategory}</Badge>}
+                          </div>
+                          <p className="font-medium text-sm mt-1">{gt.fact_key}</p>
+                          <p className="text-lg font-bold text-primary">
+                            {typeof gt.fact_value === 'object' ? JSON.stringify(gt.fact_value) : gt.fact_value}
+                            {gt.fact_key.includes('cota') && '%'}
+                            {gt.fact_key.includes('plafon') && gt.fact_key.includes('lei') && ' RON'}
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">{item.source_reference}</p>
-                        <div className="flex items-center gap-1 justify-end">
-                          <div 
-                            className={`w-2 h-2 rounded-full ${getCredibilityColor(item.confidence_score)}`}
-                          />
-                          <span className="text-xs">{(item.confidence_score * 100).toFixed(0)}%</span>
-                        </div>
+                        <p className="text-xs font-medium text-muted-foreground">{gt.legal_source}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Din: {new Date(gt.effective_from).toLocaleDateString('ro-RO')}
+                        </p>
+                        {gt.effective_until && (
+                          <p className="text-xs text-orange-600">
+                            Până: {new Date(gt.effective_until).toLocaleDateString('ro-RO')}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -403,18 +582,14 @@ export function KnowledgeValidationPanel() {
                     className="flex items-center justify-between p-4 border rounded"
                   >
                     <div className="flex items-center gap-3">
-                      <div 
-                        className={`w-4 h-4 rounded-full ${getCredibilityColor(source.credibility_score)}`}
-                      />
+                      <div className={`w-4 h-4 rounded-full ${getCredibilityColor(source.credibility_score)}`} />
                       <div>
                         <p className="font-medium">{source.source_type}</p>
                         <p className="text-sm text-muted-foreground">{source.description}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold">
-                        {(source.credibility_score * 100).toFixed(0)}%
-                      </p>
+                      <p className="text-2xl font-bold">{(source.credibility_score * 100).toFixed(0)}%</p>
                       {source.requires_verification && (
                         <Badge variant="outline" className="text-xs">
                           Necesită verificare

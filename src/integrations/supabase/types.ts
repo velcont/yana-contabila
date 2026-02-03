@@ -5270,6 +5270,57 @@ export type Database = {
           },
         ]
       }
+      yana_ground_truth: {
+        Row: {
+          category: string
+          created_at: string | null
+          effective_from: string
+          effective_until: string | null
+          fact_key: string
+          fact_value: Json
+          id: string
+          last_verified_at: string | null
+          legal_source: string
+          legal_source_url: string | null
+          notes: string | null
+          romania_specific: boolean | null
+          subcategory: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          effective_from?: string
+          effective_until?: string | null
+          fact_key: string
+          fact_value: Json
+          id?: string
+          last_verified_at?: string | null
+          legal_source: string
+          legal_source_url?: string | null
+          notes?: string | null
+          romania_specific?: boolean | null
+          subcategory?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          effective_from?: string
+          effective_until?: string | null
+          fact_key?: string
+          fact_value?: Json
+          id?: string
+          last_verified_at?: string | null
+          legal_source?: string
+          legal_source_url?: string | null
+          notes?: string | null
+          romania_specific?: boolean | null
+          subcategory?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       yana_improvement_decisions: {
         Row: {
           applied_at: string | null
@@ -5568,6 +5619,74 @@ export type Database = {
           validation_result?: string
         }
         Relationships: []
+      }
+      yana_learning_escalations: {
+        Row: {
+          ai_response: string | null
+          clarification_requested: string | null
+          conflicting_ground_truth: string | null
+          conversation_id: string | null
+          created_at: string | null
+          escalation_type: string
+          ground_truth_value: Json | null
+          id: string
+          learning_blocked: boolean | null
+          proposed_knowledge: Json | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          user_clarification: string | null
+          user_id: string | null
+          user_message: string | null
+        }
+        Insert: {
+          ai_response?: string | null
+          clarification_requested?: string | null
+          conflicting_ground_truth?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          escalation_type: string
+          ground_truth_value?: Json | null
+          id?: string
+          learning_blocked?: boolean | null
+          proposed_knowledge?: Json | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_clarification?: string | null
+          user_id?: string | null
+          user_message?: string | null
+        }
+        Update: {
+          ai_response?: string | null
+          clarification_requested?: string | null
+          conflicting_ground_truth?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          escalation_type?: string
+          ground_truth_value?: Json | null
+          id?: string
+          learning_blocked?: boolean | null
+          proposed_knowledge?: Json | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_clarification?: string | null
+          user_id?: string | null
+          user_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_learning_escalations_conflicting_ground_truth_fkey"
+            columns: ["conflicting_ground_truth"]
+            isOneToOne: false
+            referencedRelation: "yana_ground_truth"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       yana_learning_log: {
         Row: {
@@ -6627,9 +6746,14 @@ export type Database = {
         Row: {
           confidence_score: number | null
           created_at: string | null
+          credibility_tier: string | null
+          effective_date: string | null
+          expiry_date: string | null
           id: string
+          is_ground_truth: boolean | null
           knowledge_category: string
           knowledge_key: string
+          legal_reference: string | null
           source_reference: string | null
           updated_at: string | null
           verification_date: string | null
@@ -6639,9 +6763,14 @@ export type Database = {
         Insert: {
           confidence_score?: number | null
           created_at?: string | null
+          credibility_tier?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
           id?: string
+          is_ground_truth?: boolean | null
           knowledge_category: string
           knowledge_key: string
+          legal_reference?: string | null
           source_reference?: string | null
           updated_at?: string | null
           verification_date?: string | null
@@ -6651,9 +6780,14 @@ export type Database = {
         Update: {
           confidence_score?: number | null
           created_at?: string | null
+          credibility_tier?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
           id?: string
+          is_ground_truth?: boolean | null
           knowledge_category?: string
           knowledge_key?: string
+          legal_reference?: string | null
           source_reference?: string | null
           updated_at?: string | null
           verification_date?: string | null
