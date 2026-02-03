@@ -5201,6 +5201,75 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_flagged_learnings: {
+        Row: {
+          admin_decision: string | null
+          admin_notes: string | null
+          conflicting_with: string | null
+          conversation_id: string | null
+          created_at: string | null
+          credibility_score: number | null
+          existing_value: Json | null
+          flag_reason: string
+          id: string
+          new_value: Json | null
+          proposed_knowledge: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_decision?: string | null
+          admin_notes?: string | null
+          conflicting_with?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          credibility_score?: number | null
+          existing_value?: Json | null
+          flag_reason: string
+          id?: string
+          new_value?: Json | null
+          proposed_knowledge: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_decision?: string | null
+          admin_notes?: string | null
+          conflicting_with?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          credibility_score?: number | null
+          existing_value?: Json | null
+          flag_reason?: string
+          id?: string
+          new_value?: Json | null
+          proposed_knowledge?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_flagged_learnings_conflicting_with_fkey"
+            columns: ["conflicting_with"]
+            isOneToOne: false
+            referencedRelation: "yana_verified_knowledge"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yana_flagged_learnings_source_type_fkey"
+            columns: ["source_type"]
+            isOneToOne: false
+            referencedRelation: "yana_source_credibility"
+            referencedColumns: ["source_type"]
+          },
+        ]
+      }
       yana_improvement_decisions: {
         Row: {
           applied_at: string | null
@@ -5455,6 +5524,48 @@ export type Database = {
           resolved_at?: string | null
           severity?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      yana_knowledge_validation_log: {
+        Row: {
+          contradictions_found: Json | null
+          conversation_id: string | null
+          created_at: string | null
+          credibility_assessment: Json | null
+          id: string
+          input_knowledge: Json
+          processing_time_ms: number | null
+          source_type: string | null
+          user_id: string | null
+          validation_details: Json | null
+          validation_result: string
+        }
+        Insert: {
+          contradictions_found?: Json | null
+          conversation_id?: string | null
+          created_at?: string | null
+          credibility_assessment?: Json | null
+          id?: string
+          input_knowledge: Json
+          processing_time_ms?: number | null
+          source_type?: string | null
+          user_id?: string | null
+          validation_details?: Json | null
+          validation_result: string
+        }
+        Update: {
+          contradictions_found?: Json | null
+          conversation_id?: string | null
+          created_at?: string | null
+          credibility_assessment?: Json | null
+          id?: string
+          input_knowledge?: Json
+          processing_time_ms?: number | null
+          source_type?: string | null
+          user_id?: string | null
+          validation_details?: Json | null
+          validation_result?: string
         }
         Relationships: []
       }
@@ -6155,6 +6266,33 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_source_credibility: {
+        Row: {
+          created_at: string | null
+          credibility_score: number
+          description: string | null
+          id: string
+          requires_verification: boolean | null
+          source_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          credibility_score: number
+          description?: string | null
+          id?: string
+          requires_verification?: boolean | null
+          source_type: string
+        }
+        Update: {
+          created_at?: string | null
+          credibility_score?: number
+          description?: string | null
+          id?: string
+          requires_verification?: boolean | null
+          source_type?: string
+        }
+        Relationships: []
+      }
       yana_therapy_sessions: {
         Row: {
           breakthroughs: Json | null
@@ -6449,6 +6587,78 @@ export type Database = {
           pattern_extracted?: string | null
           user_correction?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      yana_validation_rules: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          is_active: boolean | null
+          rule_category: string
+          rule_definition: Json
+          rule_name: string
+          rule_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_category: string
+          rule_definition: Json
+          rule_name: string
+          rule_type: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_category?: string
+          rule_definition?: Json
+          rule_name?: string
+          rule_type?: string
+        }
+        Relationships: []
+      }
+      yana_verified_knowledge: {
+        Row: {
+          confidence_score: number | null
+          created_at: string | null
+          id: string
+          knowledge_category: string
+          knowledge_key: string
+          source_reference: string | null
+          updated_at: string | null
+          verification_date: string | null
+          verified_by: string | null
+          verified_value: Json
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          knowledge_category: string
+          knowledge_key: string
+          source_reference?: string | null
+          updated_at?: string | null
+          verification_date?: string | null
+          verified_by?: string | null
+          verified_value: Json
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string | null
+          id?: string
+          knowledge_category?: string
+          knowledge_key?: string
+          source_reference?: string | null
+          updated_at?: string | null
+          verification_date?: string | null
+          verified_by?: string | null
+          verified_value?: Json
         }
         Relationships: []
       }

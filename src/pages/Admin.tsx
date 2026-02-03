@@ -34,6 +34,7 @@ const ApiStatusWidget = lazy(() => import("@/components/admin/ApiStatusWidget").
 const VersionRefreshMonitor = lazy(() => import("@/components/admin/VersionRefreshMonitor").then(m => ({ default: m.VersionRefreshMonitor })));
 const YanaLearningDashboard = lazy(() => import("@/components/admin/YanaLearningDashboard"));
 const AgenticDashboard = lazy(() => import("@/components/admin/AgenticDashboard"));
+const KnowledgeValidationPanel = lazy(() => import("@/components/admin/KnowledgeValidationPanel").then(m => ({ default: m.KnowledgeValidationPanel })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -386,6 +387,10 @@ const Admin = () => {
               <TabsTrigger value="consciousness">
                 <Sparkles className="h-4 w-4 mr-2" />
                 🧠 Consciousness
+              </TabsTrigger>
+              <TabsTrigger value="knowledge-validation">
+                <Shield className="h-4 w-4 mr-2" />
+                🛡️ Validare Cunoștințe
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -857,6 +862,12 @@ const Admin = () => {
           <TabsContent value="consciousness">
             <Suspense fallback={<TabContentLoader />}>
               <ConsciousnessDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="knowledge-validation">
+            <Suspense fallback={<TabContentLoader />}>
+              <KnowledgeValidationPanel />
             </Suspense>
           </TabsContent>
         </Tabs>
