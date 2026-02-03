@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -33,6 +33,7 @@ const YanaInitiativesPanel = lazy(() => import("@/components/admin/YanaInitiativ
 const ApiStatusWidget = lazy(() => import("@/components/admin/ApiStatusWidget").then(m => ({ default: m.ApiStatusWidget })));
 const VersionRefreshMonitor = lazy(() => import("@/components/admin/VersionRefreshMonitor").then(m => ({ default: m.VersionRefreshMonitor })));
 const YanaLearningDashboard = lazy(() => import("@/components/admin/YanaLearningDashboard"));
+const AgenticDashboard = lazy(() => import("@/components/admin/AgenticDashboard"));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -377,6 +378,10 @@ const Admin = () => {
               <TabsTrigger value="learning">
                 <Brain className="h-4 w-4 mr-2" />
                 🎓 Learning YANA
+              </TabsTrigger>
+              <TabsTrigger value="agentic">
+                <Zap className="h-4 w-4 mr-2" />
+                🤖 Sistem Agentic
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -836,6 +841,12 @@ const Admin = () => {
           <TabsContent value="learning">
             <Suspense fallback={<TabContentLoader />}>
               <YanaLearningDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="agentic">
+            <Suspense fallback={<TabContentLoader />}>
+              <AgenticDashboard />
             </Suspense>
           </TabsContent>
         </Tabs>

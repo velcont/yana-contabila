@@ -298,6 +298,37 @@ serve(async (req) => {
       }
     }
 
+    // 5. Agregăm cererea comună
+    if (userMessage && userMessage.length > 10) {
+      try {
+        await supabase.rpc('aggregate_common_request', {
+          p_pattern: userMessage.substring(0, 50).toLowerCase().replace(/[^\w\săîâșț]/g, '').trim(),
+          p_category: category,
+          p_user_id: userId,
+          p_sample_question: userMessage.substring(0, 200),
+        });
+      } catch (err) {
+        console.warn(`[EXTRACT-LEARNINGS][${requestId}] Failed to aggregate common request:`, err);
+      }
+    }
+
+    // 6. Track user context evolution
+    if (userId && (satisfied !== null || Object.keys(activePreferences).length > 0)) {
+      try {
+        await supabase.rpc('track_user_context_evolution', {
+          p_user_id: userId,
+          p_satisfaction_score: score,
+          p_topics: Object.keys(QUESTION_CATEGORIES).filter(cat => 
+            detectPatterns(userMessage, QUESTION_CATEGORIES[cat as keyof typeof QUESTION_CATEGORIES])
+          ),
+          p_response_style: activePreferences.wantsSimpler ? 'concise' : 
+                           activePreferences.wantsDetails ? 'detailed' : null,
+        });
+      } catch (err) {
+        console.warn(`[EXTRACT-LEARNINGS][${requestId}] Failed to track user context:`, err);
+      }
+    }
+
     console.log(`[EXTRACT-LEARNINGS][${requestId}] ✅ Extraction complete`);
 
     return new Response(
@@ -310,6 +341,7 @@ serve(async (req) => {
           satisfied: satisfied,
           category: category,
           keyPhrases: keyPhrases.length,
+          contextTracked: satisfied !== null || Object.keys(activePreferences).length > 0,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
