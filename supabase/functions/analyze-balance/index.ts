@@ -884,11 +884,15 @@ serve(async (req) => {
             const row = data[i];
             const contCodeFull = String(row[indices.contCol] || '').trim();
             
-            // ✅ FIX: Extrage DOAR partea numerică (3-4 cifre) din cod cont
+            // ✅ FIX: Extrage DOAR partea numerică (3-6 cifre) din cod cont
+            // SmartBill folosește conturi analitice de 5-6 cifre (ex: 41101, 51211)
             // Rezolvă bug-ul când coloana conține "121 - Profit sau pierdere" în loc de "121"
-            const contCodeMatch = contCodeFull.match(/^(\d{3,4})/);
+            const contCodeMatch = contCodeFull.match(/^(\d{3,6})/);
             if (!contCodeMatch) continue;
-            const contCode = contCodeMatch[1];
+            // Normalizează la primele 3 cifre pentru clasificare (clasa contabilă)
+            const contCodeFull6 = contCodeMatch[1];
+            const contCode = contCodeFull6.substring(0, 3); // Pentru accountClass
+            const contCodeForStorage = contCodeFull6; // Păstrăm codul complet pentru stocare
             
             // 🔍 DEBUG pentru contul 371 - verificăm extragerea
             if (contCode === '371') {
@@ -918,7 +922,7 @@ serve(async (req) => {
             
             if (debit > 0 || credit > 0) {
               const accountObj: any = {
-                code: contCode,
+                code: contCodeForStorage, // Folosim codul complet (ex: 41101)
                 name: denumire,
                 accountClass
               };
