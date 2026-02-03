@@ -2319,22 +2319,23 @@ serve(async (req) => {
       // NU printr-o separare Activ/Pasiv (care ar necesita o clasificare de bilanț, nu de balanță).
       console.log("🔍 [VALIDATION LAYER] Verificare echilibru balanță (Sold final Debitor = Sold final Creditor)...");
 
-      const all1to5 = [
-        ...groupedBalance.class1,
-        ...groupedBalance.class2,
-        ...groupedBalance.class3,
-        ...groupedBalance.class4,
-        ...groupedBalance.class5,
-      ];
-
-      const totalSoldFinalDebitor = all1to5.reduce(
-        (sum: number, acc: any) => sum + (Number(acc.finalBalanceDebit) || 0),
+      // 🔧 FIX: Folosim DIRECT structuredData.accounts (sursa Excel) nu groupedBalance (parsing text incomplet)
+      const accounts1to5 = structuredData.accounts.filter((acc: any) => 
+        acc.accountClass >= 1 && acc.accountClass <= 5
+      );
+      
+      console.log(`📊 [VALIDATION] Conturi clase 1-5 găsite: ${accounts1to5.length}`);
+      
+      const totalSoldFinalDebitor = accounts1to5.reduce(
+        (sum: number, acc: any) => sum + (Number(acc.finalDebit) || 0),
         0
       );
-      const totalSoldFinalCreditor = all1to5.reduce(
-        (sum: number, acc: any) => sum + (Number(acc.finalBalanceCredit) || 0),
+      const totalSoldFinalCreditor = accounts1to5.reduce(
+        (sum: number, acc: any) => sum + (Number(acc.finalCredit) || 0),
         0
       );
+      
+      console.log(`📊 [VALIDATION] Total SF Debitor: ${totalSoldFinalDebitor.toFixed(2)}, Total SF Creditor: ${totalSoldFinalCreditor.toFixed(2)}`);
 
       const diferentaSolduriFinale = Math.abs(totalSoldFinalDebitor - totalSoldFinalCreditor);
 
@@ -2353,6 +2354,8 @@ serve(async (req) => {
 
         validationWarnings.push(bilantErrorWarning);
         console.error(`🔴 [VALIDATION] SOLDURI FINALE NEECHILIBRATE! Diferență: ${diferentaSolduriFinale} RON`);
+      } else {
+        console.log(`✅ [VALIDATION] Balanță echilibrată! Diferență: ${diferentaSolduriFinale.toFixed(2)} RON`);
       }
 
       // VALIDARE 2: Profit = Venituri - Cheltuieli
