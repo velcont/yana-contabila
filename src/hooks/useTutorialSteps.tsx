@@ -31,12 +31,6 @@ export const useTutorialSteps = () => {
     },
     {
       page: '/yana',
-      title: '💼 Card Marketplace',
-      description: 'Găsește contabilul perfect pentru firma ta și primești oferte personalizate.',
-      highlight: '[data-tour="card-marketplace"]',
-    },
-    {
-      page: '/yana',
       title: 'Încarcă Balanța în Chat AI',
       description: 'Click pe butonul cu agrafa din Chat AI pentru a încărca balanța Excel și a primi analiza instantanee.',
       highlight: '[data-tour="chat-upload-button"]',
