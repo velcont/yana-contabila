@@ -1946,12 +1946,23 @@ NU genera grafice ipotetice. NU cere date manual. Îndrumă spre încărcare fi�
     adaptedPrompt += graphReminder;
     
     // Construiește conversația cu system prompt și istoric
+    // 🆕 FIX GRAFICE: Adaugă mesaj de sistem INLINE direct înainte de user message când e graph request
+    // Aceasta forțează AI-ul să urmeze instrucțiunile deoarece e ultimul context văzut
+    const inlineGraphInstruction = (isGraphRequest && hasBalanceData) ? [{
+      role: "assistant" as const,
+      content: "Am datele tale din balanță. Când vei cere un grafic, îl voi genera imediat folosind formatul artifact cu valorile reale."
+    }, {
+      role: "system" as const,
+      content: `⚡ EXECUȚIE IMEDIATĂ: Utilizatorul cere un grafic. GENEREAZĂ un bloc \`\`\`artifact cu JSON valid. NU întreba. NU cere date. Folosește conturile 6xx/7xx din context. FORMAT: \`\`\`artifact\\n{"type":"bar_chart","title":"...","data":{...}}\\n\`\`\``
+    }] : [];
+    
     const messages = [
       { role: "system", content: adaptedPrompt },
       ...(history || []).map((msg: any) => ({
         role: msg.role,
         content: msg.content
       })),
+      ...inlineGraphInstruction,
       { role: "user", content: message }
     ];
 
