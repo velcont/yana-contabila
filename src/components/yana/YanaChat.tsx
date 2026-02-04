@@ -11,6 +11,7 @@ import { DocumentUploader } from './DocumentUploader';
 import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
 import { SourcesDisplay } from './SourcesDisplay';
+import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
@@ -614,9 +615,12 @@ Cu ce te pot ajuta azi?`;
                   : 'bg-muted text-foreground'
               )}
             >
-              {/* Context indicator removed - unified YANA experience */}
-              
-              <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+              {/* Render content - Markdown for assistant, plain text for user */}
+              {message.role === 'assistant' ? (
+                <MarkdownRenderer content={message.content} className="text-left" />
+              ) : (
+                <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+              )}
               
               {/* Display sources for fiscal responses */}
               {message.role === 'assistant' && message.sources && message.sources.length > 0 && (

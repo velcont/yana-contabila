@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ThumbsUp, ThumbsDown, AlertTriangle } from 'lucide-react';
 import { StrategicChart, ChartData } from '@/components/strategic/StrategicChart';
+import { MarkdownRenderer } from './MarkdownRenderer';
 import { cn } from '@/lib/utils';
 
 interface Source {
@@ -62,6 +63,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const chartData = parseChartData(content);
   const contentWithoutChart = content.replace(/\[CHART_DATA\].*?\[\/CHART_DATA\]/s, '').trim();
 
+  const displayContent = chartData ? contentWithoutChart : cleanContent;
+
   return (
     <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -80,18 +83,23 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
         
-        <div 
-          className={cn(
-            "whitespace-pre-wrap break-words text-sm md:text-base",
-            role === 'assistant' && "text-left leading-relaxed [&>p]:text-justify [&>p]:mb-3 [&>h1]:text-left [&>h2]:text-left [&>h3]:text-left [&>ul]:text-left [&>ol]:text-left [&>ul]:pl-5 [&>ol]:pl-5"
-          )}
-          style={{ 
-            wordBreak: 'break-word',
-            overflowWrap: 'anywhere'
-          }}
-        >
-          {chartData ? contentWithoutChart : cleanContent}
-        </div>
+        {/* Render content based on role */}
+        {role === 'assistant' ? (
+          <MarkdownRenderer 
+            content={displayContent} 
+            className="text-left"
+          />
+        ) : (
+          <div 
+            className="whitespace-pre-wrap break-words text-sm md:text-base"
+            style={{ 
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere'
+            }}
+          >
+            {displayContent}
+          </div>
+        )}
 
         {/* Dynamic Chart Rendering */}
         {chartData && <StrategicChart chartData={chartData} />}
