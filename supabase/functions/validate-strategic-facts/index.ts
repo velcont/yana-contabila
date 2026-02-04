@@ -304,9 +304,102 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { userMessage, conversationId } = await req.json();
+    const { userMessage, conversationId, balanceContext } = await req.json();
 
     console.log("[VALIDATOR] Processing message for conversation:", conversationId);
+    
+    // 🆕 FIX: Dacă avem balanceContext, bypass validarea și returnează direct "approved"
+    if (balanceContext && balanceContext.accounts && balanceContext.accounts.length > 0) {
+      console.log("[VALIDATOR] ✅ Balance context detected - auto-approving with real data");
+      
+      // Calculează totalurile din balanță
+      let totalClass6 = 0; // Cheltuieli
+      let totalClass7 = 0; // Venituri
+      let account121Balance = 0;
+      let account121IsProfit = false;
+      
+      for (const acc of balanceContext.accounts) {
+        const code = String(acc.code || '');
+        const debit = parseFloat(acc.debit) || 0;
+        const credit = parseFloat(acc.credit) || 0;
+        const finalDebit = parseFloat(acc.finalDebit) || 0;
+        const finalCredit = parseFloat(acc.finalCredit) || 0;
+        
+        if (code.startsWith('6')) {
+          totalClass6 += debit; // Cheltuieli = rulaj debitor
+        } else if (code.startsWith('7')) {
+          totalClass7 += credit; // Venituri = rulaj creditor
+        } else if (code === '121') {
+          // Cont 121: Sold creditor = profit, sold debitor = pierdere
+          account121Balance = Math.abs(finalCredit - finalDebit);
+          account121IsProfit = finalCredit > finalDebit;
+        }
+      }
+      
+      // Construiește răspuns cu date reale din balanță
+      const autoApprovedResponse = {
+        validation_status: "approved",
+        extracted_facts: [
+          {
+            fact_category: "financial",
+            fact_key: "cheltuieli_total",
+            fact_value: totalClass6.toFixed(2),
+            fact_unit: "RON",
+            confidence: 1.0,
+            source: "balance_sheet_upload",
+            context: "Suma automată din Clasa 6"
+          },
+          {
+            fact_category: "financial",
+            fact_key: "venituri_total",
+            fact_value: totalClass7.toFixed(2),
+            fact_unit: "RON",
+            confidence: 1.0,
+            source: "balance_sheet_upload",
+            context: "Suma automată din Clasa 7"
+          },
+          {
+            fact_category: "financial",
+            fact_key: account121IsProfit ? "profit_net" : "pierdere_net",
+            fact_value: account121Balance.toFixed(2),
+            fact_unit: "RON",
+            confidence: 1.0,
+            source: "balance_sheet_upload",
+            context: "Din contul 121 - Profit și pierdere"
+          }
+        ],
+        conflicts: [],
+        missing_critical_fields: [],
+        validation_notes: [
+          `✅ Balanță contabilă încărcată: ${balanceContext.company || 'Firmă'}`,
+          `✅ Perioada: ${balanceContext.period || 'N/A'}`,
+          `✅ Total Venituri (Clasa 7): ${totalClass7.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`,
+          `✅ Total Cheltuieli (Clasa 6): ${totalClass6.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`,
+          `✅ Rezultat (Cont 121): ${account121IsProfit ? 'PROFIT' : 'PIERDERE'} ${account121Balance.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`
+        ],
+        ready_for_strategy: true,
+        reason_not_ready: null,
+        cached: false,
+        balance_summary: {
+          totalClass6,
+          totalClass7,
+          account121Balance,
+          account121IsProfit,
+          company: balanceContext.company,
+          period: balanceContext.period
+        }
+      };
+      
+      console.log(`[VALIDATOR] 💰 Auto-approved with: Venituri=${totalClass7.toFixed(2)}, Cheltuieli=${totalClass6.toFixed(2)}, Cont121=${account121Balance.toFixed(2)} (${account121IsProfit ? 'PROFIT' : 'PIERDERE'})`);
+      
+      return new Response(
+        JSON.stringify(autoApprovedResponse),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
+      );
+    }
 
     // ============================================================================
     // CACHE CHECK - reduce cost pentru mesaje similare
