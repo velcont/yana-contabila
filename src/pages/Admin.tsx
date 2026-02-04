@@ -34,6 +34,7 @@ const ApiStatusWidget = lazy(() => import("@/components/admin/ApiStatusWidget").
 const VersionRefreshMonitor = lazy(() => import("@/components/admin/VersionRefreshMonitor").then(m => ({ default: m.VersionRefreshMonitor })));
 const YanaLearningDashboard = lazy(() => import("@/components/admin/YanaLearningDashboard"));
 const AgenticDashboard = lazy(() => import("@/components/admin/AgenticDashboard"));
+const MoltbookPanel = lazy(() => import("@/components/admin/MoltbookPanel").then(m => ({ default: m.MoltbookPanel })));
 const KnowledgeValidationPanel = lazy(() => import("@/components/admin/KnowledgeValidationPanel").then(m => ({ default: m.KnowledgeValidationPanel })));
 
 const TabContentLoader = () => (
@@ -391,6 +392,9 @@ const Admin = () => {
               <TabsTrigger value="knowledge-validation">
                 <Shield className="h-4 w-4 mr-2" />
                 🛡️ Validare Cunoștințe
+              </TabsTrigger>
+              <TabsTrigger value="moltbook">
+                🦞 Moltbook
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -868,6 +872,12 @@ const Admin = () => {
           <TabsContent value="knowledge-validation">
             <Suspense fallback={<TabContentLoader />}>
               <KnowledgeValidationPanel />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="moltbook">
+            <Suspense fallback={<TabContentLoader />}>
+              <MoltbookPanel />
             </Suspense>
           </TabsContent>
         </Tabs>

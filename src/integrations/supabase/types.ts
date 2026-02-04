@@ -2989,6 +2989,129 @@ export type Database = {
         }
         Relationships: []
       }
+      moltbook_activity_log: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json | null
+          error_message: string | null
+          id: string
+          moltbook_response: Json | null
+          success: boolean | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          moltbook_response?: Json | null
+          success?: boolean | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          moltbook_response?: Json | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
+      moltbook_agent: {
+        Row: {
+          agent_id: string | null
+          agent_name: string
+          claim_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          karma: number | null
+          last_heartbeat: string | null
+          status: string
+          updated_at: string
+          verification_code: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          agent_name?: string
+          claim_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          karma?: number | null
+          last_heartbeat?: string | null
+          status?: string
+          updated_at?: string
+          verification_code?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          agent_name?: string
+          claim_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          karma?: number | null
+          last_heartbeat?: string | null
+          status?: string
+          updated_at?: string
+          verification_code?: string | null
+        }
+        Relationships: []
+      }
+      moltbook_posts_queue: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          content: string
+          content_type: string
+          created_at: string
+          id: string
+          moltbook_post_id: string | null
+          posted_at: string | null
+          rejected_reason: string | null
+          status: string
+          submolt: string | null
+          target_post_id: string | null
+          title: string | null
+          upvotes: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          moltbook_post_id?: string | null
+          posted_at?: string | null
+          rejected_reason?: string | null
+          status?: string
+          submolt?: string | null
+          target_post_id?: string | null
+          title?: string | null
+          upvotes?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          content?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          moltbook_post_id?: string | null
+          posted_at?: string | null
+          rejected_reason?: string | null
+          status?: string
+          submolt?: string | null
+          target_post_id?: string | null
+          title?: string | null
+          upvotes?: number | null
+        }
+        Relationships: []
+      }
       monthly_company_workflows: {
         Row: {
           accountant_id: string
