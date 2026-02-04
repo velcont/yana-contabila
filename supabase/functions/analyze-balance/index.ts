@@ -1470,7 +1470,7 @@ serve(async (req) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
     
-    let aiResponse: Response;
+    let aiResponse: Response | undefined = undefined;
     try {
       // ✅ v2.1.0: Construiește "Deterministic Facts Block" din valorile calculate determinist
       // Acest block are prioritate absolută asupra oricărei valori din textul balanței
@@ -1500,26 +1500,57 @@ REGULI OBLIGATORII:
 
 `;
 
-      // ✅ v3.1.0: Folosim Lovable AI (Gemini Flash) - rapid și stabil
-      // Datele deterministe (183.010,18 RON) sunt calculate în TypeScript și injectate în prompt
+      // ✅ v3.2.0: Folosim Lovable AI (Gemini Flash) cu RETRY pentru stabilitate
       console.log("✅ [GEMINI] Using Lovable AI Gateway (google/gemini-2.5-flash) for balance analysis");
       
-      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
-          ],
-          max_tokens: 8000,
-        }),
-        signal: controller.signal
-      });
+      const MAX_RETRIES = 2;
+      let lastError: Error | null = null;
+      
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            console.log(`🔄 [GEMINI] Retry attempt ${attempt}/${MAX_RETRIES}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+          }
+          
+          aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
+                { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
+              ],
+              max_tokens: 8000,
+            }),
+            signal: controller.signal
+          });
+          
+          if (aiResponse.ok) {
+            break; // Success, exit retry loop
+          }
+          
+          const errorText = await aiResponse.text();
+          console.error(`[GEMINI] Attempt ${attempt + 1} failed:`, aiResponse.status, errorText);
+          lastError = new Error(`AI Gateway error: ${aiResponse.status}`);
+          
+          if (aiResponse.status === 429 || aiResponse.status === 402) {
+            // Don't retry rate limits or payment errors
+            break;
+          }
+        } catch (fetchErr: any) {
+          console.error(`[GEMINI] Attempt ${attempt + 1} fetch error:`, fetchErr.message);
+          lastError = fetchErr;
+          
+          if (fetchErr.name === 'AbortError') {
+            break; // Don't retry timeouts
+          }
+        }
+      }
       
       clearTimeout(timeoutId);
     } catch (fetchError: any) {
@@ -1536,18 +1567,18 @@ REGULI OBLIGATORII:
       throw fetchError;
     }
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("Eroare AI Gateway:", aiResponse.status, errorText);
+    if (!aiResponse || !aiResponse.ok) {
+      const errorText = aiResponse ? await aiResponse.text().catch(() => 'Unknown error') : 'No response';
+      console.error("Eroare AI Gateway după retry:", aiResponse?.status, errorText);
       
-      if (aiResponse.status === 429) {
+      if (aiResponse?.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limită de utilizare depășită. Te rog încearcă din nou peste câteva minute." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      if (aiResponse.status === 402) {
+      if (aiResponse?.status === 402) {
         return new Response(
           JSON.stringify({ error: "Credite insuficiente. Te rog adaugă credite în Lovable AI workspace." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -1555,30 +1586,40 @@ REGULI OBLIGATORII:
       }
       
       return new Response(
-        JSON.stringify({ error: "Eroare la serviciul de analiză AI" }),
+        JSON.stringify({ error: "Eroare la serviciul de analiză AI. Te rog încearcă din nou." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const aiData = await aiResponse.json();
+    // ✅ v3.2.0: Citire body cu error handling
+    let aiData;
+    try {
+      aiData = await aiResponse.json();
+    } catch (parseError: any) {
+      console.error("Eroare la parsarea răspunsului AI:", parseError.message);
+      return new Response(
+        JSON.stringify({ error: "Eroare la procesarea răspunsului AI. Te rog încearcă din nou." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
-    // 🆕 v3.0.0: Parse response based on API type (Anthropic vs OpenAI format)
+    // Parse response (OpenAI format from Lovable AI Gateway)
     let analysis: string | undefined;
     
     if (aiData.content && Array.isArray(aiData.content)) {
-      // Anthropic format
+      // Anthropic format (fallback)
       analysis = aiData.content.find((c: { type: string; text?: string }) => c.type === 'text')?.text;
       console.log("✅ [CLAUDE] Parsed Anthropic response format");
     } else if (aiData.choices?.[0]?.message?.content) {
-      // OpenAI format (fallback/Lovable AI)
+      // OpenAI format (Lovable AI)
       analysis = aiData.choices[0].message.content;
       console.log("✅ [GEMINI] Parsed OpenAI response format");
     }
 
     if (!analysis) {
-      console.error("Răspuns AI invalid:", aiData);
+      console.error("Răspuns AI invalid:", JSON.stringify(aiData).substring(0, 500));
       return new Response(
-        JSON.stringify({ error: "Răspuns invalid de la serviciul AI" }),
+        JSON.stringify({ error: "Răspuns invalid de la serviciul AI. Te rog încearcă din nou." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
