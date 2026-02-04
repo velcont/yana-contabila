@@ -1524,7 +1524,7 @@ REGULI OBLIGATORII:
           signal: controller.signal
         });
       } else {
-        console.log("✅ [CLAUDE] Using Claude 3.5 Sonnet for balance analysis");
+        console.log("✅ [CLAUDE] Using Claude Sonnet 4.5 for balance analysis");
         
         aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
@@ -1534,7 +1534,7 @@ REGULI OBLIGATORII:
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-3-5-sonnet-latest",
+            model: "claude-sonnet-4-5-20250929",
             max_tokens: 8000,
             messages: [{
               role: "user",
