@@ -80,7 +80,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         )}
         
-        <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm md:text-base">
+        <div 
+          className={cn(
+            "whitespace-pre-wrap break-words text-sm md:text-base",
+            role === 'assistant' && "text-left leading-relaxed [&>p]:text-justify [&>p]:mb-3 [&>h1]:text-left [&>h2]:text-left [&>h3]:text-left [&>ul]:text-left [&>ol]:text-left [&>ul]:pl-5 [&>ol]:pl-5"
+          )}
+          style={{ 
+            wordBreak: 'break-word',
+            overflowWrap: 'anywhere'
+          }}
+        >
           {chartData ? contentWithoutChart : cleanContent}
         </div>
 
