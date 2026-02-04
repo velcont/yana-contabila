@@ -689,8 +689,9 @@ serve(async (req) => {
     const cont121_structured = structuredData.accounts.find((acc: any) => acc.code === '121');
     let profit_from_structured = 0;
     if (cont121_structured) {
-      const debit = cont121_structured.debit || 0;
-      const credit = cont121_structured.credit || 0;
+      // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
+      const debit = cont121_structured.finalDebit || 0;
+      const credit = cont121_structured.finalCredit || 0;
       profit_from_structured = (credit > debit) ? (credit - debit) : -(debit - credit);
       console.log(`💰 [R2-PRIORITY] Profit din 121: ${profit_from_structured} RON`);
     } else {
@@ -1024,8 +1025,9 @@ serve(async (req) => {
         let profit = 0;
         
         if (cont121) {
-          const debit = cont121.debit || 0;
-          const credit = cont121.credit || 0;
+          // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
+          const debit = cont121.finalDebit || 0;
+          const credit = cont121.finalCredit || 0;
           
           if (credit > debit) {
             // Sold CREDITOR = PROFIT
@@ -1233,8 +1235,9 @@ serve(async (req) => {
         let profit = 0;
         
         if (cont121) {
-          const debit = cont121.debit || 0;
-          const credit = cont121.credit || 0;
+          // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
+          const debit = cont121.finalDebit || 0;
+          const credit = cont121.finalCredit || 0;
           
           if (credit > debit) {
             // Sold CREDITOR = PROFIT
@@ -2226,8 +2229,9 @@ serve(async (req) => {
       const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
       
       if (cont121) {
-        const debit = cont121.debit || 0;
-        const credit = cont121.credit || 0;
+        // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
+        const debit = cont121.finalDebit || 0;
+        const credit = cont121.finalCredit || 0;
         const soldCont121 = (credit > debit) ? (credit - debit) : -(debit - credit);
         
         // Verifică dacă metadata.profit se potrivește cu soldul contului 121
