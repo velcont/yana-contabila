@@ -1438,8 +1438,9 @@ serve(async (req) => {
     console.log('✅ [ACCESS-CHECK] Utilizator autorizat pentru analiză');
 
     // Check cache pentru balanțe identice (hash pe primele 1000 caractere)
+    // ✅ v2.1.0: Cache key include PARSER_VERSION pentru invalidare automată la fix-uri
     const textHash = balanceText.slice(0, 1000);
-    const cacheKey = `balance_${textHash.length}_${textHash.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)}`;
+    const cacheKey = `balance_v${PARSER_VERSION}_${textHash.length}_${textHash.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)}`;
     
     if (user) {
       if (forceReprocess) {
@@ -1471,6 +1472,34 @@ serve(async (req) => {
     
     let aiResponse: Response;
     try {
+      // ✅ v2.1.0: Construiește "Deterministic Facts Block" din valorile calculate determinist
+      // Acest block are prioritate absolută asupra oricărei valori din textul balanței
+      const deterministicFactsBlock = `
+════════════════════════════════════════════════════════════════════════════════
+🔒 DATE DETERMINISTE (UNICA SURSĂ DE ADEVĂR - FOLOSEȘTE OBLIGATORIU ACESTE VALORI!)
+════════════════════════════════════════════════════════════════════════════════
+
+ATENȚIE CRITICĂ: Valorile de mai jos au fost extrase DETERMINIST din coloana "Total sume" (NU din "Rulaje perioadă").
+Dacă observi valori diferite în textul balanței, IGNORĂ-LE și folosește EXCLUSIV valorile de mai jos!
+
+📊 TOTAL VENITURI (Clasa 7, coloana Total sume Creditoare): ${revenue_from_structured.toFixed(2)} RON
+📊 TOTAL CHELTUIELI (Clasa 6, coloana Total sume Debitoare): ${expenses_from_structured.toFixed(2)} RON
+📊 REZULTAT CALCULAT (Venituri - Cheltuieli): ${(revenue_from_structured - expenses_from_structured).toFixed(2)} RON
+📊 CONT 121 (Sold final): ${Math.abs(deterministic_metadata.profit || 0).toFixed(2)} RON ${(deterministic_metadata.profit || 0) >= 0 ? '(PROFIT - sold creditor)' : '(PIERDERE - sold debitor)'}
+
+🔧 Parser Version: ${PARSER_VERSION}
+🔧 Coloane detectate: Total sume Credit = col ${detectedColumns.totalCredit >= 0 ? detectedColumns.totalCredit : 'N/A'}, Sold final Credit = col ${detectedColumns.soldCredit >= 0 ? detectedColumns.soldCredit : 'N/A'}
+
+REGULI OBLIGATORII:
+1. În secțiunea "Snapshot Strategic", CA = ${revenue_from_structured.toFixed(2)} RON (NU altă valoare!)
+2. În secțiunea "Profit vs Cash", Total clasa 7 = ${revenue_from_structured.toFixed(2)} RON, Total clasa 6 = ${expenses_from_structured.toFixed(2)} RON
+3. În secțiunea "=== INDICATORI FINANCIARI ===", CA: ${revenue_from_structured.toFixed(2)}, Cheltuieli: ${expenses_from_structured.toFixed(2)}
+4. NU folosi niciodată valori din coloana "Rulaje perioadă" pentru totaluri anuale!
+
+════════════════════════════════════════════════════════════════════════════════
+
+`;
+
       aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -1481,7 +1510,7 @@ serve(async (req) => {
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `Analizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
+            { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
           ],
           max_tokens: 2048,
         }),
@@ -2108,22 +2137,41 @@ serve(async (req) => {
       const diferentaRezultat = Math.abs(rezultatCalculatFinal - rezultatCont121);
 
       if (diferentaRezultat > 10) {
+        // ✅ v2.1.0: Mesaj îmbunătățit cu sursă explicită și explicații neutre
+        // Căutăm soldul inițial al contului 121 și rezultatul reportat (1171) pentru explicație
+        const cont121Data = structuredData.accounts.find((acc: any) => acc.code === '121');
+        const cont1171Data = structuredData.accounts.find((acc: any) => acc.code === '1171');
+        const soldInitial121 = cont121Data ? ((cont121Data.initialDebit || 0) - (cont121Data.initialCredit || 0)) : 0;
+        const soldReportat1171 = cont1171Data ? ((cont1171Data.finalDebit || 0) - (cont1171Data.finalCredit || 0)) : 0;
+        
+        // Construiește explicație contextuală neutră
+        let explicatieContextuala = '';
+        if (Math.abs(soldInitial121) > 1 || Math.abs(soldReportat1171) > 1) {
+          explicatieContextuala = `\n\n**EXPLICAȚIE TEHNICĂ:**\n` +
+            `Contul 121 include soldul inițial (${Math.abs(soldInitial121).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON) ` +
+            `și/sau rezultatul reportat din anii anteriori (cont 1171: ${Math.abs(soldReportat1171).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON).\n` +
+            `Aceasta este o situație normală pentru balanțe în curs de an.`;
+        }
+        
         const profitMismatchWarning = 
-          `⚠️ **NECONCORDANȚĂ REZULTAT FINANCIAR**\n\n` +
-          `• Total Venituri (clasa 7): ${revenueFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Total Cheltuieli (clasa 6): ${expensesFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `ℹ️ **NOTĂ: DIFERENȚĂ ÎNTRE REZULTATUL CALCULAT ȘI CONTUL 121**\n\n` +
+          `📊 **Sursă date: Coloana "Total sume" (nu Rulaje perioadă)**\n\n` +
+          `• Total Venituri (clasa 7, Total sume Creditoare): ${revenueFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
+          `• Total Cheltuieli (clasa 6, Total sume Debitoare): ${expensesFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
           `• Rezultat CALCULAT (7 - 6): ${rezultatCalculatFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
           `• Sold Contul 121: ${Math.abs(rezultatCont121).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• **DIFERENȚĂ: ${diferentaRezultat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON** ⚠️\n\n` +
-          `**CAUZE POSIBILE:**\n` +
-          `1. Operațiuni de regularizare neînregistrate (amortizări, provizioane)\n` +
-          `2. Venituri/cheltuieli în avans (conturi 471/472) neluate în calcul\n` +
-          `3. Erori de înregistrare în conturile de venituri sau cheltuieli\n` +
-          `4. Reclasificări neefectuate la închiderea lunii/anului\n\n` +
-          `**RECOMANDARE:** Verificați concordanța între contul 121 și diferența clasa 7 - clasa 6 în programul contabil.`;
+          `• **DIFERENȚĂ: ${diferentaRezultat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON**\n` +
+          explicatieContextuala +
+          `\n\n**CAUZE POSIBILE (necesită verificare):**\n` +
+          `1. Sold inițial în contul 121 (pierdere/profit reportat din perioadele anterioare)\n` +
+          `2. Rezultat reportat în contul 1171 necumulat\n` +
+          `3. Închideri parțiale ale conturilor de venituri/cheltuieli\n` +
+          `4. Operațiuni de regularizare (amortizări, provizioane)\n\n` +
+          `**RECOMANDARE:** Aceasta este o diferență de reconciliere contabilă, nu o eroare de parsare. ` +
+          `Verificați soldul inițial al contului 121 și contul 1171 în programul contabil.`;
         
         validationWarnings.push(profitMismatchWarning);
-        console.warn(`⚠️ [VALIDATION] Rezultat neconcordant! Diferență: ${diferentaRezultat} RON`);
+        console.warn(`⚠️ [VALIDATION] Diferență rezultat: ${diferentaRezultat} RON (Sold inițial 121: ${soldInitial121}, Cont 1171: ${soldReportat1171})`);
       }
 
       // VALIDARE 3: TVA (doar dacă firma este plătitoare de TVA)

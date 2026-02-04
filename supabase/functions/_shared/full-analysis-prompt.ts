@@ -87,7 +87,8 @@ Sursă: Balanță de verificare - sintetică
 **Calculare Cifră de Afaceri Anuală:**
 - Formula: Σ (Total sume creditoare conturi clasa 7) - cont 709 (reduceri comerciale)
 - Conturi incluse: 701, 702, 703, 704, 705, 706, 707, 708
-- Se folosesc RULAJE ANUALE, nu solduri finale
+- ⚠️ FOLOSEȘTE EXCLUSIV coloana "Total sume Creditoare" (NU "Rulaje perioadă Credit")
+- Dacă primești DATE DETERMINISTE la începutul mesajului, folosește valorile de acolo!
 
 **Indicatori Cheie Inițiali:**
 - TVA de plată (4423) sold final creditor: [___]
