@@ -2305,11 +2305,8 @@ REGULI OBLIGATORII:
     }
     
     // Validare Cash flow negativ
-    if (finalMetadata.revenue && finalMetadata.expenses) {
-      if (finalMetadata.expenses > finalMetadata.revenue) {
-        validationWarnings.push(`🔴 PIERDERE GARANTATĂ: Cheltuielile (${finalMetadata.expenses.toLocaleString('ro-RO')}) depășesc veniturile (${finalMetadata.revenue.toLocaleString('ro-RO')})`);
-      }
-    }
+    // ✅ v3.2.1: Eliminat "PIERDERE GARANTATĂ" - redundant, deja explicat în secțiunea 2.3
+    // Pierderea/profitul sunt prezentate profesional în analiză fără limbaj alarmist
     
     // Validare plafon casă folosind finalMetadata
     if (finalMetadata.soldCasa && finalMetadata.soldCasa > 50000) {
