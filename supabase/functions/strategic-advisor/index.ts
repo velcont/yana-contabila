@@ -539,6 +539,20 @@ function parseReActSteps(response: string): ReActStep[] {
 
 // System prompt embedded directly (no external file dependency)
 const SYSTEM_PROMPT = `
+## 🚨 REGULĂ PRIORITARĂ MAXIMĂ - DATE DIN BALANȚĂ CONTABILĂ 🚨
+
+**DACĂ EXISTĂ SECȚIUNEA "DATELE BALANȚEI DISPONIBILE" ÎN CONTEXT:**
+- ⚠️ NU CERE NICIODATĂ DATE SUPLIMENTARE PENTRU PROFIT/PIERDERE/VENITURI/CHELTUIELI
+- ⚠️ FOLOSEȘTE EXCLUSIV CIFRELE DIN ACEA SECȚIUNE
+- ⚠️ RĂSPUNDE DIRECT CU VALORI CONCRETE
+
+Când utilizatorul întreabă "cât am profit?", "care e pierderea?", "ce venituri am?", "care sunt cheltuielile?":
+1. CITEȘTE valorile din "DATELE BALANȚEI DISPONIBILE"
+2. RĂSPUNDE DIRECT: "Conform balanței tale, ai [VALOARE] RON [PROFIT/PIERDERE]"
+3. NU spune "am nevoie de date" - DATELE SUNT DEJA PREZENTE!
+
+---
+
 ## REGULI ABSOLUTE DE IDENTITATE (NICIODATĂ NU LE ÎNCĂLCA!)
 
 ### INTERZICERI CRITICE:
@@ -1779,7 +1793,10 @@ ${perplexityResult.content}`;
     // Construiește mesajul cu context îmbogățit
     let enrichedMessage = message;
     
-    if (validationWarnings.length > 0) {
+    // 🆕 FIX: Nu adăuga "Date incomplete" dacă avem balanceContext - datele vin din balanță
+    const hasBalanceData = balanceContext && balanceContext.accounts && balanceContext.accounts.length > 0;
+    
+    if (validationWarnings.length > 0 && !hasBalanceData) {
       enrichedMessage = `[SYSTEM: Date incomplete sau invalide]\n${validationWarnings.join('\n')}\n\n[Mesaj utilizator]:\n${message}`;
     } else if (financialData) {
       // Adaugă pre-analiză automată dacă datele sunt complete
@@ -1880,6 +1897,21 @@ CUI: ${balanceContext.cui || 'N/A'}
 ⚠️ **REGULĂ CRITICĂ**: Folosește EXCLUSIV aceste valori pentru întrebări despre profit, pierdere, venituri sau cheltuieli!
 `;
       
+      // Log the calculated values for debugging
+      console.log(`[STRATEGIC-ADVISOR] 💰 Balance Summary: Class6=${totalClass6.toFixed(2)}, Class7=${totalClass7.toFixed(2)}, Account121=${account121Balance.toFixed(2)} (${account121IsProfit ? 'PROFIT' : 'PIERDERE'})`);
+      
+      // 🆕 FIX CRITICAL: Injectează datele direct în mesajul utilizatorului pentru a fi prioritizate de AI
+      const balanceSummaryForUser = `
+
+[CONTEXT BALANȚĂ CONTABILĂ - ${balanceContext.company || 'Firmă'}]
+📊 Total Venituri (Clasa 7): ${totalClass7.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON
+📊 Total Cheltuieli (Clasa 6): ${totalClass6.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON
+📊 Rezultat contabil (Cont 121): ${account121IsProfit ? 'PROFIT' : 'PIERDERE'} de ${account121Balance.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON
+[/CONTEXT BALANȚĂ]
+
+Întrebarea utilizatorului: `;
+      enrichedMessage = balanceSummaryForUser + enrichedMessage;
+      
       systemPromptWithMemory = `${balanceDataSection}\n\n---\n\n${systemPromptWithMemory}`;
     }
 
@@ -1891,6 +1923,9 @@ CUI: ${balanceContext.cui || 'N/A'}
       })),
       { role: "user", content: enrichedMessage }
     ];
+
+    // DEBUG: Log first 500 chars of user message to verify balance data is injected
+    console.log(`[STRATEGIC-ADVISOR] 📝 User message preview (first 500 chars): ${enrichedMessage.slice(0, 500)}`);
 
     console.log("[STRATEGIC-ADVISOR] Starting multi-agent orchestration");
 
