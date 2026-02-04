@@ -406,21 +406,30 @@ serve(async (req) => {
           }
         }
         
-        // Solduri finale
+        // Solduri finale - CORECTAT: SmartBill/Saga au fix 2 coloane per grup (Debit + Credit)
+        // Căutăm DOAR în intervalul [startCol, startCol+2) pentru a nu confunda cu grupul anterior
         if (soldFinalStartCol >= 0) {
-          for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 4, subHeader.length); j++) {
+          for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 2, subHeader.length); j++) {
             const cell = String(subHeader[j]).toLowerCase().trim();
             if ((cell.includes('debit') || cell === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
             if ((cell.includes('credit') || cell === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
           }
+          // Fallback: dacă nu am găsit credit în intervalul restrâns, presupunem j și j+1
+          if (soldFinalDebitCol >= 0 && soldFinalCreditCol < 0) {
+            soldFinalCreditCol = soldFinalStartCol + 1;
+          }
         }
         
-        // Total sume
+        // Total sume - CORECTAT similar
         if (totalSumeStartCol >= 0) {
-          for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 4, subHeader.length); j++) {
+          for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 2, subHeader.length); j++) {
             const cell = String(subHeader[j]).toLowerCase().trim();
             if ((cell.includes('debit') || cell === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
             if ((cell.includes('credit') || cell === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
+          }
+          // Fallback: dacă nu am găsit credit în intervalul restrâns, presupunem j și j+1
+          if (totalSumeDebitCol >= 0 && totalSumeCreditCol < 0) {
+            totalSumeCreditCol = totalSumeStartCol + 1;
           }
         }
       }
