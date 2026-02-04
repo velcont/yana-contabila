@@ -77,13 +77,13 @@ export const advancedFinancialValidation = (data: Partial<FinancialData>) => {
   const errors: string[] = [];
   const criticalAlerts: string[] = [];
 
-  // 1. Cheltuieli > Venituri (pierdere garantată)
+  // ✅ v3.2.1: Eliminat alertă alarmistă pentru pierdere
+  // Pierderea e situație normală în anumite contexte (investiții, start-up, sezonalitate)
+  // Se prezintă neutru în analiza principală, nu ca "criticalAlert"
   if (data.venituri !== undefined && data.cheltuieli !== undefined) {
     if (data.cheltuieli > data.venituri) {
-      const pierdere = data.cheltuieli - data.venituri;
-      criticalAlerts.push(
-        `🔴 Pierdere de ${pierdere.toLocaleString('ro-RO')} RON - Cheltuielile depășesc veniturile`
-      );
+      // Nu mai adăugăm la criticalAlerts - e redundant și alarmist
+      // Informația e deja în analiza principală
     }
   }
 

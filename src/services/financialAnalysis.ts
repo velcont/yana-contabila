@@ -727,15 +727,16 @@ export const detectFinancialAlerts = (data: FinancialData): Alert[] => {
     });
   }
   
-  // Operating at loss
+  // ✅ v3.2.1: Eliminat "PIERDERE GARANTATĂ" - redundant și alarmist
+  // Pierderea e deja prezentată profesional în analiza principală
   if (data.expenses > data.revenue) {
     const pierdere = data.expenses - data.revenue;
     alerts.push({
       type: 'loss_detected',
-      severity: 'critical',
-      title: '🔴 Pierdere Garantată',
-      message: `Cheltuieli (${data.expenses.toFixed(2)}) > Venituri (${data.revenue.toFixed(2)}). Pierdere: ${pierdere.toFixed(2)} lei!`,
-      actionable: ['Reduce costuri imediat', 'Crește prețurile', 'Optimizează operațiunile']
+      severity: 'info',
+      title: 'ℹ️ Rezultat pe perioadă',
+      message: `Cheltuieli totale: ${data.expenses.toLocaleString('ro-RO')} RON, Venituri: ${data.revenue.toLocaleString('ro-RO')} RON. Diferență: ${pierdere.toLocaleString('ro-RO')} RON.`,
+      actionable: ['Analizează structura cheltuielilor', 'Verifică dacă include amortizări', 'Consultă raportul complet']
     });
   }
   
