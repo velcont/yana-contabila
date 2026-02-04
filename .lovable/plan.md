@@ -1,83 +1,235 @@
 
-Obiectivul tău este corect: „Total Venituri (clasa 7)” trebuie să vină din coloana **Total sume – Creditoare** (≈ 183.010,18), nu din „Rulaje perioadă – Credit” (≈ 23.281,87).
+# Plan: Migrare la Claude Sonnet 4.5 + Răspunsuri Deterministe din Cache
 
-Din ce ai lipit acum, se văd două lucruri simultan:
-1) În zona de alertă de validare, sistemul deja afișează corect **183.010,18 RON** (deci parserul de coloane pentru clasa 7 pare reparat).
-2) În alte pasaje din text, AI-ul încă „se agață” de valori de tip 23k (sau produce calcule paralele), pentru că el primește întregul text exportat din Excel și poate interpreta greșit ce înseamnă „anual / perioadă / total sume”.
+## 1. Rezumat
 
-Cauza principală rămasă: chiar dacă noi extragem determinist coloanele corecte în cod, **modelul AI nu primește explicit aceste valori determinate** ca „sursă de adevăr”, ci își face calculele citind „balanceText” (care conține și coloane de rulaje perioadă). De aici apar inconsecvențe în raport (ex: Snapshot Strategic cu 166k, validare cu 183k etc.).
+Implementez exact ce ai cerut:
+- Parsing Excel → rămâne neschimbat
+- Interpretare → Claude Sonnet 4.5 (în loc de Gemini Flash)
+- Follow-up simplu → citire din cache-ul răspunsului Claude
+- Eliminare "PIERDERE GARANTATĂ" și calcule TypeScript de "verificare"
 
-Mai există și o problemă tehnică secundară: în `analyze-balance/index.ts` cacheKey-ul NU include `PARSER_VERSION`, deci „invalidare cache pe versiune” nu este complet implementată (în practică, forțarea re-procesării la upload te salvează, dar cerința ta rămâne neacoperită 100%).
+---
 
-────────────────────────────────────────────────────────────
+## 2. Arhitectura Nouă
 
-Schimbările pe care le voi implementa (în ordine):
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           UPLOAD BALANȚĂ                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────┐     ┌────────────────────┐     ┌──────────────────┐ │
+│  │  XLSX Parsing     │ ──► │  Claude Sonnet 4.5 │ ──► │  Cache Răspuns   │ │
+│  │  (liniile 45-134) │     │  (interpretare)    │     │  + Valori Cheie  │ │
+│  │  PĂSTRAT          │     │  NOU               │     │  NOU             │ │
+│  └───────────────────┘     └────────────────────┘     └──────────────────┘ │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                           FOLLOW-UP ÎNTREBĂRI                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  "cât am profit?" ──► Citire din cache ──► Răspuns instant ($0)       │ │
+│  │  "care e sold 121?" ──► Citire din cache ──► Răspuns instant ($0)     │ │
+│  │  Întrebare complexă ──► Claude Sonnet + context ──► Răspuns ($0.01)   │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-1) Fixare definitivă a sursei pentru „Total clasa 7 / Total clasa 6” în output (anti-confuzie)
-   - Construiesc un „Deterministic Facts Block” din valorile deja calculate în cod:
-     - Total Venituri clasa 7 (din structuredData: totalSumeCreditCol)
-     - Total Cheltuieli clasa 6 (din structuredData: totalSumeDebitCol)
-     - Sold cont 121 (din finalDebit/finalCredit)
-     - Indicii de coloană detectați (TS_C, TS_D, SF_C, SF_D) + versiune parser
-   - Injectez acest block în promptul trimis către AI (în mesajul user sau ca append la system prompt), cu o regulă explicită:
-     „Dacă primești DATE DETERMINISTE, le folosești obligatoriu și ignori orice altă valoare contradictorie din textul balanței.”
+---
 
-   Impact: AI nu mai are voie să aleagă 23k ca „Total Venituri” și nu mai generează calcule paralele pe „rulaje perioadă”.
+## 3. Modificări Concrete
 
-2) Clarificare prompt (Single Source of Truth) ca să nu mai inducă ambiguitate „rulaje anuale”
-   - În `supabase/functions/_shared/full-analysis-prompt.ts`, corectez formulările care pot împinge AI-ul spre „rulaje perioadă”.
-   - Exemple de clarificări:
-     - La „Calculare Cifră de Afaceri”: voi spune explicit „Total sume Creditoare (nu Rulaje perioadă)”.
-     - La verificarea 2.3 și Profit vs Cash: voi forța referința la „Total Sume” pentru clasele 6/7.
-   - Mențin principiul „unica sursă de adevăr” (nu introduc prompt alternativ), doar elimin ambiguități din promptul unic.
+### 3.1. `supabase/functions/analyze-balance/index.ts`
 
-3) Validare NEconcordanță (păstrează alertă, dar nu mai pare bug de coloană)
-   - În `supabase/functions/analyze-balance/index.ts`, în secțiunea unde se construiește mesajul „⚠️ NECONCORDANȚĂ REZULTAT FINANCIAR”, voi:
-     - Atașa explicit „Sursa: Total sume (TS)” ca să fie clar că nu e din rulaje perioadă.
-     - Adăuga o explicație neutră, fără speculații, conform regulilor: 
-       „Diferența necesită verificare; posibile cauze: rezultat reportat (117), închideri parțiale, conturi de regularizare etc.”
-     - Opțional (dacă există date suficiente în balanță), voi calcula și afișa un mini-reconciliere deterministă (ex: dacă găsim 1171 sau sold inițial 121), ca să arate clar de unde poate proveni diferența.
+**A) Schimbare model AI (liniile 1503-1518)**
 
-   Notă: Nu voi „ascunde” alerta prin toleranțe mari implicit; integritatea datelor rămâne critică. Doar o voi face mai corectă semantic și mai ușor de înțeles (nu „încă citești greșit coloana”).
+De la:
+```typescript
+aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}` },
+  body: JSON.stringify({
+    model: "google/gemini-2.5-flash",
+    ...
+  })
+});
+```
 
-4) Cache: versiune în cheie (conform deciziei tale)
-   - În `supabase/functions/analyze-balance/index.ts`, modific `cacheKey` să includă `PARSER_VERSION`, de exemplu:
-     - `balance_v${PARSER_VERSION}_...`
-   - Astfel, orice fix de parser invalidează automat cache-ul istoric.
-   - Păstrez și ștergerea cache-ului când `forceReprocess=true`.
+La:
+```typescript
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-5) Verificare end-to-end cu fișierul tău CESPUY
-   - Re-upload același `.xls`.
-   - Confirm în output (în raport) că:
-     - „Total Venituri (clasa 7)” = 183.010,18 (și nu apare ca „Total” valoarea 23.281,87 nicăieri)
-     - În Snapshot Strategic, CA este consistentă cu totalul determinist (nu 166k dacă totalul determinist e 183k)
-     - Alerta de neconcordanță (dacă rămâne) se referă explicit la Total Sume și are explicație neutră „necesită verificare”
-   - Confirm în logs că indices sunt TS_C corect (ex: col H) și că block-ul determinist a fost inclus în prompt.
+aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+  headers: {
+    "x-api-key": ANTHROPIC_API_KEY,
+    "anthropic-version": "2023-06-01",
+    "content-type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "claude-sonnet-4-5-20250929",
+    max_tokens: 16000,
+    messages: [{
+      role: "user",
+      content: SYSTEM_PROMPT + "\n\n" + balanceText
+    }]
+  })
+});
+```
 
-────────────────────────────────────────────────────────────
+**B) Extragere valori din răspunsul Claude și salvare în metadata**
 
-Fișiere vizate
-- `supabase/functions/analyze-balance/index.ts`
-  - Injectare „Deterministic Facts Block” în promptul trimis către AI
-  - Cache key cu `PARSER_VERSION`
-  - Îmbunătățire mesaj validare „NECONCORDANȚĂ” (claritate + sursă)
-- `supabase/functions/_shared/full-analysis-prompt.ts`
-  - Clarificări explicite: clasele 6-7 folosesc „Total sume”, nu „rulaje perioadă”
-  - Eliminare ambiguitate „rulaje anuale” (formulare)
+După ce primim răspunsul Claude, extragem valorile cheie cu regex simplu:
 
-(Optionally) `supabase/functions/ai-router/index.ts`
-- Doar verificare că `forceReprocess: true` se trimite pe upload; din ce știm, deja e implementat, dar voi valida consistența.
+```typescript
+// Extrage valori din răspunsul Claude (NU recalculează!)
+const extractFromClaudeResponse = (response: string) => {
+  const extractNumber = (pattern: RegExp): number | null => {
+    const match = response.match(pattern);
+    if (!match) return null;
+    // Parse format românesc: 183.010,18 sau 183010.18
+    const cleanVal = match[1].replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleanVal) || null;
+  };
 
-────────────────────────────────────────────────────────────
+  return {
+    totalClasa7: extractNumber(/Total.*Clasa 7[:\s]*(\d[\d.,\s]*)/i),
+    totalClasa6: extractNumber(/Total.*Clasa 6[:\s]*(\d[\d.,\s]*)/i),
+    sold121: extractNumber(/(?:Sold|Cont)\s*121[:\s]*(\d[\d.,\s]*)/i),
+    sold121IsProfit: /profit|creditor/i.test(response.match(/Cont\s*121[^\.]*(?:PROFIT|PIERDERE|creditor|debitor)/i)?.[0] || ''),
+    cifraAfaceri: extractNumber(/Cifr[aă] de [Aa]faceri[:\s]*(\d[\d.,\s]*)/i),
+  };
+};
 
-Riscuri / edge cases anticipate
-- Exporturi care au doar o singură pereche Debit/Credit (balanțe simplificate): fallback-ul actual există, dar voi păstra și voi loga clar.
-- Fișiere unde subheader-ul nu are „Debit/Credit” textual (ex: D/C): logica deja acceptă `d`/`c`; voi menține.
-- Pentru prompt: trebuie formulat clar, altfel modelul poate ignora blocul determinist; voi pune regula explicită în primele linii ale mesajului către AI.
+const claudeExtractedValues = extractFromClaudeResponse(analysis);
+```
 
-────────────────────────────────────────────────────────────
+**C) Salvare în conversation metadata**
 
-Criterii de „gata”
-- Niciun loc din raport nu mai numește 23.281,87 drept „Total Venituri (clasa 7)”.
-- CA/cheltuieli/profit din secțiunea „=== INDICATORI FINANCIARI ===” sunt consistente cu determinist_metadata.
-- Cache invalidat automat la schimbare de parser (cheie conține versiunea).
+```typescript
+// Salvează răspunsul Claude + valorile extrase pentru follow-up
+await supabaseClient
+  .from('yana_conversations')
+  .update({
+    metadata: {
+      ...existingMetadata,
+      balanceAnalysis: {
+        claudeResponse: analysis, // Răspunsul complet
+        extractedValues: claudeExtractedValues, // Valorile cheie
+        analyzedAt: new Date().toISOString(),
+        company: structuredData.company,
+        period: /* din fileName */,
+      }
+    }
+  })
+  .eq('id', conversationId);
+```
+
+**D) Eliminare "PIERDERE GARANTATĂ" și warnings agresive**
+
+Căutăm și eliminăm textele:
+- `🔴 PIERDERE GARANTATĂ`
+- Orice warning de "verificare" în TypeScript
+
+---
+
+### 3.2. `supabase/functions/ai-router/index.ts`
+
+**A) Detectare întrebări simple de tip numeric**
+
+```typescript
+function isSimpleNumericQuestion(message: string): boolean {
+  const lowerMessage = message.toLowerCase();
+  const patterns = [
+    /c[aâ]t\s*(am|e|este)\s*(profit|pierdere)/i,
+    /care\s*(e|este)\s*(profitul|pierderea|rezultatul)/i,
+    /sold(ul)?\s*121/i,
+    /care\s*(e|sunt)\s*(veniturile|cheltuielile)/i,
+    /total\s*(venituri|cheltuieli|clasa)/i,
+    /am\s*(profit|pierdere)/i,
+  ];
+  return patterns.some(p => p.test(lowerMessage));
+}
+```
+
+**B) Răspuns direct din cache (fără AI)**
+
+```typescript
+if (balanceAnalysis && isSimpleNumericQuestion(message)) {
+  const { extractedValues, company, period } = balanceAnalysis;
+  
+  // Construiește răspuns din valorile pe care Claude le-a dat deja
+  let response = `📊 **Date din analiza balanței ${company}** (${period}):\n\n`;
+  
+  if (message.includes('profit') || message.includes('pierdere') || message.includes('rezultat')) {
+    if (extractedValues.sold121IsProfit) {
+      response += `✅ **PROFIT**: ${formatNumber(extractedValues.sold121)} RON (conform contului 121)\n`;
+    } else {
+      response += `❌ **PIERDERE**: ${formatNumber(extractedValues.sold121)} RON (conform contului 121)\n`;
+    }
+    response += `\n📈 Total Venituri (Clasa 7): ${formatNumber(extractedValues.totalClasa7)} RON`;
+    response += `\n📉 Total Cheltuieli (Clasa 6): ${formatNumber(extractedValues.totalClasa6)} RON`;
+  }
+  
+  return new Response(JSON.stringify({
+    route: 'direct-response',
+    response,
+    source: 'cached_claude_analysis'
+  }), { headers: corsHeaders });
+}
+```
+
+---
+
+### 3.3. `supabase/functions/_shared/full-analysis-prompt.ts`
+
+**Ajustări minore în prompt:**
+- Clarificare că diferența între (7-6) și cont 121 = "diferență de reconciliere"
+- Eliminare limbaj de tip "anomalie majoră" pentru diferențe normale
+
+---
+
+## 4. Teste de Validare
+
+După implementare, testez cu balanța CESPUY:
+
+| Criteriu | Valoare Așteptată |
+|----------|-------------------|
+| Total Clasa 7 | 183.010,18 RON |
+| Total Clasa 6 | 248.095,91 RON |
+| Sold cont 121 | 41.502,91 RON (pierdere) |
+| Răspuns "cât am profit?" | Instant, din cache, cu cifrele corecte |
+| Text "PIERDERE GARANTATĂ" | NU apare |
+
+---
+
+## 5. Costuri Estimate
+
+| Operațiune | Model | Cost |
+|------------|-------|------|
+| Analiză inițială balanță | Claude Sonnet 4.5 | ~$0.08 |
+| Follow-up simplu ("cât am profit?") | Cache (fără AI) | $0.00 |
+| Follow-up complex (strategie) | Claude Sonnet 4.5 | ~$0.01 |
+
+**Total pentru 200 analize/lună + 600 follow-up:**
+- ~$16 analize + ~$3 follow-up complex = **~$19/lună**
+
+---
+
+## 6. Fișiere Modificate
+
+| Fișier | Modificări |
+|--------|-----------|
+| `supabase/functions/analyze-balance/index.ts` | Schimbare model Gemini → Claude, salvare valori în metadata |
+| `supabase/functions/ai-router/index.ts` | Detectare întrebări simple, răspuns direct din cache |
+| `supabase/functions/_shared/full-analysis-prompt.ts` | Clarificări limbaj (opțional) |
+
+---
+
+## 7. Livrabile
+
+1. Call către Claude Sonnet 4.5 funcțional
+2. Valori extrase automat din răspunsul Claude
+3. Răspuns instant la "cât am profit?" din cache
+4. Zero "PIERDERE GARANTATĂ" în output
+5. Total Clasa 7 = 183.010,18 RON (nu 23.281,87)
