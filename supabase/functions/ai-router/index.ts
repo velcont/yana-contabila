@@ -388,12 +388,13 @@ function detectIntent(message: string): RouteDecision {
     lowerMessage.includes('cheltuieli') ||
     lowerMessage.includes('venituri') ||
     lowerMessage.includes('profit') ||
+    lowerMessage.includes('pierdere') ||  // 🆕 FIX: Adaugă "pierdere" pentru rutare corectă
     lowerMessage.includes('marja') ||
     lowerMessage.includes('buget')
   ) {
     return {
       route: 'strategic-advisor',
-      payload: { message },
+      payload: { message, needsBalanceContext: true },  // 🆕 Flag pentru ai-router să știe să injecteze balanceContext
       reason: 'User asked about strategic planning or optimization'
     };
   }
@@ -579,6 +580,17 @@ serve(async (req) => {
         console.log(`[AI-Router] ✅ ANAF Risk calculation with balance for: ${company}`);
       }
       routeDecision.payload.generateReport = true;
+    }
+    
+    // 🆕 FIX CRITICAL: Transmite balanceContext și către strategic-advisor pentru întrebări despre profit/pierdere
+    if (routeDecision.route === 'strategic-advisor') {
+      const strategicBalanceContext = routeDecision.payload.balanceContext;
+      if (strategicBalanceContext) {
+        const company = (strategicBalanceContext as { company?: string })?.company || 'unknown';
+        console.log(`[AI-Router] ✅ Strategic Advisor with balance context for: ${company}`);
+      } else {
+        console.log('[AI-Router] ⚠️ Strategic Advisor without balanceContext - will provide conceptual response');
+      }
     }
 
     // =============================================================================
