@@ -1,179 +1,190 @@
-# ✅ AUDIT TEHNIC - MODIFICĂRI RECENTE ANALYZE-BALANCE
-**Data:** 3 Februarie 2026  
-**Status:** ✅ APROBAT ȘI FINALIZAT  
-**Subiect:** Optimizare validare balanță - prioritizare "Total general"
----
 
-## 📋 REZUMAT EXECUTIV
 
-| Aspect | Status |
-|--------|--------|
-| Extragere "Total general" | ✅ IMPLEMENTAT CORECT |
-| Detecție header fragmentat | ✅ IMPLEMENTAT |
-| Validare echilibru balanță | ✅ FUNCȚIONAL |
-| Prioritizare sursă de adevăr | ✅ FUNCȚIONAL |
-| Parser numeric RO/EN | ✅ UNIVERSAL |
-| Toleranță rotunjiri (10 RON) | ✅ IMPLEMENTAT |
+# PLAN DE REMEDIERE - SINCRONIZARE COMPLETĂ PROMPT ANALIZĂ BALANȚĂ
+
+## 🔴 PROBLEMA CRITICĂ IDENTIFICATĂ
+
+Există **DOUĂ COPII DIFERITE** ale promptului care nu conțin secțiunile obligatorii din originalul furnizat:
+
+| Locație | Status |
+|---------|--------|
+| `analyze-balance/index.ts` (linii 40-429) | ❌ SYSTEM_PROMPT inline - NU folosește fișierul partajat |
+| `_shared/full-analysis-prompt.ts` | ⚠️ Incomplet - lipsesc secțiunile 6-9 |
 
 ---
 
-## 🔍 MODIFICĂRI ANALIZATE
+## CE LIPSEȘTE FAȚĂ DE PROMPT-UL ORIGINAL
 
-### 1. Extragere "Total general" din Excel
+### 1. Precizarea "UNICĂ SURSĂ DE ADEVĂR" (LIPSEȘTE COMPLET)
+```
+ACEST PROMPT ESTE UNICA SURSĂ DE ADEVĂR PENTRU ANALIZA BALANȚEI CONTABILE
+- Oriunde în aplicație se face analiza balanței
+- Indiferent de interfață sau context
+- Nu se acceptă variante simplificate, alternative sau override-uri
+```
 
-**Locație:** `supabase/functions/analyze-balance/index.ts`, linii 971-1019
+### 2. Secțiunea 6) ANOMALII & ALERTE (LIPSEȘTE)
+```
+- Solduri atipice: 474, 461, 462, 409, 419, 542, 581
+- Sold casă > 50.000 RON
+- Solduri anormale 4426/4427
+- Conturi clasa 6/7 cu solduri finale
+```
 
-**Logică implementată:**
+### 3. Secțiunea 7) VERIFICARE CA și PLAFOANE FISCALE (LIPSEȘTE)
+```
+Plafoane Microîntreprinderi:
+- Până la 31.12.2025: 250.000 EUR
+- De la 01.01.2026: 100.000 EUR
+- Cote: 1% (până 60k EUR), 3% (60k-250k EUR)
+
+Plafon TVA:
+- Până la 31.08.2025: 300.000 RON
+- De la 01.09.2025: 395.000 RON
+```
+
+### 4. Secțiunea 8) VERIFICARE ACTIV NET (LIPSEȘTE)
+```
+Analizează dacă activul net a scăzut sub jumătate din capitalul social
+- Activ net curent: [___]
+- 50% Capital social: [___]
+- Implicații legale și măsuri necesare
+```
+
+### 5. Secțiunea 9) REZUMAT EXECUTIV (LIPSEȘTE)
+```
+Top Constatări (3 puncte)
+Plan Prioritizat (max 12 puncte):
+| Prioritate | Acțiune | Responsabil | Termen | Impact Estimat |
+```
+
+---
+
+## SOLUȚIE TEHNICĂ
+
+### Pas 1: Înlocuire completă `_shared/full-analysis-prompt.ts`
+
+Voi înlocui ÎNTREGUL conținut cu prompt-ul original furnizat de tine, incluzând:
+
+**Structura finală (exact conform originalului tău):**
+
 ```text
-1. Scanează ultimele 20 rânduri ale Excel-ului (for i = data.length-1; i >= data.length-20)
-2. Caută cuvinte cheie: "total general", "totaluri generale", "total" (fără cod cont)
-3. Extrage valorile din coloanele detectate anterior: soldFinalDebitCol, soldFinalCreditCol
-4. Validează că cel puțin una din valori > 0
-5. Returnează: { totalGeneralDebit, totalGeneralCredit, totalGeneralFound }
+## PRECIZARE CRITICĂ - UNICĂ SURSĂ DE ADEVĂR
+## REGULI FUNDAMENTALE DE INTERPRETARE
+   1. REGULI DE CLASIFICARE ȘI ANALIZĂ (clase 1-5 vs 6-7)
+   2. POZIȚIONARE NORMALĂ CONTURI CHEIE
+   3. PRINCIPII DE INTERPRETARE OBIECTIVĂ
+## PROCES DE ANALIZĂ - STRUCTURĂ RAPORT
+   0) METADATE
+   1) SNAPSHOT STRATEGIC (CA, Indicatori Cheie)
+   2) ANALIZA CONTURILOR CHEIE (2.1-2.7)
+   3) CONFORMITATE TVA & IMPOZITE
+   4) PROFIT vs CASH (BRIDGE)
+   5) INDICATORI-CHEIE (DSO, DPO, DIO, Marjă, Lichiditate)
+   6) ANOMALII & ALERTE (474, 461, 462, 409, 419, 542, 581, casă > 50k)
+   7) VERIFICARE CA - PLAFOANE FISCALE 2025-2026
+   8) VERIFICARE ACTIV NET vs Capital Social
+   9) REZUMAT EXECUTIV & PLAN DE ACȚIUNE (max 12 puncte)
+## FORMAT RĂSPUNS
+## INDICATORI FINANCIARI STRUCTURAȚI (pentru parsare automată)
 ```
 
-**Verificare pe balanța VELCONT:**
+### Pas 2: Modificare `analyze-balance/index.ts`
 
-| Indicator | Valoare din Excel | Valoare extrasă | Status |
-|-----------|-------------------|-----------------|--------|
-| SF Debitor | 214,050.48 | ✓ | ✅ CORECT |
-| SF Creditor | 214,050.48 | ✓ | ✅ CORECT |
-| Diferență | 0.00 | 0.00 | ✅ ECHILIBRAT |
-
----
-
-### 2. Detecție Header Fragmentat (VELCONT/SmartBill)
-
-**Problemă rezolvată:** Header-ele exportate din unele programe de contabilitate au "Sold" și "Final" în celule separate.
-
-**Locație:** `supabase/functions/analyze-balance/index.ts`, linii 713-850
-
-**Logică implementată:**
-```typescript
-// Acceptă și "sold" + "final" pe celule separate
-const combined = `${cell} ${nextCell}`.replace(/\s+/g, ' ').trim();
-
-if (
-  cell.includes('solduri finale') ||
-  cell.includes('sold final') ||
-  (cell.includes('sold') && cell.includes('final')) ||
-  combined.includes('sold final') ||
-  (cell.includes('sold') && nextCell.includes('final')) // ← FIX NOU
-) {
-  soldFinalStartCol = j;
-}
-```
-
-**Impact:** Elimină eșecurile de parsare pentru balanțe VELCONT și alte exporturi cu header fragmentat.
-
----
-
-### 3. Prioritizare Sursă de Adevăr pentru Validare
-
-**Locație:** `supabase/functions/analyze-balance/index.ts`, linii 2417-2469
-
-**Logică implementată:**
-```text
-DACĂ "Total general" a fost găsit în Excel ȘI (debit > 0 SAU credit > 0):
-    → Folosește valorile direct din rândul Total general
-    → validationSource = 'total_general_row'
-ALTFEL:
-    → Calculează suma conturilor din clasele 1-5
-    → validationSource = 'calculated'
-```
-
-**Avantaj:** Evită discrepanțe din rotunjiri sau conturi omise la sumare manuală.
-
----
-
-### 4. Toleranță Rotunjiri (Pragul de 10 RON)
-
-**Locație:** `supabase/functions/analyze-balance/index.ts`, linia 2451
+Înlocuire SYSTEM_PROMPT inline cu import din fișierul partajat:
 
 ```typescript
-if (diferentaSolduriFinale > 10) {
-  // EROARE CRITICĂ - Balanță neechilibrată
-} else {
-  // OK - Diferența este sub pragul de semnificație
-}
+// ÎNAINTE (linii 40-429):
+const SYSTEM_PROMPT = `Analizeaza balanta atasata...`;
+
+// DUPĂ:
+import { getFullAnalysisPrompt } from "../_shared/full-analysis-prompt.ts";
+const SYSTEM_PROMPT = getFullAnalysisPrompt();
 ```
 
-**Justificare:** Diferențe de câțiva lei pot apărea din:
-- Rotunjiri la export Excel
-- Conversii valutare minore
-- Precizie zecimală diferită între sisteme
+**Beneficii:**
+- O singură sursă de adevăr pentru toate funcțiile
+- Orice modificare ulterioară se face într-un singur loc
+- Consistență perfectă între `analyze-balance` și `chat-ai`
+
+### Pas 3: Deploy edge functions
+
+Ambele funcții vor fi redeployate:
+- `analyze-balance` - funcția principală de analiză
+- `chat-ai` - deja importă din fișierul partajat
 
 ---
 
-## 📊 VERIFICARE COMPLETĂ PE BALANȚA VELCONT
+## DETALII TEHNICE
 
-### Date Originale din Excel (rândul 82 - Total general):
+### Fișiere afectate:
 
-| Coloană | Solduri inițiale | Rulaje | Total sume | **Solduri finale** |
-|---------|------------------|--------|------------|--------------------|
-| Debit | 191,600.80 | 320,644.13 | 4,342,523.06 | **214,050.48** |
-| Credit | 191,600.80 | 320,644.13 | 4,342,523.06 | **214,050.48** |
+| Fișier | Acțiune |
+|--------|---------|
+| `supabase/functions/_shared/full-analysis-prompt.ts` | ÎNLOCUIRE COMPLETĂ cu prompt-ul original |
+| `supabase/functions/analyze-balance/index.ts` | ȘTERGERE SYSTEM_PROMPT inline, ADĂUGARE import |
 
-### Validări Efectuate:
+### Secțiunile noi adăugate:
 
-| Test | Rezultat | Status |
-|------|----------|--------|
-| Echilibru SF (D = C) | 214,050.48 = 214,050.48 | ✅ PASS |
-| Profit din cont 121 | 41,618.07 RON (sold creditor) | ✅ PROFIT |
-| Venituri (Clasa 7) | 435,641.76 RON | ✅ CORECT |
-| Cheltuieli (Clasa 6) | 394,110.73 RON | ✅ CORECT |
-| Marja profit | (41,618 / 435,641) × 100 = 9.55% | ✅ CORECT |
-| Formula: V - C = P | 435,641 - 394,110 = 41,531 (≈ 41,618) | ✅ TOLERABIL |
+**Secțiunea 6 - Anomalii & Alerte:**
+- Solduri atipice (474, 461, 462, 409, 419, 542, 581)
+- Sold casă > 50.000 cu riscuri fiscale
+- Solduri anormale 4426/4427
+- Conturi 6/7 cu solduri finale
 
-**Diferența de 87 RON** între profit calculat și contul 121 este explicabilă prin:
-- Contul 691 (Impozit pe profit): 6,784.00 RON în rulaj perioadă
-- Închideri lunare anterioare
+**Secțiunea 7 - Plafoane Fiscale:**
+- Micro până la 31.12.2025: 250.000 EUR
+- Micro de la 01.01.2026: 100.000 EUR
+- TVA până la 31.08.2025: 300.000 RON
+- TVA de la 01.09.2025: 395.000 RON
 
----
+**Secțiunea 8 - Activ Net:**
+- Verificare dacă activul net < 50% din capital social
+- Implicații legale conform Legii 31/1990
 
-## 🔐 ANALIZA SECURITATE ȘI PERFORMANȚĂ
-
-| Aspect | Evaluare |
-|--------|----------|
-| Injection attacks | ✅ Nu există - datele sunt parsate din Excel binar |
-| Memory leaks | ✅ Nu există - variabilele sunt scoped în funcție |
-| Performance | ✅ Adaugă maxim 20 iterații pentru căutarea Total general |
-| RLS Policies | ❌ NEAFECTATE - modificări doar în logica de calcul |
-| Logging | ✅ Complet - fiecare pas este logat pentru debugging |
+**Secțiunea 9 - Rezumat Executiv:**
+- Top 3 constatări critice
+- Plan prioritizat cu max 12 puncte (Acțiune, Responsabil, Termen, Impact)
 
 ---
 
-## 🧪 RECOMANDĂRI PENTRU TESTARE
+## ESTIMARE EFORT
 
-1. **Test VELCONT** - Reîncarcă balanța și verifică:
-   - Totaluri afișate = 214,050.48 / 214,050.48
-   - Profit = 41,618.07 RON
-   - Marja = 9.5%
-
-2. **Test SmartBill** - Verifică o balanță SmartBill pentru:
-   - Detectare corectă header pe 2 rânduri
-   - Extragere contului 121 cu cod analitic (121xx)
-
-3. **Test balanță neechilibrată** - Verifică afișarea erorii cu:
-   - Sursă indicată (din Total general vs calculat)
-   - Diferența în RON afișată
+| Task | Timp |
+|------|------|
+| Înlocuire completă `full-analysis-prompt.ts` | ~20 min |
+| Modificare `analyze-balance/index.ts` (import) | ~5 min |
+| Deploy edge functions | ~5 min |
+| Testare cu balanța VELCONT | ~10 min |
+| **TOTAL** | **~40 min** |
 
 ---
 
-## ✅ CONCLUZIE AUDIT
+## REZULTAT AȘTEPTAT
 
-**Status: AUDIT TRECUT ✅**
+După implementare, YANA va genera analize care:
 
-Modificările sunt corect implementate și verificate pe balanța VELCONT reală:
-
-1. ✅ "Total general" este extras corect din rândul 82
-2. ✅ Validarea prioritizează valorile din Excel (nu calcule manuale)
-3. ✅ Toleranța de 10 RON previne false pozitive
-4. ✅ Header-urile fragmentate sunt detectate corect
-5. ✅ Logging-ul permite debugging rapid
-
-**Risc de regresie:** SCĂZUT - modificările sunt izolate în funcția `extractStructuredData` și layer-ul de validare.
+1. ✅ Respectă **EXACT** structura din prompt-ul original (secțiunile 0-9)
+2. ✅ Include secțiunea **ANOMALII & ALERTE** pentru conturile 474, 461, 462, 409, 419, 542, 581
+3. ✅ Verifică **sold casă > 50.000** ca risc fiscal
+4. ✅ Verifică **plafoanele fiscale 2025-2026** (micro 100k EUR, TVA 395k RON)
+5. ✅ Include **REZUMAT EXECUTIV** cu max 12 puncte acționabile
+6. ✅ Verifică **Activ Net vs 50% Capital Social**
+7. ✅ Format **text narativ** (fără markdown excesiv)
+8. ✅ Menține secțiunea **INDICATORI FINANCIARI** structurați la sfârșit (pentru parsare automată)
 
 ---
 
-*Audit realizat conform standardului STRICT-TECHNICAL-VERIFICATION*
+## PRECIZARE CRITICĂ
+
+După implementare, acest prompt va fi **UNICA SURSĂ DE ADEVĂR** pentru:
+- Upload balanță în analyze-balance
+- Chat AI cu context balanță
+- Orice altă funcționalitate de analiză balanță
+
+**NU se vor mai accepta:**
+- ❌ Variante simplificate
+- ❌ Prompturi alternative
+- ❌ Override-uri sau excepții
+- ❌ Prompturi "optimizate"
+
