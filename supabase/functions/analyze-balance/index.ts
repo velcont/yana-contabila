@@ -1500,22 +1500,50 @@ REGULI OBLIGATORII:
 
 `;
 
-      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
-          ],
-          max_tokens: 2048,
-        }),
-        signal: controller.signal
-      });
+      // 🆕 v3.0.0: CLAUDE SONNET 4.5 pentru interpretare balanță
+      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+      
+      if (!ANTHROPIC_API_KEY) {
+        console.error("❌ ANTHROPIC_API_KEY not configured - falling back to Lovable AI");
+        
+        // Fallback: Lovable AI Gateway
+        aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
+            ],
+            max_tokens: 8000,
+          }),
+          signal: controller.signal
+        });
+      } else {
+        console.log("✅ [CLAUDE] Using Claude Sonnet 4.5 for balance analysis");
+        
+        aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-5-20250929",
+            max_tokens: 16000,
+            messages: [{
+              role: "user",
+              content: `${SYSTEM_PROMPT}\n\n${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}`
+            }]
+          }),
+          signal: controller.signal
+        });
+      }
       
       clearTimeout(timeoutId);
     } catch (fetchError: any) {
@@ -1557,7 +1585,19 @@ REGULI OBLIGATORII:
     }
 
     const aiData = await aiResponse.json();
-    const analysis = aiData.choices?.[0]?.message?.content;
+    
+    // 🆕 v3.0.0: Parse response based on API type (Anthropic vs OpenAI format)
+    let analysis: string | undefined;
+    
+    if (aiData.content && Array.isArray(aiData.content)) {
+      // Anthropic format
+      analysis = aiData.content.find((c: { type: string; text?: string }) => c.type === 'text')?.text;
+      console.log("✅ [CLAUDE] Parsed Anthropic response format");
+    } else if (aiData.choices?.[0]?.message?.content) {
+      // OpenAI format (fallback/Lovable AI)
+      analysis = aiData.choices[0].message.content;
+      console.log("✅ [GEMINI] Parsed OpenAI response format");
+    }
 
     if (!analysis) {
       console.error("Răspuns AI invalid:", aiData);
@@ -2332,12 +2372,30 @@ REGULI OBLIGATORII:
         }
       }
       
+      // 🆕 v3.0.0: Adaugă extractedValues pentru răspunsuri deterministe (cache)
+      const extractedValuesForCache = {
+        totalClasa7: deterministic_metadata.revenue || finalMetadata.revenue || 0,
+        totalClasa6: deterministic_metadata.expenses || finalMetadata.expenses || 0,
+        sold121: finalMetadata.profit || 0,
+        sold121IsProfit: (finalMetadata.profit || 0) >= 0,
+        cifraAfaceri: deterministic_metadata.revenue || finalMetadata.revenue || 0,
+        profit: finalMetadata.profit || 0,
+        dso: finalMetadata.dso,
+        dpo: finalMetadata.dpo,
+      };
+      
+      // Attach to structuredData for persistence in yana_conversations metadata
+      const structuredDataWithCache = {
+        ...structuredData,
+        extractedValues: extractedValuesForCache,
+      };
+      
       return new Response(
         JSON.stringify({ 
           analysis: finalAnalysisWithWarnings,
           metadata: hasValidData ? finalMetadata : null,
           councilValidation: councilValidation,
-          structuredData: structuredData
+          structuredData: structuredDataWithCache
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -2387,12 +2445,29 @@ REGULI OBLIGATORII:
       }
     }
     
+    // 🆕 v3.0.0: Adaugă extractedValues pentru răspunsuri deterministe (cache) - path fără warnings
+    const extractedValuesForCache = {
+      totalClasa7: deterministic_metadata.revenue || 0,
+      totalClasa6: deterministic_metadata.expenses || 0,
+      sold121: finalMetadata.profit || 0,
+      sold121IsProfit: (finalMetadata.profit || 0) >= 0,
+      cifraAfaceri: deterministic_metadata.revenue || 0,
+      profit: finalMetadata.profit || 0,
+      dso: finalMetadata.dso,
+      dpo: finalMetadata.dpo,
+    };
+    
+    const structuredDataWithCache = {
+      ...structuredData,
+      extractedValues: extractedValuesForCache,
+    };
+    
     return new Response(
       JSON.stringify({ 
         analysis: finalAnalysisText,
         metadata: hasValidData ? finalMetadata : null,
         councilValidation: councilValidation,
-        structuredData: structuredData
+        structuredData: structuredDataWithCache
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

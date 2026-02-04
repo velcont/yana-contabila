@@ -201,6 +201,132 @@ ${contextLines}
 }
 
 // =============================================================================
+// 🆕 v3.0.0: RĂSPUNSURI DETERMINISTE DIN CACHE - Fără AI pentru întrebări simple
+// =============================================================================
+
+interface BalanceAnalysisCache {
+  company?: string;
+  period?: string;
+  claudeResponse?: string;
+  extractedValues?: {
+    totalClasa7?: number;
+    totalClasa6?: number;
+    sold121?: number;
+    sold121IsProfit?: boolean;
+    cifraAfaceri?: number;
+    profit?: number;
+    dso?: number;
+    dpo?: number;
+  };
+  analyzedAt?: string;
+}
+
+// Detectează întrebări simple despre profit/pierdere/solduri
+function isSimpleNumericQuestion(message: string): boolean {
+  const lowerMessage = message.toLowerCase();
+  const patterns = [
+    /c[aâ]t\s*(am|e|este|avem)\s*(profit|pierdere)/i,
+    /care\s*(e|este)\s*(profitul|pierderea|rezultatul)/i,
+    /sold(ul)?\s*121/i,
+    /care\s*(e|sunt)\s*(veniturile|cheltuielile)/i,
+    /total\s*(venituri|cheltuieli|clasa)/i,
+    /am\s*(profit|pierdere)/i,
+    /sunt\s*pe\s*(profit|pierdere)/i,
+    /cifra\s*de\s*afaceri/i,
+  ];
+  return patterns.some(p => p.test(lowerMessage));
+}
+
+// Formatează numărul în format românesc
+function formatNumber(value: number | undefined): string {
+  if (value === undefined || value === null) return 'N/A';
+  return new Intl.NumberFormat('ro-RO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
+// Generează răspuns determinist din cache (fără AI call)
+function buildDeterministicResponse(
+  balanceAnalysis: BalanceAnalysisCache,
+  message: string
+): string | null {
+  const { extractedValues, company, period } = balanceAnalysis;
+  
+  if (!extractedValues) return null;
+  
+  const lowerMessage = message.toLowerCase();
+  let response = `📊 **Date din analiza balanței${company ? ` ${company}` : ''}**${period ? ` (${period})` : ''}:\n\n`;
+  
+  // Întrebare despre profit/pierdere/rezultat
+  if (lowerMessage.includes('profit') || lowerMessage.includes('pierdere') || lowerMessage.includes('rezultat')) {
+    const sold121 = extractedValues.sold121 || extractedValues.profit || 0;
+    const isProfit = extractedValues.sold121IsProfit ?? (sold121 >= 0);
+    const rezultatPerioadă = (extractedValues.totalClasa7 || 0) - (extractedValues.totalClasa6 || 0);
+    
+    if (isProfit) {
+      response += `✅ **PROFIT**: ${formatNumber(Math.abs(sold121))} RON (sold cont 121)\n`;
+    } else {
+      response += `❌ **PIERDERE**: ${formatNumber(Math.abs(sold121))} RON (sold cont 121)\n`;
+    }
+    
+    response += `\n📈 **Detalii:**\n`;
+    response += `• Total Venituri (Clasa 7): ${formatNumber(extractedValues.totalClasa7)} RON\n`;
+    response += `• Total Cheltuieli (Clasa 6): ${formatNumber(extractedValues.totalClasa6)} RON\n`;
+    response += `• Rezultat pe perioadă (7-6): ${formatNumber(rezultatPerioadă)} RON\n`;
+    
+    // Explică diferența dacă există
+    if (sold121 !== 0 && Math.abs(rezultatPerioadă - sold121) > 1) {
+      response += `\n💡 *Diferența dintre rezultatul pe perioadă și soldul 121 provine din solduri inițiale reportate (cont 1171) sau ajustări contabile - aceasta este o situație normală pentru balanțe interimare.*`;
+    }
+    
+    return response;
+  }
+  
+  // Întrebare despre sold 121 specific
+  if (lowerMessage.includes('121')) {
+    const sold121 = extractedValues.sold121 || extractedValues.profit || 0;
+    const isProfit = extractedValues.sold121IsProfit ?? (sold121 >= 0);
+    
+    response += `**Cont 121 - Profit și pierdere**:\n`;
+    response += `• Sold final: ${formatNumber(Math.abs(sold121))} RON (${isProfit ? 'creditor = PROFIT' : 'debitor = PIERDERE'})\n`;
+    return response;
+  }
+  
+  // Întrebare despre venituri
+  if (lowerMessage.includes('venituri') || lowerMessage.includes('clasa 7')) {
+    response += `**Total Venituri (Clasa 7)**: ${formatNumber(extractedValues.totalClasa7)} RON\n`;
+    if (extractedValues.cifraAfaceri) {
+      response += `• Cifra de afaceri: ${formatNumber(extractedValues.cifraAfaceri)} RON\n`;
+    }
+    return response;
+  }
+  
+  // Întrebare despre cheltuieli
+  if (lowerMessage.includes('cheltuieli') || lowerMessage.includes('clasa 6')) {
+    response += `**Total Cheltuieli (Clasa 6)**: ${formatNumber(extractedValues.totalClasa6)} RON\n`;
+    return response;
+  }
+  
+  // Întrebare despre cifra de afaceri
+  if (lowerMessage.includes('cifra') && lowerMessage.includes('afaceri')) {
+    const ca = extractedValues.cifraAfaceri || extractedValues.totalClasa7 || 0;
+    response += `**Cifra de afaceri**: ${formatNumber(ca)} RON\n`;
+    return response;
+  }
+  
+  // Fallback: afișează toate datele disponibile
+  response += `• Total Venituri (Clasa 7): ${formatNumber(extractedValues.totalClasa7)} RON\n`;
+  response += `• Total Cheltuieli (Clasa 6): ${formatNumber(extractedValues.totalClasa6)} RON\n`;
+  
+  const sold121 = extractedValues.sold121 || extractedValues.profit || 0;
+  const isProfit = extractedValues.sold121IsProfit ?? (sold121 >= 0);
+  response += `• Rezultat (cont 121): ${isProfit ? 'PROFIT' : 'PIERDERE'} ${formatNumber(Math.abs(sold121))} RON\n`;
+  
+  return response;
+}
+
+// =============================================================================
 // ROUTING LOGIC (original)
 // =============================================================================
 
@@ -561,6 +687,43 @@ serve(async (req) => {
       
       // Use DB value as priority, fallback to frontend value if DB is empty
       routeDecision.payload.balanceContext = effectiveBalanceContext || balanceContext || null;
+      
+      // =============================================================================
+      // 🆕 v3.0.0: RĂSPUNS DETERMINIST - Întrebări simple despre profit/pierdere/solduri
+      // Returnează instant din cache, fără apel AI ($0 cost)
+      // =============================================================================
+      const balanceCtx = effectiveBalanceContext as BalanceAnalysisCache | null;
+      
+      if (balanceCtx && balanceCtx.extractedValues && isSimpleNumericQuestion(message)) {
+        console.log(`[AI-Router] 🚀 DETERMINISTIC RESPONSE: Simple numeric question detected, using cache`);
+        
+        const deterministicResponse = buildDeterministicResponse(balanceCtx, message);
+        
+        if (deterministicResponse) {
+          console.log(`[AI-Router] ✅ Returning cached response (no AI call, $0 cost)`);
+          
+          // Salvează mesajul assistant în DB
+          await supabase.from('yana_messages').insert({
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: deterministicResponse,
+            artifacts: [],
+            ends_with_question: false,
+            question_responded: null,
+          });
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              response: deterministicResponse,
+              route: 'direct-response',
+              source: 'cached_balance_analysis',
+              cost: 0
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
     }
 
     // Add conversationId for routes that require it

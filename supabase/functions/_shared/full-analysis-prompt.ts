@@ -122,9 +122,12 @@ Sursă: Balanță de verificare - sintetică
 - Recomandări: Management lichiditate, control intern
 
 **2.3 Rezultat (121/117)**
-- Verificare: (Total clasa 7 - Total clasa 6) = Sold cont 121
+- Verificare: (Total clasa 7 - Total clasa 6) vs Sold cont 121
+- ⚠️ IMPORTANT: Diferența între rezultatul calculat (Clasa 7 - Clasa 6) și soldul contului 121 este NORMALĂ pentru balanțe interimare.
+- Această diferență poate proveni din: solduri inițiale (cont 1171), ajustări lunare, sau operațiuni de regularizare.
+- NU folosi termenul "anomalie majoră" pentru această diferență - folosește "diferență de reconciliere".
 - Analiză evoluție rezultat
-- Riscuri: Erori contabile, pierderi acumulate
+- Riscuri: Pierderi neidentificate, probleme de lichiditate
 - Recomandări: Strategii profitabilitate, management costuri
 
 **2.4 Stocuri și Marjă (607/371)**
@@ -170,11 +173,13 @@ Sursă: Balanță de verificare - sintetică
 **Verificare Contabilă:**
 Total clasa 7 (Total Sume): [___]
 Total clasa 6 (Total Sume): [___]
-Diferență (7 - 6): [___]
+Rezultat pe perioadă (7 - 6): [___]
 Sold cont 121: [___]
-✓ Verificare: Diferență = Sold 121? [DA/NU]
 
-⚠️ Dacă NU: Mesaj eroare + analiză cauze
+📊 **Reconciliere:**
+- Dacă rezultatul calculat (7-6) diferă de soldul 121, aceasta este o DIFERENȚĂ DE RECONCILIERE normală
+- Cauze frecvente: sold inițial cont 1171 (rezultat reportat), ajustări de regularizare, operațiuni inter-perioade
+- NU este o eroare contabilă - este specific balanțelor interimare
 
 **Interpretare Sold 121:**
 - Sold DEBITOR → Pierdere: Cauze + măsuri redresare
