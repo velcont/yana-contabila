@@ -1240,7 +1240,9 @@ serve(async (req) => {
       })).optional(),
       scenario_name: z.string().optional(),  // ← SCENARIU PREDEFINIT WAR ROOM
       // 🆕 MEMORIE: Context din conversații anterioare cu firma
-      memoryContext: z.string().max(5000).optional().nullable()
+      memoryContext: z.string().max(5000).optional().nullable(),
+      // 🆕 FIX CRITICAL: Balance context pentru întrebări despre profit/pierdere
+      balanceContext: z.any().optional().nullable()
     });
 
     // ✅ PARSE AND VALIDATE WITH ZOD
@@ -1273,7 +1275,8 @@ serve(async (req) => {
       simulation_mode,      // ← WAR ROOM SIMULATOR
       simulation_changes,   // ← MODIFICĂRI UTILIZATOR
       scenario_name,        // ← NUME SCENARIU PREDEFINIT
-      memoryContext         // 🆕 MEMORIE: Context din conversații anterioare
+      memoryContext,        // 🆕 MEMORIE: Context din conversații anterioare
+      balanceContext        // 🆕 FIX: Balance context pentru profit/pierdere
     } = requestBody as any;
 
     console.log("[STRATEGIC-ADVISOR] Request data:", { 
@@ -1281,7 +1284,9 @@ serve(async (req) => {
       hasFinancialData: !!financialData,
       isSimulation: simulation_mode === true,
       simulationChangesCount: simulation_changes?.length || 0,
-      hasMemoryContext: !!memoryContext
+      hasMemoryContext: !!memoryContext,
+      hasBalanceContext: !!balanceContext,
+      balanceCompany: balanceContext?.company || 'N/A'
     });
 
     // ============================================================================
@@ -1813,6 +1818,69 @@ ${perplexityResult.content}`;
     if (memoryContext) {
       console.log(`[STRATEGIC-ADVISOR] 📚 Memory context added to prompt (${memoryContext.length} chars)`);
       systemPromptWithMemory = `${memoryContext}\n\n---\n\n${SYSTEM_PROMPT}`;
+    }
+    
+    // 🆕 FIX CRITICAL: Integrare balanceContext pentru întrebări despre profit/pierdere
+    if (balanceContext && balanceContext.accounts && balanceContext.accounts.length > 0) {
+      console.log(`[STRATEGIC-ADVISOR] 📊 Balance context added for: ${balanceContext.company || 'N/A'}`);
+      
+      // Construiește secțiunea de date financiare din balanță
+      let balanceDataSection = `
+
+📊 **DATELE BALANȚEI DISPONIBILE - ${balanceContext.period || 'Perioadă necunoscută'}**
+Firmă: ${balanceContext.company || 'Necunoscut'}
+CUI: ${balanceContext.cui || 'N/A'}
+
+**REGULĂ CONTABILĂ APLICATĂ:**
+- Clasele 1-5 (active, pasive, capitaluri): SOLDURI FINALE
+- Clasele 6-7 (cheltuieli, venituri): TOTAL SUME
+
+**CONTURI DISPONIBILE:**
+`;
+      
+      // Calculează totaluri pentru clasa 6 și 7
+      let totalClass6 = 0;
+      let totalClass7 = 0;
+      let account121Balance = 0;
+      let account121IsProfit = false;
+      
+      balanceContext.accounts.forEach((acc: any) => {
+        const code = acc.code?.toString() || '';
+        const accountClass = parseInt(code[0] || '0');
+        
+        if (accountClass === 6) {
+          totalClass6 += Number(acc.debit || 0);
+          balanceDataSection += `Cont ${code} (${acc.name}): Total Debit = ${Number(acc.debit || 0).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n`;
+        } else if (accountClass === 7) {
+          totalClass7 += Number(acc.credit || 0);
+          balanceDataSection += `Cont ${code} (${acc.name}): Total Credit = ${Number(acc.credit || 0).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n`;
+        } else if (code.startsWith('121')) {
+          const finalD = Number(acc.finalDebit ?? acc.debit ?? 0);
+          const finalC = Number(acc.finalCredit ?? acc.credit ?? 0);
+          if (finalD > 0) {
+            account121Balance = finalD;
+            account121IsProfit = false;
+            balanceDataSection += `Cont 121 (Profit/Pierdere): Sold DEBITOR = ${finalD.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON (PIERDERE)\n`;
+          } else if (finalC > 0) {
+            account121Balance = finalC;
+            account121IsProfit = true;
+            balanceDataSection += `Cont 121 (Profit/Pierdere): Sold CREDITOR = ${finalC.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON (PROFIT)\n`;
+          }
+        }
+      });
+      
+      // Adaugă sumar calculat
+      balanceDataSection += `
+
+**SUMAR CALCULAT:**
+- Total Venituri (Clasa 7): ${totalClass7.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON
+- Total Cheltuieli (Clasa 6): ${totalClass6.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON
+- Rezultat contabil (Cont 121): ${account121IsProfit ? 'PROFIT' : 'PIERDERE'} de ${account121Balance.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON
+
+⚠️ **REGULĂ CRITICĂ**: Folosește EXCLUSIV aceste valori pentru întrebări despre profit, pierdere, venituri sau cheltuieli!
+`;
+      
+      systemPromptWithMemory = `${balanceDataSection}\n\n---\n\n${systemPromptWithMemory}`;
     }
 
     const messages = [
