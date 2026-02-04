@@ -1500,50 +1500,26 @@ REGULI OBLIGATORII:
 
 `;
 
-      // 🆕 v3.0.0: CLAUDE SONNET 4.5 pentru interpretare balanță
-      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+      // ✅ v3.1.0: Folosim Lovable AI (Gemini Flash) - rapid și stabil
+      // Datele deterministe (183.010,18 RON) sunt calculate în TypeScript și injectate în prompt
+      console.log("✅ [GEMINI] Using Lovable AI Gateway (google/gemini-2.5-flash) for balance analysis");
       
-      if (!ANTHROPIC_API_KEY) {
-        console.error("❌ ANTHROPIC_API_KEY not configured - falling back to Lovable AI");
-        
-        // Fallback: Lovable AI Gateway
-        aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
-            ],
-            max_tokens: 8000,
-          }),
-          signal: controller.signal
-        });
-      } else {
-        console.log("✅ [CLAUDE] Using Claude Sonnet 4.5 for balance analysis");
-        
-        aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-5-20250929",
-            max_tokens: 8000,
-            messages: [{
-              role: "user",
-              content: `${SYSTEM_PROMPT}\n\n${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}`
-            }]
-          }),
-          signal: controller.signal
-        });
-      }
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: `${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}` }
+          ],
+          max_tokens: 8000,
+        }),
+        signal: controller.signal
+      });
       
       clearTimeout(timeoutId);
     } catch (fetchError: any) {
