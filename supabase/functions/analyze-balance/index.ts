@@ -1534,8 +1534,8 @@ REGULI OBLIGATORII:
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-sonnet-4-5-20250929",
-            max_tokens: 16000,
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 12000,
             messages: [{
               role: "user",
               content: `${SYSTEM_PROMPT}\n\n${deterministicFactsBlock}\n\nAnalizeaza urmatoarea balanta de verificare:\n\n${balanceText}`
