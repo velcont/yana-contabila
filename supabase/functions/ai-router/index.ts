@@ -222,9 +222,11 @@ interface BalanceAnalysisCache {
 }
 
 // Detectează întrebări simple despre profit/pierdere/solduri
+// 🆕 v3.1.0: Pattern-uri extinse pentru întrebări românești comune
 function isSimpleNumericQuestion(message: string): boolean {
   const lowerMessage = message.toLowerCase();
   const patterns = [
+    // Pattern-uri existente
     /c[aâ]t\s*(am|e|este|avem)\s*(profit|pierdere)/i,
     /care\s*(e|este)\s*(profitul|pierderea|rezultatul)/i,
     /sold(ul)?\s*121/i,
@@ -233,8 +235,32 @@ function isSimpleNumericQuestion(message: string): boolean {
     /am\s*(profit|pierdere)/i,
     /sunt\s*pe\s*(profit|pierdere)/i,
     /cifra\s*de\s*afaceri/i,
+    
+    // 🆕 Pattern-uri noi pentru variante românești comune
+    /c[aâ]t\s*(am\s+avut|a\s+fost)\s*(profit|pierdere)/i,      // "cât am avut profit"
+    /spune-mi\s*(profitul|pierderea|rezultatul)/i,             // "spune-mi profitul"
+    /ar[aă]t[aă]-mi\s*(profitul|pierderea|rezultatul)/i,       // "arată-mi profitul"
+    /d[aă]-mi\s*(profitul|pierderea|rezultatul|cifra)/i,       // "dă-mi profitul"
+    /(profit|pierdere)\s*(pe\s*)?(lun[aă]|perioad[aă]|trimestrul?)/i,  // "profit pe luna"
+    /rezultat(ul)?\s*(financiar|contabil|net|perioad[aă])/i,   // "rezultatul financiar"
+    /c[aâ]t\s*(am\s+)?c[aâ][sș]tigat/i,                        // "cât am câștigat"
+    /c[aâ]t\s*(am\s+)?pierdut/i,                               // "cât am pierdut"
+    /pe\s+(minus|plus)/i,                                       // "sunt pe minus/plus"
+    /venituri\s*totale/i,                                       // "venituri totale"
+    /cheltuieli\s*totale/i,                                     // "cheltuieli totale"
+    /sum[aă]\s*(venituri|cheltuieli)/i,                        // "suma veniturilor"
+    /(profit|pierdere)\s+(sau|ori)\s+(pierdere|profit)/i,      // "profit sau pierdere"
+    /ce\s+(profit|pierdere)\s+(am|avem)/i,                     // "ce profit am"
   ];
-  return patterns.some(p => p.test(lowerMessage));
+  
+  const isMatch = patterns.some(p => p.test(lowerMessage));
+  
+  // 🆕 Log pentru debugging
+  if (isMatch) {
+    console.log(`[AI-Router] 🎯 isSimpleNumericQuestion MATCH: "${message.substring(0, 60)}..."`);
+  }
+  
+  return isMatch;
 }
 
 // Formatează numărul în format românesc
@@ -651,19 +677,17 @@ serve(async (req) => {
         };
       }
     } else {
-      // No file, detect intent from message
-      routeDecision = detectIntent(message);
-      // Adaug memoryContext, history la payload
-      routeDecision.payload.memoryContext = memoryContext;
-      routeDecision.payload.history = history;
+      // =============================================================================
+      // 🆕 v3.1.0: PRIORITY CHECK - Răspuns determinist ÎNAINTE de routing AI
+      // Verificăm întâi cache-ul ÎNAINTE de detectIntent() pentru întrebări simple
+      // =============================================================================
       
-      // 🆕 FIX CRITICAL: ALWAYS fetch balanceContext from DB to ensure memory persistence
-      // Frontend may send stale/null values due to React closure issues
+      // Fetch balanceContext from DB FIRST (before any routing decision)
       let effectiveBalanceContext: unknown = null;
       
       if (conversationId) {
         try {
-          console.log(`[AI-Router] ALWAYS fetching balanceContext from DB for conversation ${conversationId}`);
+          console.log(`[AI-Router] 🔍 Fetching balanceContext from DB for conversation ${conversationId}`);
           const { data: convData } = await supabase
             .from('yana_conversations')
             .select('metadata')
@@ -685,32 +709,35 @@ serve(async (req) => {
         }
       }
       
-      // Use DB value as priority, fallback to frontend value if DB is empty
-      routeDecision.payload.balanceContext = effectiveBalanceContext || balanceContext || null;
-      
-      // =============================================================================
-      // 🆕 v3.0.0: RĂSPUNS DETERMINIST - Întrebări simple despre profit/pierdere/solduri
-      // Returnează instant din cache, fără apel AI ($0 cost)
-      // =============================================================================
+      // 🆕 v3.1.0: PRIORITY CHECK - Check deterministic response BEFORE detectIntent()
+      // This ensures simple questions about profit/loss get instant answers from cache
       const balanceCtx = effectiveBalanceContext as BalanceAnalysisCache | null;
       
-      if (balanceCtx && balanceCtx.extractedValues && isSimpleNumericQuestion(message)) {
-        console.log(`[AI-Router] 🚀 DETERMINISTIC RESPONSE: Simple numeric question detected, using cache`);
+      console.log(`[AI-Router] Priority check for deterministic response:`, {
+        hasBalanceCtx: !!balanceCtx,
+        hasExtractedValues: !!balanceCtx?.extractedValues,
+        messagePreview: message?.substring(0, 60) || 'no message'
+      });
+      
+      if (message && balanceCtx?.extractedValues && isSimpleNumericQuestion(message)) {
+        console.log(`[AI-Router] 🚀 DETERMINISTIC RESPONSE: Bypassing detectIntent(), using cache directly`);
         
         const deterministicResponse = buildDeterministicResponse(balanceCtx, message);
         
         if (deterministicResponse) {
-          console.log(`[AI-Router] ✅ Returning cached response (no AI call, $0 cost)`);
+          console.log(`[AI-Router] ✅ Returning cached response ($0 cost, instant)`);
           
           // Salvează mesajul assistant în DB
-          await supabase.from('yana_messages').insert({
-            conversation_id: conversationId,
-            role: 'assistant',
-            content: deterministicResponse,
-            artifacts: [],
-            ends_with_question: false,
-            question_responded: null,
-          });
+          if (conversationId) {
+            await supabase.from('yana_messages').insert({
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: deterministicResponse,
+              artifacts: [],
+              ends_with_question: false,
+              question_responded: null,
+            });
+          }
           
           return new Response(
             JSON.stringify({
@@ -724,6 +751,14 @@ serve(async (req) => {
           );
         }
       }
+      
+      // No deterministic response available - proceed with normal AI routing
+      routeDecision = detectIntent(message);
+      
+      // Adaug memoryContext, history, balanceContext la payload
+      routeDecision.payload.memoryContext = memoryContext;
+      routeDecision.payload.history = history;
+      routeDecision.payload.balanceContext = effectiveBalanceContext || balanceContext || null;
     }
 
     // Add conversationId for routes that require it
