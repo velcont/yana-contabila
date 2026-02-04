@@ -69,7 +69,7 @@ serve(async (req) => {
       const { data: pendingPosts } = await supabase
         .from('moltbook_posts_queue')
         .select('*')
-        .eq('status', 'pending')
+        .in('status', ['pending', 'approved'])
         .order('created_at', { ascending: false });
 
       const { data: postedPosts } = await supabase
