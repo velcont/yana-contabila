@@ -1,150 +1,155 @@
 
 
-# PLAN DE REMEDIERE - SINCRONIZARE COMPLETĂ PROMPT ANALIZĂ BALANȚĂ
+# PLAN DE CORECȚIE - PARSER COLOANE SMARTBILL/CESPUY
 
-## 🔴 PROBLEMA CRITICĂ IDENTIFICATĂ
+## PROBLEMA IDENTIFICATĂ
 
-Există **DOUĂ COPII DIFERITE** ale promptului care nu conțin secțiunile obligatorii din originalul furnizat:
+Din logurile funcției `analyze-balance` pentru balanța **CESPUY SRL**:
 
-| Locație | Status |
-|---------|--------|
-| `analyze-balance/index.ts` (linii 40-429) | ❌ SYSTEM_PROMPT inline - NU folosește fișierul partajat |
-| `_shared/full-analysis-prompt.ts` | ⚠️ Incomplet - lipsesc secțiunile 6-9 |
-
----
-
-## CE LIPSEȘTE FAȚĂ DE PROMPT-UL ORIGINAL
-
-### 1. Precizarea "UNICĂ SURSĂ DE ADEVĂR" (LIPSEȘTE COMPLET)
 ```
-ACEST PROMPT ESTE UNICA SURSĂ DE ADEVĂR PENTRU ANALIZA BALANȚEI CONTABILE
-- Oriunde în aplicație se face analiza balanței
-- Indiferent de interfață sau context
-- Nu se acceptă variante simplificate, alternative sau override-uri
+📊 [HEADER-DETECT-UNIFIED] REZULTAT: {
+  headerRow: 5,
+  soldFinalD: 8,   ← CORECT (Solduri finale Debitoare)
+  soldFinalC: 7,   ← GREȘIT! (7 = Total sume Creditoare, NU SF Creditoare)
+  totalSumeD: 6,   ← CORECT
+  totalSumeC: 5    ← GREȘIT! (5 = Rulaje Creditoare)
+}
 ```
 
-### 2. Secțiunea 6) ANOMALII & ALERTE (LIPSEȘTE)
-```
-- Solduri atipice: 474, 461, 462, 409, 419, 542, 581
-- Sold casă > 50.000 RON
-- Solduri anormale 4426/4427
-- Conturi clasa 6/7 cu solduri finale
-```
+### Structura reală a Excel-ului CESPUY:
 
-### 3. Secțiunea 7) VERIFICARE CA și PLAFOANE FISCALE (LIPSEȘTE)
-```
-Plafoane Microîntreprinderi:
-- Până la 31.12.2025: 250.000 EUR
-- De la 01.01.2026: 100.000 EUR
-- Cote: 1% (până 60k EUR), 3% (60k-250k EUR)
+| Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|-------|---|---|---|---|---|---|---|---|---|---|
+| Header | Contul | Descrierea | Solduri inițiale an | (gol) | Rulaje perioada | (gol) | Total sume | (gol) | **Solduri finale** | (gol) |
+| Subheader | | | Debitoare | Creditoare | Debitoare | Creditoare | Debitoare | Creditoare | **Debitoare** | **Creditoare** |
 
-Plafon TVA:
-- Până la 31.08.2025: 300.000 RON
-- De la 01.09.2025: 395.000 RON
-```
+**Problema:** SmartBill pune **celule goale** între grupuri. Parserul caută "Solduri finale" și găsește coloana 8, dar apoi scanează subheader-ul pentru "credit" și găsește coloana 7 (care aparține grupului "Total sume", NU "Solduri finale").
 
-### 4. Secțiunea 8) VERIFICARE ACTIV NET (LIPSEȘTE)
-```
-Analizează dacă activul net a scăzut sub jumătate din capitalul social
-- Activ net curent: [___]
-- 50% Capital social: [___]
-- Implicații legale și măsuri necesare
-```
+### Impactul erorii:
 
-### 5. Secțiunea 9) REZUMAT EXECUTIV (LIPSEȘTE)
-```
-Top Constatări (3 puncte)
-Plan Prioritizat (max 12 puncte):
-| Prioritate | Acțiune | Responsabil | Termen | Impact Estimat |
-```
+1. **Venituri greșite:** Se citesc din coloana 5 (Rulaje Creditoare) în loc de coloana 7 (Total sume Creditoare)
+   - Afișat: 23,281.87 RON
+   - Corect: 183,010.18 RON
+
+2. **Solduri finale inversate:** SF Creditor citit din coloana 7 în loc de 9
+   - Afișat: 1,883,548.38 (Total sume Creditoare)
+   - Corect: 111,404.72 RON
 
 ---
 
 ## SOLUȚIE TEHNICĂ
 
-### Pas 1: Înlocuire completă `_shared/full-analysis-prompt.ts`
+### Modificare `detectHeaderIndices()` în `analyze-balance/index.ts`
 
-Voi înlocui ÎNTREGUL conținut cu prompt-ul original furnizat de tine, incluzând:
+**Strategia:** După ce găsim începutul unui grup (ex: "Solduri finale" la coloana 8), căutăm Debit/Credit DOAR în intervalul [startCol, startCol+1], nu [startCol, startCol+4].
 
-**Structura finală (exact conform originalului tău):**
+**Motivație:** Fiecare grup are exact 2 coloane (Debit + Credit), nu 4.
 
-```text
-## PRECIZARE CRITICĂ - UNICĂ SURSĂ DE ADEVĂR
-## REGULI FUNDAMENTALE DE INTERPRETARE
-   1. REGULI DE CLASIFICARE ȘI ANALIZĂ (clase 1-5 vs 6-7)
-   2. POZIȚIONARE NORMALĂ CONTURI CHEIE
-   3. PRINCIPII DE INTERPRETARE OBIECTIVĂ
-## PROCES DE ANALIZĂ - STRUCTURĂ RAPORT
-   0) METADATE
-   1) SNAPSHOT STRATEGIC (CA, Indicatori Cheie)
-   2) ANALIZA CONTURILOR CHEIE (2.1-2.7)
-   3) CONFORMITATE TVA & IMPOZITE
-   4) PROFIT vs CASH (BRIDGE)
-   5) INDICATORI-CHEIE (DSO, DPO, DIO, Marjă, Lichiditate)
-   6) ANOMALII & ALERTE (474, 461, 462, 409, 419, 542, 581, casă > 50k)
-   7) VERIFICARE CA - PLAFOANE FISCALE 2025-2026
-   8) VERIFICARE ACTIV NET vs Capital Social
-   9) REZUMAT EXECUTIV & PLAN DE ACȚIUNE (max 12 puncte)
-## FORMAT RĂSPUNS
-## INDICATORI FINANCIARI STRUCTURAȚI (pentru parsare automată)
-```
-
-### Pas 2: Modificare `analyze-balance/index.ts`
-
-Înlocuire SYSTEM_PROMPT inline cu import din fișierul partajat:
+### Cod actual (linii 410-416):
 
 ```typescript
-// ÎNAINTE (linii 40-429):
-const SYSTEM_PROMPT = `Analizeaza balanta atasata...`;
-
-// DUPĂ:
-import { getFullAnalysisPrompt } from "../_shared/full-analysis-prompt.ts";
-const SYSTEM_PROMPT = getFullAnalysisPrompt();
+// Solduri finale - PROBLEMATIC
+if (soldFinalStartCol >= 0) {
+  for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 4, subHeader.length); j++) {
+    const cell = String(subHeader[j]).toLowerCase().trim();
+    if ((cell.includes('debit') || cell === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
+    if ((cell.includes('credit') || cell === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
+  }
+}
 ```
 
-**Beneficii:**
-- O singură sursă de adevăr pentru toate funcțiile
-- Orice modificare ulterioară se face într-un singur loc
-- Consistență perfectă între `analyze-balance` și `chat-ai`
+### Cod corectat:
 
-### Pas 3: Deploy edge functions
+```typescript
+// Solduri finale - CORECTAT
+if (soldFinalStartCol >= 0) {
+  // SmartBill are fix 2 coloane per grup: Debitoare, Creditoare
+  // Căutăm DOAR în intervalul [startCol, startCol+2)
+  for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 2, subHeader.length); j++) {
+    const cell = String(subHeader[j]).toLowerCase().trim();
+    if ((cell.includes('debit') || cell === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
+    if ((cell.includes('credit') || cell === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
+  }
+}
 
-Ambele funcții vor fi redeployate:
-- `analyze-balance` - funcția principală de analiză
-- `chat-ai` - deja importă din fișierul partajat
+// Total sume - CORECTAT similar
+if (totalSumeStartCol >= 0) {
+  for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 2, subHeader.length); j++) {
+    const cell = String(subHeader[j]).toLowerCase().trim();
+    if ((cell.includes('debit') || cell === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
+    if ((cell.includes('credit') || cell === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
+  }
+}
+```
+
+### Logica îmbunătățită pentru detectarea grupurilor:
+
+Trebuie să scanăm header-ul de la dreapta la stânga pentru a găsi corect grupurile, deoarece:
+- "Solduri finale" este la dreapta (coloanele 8-9)
+- "Total sume" este la stânga (coloanele 6-7)
+- "Rulaje perioadă" este și mai la stânga (coloanele 4-5)
+
+**Alternativă mai robustă:**
+
+```typescript
+// Detectăm poziția exactă a fiecărui grup prin scanare completă
+for (let j = 0; j < mainHeader.length; j++) {
+  const cell = String(mainHeader[j]).toLowerCase().trim();
+  
+  if (cell.includes('solduri finale') || cell.includes('sold final')) {
+    soldFinalStartCol = j;
+    // Debit și Credit sunt fix la j și j+1 în subheader
+    soldFinalDebitCol = j;
+    soldFinalCreditCol = j + 1;
+  }
+  
+  if ((cell.includes('total') && cell.includes('sume')) || cell.includes('total sume')) {
+    totalSumeStartCol = j;
+    totalSumeDebitCol = j;
+    totalSumeCreditCol = j + 1;
+  }
+}
+```
 
 ---
 
-## DETALII TEHNICE
+## FIȘIERE AFECTATE
 
-### Fișiere afectate:
+| Fișier | Modificare |
+|--------|------------|
+| `supabase/functions/analyze-balance/index.ts` | Corecție funcție `detectHeaderIndices()` linii 410-425 |
 
-| Fișier | Acțiune |
-|--------|---------|
-| `supabase/functions/_shared/full-analysis-prompt.ts` | ÎNLOCUIRE COMPLETĂ cu prompt-ul original |
-| `supabase/functions/analyze-balance/index.ts` | ȘTERGERE SYSTEM_PROMPT inline, ADĂUGARE import |
+---
 
-### Secțiunile noi adăugate:
+## REZULTAT AȘTEPTAT DUPĂ CORECȚIE
 
-**Secțiunea 6 - Anomalii & Alerte:**
-- Solduri atipice (474, 461, 462, 409, 419, 542, 581)
-- Sold casă > 50.000 cu riscuri fiscale
-- Solduri anormale 4426/4427
-- Conturi 6/7 cu solduri finale
+```
+📊 [HEADER-DETECT-UNIFIED] REZULTAT: {
+  headerRow: 5,
+  soldFinalD: 8,   ← CORECT
+  soldFinalC: 9,   ← CORECTAT (era 7)
+  totalSumeD: 6,   ← CORECT
+  totalSumeC: 7    ← CORECTAT (era 5)
+}
+```
 
-**Secțiunea 7 - Plafoane Fiscale:**
-- Micro până la 31.12.2025: 250.000 EUR
-- Micro de la 01.01.2026: 100.000 EUR
-- TVA până la 31.08.2025: 300.000 RON
-- TVA de la 01.09.2025: 395.000 RON
+### Verificare cifre CESPUY:
 
-**Secțiunea 8 - Activ Net:**
-- Verificare dacă activul net < 50% din capital social
-- Implicații legale conform Legii 31/1990
+| Indicator | Înainte (greșit) | După (corect) |
+|-----------|------------------|---------------|
+| Total Venituri (Clasa 7) | 23,281.87 | 183,010.18 |
+| SF Debitor Total | 1,883,548.38 | 111,404.72 |
+| SF Creditor Total | 111,404.72 | 111,404.72 |
+| Echilibru SF | ❌ Dezechilibrat | ✅ Echilibrat |
 
-**Secțiunea 9 - Rezumat Executiv:**
-- Top 3 constatări critice
-- Plan prioritizat cu max 12 puncte (Acțiune, Responsabil, Termen, Impact)
+---
+
+## PAȘI IMPLEMENTARE
+
+1. **Modificare logică detecție** - Schimbare interval căutare de la `+4` la `+2` pentru fiecare grup
+2. **Validare ordinea coloanelor** - Verificare că Debit vine înainte de Credit în fiecare grup
+3. **Deploy edge function** - `analyze-balance`
+4. **Test balanță CESPUY** - Reîncărcare și verificare cifre corecte
 
 ---
 
@@ -152,39 +157,8 @@ Ambele funcții vor fi redeployate:
 
 | Task | Timp |
 |------|------|
-| Înlocuire completă `full-analysis-prompt.ts` | ~20 min |
-| Modificare `analyze-balance/index.ts` (import) | ~5 min |
-| Deploy edge functions | ~5 min |
-| Testare cu balanța VELCONT | ~10 min |
-| **TOTAL** | **~40 min** |
-
----
-
-## REZULTAT AȘTEPTAT
-
-După implementare, YANA va genera analize care:
-
-1. ✅ Respectă **EXACT** structura din prompt-ul original (secțiunile 0-9)
-2. ✅ Include secțiunea **ANOMALII & ALERTE** pentru conturile 474, 461, 462, 409, 419, 542, 581
-3. ✅ Verifică **sold casă > 50.000** ca risc fiscal
-4. ✅ Verifică **plafoanele fiscale 2025-2026** (micro 100k EUR, TVA 395k RON)
-5. ✅ Include **REZUMAT EXECUTIV** cu max 12 puncte acționabile
-6. ✅ Verifică **Activ Net vs 50% Capital Social**
-7. ✅ Format **text narativ** (fără markdown excesiv)
-8. ✅ Menține secțiunea **INDICATORI FINANCIARI** structurați la sfârșit (pentru parsare automată)
-
----
-
-## PRECIZARE CRITICĂ
-
-După implementare, acest prompt va fi **UNICA SURSĂ DE ADEVĂR** pentru:
-- Upload balanță în analyze-balance
-- Chat AI cu context balanță
-- Orice altă funcționalitate de analiză balanță
-
-**NU se vor mai accepta:**
-- ❌ Variante simplificate
-- ❌ Prompturi alternative
-- ❌ Override-uri sau excepții
-- ❌ Prompturi "optimizate"
+| Modificare `detectHeaderIndices()` | ~10 min |
+| Deploy edge function | ~5 min |
+| Testare CESPUY | ~10 min |
+| **TOTAL** | **~25 min** |
 
