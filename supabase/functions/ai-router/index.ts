@@ -494,9 +494,10 @@ serve(async (req) => {
             excelBase64: fileData.fileContent,
             companyName: detectedCompanyName || undefined,
             fileName: fileData.fileName,
-            memoryContext // Adaug contextul de memorie
+            memoryContext, // Adaug contextul de memorie
+            forceReprocess: true // ✅ v2.1.0: MEREU forțăm re-analiza la upload
           },
-          reason: 'Excel balance sheet uploaded'
+          reason: 'Excel balance sheet uploaded (forceReprocess=true)'
         };
       } else if (docType === 'pdf' || docType === 'docx') {
         routeDecision = {

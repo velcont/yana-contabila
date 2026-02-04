@@ -323,7 +323,11 @@ serve(async (req) => {
       return isNaN(num) ? 0 : num;
     };
 
+    // ✅ PARSER VERSION - incrementează la fiecare fix pentru invalidare automată cache
+    const PARSER_VERSION = '2.1.0';
+    
     // ✅ R1: FUNCȚIE UNIFICATĂ PENTRU DETECȚIA HEADER-URILOR (folosită de ambii extractori)
+    // 🔧 v2.1.0: Refactorizare cu detecție bazată pe ORDINEA perechilor D/C din subheader
     const detectHeaderIndices = (data: any[][]) => {
       let headerRowIndex = -1;
       let mainHeaderRow = -1;
@@ -346,11 +350,11 @@ serve(async (req) => {
           mainHeaderRow = i;
           subHeaderRow = i + 1;
           headerRowIndex = i;
-          console.log(`📊 [HEADER-DETECT-UNIFIED] Header pe 2 rânduri: main=${mainHeaderRow}, sub=${subHeaderRow}`);
+          console.log(`📊 [HEADER-DETECT-UNIFIED v${PARSER_VERSION}] Header pe 2 rânduri: main=${mainHeaderRow}, sub=${subHeaderRow}`);
         }
         if (headerRowIndex < 0 && (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')))) {
           headerRowIndex = i;
-          console.log(`📊 [HEADER-DETECT-UNIFIED] Header simplu pe 1 rând: ${headerRowIndex}`);
+          console.log(`📊 [HEADER-DETECT-UNIFIED v${PARSER_VERSION}] Header simplu pe 1 rând: ${headerRowIndex}`);
         }
       }
       
@@ -364,77 +368,58 @@ serve(async (req) => {
         }
       }
       
-      // PASUL 3: Detectează coloane solduri/rulaje (2 rânduri)
+      // === PASUL 3 REFACTORIZAT v2.1.0: Detectăm coloanele prin PERECHI D/C ===
+      // În loc să căutăm keywords imprecise ("total sume", "solduri finale"),
+      // identificăm TOATE perechile Debit/Credit din subheader și folosim ORDINEA lor:
+      // - SmartBill/Saga: SI, Rulaje, Total Sume, Solduri Finale (de la stânga la dreapta)
+      // - Deci: ultima pereche = SF, penultima = Total Sume
       if (mainHeaderRow >= 0 && subHeaderRow < data.length) {
-        const mainHeader = data[mainHeaderRow];
         const subHeader = data[subHeaderRow];
         
-        let soldFinalStartCol = -1, rulajStartCol = -1, totalSumeStartCol = -1;
+        // Găsim TOATE perechile Debit/Credit din subheader
+        const debitCreditPairs: Array<{debitCol: number, creditCol: number}> = [];
         
-        for (let j = 0; j < mainHeader.length; j++) {
-          const cell = String(mainHeader[j]).toLowerCase().trim();
-          const nextCell = String(mainHeader[j + 1] ?? '').toLowerCase().trim();
-          const combined = `${cell} ${nextCell}`.replace(/\s+/g, ' ').trim();
-
-          // Solduri finale (acceptă și "sold" + "final" pe celule separate)
-          if (
-            soldFinalStartCol < 0 &&
-            (
-              cell.includes('solduri finale') ||
-              cell.includes('sold final') ||
-              (cell.includes('sold') && cell.includes('final')) ||
-              combined.includes('sold final') ||
-              combined.includes('solduri finale') ||
-              (cell.includes('sold') && nextCell.includes('final'))
-            )
-          ) {
-            soldFinalStartCol = j;
-          }
-
-          if (cell.includes('rulaj') && rulajStartCol < 0) rulajStartCol = j;
-
-          // Total sume (acceptă și "total" + "sume" pe celule separate)
-          if (
-            totalSumeStartCol < 0 &&
-            (
-              (cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj'))) ||
-              combined.includes('total sume') ||
-              (cell.includes('total') && nextCell.includes('sume'))
-            )
-          ) {
-            totalSumeStartCol = j;
+        for (let j = 0; j < subHeader.length - 1; j++) {
+          const cell = String(subHeader[j]).toLowerCase().trim();
+          const nextCell = String(subHeader[j + 1]).toLowerCase().trim();
+          
+          const isDebit = cell.includes('debit') || cell === 'd' || cell.includes('debitoare');
+          const isCredit = nextCell.includes('credit') || nextCell === 'c' || nextCell.includes('creditoare');
+          
+          if (isDebit && isCredit) {
+            debitCreditPairs.push({ debitCol: j, creditCol: j + 1 });
+            console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] Găsită pereche D/C la coloane ${j}/${j+1}`);
+            j++; // Skip next since it's part of this pair
           }
         }
         
-        // Solduri finale - CORECTAT: SmartBill/Saga au fix 2 coloane per grup (Debit + Credit)
-        // Căutăm DOAR în intervalul [startCol, startCol+2) pentru a nu confunda cu grupul anterior
-        if (soldFinalStartCol >= 0) {
-          for (let j = soldFinalStartCol; j < Math.min(soldFinalStartCol + 2, subHeader.length); j++) {
-            const cell = String(subHeader[j]).toLowerCase().trim();
-            if ((cell.includes('debit') || cell === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
-            if ((cell.includes('credit') || cell === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
-          }
-          // Fallback: dacă nu am găsit credit în intervalul restrâns, presupunem j și j+1
-          if (soldFinalDebitCol >= 0 && soldFinalCreditCol < 0) {
-            soldFinalCreditCol = soldFinalStartCol + 1;
-          }
-        }
+        console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] Total perechi D/C găsite: ${debitCreditPairs.length}`);
         
-        // Total sume - CORECTAT similar
-        if (totalSumeStartCol >= 0) {
-          for (let j = totalSumeStartCol; j < Math.min(totalSumeStartCol + 2, subHeader.length); j++) {
-            const cell = String(subHeader[j]).toLowerCase().trim();
-            if ((cell.includes('debit') || cell === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
-            if ((cell.includes('credit') || cell === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
-          }
-          // Fallback: dacă nu am găsit credit în intervalul restrâns, presupunem j și j+1
-          if (totalSumeDebitCol >= 0 && totalSumeCreditCol < 0) {
-            totalSumeCreditCol = totalSumeStartCol + 1;
-          }
+        // Ordinea fixă (de la stânga la dreapta): SI, Rulaje, Total Sume, SF
+        // Deci: ultima pereche = SF, penultima = Total Sume
+        if (debitCreditPairs.length >= 2) {
+          const sfPair = debitCreditPairs[debitCreditPairs.length - 1];
+          const tsPair = debitCreditPairs[debitCreditPairs.length - 2];
+          
+          soldFinalDebitCol = sfPair.debitCol;
+          soldFinalCreditCol = sfPair.creditCol;
+          totalSumeDebitCol = tsPair.debitCol;
+          totalSumeCreditCol = tsPair.creditCol;
+          
+          console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] PERECHI: SF=${sfPair.debitCol}/${sfPair.creditCol}, TS=${tsPair.debitCol}/${tsPair.creditCol}`);
+        } else if (debitCreditPairs.length === 1) {
+          // Fallback: o singură pereche = presupunem că sunt Solduri Finale
+          const pair = debitCreditPairs[0];
+          soldFinalDebitCol = pair.debitCol;
+          soldFinalCreditCol = pair.creditCol;
+          // Total Sume = aceleași (balanțe simplificate)
+          totalSumeDebitCol = pair.debitCol;
+          totalSumeCreditCol = pair.creditCol;
+          console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] FALLBACK: O singură pereche D/C, folosită pentru SF și TS`);
         }
       }
       
-      // PASUL 4: Fallback - header pe 1 rând
+      // PASUL 4: Fallback - header pe 1 rând (dacă nu am găsit perechi)
       if ((soldFinalDebitCol < 0 || totalSumeDebitCol < 0) && headerRowIndex >= 0) {
         const row = data[headerRowIndex];
         for (let j = 0; j < row.length; j++) {
@@ -450,14 +435,15 @@ serve(async (req) => {
         }
       }
       
-      console.log(`📊 [HEADER-DETECT-UNIFIED] REZULTAT:`, {
+      console.log(`📊 [HEADER-DETECT-UNIFIED v${PARSER_VERSION}] REZULTAT FINAL:`, {
         headerRow: headerRowIndex,
         cont: contCol,
         denumire: denumireCol,
         soldFinalD: soldFinalDebitCol,
         soldFinalC: soldFinalCreditCol,
         totalSumeD: totalSumeDebitCol,
-        totalSumeC: totalSumeCreditCol
+        totalSumeC: totalSumeCreditCol,
+        parserVersion: PARSER_VERSION
       });
       
       return {
@@ -467,7 +453,8 @@ serve(async (req) => {
         soldFinalDebitCol,
         soldFinalCreditCol,
         totalSumeDebitCol,
-        totalSumeCreditCol
+        totalSumeCreditCol,
+        parserVersion: PARSER_VERSION
       };
     };
 
