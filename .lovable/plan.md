@@ -1,156 +1,83 @@
 
+Obiectivul tău este corect: „Total Venituri (clasa 7)” trebuie să vină din coloana **Total sume – Creditoare** (≈ 183.010,18), nu din „Rulaje perioadă – Credit” (≈ 23.281,87).
 
-# PLAN: Corectare completă parser coloane și dezactivare cache
+Din ce ai lipit acum, se văd două lucruri simultan:
+1) În zona de alertă de validare, sistemul deja afișează corect **183.010,18 RON** (deci parserul de coloane pentru clasa 7 pare reparat).
+2) În alte pasaje din text, AI-ul încă „se agață” de valori de tip 23k (sau produce calcule paralele), pentru că el primește întregul text exportat din Excel și poate interpreta greșit ce înseamnă „anual / perioadă / total sume”.
 
-## PROBLEMA IDENTIFICATĂ
+Cauza principală rămasă: chiar dacă noi extragem determinist coloanele corecte în cod, **modelul AI nu primește explicit aceste valori determinate** ca „sursă de adevăr”, ci își face calculele citind „balanceText” (care conține și coloane de rulaje perioadă). De aici apar inconsecvențe în raport (ex: Snapshot Strategic cu 166k, validare cu 183k etc.).
 
-Din logurile edge function `analyze-balance`:
+Mai există și o problemă tehnică secundară: în `analyze-balance/index.ts` cacheKey-ul NU include `PARSER_VERSION`, deci „invalidare cache pe versiune” nu este complet implementată (în practică, forțarea re-procesării la upload te salvează, dar cerința ta rămâne neacoperită 100%).
 
-```
-📊 [HEADER-DETECT-UNIFIED] REZULTAT: {
-  soldFinalC: 7,   ← GREȘIT (este Total sume Creditor)
-  totalSumeC: 5    ← GREȘIT (este Rulaje Creditor)
-}
+────────────────────────────────────────────────────────────
 
-✅ [CL7] Cont 704 (col 5): 2683.01 RON   ← Citește din coloana GREȘITĂ
-✅ [CL7] Cont 707 (col 5): 9582.01 RON   ← Valorile corecte sunt în col 7
-```
+Schimbările pe care le voi implementa (în ordine):
 
-Structura reală din Excel CESPUY (din document):
-- Coloana 4-5: **Rulaje perioadă** (Debit/Credit) → 2.683, 9.582 RON
-- Coloana 6-7: **Total sume** (Debit/Credit) → 38.646, 127.572 RON  
-- Coloana 8-9: **Solduri finale** (Debit/Credit) → 0, 0 RON
+1) Fixare definitivă a sursei pentru „Total clasa 7 / Total clasa 6” în output (anti-confuzie)
+   - Construiesc un „Deterministic Facts Block” din valorile deja calculate în cod:
+     - Total Venituri clasa 7 (din structuredData: totalSumeCreditCol)
+     - Total Cheltuieli clasa 6 (din structuredData: totalSumeDebitCol)
+     - Sold cont 121 (din finalDebit/finalCredit)
+     - Indicii de coloană detectați (TS_C, TS_D, SF_C, SF_D) + versiune parser
+   - Injectez acest block în promptul trimis către AI (în mesajul user sau ca append la system prompt), cu o regulă explicită:
+     „Dacă primești DATE DETERMINISTE, le folosești obligatoriu și ignori orice altă valoare contradictorie din textul balanței.”
 
-Parserul citește veniturile din coloana 5 (rulaje = 23.281 RON) în loc de coloana 7 (total sume = 183.010 RON).
+   Impact: AI nu mai are voie să aleagă 23k ca „Total Venituri” și nu mai generează calcule paralele pe „rulaje perioadă”.
 
-## CAUZA ROOT
+2) Clarificare prompt (Single Source of Truth) ca să nu mai inducă ambiguitate „rulaje anuale”
+   - În `supabase/functions/_shared/full-analysis-prompt.ts`, corectez formulările care pot împinge AI-ul spre „rulaje perioadă”.
+   - Exemple de clarificări:
+     - La „Calculare Cifră de Afaceri”: voi spune explicit „Total sume Creditoare (nu Rulaje perioadă)”.
+     - La verificarea 2.3 și Profit vs Cash: voi forța referința la „Total Sume” pentru clasele 6/7.
+   - Mențin principiul „unica sursă de adevăr” (nu introduc prompt alternativ), doar elimin ambiguități din promptul unic.
 
-Funcția `detectHeaderIndices()` caută cuvintele "solduri finale" și "total sume" în header, dar:
-1. Găsește "Solduri finale" la coloana 8 (corect pentru SF)
-2. Caută "total sume" și găsește o poziție greșită (5 în loc de 6)
-3. Intervalul `+2` nu rezolvă problema când poziția de start e deja greșită
+3) Validare NEconcordanță (păstrează alertă, dar nu mai pare bug de coloană)
+   - În `supabase/functions/analyze-balance/index.ts`, în secțiunea unde se construiește mesajul „⚠️ NECONCORDANȚĂ REZULTAT FINANCIAR”, voi:
+     - Atașa explicit „Sursa: Total sume (TS)” ca să fie clar că nu e din rulaje perioadă.
+     - Adăuga o explicație neutră, fără speculații, conform regulilor: 
+       „Diferența necesită verificare; posibile cauze: rezultat reportat (117), închideri parțiale, conturi de regularizare etc.”
+     - Opțional (dacă există date suficiente în balanță), voi calcula și afișa un mini-reconciliere deterministă (ex: dacă găsim 1171 sau sold inițial 121), ca să arate clar de unde poate proveni diferența.
 
----
+   Notă: Nu voi „ascunde” alerta prin toleranțe mari implicit; integritatea datelor rămâne critică. Doar o voi face mai corectă semantic și mai ușor de înțeles (nu „încă citești greșit coloana”).
 
-## SOLUȚIE TEHNICĂ
+4) Cache: versiune în cheie (conform deciziei tale)
+   - În `supabase/functions/analyze-balance/index.ts`, modific `cacheKey` să includă `PARSER_VERSION`, de exemplu:
+     - `balance_v${PARSER_VERSION}_...`
+   - Astfel, orice fix de parser invalidează automat cache-ul istoric.
+   - Păstrez și ștergerea cache-ului când `forceReprocess=true`.
 
-### Pas 1: Refactorizare `detectHeaderIndices()` cu detecție bazată pe ordinea coloanelor
+5) Verificare end-to-end cu fișierul tău CESPUY
+   - Re-upload același `.xls`.
+   - Confirm în output (în raport) că:
+     - „Total Venituri (clasa 7)” = 183.010,18 (și nu apare ca „Total” valoarea 23.281,87 nicăieri)
+     - În Snapshot Strategic, CA este consistentă cu totalul determinist (nu 166k dacă totalul determinist e 183k)
+     - Alerta de neconcordanță (dacă rămâne) se referă explicit la Total Sume și are explicație neutră „necesită verificare”
+   - Confirm în logs că indices sunt TS_C corect (ex: col H) și că block-ul determinist a fost inclus în prompt.
 
-În loc să căutăm keywords imprecise, vom folosi **ordinea fixă** a coloanelor în balanțele SmartBill/Saga:
+────────────────────────────────────────────────────────────
 
-```text
-| Cont | Descriere | SI_D | SI_C | RP_D | RP_C | TS_D | TS_C | SF_D | SF_C |
-|  0   |    1      |  2   |  3   |  4   |  5   |  6   |  7   |  8   |  9   |
-```
+Fișiere vizate
+- `supabase/functions/analyze-balance/index.ts`
+  - Injectare „Deterministic Facts Block” în promptul trimis către AI
+  - Cache key cu `PARSER_VERSION`
+  - Îmbunătățire mesaj validare „NECONCORDANȚĂ” (claritate + sursă)
+- `supabase/functions/_shared/full-analysis-prompt.ts`
+  - Clarificări explicite: clasele 6-7 folosesc „Total sume”, nu „rulaje perioadă”
+  - Eliminare ambiguitate „rulaje anuale” (formulare)
 
-Logica nouă:
-1. Identificăm **ultima pereche** de coloane cu "Debitoare/Creditoare" în subheader → acelea sunt **Solduri Finale**
-2. Penultima pereche → **Total Sume**
-3. Antepenultima pereche → **Rulaje Perioadă**
+(Optionally) `supabase/functions/ai-router/index.ts`
+- Doar verificare că `forceReprocess: true` se trimite pe upload; din ce știm, deja e implementat, dar voi valida consistența.
 
-### Cod modificat în `analyze-balance/index.ts`:
+────────────────────────────────────────────────────────────
 
-```typescript
-// === PASUL 3 REFACTORIZAT: Detectăm coloanele prin scanare INVERSĂ (de la dreapta) ===
-if (mainHeaderRow >= 0 && subHeaderRow < data.length) {
-  const subHeader = data[subHeaderRow];
-  
-  // Găsim TOATE perechile Debit/Credit din subheader
-  const debitCreditPairs: Array<{debitCol: number, creditCol: number}> = [];
-  
-  for (let j = 0; j < subHeader.length - 1; j++) {
-    const cell = String(subHeader[j]).toLowerCase().trim();
-    const nextCell = String(subHeader[j + 1]).toLowerCase().trim();
-    
-    const isDebit = cell.includes('debit') || cell === 'd';
-    const isCredit = nextCell.includes('credit') || nextCell === 'c';
-    
-    if (isDebit && isCredit) {
-      debitCreditPairs.push({ debitCol: j, creditCol: j + 1 });
-      j++; // Skip next since it's part of this pair
-    }
-  }
-  
-  // Ordinea fixă (de la stânga la dreapta): SI, Rulaje, Total Sume, SF
-  // Deci: ultima pereche = SF, penultima = Total Sume
-  if (debitCreditPairs.length >= 2) {
-    const sfPair = debitCreditPairs[debitCreditPairs.length - 1];
-    const tsPair = debitCreditPairs[debitCreditPairs.length - 2];
-    
-    soldFinalDebitCol = sfPair.debitCol;
-    soldFinalCreditCol = sfPair.creditCol;
-    totalSumeDebitCol = tsPair.debitCol;
-    totalSumeCreditCol = tsPair.creditCol;
-  }
-}
-```
+Riscuri / edge cases anticipate
+- Exporturi care au doar o singură pereche Debit/Credit (balanțe simplificate): fallback-ul actual există, dar voi păstra și voi loga clar.
+- Fișiere unde subheader-ul nu are „Debit/Credit” textual (ex: D/C): logica deja acceptă `d`/`c`; voi menține.
+- Pentru prompt: trebuie formulat clar, altfel modelul poate ignora blocul determinist; voi pune regula explicită în primele linii ale mesajului către AI.
 
-### Pas 2: Dezactivare cache la upload (conform preferințelor tale)
+────────────────────────────────────────────────────────────
 
-În `ai-router/index.ts`, când routăm către `analyze-balance`:
-
-```typescript
-if (docType === 'balance_excel') {
-  routeDecision = {
-    route: 'analyze-balance',
-    payload: {
-      excelBase64: fileData.fileContent,
-      companyName: detectedCompanyName || undefined,
-      fileName: fileData.fileName,
-      memoryContext,
-      forceReprocess: true  // MEREU forțăm re-analiza
-    },
-    reason: 'Excel balance sheet uploaded'
-  };
-}
-```
-
-### Pas 3: Versiune parser în cheia cache
-
-În `analyze-balance/index.ts`:
-
-```typescript
-// Versiune parser pentru invalidare automată cache la update-uri
-const PARSER_VERSION = '2.0.1';  // Incrementăm la fiecare fix
-
-// Cheia cache include versiunea
-const cacheKey = `balance_v${PARSER_VERSION}_${textHash.length}_${textHash.split('').reduce(...)}`;
-```
-
----
-
-## FIȘIERE AFECTATE
-
-| Fișier | Modificare |
-|--------|------------|
-| `supabase/functions/analyze-balance/index.ts` | 1. Refactorizare `detectHeaderIndices()` cu detecție perechi D/C de la dreapta 2. Adăugare `PARSER_VERSION` în cheia cache |
-| `supabase/functions/ai-router/index.ts` | Adăugare `forceReprocess: true` în payload pentru `analyze-balance` |
-
----
-
-## REZULTAT AȘTEPTAT
-
-După implementare, pentru balanța CESPUY SRL:
-
-| Indicator | Înainte (greșit) | După (corect) |
-|-----------|------------------|---------------|
-| `totalSumeCreditCol` | 5 | 7 |
-| `soldFinalCreditCol` | 7 | 9 |
-| Total Venituri (Clasa 7) | 23.281,87 RON | **183.010,18 RON** |
-| Total Cheltuieli (Clasa 6) | 248.095,91 RON | 248.095,91 RON |
-| Rezultat calculat (7-6) | -224.814 RON | **-65.085 RON** |
-| Cont 121 (pierdere) | 41.502,91 RON | ~41.502 RON |
-
-Diferența de ~23.000 RON rămasă va fi din operațiuni de închidere (709, profit reportat, etc.) - **acceptabilă** pentru o balanță în curs de an.
-
----
-
-## VERIFICARE
-
-1. Reîncărcarea balanței CESPUY SRL trebuie să afișeze:
-   - Total Venituri: ~183.000 RON
-   - Solduri Finale echilibrate: 111.404,72 RON
-   - Fără mesaj de "NECONCORDANȚĂ" (sau cu diferență sub 10 RON)
-
-2. Cache-ul vechi nu va mai fi folosit datorită `forceReprocess: true` și versiunii în cheie.
-
+Criterii de „gata”
+- Niciun loc din raport nu mai numește 23.281,87 drept „Total Venituri (clasa 7)”.
+- CA/cheltuieli/profit din secțiunea „=== INDICATORI FINANCIARI ===” sunt consistente cu determinist_metadata.
+- Cache invalidat automat la schimbare de parser (cheie conține versiunea).
