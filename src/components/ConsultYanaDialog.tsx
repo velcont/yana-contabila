@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bot, Send, Loader2, Sparkles, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MarkdownRenderer } from "@/components/chat/MarkdownRenderer";
 
 interface ConsultMessage {
   role: "lovable" | "yana";
@@ -219,14 +220,16 @@ export function ConsultYanaDialog({
                       })}
                     </span>
                   </div>
-                  <div className="text-sm whitespace-pre-wrap">
+                  <div className="text-sm">
                     {msg.isLoading ? (
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         {msg.content}
                       </span>
+                    ) : msg.role === 'yana' ? (
+                      <MarkdownRenderer content={msg.content} className="text-left" />
                     ) : (
-                      msg.content
+                      <span className="whitespace-pre-wrap">{msg.content}</span>
                     )}
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { Send, X, Loader2, MessageCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { analytics } from '@/utils/analytics';
+import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 
 interface DemoMessage {
   role: 'user' | 'assistant';
@@ -257,7 +258,11 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
                           : 'bg-muted text-foreground'
                       )}
                     >
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      {msg.role === 'assistant' ? (
+                        <MarkdownRenderer content={msg.content} className="text-left" />
+                      ) : (
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      )}
                     </div>
                   </div>
                 ))}
