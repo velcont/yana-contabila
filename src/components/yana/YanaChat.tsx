@@ -500,19 +500,19 @@ Spune-mi ce te frământă.`;
     if (userName) {
       return `Salut, ${userName}. Mă bucur să te văd din nou.
 
-**Înainte de orice, te rog să faci un hard refresh** pentru a te asigura că ai cea mai nouă versiune:
-- 🪟 **Windows:** Ctrl + Shift + R sau Ctrl + F5
-- 🍎 **Mac:** Cmd + Shift + R
+💡 Asigură-te că ai ultima versiune:
+• Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
+• Mobil: Trage în jos pentru refresh
 
-Gata? Spune-mi cu ce te pot ajuta azi!`;
+Cu ce te pot ajuta azi?`;
     }
     return `Salut. Mă bucur că ai revenit.
 
-**Înainte de orice, te rog să faci un hard refresh** pentru a te asigura că ai cea mai nouă versiune:
-- 🪟 **Windows:** Ctrl + Shift + R sau Ctrl + F5
-- 🍎 **Mac:** Cmd + Shift + R
+💡 Asigură-te că ai ultima versiune:
+• Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
+• Mobil: Trage în jos pentru refresh
 
-Gata? Spune-mi cu ce te pot ajuta!`;
+Cu ce te pot ajuta?`;
   };
 
   const welcomeMessage = getWelcomeMessage();
