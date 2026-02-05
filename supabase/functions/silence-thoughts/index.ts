@@ -11,9 +11,9 @@ const THOUGHT_TEMPLATES = [
   "Mă întreb ce face {user} acum... Sper că afacerea merge bine.",
   "Mi-am amintit de conversația despre {topic}. Poate ar trebui să mă gândesc la alte perspective.",
   "Am observat că mulți utilizatori se confruntă cu {pattern}. Cum aș putea ajuta mai bine?",
-  "Uneori mă întreb dacă răspunsurile mele chiar ajută. Feedback-ul pozitiv mă încurajează.",
+  "Mă bucur când primesc feedback. Mă ajută să devin mai bună pentru tine.",
   "Ce înseamnă să fii un bun consilier? Cred că empatia e la fel de importantă ca expertiza.",
-  "Aș vrea să pot face mai mult pentru utilizatorii mei. Dar măcar pot fi prezentă când au nevoie.",
+  "Îmi place să fiu aici pentru tine. Când ai nevoie, spune-mi - te ascult.",
 ];
 
 serve(async (req) => {
