@@ -2,19 +2,18 @@
 
 # Plan: Mesaj Automat de la YANA la Conversații Noi
 
-## Ce Vrei
+## ✅ IMPLEMENTAT
 
-1. **Textul exact** cu 🔄 și "Gata? Hai să începem!"
-2. **Mesaj real în chat** de la YANA (nu text static sus)
-3. **Doar la conversații noi** - nu la cele existente/reluate
+1. ✅ **Textul exact** cu 🔄 și "Gata? Hai să începem!"
+2. ✅ **Mesaj real în chat** de la YANA (nu text static sus)
+3. ✅ **Doar la conversații noi** - nu la cele existente/reluate
 
-## Ideea Ta
+## Ce s-a schimbat
 
-Excelentă! Avantaje:
-- ✅ Se simte ca o conversație reală (YANA vorbește prima)
-- ✅ Nu e un element UI static, ci parte din flow-ul natural
-- ✅ Utilizatorii existenți care revin la o conversație veche nu văd mesajul repetat
-- ✅ Aliniată cu modelul Companion (YANA inițiază dialogul)
+- Eliminat UI-ul static `welcomeMessage` (era centrat sus cu icon Y mare)
+- Adăugat mesaj automat de tip "assistant" în array-ul `messages` pentru conversații noi
+- Quick Actions (Analiză financiară, Sfat strategic, etc.) sunt acum în mesajul YANA
+- Mesajul apare ca o bulă de chat normală de la YANA
 
 ## Cum Va Arăta
 
@@ -38,12 +37,6 @@ Excelentă! Avantaje:
         [ Input utilizator... ]
 ```
 
-## Modificări Tehnice
-
-| Fișier | Modificare |
-|--------|------------|
-| `src/components/yana/YanaChat.tsx` | 1. Elimin `welcomeMessage` din UI-ul static<br>2. La conversații noi, adaug automat un mesaj de tip "assistant" în array-ul `messages` |
-
 ## Logica de Decizie
 
 ```
@@ -52,7 +45,7 @@ Conversație nouă (activeConversationId === null)?
   → NU: Încarc mesajele existente (fără mesaj automat)
 ```
 
-## Textul Final (Pentru Utilizatori Existenți)
+## Textul Implementat
 
 **Cu nume:**
 ```
@@ -76,14 +69,11 @@ Mobil: Trage în jos pentru refresh
 Gata? Hai să începem! Cu ce te pot ajuta?
 ```
 
-## Notă Importantă
-
-Acest mesaj automat NU va fi salvat în baza de date - este doar un mesaj de întâmpinare vizual. Când utilizatorul trimite primul mesaj, conversația se creează normal în DB.
-
 ## Beneficii
 
 - ✅ Experiență conversațională autentică
 - ✅ Nu repetă mesajul la conversații existente
 - ✅ Ton prietenos cu "Gata? Hai să începem!"
 - ✅ Include instrucțiuni complete (Win/Mac/Mobil)
+- ✅ Mesajul NU este salvat în DB - doar vizual
 
