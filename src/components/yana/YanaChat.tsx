@@ -456,6 +456,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
 
   // Check if this is a new user (no previous conversations)
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
+  const [welcomeMessageShown, setWelcomeMessageShown] = useState(false);
   
   useEffect(() => {
     const checkNewUser = async () => {
@@ -472,10 +473,8 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     checkNewUser();
   }, [user]);
 
-  // Samantha-style welcome messages - warm, present, curious
+  // Generate welcome message content for new conversations
   const getWelcomeMessage = () => {
-    if (messages.length > 0) return null;
-    
     // New user gets a warm, authentic welcome (Samantha-style)
     if (isNewUser === true) {
       if (userName) {
@@ -498,24 +497,47 @@ Spune-mi ce te frământă.`;
     
     // Returning user gets a warm, curious message (Samantha-style)
     if (userName) {
-      return `Salut, ${userName}. Mă bucur să te văd din nou.
+      return `Salut, ${userName}! Mă bucur să te văd din nou. 😊
 
-💡 Asigură-te că ai ultima versiune:
-• Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
-• Mobil: Trage în jos pentru refresh
+🔄 Actualizează pagina pentru ultima versiune:
+Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
+Mobil: Trage în jos pentru refresh
 
-Cu ce te pot ajuta azi?`;
+Gata? Hai să începem! Cu ce te pot ajuta azi?`;
     }
-    return `Salut. Mă bucur că ai revenit.
+    return `Salut! Mă bucur că ai revenit. 😊
 
-💡 Asigură-te că ai ultima versiune:
-• Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
-• Mobil: Trage în jos pentru refresh
+🔄 Actualizează pagina pentru ultima versiune:
+Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
+Mobil: Trage în jos pentru refresh
 
-Cu ce te pot ajuta?`;
+Gata? Hai să începem! Cu ce te pot ajuta?`;
   };
 
-  const welcomeMessage = getWelcomeMessage();
+  // Add automatic welcome message for new conversations (as assistant message)
+  useEffect(() => {
+    // Only for new conversations (no conversationId) with no messages yet
+    if (conversationId === null && messages.length === 0 && !welcomeMessageShown && isNewUser !== null) {
+      const welcomeContent = getWelcomeMessage();
+      if (welcomeContent) {
+        const welcomeMsg: Message = {
+          id: 'welcome-auto',
+          role: 'assistant',
+          content: welcomeContent,
+          created_at: new Date().toISOString(),
+        };
+        setMessages([welcomeMsg]);
+        setWelcomeMessageShown(true);
+      }
+    }
+  }, [conversationId, messages.length, welcomeMessageShown, isNewUser, userName]);
+
+  // Reset welcome shown when starting a new conversation
+  useEffect(() => {
+    if (conversationId === null) {
+      setWelcomeMessageShown(false);
+    }
+  }, [conversationId]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -533,66 +555,6 @@ Cu ce te pot ajuta?`;
         className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scroll-smooth"
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
-        {welcomeMessage && (
-          <div className="flex justify-center py-10 sm:py-20">
-            <div className="text-center space-y-3 sm:space-y-4 max-w-md px-4">
-              <div className="h-12 w-12 sm:h-16 sm:w-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xl sm:text-2xl">Y</span>
-              </div>
-              <h2 className="text-lg sm:text-xl font-medium text-foreground whitespace-pre-line">{welcomeMessage}</h2>
-              
-              {/* Quick Actions - pentru discoverability */}
-              <div className="flex flex-wrap justify-center gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation"
-                  onClick={() => setShowUploader(true)}
-                >
-                  <BarChart3 className="h-4 w-4 mr-1.5" />
-                  Analiză financiară
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation"
-                  onClick={() => {
-                    setInput('Dă-mi un sfat strategic pentru a crește profitul companiei mele');
-                    textareaRef.current?.focus();
-                  }}
-                >
-                  <Lightbulb className="h-4 w-4 mr-1.5" />
-                  Sfat strategic
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation"
-                  onClick={() => {
-                    setInput('Am o întrebare despre TVA și deduceri fiscale');
-                    textareaRef.current?.focus();
-                  }}
-                >
-                  <Scale className="h-4 w-4 mr-1.5" />
-                  Întrebare fiscală
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-10 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
-                  onClick={() => {
-                    // Send the message directly - ai-router will handle missing balance gracefully
-                    sendMessage('Care e riscul meu de control ANAF pe baza balanței?');
-                  }}
-                >
-                  <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
-                  Risc ANAF
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Proactive Initiative Card - displayed before messages */}
         {proactiveInitiative && (
           <ProactiveInitiativeCard
@@ -670,6 +632,56 @@ Cu ce te pot ajuta?`;
               {message.role === 'assistant' && feedbackGiven[message.id] && (
                 <div className="flex items-center gap-1 mt-3 pt-2 text-xs text-muted-foreground border-t border-border/30">
                   ✓ Mulțumim pentru feedback!
+                </div>
+              )}
+              
+              {/* Quick Actions - shown after welcome message only */}
+              {message.id === 'welcome-auto' && (
+                <div className="flex flex-wrap gap-2 pt-4 mt-3 border-t border-border/30">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 text-xs touch-action-manipulation"
+                    onClick={() => setShowUploader(true)}
+                  >
+                    <BarChart3 className="h-4 w-4 mr-1.5" />
+                    Analiză financiară
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 text-xs touch-action-manipulation"
+                    onClick={() => {
+                      setInput('Dă-mi un sfat strategic pentru a crește profitul companiei mele');
+                      textareaRef.current?.focus();
+                    }}
+                  >
+                    <Lightbulb className="h-4 w-4 mr-1.5" />
+                    Sfat strategic
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 text-xs touch-action-manipulation"
+                    onClick={() => {
+                      setInput('Am o întrebare despre TVA și deduceri fiscale');
+                      textareaRef.current?.focus();
+                    }}
+                  >
+                    <Scale className="h-4 w-4 mr-1.5" />
+                    Întrebare fiscală
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-3 text-xs touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
+                    onClick={() => {
+                      sendMessage('Care e riscul meu de control ANAF pe baza balanței?');
+                    }}
+                  >
+                    <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
+                    Risc ANAF
+                  </Button>
                 </div>
               )}
             </div>
