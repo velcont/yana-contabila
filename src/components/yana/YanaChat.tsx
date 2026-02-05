@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
 import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
+import { TypingIndicator } from '@/components/TypingIndicator';
 
 interface Message {
   id: string;
@@ -676,19 +677,11 @@ Cu ce te pot ajuta azi?`;
         ))}
 
         {isLoading && (
-          <div className="flex gap-3 max-w-3xl mx-auto">
-            <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xs">Y</span>
-            </div>
-            <div className="bg-muted rounded-2xl px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span 
-                  className="h-2 w-2 rounded-full bg-primary/50 animate-pulse" 
-                  style={{ animationDuration: '2s' }} 
-                />
-                <span className="text-sm text-muted-foreground">Gândesc...</span>
-              </div>
-            </div>
+          <div className="max-w-3xl mx-auto">
+            <TypingIndicator 
+              variant={activeContext?.companyName ? 'analyzing' : 'thinking'} 
+              showProgress={true}
+            />
           </div>
         )}
 

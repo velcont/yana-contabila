@@ -411,3 +411,97 @@ All colors MUST be HSL.
 .fade-exit {
   animation: fade-out 0.3s ease-out;
 }
+
+/* Manus AI-style thinking indicator animations */
+@keyframes thinking-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes thinking-pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes thinking-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes thinking-progress {
+  0% {
+    width: 5%;
+  }
+  50% {
+    width: 70%;
+  }
+  80% {
+    width: 90%;
+  }
+  100% {
+    width: 95%;
+  }
+}
+
+.thinking-indicator {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--primary) / 0.08) 0%,
+    hsl(var(--accent) / 0.12) 50%,
+    hsl(var(--primary) / 0.08) 100%
+  );
+  background-size: 200% 200%;
+  animation: thinking-gradient 3s ease infinite;
+}
+
+.thinking-indicator::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--accent)) 25%,
+    hsl(var(--primary)) 50%,
+    hsl(var(--accent)) 75%,
+    hsl(var(--primary)) 100%
+  );
+  background-size: 300% 100%;
+  animation: thinking-gradient 2s linear infinite;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.thinking-icon-rotate {
+  animation: thinking-rotate 2s linear infinite;
+}
+
+.thinking-progress-bar {
+  animation: thinking-progress 8s ease-out forwards;
+}
+
+.thinking-text-pulse {
+  animation: thinking-pulse 2s ease-in-out infinite;
+}
