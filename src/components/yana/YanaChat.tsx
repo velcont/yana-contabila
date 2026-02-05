@@ -457,7 +457,19 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   // Check if this is a new user (no previous conversations)
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
   const [welcomeMessageShown, setWelcomeMessageShown] = useState(false);
-  
+   
+   // Detect if page was refreshed (reload) vs normal navigation
+   const isPageReload = useRef<boolean>(
+     (() => {
+       try {
+         const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+         return navigation?.type === 'reload';
+       } catch {
+         return false;
+       }
+     })()
+   );
+   
   useEffect(() => {
     const checkNewUser = async () => {
       if (!user) return;
@@ -475,6 +487,21 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
 
   // Generate welcome message content for new conversations
   const getWelcomeMessage = () => {
+     // Check if this is a page refresh - show thank you message
+     const wasReloaded = isPageReload.current;
+     
+     if (wasReloaded && isNewUser === false) {
+       // User refreshed the page - thank them!
+       if (userName) {
+         return `Mulțumesc, ${userName}! 😊 Acum ai ultima versiune.
+ 
+ Cu ce te pot ajuta azi?`;
+       }
+       return `Mulțumesc! 😊 Acum ai ultima versiune.
+ 
+ Cu ce te pot ajuta?`;
+     }
+     
     // New user gets a warm, authentic welcome (Samantha-style)
     if (isNewUser === true) {
       if (userName) {
