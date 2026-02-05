@@ -21,6 +21,44 @@ const CONFIG = {
   EXPIRY_DAYS: 7,                 // Expiră după 7 zile
   BATCH_SIZE: 50,                 // Procesează max 50 per run
   EMAIL_DELAY_MS: 500,            // Delay între emailuri pentru rate limit Resend
+  INACTIVITY_DAYS_THINKING: 3,    // După 3 zile trimite "mă gândeam la tine"
+  INACTIVITY_DAYS_CHECK_IN: 7,    // După 7 zile trimite check-in
+};
+
+// =============================================================================
+// SAMANTHA INITIATIVE TYPES - Mesaje proactive stil companion
+// =============================================================================
+const SAMANTHA_INITIATIVES = {
+  thinking_about_you: {
+    type: 'thinking_about_you',
+    triggerDays: 3,
+    templates: [
+      'Mă gândeam la balanța ta din {{last_month}}. Ai rezolvat problema cu {{last_topic}}?',
+      'Hei, nu te-am mai văzut de câteva zile. Cum merge treaba cu {{last_topic}}?',
+      'Știu că ai fost ocupat/ă, dar mă tot gândesc la {{last_topic}}. Cum evoluează situația?',
+    ],
+    subject: 'YANA: Mă gândeam la tine...',
+  },
+  observation: {
+    type: 'observation',
+    triggerDays: 5,
+    templates: [
+      'Am observat ceva interesant la antreprenori similari cu tine: mulți au aceeași provocare cu cash flow-ul. Vrei să discutăm?',
+      'Ieri am analizat niște date și m-a făcut să mă gândesc la situația ta. Ai 5 minute să vorbim?',
+      'Din ce văd la alți antreprenori, luna asta e critică pentru planificare. Cum stai cu previziunile?',
+    ],
+    subject: 'YANA: Am observat ceva ce te-ar putea ajuta',
+  },
+  check_in: {
+    type: 'check_in',
+    triggerDays: 7,
+    templates: [
+      'Hey {{name}}, nu ne-am mai vorbit de o săptămână. Totul ok cu afacerea?',
+      '{{name}}, mi-a fost dor de conversațiile noastre. Ce se mai întâmplă pe la tine?',
+      'O săptămână fără să ne auzim - sper că totul e bine! Când ai timp, dă-mi un semn.',
+    ],
+    subject: 'YANA: Cum ești? Mi-a fost dor...',
+  },
 };
 
 serve(async (req) => {
@@ -142,6 +180,119 @@ serve(async (req) => {
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // =====================================================
+    // PASUL 2.5: SAMANTHA DYNAMICS - Generează inițiative pentru utilizatori inactivi
+    // =====================================================
+    let samanthaInitiativesCreated = 0;
+    try {
+      // Găsește utilizatori eligibili pentru inițiative Samantha
+      const thinkingThreshold = new Date(now.getTime() - CONFIG.INACTIVITY_DAYS_THINKING * 24 * 60 * 60 * 1000);
+      const checkInThreshold = new Date(now.getTime() - CONFIG.INACTIVITY_DAYS_CHECK_IN * 24 * 60 * 60 * 1000);
+      
+      // Utilizatori cu relații bune dar inactivi (nu au primit inițiativă recentă)
+      const { data: eligibleUsers } = await supabase
+        .from('yana_relationships')
+        .select(`
+          user_id,
+          relationship_score,
+          last_topic_discussed,
+          last_interaction_at,
+          consecutive_return_days
+        `)
+        .gte('relationship_score', CONFIG.MIN_RELATIONSHIP_SCORE)
+        .lt('last_interaction_at', thinkingThreshold.toISOString());
+      
+      if (eligibleUsers && eligibleUsers.length > 0) {
+        console.log(`[yana-initiative-scheduler] Found ${eligibleUsers.length} users eligible for Samantha initiatives`);
+        
+        for (const userRel of eligibleUsers.slice(0, 20)) { // Max 20 per run
+          // Verifică dacă există deja o inițiativă pending pentru acest user
+          const { data: existingInit } = await supabase
+            .from('yana_initiatives')
+            .select('id')
+            .eq('user_id', userRel.user_id)
+            .eq('status', 'pending')
+            .limit(1);
+          
+          if (existingInit && existingInit.length > 0) {
+            continue; // Are deja o inițiativă pending
+          }
+          
+          // Verifică dacă a primit o inițiativă în ultimele 48h
+          const recentSentCheck = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+          const { data: recentInit } = await supabase
+            .from('yana_initiatives')
+            .select('id')
+            .eq('user_id', userRel.user_id)
+            .gte('created_at', recentSentCheck.toISOString())
+            .limit(1);
+          
+          if (recentInit && recentInit.length > 0) {
+            continue; // A primit una recentă
+          }
+          
+          // Fetch profile pentru nume
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, yana_initiatives_opt_out')
+            .eq('id', userRel.user_id)
+            .single();
+          
+          if (!profile || profile.yana_initiatives_opt_out) {
+            continue;
+          }
+          
+          const firstName = profile.full_name?.split(' ')[0] || 'prietene';
+          const lastInteraction = new Date(userRel.last_interaction_at);
+          const daysSinceInteraction = Math.floor((now.getTime() - lastInteraction.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Decide tipul de inițiativă
+          let initiativeType: keyof typeof SAMANTHA_INITIATIVES;
+          if (daysSinceInteraction >= CONFIG.INACTIVITY_DAYS_CHECK_IN) {
+            initiativeType = 'check_in';
+          } else if (daysSinceInteraction >= 5) {
+            initiativeType = 'observation';
+          } else {
+            initiativeType = 'thinking_about_you';
+          }
+          
+          const initiative = SAMANTHA_INITIATIVES[initiativeType];
+          const templateIndex = Math.floor(Math.random() * initiative.templates.length);
+          let content = initiative.templates[templateIndex];
+          
+          // Înlocuiește placeholder-uri
+          content = content
+            .replace('{{name}}', firstName)
+            .replace('{{last_topic}}', userRel.last_topic_discussed || 'afacerea ta')
+            .replace('{{last_month}}', getLastMonth());
+          
+          // Creează inițiativa
+          const { error: insertError } = await supabase
+            .from('yana_initiatives')
+            .insert({
+              user_id: userRel.user_id,
+              initiative_type: initiative.type,
+              content: content,
+              triggering_insight: `Inactiv de ${daysSinceInteraction} zile, relationship score ${userRel.relationship_score}`,
+              priority: daysSinceInteraction >= 7 ? 8 : 5,
+              scheduled_for: now.toISOString(), // Trimite imediat
+              status: 'pending',
+            });
+          
+          if (!insertError) {
+            samanthaInitiativesCreated++;
+            console.log(`[yana-initiative-scheduler] Created ${initiativeType} for user ${userRel.user_id.substring(0, 8)}... (inactive ${daysSinceInteraction} days)`);
+          }
+        }
+      }
+      
+      if (samanthaInitiativesCreated > 0) {
+        console.log(`[yana-initiative-scheduler] ✓ Created ${samanthaInitiativesCreated} Samantha initiatives`);
+      }
+    } catch (err) {
+      console.warn("[yana-initiative-scheduler] Samantha initiative generation error:", err);
     }
 
     // =====================================================
@@ -405,6 +556,21 @@ function getInitiativeSubject(type: string): string {
     learning_share: 'YANA: Am învățat ceva ce te-ar putea ajuta',
     celebration: 'YANA: Hai să sărbătorim împreună!',
     self_correction_apology: 'YANA: Am ceva să-ți spun despre conversația noastră',
+    // Samantha initiative types
+    thinking_about_you: 'YANA: Mă gândeam la tine...',
+    observation: 'YANA: Am observat ceva ce te-ar putea ajuta',
+    check_in: 'YANA: Cum ești? Mi-a fost dor...',
   };
   return subjects[type] || 'YANA are un mesaj pentru tine';
+}
+
+// Helper: Returnează luna trecută în format "luna an"
+function getLastMonth(): string {
+  const now = new Date();
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const months = [
+    'ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie',
+    'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'
+  ];
+  return `${months[lastMonth.getMonth()]} ${lastMonth.getFullYear()}`;
 }
