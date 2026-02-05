@@ -1,65 +1,89 @@
 
 
-# Plan: Redesign Mesaj Hard Refresh - Elegant și Complet
+# Plan: Mesaj Automat de la YANA la Conversații Noi
 
-## Problema Curentă
+## Ce Vrei
 
-Din screenshot se vede că mesajul actual este:
-- Prea mare vizual (bold pe titlu, liste lungi)
-- Lipsesc instrucțiunile pentru mobil
-- Pare intruziv și forțat
+1. **Textul exact** cu 🔄 și "Gata? Hai să începem!"
+2. **Mesaj real în chat** de la YANA (nu text static sus)
+3. **Doar la conversații noi** - nu la cele existente/reluate
 
-## Soluția Propusă
+## Ideea Ta
 
-Voi rescrie mesajul pentru a fi:
-- **Mai mic și discret** - fără bold excesiv, text mai compact
-- **Complet** - include și instrucțiuni mobile (iOS/Android)
-- **Elegant** - integrat natural în salut, nu "în față"
+Excelentă! Avantaje:
+- ✅ Se simte ca o conversație reală (YANA vorbește prima)
+- ✅ Nu e un element UI static, ci parte din flow-ul natural
+- ✅ Utilizatorii existenți care revin la o conversație veche nu văd mesajul repetat
+- ✅ Aliniată cu modelul Companion (YANA inițiază dialogul)
 
-## Textul Nou Propus
+## Cum Va Arăta
 
-### Pentru utilizatori cu nume:
 ```
-Salut, {userName}. Mă bucur să te văd din nou.
+┌─────────────────────────────────────────┐
+│  [Y] YANA                               │
+│                                         │
+│  Salut, Miki! Mă bucur să te văd din    │
+│  nou. 😊                                │
+│                                         │
+│  🔄 Actualizează pagina pentru ultima   │
+│  versiune:                              │
+│  Desktop: Ctrl+Shift+R (Win) ·          │
+│           Cmd+Shift+R (Mac)             │
+│  Mobil: Trage în jos pentru refresh     │
+│                                         │
+│  Gata? Hai să începem! Cu ce te pot     │
+│  ajuta azi?                             │
+└─────────────────────────────────────────┘
 
-💡 Asigură-te că ai ultima versiune:
-• Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
-• Mobil: Trage în jos pentru refresh
-
-Cu ce te pot ajuta azi?
-```
-
-### Pentru utilizatori fără nume:
-```
-Salut. Mă bucur că ai revenit.
-
-💡 Asigură-te că ai ultima versiune:
-• Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
-• Mobil: Trage în jos pentru refresh
-
-Cu ce te pot ajuta?
+        [ Input utilizator... ]
 ```
 
-## Ce se schimbă
-
-| Aspect | Înainte | După |
-|--------|---------|------|
-| Stil | Bold "**Înainte de orice...**" | Simplu cu emoji 💡 |
-| Format | Liste cu emoji mari (🪟 🍎) | O linie compactă |
-| Lungime | 5 linii | 3 linii |
-| Mobile | Lipsea | "Trage în jos pentru refresh" |
-| Ton | Imperativ ("te rog să faci") | Sugestiv ("Asigură-te") |
-
-## Fișier Afectat
+## Modificări Tehnice
 
 | Fișier | Modificare |
 |--------|------------|
-| `src/components/yana/YanaChat.tsx` | Actualizare `getWelcomeMessage()` liniile 499-515 |
+| `src/components/yana/YanaChat.tsx` | 1. Elimin `welcomeMessage` din UI-ul static<br>2. La conversații noi, adaug automat un mesaj de tip "assistant" în array-ul `messages` |
+
+## Logica de Decizie
+
+```
+Conversație nouă (activeConversationId === null)?
+  → DA: Inserez mesajul YANA automat la început
+  → NU: Încarc mesajele existente (fără mesaj automat)
+```
+
+## Textul Final (Pentru Utilizatori Existenți)
+
+**Cu nume:**
+```
+Salut, {userName}! Mă bucur să te văd din nou. 😊
+
+🔄 Actualizează pagina pentru ultima versiune:
+Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
+Mobil: Trage în jos pentru refresh
+
+Gata? Hai să începem! Cu ce te pot ajuta azi?
+```
+
+**Fără nume:**
+```
+Salut! Mă bucur că ai revenit. 😊
+
+🔄 Actualizează pagina pentru ultima versiune:
+Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
+Mobil: Trage în jos pentru refresh
+
+Gata? Hai să începem! Cu ce te pot ajuta?
+```
+
+## Notă Importantă
+
+Acest mesaj automat NU va fi salvat în baza de date - este doar un mesaj de întâmpinare vizual. Când utilizatorul trimite primul mesaj, conversația se creează normal în DB.
 
 ## Beneficii
 
-- ✅ Design mai curat și mai puțin intruziv
-- ✅ Acoperă toate platformele (Windows, Mac, iOS, Android)
-- ✅ Păstrează informația utilă într-un format compact
-- ✅ Ton prietenos, nu imperativ
+- ✅ Experiență conversațională autentică
+- ✅ Nu repetă mesajul la conversații existente
+- ✅ Ton prietenos cu "Gata? Hai să începem!"
+- ✅ Include instrucțiuni complete (Win/Mac/Mobil)
 
