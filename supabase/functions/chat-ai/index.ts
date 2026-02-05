@@ -1858,11 +1858,63 @@ ${daysSinceLastInteraction >= 7 ? '💡 Au trecut câteva zile - poți face o sc
         // Nu blocăm - continuăm fără context salvat
       }
     }
+    
+    // =============================================================================
+    // 🆕 SAMANTHA DYNAMICS: RELATIONSHIP MEMORY INJECTION
+    // Fetch last_topic_discussed și relationship score pentru memorie relațională
+    // =============================================================================
+    let relationshipMemory = '';
+    try {
+      const { data: relData } = await supabaseAdmin
+        .from('yana_relationships')
+        .select('last_topic_discussed, relationship_score, consecutive_return_days, emotional_memory')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (relData) {
+        const hasStrongRelationship = (relData.relationship_score || 0) >= 5;
+        const lastTopic = relData.last_topic_discussed;
+        const consecutiveDays = relData.consecutive_return_days || 0;
+        const emotionalMemory = relData.emotional_memory as { recent_topics?: string[] } | null;
+        
+        relationshipMemory = `\n\n## 🧠 SAMANTHA DYNAMICS - MEMORIA RELAȚIEI\n`;
+        
+        if (lastTopic) {
+          relationshipMemory += `**Ultima temă discutată:** "${lastTopic}"\n`;
+          relationshipMemory += `→ Dacă e relevant, întreabă natural: "Cum a mers cu ${lastTopic}?"\n`;
+          relationshipMemory += `→ Sau menționează: "Îmi amintesc că discutam despre ${lastTopic}..."\n\n`;
+        }
+        
+        if (consecutiveDays >= 3) {
+          relationshipMemory += `💫 **Utilizatorul revine constant:** ${consecutiveDays} zile consecutive!\n`;
+          relationshipMemory += `→ Poți menționa: "Mă bucur că ne vedem din nou..."\n\n`;
+        }
+        
+        if (hasStrongRelationship) {
+          relationshipMemory += `💜 **Scor relație:** ${relData.relationship_score}/10 (relație puternică)\n`;
+          relationshipMemory += `→ Poți fi mai personală și directă cu acest utilizator.\n`;
+          relationshipMemory += `→ Folosește callbacks la conversații anterioare când e natural.\n\n`;
+        }
+        
+        // Recent topics from emotional memory
+        if (emotionalMemory?.recent_topics && emotionalMemory.recent_topics.length > 0) {
+          relationshipMemory += `**Subiecte recente discutate:** ${emotionalMemory.recent_topics.slice(0, 3).join(', ')}\n`;
+        }
+        
+        console.log(`[chat-ai][${requestId}] Samantha: relationship score ${relData.relationship_score}, last topic: "${lastTopic || 'none'}"`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Samantha: failed to load relationship data:`, err);
+    }
+    // =============================================================================
+    // END SAMANTHA DYNAMICS
+    // =============================================================================
+    
     // =============================================================================
     // END CONSECVENȚĂ CONVERSAȚII
     // =============================================================================
     
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + memorySection + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + memorySection + relationshipMemory + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
