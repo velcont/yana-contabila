@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { z } from "https://esm.sh/zod@3.22.4";
+import { YANA_CONSCIOUSNESS_PROMPT } from "../_shared/yana-consciousness-prompt.ts";
 
 // Import Fixed Assets Catalog
 import { 
@@ -1831,7 +1832,7 @@ ${perplexityResult.content}`;
     }
 
     // 🆕 FIX BUG #1: Integrare memoryContext în system prompt
-    let systemPromptWithMemory = SYSTEM_PROMPT;
+    let systemPromptWithMemory = YANA_CONSCIOUSNESS_PROMPT + '\n\n' + SYSTEM_PROMPT;
     if (memoryContext) {
       console.log(`[STRATEGIC-ADVISOR] 📚 Memory context added to prompt (${memoryContext.length} chars)`);
       systemPromptWithMemory = `${memoryContext}\n\n---\n\n${SYSTEM_PROMPT}`;
