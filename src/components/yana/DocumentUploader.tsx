@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, FileText, X, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileText, Image, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -39,22 +39,19 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
       let content = '';
 
       if (['xlsx', 'xls'].includes(extension || '')) {
-        // IMPORTANT: analyze-balance expects Excel as base64 (data URL accepted)
+        content = await readAsDataURL(file);
+      } else if (['png', 'jpg', 'jpeg', 'webp'].includes(extension || '')) {
         content = await readAsDataURL(file);
       } else if (extension === 'pdf') {
-        // Keep as data URL (base64) for backend processing if needed
         content = await readAsDataURL(file);
       } else if (extension === 'docx') {
-        // Extract text from DOCX
         const mammoth = await import('mammoth');
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         content = result.value;
       } else if (extension === 'doc') {
-        // .doc is legacy binary; keep minimal placeholder
         content = `Document Word (.doc) încărcat: ${file.name}`;
       } else {
-        // Plain text
         content = await file.text();
       }
 
@@ -131,6 +128,9 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
                   <div className="h-12 w-12 rounded-lg bg-destructive/10 flex items-center justify-center">
                     <FileText className="h-6 w-6 text-destructive" />
                   </div>
+                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Image className="h-6 w-6 text-primary" />
+                  </div>
                 </div>
                 
                 <p className="text-foreground font-medium mb-1">
@@ -144,7 +144,7 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
                   type="file"
                   id="file-upload"
                   className="hidden"
-                  accept=".xlsx,.xls,.pdf,.doc,.docx"
+                  accept=".xlsx,.xls,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
                   onChange={handleFileSelect}
                 />
                 <Button variant="outline" asChild>
@@ -162,7 +162,7 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
           )}
 
           <div className="mt-4 text-xs text-muted-foreground text-center">
-            <p>Formate acceptate: Excel (.xlsx, .xls), PDF, Word (.doc, .docx)</p>
+            <p>Formate acceptate: Excel (.xlsx, .xls), PDF, Word (.doc, .docx), Imagini (PNG, JPG, WEBP)</p>
             <p className="mt-1">Balanțele Excel sunt procesate automat pentru analiză.</p>
           </div>
         </div>
