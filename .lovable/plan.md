@@ -1,72 +1,41 @@
 
+# Fix: DocumentUploader nu acceptă imagini
 
-# Funcționalitate nouă: YANA citește capturi de ecran
+## Problema
+Modificările din planul anterior nu au fost aplicate efectiv pe fișierul `DocumentUploader.tsx`. Componenta încă acceptă doar Excel, PDF și Word - lipsesc formatele de imagine (PNG, JPG, WEBP).
 
-## Ce se va implementa
+## Ce trebuie modificat
 
-YANA va putea primi imagini (capturi de ecran, fotografii) direct in chat, le va trimite către un model AI cu capabilități vizuale (Gemini 2.5 Flash - multimodal), iar YANA va analiza conținutul imaginii și va răspunde la întrebările identificate.
+### 1. `src/components/yana/DocumentUploader.tsx`
 
-## Fluxul utilizatorului
+**Accept attribute** (linia 147):
+- De la: `accept=".xlsx,.xls,.pdf,.doc,.docx"`
+- La: `accept=".xlsx,.xls,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"`
 
-1. Utilizatorul apasă butonul "+" din chat-ul YANA
-2. Selectează o imagine (PNG, JPG, WEBP)
-3. Opțional, scrie un mesaj asociat (ex: "Răspunde la întrebările din această captură")
-4. YANA primește imaginea, o analizează și generează răspunsuri
+**Procesare imagini** (in functia `processFile`):
+- Adaug o ramura pentru extensiile `png`, `jpg`, `jpeg`, `webp`
+- Imaginile se convertesc in base64 via `readAsDataURL()` (functia exista deja)
 
-## Modificări tehnice
+**Iconita de imagine** in zona de drop:
+- Import `Image` din lucide-react
+- Adaug o a treia iconita albastra langa cele de Excel si Word
 
-### 1. DocumentUploader - suport imagini
-- Se adaugă formate acceptate: `.png, .jpg, .jpeg, .webp`
-- Imaginile se convertesc în base64 (data URL) similar cu PDF-urile
-- Se afișează iconița de imagine lângă cele de Excel/Word
-- Accept attribute actualizat: `accept=".xlsx,.xls,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"`
+**Text formate acceptate** (linia 165):
+- Actualizat la: "Formate acceptate: Excel, PDF, Word, Imagini (PNG, JPG, WEBP)"
 
-### 2. AI Router - rută nouă pentru imagini
-- Detectare `fileType` de tip imagine (`image/png`, `image/jpeg`, etc.)
-- Rutare către un nou handler care trimite imaginea către Lovable AI Gateway cu model multimodal (`google/gemini-2.5-flash`)
-- Imaginea se trimite ca `image_url` în mesajul utilizatorului (format OpenAI-compatible)
+### 2. Verificare `YanaChat.tsx`
+- Ma asigur ca thumbnail-ul imaginii se afiseaza corect in conversatie (verificare daca modificarile anterioare au fost aplicate)
 
-### 3. Edge Function nouă: `analyze-image` (sau logică inline în ai-router)
-- Primește imaginea base64 + mesajul utilizatorului
-- Construiește un prompt cu personalitatea YANA
-- Trimite către `https://ai.gateway.lovable.dev/v1/chat/completions` cu model `google/gemini-2.5-flash`
-- Mesajul include conținut multimodal: text + image_url
-- Returnează analiza textului din imagine + răspunsuri la întrebări identificate
+## Detalii tehnice
 
-### 4. YanaChat - afișare imagini în conversație
-- Mesajele utilizatorului cu imagini vor afișa un thumbnail al imaginii
-- Răspunsul YANA se afișează normal cu Markdown
-
-### 5. Prompt specific pentru analiza de capturi WhatsApp
-- System prompt va instrui YANA să:
-  - Identifice întrebările din conversație
-  - Răspundă la fiecare în ordine
-  - Formateze răspunsurile pentru copy-paste ușor în WhatsApp
-  - Folosească tonul caracteristic YANA (informal, clar, fără jargon excesiv)
-
-## Exemplu de payload trimis la Lovable AI Gateway
+Singura modificare este in `DocumentUploader.tsx`:
 
 ```text
-{
-  model: "google/gemini-2.5-flash",
-  messages: [
-    { role: "system", content: "Ești YANA, asistent financiar-contabil..." },
-    { role: "user", content: [
-        { type: "text", text: "Răspunde la întrebările din captură" },
-        { type: "image_url", image_url: { url: "data:image/png;base64,..." } }
-    ]}
-  ]
-}
+Linia 2:   + import { Image } din lucide-react
+Linia 41:  + ramura noua pentru ['png','jpg','jpeg','webp'] -> readAsDataURL(file)
+Linia 127: + iconita Image albastra
+Linia 147: accept attribute actualizat cu formate imagine
+Linia 165: text actualizat cu "Imagini (PNG, JPG, WEBP)"
 ```
 
-## Fișiere afectate
-
-| Fișier | Acțiune |
-|--------|---------|
-| `src/components/yana/DocumentUploader.tsx` | Modificat - adaug suport imagini |
-| `src/components/yana/YanaChat.tsx` | Modificat - afișare thumbnail imagine + mesaj implicit |
-| `supabase/functions/ai-router/index.ts` | Modificat - detectare tip imagine și rutare |
-| `supabase/functions/analyze-image/index.ts` | NOU - edge function pentru analiza vizuală |
-
-## Estimare cost per utilizare
-- ~0.02-0.05 RON per captură de ecran (Gemini 2.5 Flash cu imagine)
+Nu sunt necesare modificari la edge functions - `analyze-image` si `ai-router` sunt deja deployate si functionale.
