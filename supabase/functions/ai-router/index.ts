@@ -365,6 +365,8 @@ function detectDocumentType(fileName: string): string {
     return 'pdf';
   } else if (['doc', 'docx'].includes(extension || '')) {
     return 'docx';
+  } else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension || '')) {
+    return 'image';
   }
   return 'other';
 }
@@ -664,14 +666,32 @@ serve(async (req) => {
           },
           reason: 'Business document uploaded for strategic analysis'
         };
+      } else if (docType === 'image') {
+        // 🆕 IMAGE ANALYSIS: Route images to chat-ai with multimodal support
+        console.log(`[AI-Router] 🖼️ Image uploaded: ${fileData.fileName} - routing to chat-ai with imageData`);
+        routeDecision = {
+          route: 'chat-ai',
+          payload: {
+            message: message || `Analizează această captură de ecran: ${fileData.fileName}`,
+            imageData: {
+              base64: fileData.fileContent,
+              fileName: fileData.fileName,
+              mimeType: fileData.fileType || `image/${fileData.fileName.toLowerCase().split('.').pop()}`
+            },
+            memoryContext,
+            history,
+            balanceContext,
+          },
+          reason: 'Image uploaded for multimodal analysis'
+        };
       } else {
         routeDecision = {
           route: 'chat-ai',
           payload: {
             message: `Am primit un document: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
-            memoryContext, // Adaug contextul de memorie
-            history, // Adaug istoricul conversației
-            balanceContext, // Adaug contextul balanței
+            memoryContext,
+            history,
+            balanceContext,
           },
           reason: 'Non-balance document uploaded'
         };

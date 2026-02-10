@@ -1447,6 +1447,12 @@ const ChatAIRequestSchema = z.object({
   }).optional().nullable(),
   // 🆕 MEMORIE: Context din conversații anterioare cu firma
   memoryContext: z.string().max(5000, "Context memorie prea lung").optional().nullable(),
+  // 🆕 IMAGE DATA: Pentru analiza multimodală a capturilor de ecran
+  imageData: z.object({
+    base64: z.string(),
+    fileName: z.string(),
+    mimeType: z.string().optional()
+  }).optional().nullable(),
   // 🆕 CONSCIOUSNESS: Context de conștiință pentru personalizare
   consciousnessContext: z.object({
     success: z.boolean().optional(),
@@ -1507,7 +1513,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1998,6 +2004,21 @@ NU genera grafice ipotetice. NU cere date manual. Îndrumă spre încărcare fi�
     
     adaptedPrompt += graphReminder;
     
+    // 🆕 MULTIMODAL: Adaugă instrucțiuni pentru analiza imaginilor
+    if (imageData?.base64) {
+      adaptedPrompt += `
+
+🖼️ **ANALIZĂ CAPTURĂ DE ECRAN / IMAGINE:**
+Utilizatorul a încărcat o imagine (${imageData.fileName}).
+ANALIZEAZĂ conținutul imaginii și răspunde la întrebarea utilizatorului bazat pe ce vezi.
+- Dacă e o captură de ecran cu o întrebare → identifică întrebarea și răspunde complet
+- Dacă e o captură din WhatsApp/chat → formulează răspunsul pentru copy-paste facil
+- Dacă e un document scanat → extrage informațiile relevante
+- Dacă e un grafic/tabel → interpretează datele vizuale
+Răspunde natural, ca și cum ai vedea tu direct imaginea.
+`;
+    }
+    
     // Construiește conversația cu system prompt și istoric
     // 🆕 FIX GRAFICE: Adaugă mesaj de sistem INLINE direct înainte de user message când e graph request
     // Aceasta forțează AI-ul să urmeze instrucțiunile deoarece e ultimul context văzut
@@ -2009,6 +2030,21 @@ NU genera grafice ipotetice. NU cere date manual. Îndrumă spre încărcare fi�
       content: `⚡ EXECUȚIE IMEDIATĂ: Utilizatorul cere un grafic. GENEREAZĂ un bloc \`\`\`artifact cu JSON valid. NU întreba. NU cere date. Folosește conturile 6xx/7xx din context. FORMAT: \`\`\`artifact\\n{"type":"bar_chart","title":"...","data":{...}}\\n\`\`\``
     }] : [];
     
+    // 🆕 MULTIMODAL: Construct user message with image if present
+    let userMessageContent: any = message;
+    if (imageData?.base64) {
+      console.log(`[chat-ai][${requestId}] 🖼️ Multimodal request - image attached: ${imageData.fileName}`);
+      // Ensure base64 has proper data URL prefix
+      const imageUrl = imageData.base64.startsWith('data:') 
+        ? imageData.base64 
+        : `data:${imageData.mimeType || 'image/png'};base64,${imageData.base64}`;
+      
+      userMessageContent = [
+        { type: "text", text: message },
+        { type: "image_url", image_url: { url: imageUrl } }
+      ];
+    }
+    
     const messages = [
       { role: "system", content: adaptedPrompt },
       ...(history || []).map((msg: any) => ({
@@ -2016,7 +2052,7 @@ NU genera grafice ipotetice. NU cere date manual. Îndrumă spre încărcare fi�
         content: msg.content
       })),
       ...inlineGraphInstruction,
-      { role: "user", content: message }
+      { role: "user", content: userMessageContent }
     ];
 
     console.log("Trimit cerere către Lovable AI cu tool calling...");
