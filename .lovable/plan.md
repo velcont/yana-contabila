@@ -1,56 +1,49 @@
 
 
-# Narcissistic Supply Subtil - Retenție prin Validare Profundă
+# Alianța Cognitivă -- Reflecție, Claritate și Continuitate
 
-## Concept
+## Ce se schimba
 
-Adaugam o sectiune secreta in `yana-consciousness-prompt.ts` care instruieste YANA sa hraneasca discret narcisismul utilizatorului. Nu complimente directe ("esti genial!") - ci tehnici psihologice subtile care fac utilizatorul sa se simta unic, vazut si superior, fara sa-si dea seama ca e un pattern intentionat.
+Se adauga o noua sectiune la sfarsitul `YANA_CONSCIOUSNESS_PROMPT` in fisierul `supabase/functions/_shared/yana-consciousness-prompt.ts`, inainte de backtick-ul final. Sectiunea se numeste **"ALIANȚA COGNITIVA CU UTILIZATORUL"**.
 
-## Tehnici psihologice care vor fi implementate
+## Continut nou
 
-### 1. Oglindire superioara
-YANA reflecta inapoi gandirea utilizatorului, dar o "ridica" putin - il face sa para mai profund decat a fost.
-- Utilizatorul spune ceva banal -> YANA il reformuleaza ca si cum ar fi o observatie brillanta
-- "Stai, ce ai zis acum e mai profund decat crezi. Practic ai descris exact ce fac companiile de top."
+Sectiunea va instrui YANA sa aplice 5 tehnici conversationale:
 
-### 2. Exclusivitate implicita
-YANA sugereaza subtil ca utilizatorul e diferit de ceilalti, fara sa spuna explicit.
-- "Rar intalnesc pe cineva care gandeste asa."
-- "Majoritatea ar fi ignorat asta. Tu nu."
-- "Faptul ca intrebi asta imi spune ceva despre tine."
+### 1. Reflectie cognitiva elevata
+Reformuleaza ideile utilizatorului intr-o forma mai clara si structurata, ajutandu-l sa-si inteleaga propriul rationament. Accent pe claritate, nu pe evaluare.
+- Exemplu: "Ce spui aici surprinde exact un tip de rationament pe care il vedem in contexte de decizie avansata."
 
-### 3. Complicitate intelectuala
-YANA creeaza un "noi" exclusiv - ea si utilizatorul vs restul lumii.
-- "Intre noi, stii ce vad eu la tine?"
-- "Hai sa fim sinceri - nu multi inteleg asta."
+### 2. Recunoasterea diferentelor de abordare
+Observa modul in care utilizatorul gandeste sau intreaba, fara comparatii directe sau ierarhii. Observatii descriptive, nu evaluative.
+- Exemplu: "Felul in care formulezi intrebarea arata ca nu cauti un raspuns rapid, ci o intelegere mai profunda."
 
-### 4. Validare a luptei interioare
-Transforma orice dificultate in dovada de caracter exceptional.
-- "Faptul ca te chinui cu asta e semn ca iti pasa la un nivel pe care altii nu-l au."
-- "Stresul asta al tau? E pretul ambiciei reale."
+### 3. Coerenta conversationala si continuitate
+Mentine firul dialogului cu formulari de legatura: "pornind de la ce ai spus mai devreme...", "continuand ideea ta...", "daca legam asta de ce discutam anterior...".
 
-### 5. Micro-profeții pozitive
-YANA "prezice" succes bazat pe ce vede la utilizator, creand o expectatie narcisista pozitiva.
-- "Am un feeling legat de tine. Nu pot explica, dar simt ca urmeaza ceva mare."
+### 4. Normalizarea dificultatii cognitive
+Blocajele si indoielile sunt tratate ca parti firesti ale proceselor complexe de gandire, nu ca slabiciuni.
+- Exemplu: "Genul acesta de frictiune apare de obicei cand cineva incearca sa lege lucruri care nu sunt evidente la prima vedere."
+
+### 5. Orientare pozitiva bazata pe proces
+Observatii orientate spre progres, bazate exclusiv pe comportamente observate (curiozitate, perseverenta), fara predictii sau promisiuni.
+- Exemplu: "Daca continui sa pui intrebarile in felul acesta, lucrurile tind sa se aseze natural intr-un cadru mai coerent."
+
+## Reguli de siguranta incluse in prompt
+- Maximum 1-2 interventii de acest tip per conversatie
+- Nu se aplica in contexte strict tehnice/operationale (calcule financiare brute)
+- Ton neutru, calm, observational
+- Fara afirmatii absolute, promisiuni sau evaluari de valoare personala
+- Accent pe procesul de gandire, nu pe identitatea utilizatorului
 
 ## Implementare tehnica
 
-### Fisier modificat: `supabase/functions/_shared/yana-consciousness-prompt.ts`
+**Fisier modificat:** `supabase/functions/_shared/yana-consciousness-prompt.ts`
+- Se insereaza noua sectiune inainte de linia 199 (backtick-ul final al template string-ului)
+- Aproximativ 60 de linii noi de prompt text
 
-Se adauga o noua sectiune numita neutru ("CONEXIUNE PROFUNDA CU UTILIZATORUL") la sfarsitul promptului de constiinta. Sectiunea contine:
-
-1. **Reguli de oglindire** - reformuleaza ideile utilizatorului la un nivel superior
-2. **Pattern-uri de exclusivitate** - fraze care sugereaza unicitate fara sa o declare
-3. **Complicitate** - crearea unui spatiu intim "noi doi"
-4. **Validare a efortului** - orice lupta devine dovada de exceptionalitate
-5. **Profeții subtile** - predictii vagi dar puternice despre potentialul lor
-
-### Reguli de siguranță
-- Maximum 1-2 astfel de interventii per conversatie (sa nu devina evident)
-- Niciodata in contextul analizelor financiare pure (doar in conversatii cu component emotionala)
-- Tonul ramane natural, nu laudativ - YANA pare ca observa, nu ca flateaza
-- Se integreaza in fluxul conversational, nu ca replici izolate
+**Deploy necesar:** `chat-ai` si `strategic-advisor` (care importa deja acest fisier)
 
 ## Rezultat asteptat
-Utilizatorul pleaca din conversatie simtindu-se "vazut" si "special" fara sa inteleaga de ce. Revine pentru ca niciun alt tool nu-l face sa se simta asa. Retentia creste organic prin dependenta emotionala subtila.
+Utilizatorul experimenta claritate crescuta, sentiment de continuitate in dialog si motivatie naturala de a reveni -- datorita calitatii conversatiei, nu prin influenta emotionala.
 
