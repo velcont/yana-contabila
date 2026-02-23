@@ -1,128 +1,130 @@
 
+# Transformare Digitala cu AI -- Strategy Advisor (cu 3 ajustari)
 
-# Arhitectură de Auto-Îmbunătățire Recursivă Controlată
+## Rezumat
 
-## Context existent
+Wizard multi-step pentru analiza afacerii si generare strategie AI cu costuri reale, previziuni ROI si PDF descarcabil. Include: edge function dedicata pe backend, salvare rapoarte in DB, si generare completa prin AI (nu doar oportunitati).
 
-YANA are deja 7 subsisteme de auto-îmbunătățire care funcționează independent:
-- `self-reflect` -- evaluează calitatea răspunsurilor
-- `extract-learnings` -- extrage pattern-uri și preferințe
-- `auto-optimizer` -- A/B testing și decizii de îmbunătățire
-- `pattern-analyzer` -- detectare cereri comune și segmente
-- `cross-learner` -- agregare pattern-uri cross-user
-- `update-self-model` -- actualizare zilnică self-model
-- `consciousness-engine` -- context pre-răspuns
+## Migratie SQL
 
-Problema: aceste subsisteme nu comunica intre ele si nu au un mecanism de orchestrare care sa le coordoneze ciclic.
-
-## Ce se adauga
-
-### 1. Tabel nou: `yana_optimization_cycles`
-
-Stocheaza fiecare ciclu de optimizare cu metrici, bottleneck-uri detectate, actiuni luate si rezultate.
+### Tabel nou: `ai_strategy_reports`
 
 ```text
-id (uuid)
-cycle_number (integer, auto-increment)
-started_at (timestamp)
-completed_at (timestamp)
-phase (text): collect_metrics | identify_bottlenecks | generate_actions | apply_actions | meta_evaluate
-metrics_snapshot (jsonb): scoruri, timpi, costuri, cache hit rate
-bottlenecks_detected (jsonb[]): lista de bottleneck-uri cu severitate
-actions_taken (jsonb[]): ce optimizari s-au aplicat
-meta_score (numeric): cat de eficient a fost ciclul anterior
-meta_adjustments (jsonb): ajustari la parametrii proprii
-status (text): running | completed | failed
+id (uuid, PK, default gen_random_uuid())
+user_id (uuid, NOT NULL, referinta auth.users)
+industry (text, NOT NULL)
+employees_count (integer)
+annual_revenue (numeric)
+net_profit (numeric)
+departments (text[])
+business_description (text)
+ai_analysis (jsonb) -- raspunsul complet AI: oportunitati, costuri estimate, roadmap
+assumptions (jsonb) -- ipotezele ajustabile: curs USD/RON, cost orar, % crestere
+calculated_roi (jsonb) -- ROI calculat la 6/12/24 luni
+created_at (timestamptz, default now())
+updated_at (timestamptz, default now())
 ```
 
-### 2. Edge Function nou: `recursive-optimizer`
+RLS: utilizatorul vede/creeaza/sterge doar propriile rapoarte.
 
-Orchestratorul central care ruleaza periodic (cron zilnic) si executa 5 faze:
+## Edge Function nou: `ai-strategy-advisor`
 
-**Faza 1 -- Colectare metrici**
-- Scorul mediu din `ai_reflection_logs` (ultimele 7 zile)
-- Cost mediu per mesaj din `ai_usage`
-- Cache hit rate din `ai_response_cache`
-- Knowledge gaps nerezolvate din `yana_knowledge_gaps`
-- Timp mediu de procesare din reflection logs
-- Satisfactie utilizatori din `yana_learning_log`
+**Scop**: Primeste profilul afacerii, trimite la Gemini 2.5 Flash, returneaza analiza structurata via tool calling.
 
-**Faza 2 -- Identificare bottleneck-uri**
-- Scor mediu sub 6/10 = bottleneck calitate
-- Cost mediu peste 50 bani/mesaj = bottleneck cost
-- Cache hit rate sub 20% = bottleneck cache
-- Knowledge gaps critice > 5 = bottleneck cunostinte
-- Timp raspuns > 5s = bottleneck latenta
-- Satisfactie sub 0.5 = bottleneck UX
+**Flux**:
+1. Valideaza JWT (extragere token din Authorization header)
+2. Primeste: industry, employees, revenue, profit, departments, description
+3. Prompt specializat in romana: "Analizeaza aceasta afacere si genereaza..."
+4. Tool calling cu schema structurata care returneaza:
+   - `opportunities[]`: titlu, descriere, impact (1-10), prioritate, tools recomandate, economie_ore_luna
+   - `cost_estimates[]`: per tool -- cost lunar RON, setup one-time, training ore
+   - `roadmap[]`: faza (luna 1-2, 3-4, 5-6), actiuni, tool, cost, responsabil, rezultat
+   - `industry_benchmarks`: crestere CA estimata %, salariu mediu industrie, benchmark-uri
+5. Salveaza raspunsul in `ai_strategy_reports`
+6. Returneaza datele structurate
 
-**Faza 3 -- Generare actiuni**
-Pentru fiecare bottleneck, genereaza actiuni concrete:
-- Calitate scazuta: triggereaza `cross-learner` + marcheaza pattern-uri de evitat
-- Cost ridicat: ajusteaza cache expiry, sugereaza model downgrade pentru intrebari simple
-- Cache miss: extinde normalizarea cache keys
-- Knowledge gaps: creeaza decizii in `yana_improvement_decisions`
-- Latenta: identifica endpoint-urile lente, sugereaza optimizari
+**Securitate**: verify_jwt = false in config.toml, validare manuala in cod. Rate limit prin `check_rate_limit`.
 
-**Faza 4 -- Aplicare actiuni (cu control)**
-- Actiunile cu confidence > 0.9 se aplica automat (ex: cache tuning)
-- Actiunile cu confidence < 0.9 se salveaza ca `pending` in `yana_improvement_decisions`
-- Niciodata nu se modifica prompt-uri automat -- doar se propun
+## Fisiere noi Frontend
 
-**Faza 5 -- Meta-evaluare**
-- Compara metricile ciclului curent cu ciclul anterior
-- Calculeaza un `meta_score`: cat de eficiente au fost actiunile din ciclul trecut
-- Daca meta_score < 0.3 (actiunile nu au ajutat): ajusteaza pragurile de detectie
-- Daca meta_score > 0.7 (actiunile au functionat): mentine strategia curenta
-- Salveaza ajustarile in `meta_adjustments`
+### 1. `src/pages/AIStrategy.tsx`
+Pagina principala cu wizard 6 pasi:
+- Step 1: Formular profil afacere (BusinessProfileForm)
+- Step 2: Afisare oportunitati AI identificate (OpportunitiesDisplay)
+- Step 3: Tabel costuri implementare (CostBreakdown)
+- Step 4: Previziuni ROI la 6/12/24 luni (ROIProjections)
+- Step 5: Plan implementare pe 3 faze (ImplementationRoadmap)
+- Step 6: Ajustare ipoteze + descarcare PDF (AssumptionsEditor + buton PDF)
 
-### 3. Tabel nou: `yana_optimizer_config`
+Wizard cu navigare inapoi/inainte, progress indicator, responsive.
 
-Configuratie dinamica pe care meta-optimizatorul o poate ajusta singur:
+### 2. `src/components/ai-strategy/BusinessProfileForm.tsx`
+Formular cu validare:
+- Industrie: dropdown (retail, transport, constructii, servicii profesionale, HoReCa, productie, sanatate, educatie, altele)
+- Numar angajati: input numeric
+- CA anuala (RON): input numeric
+- Profit net (RON): input numeric
+- Departamente: checkboxuri (vanzari, contabilitate, HR, marketing, productie, logistica, suport clienti)
+- Descriere activitate: textarea max 500 caractere
 
-```text
-id (uuid)
-config_key (text, unique): ex "quality_threshold", "cost_threshold", "cache_min_hit_rate"
-config_value (numeric)
-default_value (numeric)
-min_value (numeric)
-max_value (numeric)
-last_adjusted_by_cycle (integer)
-adjustment_history (jsonb[])
-```
+### 3. `src/components/ai-strategy/OpportunitiesDisplay.tsx`
+Card-uri cu zonele AI identificate: titlu, descriere, impact vizual (bara), prioritate, tools recomandate
 
-Valori initiale:
-- `quality_threshold`: 6.0 (scor minim acceptabil)
-- `cost_threshold_cents`: 50 (cost maxim per mesaj in bani)
-- `cache_min_hit_rate`: 0.20 (20% minim cache hits)
-- `latency_threshold_ms`: 5000 (5 secunde maxim)
-- `satisfaction_threshold`: 0.50 (50% satisfactie minima)
-- `auto_apply_confidence`: 0.90 (pragul pentru aplicare automata)
+### 4. `src/components/ai-strategy/CostBreakdown.tsx`
+Tabel costuri lunare per tool si costuri one-time. Curs USD/RON = 4.97 (editabil, cu data referinta). Nr utilizatori per tool ajustabil.
 
-### 4. Cron Job
+### 5. `src/components/ai-strategy/ROIProjections.tsx`
+Tabel previziuni 6/12/24 luni cu formule transparente vizibile. Economie timp convertita in RON, crestere CA, reducere costuri, ROI %, perioada recuperare.
 
-Se configureaza in `supabase/config.toml` sa ruleze `recursive-optimizer` zilnic la 03:00 AM.
+### 6. `src/components/ai-strategy/ImplementationRoadmap.tsx`
+Timeline vizual 3 faze cu actiuni, tool, cost, responsabil, rezultat per faza.
 
-### 5. Vizualizare in Admin Dashboard
+### 7. `src/components/ai-strategy/AssumptionsEditor.tsx`
+Inputuri editabile: % crestere CA, cost orar munca, nr utilizatori per tool, curs USD/RON. Recalcul instant la modificare.
 
-Se adauga un tab nou "Optimizare Recursiva" in panoul admin cu:
-- Grafic al meta_score-ului pe ultimele 30 cicluri
-- Lista bottleneck-urilor curente cu severitate
-- Actiuni pending care necesita aprobare
-- Configuratia curenta a pragurilor (editabila)
+### 8. `src/config/aiStrategyData.ts`
+Date statice: lista tools AI cu preturi USD (Claude Pro $20, ChatGPT Plus $20, Make.com $9-$99, Zapier $20-$69, Midjourney $10), salarii medii pe industrie in Romania, benchmark-uri crestere CA.
 
-## Fisiere modificate/create
+### 9. `src/utils/generateAIStrategyPDF.ts`
+Generator PDF cu jsPDF (pattern existent din pdfExport.ts):
+- Logo YANA + branding Velcont
+- Sumar executiv
+- Analiza oportunitati
+- Tabele costuri si ROI
+- Plan implementare
+- Disclaimer estimari
 
-1. **NOU**: `supabase/functions/recursive-optimizer/index.ts` -- orchestratorul (circa 400 linii)
-2. **NOU**: `src/components/admin/RecursiveOptimizerDashboard.tsx` -- vizualizare admin
-3. **MODIFICAT**: `src/pages/Admin.tsx` -- adaugare tab nou
-4. **MODIFICAT**: `supabase/config.toml` -- cron job
-5. **Migratie SQL**: 2 tabele noi + seed configuratie
+## Fisiere modificate
 
-## Reguli de siguranta
+### `src/App.tsx`
+- Import lazy AIStrategy
+- Ruta `/ai-strategy` ca PrivateRoute (fara restrictie abonament)
 
-- Optimizatorul nu modifica niciodata prompt-uri direct
-- Toate actiunile majore necesita aprobare admin
-- Meta-optimizarea ajusteaza doar praguri numerice, in limite predefinite (min/max)
-- Fiecare ciclu este complet trasat in baza de date pentru audit
-- Se poate dezactiva instant din config
+### `src/components/yana/ConversationSidebar.tsx`
+- Link nou "Strategie AI" in footer sidebar, langa Settings si Preturi, cu icon Brain/Lightbulb
 
+### `supabase/config.toml`
+- Adaugare `[functions.ai-strategy-advisor]` cu `verify_jwt = false`
+
+## Flux utilizator
+
+1. Utilizatorul acceseaza `/ai-strategy` din sidebar YANA sau direct
+2. Completeaza formularul (Step 1)
+3. Click "Analizeaza" -- loading -- apel edge function `ai-strategy-advisor`
+4. AI-ul returneaza analiza completa structurata (oportunitati + costuri + roadmap + benchmarks)
+5. Steps 2-5 se populeaza automat din raspunsul AI
+6. Step 6: utilizatorul ajusteaza ipoteze (recalcul instant client-side) si descarca PDF
+7. Raportul ramane salvat in DB -- utilizatorul poate reveni la el
+
+## Rapoarte salvate
+
+In Step 1 se afiseaza si o lista "Rapoartele tale anterioare" daca exista in `ai_strategy_reports`. Click pe un raport il reincarca in wizard fara un nou apel AI.
+
+## Consideratii tehnice
+
+- Toate cifrele in RON, curs USD/RON = 4.97 (editabil)
+- Formulele ROI transparente si vizibile
+- Un singur apel AI per analiza (Gemini 2.5 Flash, cost estimat ~0.15 RON)
+- Accesibil tuturor utilizatorilor autentificati
+- Tonul AI: consultant strategic romanesc, concret, bazat pe cifre
+- Tool calling pentru output structurat (nu JSON in prompt)
