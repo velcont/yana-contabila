@@ -36,6 +36,7 @@ const YanaLearningDashboard = lazy(() => import("@/components/admin/YanaLearning
 const AgenticDashboard = lazy(() => import("@/components/admin/AgenticDashboard"));
 const MoltbookPanel = lazy(() => import("@/components/admin/MoltbookPanel").then(m => ({ default: m.MoltbookPanel })));
 const KnowledgeValidationPanel = lazy(() => import("@/components/admin/KnowledgeValidationPanel").then(m => ({ default: m.KnowledgeValidationPanel })));
+const RecursiveOptimizerDashboard = lazy(() => import("@/components/admin/RecursiveOptimizerDashboard").then(m => ({ default: m.RecursiveOptimizerDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -395,6 +396,10 @@ const Admin = () => {
               </TabsTrigger>
               <TabsTrigger value="moltbook">
                 🦞 Moltbook
+              </TabsTrigger>
+              <TabsTrigger value="recursive-optimizer">
+                <Activity className="h-4 w-4 mr-2" />
+                🔄 Optimizare Recursivă
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -872,6 +877,12 @@ const Admin = () => {
           <TabsContent value="knowledge-validation">
             <Suspense fallback={<TabContentLoader />}>
               <KnowledgeValidationPanel />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="recursive-optimizer">
+            <Suspense fallback={<TabContentLoader />}>
+              <RecursiveOptimizerDashboard />
             </Suspense>
           </TabsContent>
 

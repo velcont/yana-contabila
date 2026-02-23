@@ -242,3 +242,6 @@ verify_jwt = false
 
 [functions.moltbook-integration]
 verify_jwt = true
+
+[functions.recursive-optimizer]
+verify_jwt = false

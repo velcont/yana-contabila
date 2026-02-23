@@ -5906,6 +5906,90 @@ export type Database = {
           },
         ]
       }
+      yana_optimization_cycles: {
+        Row: {
+          actions_taken: Json | null
+          bottlenecks_detected: Json | null
+          completed_at: string | null
+          created_at: string
+          cycle_number: number
+          id: string
+          meta_adjustments: Json | null
+          meta_score: number | null
+          metrics_snapshot: Json | null
+          phase: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          actions_taken?: Json | null
+          bottlenecks_detected?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          meta_adjustments?: Json | null
+          meta_score?: number | null
+          metrics_snapshot?: Json | null
+          phase?: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          actions_taken?: Json | null
+          bottlenecks_detected?: Json | null
+          completed_at?: string | null
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          meta_adjustments?: Json | null
+          meta_score?: number | null
+          metrics_snapshot?: Json | null
+          phase?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      yana_optimizer_config: {
+        Row: {
+          adjustment_history: Json | null
+          config_key: string
+          config_value: number
+          created_at: string
+          default_value: number
+          id: string
+          last_adjusted_by_cycle: number | null
+          max_value: number
+          min_value: number
+          updated_at: string
+        }
+        Insert: {
+          adjustment_history?: Json | null
+          config_key: string
+          config_value: number
+          created_at?: string
+          default_value: number
+          id?: string
+          last_adjusted_by_cycle?: number | null
+          max_value: number
+          min_value: number
+          updated_at?: string
+        }
+        Update: {
+          adjustment_history?: Json | null
+          config_key?: string
+          config_value?: number
+          created_at?: string
+          default_value?: number
+          id?: string
+          last_adjusted_by_cycle?: number | null
+          max_value?: number
+          min_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       yana_personalization_recommendations: {
         Row: {
           applied: boolean | null
