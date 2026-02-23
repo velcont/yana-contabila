@@ -754,6 +754,54 @@ export type Database = {
           },
         ]
       }
+      ai_strategy_reports: {
+        Row: {
+          ai_analysis: Json | null
+          annual_revenue: number | null
+          assumptions: Json | null
+          business_description: string | null
+          calculated_roi: Json | null
+          created_at: string
+          departments: string[] | null
+          employees_count: number | null
+          id: string
+          industry: string
+          net_profit: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          annual_revenue?: number | null
+          assumptions?: Json | null
+          business_description?: string | null
+          calculated_roi?: Json | null
+          created_at?: string
+          departments?: string[] | null
+          employees_count?: number | null
+          id?: string
+          industry: string
+          net_profit?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          annual_revenue?: number | null
+          assumptions?: Json | null
+          business_description?: string | null
+          calculated_roi?: Json | null
+          created_at?: string
+          departments?: string[] | null
+          employees_count?: number | null
+          id?: string
+          industry?: string
+          net_profit?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_surprises: {
         Row: {
           contradiction_type: string

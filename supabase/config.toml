@@ -245,3 +245,6 @@ verify_jwt = true
 
 [functions.recursive-optimizer]
 verify_jwt = false
+
+[functions.ai-strategy-advisor]
+verify_jwt = false

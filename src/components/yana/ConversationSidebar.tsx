@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard, Pencil, Check } from 'lucide-react';
+import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard, Pencil, Check, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -311,6 +311,12 @@ export function ConversationSidebar({
 
       {/* Footer with quick links */}
       <div className="p-3 border-t border-border space-y-1">
+        <Link to="/ai-strategy" className="w-full">
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
+            <Brain className="h-4 w-4" />
+            Strategie AI
+          </Button>
+        </Link>
         <Link to="/settings" className="w-full">
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
             <Settings className="h-4 w-4" />
