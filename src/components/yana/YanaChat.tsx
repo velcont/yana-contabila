@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles, ShieldAlert } from 'lucide-react';
+import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles, ShieldAlert, Brain } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,11 +31,15 @@ interface Message {
 }
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results';
   data: unknown;
   title?: string;
   downloadUrl?: string;
   fileName?: string;
+  onStrategySubmit?: (profile: import('@/config/aiStrategyData').BusinessProfile) => void;
+  isStrategyLoading?: boolean;
+  isStrategySubmitted?: boolean;
+  strategyProfile?: import('@/config/aiStrategyData').BusinessProfile;
 }
 
 interface YanaChatProps {
@@ -64,6 +68,9 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [strategyLoading, setStrategyLoading] = useState(false);
+  const [strategySubmitted, setStrategySubmitted] = useState(false);
+  const [strategyProfile, setStrategyProfile] = useState<import('@/config/aiStrategyData').BusinessProfile | null>(null);
 
   // Fetch user profile for personalized greeting
   useEffect(() => {
@@ -408,6 +415,102 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     }
   }, [conversationId, user, onConversationCreated]);
 
+  const handleStrategySubmit = useCallback(async (profile: import('@/config/aiStrategyData').BusinessProfile) => {
+    if (!user) return;
+    setStrategyLoading(true);
+    setStrategyProfile(profile);
+
+    try {
+      let convId = conversationId;
+      if (!convId) {
+        convId = await createConversation();
+        onConversationCreated(convId);
+      }
+
+      // Add user summary message
+      const userMsg: Message = {
+        id: `strategy-user-${Date.now()}`,
+        role: 'user',
+        content: `Analizează strategia AI pentru afacerea mea: ${profile.industry}, ${profile.employeesCount} angajați, CA ${profile.annualRevenue.toLocaleString('ro-RO')} RON`,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => prev.map(m => 
+        m.artifacts?.some(a => a.type === 'ai_strategy_form') 
+          ? { ...m, artifacts: m.artifacts?.map(a => a.type === 'ai_strategy_form' ? { ...a, isStrategySubmitted: true } : a) }
+          : m
+      ));
+      setMessages(prev => [...prev, userMsg]);
+
+      await supabase.from('yana_messages').insert({
+        conversation_id: convId,
+        role: 'user',
+        content: userMsg.content,
+      });
+
+      // Call edge function directly
+      const { data: response, error } = await supabase.functions.invoke('ai-strategy-advisor', {
+        body: {
+          industry: profile.industry,
+          employeesCount: profile.employeesCount,
+          annualRevenue: profile.annualRevenue,
+          netProfit: profile.netProfit,
+          departments: profile.departments,
+          businessDescription: profile.businessDescription,
+        },
+      });
+
+      if (error) throw error;
+
+      const analysis = response.analysis || response;
+
+      const assistantMsg: Message = {
+        id: `strategy-result-${Date.now()}`,
+        role: 'assistant',
+        content: '📊 Am finalizat analiza strategică. Iată oportunitățile AI identificate, costurile estimate, previziunile ROI și planul de implementare:',
+        artifacts: [{
+          type: 'ai_strategy_results' as const,
+          data: analysis,
+          strategyProfile: profile,
+        }],
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+      setStrategySubmitted(true);
+
+      // Save assistant message
+      await supabase.from('yana_messages').insert({
+        conversation_id: convId,
+        role: 'assistant',
+        content: assistantMsg.content,
+        artifacts: assistantMsg.artifacts as unknown as import('@/integrations/supabase/types').Json,
+      });
+
+    } catch (err) {
+      console.error('Strategy error:', err);
+      toast.info('Nu am putut genera analiza. Încearcă din nou.');
+    } finally {
+      setStrategyLoading(false);
+    }
+  }, [conversationId, user, onConversationCreated]);
+
+  const handleStartStrategy = useCallback(() => {
+    const formMsg: Message = {
+      id: `strategy-form-${Date.now()}`,
+      role: 'assistant',
+      content: '🧠 Hai să analizăm cum poate AI-ul să transforme afacerea ta. Completează datele de mai jos:',
+      artifacts: [{
+        type: 'ai_strategy_form' as const,
+        data: null,
+        onStrategySubmit: handleStrategySubmit,
+        isStrategyLoading: strategyLoading,
+        isStrategySubmitted: strategySubmitted,
+      }],
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, formMsg]);
+    setStrategySubmitted(false);
+  }, [handleStrategySubmit, strategyLoading, strategySubmitted]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -628,9 +731,28 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               {/* Render artifacts */}
               {message.artifacts && message.artifacts.length > 0 && (
                 <div className="mt-4 space-y-3">
-                  {message.artifacts.map((artifact, index) => (
-                    <ArtifactRenderer key={index} artifact={artifact} />
-                  ))}
+                  {message.artifacts.map((artifact, index) => {
+                    // Inject live callbacks for strategy form artifacts
+                    if (artifact.type === 'ai_strategy_form') {
+                      return (
+                        <ArtifactRenderer key={index} artifact={{
+                          ...artifact,
+                          onStrategySubmit: handleStrategySubmit,
+                          isStrategyLoading: strategyLoading,
+                          isStrategySubmitted: strategySubmitted,
+                        }} />
+                      );
+                    }
+                    if (artifact.type === 'ai_strategy_results' && strategyProfile) {
+                      return (
+                        <ArtifactRenderer key={index} artifact={{
+                          ...artifact,
+                          strategyProfile: artifact.strategyProfile || strategyProfile,
+                        }} />
+                      );
+                    }
+                    return <ArtifactRenderer key={index} artifact={artifact} />;
+                  })}
                 </div>
               )}
 
@@ -698,17 +820,26 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                     <Scale className="h-4 w-4 mr-1.5" />
                     Întrebare fiscală
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 text-xs touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
-                    onClick={() => {
-                      sendMessage('Care e riscul meu de control ANAF pe baza balanței?');
-                    }}
-                  >
-                    <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
-                    Risc ANAF
-                  </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     className="h-9 px-3 text-xs touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
+                     onClick={() => {
+                       sendMessage('Care e riscul meu de control ANAF pe baza balanței?');
+                     }}
+                   >
+                     <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
+                     Risc ANAF
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     className="h-9 px-3 text-xs touch-action-manipulation border-blue-500/30 hover:bg-blue-500/10"
+                     onClick={handleStartStrategy}
+                   >
+                     <Brain className="h-4 w-4 mr-1.5 text-blue-500" />
+                     Strategie AI
+                   </Button>
                 </div>
               )}
             </div>
