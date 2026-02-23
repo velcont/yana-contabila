@@ -17,13 +17,20 @@ import {
   LineChart,
   Line,
 } from 'recharts';
+import { AIStrategyFormArtifact } from './AIStrategyFormArtifact';
+import { AIStrategyResultsArtifact } from './AIStrategyResultsArtifact';
+import type { BusinessProfile, AIAnalysis } from '@/config/aiStrategyData';
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results';
   data: unknown;
   title?: string;
   downloadUrl?: string;
   fileName?: string;
+  onStrategySubmit?: (profile: BusinessProfile) => void;
+  isStrategyLoading?: boolean;
+  isStrategySubmitted?: boolean;
+  strategyProfile?: BusinessProfile;
 }
 
 interface ArtifactRendererProps {
@@ -46,6 +53,10 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       return <WarRoomArtifact data={artifact.data} title={artifact.title} />;
     case 'battle_plan':
       return <BattlePlanArtifact data={artifact.data} title={artifact.title} />;
+    case 'ai_strategy_form':
+      return <AIStrategyFormArtifact onSubmit={artifact.onStrategySubmit!} isLoading={artifact.isStrategyLoading} isSubmitted={artifact.isStrategySubmitted} />;
+    case 'ai_strategy_results':
+      return <AIStrategyResultsArtifact analysis={artifact.data as AIAnalysis} profile={artifact.strategyProfile!} />;
     default:
       return null;
   }
