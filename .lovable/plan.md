@@ -1,57 +1,58 @@
 
 
-# Fix: Balanțele Saga nu sunt interpretate corect în YANA Chat
+# Fix: Răspunsuri trunchiate și Deep Healing agresiv în conversațiile financiare
 
 ## Problema
 
-Când un utilizator încarcă o balanță din software-ul **SAGA** prin YANA Chat (`/yana`), fișierul este procesat de parser-ul standard (`analyze-balance`) în loc de parser-ul specializat (`analyze-balance-saga`).
+Clienta Lost in Travel a primit un răspuns despre TVA pe marjă care s-a tăiat la jumătate (limită de 1024 tokeni). Când a cerut continuarea, YANA a interpretat frustrarea ei ca „criză emoțională" și a activat protocolul Deep Healing, întrebând-o „cum te simți" în loc să continue calculul financiar.
 
-Detectarea formatului SAGA există doar în componenta veche `ChatAI.tsx`, dar **nu există în `ai-router`** -- funcția care decide ce parser să folosească pentru fișierele încărcate prin YANA.
+## Modificări
 
-**Efect**: Cifra de afaceri (CA) și alți indicatori financiari pot fi extrasi din coloanele greșite, deoarece formatul SAGA are 5 perechi de coloane Debit/Credit (Solduri inițiale, Sume precedente, Rulaje, Sume totale, Solduri finale) plus coloane separatoare goale, în timp ce parser-ul standard se așteaptă la 4 perechi fără separatoare.
+### 1. `supabase/functions/chat-ai/index.ts` (linia 2098)
 
-## Soluția
+Creștere `max_tokens` de la `1024` la `4096` pentru a permite răspunsuri financiare complete.
 
-Adăugarea detectării formatului SAGA direct în `ai-router`, astfel încât balanțele Saga să fie trimise automat la `analyze-balance-saga`.
+### 2. `supabase/functions/_shared/prompts/chat-ai-prompt.md` (secțiunile 32 și 36)
 
-## Modificări tehnice
+**Secțiunea 32** - Adăugare excepție critică la Deep Healing:
 
-### 1. `supabase/functions/ai-router/index.ts`
-
-**a)** Adăugare funcție `detectSagaFromBase64()` care parsează Excel-ul și verifică pattern-urile SAGA (similar cu logica existentă din `src/utils/sagaDetector.ts`):
-- Verifică "Balanta de verificare" în primele rânduri
-- Verifică header pe multiple rânduri (sold + rulaj + debit/credit)
-- Verifică "Total sume" / "Sume precedente" (specific SAGA)
-- Verifică pagina care conține "SAGA C" (footer specific SAGA)
-- Returnează `true` dacă scorul depășește pragul
-
-**b)** Actualizare secțiunea de routing pentru `balance_excel` (linia ~645):
-
-Înainte:
 ```
-route: 'analyze-balance'
+EXCEPȚIE CRITICĂ - DEEP HEALING NU SE ACTIVEAZĂ CÂND:
+- Utilizatorul așteaptă continuarea unui răspuns tehnic/financiar trunchiat
+- Utilizatorul cere explicit cifre, calcule sau răspunsuri concrete
+- Conversația este în mijlocul unei analize financiare active
+- Frustrarea utilizatorului vine din faptul că NU a primit un răspuns tehnic complet
+
+În aceste cazuri: CONTINUĂ răspunsul tehnic FĂRĂ intervenție emoțională.
 ```
 
-După:
+**Secțiunea 36** - Adăugare reguli de prioritate în checklist:
+
 ```
-// Detectare SAGA
-const isSaga = detectSagaFromBase64(fileData.fileContent);
-route: isSaga ? 'analyze-balance-saga' : 'analyze-balance'
+PRIORITATE: Dacă există analiză financiară în curs -> CONTINUĂ analiza
+PRIORITATE: Dacă utilizatorul cere date/cifre -> RĂSPUNDE cu date
+Deep Healing doar pentru crize emoționale reale, NU pentru frustrare tehnică
 ```
 
-**c)** Adăugare `'analyze-balance-saga'` în tipul `RouteDecision.route` (linia 25).
+### 3. `supabase/functions/_shared/prompts/yana-identity-contract.md` (după secțiunea 2)
 
-### 2. Verificare consistență `analyze-balance-saga/index.ts`
+Adăugare secțiune nouă **2b. REGULĂ ANTI-HIJACK**:
 
-Verificare că structuredData returnat de parser-ul SAGA include toate câmpurile necesare pentru `balanceContext` (company, cui, accounts cu code, name, debit, credit, finalDebit, finalCredit, accountClass) -- format identic cu cel returnat de `analyze-balance`.
+```
+INTERZIS: Nu interpreta frustrarea tehnică drept criză emoțională.
+- "dă-mi răspunsul" / "continuă" / "s-a blocat" → CONTINUĂ informația tehnică
+- Deep Healing se activează DOAR când utilizatorul vorbește explicit despre starea lui emoțională personală
+```
 
 ## Ce NU se schimbă
 
-- Parser-ul SAGA existent (`analyze-balance-saga`) rămâne neschimbat
-- Parser-ul standard (`analyze-balance`) rămâne neschimbat  
-- Componenta `ChatAI.tsx` (care are deja detectare SAGA) rămâne neschimbată
-- Frontend-ul YANA Chat nu necesită modificări
+- Logica Deep Healing rămâne activă pentru crize emoționale reale ("cred că dau faliment și nu mai pot")
+- Restul prompt-ului (reguli de identitate, analiză balanță, etc.) rămâne neschimbat
+- Niciun fișier frontend nu se modifică
 
-## Rezultat așteptat
+## Rezultat
 
-După fix, când utilizatorul emokecsokasi (sau oricine altcineva) încarcă o balanță exportată din SAGA prin YANA Chat, sistemul o detectează automat și o procesează cu parser-ul dedicat. Cifra de afaceri, profitul și toți indicatorii sunt extrasi din coloanele corecte.
+1. Răspunsurile financiare nu se mai taie (4096 tokeni = ~3000 cuvinte)
+2. "Continuă" / "dă-mi cifrele" → YANA continuă calculul, nu întreabă "cum te simți"
+3. Deep Healing rămâne activ doar pentru distress emoțional real
+
