@@ -1,58 +1,48 @@
 
 
-# Fix: Răspunsuri trunchiate și Deep Healing agresiv în conversațiile financiare
+# Fix: Întrebările fiscale cu balanță încărcată primesc doar generalități
 
-## Problema
+## Problema identificată
 
-Clienta Lost in Travel a primit un răspuns despre TVA pe marjă care s-a tăiat la jumătate (limită de 1024 tokeni). Când a cerut continuarea, YANA a interpretat frustrarea ei ca „criză emoțională" și a activat protocolul Deep Healing, întrebând-o „cum te simți" în loc să continue calculul financiar.
+Toate mesajele Lost in Travel sunt rutate la **`fiscal-chat`** (pentru că conțin cuvinte precum "TVA", "marjă", "impozit"). Funcția `fiscal-chat` este un Q&A fiscal generic care:
+- **NU primește** `balanceContext` (datele balanței)
+- **NU are acces** la cifrele companiei
+- Are `max_tokens: 2000` (risc de trunchiere pentru calcule complexe)
 
-## Modificări
+Rezultat: YANA răspunde cu generalități despre TVA pe marjă în loc de calcule concrete cu cifrele clientei.
 
-### 1. `supabase/functions/chat-ai/index.ts` (linia 2098)
+## Cauza root
 
-Creștere `max_tokens` de la `1024` la `4096` pentru a permite răspunsuri financiare complete.
+In `ai-router/index.ts`, funcția `detectIntent()` verifică keywords fiscal (`tva`, `impozit`, `marja` etc.) **ÎNAINTE** de a verifica dacă există o balanță încărcată. Orice întrebare fiscală e trimisă la `fiscal-chat`, chiar dacă utilizatorul are o balanță activă cu date concrete.
 
-### 2. `supabase/functions/_shared/prompts/chat-ai-prompt.md` (secțiunile 32 și 36)
+## Soluția
 
-**Secțiunea 32** - Adăugare excepție critică la Deep Healing:
+### 1. `supabase/functions/ai-router/index.ts` - Redirecționare inteligentă
 
-```
-EXCEPȚIE CRITICĂ - DEEP HEALING NU SE ACTIVEAZĂ CÂND:
-- Utilizatorul așteaptă continuarea unui răspuns tehnic/financiar trunchiat
-- Utilizatorul cere explicit cifre, calcule sau răspunsuri concrete
-- Conversația este în mijlocul unei analize financiare active
-- Frustrarea utilizatorului vine din faptul că NU a primit un răspuns tehnic complet
-
-În aceste cazuri: CONTINUĂ răspunsul tehnic FĂRĂ intervenție emoțională.
-```
-
-**Secțiunea 36** - Adăugare reguli de prioritate în checklist:
+In secțiunea de routing (după ce `detectIntent` returnează `fiscal-chat`), adăugăm un override:
 
 ```
-PRIORITATE: Dacă există analiză financiară în curs -> CONTINUĂ analiza
-PRIORITATE: Dacă utilizatorul cere date/cifre -> RĂSPUNDE cu date
-Deep Healing doar pentru crize emoționale reale, NU pentru frustrare tehnică
+Dacă ruta == 'fiscal-chat' SI există balanceContext cu date
+  -> Schimbă ruta la 'chat-ai' (care are acces la balanță)
+  -> Adaugă flag: fiscalQuestionWithBalance = true
 ```
 
-### 3. `supabase/functions/_shared/prompts/yana-identity-contract.md` (după secțiunea 2)
+Aceasta asigură că întrebările fiscale DESPRE datele din balanță ajung la `chat-ai` (care știe să calculeze concret cu cifrele), iar întrebările fiscale generale (fără balanță) merg în continuare la `fiscal-chat`.
 
-Adăugare secțiune nouă **2b. REGULĂ ANTI-HIJACK**:
+### 2. `supabase/functions/fiscal-chat/index.ts` - Creștere max_tokens
 
-```
-INTERZIS: Nu interpreta frustrarea tehnică drept criză emoțională.
-- "dă-mi răspunsul" / "continuă" / "s-a blocat" → CONTINUĂ informația tehnică
-- Deep Healing se activează DOAR când utilizatorul vorbește explicit despre starea lui emoțională personală
-```
+Schimbare `max_tokens` de la `2000` la `4096` (la fel ca `chat-ai`) pentru cazurile când fiscal-chat e folosit fără balanță dar cu întrebări complexe.
 
 ## Ce NU se schimbă
 
-- Logica Deep Healing rămâne activă pentru crize emoționale reale ("cred că dau faliment și nu mai pot")
-- Restul prompt-ului (reguli de identitate, analiză balanță, etc.) rămâne neschimbat
-- Niciun fișier frontend nu se modifică
+- Prompt-urile rămân neschimbate (fix-urile Deep Healing anterioare rămân)
+- `chat-ai` funcționează deja corect cu balanceContext
+- Frontend-ul nu necesită modificări
+- Întrebările fiscale simple (fără balanță) merg tot la `fiscal-chat`
 
-## Rezultat
+## Rezultat așteptat
 
-1. Răspunsurile financiare nu se mai taie (4096 tokeni = ~3000 cuvinte)
-2. "Continuă" / "dă-mi cifrele" → YANA continuă calculul, nu întreabă "cum te simți"
-3. Deep Healing rămâne activ doar pentru distress emoțional real
+Când Lost in Travel întreabă "cum calculez TVA pe marjă pentru decembrie?" și are balanța încărcată:
+- **Înainte**: fiscal-chat → răspuns generic fără cifre
+- **După**: chat-ai cu balanceContext → calcul concret cu cifrele din balanță (cont 707, cont 607, marjă reală)
 
