@@ -22,7 +22,7 @@ interface RouterRequest {
 }
 
 interface RouteDecision {
-  route: 'analyze-balance' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response';
+  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response';
   payload: Record<string, unknown>;
   reason: string;
 }
@@ -356,6 +356,62 @@ function buildDeterministicResponse(
 // ROUTING LOGIC (original)
 // =============================================================================
 
+// =============================================================================
+// SAGA FORMAT DETECTION (server-side, fără dependință de frontend)
+// =============================================================================
+function detectSagaFromBase64(base64Content: string): boolean {
+  try {
+    let pure = base64Content;
+    if (pure.includes(';base64,')) {
+      pure = pure.split(';base64,')[1];
+    }
+    
+    const bytes = Uint8Array.from(atob(pure), c => c.charCodeAt(0));
+    
+    // Dynamic import not available in Deno edge functions, use inline detection
+    // We check raw bytes for SAGA-specific text patterns
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    // For .xls (BIFF) files, text extraction from raw bytes is unreliable,
+    // so we use a simpler heuristic based on the file name + raw text scan
+    const rawText = decoder.decode(bytes).toLowerCase();
+    
+    let sagaScore = 0;
+    
+    // Pattern 1: "balanta de verificare" in raw bytes
+    if (rawText.includes('balanta de verificare') || rawText.includes('balan')) {
+      sagaScore += 1;
+    }
+    
+    // Pattern 2: "total sume" or "sume precedente" (SAGA-specific headers)
+    if (rawText.includes('total sume') || rawText.includes('sume precedente')) {
+      sagaScore += 2;
+    }
+    
+    // Pattern 3: "SAGA" text in the file (footer/watermark)
+    if (rawText.includes('saga c') || rawText.includes('saga ')) {
+      sagaScore += 3;
+    }
+    
+    // Pattern 4: Multiple "sold" + "rulaj" headers (multi-row header typical of SAGA)
+    const soldCount = (rawText.match(/sold/g) || []).length;
+    const rulajCount = (rawText.match(/rulaj/g) || []).length;
+    if (soldCount >= 3 && rulajCount >= 2) {
+      sagaScore += 2;
+    }
+    
+    // Pattern 5: "sume precedente" is highly specific to SAGA
+    if (rawText.includes('precedente')) {
+      sagaScore += 2;
+    }
+    
+    console.log(`[AI-Router] SAGA detection score: ${sagaScore} (threshold: 3)`);
+    return sagaScore >= 3;
+  } catch (err) {
+    console.warn('[AI-Router] SAGA detection failed:', err);
+    return false;
+  }
+}
+
 function detectDocumentType(fileName: string): string {
   const extension = fileName.toLowerCase().split('.').pop();
   
@@ -643,16 +699,21 @@ serve(async (req) => {
       const docType = detectDocumentType(fileData.fileName);
       
       if (docType === 'balance_excel') {
+        // 🆕 Detectare automată format SAGA
+        const isSaga = detectSagaFromBase64(fileData.fileContent);
+        const targetRoute = isSaga ? 'analyze-balance-saga' : 'analyze-balance';
+        console.log(`[AI-Router] Balance Excel routing: ${targetRoute} (SAGA=${isSaga})`);
+        
         routeDecision = {
-          route: 'analyze-balance',
+          route: targetRoute,
           payload: {
             excelBase64: fileData.fileContent,
             companyName: detectedCompanyName || undefined,
             fileName: fileData.fileName,
-            memoryContext, // Adaug contextul de memorie
-            forceReprocess: true // ✅ v2.1.0: MEREU forțăm re-analiza la upload
+            memoryContext,
+            forceReprocess: true
           },
-          reason: 'Excel balance sheet uploaded (forceReprocess=true)'
+          reason: `Excel balance sheet uploaded - ${isSaga ? 'SAGA format detected' : 'standard format'} (forceReprocess=true)`
         };
       } else if (docType === 'pdf' || docType === 'docx') {
         routeDecision = {
