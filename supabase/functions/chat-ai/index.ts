@@ -2095,7 +2095,7 @@ Răspunde natural, ca și cum ai vedea tu direct imaginea.
           tools: TOOLS,
           tool_choice: "auto",
           stream: streamResponse,
-          max_tokens: 1024,
+          max_tokens: 4096,
           // FAZA 2.1: Parametri pentru naturalețe conversațională
           temperature: 0.7,        // Mai multă creativitate în exprimare
           top_p: 0.9,              // Diversitate controlată
