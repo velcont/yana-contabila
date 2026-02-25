@@ -836,6 +836,25 @@ serve(async (req) => {
       // No deterministic response available - proceed with normal AI routing
       routeDecision = detectIntent(message);
       
+      // =============================================================================
+      // 🆕 v3.2.0: FISCAL + BALANCE OVERRIDE
+      // Dacă ruta e fiscal-chat DAR utilizatorul are balanță încărcată cu date,
+      // redirecționăm la chat-ai care știe să calculeze cu cifrele concrete.
+      // fiscal-chat e un Q&A generic fără acces la balanceContext.
+      // =============================================================================
+      const hasBalanceData = !!(effectiveBalanceContext || balanceContext);
+      if (routeDecision.route === 'fiscal-chat' && hasBalanceData) {
+        console.log(`[AI-Router] 🔄 FISCAL+BALANCE OVERRIDE: Redirecting fiscal-chat → chat-ai (balance data present)`);
+        routeDecision = {
+          route: 'chat-ai',
+          payload: {
+            message,
+            fiscalQuestionWithBalance: true,
+          },
+          reason: 'Fiscal question with balance data loaded - redirected to chat-ai for concrete calculations'
+        };
+      }
+      
       // Adaug memoryContext, history, balanceContext la payload
       routeDecision.payload.memoryContext = memoryContext;
       routeDecision.payload.history = history;
