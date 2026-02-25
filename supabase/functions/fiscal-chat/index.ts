@@ -514,7 +514,7 @@ serve(async (req) => {
           ],
           // FAZA 2.1: Temperature mai conservator pentru precizie fiscală
           temperature: 0.4,
-          max_tokens: 2000,
+          max_tokens: 4096,
           search_recency_filter: 'year',
           return_images: false,
           return_related_questions: true,
