@@ -256,6 +256,40 @@ serve(async (req) => {
         });
       }
 
+      // 🆕 AUTO-GENERATE SmartBill Invoice for subscription payment
+      try {
+        console.log(`📄 Auto-generating SmartBill invoice for subscription: ${customerEmail}`);
+        const autoInvoiceResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-generate-invoice`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              stripeInvoiceId: invoice.id,
+              customerEmail,
+              customerName: profile.email,
+              userId: profile.id,
+              amountCents: invoice.amount_paid,
+              paymentType: 'subscription',
+            }),
+          }
+        );
+        const invoiceResult = await autoInvoiceResponse.json();
+        console.log(`📄 SmartBill auto-invoice result:`, JSON.stringify(invoiceResult));
+      } catch (invoiceError) {
+        console.error(`⚠️ Auto-invoice failed (non-blocking):`, invoiceError);
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'AUTO_INVOICE_FAILED',
+          severity: 'warning',
+          title: `Auto-facturare eșuată: ${customerEmail}`,
+          description: 'Webhook-ul a procesat plata dar factura SmartBill nu s-a generat automat.',
+          details: { invoice_id: invoice.id, email: customerEmail, error: String(invoiceError) }
+        });
+      }
+
       return new Response(JSON.stringify({ received: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -396,6 +430,46 @@ serve(async (req) => {
             customer_id: session.customer
           }
         });
+
+        // 🆕 AUTO-GENERATE SmartBill Invoice for new subscription checkout
+        try {
+          console.log(`📄 Auto-generating SmartBill invoice for new subscription: ${customerEmail}`);
+          // Retrieve the latest invoice for this subscription
+          const subInvoices = await stripe.invoices.list({ subscription: subscriptionId, limit: 1 });
+          const latestInvoice = subInvoices.data[0];
+          
+          if (latestInvoice) {
+            const autoInvoiceResponse = await fetch(
+              `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-generate-invoice`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                },
+                body: JSON.stringify({
+                  stripeInvoiceId: latestInvoice.id,
+                  customerEmail,
+                  customerName: profile.email,
+                  userId: profile.id,
+                  amountCents: latestInvoice.amount_paid || amountCents,
+                  paymentType: 'subscription',
+                }),
+              }
+            );
+            const invoiceResult = await autoInvoiceResponse.json();
+            console.log(`📄 SmartBill auto-invoice result:`, JSON.stringify(invoiceResult));
+          }
+        } catch (invoiceError) {
+          console.error(`⚠️ Auto-invoice failed (non-blocking):`, invoiceError);
+          await supabaseClient.from('admin_alerts').insert({
+            alert_type: 'AUTO_INVOICE_FAILED',
+            severity: 'warning',
+            title: `Auto-facturare eșuată (checkout): ${customerEmail}`,
+            description: 'Subscription activat dar factura SmartBill nu s-a generat automat.',
+            details: { session_id: session.id, email: customerEmail, error: String(invoiceError) }
+          });
+        }
 
         return new Response(JSON.stringify({ 
           received: true, 
@@ -724,6 +798,41 @@ serve(async (req) => {
       });
 
       console.log(`✅ Successfully processed payment for user ${user.id}: ${creditsToAdd} credits added`);
+
+      // 🆕 AUTO-GENERATE SmartBill Invoice for credits purchase
+      try {
+        console.log(`📄 Auto-generating SmartBill invoice for credits: ${customerEmail}`);
+        const autoInvoiceResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-generate-invoice`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              stripeSessionId: session.id,
+              customerEmail,
+              customerName: customerEmail,
+              userId: user.id,
+              amountCents: amountPaid,
+              paymentType: 'credits',
+              productName: `Credite AI Yana - ${packageName}`,
+            }),
+          }
+        );
+        const invoiceResult = await autoInvoiceResponse.json();
+        console.log(`📄 SmartBill auto-invoice result (credits):`, JSON.stringify(invoiceResult));
+      } catch (invoiceError) {
+        console.error(`⚠️ Auto-invoice failed for credits (non-blocking):`, invoiceError);
+        await supabaseClient.from('admin_alerts').insert({
+          alert_type: 'AUTO_INVOICE_FAILED',
+          severity: 'warning',
+          title: `Auto-facturare credite eșuată: ${customerEmail}`,
+          description: 'Creditele au fost adăugate dar factura SmartBill nu s-a generat automat.',
+          details: { session_id: session.id, email: customerEmail, amount: amountPaid, error: String(invoiceError) }
+        });
+      }
     }
 
     // 🔒 SECURITY FIX: Handle subscription cancellation/expiration
