@@ -1918,10 +1918,52 @@ ${daysSinceLastInteraction >= 7 ? '💡 Au trecut câteva zile - poți face o sc
     // =============================================================================
     
     // =============================================================================
+    // CLIENT PROFILE INJECTION - Adaptare limbaj + anticipare + feedback loop
+    // =============================================================================
+    let clientProfileSection = '';
+    try {
+      const { data: clientProfile } = await supabase
+        .from('yana_client_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (clientProfile) {
+        const corrections = (clientProfile.learned_corrections as any[]) || [];
+        const triggers = (clientProfile.anticipation_triggers as any[]) || [];
+        const recurring = (clientProfile.recurring_problems as any[]) || [];
+        const patterns = clientProfile.interaction_patterns as any || {};
+
+        clientProfileSection = `\n\n## PROFILUL CLIENTULUI (ce știe YANA despre acest utilizator)
+- Domeniu: ${clientProfile.business_domain || 'necunoscut'}
+- Dimensiune firmă: ${clientProfile.company_size || 'necunoscută'}
+- Complexitate limbaj: ${clientProfile.language_complexity || 'moderate'}
+  -> Dacă "simple": fraze scurte, fără jargon contabil, explică orice termen
+  -> Dacă "technical": poți folosi termeni de specialitate, mergi direct la esență
+  -> Dacă "moderate": echilibru între accesibil și precis
+- Stil comunicare: ${clientProfile.communication_style || 'conversational'}
+- Probleme recurente: ${recurring.length > 0 ? recurring.map((r: any) => r.topic).join(', ') : 'niciuna detectată'}
+  -> Când apare un subiect recurent, menționează că știi deja contextul
+${corrections.length > 0 ? `- Corecții anterioare (NU repeta aceste greșeli!):\n${corrections.slice(-5).map((c: any) => `  ❌ "${(c.what_yana_said || '').substring(0, 80)}..." → ✅ "${(c.user_correction || '').substring(0, 80)}..."`).join('\n')}` : ''}
+- Pattern-uri: ${patterns.usual_time ? `vine de obicei pe la ${patterns.usual_time}` : ''} ${patterns.most_active_day ? `(${patterns.most_active_day})` : ''}
+- Subiecte frecvente: ${(clientProfile.preferred_topics || []).join(', ') || 'nu sunt suficiente date'}
+${clientProfile.personality_notes ? `- Note personalitate: ${clientProfile.personality_notes}` : ''}
+${triggers.length > 0 ? `- Anticipare (menționează natural dacă e relevant):\n${triggers.slice(0, 3).map((t: any) => `  💡 ${t.description}`).join('\n')}` : ''}
+`;
+        console.log(`[chat-ai][${requestId}] Client profile injected: lang=${clientProfile.language_complexity}, style=${clientProfile.communication_style}, corrections=${corrections.length}`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Failed to load client profile:`, err);
+    }
+    // =============================================================================
+    // END CLIENT PROFILE INJECTION
+    // =============================================================================
+    
+    // =============================================================================
     // END CONSECVENȚĂ CONVERSAȚII
     // =============================================================================
     
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + memorySection + relationshipMemory + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + memorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

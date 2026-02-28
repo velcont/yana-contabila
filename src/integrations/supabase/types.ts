@@ -4983,6 +4983,60 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_client_profiles: {
+        Row: {
+          anticipation_triggers: Json | null
+          business_domain: string | null
+          communication_style: string | null
+          company_size: string | null
+          created_at: string
+          id: string
+          interaction_patterns: Json | null
+          language_complexity: string | null
+          last_profile_update: string | null
+          learned_corrections: Json | null
+          personality_notes: string | null
+          preferred_topics: string[] | null
+          recurring_problems: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anticipation_triggers?: Json | null
+          business_domain?: string | null
+          communication_style?: string | null
+          company_size?: string | null
+          created_at?: string
+          id?: string
+          interaction_patterns?: Json | null
+          language_complexity?: string | null
+          last_profile_update?: string | null
+          learned_corrections?: Json | null
+          personality_notes?: string | null
+          preferred_topics?: string[] | null
+          recurring_problems?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anticipation_triggers?: Json | null
+          business_domain?: string | null
+          communication_style?: string | null
+          company_size?: string | null
+          created_at?: string
+          id?: string
+          interaction_patterns?: Json | null
+          language_complexity?: string | null
+          last_profile_update?: string | null
+          learned_corrections?: Json | null
+          personality_notes?: string | null
+          preferred_topics?: string[] | null
+          recurring_problems?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       yana_common_requests: {
         Row: {
           auto_response_enabled: boolean | null
