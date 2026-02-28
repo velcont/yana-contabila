@@ -1,99 +1,105 @@
 
 
-# Fix: Emitere automată facturi SmartBill la plata Stripe
+# Plan: Profilul Client Persistent + Adaptare Limbaj + Feedback Loop
 
-## Problema
+## Ce existe deja (nu duplicam)
 
-Webhook-ul Stripe (`stripe-webhook`) procesează corect evenimentele `invoice.paid` si `checkout.session.completed`, dar nu apelează SmartBill pentru emiterea automată a facturii. Facturile se emit doar manual din panoul Admin ("Emite Factură").
+YANA are deja infrastructura de baza: `yana_relationships` (scor relatie, memorie emotionala), `yana_learning_log` (logarea fiecarei interactiuni), `yana_user_context_evolution` (tip utilizator, stil preferat), `extract-learnings` (detecteaza preferinte simplu/detaliat/vizual). Problema: aceste date sunt colectate dar **nu sunt consolidate intr-un profil unic** si **nu sunt injectate complet in prompt**.
 
-## Soluția
+## Ce adaugam
 
-Adăugăm apelul automat la SmartBill direct în webhook, după ce plata este înregistrată cu succes. Reutilizăm logica existentă din `admin-generate-invoice` dar o apelăm intern (server-to-server).
+### 1. Tabel nou: `yana_client_profiles` (profilul persistent "user.md")
 
-## Modificări
+Un document structurat per utilizator care consolideaza tot ce stie YANA despre client:
 
-### 1. `supabase/functions/stripe-webhook/index.ts`
+| Camp | Tip | Scop |
+|------|-----|------|
+| user_id | uuid (unic) | Legatura cu utilizatorul |
+| business_domain | text | Domeniul firmei (turism, IT, retail etc.) |
+| company_size | text | mic/mediu/mare - detectat din conversatii |
+| language_complexity | text | 'simple' / 'moderate' / 'technical' - adaptat automat |
+| communication_style | text | 'direct' / 'conversational' / 'detailed' |
+| recurring_problems | jsonb | Lista de probleme care revin (TVA, cash flow etc.) |
+| learned_corrections | jsonb | Corectii facute de utilizator (ce a corectat YANA) |
+| anticipation_triggers | jsonb | Lucruri de amintit (termene, pattern-uri lunare) |
+| preferred_topics | text[] | Subiecte frecvent discutate |
+| personality_notes | text | Observatii libere (ex: "prefera umorul", "nu-i plac metaforele") |
+| interaction_patterns | jsonb | Cand interactioneaza (ore, zile), frecventa |
+| last_profile_update | timestamptz | Ultima actualizare automata |
 
-**In blocul `invoice.paid` (linia ~238, după log-ul de succes):**
+RLS: Utilizatorul vede doar propriul profil. Service role poate scrie.
 
-Adăugăm un apel automat la funcția `admin-generate-invoice` folosind `fetch` intern (server-to-server, fără auth admin -- vom crea o funcție dedicată).
+### 2. Edge Function: `update-client-profile` (consolidare automata)
 
-In loc de a duplica logica, cream o functie nouă `auto-generate-invoice` care face exact ce face `admin-generate-invoice` dar fără verificarea admin (este apelată intern de webhook).
+Apelata ca background task din `ai-router` dupa fiecare conversatie (non-blocking, la fel ca `extract-learnings`). Logica:
 
-**Concret, după linia 238 (`console.log("Recorded subscription payment...")`), adăugăm:**
+- Citeste ultimele 20 intrari din `yana_learning_log` + `yana_user_context_evolution` + `yana_relationships`
+- Consolideaza intr-un profil actualizat
+- Detecteaza `language_complexity` din pattern-urile de preferinta (daca cere "mai simplu" = simple, daca foloseste termeni tehnici = technical)
+- Extrage `recurring_problems` din categoriile frecvente
+- Salveaza corectiile (`learned_corrections`) cand detecteaza pattern-uri de tip "nu, nu asta am intrebat" urmate de clarificare
+- Detecteaza `business_domain` din contextul balantei si conversatiilor
+- Actualizeaza `interaction_patterns` (ora medie, zile active)
+- Apel AI minimal (gemini-2.5-flash-lite) pentru sintetizarea notelor de personalitate
 
-```typescript
-// AUTO-GENERATE SmartBill Invoice
-try {
-  console.log(`📄 Auto-generating SmartBill invoice for ${customerEmail}`);
-  const autoInvoiceResponse = await fetch(
-    `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-generate-invoice`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify({
-        stripeInvoiceId: invoice.id,
-        customerEmail,
-        customerName: profile.email,
-        userId: profile.id,
-        amountCents: invoice.amount_paid,
-        subscriptionId: subscription.id,
-      }),
-    }
-  );
-  const invoiceResult = await autoInvoiceResponse.json();
-  console.log(`📄 SmartBill auto-invoice result:`, JSON.stringify(invoiceResult));
-} catch (invoiceError) {
-  // Non-blocking: log error but don't fail the webhook
-  console.error(`⚠️ Auto-invoice failed (non-blocking):`, invoiceError);
-  await supabaseClient.from('admin_alerts').insert({
-    alert_type: 'AUTO_INVOICE_FAILED',
-    severity: 'warning',
-    title: `Auto-facturare eșuată: ${customerEmail}`,
-    description: 'Webhook-ul a procesat plata dar factura SmartBill nu s-a generat automat.',
-    details: { invoice_id: invoice.id, email: customerEmail, error: String(invoiceError) }
-  });
-}
+### 3. Modificare `chat-ai/index.ts` - Injectare profil in prompt
+
+Dupa sectiunea "Samantha Dynamics" (linia ~1915), adaugam o noua sectiune:
+
+```
+## PROFILUL CLIENTULUI (ce stie YANA despre acest utilizator)
+- Domeniu: {business_domain}
+- Complexitate limbaj: {language_complexity}
+  -> Daca "simple": fraze scurte, fara jargon contabil, explica orice termen
+  -> Daca "technical": poti folosi termeni de specialitate, mergi direct la esenta
+  -> Daca "moderate": echilibru intre accesibil si precis
+- Stil comunicare: {communication_style}
+- Probleme recurente: {recurring_problems}
+  -> Cand apare un subiect recurent, mentioneaza ca stii deja contextul
+- Corectii anterioare: {learned_corrections}
+  -> NU repeta greselile din aceasta lista!
+- Pattern-uri: vine de obicei {interaction_patterns.usual_time}, intreaba frecvent despre {preferred_topics}
+- Note personalitate: {personality_notes}
 ```
 
-**La fel, in blocul `checkout.session.completed` pentru subscription (linia ~398), adăugăm un apel similar.**
+### 4. Modificare `extract-learnings/index.ts` - Tracking corectii
 
-### 2. Noua funcție: `supabase/functions/auto-generate-invoice/index.ts`
+Adaugam detectia explicita a corectiilor utilizatorului (feedback loop):
 
-Funcție nouă care:
-- Primește datele plății (stripeInvoiceId, customerEmail, userId, amountCents)
-- Verifică autorizarea prin `SUPABASE_SERVICE_ROLE_KEY` (doar apeluri interne)
-- Verifică dacă factura SmartBill există deja (prevenire duplicate)
-- Apelează SmartBill API cu aceleași credențiale
-- Salvează rezultatul în `smartbill_invoices`
-- In caz de eșec, creează admin_alert pentru intervenție manuală
+- Pattern-uri noi: "nu e corect", "de fapt e", "gresit, trebuia", "nu asa", "corecteaza"
+- Cand se detecteaza, salveaza in `yana_client_profiles.learned_corrections` cu: ce a spus YANA gresit, ce a corectat utilizatorul, data
+- Limita: ultimele 20 corectii (cele mai vechi se sterg)
 
-Logica este similară cu `admin-generate-invoice` dar:
-- Nu necesită admin auth (folosește service role key)
-- Primește datele direct (nu re-fetch din Stripe)
-- Este non-blocking (webhook-ul nu eșuează dacă factura nu se generează)
+### 5. Modificare `ai-router/index.ts` - Trigger background task
 
-### 3. Ce NU se schimbă
+Dupa apelurile existente la `extract-learnings` si `detect-hook-signals`, adaugam un apel non-blocking la `update-client-profile` (o data la 5 conversatii, nu la fiecare mesaj, pentru eficienta).
 
-- Butonul manual "Emite Factură" rămâne funcțional (fallback)
-- `admin-generate-invoice` rămâne neschimbat
-- Logica de plăți/webhook rămâne aceeași
-- Verificarea duplicatelor previne emiterea dublă (dacă adminul apasă manual după auto-generare)
+### 6. Anticipare si amintire
 
-## Flux rezultat
+In `update-client-profile`, se calculeaza `anticipation_triggers`:
+- Daca utilizatorul intreaba despre TVA in fiecare luna la aceeasi data -> YANA poate mentiona proactiv
+- Daca are probleme recurente de cash flow -> YANA aminteste la urmatoarea conversatie
+- Aceste trigger-uri sunt injectate in prompt ca "lucruri de mentionat daca e natural"
 
-```text
-Stripe Payment -> Webhook -> 1. Înregistrează plata in DB
-                            2. Actualizează profil
-                            3. AUTO: Apelează auto-generate-invoice
-                               -> SmartBill API -> Factură emisă
-                               -> Salvează in smartbill_invoices
-                            4. Dacă eșuează: admin_alert (facturare manuală)
-```
+## Ce NU se schimba
 
-## Beneficiu
+- Tabelele existente (`yana_relationships`, `yana_learning_log`, `yana_user_context_evolution`) raman neschimbate
+- `consciousness-engine` ramane neschimbat (deja incarca relationship data)
+- Personalitatea YANA (consciousness prompt) ramane aceeasi
+- Frontend-ul nu necesita modificari (totul e backend)
 
-Fiecare plată Stripe generează automat factura SmartBill, fără intervenție manuală. Adminul primește alertă doar dacă auto-facturarea eșuează.
+## Ordinea implementarii
+
+1. Creare tabel `yana_client_profiles` cu RLS
+2. Creare edge function `update-client-profile`
+3. Modificare `extract-learnings` pentru tracking corectii
+4. Modificare `chat-ai` pentru injectare profil in prompt
+5. Modificare `ai-router` pentru trigger background
+
+## Rezultat
+
+- Primul mesaj: YANA raspunde generic
+- Dupa 5 conversatii: YANA stie domeniul, prefera limbajul simplu/tehnic
+- Dupa 15 conversatii: YANA anticipeaza intrebari, nu repeta greseli, adapteaza tonul
+- Dupa 30 conversatii: clientul simte ca YANA "il cunoaste" - nu mai pleaca
+
