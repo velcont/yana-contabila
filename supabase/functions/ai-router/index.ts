@@ -1408,6 +1408,45 @@ serve(async (req) => {
         }
       };
       
+      // 🆕 Task pentru update-client-profile (o dată la 5 conversații)
+      const updateClientProfileTask = async () => {
+        try {
+          // Check if we should run (every 5th conversation)
+          const { count } = await supabase
+            .from('yana_learning_log')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          
+          const totalConvs = count || 0;
+          if (totalConvs % 5 !== 0 && totalConvs > 0) {
+            console.log(`[AI-Router] Skipping profile update (conv #${totalConvs}, runs every 5th)`);
+            return;
+          }
+          
+          const profileUrl = `${supabaseUrl}/functions/v1/update-client-profile`;
+          const response = await fetch(profileUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              conversationId,
+            }),
+          });
+          
+          if (!response.ok) {
+            console.error('[AI-Router] update-client-profile failed:', await response.text());
+          } else {
+            const result = await response.json();
+            console.log('[AI-Router] ✅ Client profile updated:', result.profile);
+          }
+        } catch (err) {
+          console.error('[AI-Router] update-client-profile error (non-blocking):', err);
+        }
+      };
+      
       // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
         // @ts-ignore
@@ -1417,7 +1456,8 @@ serve(async (req) => {
           experimentTrackerTask(),
           journeyUpdaterTask(),
           captureSoulStateTask(),
-          extractLearningsTask(), // 🆕 Extrage learnings pentru auto-învățare
+          extractLearningsTask(),
+          updateClientProfileTask(), // 🆕 Consolidare profil client
         ]));
         console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil()');
       } else {
@@ -1428,7 +1468,8 @@ serve(async (req) => {
           experimentTrackerTask(),
           journeyUpdaterTask(),
           captureSoulStateTask(),
-          extractLearningsTask(), // 🆕 Extrage learnings pentru auto-învățare
+          extractLearningsTask(),
+          updateClientProfileTask(), // 🆕 Consolidare profil client
         ]).catch(console.error);
         console.log('[AI-Router] All async tasks triggered (fallback mode)');
       }

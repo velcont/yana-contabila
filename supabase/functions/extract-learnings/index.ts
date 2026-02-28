@@ -31,6 +31,24 @@ const UNRESOLVED_PATTERNS = [
   /tot nu știu/i,
 ];
 
+// Patterns that indicate user corrections (feedback loop)
+const CORRECTION_PATTERNS = [
+  /nu e corect/i,
+  /de fapt e/i,
+  /greșit,?\s*trebuia/i,
+  /nu așa/i,
+  /corectează/i,
+  /nu e bine/i,
+  /ai greșit/i,
+  /e incorect/i,
+  /nu,?\s*corect\s*(e|ar fi|era)/i,
+  /răspunsul\s*(e|era)\s*greșit/i,
+  /te-ai înșelat/i,
+  /nu asta\s*(e|era)/i,
+  /cifra\s*(e|era)\s*(alta|diferită|greșită)/i,
+  /suma\s*(e|era)\s*(alta|diferită|greșită)/i,
+];
+
 // Patterns that indicate user preferences
 const PREFERENCE_PATTERNS = {
   wantsSimpler: [/mai simplu/i, /pe scurt/i, /fără detalii/i, /pe românește/i],
@@ -329,6 +347,43 @@ serve(async (req) => {
       }
     }
 
+    // 7. Detect and save user corrections (feedback loop)
+    const isCorrection = CORRECTION_PATTERNS.some(p => p.test(userMessage));
+    if (isCorrection && aiResponse) {
+      try {
+        // Fetch existing profile
+        const { data: profile } = await supabase
+          .from('yana_client_profiles')
+          .select('learned_corrections')
+          .eq('user_id', userId)
+          .single();
+
+        const corrections = (profile?.learned_corrections as any[]) || [];
+        
+        // Add new correction
+        corrections.push({
+          what_yana_said: aiResponse.substring(0, 300),
+          user_correction: userMessage.substring(0, 300),
+          date: new Date().toISOString(),
+        });
+
+        // Keep only last 20 corrections
+        const trimmedCorrections = corrections.slice(-20);
+
+        await supabase
+          .from('yana_client_profiles')
+          .upsert({
+            user_id: userId,
+            learned_corrections: trimmedCorrections,
+            last_profile_update: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+
+        console.log(`[EXTRACT-LEARNINGS][${requestId}] 📝 Correction tracked: "${userMessage.substring(0, 50)}..."`);
+      } catch (err) {
+        console.warn(`[EXTRACT-LEARNINGS][${requestId}] Failed to track correction:`, err);
+      }
+    }
+
     console.log(`[EXTRACT-LEARNINGS][${requestId}] ✅ Extraction complete`);
 
     return new Response(
@@ -342,6 +397,7 @@ serve(async (req) => {
           category: category,
           keyPhrases: keyPhrases.length,
           contextTracked: satisfied !== null || Object.keys(activePreferences).length > 0,
+          correctionDetected: isCorrection,
         },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
