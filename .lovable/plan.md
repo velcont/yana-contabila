@@ -1,48 +1,99 @@
 
 
-# Fix: Întrebările fiscale cu balanță încărcată primesc doar generalități
+# Fix: Emitere automată facturi SmartBill la plata Stripe
 
-## Problema identificată
+## Problema
 
-Toate mesajele Lost in Travel sunt rutate la **`fiscal-chat`** (pentru că conțin cuvinte precum "TVA", "marjă", "impozit"). Funcția `fiscal-chat` este un Q&A fiscal generic care:
-- **NU primește** `balanceContext` (datele balanței)
-- **NU are acces** la cifrele companiei
-- Are `max_tokens: 2000` (risc de trunchiere pentru calcule complexe)
-
-Rezultat: YANA răspunde cu generalități despre TVA pe marjă în loc de calcule concrete cu cifrele clientei.
-
-## Cauza root
-
-In `ai-router/index.ts`, funcția `detectIntent()` verifică keywords fiscal (`tva`, `impozit`, `marja` etc.) **ÎNAINTE** de a verifica dacă există o balanță încărcată. Orice întrebare fiscală e trimisă la `fiscal-chat`, chiar dacă utilizatorul are o balanță activă cu date concrete.
+Webhook-ul Stripe (`stripe-webhook`) procesează corect evenimentele `invoice.paid` si `checkout.session.completed`, dar nu apelează SmartBill pentru emiterea automată a facturii. Facturile se emit doar manual din panoul Admin ("Emite Factură").
 
 ## Soluția
 
-### 1. `supabase/functions/ai-router/index.ts` - Redirecționare inteligentă
+Adăugăm apelul automat la SmartBill direct în webhook, după ce plata este înregistrată cu succes. Reutilizăm logica existentă din `admin-generate-invoice` dar o apelăm intern (server-to-server).
 
-In secțiunea de routing (după ce `detectIntent` returnează `fiscal-chat`), adăugăm un override:
+## Modificări
 
+### 1. `supabase/functions/stripe-webhook/index.ts`
+
+**In blocul `invoice.paid` (linia ~238, după log-ul de succes):**
+
+Adăugăm un apel automat la funcția `admin-generate-invoice` folosind `fetch` intern (server-to-server, fără auth admin -- vom crea o funcție dedicată).
+
+In loc de a duplica logica, cream o functie nouă `auto-generate-invoice` care face exact ce face `admin-generate-invoice` dar fără verificarea admin (este apelată intern de webhook).
+
+**Concret, după linia 238 (`console.log("Recorded subscription payment...")`), adăugăm:**
+
+```typescript
+// AUTO-GENERATE SmartBill Invoice
+try {
+  console.log(`📄 Auto-generating SmartBill invoice for ${customerEmail}`);
+  const autoInvoiceResponse = await fetch(
+    `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-generate-invoice`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({
+        stripeInvoiceId: invoice.id,
+        customerEmail,
+        customerName: profile.email,
+        userId: profile.id,
+        amountCents: invoice.amount_paid,
+        subscriptionId: subscription.id,
+      }),
+    }
+  );
+  const invoiceResult = await autoInvoiceResponse.json();
+  console.log(`📄 SmartBill auto-invoice result:`, JSON.stringify(invoiceResult));
+} catch (invoiceError) {
+  // Non-blocking: log error but don't fail the webhook
+  console.error(`⚠️ Auto-invoice failed (non-blocking):`, invoiceError);
+  await supabaseClient.from('admin_alerts').insert({
+    alert_type: 'AUTO_INVOICE_FAILED',
+    severity: 'warning',
+    title: `Auto-facturare eșuată: ${customerEmail}`,
+    description: 'Webhook-ul a procesat plata dar factura SmartBill nu s-a generat automat.',
+    details: { invoice_id: invoice.id, email: customerEmail, error: String(invoiceError) }
+  });
+}
 ```
-Dacă ruta == 'fiscal-chat' SI există balanceContext cu date
-  -> Schimbă ruta la 'chat-ai' (care are acces la balanță)
-  -> Adaugă flag: fiscalQuestionWithBalance = true
+
+**La fel, in blocul `checkout.session.completed` pentru subscription (linia ~398), adăugăm un apel similar.**
+
+### 2. Noua funcție: `supabase/functions/auto-generate-invoice/index.ts`
+
+Funcție nouă care:
+- Primește datele plății (stripeInvoiceId, customerEmail, userId, amountCents)
+- Verifică autorizarea prin `SUPABASE_SERVICE_ROLE_KEY` (doar apeluri interne)
+- Verifică dacă factura SmartBill există deja (prevenire duplicate)
+- Apelează SmartBill API cu aceleași credențiale
+- Salvează rezultatul în `smartbill_invoices`
+- In caz de eșec, creează admin_alert pentru intervenție manuală
+
+Logica este similară cu `admin-generate-invoice` dar:
+- Nu necesită admin auth (folosește service role key)
+- Primește datele direct (nu re-fetch din Stripe)
+- Este non-blocking (webhook-ul nu eșuează dacă factura nu se generează)
+
+### 3. Ce NU se schimbă
+
+- Butonul manual "Emite Factură" rămâne funcțional (fallback)
+- `admin-generate-invoice` rămâne neschimbat
+- Logica de plăți/webhook rămâne aceeași
+- Verificarea duplicatelor previne emiterea dublă (dacă adminul apasă manual după auto-generare)
+
+## Flux rezultat
+
+```text
+Stripe Payment -> Webhook -> 1. Înregistrează plata in DB
+                            2. Actualizează profil
+                            3. AUTO: Apelează auto-generate-invoice
+                               -> SmartBill API -> Factură emisă
+                               -> Salvează in smartbill_invoices
+                            4. Dacă eșuează: admin_alert (facturare manuală)
 ```
 
-Aceasta asigură că întrebările fiscale DESPRE datele din balanță ajung la `chat-ai` (care știe să calculeze concret cu cifrele), iar întrebările fiscale generale (fără balanță) merg în continuare la `fiscal-chat`.
+## Beneficiu
 
-### 2. `supabase/functions/fiscal-chat/index.ts` - Creștere max_tokens
-
-Schimbare `max_tokens` de la `2000` la `4096` (la fel ca `chat-ai`) pentru cazurile când fiscal-chat e folosit fără balanță dar cu întrebări complexe.
-
-## Ce NU se schimbă
-
-- Prompt-urile rămân neschimbate (fix-urile Deep Healing anterioare rămân)
-- `chat-ai` funcționează deja corect cu balanceContext
-- Frontend-ul nu necesită modificări
-- Întrebările fiscale simple (fără balanță) merg tot la `fiscal-chat`
-
-## Rezultat așteptat
-
-Când Lost in Travel întreabă "cum calculez TVA pe marjă pentru decembrie?" și are balanța încărcată:
-- **Înainte**: fiscal-chat → răspuns generic fără cifre
-- **După**: chat-ai cu balanceContext → calcul concret cu cifrele din balanță (cont 707, cont 607, marjă reală)
-
+Fiecare plată Stripe generează automat factura SmartBill, fără intervenție manuală. Adminul primește alertă doar dacă auto-facturarea eșuează.
