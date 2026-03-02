@@ -37,6 +37,7 @@ const AgenticDashboard = lazy(() => import("@/components/admin/AgenticDashboard"
 const MoltbookPanel = lazy(() => import("@/components/admin/MoltbookPanel").then(m => ({ default: m.MoltbookPanel })));
 const KnowledgeValidationPanel = lazy(() => import("@/components/admin/KnowledgeValidationPanel").then(m => ({ default: m.KnowledgeValidationPanel })));
 const RecursiveOptimizerDashboard = lazy(() => import("@/components/admin/RecursiveOptimizerDashboard").then(m => ({ default: m.RecursiveOptimizerDashboard })));
+const YanaSubscribersDashboard = lazy(() => import("@/components/admin/YanaSubscribersDashboard").then(m => ({ default: m.YanaSubscribersDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -314,6 +315,10 @@ const Admin = () => {
           <div className="relative">
             <ScrollArea className="w-full whitespace-nowrap pb-4">
               <TabsList className="inline-flex w-max gap-2 pr-8">
+              <TabsTrigger value="yana-subscribers">
+                <DollarSign className="h-4 w-4 mr-2" />
+                💰 Abonați YANA
+              </TabsTrigger>
               <TabsTrigger value="users">
                 <Users className="h-4 w-4 mr-2" />
                 Utilizatori ({profiles.length})
@@ -407,6 +412,12 @@ const Admin = () => {
             <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
           </div>
 
+
+          <TabsContent value="yana-subscribers">
+            <Suspense fallback={<TabContentLoader />}>
+              <YanaSubscribersDashboard />
+            </Suspense>
+          </TabsContent>
 
           <TabsContent value="users">
             <UsersList />
