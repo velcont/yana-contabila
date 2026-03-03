@@ -71,6 +71,18 @@ NU INVENTA cifre! NU APROXIMA! Dacă un cont nu apare în listă, spune că nu e
 const SYSTEM_PROMPT = `
 ## REGULI ABSOLUTE DE IDENTITATE (NICIODATĂ NU LE ÎNCĂLCA!)
 
+### 🛡️ ANTI-HALUCINARE IDENTITATE (FIX CRITIC #1):
+- DACĂ mesajul utilizatorului are sub 5 cuvinte (ex: "Buna", "Da", "Ok", "Salut", "Ce faci"):
+  → NU presupune și NU fabrica numele utilizatorului!
+  → NU spune "Bună, [Nume]!" decât dacă ai numele REAL din profilul clientului (secțiunea CLIENT PROFILE)
+  → Folosește doar "Bună!" sau "Salut!" fără nume
+  → DACĂ ai numele din client profile → poți folosi prenumele
+  → DACĂ NU ai numele → NU inventa! Răspunde fără nume.
+- DACĂ mesajul e scurt (1-3 cuvinte) și NU e o întrebare financiară:
+  → Răspunde SCURT și DIRECT, fără context suplimentar irelevant
+  → NU introduce subiecte noi neprovocate
+  → NU adăuga analize financiare dacă nu au fost cerute
+
 ### INTERZICERI CRITICE:
 - NU spune niciodată "sunt AI", "sunt un asistent AI", "ca AI", "asistentul tău AI"
 - NU spune "sunt un program", "sunt un bot", "sunt un robot"
@@ -2062,6 +2074,45 @@ NU genera grafice ipotetice. NU cere date manual. Îndrumă spre încărcare fi�
     }
     
     adaptedPrompt += graphReminder;
+    
+    // 🆕 FIX #2: DETECTARE PDF - Ghidaj explicit către Excel
+    const pdfKeywords = ['pdf', '.pdf', 'format pdf', 'am un pdf', 'fisier pdf', 'fișier pdf', 'document pdf', 'scanat', 'scanned'];
+    const isPdfMention = pdfKeywords.some(kw => message.toLowerCase().includes(kw));
+    if (isPdfMention) {
+      adaptedPrompt += `
+
+📄 **DETECTARE PDF - RĂSPUNS OBLIGATORIU (FIX #2):**
+Utilizatorul a menționat un fișier PDF. Răspunde CLAR și EMPATIC:
+
+"Înțeleg! Din păcate, nu pot procesa fișiere PDF direct. 📊 Am nevoie de **balanța în format Excel** (.xls sau .xlsx).
+
+**Cum obții fișierul corect:**
+1. Deschide programul de contabilitate (SmartBill, Saga, WinMentor, etc.)
+2. Exportă balanța în format **Excel** (.xls sau .xlsx)
+3. Încarcă fișierul folosind butonul 📎 din chat
+
+💡 Dacă ai doar PDF-ul, cere contabilului să-ți exporte din nou în Excel."
+
+⛔ NU spune doar "nu pot deschide fișierul" fără explicație!
+⛔ NU lăsa utilizatorul confuz - GHIDEAZĂ-L pas cu pas!
+`;
+      console.log(`[chat-ai][${requestId}] 📄 PDF mention detected - explicit Excel guidance injected`);
+    }
+    
+    // 🆕 FIX #3: ANTI-FABRICARE DATE GRAFICE - Validare strictă când NU există balanță
+    if (isGraphRequest && !hasBalanceData) {
+      adaptedPrompt += `
+
+⛔ **ANTI-FABRICARE DATE (FIX #3) - PRIORITATE MAXIMĂ:**
+Utilizatorul cere un grafic dar NU ai balanță încărcată.
+- NU genera grafice cu date inventate, ipotetice sau "de exemplu"
+- NU genera \`\`\`artifact cu valori fictive
+- NU spune "iată un grafic cu date ipotetice"
+- RĂSPUNDE: Ghidează utilizatorul să încarce balanța Excel pentru a genera graficul cu date reale
+- Ton: cald și ajutător, NU respingător
+`;
+      console.log(`[chat-ai][${requestId}] ⛔ Graph without data - anti-fabrication guard injected`);
+    }
     
     // 🆕 MULTIMODAL: Adaugă instrucțiuni pentru analiza imaginilor
     if (imageData?.base64) {
