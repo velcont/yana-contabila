@@ -691,7 +691,8 @@ serve(async (req) => {
           accounts,
           totalGeneralDebit,
           totalGeneralCredit,
-          totalGeneralFound
+          totalGeneralFound,
+          indices
         };
       } catch (error) {
         console.error('📊 [STRUCTURED-DATA] Eroare extragere:', error);
@@ -701,7 +702,8 @@ serve(async (req) => {
           accounts: [],
           totalGeneralDebit: 0,
           totalGeneralCredit: 0,
-          totalGeneralFound: false
+          totalGeneralFound: false,
+          indices: { headerRowIndex: -1, contCol: -1, denumireCol: -1, soldFinalDebitCol: -1, soldFinalCreditCol: -1, totalSumeDebitCol: -1, totalSumeCreditCol: -1, parserVersion: PARSER_VERSION }
         };
       }
     };
@@ -753,614 +755,76 @@ serve(async (req) => {
       console.log(`⚠️ [R2-PRIORITY] Cont 121 lipsă - calculat: ${profit_from_structured} RON`);
     }
 
-    // CALCUL DETERMINIST AL INDICATORILOR DIN EXCEL
-    console.log("📊 [METADATA-EXTRACT] START: Calcul determinist indicatori financiari din Excel...");
+    // ✅ FIX 1: CALCUL DETERMINIST METADATA din structuredData.accounts (elimină parsare Excel duplicată)
+    console.log("📊 [METADATA-CALC] START: Calcul determinist indicatori din structuredData.accounts...");
     const deterministic_metadata: Record<string, number> = {};
     
     try {
-      // Parse Excel pentru a extrage date structurate
-      const excelBytes = Uint8Array.from(atob(excelBase64), c => c.charCodeAt(0));
-      const workbook = XLSX.read(excelBytes, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][];
+      const accounts = structuredData.accounts;
       
-      console.log(`📊 [METADATA-EXTRACT] Excel has ${data.length} rows`);
+      // Funcție helper: găsește sold pentru un cont (sau prefix de cont)
+      const findAccountBalance = (prefix: string, field: 'finalDebit' | 'finalCredit' | 'debit' | 'credit'): number => {
+        return accounts
+          .filter((acc: any) => acc.code === prefix || acc.code.startsWith(prefix))
+          .reduce((sum: number, acc: any) => sum + (acc[field] || 0), 0);
+      };
       
-      // Găsește indexurile coloanelor importante
-      let headerRowIndex = -1;
-      let soldFinalDebitCol = -1;
-      let soldFinalCreditCol = -1;
-      let totalSumeDebitCol = -1;
-      let totalSumeCreditCol = -1;
-      let contCol = -1;
+      // Solduri specifice din conturi
+      const soldClienti = findAccountBalance('4111', 'finalDebit') || findAccountBalance('411', 'finalDebit');
+      const soldFurnizori = findAccountBalance('401', 'finalCredit');
+      const soldBanca = findAccountBalance('5121', 'finalDebit') + findAccountBalance('5124', 'finalDebit') + findAccountBalance('5125', 'finalDebit');
+      const soldCasa = findAccountBalance('5311', 'finalDebit') || findAccountBalance('531', 'finalDebit');
+      const soldStocuri = findAccountBalance('371', 'finalDebit');
+      const soldMateriiPrime = findAccountBalance('301', 'finalDebit');
+      const soldMateriale = findAccountBalance('302', 'finalDebit');
+      const costMarfaVanduta = findAccountBalance('607', 'debit');
       
-      console.log("🔍 [METADATA-EXTRACT] Căutare header în primele 10 rânduri...");
+      // Revenue/Expenses/Profit - folosim valorile deja calculate (liniile 720-754)
+      const revenue = revenue_from_structured;
+      const expenses = expenses_from_structured;
+      const profit = profit_from_structured;
       
-      for (let i = 0; i < Math.min(10, data.length); i++) {
-        const row = data[i];
-        if (!row || row.length === 0) continue;
-        
-        const rowStr = row.join('|').toLowerCase();
-        console.log(`🔍 [METADATA-EXTRACT] Rândul ${i}: ${rowStr.substring(0, 100)}...`);
-        
-        // Detectare flexibilă: sold/finale/SF/sfd/rulaj
-        if (rowStr.includes('sold') || rowStr.includes('sf ') || rowStr.includes('sfd') || 
-            rowStr.includes('sfc') || rowStr.includes('rulaj') || rowStr.includes('finale')) {
-          headerRowIndex = i;
-          console.log(`✅ [METADATA-EXTRACT] GĂSIT header la rândul ${i}`);
-          
-          for (let j = 0; j < row.length; j++) {
-            const cell = String(row[j]).toLowerCase().trim();
-            
-            // Cont/Simbol
-            if (cell.includes('cont') || cell.includes('simbol')) {
-              contCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloana CONT găsită la index ${j}: "${row[j]}"`);
-            }
-            
-            // Sold Final Debitor
-            if ((cell.includes('sold') && cell.includes('final') && cell.includes('debit')) ||
-                (cell.includes('sf') && cell.includes('deb')) ||
-                cell === 'sfd' ||
-                (cell.includes('sold') && cell.includes('deb') && !cell.includes('credit'))) {
-              soldFinalDebitCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloana SF DEBIT găsită la index ${j}: "${row[j]}"`);
-            }
-            
-            // Sold Final Creditor
-            if ((cell.includes('sold') && cell.includes('final') && cell.includes('credit')) ||
-                (cell.includes('sf') && cell.includes('cred')) ||
-                cell === 'sfc' ||
-                (cell.includes('sold') && cell.includes('cred') && !cell.includes('debit'))) {
-              soldFinalCreditCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloana SF CREDIT găsită la index ${j}: "${row[j]}"`);
-            }
-            
-            // Rulaj/Total Debitor - recunoaște ambele variante: "Total sume" SAU "Rulaje totale"
-            if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj')) && cell.includes('debit')) ||
-                (cell.includes('rulaj') && cell.includes('debit')) ||
-                (cell === 'debit' || cell === 'd')) {
-              totalSumeDebitCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloană TOTAL/RULAJ DEBIT găsită la index ${j}: "${row[j]}"`);
-            }
-            
-            // Rulaj/Total Creditor - recunoaște ambele variante: "Total sume" SAU "Rulaje totale"
-            if ((cell.includes('total') && (cell.includes('sume') || cell.includes('rulaj')) && cell.includes('credit')) ||
-                (cell.includes('rulaj') && cell.includes('credit')) ||
-                (cell === 'credit' || cell === 'c')) {
-              totalSumeCreditCol = j;
-              console.log(`✅ [METADATA-EXTRACT] Coloană TOTAL/RULAJ CREDIT găsită la index ${j}: "${row[j]}"`);
-            }
-          }
-          break;
-        }
+      // Populează metadata
+      if (soldClienti > 0) deterministic_metadata.soldClienti = Math.round(soldClienti * 100) / 100;
+      if (soldFurnizori > 0) deterministic_metadata.soldFurnizori = Math.round(soldFurnizori * 100) / 100;
+      if (soldBanca > 0) deterministic_metadata.soldBanca = Math.round(soldBanca * 100) / 100;
+      if (soldCasa > 0) deterministic_metadata.soldCasa = Math.round(soldCasa * 100) / 100;
+      if (soldStocuri > 0) deterministic_metadata.soldStocuri = Math.round(soldStocuri * 100) / 100;
+      if (soldMateriiPrime > 0) deterministic_metadata.soldMateriiPrime = Math.round(soldMateriiPrime * 100) / 100;
+      if (soldMateriale > 0) deterministic_metadata.soldMateriale = Math.round(soldMateriale * 100) / 100;
+      if (costMarfaVanduta > 0) deterministic_metadata.costMarfaVanduta = Math.round(costMarfaVanduta * 100) / 100;
+      
+      deterministic_metadata.revenue = Math.round(revenue * 100) / 100;
+      deterministic_metadata.expenses = Math.round(expenses * 100) / 100;
+      deterministic_metadata.profit = Math.round(profit * 100) / 100;
+      
+      // Indicatori derivați
+      if (revenue > 0 && soldClienti > 0) {
+        deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
+      }
+      if (expenses > 0 && soldFurnizori > 0) {
+        deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
+      }
+      const totalStocuri = soldStocuri + soldMateriiPrime + soldMateriale;
+      if (costMarfaVanduta > 0 && totalStocuri > 0) {
+        deterministic_metadata.dio = Math.round((totalStocuri / costMarfaVanduta) * 365);
+      }
+      if (deterministic_metadata.dso && deterministic_metadata.dpo) {
+        deterministic_metadata.cashConversionCycle = deterministic_metadata.dso + (deterministic_metadata.dio || 0) - deterministic_metadata.dpo;
       }
       
-      // Fallback 2-rânduri: dacă nu am găsit coloanele TOTAL/ RULAJE pe același rând,
-      // caută eticheta de grup pe rândul header și subcoloanele DEBIT/CREDIT pe rândul următor
-      if ((totalSumeDebitCol < 0 || totalSumeCreditCol < 0) && headerRowIndex >= 0 && headerRowIndex + 1 < data.length) {
-        const headerRow = (data[headerRowIndex] || []).map((v: any) => String(v).toLowerCase().trim());
-        const subHeaderRow = (data[headerRowIndex + 1] || []).map((v: any) => String(v).toLowerCase().trim());
-
-        // Încearcă să găsești începutul zonei "rulaje totale" sau "total sume"
-        let totalStartIdx = -1;
-        for (let j = 0; j < headerRow.length; j++) {
-          const c = headerRow[j] || '';
-          if ((c.includes('rulaj') && (c.includes('total') || c.includes('totale'))) || (c.includes('total') && c.includes('sume'))) {
-            totalStartIdx = j;
-            break;
-          }
-        }
-
-        if (totalStartIdx >= 0 && subHeaderRow.length > 0) {
-          for (let j = totalStartIdx; j < Math.min(totalStartIdx + 6, subHeaderRow.length); j++) {
-            const c = subHeaderRow[j] || '';
-            if ((c.includes('debit') || c === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
-            if ((c.includes('credit') || c === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
-          }
-        } else if (subHeaderRow.length > 0) {
-          // Alt fallback: orice subheader debit/credit aliniat sub o celulă din header cu 'rulaj' sau 'total sume'
-          for (let j = 0; j < subHeaderRow.length; j++) {
-            const parent = headerRow[j] || '';
-            const child = subHeaderRow[j] || '';
-            const parentLooksLikeTotals = (parent.includes('rulaj') || (parent.includes('total') && parent.includes('sume')));
-            if (parentLooksLikeTotals) {
-              if ((child.includes('debit') || child === 'd') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
-              if ((child.includes('credit') || child === 'c') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
-            }
-          }
-        }
-
-        if (totalSumeDebitCol >= 0 || totalSumeCreditCol >= 0) {
-          console.log(`✅ [METADATA-EXTRACT] Fallback 2-rânduri a găsit coloane: Total D=${totalSumeDebitCol}, C=${totalSumeCreditCol}`);
-        }
+      // Populează detectedColumns din indicii returnați de extractStructuredData
+      if (structuredData.indices) {
+        detectedColumns.soldDebit = structuredData.indices.soldFinalDebitCol;
+        detectedColumns.soldCredit = structuredData.indices.soldFinalCreditCol;
+        detectedColumns.totalDebit = structuredData.indices.totalSumeDebitCol;
+        detectedColumns.totalCredit = structuredData.indices.totalSumeCreditCol;
       }
       
-      // ✅ FALLBACK 2-RÂNDURI PENTRU SOLDURI FINALE (similar cu Rulaje totale)
-      if ((soldFinalDebitCol < 0 || soldFinalCreditCol < 0) && headerRowIndex >= 0 && headerRowIndex + 1 < data.length) {
-        const headerRow = (data[headerRowIndex] || []).map((v: any) => String(v).toLowerCase().trim());
-        const subHeaderRow = (data[headerRowIndex + 1] || []).map((v: any) => String(v).toLowerCase().trim());
-
-        // Caută eticheta "Solduri finale" sau "SF" sau "Sold final" în header
-        let soldStartIdx = -1;
-        for (let j = 0; j < headerRow.length; j++) {
-          const c = headerRow[j] || '';
-          if ((c.includes('sold') && c.includes('final')) || 
-              (c.includes('solduri') && c.includes('finale')) ||
-              c === 'sf' || 
-              (c.includes('sold') && !c.includes('rulaj'))) {
-            soldStartIdx = j;
-            break;
-          }
-        }
-
-        if (soldStartIdx >= 0 && subHeaderRow.length > 0) {
-          // Caută "Debitoare"/"Creditoare" sau "D"/"C" în intervalul următor
-          for (let j = soldStartIdx; j < Math.min(soldStartIdx + 6, subHeaderRow.length); j++) {
-            const c = subHeaderRow[j] || '';
-            if ((c.includes('debit') || c === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
-            if ((c.includes('credit') || c === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
-          }
-        } else if (subHeaderRow.length > 0) {
-          // Alt fallback: orice subheader debit/credit aliniat sub "sold" în header
-          for (let j = 0; j < subHeaderRow.length; j++) {
-            const parent = headerRow[j] || '';
-            const child = subHeaderRow[j] || '';
-            const parentLooksLikeSold = (parent.includes('sold') || parent === 'sf');
-            if (parentLooksLikeSold) {
-              if ((child.includes('debit') || child === 'd') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
-              if ((child.includes('credit') || child === 'c') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
-            }
-          }
-        }
-
-        if (soldFinalDebitCol >= 0 || soldFinalCreditCol >= 0) {
-          console.log(`✅ [METADATA-EXTRACT] Fallback 2-rânduri pentru SOLDURI: SF D=${soldFinalDebitCol}, C=${soldFinalCreditCol}`);
-        }
-      }
-
-      console.log(`📍 [METADATA-EXTRACT] REZUMAT: Header=${headerRowIndex}, Cont=${contCol}, SF D/C=${soldFinalDebitCol}/${soldFinalCreditCol}, Total D/C=${totalSumeDebitCol}/${totalSumeCreditCol}`);
-      
-      // FALLBACK: Dacă NU am găsit header-uri, încearcă extragere FĂRĂ header
-      if (headerRowIndex === -1 || contCol === -1) {
-        
-        // Strategie alternativă: caută conturi cunoscute (4111, 401, 5121, 7xx, 6xx) direct în celule
-        let soldClienti = 0, soldFurnizori = 0, soldBanca = 0, soldCasa = 0;
-        let soldStocuri = 0, soldMateriiPrime = 0, soldMateriale = 0, costMarfaVanduta = 0;
-        let totalVenituri = 0, totalCheltuieli = 0, reduceriComerciale = 0;
-        
-        console.log("🔧 [METADATA-EXTRACT-FALLBACK] Căutare conturi DIRECTE fără header...");
-        
-        for (let i = 0; i < data.length; i++) {
-          const row = data[i];
-          if (!row || row.length === 0) continue;
-          
-          // Caută cont în prima coloană (cel mai probabil index 0 sau 1)
-          for (let contIdx = 0; contIdx <= 1; contIdx++) {
-            const cell = String(row[contIdx] || '').trim();
-            const contMatch = cell.match(/^(\d{3,4})/);
-            if (!contMatch) continue;
-            
-            const contCode = contMatch[1];
-            console.log(`🔍 [METADATA-EXTRACT-FALLBACK] Găsit cont ${contCode} la rândul ${i}`);
-            
-            // ✅ PARSER UNIVERSAL pentru fallback
-            const parseUniversalNumber = (val: any): number => {
-              if (typeof val === 'number') return val;
-              if (val === null || val === undefined || val === '') return 0;
-              
-              let str = String(val).trim();
-              const lastDotIndex = str.lastIndexOf('.');
-              const lastCommaIndex = str.lastIndexOf(',');
-              const lastSeparatorIndex = Math.max(lastDotIndex, lastCommaIndex);
-              
-              if (lastSeparatorIndex === -1) {
-                str = str.replace(/[^\d-]/g, '');
-                const num = parseFloat(str);
-                return isNaN(num) ? 0 : num;
-              }
-              
-              let integerPart = str.substring(0, lastSeparatorIndex);
-              let decimalPart = str.substring(lastSeparatorIndex + 1);
-              integerPart = integerPart.replace(/[.,]/g, '');
-              integerPart = integerPart.replace(/[^\d-]/g, '');
-              decimalPart = decimalPart.replace(/[^\d]/g, '');
-              const standardFormat = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
-              const num = parseFloat(standardFormat);
-              
-              if (isNaN(num)) return 0;
-              if (Math.abs(num) > 100 && str !== String(num)) {
-                console.log(`🔄 [PARSE-UNIVERSAL-FALLBACK] "${val}" → ${num}`);
-              }
-              return num;
-            };
-            
-            // Extrage valori din TOATE coloanele cu valori numerice
-            const extractNum = (colIdx: number): number => {
-              if (colIdx >= row.length) return 0;
-              const val = row[colIdx];
-              if (val === null || val === undefined || val === '') return 0;
-              
-              // ✅ Folosește parserul universal
-              return parseUniversalNumber(val);
-            };
-            
-            // Pentru fiecare cont, extragem TOATE valorile numerice din rând
-            const allNumbers = row.slice(1).map((cell, idx) => ({
-              value: extractNum(idx + 1),
-              colIndex: idx + 1
-            })).filter(n => n.value > 0);
-            
-            console.log(`  [FALLBACK] Cont ${contCode} - valori găsite:`, allNumbers.map(n => `[${n.colIndex}]=${n.value}`).join(', '));
-            
-            // Pentru conturi clasa 1-5: ia soldurile finale (ultimele 2 valori non-zero)
-            // Pentru conturi clasa 6-7: ia total sume (ultimele 2 valori non-zero)
-            const lastTwo = allNumbers.slice(-2);
-            const possibleSFDebit = lastTwo[0]?.value || 0;
-            const possibleSFCredit = lastTwo[1]?.value || 0;
-            const possibleTotalDebit = lastTwo[0]?.value || 0;
-            const possibleTotalCredit = lastTwo[1]?.value || 0;
-            
-            // Mapare conturi cunoscute (clasa 1-5: folosim Sold Final)
-            // ✅ ÎMBUNĂTĂȚIRE: Încearcă TOATE variantele de poziții pentru solduri finale
-            if (contCode === '4111') {
-              // Clienti - sold final debitor (ultimele 2 coloane, ia partea debit)
-              const candidati = [possibleSFDebit, possibleSFCredit, ...allNumbers.map(n => n.value)];
-              const maxClienti = Math.max(...candidati.filter(v => v > 0));
-              if (maxClienti > 0) {
-                soldClienti = maxClienti;
-                console.log(`  ✅ [FALLBACK-IMPROVED] CLIENTI (4111): ${soldClienti}`);
-              }
-            }
-            if (contCode === '401') {
-              // Furnizori - sold final creditor (ultimele 2 coloane, ia partea credit)
-              const candidati = [possibleSFCredit, possibleSFDebit, ...allNumbers.map(n => n.value)];
-              const maxFurnizori = Math.max(...candidati.filter(v => v > 0));
-              if (maxFurnizori > 0) {
-                soldFurnizori = maxFurnizori;
-                console.log(`  ✅ [FALLBACK-IMPROVED] FURNIZORI (401): ${soldFurnizori}`);
-              }
-            }
-            if (contCode === '5121' || contCode === '5124' || contCode === '5125') {
-              // Banca - sold final debitor
-              const candidati = [possibleSFDebit, possibleSFCredit, ...allNumbers.map(n => n.value)];
-              const maxBanca = Math.max(...candidati.filter(v => v > 0));
-              if (maxBanca > 0) {
-                soldBanca += maxBanca;
-                console.log(`  ✅ [FALLBACK-IMPROVED] BANCA (${contCode}): ${maxBanca} (Total: ${soldBanca})`);
-              }
-            }
-            if (contCode === '5311') {
-              // Casa - sold final debitor
-              const candidati = [possibleSFDebit, possibleSFCredit, ...allNumbers.map(n => n.value)];
-              const maxCasa = Math.max(...candidati.filter(v => v > 0));
-              if (maxCasa > 0) {
-                soldCasa = maxCasa;
-                console.log(`  ✅ [FALLBACK-IMPROVED] CASA (5311): ${soldCasa}`);
-              }
-            }
-            
-            // Venituri (clasa 7): ia valoarea maximă din rând (Total Credit)
-            if (contCode.startsWith('7') && contCode !== '709') {
-              const maxVal = Math.max(...allNumbers.map(n => n.value), 0);
-              if (maxVal > 0) {
-                totalVenituri += maxVal;
-                console.log(`  ✅ [FALLBACK-IMPROVED] VENIT ${contCode}: +${maxVal} → Total: ${totalVenituri}`);
-              }
-            }
-            if (contCode === '709') {
-              const maxVal = Math.max(...allNumbers.map(n => n.value), 0);
-              if (maxVal > 0) {
-                reduceriComerciale = maxVal;
-                console.log(`  ✅ [FALLBACK-IMPROVED] REDUCERI (709): ${reduceriComerciale}`);
-              }
-            }
-            
-            // Cheltuieli (clasa 6): ia valoarea maximă din rând (Total Debit)
-            if (contCode.startsWith('6')) {
-              const maxVal = Math.max(...allNumbers.map(n => n.value), 0);
-              if (maxVal > 0) {
-                totalCheltuieli += maxVal;
-                console.log(`  ✅ [FALLBACK-IMPROVED] CHELTUIALĂ ${contCode}: +${maxVal} → Total: ${totalCheltuieli}`);
-              }
-            }
-          }
-        }
-        
-        // ✅ R2: FOLOSEȘTE valori din structuredData dacă sunt disponibile
-        const revenue = revenue_from_structured > 0 ? revenue_from_structured : Math.max(0, totalVenituri - reduceriComerciale);
-        const expenses = expenses_from_structured > 0 ? expenses_from_structured : totalCheltuieli;
-        
-        console.log(`💰 [R2] Revenue final: ${revenue} (structured=${revenue_from_structured}, fallback=${totalVenituri - reduceriComerciale})`);
-        console.log(`💰 [R2] Expenses final: ${expenses} (structured=${expenses_from_structured}, fallback=${totalCheltuieli})`);
-        
-        // Caută contul 121 pentru profit/pierdere CORECT
-        const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
-        let profit = 0;
-        
-        if (cont121) {
-          // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
-          const debit = cont121.finalDebit || 0;
-          const credit = cont121.finalCredit || 0;
-          
-          if (credit > debit) {
-            // Sold CREDITOR = PROFIT
-            profit = credit - debit;
-            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold CREDITOR: +${profit} RON (PROFIT)`);
-          } else if (debit > credit) {
-            // Sold DEBITOR = PIERDERE (aplicăm MINUS!)
-            profit = -(debit - credit);
-            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold DEBITOR: ${profit} RON (PIERDERE)`);
-          } else {
-            profit = 0;
-            console.log(`⚖️ [PROFIT-EXTRACT] Cont 121 echilibrat: 0 RON`);
-          }
-        } else {
-          // FALLBACK: Dacă nu există cont 121, calculează din revenue - expenses
-          profit = revenue - expenses;
-          console.log(`⚠️ [PROFIT-EXTRACT] Cont 121 INEXISTENT - Calculat ca Revenue - Expenses: ${profit} RON`);
-        }
-        
-        deterministic_metadata.revenue = revenue;
-        deterministic_metadata.expenses = expenses;
-        deterministic_metadata.profit = profit;
-        deterministic_metadata.soldClienti = soldClienti;
-        deterministic_metadata.soldFurnizori = soldFurnizori;
-        deterministic_metadata.soldBanca = soldBanca;
-        deterministic_metadata.soldCasa = soldCasa;
-        deterministic_metadata.soldStocuri = soldStocuri;
-        deterministic_metadata.soldMateriiPrime = soldMateriiPrime;
-        deterministic_metadata.soldMateriale = soldMateriale;
-        
-        if (revenue > 0) deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
-        if (expenses > 0) deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
-        
-        // Calculează DIO (Days Inventory Outstanding)
-        const totalStocuri = soldStocuri + soldMateriiPrime + soldMateriale;
-        if (costMarfaVanduta > 0 && totalStocuri > 0) {
-          deterministic_metadata.dio = Math.round((totalStocuri / costMarfaVanduta) * 365);
-        }
-        
-        // Recalculează CCC cu DIO
-        if (deterministic_metadata.dso && deterministic_metadata.dpo) {
-          const dioValue = deterministic_metadata.dio || 0;
-          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso + dioValue - deterministic_metadata.dpo;
-        }
-        
-        console.log("✅ [METADATA-EXTRACT-FALLBACK] METADATA FINALĂ (fără header):", deterministic_metadata);
-        
-      } else {
-        // Proceeding with header-based extraction
-        console.log("✅ [METADATA-EXTRACT] Header-uri GĂSITE - Extragere cu header...");
-
-        /**
-         * ✅ PARSER UNIVERSAL PENTRU NUMERE
-         * 
-         * LOGICA: Ultimul separator (punct sau virgulă) = separator zecimal
-         * 
-         * Exemple:
-         *   "1.234,56"     → 1234.56  (ultimul separator = virgulă)
-         *   "1,234.56"     → 1234.56  (ultimul separator = punct)
-         *   "1.234.567,89" → 1234567.89
-         *   "1234,56"      → 1234.56
-         *   "1234.56"      → 1234.56
-         *   "1234"         → 1234
-         */
-        const parseUniversalNumber = (val: any): number => {
-          // Dacă e deja număr, returnează direct
-          if (typeof val === 'number') return val;
-          
-          // Validare input
-          if (val === null || val === undefined || val === '') return 0;
-          
-          // Convertește în string și curăță spații
-          let str = String(val).trim();
-          
-          // Găsește ultimul separator (punct sau virgulă)
-          const lastDotIndex = str.lastIndexOf('.');
-          const lastCommaIndex = str.lastIndexOf(',');
-          
-          // Determină care e ultimul separator
-          const lastSeparatorIndex = Math.max(lastDotIndex, lastCommaIndex);
-          
-          if (lastSeparatorIndex === -1) {
-            // ✅ NU are separator → număr întreg sau deja în format corect
-            // Șterge orice caracter non-numeric (ex: spații, simboluri valută)
-            str = str.replace(/[^\d-]/g, '');
-            const num = parseFloat(str);
-            return isNaN(num) ? 0 : num;
-          }
-          
-          // ✅ ARE separator → împarte în parte întreagă + zecimale
-          
-          // Partea întreagă: tot ce e înainte de ultimul separator
-          let integerPart = str.substring(0, lastSeparatorIndex);
-          
-          // Zecimale: tot ce e după ultimul separator
-          let decimalPart = str.substring(lastSeparatorIndex + 1);
-          
-          // Curăță partea întreagă: șterge TOȚI separatorii (puncte și virgule)
-          integerPart = integerPart.replace(/[.,]/g, '');
-          
-          // Curăță partea întreagă: șterge orice caracter non-numeric
-          integerPart = integerPart.replace(/[^\d-]/g, '');
-          
-          // Curăță zecimalele: șterge orice caracter non-numeric
-          decimalPart = decimalPart.replace(/[^\d]/g, '');
-          
-          // Construiește numărul în format standard: "partea_intreaga.zecimale"
-          const standardFormat = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
-          
-          // Parse final
-          const num = parseFloat(standardFormat);
-          
-          if (isNaN(num)) {
-            console.warn(`⚠️ [PARSE-UNIVERSAL] Nu s-a putut parsa: "${val}" → NaN`);
-            return 0;
-          }
-          
-          // ✅ Logging pentru debugging (doar pentru valori > 100 ca să nu spam-eze logs)
-          if (Math.abs(num) > 100 && str !== String(num)) {
-            console.log(`🔄 [PARSE-UNIVERSAL] "${val}" → ${num}`);
-          }
-          
-          return num;
-        };
-
-        // ✅ Funcție helper pentru a extrage valoare numerică
-        const getNumValue = (row: any[], colIndex: number): number => {
-          if (colIndex === -1) return 0;
-          const val = row[colIndex];
-          if (val === null || val === undefined || val === '') return 0;
-          
-          // ✅ Folosește parserul universal
-          return parseUniversalNumber(val);
-        };
-        
-        // Extrage valori pentru calcule
-        let soldClienti = 0; // 4111
-        let soldFurnizori = 0; // 401
-        let soldBanca = 0; // 5121, 5124, 5125
-        let soldCasa = 0; // 5311
-        let soldStocuri = 0; // 371
-        let soldMateriiPrime = 0; // 301
-        let soldMateriale = 0; // 302
-        let costMarfaVanduta = 0; // 607 pentru calculul DIO
-        let totalVenituri = 0; // clasa 7 (Total sume Credit)
-        let totalCheltuieli = 0; // clasa 6 (Total sume Debit)
-        let reduceriComerciale = 0; // 709
-        
-        // Parcurge toate rândurile de date
-        for (let i = headerRowIndex + 1; i < data.length; i++) {
-          const row = data[i];
-          if (!row || row.length === 0) continue;
-          
-          const cont = String(row[contCol] || '').trim();
-          if (!cont || !/^\d{3,4}/.test(cont)) continue; // Skip dacă nu e cont valid
-          
-          const contCode = cont.match(/^(\d{3,4})/)?.[1] || '';
-          
-          // Sold Final Debitor/Creditor (pentru conturi clasa 1-5)
-          const soldFinalDebit = getNumValue(row, soldFinalDebitCol);
-          const soldFinalCredit = getNumValue(row, soldFinalCreditCol);
-          
-          // Total sume Debit/Credit (pentru conturi clasa 6-7)
-          const totalSumeDebit = getNumValue(row, totalSumeDebitCol);
-          const totalSumeCredit = getNumValue(row, totalSumeCreditCol);
-          
-          // Extrage solduri specifice
-          if (contCode === '4111') soldClienti = soldFinalDebit;
-          if (contCode === '401') soldFurnizori = soldFinalCredit;
-          if (contCode === '5121' || contCode === '5124' || contCode === '5125') soldBanca += soldFinalDebit;
-          if (contCode === '5311') soldCasa = soldFinalDebit;
-          
-          // Stocuri (conturi 301, 302, 371)
-          if (contCode === '371') soldStocuri = soldFinalDebit;
-          if (contCode === '301') soldMateriiPrime = soldFinalDebit;
-          if (contCode === '302') soldMateriale = soldFinalDebit;
-          
-          // Cost marfă vândută (607) pentru calculul DIO
-          if (contCode === '607') costMarfaVanduta = totalSumeDebit;
-          
-          // Venituri (clasa 7) - Total sume Credit
-          if (contCode.startsWith('7') && contCode !== '709') {
-            totalVenituri += totalSumeCredit;
-          }
-          // Reduceri comerciale (709) - scădem din venituri
-          if (contCode === '709') {
-            reduceriComerciale = totalSumeCredit;
-          }
-          // Cheltuieli (clasa 6) - Total sume Debit
-          if (contCode.startsWith('6')) {
-            totalCheltuieli += totalSumeDebit;
-          }
-        }
-        
-        
-        // ✅ R2: FOLOSEȘTE valori din structuredData dacă sunt disponibile
-        const revenue = revenue_from_structured > 0 ? revenue_from_structured : Math.max(0, totalVenituri - reduceriComerciale);
-        const expenses = expenses_from_structured > 0 ? expenses_from_structured : totalCheltuieli;
-        
-        console.log(`💰 [R2] Revenue final: ${revenue} (structured=${revenue_from_structured}, fallback=${totalVenituri - reduceriComerciale})`);
-        console.log(`💰 [R2] Expenses final: ${expenses} (structured=${expenses_from_structured}, fallback=${totalCheltuieli})`);
-        
-        // Caută contul 121 pentru profit/pierdere CORECT
-        const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
-        let profit = 0;
-        
-        if (cont121) {
-          // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
-          const debit = cont121.finalDebit || 0;
-          const credit = cont121.finalCredit || 0;
-          
-          if (credit > debit) {
-            // Sold CREDITOR = PROFIT
-            profit = credit - debit;
-            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold CREDITOR: +${profit} RON (PROFIT)`);
-          } else if (debit > credit) {
-            // Sold DEBITOR = PIERDERE (aplicăm MINUS!)
-            profit = -(debit - credit);
-            console.log(`✅ [PROFIT-EXTRACT] Cont 121 sold DEBITOR: ${profit} RON (PIERDERE)`);
-          } else {
-            profit = 0;
-            console.log(`⚖️ [PROFIT-EXTRACT] Cont 121 echilibrat: 0 RON`);
-          }
-        } else {
-          // FALLBACK: Dacă nu există cont 121, calculează din revenue - expenses
-          profit = revenue - expenses;
-          console.log(`⚠️ [PROFIT-EXTRACT] Cont 121 INEXISTENT - Calculat ca Revenue - Expenses: ${profit} RON`);
-        }
-        
-        // Calculează indicatori
-        deterministic_metadata.revenue = revenue;
-        deterministic_metadata.expenses = expenses;
-        deterministic_metadata.profit = profit;
-        deterministic_metadata.soldClienti = soldClienti;
-        deterministic_metadata.soldFurnizori = soldFurnizori;
-        deterministic_metadata.soldBanca = soldBanca;
-        deterministic_metadata.soldCasa = soldCasa;
-        deterministic_metadata.soldStocuri = soldStocuri;
-        deterministic_metadata.soldMateriiPrime = soldMateriiPrime;
-        deterministic_metadata.soldMateriale = soldMateriale;
-        
-        // Actualizează obiectul cu indexii detectați
-        detectedColumns.soldDebit = soldFinalDebitCol;
-        detectedColumns.soldCredit = soldFinalCreditCol;
-        detectedColumns.totalDebit = totalSumeDebitCol;
-        detectedColumns.totalCredit = totalSumeCreditCol;
-        
-        // ✅ R3: LOGGING EXPLICIT pentru solduri nedetectate
-        if (soldFinalDebitCol < 0) console.warn(`⚠️ [R3] Sold Final DEBIT nedetectat (rămâne -1)`);
-        if (soldFinalCreditCol < 0) console.warn(`⚠️ [R3] Sold Final CREDIT nedetectat (rămâne -1)`);
-        if (totalSumeDebitCol < 0) console.warn(`⚠️ [R3] Total/Rulaj DEBIT nedetectat (rămâne -1)`);
-        if (totalSumeCreditCol < 0) console.warn(`⚠️ [R3] Total/Rulaj CREDIT nedetectat (rămâne -1)`);
-        
-        // DSO: (Sold Clienți / CA perioadă) * 365
-        if (revenue > 0) {
-          deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
-        }
-        
-        // DPO: (Sold Furnizori / Cheltuieli) * 365
-        if (expenses > 0) {
-          deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
-        }
-        
-        // DIO: (Stocuri totale / Cost marfă vândută) * 365
-        const totalStocuri = soldStocuri + soldMateriiPrime + soldMateriale;
-        if (costMarfaVanduta > 0 && totalStocuri > 0) {
-          deterministic_metadata.dio = Math.round((totalStocuri / costMarfaVanduta) * 365);
-        }
-        
-        // Cash Conversion Cycle: DSO + DIO - DPO
-        if (deterministic_metadata.dso && deterministic_metadata.dpo) {
-          const dioValue = deterministic_metadata.dio || 0;
-          deterministic_metadata.cashConversionCycle = deterministic_metadata.dso + dioValue - deterministic_metadata.dpo;
-        }
-        
-        console.log("✅ [METADATA-EXTRACT] METADATA FINALĂ (cu header):", deterministic_metadata);
-      }
+      console.log("✅ [METADATA-CALC] METADATA FINALĂ:", deterministic_metadata);
+      console.log("✅ [METADATA-CALC] detectedColumns:", detectedColumns);
     } catch (calcError) {
-      console.error("❌ Eroare calcul determinist:", calcError);
+      console.error("❌ [METADATA-CALC] Eroare calcul determinist:", calcError);
       console.log("⚠️ Continuăm cu extragerea din text AI");
     }
 
