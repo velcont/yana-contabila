@@ -18,6 +18,8 @@ import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
 import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
 import { TypingIndicator } from '@/components/TypingIndicator';
+import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
+import { SuggestionChips } from './SuggestionChips';
 
 interface Message {
   id: string;
@@ -72,6 +74,9 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
   const [strategySubmitted, setStrategySubmitted] = useState(false);
   const [strategyProfile, setStrategyProfile] = useState<import('@/config/aiStrategyData').BusinessProfile | null>(null);
 
+  const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+
   // Fetch user profile for personalized greeting
   useEffect(() => {
     const fetchProfile = async () => {
@@ -90,6 +95,25 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
     };
     
     fetchProfile();
+  }, [user]);
+
+  // Check if onboarding is needed
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('yana_client_profiles')
+        .select('onboarding_completed')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      // Need onboarding if no profile exists or onboarding not completed
+      const completed = (data as any)?.onboarding_completed === true;
+      setOnboardingNeeded(!completed);
+    };
+    
+    checkOnboarding();
   }, [user]);
 
   // Fetch proactive initiatives (e.g., apology messages from YANA)
@@ -712,6 +736,18 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
           />
         )}
 
+        {/* Onboarding Flow - shown for new users without completed onboarding */}
+        {onboardingNeeded && !onboardingCompleted && conversationId === null && messages.length <= 1 && (
+          <OnboardingFlow
+            userId={user!.id}
+            userName={userName}
+            onComplete={(answers) => {
+              setOnboardingCompleted(true);
+              setOnboardingNeeded(false);
+            }}
+          />
+        )}
+
         {messages.map((message) => (
           <div
             key={message.id}
@@ -919,6 +955,14 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                 </Button>
               </Link>
             </div>
+          )}
+          {/* Suggestion Chips - visible when no onboarding is in progress */}
+          {!onboardingNeeded && (
+            <SuggestionChips
+              onSendMessage={(msg) => sendMessage(msg)}
+              onUpload={() => setShowUploader(true)}
+              disabled={isLoading}
+            />
           )}
           <div className="relative flex items-end gap-2">
             <Button

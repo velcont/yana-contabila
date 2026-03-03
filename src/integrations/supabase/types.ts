@@ -4995,6 +4995,8 @@ export type Database = {
           language_complexity: string | null
           last_profile_update: string | null
           learned_corrections: Json | null
+          onboarding_answers: Json | null
+          onboarding_completed: boolean
           personality_notes: string | null
           preferred_topics: string[] | null
           recurring_problems: Json | null
@@ -5012,6 +5014,8 @@ export type Database = {
           language_complexity?: string | null
           last_profile_update?: string | null
           learned_corrections?: Json | null
+          onboarding_answers?: Json | null
+          onboarding_completed?: boolean
           personality_notes?: string | null
           preferred_topics?: string[] | null
           recurring_problems?: Json | null
@@ -5029,6 +5033,8 @@ export type Database = {
           language_complexity?: string | null
           last_profile_update?: string | null
           learned_corrections?: Json | null
+          onboarding_answers?: Json | null
+          onboarding_completed?: boolean
           personality_notes?: string | null
           preferred_topics?: string[] | null
           recurring_problems?: Json | null
