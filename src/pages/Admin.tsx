@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap, Activity } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap, Activity, Download } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -85,6 +85,36 @@ const Admin = () => {
   const [testEmail, setTestEmail] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const [exportingConversations, setExportingConversations] = useState(false);
+
+  const handleExportConversations = async () => {
+    try {
+      setExportingConversations(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Trebuie să fii autentificat");
+        return;
+      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-conversations`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } }
+      );
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `yana-conversations-${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Export conversații descărcat cu succes!");
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast.error("Eroare la exportul conversațiilor");
+    } finally {
+      setExportingConversations(false);
+    }
+  };
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -268,10 +298,16 @@ const Admin = () => {
               Vizualizare date utilizatori și conversații
             </p>
           </div>
-          <Button onClick={() => navigate("/updates")} size="lg">
-            <Package className="h-4 w-4 mr-2" />
-            Management Versiuni
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleExportConversations} disabled={exportingConversations} variant="outline" size="lg">
+              {exportingConversations ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              Export Conversații JSON
+            </Button>
+            <Button onClick={() => navigate("/updates")} size="lg">
+              <Package className="h-4 w-4 mr-2" />
+              Management Versiuni
+            </Button>
+          </div>
         </div>
 
         <Alert className="mb-6">
