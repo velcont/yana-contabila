@@ -858,7 +858,40 @@ serve(async (req) => {
       // Adaug memoryContext, history, balanceContext la payload
       routeDecision.payload.memoryContext = memoryContext;
       routeDecision.payload.history = history;
-      routeDecision.payload.balanceContext = effectiveBalanceContext || balanceContext || null;
+      
+      // 🆕 FIX COMPANY CONFUSION: Detectează dacă mesajul menționează o altă firmă decât cea din balanceContext
+      const finalBalanceContext = effectiveBalanceContext || balanceContext || null;
+      if (finalBalanceContext && message) {
+        const bcCompany = ((finalBalanceContext as { company?: string })?.company || '').toLowerCase().trim();
+        
+        if (bcCompany && bcCompany.length > 3) {
+          // Verifică dacă utilizatorul menționează explicit o altă firmă
+          const userCompanies = await supabase
+            .from('companies')
+            .select('company_name')
+            .or(`managed_by_accountant_id.eq.${user.id},user_id.eq.${user.id}`);
+          
+          const mentionedOtherCompany = (userCompanies.data || []).find(c => {
+            const cn = c.company_name.toLowerCase().trim();
+            // Verifică dacă mesajul menționează o altă firmă (nu cea curentă)
+            return cn !== bcCompany && 
+                   cn.length > 3 && 
+                   message.toLowerCase().includes(cn);
+          });
+          
+          if (mentionedOtherCompany) {
+            console.log(`[AI-Router] ⚠️ COMPANY MISMATCH: Balance is for "${bcCompany}" but user mentions "${mentionedOtherCompany.company_name}"`);
+            // Injectează un warning explicit în payload pentru AI
+            routeDecision.payload.companyMismatchWarning = 
+              `⚠️ ATENȚIE CRITICĂ: Datele financiare încărcate sunt pentru firma "${bcCompany.toUpperCase()}", ` +
+              `dar utilizatorul întreabă despre "${mentionedOtherCompany.company_name}". ` +
+              `NU AMESTECA datele! Spune-i utilizatorului că datele pe care le ai sunt pentru ${bcCompany.toUpperCase()} ` +
+              `și că trebuie să încarce balanța firmei ${mentionedOtherCompany.company_name} pentru a primi date corecte.`;
+          }
+        }
+      }
+      
+      routeDecision.payload.balanceContext = finalBalanceContext;
     }
 
     // Add conversationId for routes that require it
