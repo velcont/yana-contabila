@@ -371,7 +371,7 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           metadataUpdate.balanceContext = response.structuredData;
         }
         
-        // 🆕 FIX: Merge metadata instead of replacing to preserve balanceContext
+        // 🆕 FIX COMPANY CONFUSION: Detect if company changed and REPLACE (not merge) metadata
         const { data: existingConv } = await supabase
           .from('yana_conversations')
           .select('metadata')
@@ -379,17 +379,35 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           .single();
 
         const existingMetadata = (existingConv?.metadata || {}) as Record<string, unknown>;
-
-        await supabase
-          .from('yana_conversations')
-          .update({ 
-            metadata: {
-              ...existingMetadata,
-              ...metadataUpdate
-            } as never,
-            ...(newCompanyName ? { title: `Analiză ${newCompanyName}` } : {}),
-          })
-          .eq('id', convId);
+        
+        // Check if company changed - if so, clear old balanceContext to prevent mixing
+        const oldCompanyName = (existingMetadata.companyName as string || '').toLowerCase().trim();
+        const newCompanyLower = (newCompanyName || '').toLowerCase().trim();
+        const companyChanged = oldCompanyName && newCompanyLower && oldCompanyName !== newCompanyLower;
+        
+        if (companyChanged && response.structuredData) {
+          console.log(`[YanaChat] ⚠️ COMPANY CHANGED: "${oldCompanyName}" → "${newCompanyLower}" - REPLACING metadata (not merging)`);
+          // Full replacement: clear old balance data to prevent confusion
+          await supabase
+            .from('yana_conversations')
+            .update({ 
+              metadata: metadataUpdate as never,
+              title: `Analiză ${newCompanyName}`,
+            })
+            .eq('id', convId);
+        } else {
+          // Same company or no previous company - safe to merge
+          await supabase
+            .from('yana_conversations')
+            .update({ 
+              metadata: {
+                ...existingMetadata,
+                ...metadataUpdate
+              } as never,
+              ...(newCompanyName ? { title: `Analiză ${newCompanyName}` } : {}),
+            })
+            .eq('id', convId);
+        }
       }
 
     } catch (error) {

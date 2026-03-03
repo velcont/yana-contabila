@@ -51,6 +51,10 @@ function buildBalanceDataContext(balanceContext: any): string {
 Firmă: ${balanceContext.company || 'Necunoscut'}
 CUI: ${balanceContext.cui || 'N/A'}
 
+⛔ **IZOLARE FIRMĂ**: Aceste date aparțin EXCLUSIV firmei "${balanceContext.company || 'Necunoscut'}".
+Dacă utilizatorul întreabă despre o ALTĂ firmă, NU folosi aceste date!
+Spune-i că trebuie să încarce balanța firmei respective.
+
 **REGULĂ CONTABILĂ APLICATĂ:**
 - Clasele 1-5 (active, pasive, capitaluri, creanțe, datorii): Se afișează SOLDURI FINALE
 - Clasele 6-7 (cheltuieli, venituri): Se afișează TOTAL SUME (rulaje)
@@ -1453,6 +1457,14 @@ const ChatAIRequestSchema = z.object({
     fileName: z.string(),
     mimeType: z.string().optional()
   }).optional().nullable(),
+  // 🆕 COMPANY MISMATCH WARNING: Avertisment când utilizatorul întreabă despre altă firmă
+  companyMismatchWarning: z.string().max(1000).optional().nullable(),
+  // 🆕 IMAGE DATA: Pentru analiza multimodală a capturilor de ecran
+  imageData: z.object({
+    base64: z.string(),
+    fileName: z.string(),
+    mimeType: z.string().optional()
+  }).optional().nullable(),
   // 🆕 CONSCIOUSNESS: Context de conștiință pentru personalizare
   consciousnessContext: z.object({
     success: z.boolean().optional(),
@@ -1513,7 +1525,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData, companyMismatchWarning } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1963,7 +1975,12 @@ ${triggers.length > 0 ? `- Anticipare (menționează natural dacă e relevant):\
     // END CONSECVENȚĂ CONVERSAȚII
     // =============================================================================
     
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + memorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    // 🆕 COMPANY MISMATCH: Injectează warning dacă utilizatorul întreabă despre altă firmă
+    const companyMismatchSection = companyMismatchWarning 
+      ? `\n\n=== ⚠️ COMPANY MISMATCH WARNING (PRIORITATE MAXIMĂ) ===\n${companyMismatchWarning}\n=== END COMPANY MISMATCH ===\n` 
+      : '';
+    
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + companyMismatchSection + memorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
