@@ -216,7 +216,9 @@ serve(async (req) => {
       /\d{4}[-\/]\d{2}[-\/]\d{2}/.test(fileName) || // 2025-10-01
       /\d{2}[-\/]\d{4}/.test(fileName) ||           // 10-2025
       /\d{4}[-\/]\d{2}/.test(fileName) ||           // 2025-10
-      /(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*\d{4}/i.test(fileName);
+      /\d{6,8}/.test(fileName) ||                   // 27022026 or 022026 (date without separators)
+      /(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*\d{4}/i.test(fileName) ||
+      /(IANUARIE|FEBRUARIE|MARTIE|APRILIE|MAI|IUNIE|IULIE|AUGUST|SEPTEMBRIE|OCTOMBRIE|NOIEMBRIE|DECEMBRIE)/i.test(fileName);
 
     if (!hasDatePattern) {
       console.warn("⚠️ Denumirea fișierului NU conține lună/an:", fileName);
@@ -299,9 +301,52 @@ serve(async (req) => {
 
     console.log("Parsare Excel cu xlsx...");
     console.log("Nume fișier:", fileName);
-    const balanceText = await parseExcelWithXLSX(excelBase64);
+    let balanceText: string;
+    try {
+      balanceText = await parseExcelWithXLSX(excelBase64);
+    } catch (parseError) {
+      console.error("❌ Eroare fatală la parsarea Excel:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: "parse_failed",
+          message: "⚠️ Nu am putut citi fișierul Excel.\n\n" +
+                   "Acest lucru se întâmplă de obicei cu fișierele .xls vechi (format BIFF).\n\n" +
+                   "**Soluție:** Deschide fișierul în Excel, apoi **Salvează ca → Excel Workbook (.xlsx)** și reîncarcă-l.\n\n" +
+                   "Dacă problema persistă, contactează suportul.",
+          fileName: fileName
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
+    
+    // ✅ POST-PARSE VALIDATION: Verifică dacă datele extrase sunt suficiente
+    const lineCount = balanceText.split('\n').filter(l => l.trim().length > 0).length;
+    const hasAccountNumbers = /\b\d{3,4}\b/.test(balanceText); // Conturi contabile (3-4 cifre)
+    const hasNumericValues = /\d+\.\d{2}/.test(balanceText); // Valori numerice cu 2 zecimale
+    
+    console.log(`📊 Post-parse stats: ${lineCount} linii, hasAccounts=${hasAccountNumbers}, hasNumbers=${hasNumericValues}`);
+    
+    if (lineCount < 5 || !hasAccountNumbers || !hasNumericValues) {
+      console.error(`❌ Parsare incompletă: doar ${lineCount} linii, accounts=${hasAccountNumbers}, numbers=${hasNumericValues}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "incomplete_parse",
+          message: "⚠️ Fișierul Excel a fost citit, dar datele extrase sunt incomplete sau goale.\n\n" +
+                   "Acest lucru se întâmplă frecvent cu fișierele **.xls** (format vechi).\n\n" +
+                   "**Soluție:**\n" +
+                   "1. Deschide fișierul în Excel\n" +
+                   "2. **File → Save As → Excel Workbook (.xlsx)**\n" +
+                   "3. Reîncarcă fișierul .xlsx\n\n" +
+                   "Formatul .xlsx este mult mai fiabil pentru procesare automată.",
+          fileName: fileName,
+          stats: { lineCount, hasAccountNumbers, hasNumericValues }
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ✅ PARSER NUMERIC UNIVERSAL (RO/EN)
     const toNumber = (val: any): number => {
