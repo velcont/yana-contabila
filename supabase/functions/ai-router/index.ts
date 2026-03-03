@@ -960,6 +960,27 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       
+      // Special handling for balance analysis errors - return user-friendly messages
+      if ((routeDecision.route === 'analyze-balance' || routeDecision.route === 'analyze-balance-saga') && response.status === 400) {
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message) {
+            console.log(`[AI-Router] Balance analysis error (${errorData.error}): returning friendly message`);
+            return new Response(
+              JSON.stringify({
+                success: true,
+                response: errorData.message,
+                route: routeDecision.route,
+                error: errorData.error
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch {
+          // Not JSON, fall through
+        }
+      }
+      
       // Special handling for ANAF risk without balance - return friendly message
       if (routeDecision.route === 'calculate-anaf-risk' && response.status === 400) {
         console.log('[AI-Router] ANAF risk requested without balance - returning friendly message');
