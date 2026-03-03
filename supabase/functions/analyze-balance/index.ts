@@ -42,6 +42,7 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const SYSTEM_PROMPT = getFullAnalysisPrompt();
 
 // Parse Excel file with proper number formatting
+// v2.2.0: Enhanced .xls BIFF support with multiple fallback strategies
 async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
   try {
     // Extract base64 content from data URL if present
@@ -57,64 +58,95 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Read Excel file with proper number parsing
-    const workbook = XLSX.read(bytes, { 
-      type: 'array',
-      cellDates: false,
-      cellNF: false,  // Don't keep number formats - we want raw numbers
-      cellText: false
-    });
-    
+    // ✅ v2.2.0: Try multiple parse strategies for .xls compatibility
+    const parseStrategies = [
+      // Strategy 1: Raw numeric values (best for .xlsx)
+      { type: 'array', cellDates: false, cellNF: false, cellText: false, raw: true },
+      // Strategy 2: With cellText enabled (better for some .xls BIFF files)
+      { type: 'array', cellDates: false, cellNF: true, cellText: true, raw: false },
+      // Strategy 3: Minimal options (maximum compatibility for old .xls)
+      { type: 'array' },
+    ];
+
+    let workbook: any = null;
+    let strategyUsed = 0;
+
+    for (let i = 0; i < parseStrategies.length; i++) {
+      try {
+        workbook = XLSX.read(bytes, parseStrategies[i]);
+        
+        // Verify we actually got data
+        if (workbook && workbook.SheetNames && workbook.SheetNames.length > 0) {
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const testData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+          
+          // Check if we got meaningful data (at least 5 rows with content)
+          const nonEmptyRows = (testData as any[][]).filter(
+            (row: any[]) => row.some((cell: any) => cell !== '' && cell !== null && cell !== undefined)
+          ).length;
+          
+          if (nonEmptyRows >= 5) {
+            strategyUsed = i;
+            console.log(`✅ [XLSX] Strategy ${i} succeeded: ${nonEmptyRows} non-empty rows, ${workbook.SheetNames.length} sheets`);
+            break;
+          } else {
+            console.warn(`⚠️ [XLSX] Strategy ${i} parsed but only ${nonEmptyRows} non-empty rows, trying next...`);
+            workbook = null; // Reset to try next strategy
+          }
+        }
+      } catch (strategyError) {
+        console.warn(`⚠️ [XLSX] Strategy ${i} failed:`, strategyError);
+        workbook = null;
+      }
+    }
+
+    if (!workbook) {
+      throw new Error("Toate strategiile de parsare au eșuat - fișierul .xls nu poate fi citit");
+    }
+
     let fullText = "";
+    const useRawNumbers = strategyUsed === 0; // Only strategy 0 uses raw numbers
     
     // Extract text from all sheets with proper number formatting
-    workbook.SheetNames.forEach(sheetName => {
+    workbook.SheetNames.forEach((sheetName: string) => {
       const sheet = workbook.Sheets[sheetName];
       
-      // Convert sheet to JSON with RAW numeric values
+      // Convert sheet to JSON
       const jsonData = XLSX.utils.sheet_to_json(sheet, { 
         header: 1,
-        raw: true, // Get raw numeric values, not formatted strings
+        raw: useRawNumbers,
         defval: '' 
       });
       
       // Convert JSON back to CSV with consistent number formatting
       let csvText = '';
-      jsonData.forEach((row: any) => {
+      (jsonData as any[][]).forEach((row: any[]) => {
         const formattedRow = row.map((cell: any) => {
           // Format all numbers consistently with dot as decimal separator
           if (typeof cell === 'number') {
-            // Format with 2 decimals for consistency
             return cell.toFixed(2);
           }
-          // If it's a string that looks like a Romanian formatted number, convert it
           if (typeof cell === 'string') {
             const trimmed = cell.trim();
             
-            // Pattern 1: Romanian format with dots as thousand separators and comma as decimal: 1.234.567,89
+            // Pattern 1: Romanian format: 1.234.567,89
             if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(trimmed)) {
               const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
               const parsed = parseFloat(cleaned);
-              if (!isNaN(parsed)) {
-                return parsed.toFixed(2);
-              }
+              if (!isNaN(parsed)) return parsed.toFixed(2);
             }
             
-            // Pattern 2: Simple comma as decimal: 1234,56
+            // Pattern 2: Simple comma decimal: 1234,56
             if (/^\d+(,\d+)$/.test(trimmed)) {
               const cleaned = trimmed.replace(',', '.');
               const parsed = parseFloat(cleaned);
-              if (!isNaN(parsed)) {
-                return parsed.toFixed(2);
-              }
+              if (!isNaN(parsed)) return parsed.toFixed(2);
             }
             
-            // Pattern 3: Already correct format: 1234.56
+            // Pattern 3: Already dot format: 1234.56
             if (/^\d+(\.\d+)?$/.test(trimmed)) {
               const parsed = parseFloat(trimmed);
-              if (!isNaN(parsed)) {
-                return parsed.toFixed(2);
-              }
+              if (!isNaN(parsed)) return parsed.toFixed(2);
             }
           }
           return cell;
@@ -125,11 +157,11 @@ async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
       fullText += `\n=== Sheet: ${sheetName} ===\n${csvText}\n`;
     });
     
-    console.log("Excel parsed with preserved decimal formatting");
+    console.log(`✅ [XLSX] Excel parsed with strategy ${strategyUsed}, text length: ${fullText.length}`);
     return fullText.trim();
   } catch (error) {
-    console.error("Error parsing Excel with xlsx:", error);
-    throw new Error("Nu s-a putut extrage textul din Excel");
+    console.error("❌ [XLSX] Error parsing Excel:", error);
+    throw new Error(`Nu s-a putut extrage textul din Excel: ${error instanceof Error ? error.message : 'eroare necunoscută'}`);
   }
 }
 
@@ -253,17 +285,7 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    const authHeader = req.headers.get('Authorization');
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      authHeader ? {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      } : undefined
-    );
+    // ✅ v2.2.0 FIX: Reuse supabaseClient from outer scope (removes duplicate declaration bug)
 
     // Save original file to storage
     console.log("Salvare fișier original în storage...");
