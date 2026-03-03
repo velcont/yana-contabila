@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { z } from 'https://esm.sh/zod@3.22.4';
 import { getFullAnalysisPrompt } from "../_shared/full-analysis-prompt.ts";
+import { parseExcelWithXLSX } from "../_shared/balance-parser.ts";
+import { extractStructuredData, calculateRevenueExpenses, calculateDeterministicMetadata } from "../_shared/balance-structured-extraction.ts";
+import { extractAccountValue, extractAllAccounts, groupAccountsByClass, groupExpenseRevenueAccounts, extractMetadataFromAnalysis } from "../_shared/balance-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,19 +12,15 @@ const corsHeaders = {
 };
 
 // 🔒 VALIDARE INPUT SCHEMA
-// ✅ FIX: Accept both data URL format AND pure base64
 const AnalyzeBalanceInputSchema = z.object({
   excelBase64: z.string()
     .min(1, "Fișierul Excel este vid")
     .refine((val) => {
       try {
-        // Accept data URL format: data:mime/type;base64,CONTENT
         if (val.includes(';base64,')) {
           const base64Part = val.split(';base64,')[1];
-          // Check if base64 part is valid (basic check)
           return base64Part && base64Part.length > 0 && /^[A-Za-z0-9+/=]+$/.test(base64Part);
         }
-        // Accept pure base64
         return /^[A-Za-z0-9+/=]+$/.test(val);
       } catch {
         return false;
@@ -41,129 +39,8 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 // ✅ UNICA SURSĂ DE ADEVĂR - Import din fișierul partajat
 const SYSTEM_PROMPT = getFullAnalysisPrompt();
 
-// Parse Excel file with proper number formatting
-// v2.2.0: Enhanced .xls BIFF support with multiple fallback strategies
-async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
-  try {
-    // Extract base64 content from data URL if present
-    let base64Content = excelBase64;
-    if (excelBase64.includes(',')) {
-      base64Content = excelBase64.split(',')[1];
-    }
-    
-    // Convert base64 to Uint8Array
-    const binaryString = atob(base64Content);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // ✅ v2.2.0: Try multiple parse strategies for .xls compatibility
-    const parseStrategies = [
-      // Strategy 1: Raw numeric values (best for .xlsx)
-      { type: 'array', cellDates: false, cellNF: false, cellText: false, raw: true },
-      // Strategy 2: With cellText enabled (better for some .xls BIFF files)
-      { type: 'array', cellDates: false, cellNF: true, cellText: true, raw: false },
-      // Strategy 3: Minimal options (maximum compatibility for old .xls)
-      { type: 'array' },
-    ];
-
-    let workbook: any = null;
-    let strategyUsed = 0;
-
-    for (let i = 0; i < parseStrategies.length; i++) {
-      try {
-        workbook = XLSX.read(bytes, parseStrategies[i]);
-        
-        // Verify we actually got data
-        if (workbook && workbook.SheetNames && workbook.SheetNames.length > 0) {
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const testData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-          
-          // Check if we got meaningful data (at least 5 rows with content)
-          const nonEmptyRows = (testData as any[][]).filter(
-            (row: any[]) => row.some((cell: any) => cell !== '' && cell !== null && cell !== undefined)
-          ).length;
-          
-          if (nonEmptyRows >= 5) {
-            strategyUsed = i;
-            console.log(`✅ [XLSX] Strategy ${i} succeeded: ${nonEmptyRows} non-empty rows, ${workbook.SheetNames.length} sheets`);
-            break;
-          } else {
-            console.warn(`⚠️ [XLSX] Strategy ${i} parsed but only ${nonEmptyRows} non-empty rows, trying next...`);
-            workbook = null; // Reset to try next strategy
-          }
-        }
-      } catch (strategyError) {
-        console.warn(`⚠️ [XLSX] Strategy ${i} failed:`, strategyError);
-        workbook = null;
-      }
-    }
-
-    if (!workbook) {
-      throw new Error("Toate strategiile de parsare au eșuat - fișierul .xls nu poate fi citit");
-    }
-
-    let fullText = "";
-    const useRawNumbers = strategyUsed === 0; // Only strategy 0 uses raw numbers
-    
-    // Extract text from all sheets with proper number formatting
-    workbook.SheetNames.forEach((sheetName: string) => {
-      const sheet = workbook.Sheets[sheetName];
-      
-      // Convert sheet to JSON
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { 
-        header: 1,
-        raw: useRawNumbers,
-        defval: '' 
-      });
-      
-      // Convert JSON back to CSV with consistent number formatting
-      let csvText = '';
-      (jsonData as any[][]).forEach((row: any[]) => {
-        const formattedRow = row.map((cell: any) => {
-          // Format all numbers consistently with dot as decimal separator
-          if (typeof cell === 'number') {
-            return cell.toFixed(2);
-          }
-          if (typeof cell === 'string') {
-            const trimmed = cell.trim();
-            
-            // Pattern 1: Romanian format: 1.234.567,89
-            if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(trimmed)) {
-              const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
-              const parsed = parseFloat(cleaned);
-              if (!isNaN(parsed)) return parsed.toFixed(2);
-            }
-            
-            // Pattern 2: Simple comma decimal: 1234,56
-            if (/^\d+(,\d+)$/.test(trimmed)) {
-              const cleaned = trimmed.replace(',', '.');
-              const parsed = parseFloat(cleaned);
-              if (!isNaN(parsed)) return parsed.toFixed(2);
-            }
-            
-            // Pattern 3: Already dot format: 1234.56
-            if (/^\d+(\.\d+)?$/.test(trimmed)) {
-              const parsed = parseFloat(trimmed);
-              if (!isNaN(parsed)) return parsed.toFixed(2);
-            }
-          }
-          return cell;
-        });
-        csvText += formattedRow.join(',') + '\n';
-      });
-      
-      fullText += `\n=== Sheet: ${sheetName} ===\n${csvText}\n`;
-    });
-    
-    console.log(`✅ [XLSX] Excel parsed with strategy ${strategyUsed}, text length: ${fullText.length}`);
-    return fullText.trim();
-  } catch (error) {
-    console.error("❌ [XLSX] Error parsing Excel:", error);
-    throw new Error(`Nu s-a putut extrage textul din Excel: ${error instanceof Error ? error.message : 'eroare necunoscută'}`);
-  }
-}
+// ✅ PARSER VERSION - incrementează la fiecare fix pentru invalidare automată cache
+const PARSER_VERSION = '2.1.0';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -178,14 +55,12 @@ serve(async (req) => {
     );
   }
 
-  // 🔐 Extract JWT token from header
   const token = authHeader.replace('Bearer ', '');
   
   const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } }
   });
 
-  // 🔐 Pass token explicitly to getUser() - this is required in Deno edge functions
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
   if (authError || !user) {
     console.error('❌ [AUTH] Invalid token:', authError?.message || 'User not found');
@@ -216,7 +91,6 @@ serve(async (req) => {
     const { excelBase64: rawExcelBase64, fileName, forceReprocess = false } = validationResult.data;
     
     // ✅ CRITICAL FIX: Extract pure base64 content from data URL format
-    // data:application/vnd.ms-excel;base64,CONTENT -> CONTENT
     let excelBase64 = rawExcelBase64;
     if (rawExcelBase64.includes(';base64,')) {
       excelBase64 = rawExcelBase64.split(';base64,')[1];
@@ -241,20 +115,19 @@ serve(async (req) => {
       );
     }
 
-    // FAZA 1: Validare denumire fișier - trebuie să conțină lună/an
+    // FAZA 1: Validare denumire fișier
     console.log("🔍 Validare denumire fișier:", fileName);
     const hasDatePattern = 
-      /\d{2}[-\/]\d{2}[-\/]\d{4}/.test(fileName) || // 01-10-2025
-      /\d{4}[-\/]\d{2}[-\/]\d{2}/.test(fileName) || // 2025-10-01
-      /\d{2}[-\/]\d{4}/.test(fileName) ||           // 10-2025
-      /\d{4}[-\/]\d{2}/.test(fileName) ||           // 2025-10
-      /\d{6,8}/.test(fileName) ||                   // 27022026 or 022026 (date without separators)
+      /\d{2}[-\/]\d{2}[-\/]\d{4}/.test(fileName) ||
+      /\d{4}[-\/]\d{2}[-\/]\d{2}/.test(fileName) ||
+      /\d{2}[-\/]\d{4}/.test(fileName) ||
+      /\d{4}[-\/]\d{2}/.test(fileName) ||
+      /\d{6,8}/.test(fileName) ||
       /(ianuarie|februarie|martie|aprilie|mai|iunie|iulie|august|septembrie|octombrie|noiembrie|decembrie)\s*\d{4}/i.test(fileName) ||
       /(IANUARIE|FEBRUARIE|MARTIE|APRILIE|MAI|IUNIE|IULIE|AUGUST|SEPTEMBRIE|OCTOMBRIE|NOIEMBRIE|DECEMBRIE)/i.test(fileName);
 
     if (!hasDatePattern) {
       console.warn("⚠️ Denumirea fișierului NU conține lună/an:", fileName);
-      
       return new Response(
         JSON.stringify({ 
           error: "invalid_filename",
@@ -275,17 +148,14 @@ serve(async (req) => {
 
     console.log("✅ Denumire fișier validă (conține lună/an)");
 
-    // ✅ SECURITY FIX: File size validation (zip bomb protection)
-    // Base64 encoding increases size by ~33%, so 10MB limit = ~7.5MB original
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in base64
+    // ✅ File size validation (zip bomb protection)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
     if (excelBase64.length > MAX_FILE_SIZE) {
       return new Response(
         JSON.stringify({ error: "Fișierul este prea mare. Maximum 7.5MB." }),
         { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // ✅ v2.2.0 FIX: Reuse supabaseClient from outer scope (removes duplicate declaration bug)
 
     // Save original file to storage
     console.log("Salvare fișier original în storage...");
@@ -294,12 +164,10 @@ serve(async (req) => {
     const storagePath = `${timestamp}_${sanitizedFileName}`;
     
     try {
-      // Extract base64 content from data URL if present
       let base64ForStorage = excelBase64;
       if (excelBase64.includes(',')) {
         base64ForStorage = excelBase64.split(',')[1];
       }
-      // Convert base64 to bytes
       const fileBytes = Uint8Array.from(atob(base64ForStorage), c => c.charCodeAt(0));
       
       const { error: uploadError } = await supabaseClient
@@ -312,13 +180,11 @@ serve(async (req) => {
 
       if (uploadError) {
         console.error("Eroare salvare în storage:", uploadError);
-        // Continue with analysis even if storage fails
       } else {
         console.log("Fișier salvat în storage:", storagePath);
       }
     } catch (storageError) {
       console.error("Eroare salvare fișier:", storageError);
-      // Continue with analysis
     }
 
     console.log("Parsare Excel cu xlsx...");
@@ -344,10 +210,10 @@ serve(async (req) => {
     console.log("Text extras (primele 500 caractere):", balanceText.slice(0, 500));
     console.log("Lungime totală text extras:", balanceText.length);
     
-    // ✅ POST-PARSE VALIDATION: Verifică dacă datele extrase sunt suficiente
+    // ✅ POST-PARSE VALIDATION
     const lineCount = balanceText.split('\n').filter(l => l.trim().length > 0).length;
-    const hasAccountNumbers = /\b\d{3,4}\b/.test(balanceText); // Conturi contabile (3-4 cifre)
-    const hasNumericValues = /\d+\.\d{2}/.test(balanceText); // Valori numerice cu 2 zecimale
+    const hasAccountNumbers = /\b\d{3,4}\b/.test(balanceText);
+    const hasNumericValues = /\d+\.\d{2}/.test(balanceText);
     
     console.log(`📊 Post-parse stats: ${lineCount} linii, hasAccounts=${hasAccountNumbers}, hasNumbers=${hasNumericValues}`);
     
@@ -370,345 +236,9 @@ serve(async (req) => {
       );
     }
 
-    // ✅ PARSER NUMERIC UNIVERSAL (RO/EN)
-    const toNumber = (val: any): number => {
-      if (val === null || val === undefined) return 0;
-      let str = String(val).trim();
-      if (!str) return 0;
-      const lastDot = str.lastIndexOf('.');
-      const lastComma = str.lastIndexOf(',');
-      const lastSep = Math.max(lastDot, lastComma);
-      if (lastSep !== -1) {
-        let integerPart = str.substring(0, lastSep).replace(/[.,\s]/g, '').replace(/[^\d-]/g, '');
-        let decimalPart = str.substring(lastSep + 1).replace(/[^\d]/g, '');
-        const standard = decimalPart ? `${integerPart}.${decimalPart}` : integerPart;
-        const num = parseFloat(standard);
-        return isNaN(num) ? 0 : num;
-      }
-      str = str.replace(/[^\d-]/g, '');
-      const num = parseFloat(str);
-      return isNaN(num) ? 0 : num;
-    };
-
-    // ✅ PARSER VERSION - incrementează la fiecare fix pentru invalidare automată cache
-    const PARSER_VERSION = '2.1.0';
-    
-    // ✅ R1: FUNCȚIE UNIFICATĂ PENTRU DETECȚIA HEADER-URILOR (folosită de ambii extractori)
-    // 🔧 v2.1.0: Refactorizare cu detecție bazată pe ORDINEA perechilor D/C din subheader
-    const detectHeaderIndices = (data: any[][]) => {
-      let headerRowIndex = -1;
-      let mainHeaderRow = -1;
-      let subHeaderRow = -1;
-      let contCol = -1, denumireCol = -1;
-      let soldFinalDebitCol = -1, soldFinalCreditCol = -1;
-      let totalSumeDebitCol = -1, totalSumeCreditCol = -1;
-      
-      // PASUL 1: Detectează header pe 2 rânduri
-      for (let i = 0; i < Math.min(15, data.length); i++) {
-        const rowStr = data[i].join('|').toLowerCase();
-        // ✅ VELCONT & alte exporturi pot avea "SOLD" și "FINAL" în celule separate (ex: "sold|final"),
-        // deci nu ne bazăm strict pe expresia "sold final" ca substring.
-        const hasSoldFinalPhrase = rowStr.includes('solduri finale') || rowStr.includes('sold final');
-        const hasSoldAndFinalWords =
-          (rowStr.includes('sold') && rowStr.includes('final')) ||
-          (rowStr.includes('solduri') && rowStr.includes('finale'));
-
-        if ((hasSoldFinalPhrase || hasSoldAndFinalWords) && mainHeaderRow < 0) {
-          mainHeaderRow = i;
-          subHeaderRow = i + 1;
-          headerRowIndex = i;
-          console.log(`📊 [HEADER-DETECT-UNIFIED v${PARSER_VERSION}] Header pe 2 rânduri: main=${mainHeaderRow}, sub=${subHeaderRow}`);
-        }
-        if (headerRowIndex < 0 && (rowStr.includes('sold') || (rowStr.includes('cont') && rowStr.includes('denumire')))) {
-          headerRowIndex = i;
-          console.log(`📊 [HEADER-DETECT-UNIFIED v${PARSER_VERSION}] Header simplu pe 1 rând: ${headerRowIndex}`);
-        }
-      }
-      
-      // PASUL 2: Detectează coloana cont și denumire
-      if (headerRowIndex >= 0) {
-        const row = data[headerRowIndex];
-        for (let j = 0; j < row.length; j++) {
-          const cell = String(row[j]).toLowerCase().trim();
-          if ((cell.includes('cont') || cell.includes('simbol')) && contCol === -1) contCol = j;
-          if ((cell.includes('denumire') || cell.includes('explicatii')) && denumireCol === -1) denumireCol = j;
-        }
-      }
-      
-      // === PASUL 3 REFACTORIZAT v2.1.0: Detectăm coloanele prin PERECHI D/C ===
-      // În loc să căutăm keywords imprecise ("total sume", "solduri finale"),
-      // identificăm TOATE perechile Debit/Credit din subheader și folosim ORDINEA lor:
-      // - SmartBill/Saga: SI, Rulaje, Total Sume, Solduri Finale (de la stânga la dreapta)
-      // - Deci: ultima pereche = SF, penultima = Total Sume
-      if (mainHeaderRow >= 0 && subHeaderRow < data.length) {
-        const subHeader = data[subHeaderRow];
-        
-        // Găsim TOATE perechile Debit/Credit din subheader
-        const debitCreditPairs: Array<{debitCol: number, creditCol: number}> = [];
-        
-        for (let j = 0; j < subHeader.length - 1; j++) {
-          const cell = String(subHeader[j]).toLowerCase().trim();
-          const nextCell = String(subHeader[j + 1]).toLowerCase().trim();
-          
-          const isDebit = cell.includes('debit') || cell === 'd' || cell.includes('debitoare');
-          const isCredit = nextCell.includes('credit') || nextCell === 'c' || nextCell.includes('creditoare');
-          
-          if (isDebit && isCredit) {
-            debitCreditPairs.push({ debitCol: j, creditCol: j + 1 });
-            console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] Găsită pereche D/C la coloane ${j}/${j+1}`);
-            j++; // Skip next since it's part of this pair
-          }
-        }
-        
-        console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] Total perechi D/C găsite: ${debitCreditPairs.length}`);
-        
-        // Ordinea fixă (de la stânga la dreapta): SI, Rulaje, Total Sume, SF
-        // Deci: ultima pereche = SF, penultima = Total Sume
-        if (debitCreditPairs.length >= 2) {
-          const sfPair = debitCreditPairs[debitCreditPairs.length - 1];
-          const tsPair = debitCreditPairs[debitCreditPairs.length - 2];
-          
-          soldFinalDebitCol = sfPair.debitCol;
-          soldFinalCreditCol = sfPair.creditCol;
-          totalSumeDebitCol = tsPair.debitCol;
-          totalSumeCreditCol = tsPair.creditCol;
-          
-          console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] PERECHI: SF=${sfPair.debitCol}/${sfPair.creditCol}, TS=${tsPair.debitCol}/${tsPair.creditCol}`);
-        } else if (debitCreditPairs.length === 1) {
-          // Fallback: o singură pereche = presupunem că sunt Solduri Finale
-          const pair = debitCreditPairs[0];
-          soldFinalDebitCol = pair.debitCol;
-          soldFinalCreditCol = pair.creditCol;
-          // Total Sume = aceleași (balanțe simplificate)
-          totalSumeDebitCol = pair.debitCol;
-          totalSumeCreditCol = pair.creditCol;
-          console.log(`📊 [HEADER-DETECT v${PARSER_VERSION}] FALLBACK: O singură pereche D/C, folosită pentru SF și TS`);
-        }
-      }
-      
-      // PASUL 4: Fallback - header pe 1 rând (dacă nu am găsit perechi)
-      if ((soldFinalDebitCol < 0 || totalSumeDebitCol < 0) && headerRowIndex >= 0) {
-        const row = data[headerRowIndex];
-        for (let j = 0; j < row.length; j++) {
-          const cell = String(row[j]).toLowerCase().trim();
-          if (cell.includes('sold') && cell.includes('final')) {
-            if (cell.includes('debit') && soldFinalDebitCol < 0) soldFinalDebitCol = j;
-            if (cell.includes('credit') && soldFinalCreditCol < 0) soldFinalCreditCol = j;
-          }
-          if ((cell.includes('total') && cell.includes('sume')) || cell.includes('rulaj')) {
-            if (cell.includes('debit') && totalSumeDebitCol < 0) totalSumeDebitCol = j;
-            if (cell.includes('credit') && totalSumeCreditCol < 0) totalSumeCreditCol = j;
-          }
-        }
-      }
-      
-      console.log(`📊 [HEADER-DETECT-UNIFIED v${PARSER_VERSION}] REZULTAT FINAL:`, {
-        headerRow: headerRowIndex,
-        cont: contCol,
-        denumire: denumireCol,
-        soldFinalD: soldFinalDebitCol,
-        soldFinalC: soldFinalCreditCol,
-        totalSumeD: totalSumeDebitCol,
-        totalSumeC: totalSumeCreditCol,
-        parserVersion: PARSER_VERSION
-      });
-      
-      return {
-        headerRowIndex,
-        contCol,
-        denumireCol,
-        soldFinalDebitCol,
-        soldFinalCreditCol,
-        totalSumeDebitCol,
-        totalSumeCreditCol,
-        parserVersion: PARSER_VERSION
-      };
-    };
-
-    // 📊 EXTRAGERE DATE STRUCTURATE PENTRU GENERARE WORD
-    console.log("📊 [STRUCTURED-DATA] START: Extragere CUI, companie și conturi pentru Word...");
-    const extractStructuredData = () => {
-      try {
-        const excelBytes = Uint8Array.from(atob(excelBase64), c => c.charCodeAt(0));
-        const workbook = XLSX.read(excelBytes, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' }) as any[][];
-        
-        let cui = '';
-        let company = '';
-        const accounts: any[] = [];
-        
-        // 1. Extrage CUI și companie din primele rânduri
-        for (let i = 0; i < Math.min(10, data.length); i++) {
-          const firstCell = String(data[i][0] || '');
-          const cuiMatch = firstCell.match(/CUI:?\s*(\d{8,10})/i) || firstCell.match(/(\d{8,10})/);
-          if (cuiMatch && !cui) cui = cuiMatch[1];
-          const companyMatch = firstCell.split('|')[0].split(/CUI|CIF/i)[0].trim();
-          if (companyMatch && companyMatch.length > 3 && !company) company = companyMatch;
-        }
-        
-        console.log(`📊 [STRUCTURED-DATA] CUI detectat: ${cui}, Companie: ${company}`);
-        
-        // ✅ R1: Folosește detectHeaderIndices UNIFICAT
-        const indices = detectHeaderIndices(data);
-        
-        console.log(`📊 [STRUCTURED-DATA] Indici folosiți:`, indices);
-        
-        // 3. Parcurge rândurile de date
-        if (indices.headerRowIndex >= 0 && indices.contCol >= 0) {
-          for (let i = indices.headerRowIndex + 1; i < data.length; i++) {
-            const row = data[i];
-            const contCodeFull = String(row[indices.contCol] || '').trim();
-            
-            // ✅ FIX: Extrage DOAR partea numerică (3-6 cifre) din cod cont
-            // SmartBill folosește conturi analitice de 5-6 cifre (ex: 41101, 51211)
-            // Rezolvă bug-ul când coloana conține "121 - Profit sau pierdere" în loc de "121"
-            const contCodeMatch = contCodeFull.match(/^(\d{3,6})/);
-            if (!contCodeMatch) continue;
-            // Normalizează la primele 3 cifre pentru clasificare (clasa contabilă)
-            const contCodeFull6 = contCodeMatch[1];
-            const contCode = contCodeFull6.substring(0, 3); // Pentru accountClass
-            const contCodeForStorage = contCodeFull6; // Păstrăm codul complet pentru stocare
-            
-            // 🔍 DEBUG pentru contul 371 - verificăm extragerea
-            if (contCode === '371') {
-              console.log(`🔍 [DEBUG-371] Row ${i}: contCode=${contCode}, soldFinalDebitCol=${indices.soldFinalDebitCol}, rawValue=${row[indices.soldFinalDebitCol]}`);
-            }
-            
-            const accountClass = parseInt(contCode[0]);
-            // Extrage denumirea din coloana dedicată SAU din string-ul complet dacă lipsește
-            const denumireFromCol = indices.denumireCol >= 0 ? String(row[indices.denumireCol] || '').trim() : '';
-            const denumire = denumireFromCol || contCodeFull.replace(/^\d+\s*[-–]\s*/, '').trim();
-            
-            let debit = 0, credit = 0;
-            
-            // Clase 1-5: folosește solduri finale
-            if (accountClass >= 1 && accountClass <= 5) {
-              if (indices.soldFinalDebitCol >= 0) debit = toNumber(row[indices.soldFinalDebitCol]);
-              if (indices.soldFinalCreditCol >= 0) credit = toNumber(row[indices.soldFinalCreditCol]);
-            }
-            // Clasa 6: Total sume debitoare
-            else if (accountClass === 6) {
-              if (indices.totalSumeDebitCol >= 0) debit = toNumber(row[indices.totalSumeDebitCol]);
-            }
-            // Clasa 7: Total sume creditoare
-            else if (accountClass === 7) {
-              if (indices.totalSumeCreditCol >= 0) credit = toNumber(row[indices.totalSumeCreditCol]);
-            }
-            
-            if (debit > 0 || credit > 0) {
-              const accountObj: any = {
-                code: contCodeForStorage, // Folosim codul complet (ex: 41101)
-                name: denumire,
-                accountClass
-              };
-              
-              // ✅ Clase 1-5: salvează ca finalDebit/finalCredit (solduri finale)
-              if (accountClass >= 1 && accountClass <= 5) {
-                accountObj.finalDebit = Math.round(debit * 100) / 100;
-                accountObj.finalCredit = Math.round(credit * 100) / 100;
-                accountObj.debit = 0;
-                accountObj.credit = 0;
-              } 
-              // ✅ Clase 6-7: salvează ca debit/credit (total sume)
-              else {
-                accountObj.debit = Math.round(debit * 100) / 100;
-                accountObj.credit = Math.round(credit * 100) / 100;
-                accountObj.finalDebit = 0;
-                accountObj.finalCredit = 0;
-              }
-              
-              accounts.push(accountObj);
-              
-              // 🔍 DEBUG pentru contul 371
-              if (contCode === '371') {
-                console.log(`🔍 [DEBUG-371] SALVAT: finalDebit=${accountObj.finalDebit}, finalCredit=${accountObj.finalCredit}`);
-              }
-              
-              // ✅ LOGGING DETALIAT pentru clasa 7
-              if (accountClass === 7 && accountObj.credit > 0) {
-                console.log(`✅ [CL7] Cont ${contCode} (col ${indices.totalSumeCreditCol}): ${accountObj.credit} RON`);
-              }
-            }
-          }
-        }
-        
-        console.log(`📊 [STRUCTURED-DATA] Extrase ${accounts.length} conturi cu sold > 0`);
-        if (accounts.length > 0) {
-          console.log('📊 [STRUCTURED-DATA] Primele 3 conturi:', accounts.slice(0, 3).map(acc => ({
-            code: acc.code,
-            name: acc.name,
-            debit: acc.debit,
-            credit: acc.credit,
-            class: acc.accountClass
-          })));
-        }
-        
-        // ✅ EXTRAGE TOTALURI DIN RÂNDUL "TOTAL GENERAL" (dacă există)
-        // Aceasta este sursa de adevăr pentru validarea balanței
-        let totalGeneralDebit = 0;
-        let totalGeneralCredit = 0;
-        let totalGeneralFound = false;
-        
-        console.log("🔍 [TOTAL-GENERAL] Căutare rând Total general...");
-        
-        for (let i = data.length - 1; i >= Math.max(0, data.length - 20); i--) {
-          const row = data[i];
-          if (!row || row.length === 0) continue;
-          
-          // Caută "total general", "total", "totaluri" în prima celulă sau oriunde în rând
-          const rowStr = row.map((cell: any) => String(cell || '').toLowerCase()).join(' ');
-          
-          if (
-            rowStr.includes('total general') ||
-            rowStr.includes('totaluri generale') ||
-            (rowStr.includes('total') && !rowStr.match(/\d{3,}/)) // "Total" fără cod cont
-          ) {
-            // Extrage valorile din coloanele de solduri finale
-            if (indices.soldFinalDebitCol >= 0) {
-              totalGeneralDebit = toNumber(row[indices.soldFinalDebitCol]);
-            }
-            if (indices.soldFinalCreditCol >= 0) {
-              totalGeneralCredit = toNumber(row[indices.soldFinalCreditCol]);
-            }
-            
-            // Validare: totalurile trebuie să fie > 0 pentru a fi considerate valide
-            if (totalGeneralDebit > 0 || totalGeneralCredit > 0) {
-              totalGeneralFound = true;
-              console.log(`✅ [TOTAL-GENERAL] GĂSIT la rândul ${i}: Debit=${totalGeneralDebit.toFixed(2)}, Credit=${totalGeneralCredit.toFixed(2)}`);
-              break;
-            }
-          }
-        }
-        
-        if (!totalGeneralFound) {
-          console.log("⚠️ [TOTAL-GENERAL] Rând Total general NU a fost găsit - se va folosi suma calculată");
-        }
-        
-        return { 
-          cui, 
-          company, 
-          accounts,
-          totalGeneralDebit,
-          totalGeneralCredit,
-          totalGeneralFound,
-          indices
-        };
-      } catch (error) {
-        console.error('📊 [STRUCTURED-DATA] Eroare extragere:', error);
-        return { 
-          cui: '', 
-          company: '', 
-          accounts: [],
-          totalGeneralDebit: 0,
-          totalGeneralCredit: 0,
-          totalGeneralFound: false,
-          indices: { headerRowIndex: -1, contCol: -1, denumireCol: -1, soldFinalDebitCol: -1, soldFinalCreditCol: -1, totalSumeDebitCol: -1, totalSumeCreditCol: -1, parserVersion: PARSER_VERSION }
-        };
-      }
-    };
-
-    const structuredData = extractStructuredData();
+    // 📊 EXTRAGERE DATE STRUCTURATE (din modul partajat)
+    console.log("📊 [STRUCTURED-DATA] START: Extragere CUI, companie și conturi...");
+    const structuredData = extractStructuredData(excelBase64, PARSER_VERSION);
     console.log(`📊 [STRUCTURED-DATA] FINAL - CUI: ${structuredData.cui}, Companie: ${structuredData.company}, Conturi: ${structuredData.accounts.length}`);
     if (structuredData.accounts.length > 0) {
       console.log('📊 [STRUCTURED-DATA] Breakdown pe clase:', 
@@ -719,99 +249,21 @@ serve(async (req) => {
       );
     }
 
-    // ✅ R2: PRIORITIZARE - Calculează revenue/expenses DIRECT din structuredData.accounts
+    // ✅ R2: CALCUL revenue/expenses/profit din structuredData.accounts
     console.log("💰 [R2-PRIORITY] Calcul revenue/expenses din structuredData.accounts...");
-    let revenue_from_structured = 0;
-    let expenses_from_structured = 0;
-    
-    structuredData.accounts.forEach((acc: any) => {
-      if (acc.accountClass === 7 && acc.code !== '709') {
-        revenue_from_structured += acc.credit || 0;
-        if (acc.credit > 0) {
-          console.log(`  ✅ [R2] CL7 ${acc.code}: +${acc.credit} RON → Total: ${revenue_from_structured}`);
-        }
-      }
-      if (acc.code === '709') {
-        revenue_from_structured -= acc.credit || 0; // Reduceri comerciale
-      }
-      if (acc.accountClass === 6) {
-        expenses_from_structured += acc.debit || 0;
-      }
-    });
-    
-    console.log(`💰 [R2-PRIORITY] REZULTAT: revenue=${revenue_from_structured}, expenses=${expenses_from_structured}`);
-    
-    // Găsește cont 121 pentru profit
-    const cont121_structured = structuredData.accounts.find((acc: any) => acc.code === '121');
-    let profit_from_structured = 0;
-    if (cont121_structured) {
-      // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
-      const debit = cont121_structured.finalDebit || 0;
-      const credit = cont121_structured.finalCredit || 0;
-      profit_from_structured = (credit > debit) ? (credit - debit) : -(debit - credit);
-      console.log(`💰 [R2-PRIORITY] Profit din 121: ${profit_from_structured} RON`);
-    } else {
-      profit_from_structured = revenue_from_structured - expenses_from_structured;
-      console.log(`⚠️ [R2-PRIORITY] Cont 121 lipsă - calculat: ${profit_from_structured} RON`);
-    }
+    const { revenue: revenue_from_structured, expenses: expenses_from_structured, profit: profit_from_structured } = calculateRevenueExpenses(structuredData.accounts);
 
-    // ✅ FIX 1: CALCUL DETERMINIST METADATA din structuredData.accounts (elimină parsare Excel duplicată)
-    console.log("📊 [METADATA-CALC] START: Calcul determinist indicatori din structuredData.accounts...");
-    const deterministic_metadata: Record<string, number> = {};
+    // ✅ FIX 1: CALCUL DETERMINIST METADATA
+    console.log("📊 [METADATA-CALC] START: Calcul determinist indicatori...");
+    let deterministic_metadata: Record<string, number> = {};
     
     try {
-      const accounts = structuredData.accounts;
-      
-      // Funcție helper: găsește sold pentru un cont (sau prefix de cont)
-      const findAccountBalance = (prefix: string, field: 'finalDebit' | 'finalCredit' | 'debit' | 'credit'): number => {
-        return accounts
-          .filter((acc: any) => acc.code === prefix || acc.code.startsWith(prefix))
-          .reduce((sum: number, acc: any) => sum + (acc[field] || 0), 0);
-      };
-      
-      // Solduri specifice din conturi
-      const soldClienti = findAccountBalance('4111', 'finalDebit') || findAccountBalance('411', 'finalDebit');
-      const soldFurnizori = findAccountBalance('401', 'finalCredit');
-      const soldBanca = findAccountBalance('5121', 'finalDebit') + findAccountBalance('5124', 'finalDebit') + findAccountBalance('5125', 'finalDebit');
-      const soldCasa = findAccountBalance('5311', 'finalDebit') || findAccountBalance('531', 'finalDebit');
-      const soldStocuri = findAccountBalance('371', 'finalDebit');
-      const soldMateriiPrime = findAccountBalance('301', 'finalDebit');
-      const soldMateriale = findAccountBalance('302', 'finalDebit');
-      const costMarfaVanduta = findAccountBalance('607', 'debit');
-      
-      // Revenue/Expenses/Profit - folosim valorile deja calculate (liniile 720-754)
-      const revenue = revenue_from_structured;
-      const expenses = expenses_from_structured;
-      const profit = profit_from_structured;
-      
-      // Populează metadata
-      if (soldClienti > 0) deterministic_metadata.soldClienti = Math.round(soldClienti * 100) / 100;
-      if (soldFurnizori > 0) deterministic_metadata.soldFurnizori = Math.round(soldFurnizori * 100) / 100;
-      if (soldBanca > 0) deterministic_metadata.soldBanca = Math.round(soldBanca * 100) / 100;
-      if (soldCasa > 0) deterministic_metadata.soldCasa = Math.round(soldCasa * 100) / 100;
-      if (soldStocuri > 0) deterministic_metadata.soldStocuri = Math.round(soldStocuri * 100) / 100;
-      if (soldMateriiPrime > 0) deterministic_metadata.soldMateriiPrime = Math.round(soldMateriiPrime * 100) / 100;
-      if (soldMateriale > 0) deterministic_metadata.soldMateriale = Math.round(soldMateriale * 100) / 100;
-      if (costMarfaVanduta > 0) deterministic_metadata.costMarfaVanduta = Math.round(costMarfaVanduta * 100) / 100;
-      
-      deterministic_metadata.revenue = Math.round(revenue * 100) / 100;
-      deterministic_metadata.expenses = Math.round(expenses * 100) / 100;
-      deterministic_metadata.profit = Math.round(profit * 100) / 100;
-      
-      // Indicatori derivați
-      if (revenue > 0 && soldClienti > 0) {
-        deterministic_metadata.dso = Math.round((soldClienti / revenue) * 365);
-      }
-      if (expenses > 0 && soldFurnizori > 0) {
-        deterministic_metadata.dpo = Math.round((soldFurnizori / expenses) * 365);
-      }
-      const totalStocuri = soldStocuri + soldMateriiPrime + soldMateriale;
-      if (costMarfaVanduta > 0 && totalStocuri > 0) {
-        deterministic_metadata.dio = Math.round((totalStocuri / costMarfaVanduta) * 365);
-      }
-      if (deterministic_metadata.dso && deterministic_metadata.dpo) {
-        deterministic_metadata.cashConversionCycle = deterministic_metadata.dso + (deterministic_metadata.dio || 0) - deterministic_metadata.dpo;
-      }
+      deterministic_metadata = calculateDeterministicMetadata(
+        structuredData.accounts,
+        revenue_from_structured,
+        expenses_from_structured,
+        profit_from_structured
+      );
       
       // Populează detectedColumns din indicii returnați de extractStructuredData
       if (structuredData.indices) {
@@ -821,7 +273,6 @@ serve(async (req) => {
         detectedColumns.totalCredit = structuredData.indices.totalSumeCreditCol;
       }
       
-      console.log("✅ [METADATA-CALC] METADATA FINALĂ:", deterministic_metadata);
       console.log("✅ [METADATA-CALC] detectedColumns:", detectedColumns);
     } catch (calcError) {
       console.error("❌ [METADATA-CALC] Eroare calcul determinist:", calcError);
@@ -847,7 +298,6 @@ serve(async (req) => {
       console.log("AVERTISMENT: Structură balanță incompletă - verificare coloane");
     }
 
-    // Verificare pattern-uri problematice de formatare (ex: 1.234,56)
     const romanianNumberPattern = /\d{1,3}(\.\d{3})+,\d{2}/g;
     const hasRomanianFormatting = romanianNumberPattern.test(balanceText);
     
@@ -855,7 +305,6 @@ serve(async (req) => {
       console.log("AVERTISMENT: Detectat format românesc de numere - se aplică conversie automată");
     }
     
-    // Verifică dacă avem date numerice valide după parsare
     const hasValidNumbers = /\d+\.\d{2}/.test(balanceText);
     
     if (!hasValidNumbers) {
@@ -878,10 +327,10 @@ serve(async (req) => {
     }
 
     // Rate limiting: max 5 analize/minut per user
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (user) {
+    const { data: { user: rateLimitUser } } = await supabaseClient.auth.getUser();
+    if (rateLimitUser) {
       const { data: canProceed } = await supabaseClient.rpc("check_rate_limit", {
-        p_user_id: user.id,
+        p_user_id: rateLimitUser.id,
         p_endpoint: "analyze-balance",
         p_max_requests: 5
       });
@@ -895,8 +344,7 @@ serve(async (req) => {
     }
 
     // ===================================
-    // [VERIFICARE ACCES ABONAMENT] - Opțiunea B
-    // Blocare completă analize după trial pentru non-subscribers
+    // [VERIFICARE ACCES ABONAMENT]
     // ===================================
     console.log('[ACCESS-CHECK] Verificare drepturi de acces...');
     
@@ -904,7 +352,6 @@ serve(async (req) => {
     let userProfile: any = null;
     
     if (user) {
-      // Numără analizele cu validare consiliu
       const { count, error: countError } = await supabaseClient
         .from('analyses')
         .select('*', { count: 'exact', head: true })
@@ -915,7 +362,6 @@ serve(async (req) => {
         validatedCount = count || 0;
       }
       
-      // Preia profilul utilizatorului
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .select('subscription_status, subscription_type, trial_ends_at')
@@ -927,7 +373,6 @@ serve(async (req) => {
       }
     }
     
-    // Verifică dacă utilizatorul are drept de analiză
     const hasFreeAnalysesLeft = validatedCount < 6;
     const isInTrial = userProfile?.trial_ends_at && new Date(userProfile.trial_ends_at) > new Date();
     const hasActiveSubscription = userProfile?.subscription_status === 'active' && 
@@ -936,18 +381,12 @@ serve(async (req) => {
     const canAnalyze = hasFreeAnalysesLeft || isInTrial || hasActiveSubscription;
     
     console.log('[ACCESS-CHECK] Stare acces:', {
-      hasActiveSubscription,
-      isInTrial,
-      trialEndsAt: userProfile?.trial_ends_at,
-      hasFreeAnalysesLeft,
-      validatedCount,
-      canAnalyze
+      hasActiveSubscription, isInTrial, trialEndsAt: userProfile?.trial_ends_at,
+      hasFreeAnalysesLeft, validatedCount, canAnalyze
     });
     
-    // OPȚIUNEA B: Blocare totală dacă nu are acces
     if (user && !canAnalyze) {
       console.log('🚫 [ACCESS-DENIED] Utilizator fără abonament activ - analiză blocată');
-      
       return new Response(
         JSON.stringify({
           error: 'subscription_required',
@@ -959,17 +398,13 @@ serve(async (req) => {
             upgradeMessage: `🔒 **Abonamentul tău a expirat**\n\nAi utilizat cele 6 analize gratuite și perioada de probă de 30 de zile s-a încheiat.\n\n**Pentru a continua să analizezi balanțe:**\n\n💼 **YANA Strategic** - 49 RON/lună\n• Analize nelimitate cu validare Consiliu AI\n• Chat AI strategic pentru decizii financiare\n• War Room, Battle Plan, rapoarte 40+ pagini\n• Toate funcționalitățile platformei incluse\n\n➡️ [Upgrade acum pentru a continua](/subscription)`
           }
         }),
-        { 
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
     console.log('✅ [ACCESS-CHECK] Utilizator autorizat pentru analiză');
 
-    // Check cache pentru balanțe identice (hash pe primele 1000 caractere)
-    // ✅ v2.1.0: Cache key include PARSER_VERSION pentru invalidare automată la fix-uri
+    // Check cache
     const textHash = balanceText.slice(0, 1000);
     const cacheKey = `balance_v${PARSER_VERSION}_${textHash.length}_${textHash.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)}`;
     
@@ -997,14 +432,12 @@ serve(async (req) => {
 
     console.log("Trimit cerere către Lovable AI...");
     
-    // FIX #17: Timeout de 45 secunde pentru API call
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
     
     let aiResponse: Response | undefined = undefined;
     try {
-      // ✅ v2.1.0: Construiește "Deterministic Facts Block" din valorile calculate determinist
-      // Acest block are prioritate absolută asupra oricărei valori din textul balanței
+      // Deterministic Facts Block
       const deterministicFactsBlock = `
 ════════════════════════════════════════════════════════════════════════════════
 🔒 DATE DETERMINISTE (UNICA SURSĂ DE ADEVĂR - FOLOSEȘTE OBLIGATORIU ACESTE VALORI!)
@@ -1031,7 +464,6 @@ REGULI OBLIGATORII:
 
 `;
 
-      // ✅ v3.2.0: Folosim Lovable AI (Gemini Flash) cu RETRY pentru stabilitate
       console.log("✅ [GEMINI] Using Lovable AI Gateway (google/gemini-2.5-flash) for balance analysis");
       
       const MAX_RETRIES = 2;
@@ -1041,7 +473,7 @@ REGULI OBLIGATORII:
         try {
           if (attempt > 0) {
             console.log(`🔄 [GEMINI] Retry attempt ${attempt}/${MAX_RETRIES}...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           }
           
           aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1061,25 +493,17 @@ REGULI OBLIGATORII:
             signal: controller.signal
           });
           
-          if (aiResponse.ok) {
-            break; // Success, exit retry loop
-          }
+          if (aiResponse.ok) break;
           
           const errorText = await aiResponse.text();
           console.error(`[GEMINI] Attempt ${attempt + 1} failed:`, aiResponse.status, errorText);
           lastError = new Error(`AI Gateway error: ${aiResponse.status}`);
           
-          if (aiResponse.status === 429 || aiResponse.status === 402) {
-            // Don't retry rate limits or payment errors
-            break;
-          }
+          if (aiResponse.status === 429 || aiResponse.status === 402) break;
         } catch (fetchErr: any) {
           console.error(`[GEMINI] Attempt ${attempt + 1} fetch error:`, fetchErr.message);
           lastError = fetchErr;
-          
-          if (fetchErr.name === 'AbortError') {
-            break; // Don't retry timeouts
-          }
+          if (fetchErr.name === 'AbortError') break;
         }
       }
       
@@ -1122,7 +546,6 @@ REGULI OBLIGATORII:
       );
     }
 
-    // ✅ v3.2.0: Citire body cu error handling
     let aiData;
     try {
       aiData = await aiResponse.json();
@@ -1134,17 +557,12 @@ REGULI OBLIGATORII:
       );
     }
     
-    // Parse response (OpenAI format from Lovable AI Gateway)
     let analysis: string | undefined;
     
     if (aiData.content && Array.isArray(aiData.content)) {
-      // Anthropic format (fallback)
       analysis = aiData.content.find((c: { type: string; text?: string }) => c.type === 'text')?.text;
-      console.log("✅ [CLAUDE] Parsed Anthropic response format");
     } else if (aiData.choices?.[0]?.message?.content) {
-      // OpenAI format (Lovable AI)
       analysis = aiData.choices[0].message.content;
-      console.log("✅ [GEMINI] Parsed OpenAI response format");
     }
 
     if (!analysis) {
@@ -1158,14 +576,12 @@ REGULI OBLIGATORII:
     console.log("Analiză generată cu succes!");
     
     // 🔍 VALIDARE CU CONSILIUL DE AI-URI
-    // Dacă utilizatorul a ajuns aici, înseamnă că are dreptul la analiză ȘI validare consiliu
     let councilValidation = null;
     
     try {
       console.log(`📊 [AI-COUNCIL] User authenticated: ${!!user}`);
       console.log(`📊 [AI-COUNCIL] Validated analyses count: ${validatedCount}`);
       
-      // Determină statusul pentru logging
       const statusMsg = validatedCount < 6 
         ? `analiză ${validatedCount + 1}/6 gratuită`
         : isInTrial 
@@ -1192,7 +608,6 @@ REGULI OBLIGATORII:
       }
     } catch (councilError) {
       console.error('❌ [AI-COUNCIL] Validation failed:', councilError);
-      // Continue fără validare dacă apare eroare
     }
     
     // Cache analiza pentru 6 ore
@@ -1201,259 +616,15 @@ REGULI OBLIGATORII:
         question_hash: cacheKey,
         question_text: balanceText.slice(0, 500),
         answer_text: analysis,
-        expires_at: new Date(Date.now() + 21600000).toISOString() // 6 ore
+        expires_at: new Date(Date.now() + 21600000).toISOString()
       });
     }
     
-    // Extrage date REALE din balanță pentru validare
-    const extractAccountValue = (accountCode: string): { finalBalance: number | null, exists: boolean } => {
-      // Caută contul în balanța parsată - trebuie să fie pe o singură linie
-      const lineRegex = new RegExp(`^.*${accountCode}[^\\n]*$`, 'gim');
-      const lines = balanceText.match(lineRegex);
-      
-      if (!lines || lines.length === 0) {
-        return { finalBalance: null, exists: false };
-      }
-      
-      // Ia ultima linie găsită (cea mai relevantă)
-      const accountLine = lines[lines.length - 1];
-      
-      // Extrage toate valorile numerice din linia contului
-      const numbers = accountLine.match(/\d+\.\d{2}/g);
-      
-      if (!numbers || numbers.length === 0) {
-        return { finalBalance: null, exists: false };
-      }
-      
-      // Pentru conturile din clasa 1-5, soldurile finale sunt ultimele 2 valori (debitor și creditor)
-      // Ia valoarea mai mare (sold final poate fi debitor SAU creditor, nu ambele)
-      const lastTwo = numbers.slice(-2).map(n => parseFloat(n));
-      const finalBalance = Math.max(...lastTwo);
-      
-      // Consideră contul inexistent dacă soldul final este 0 sau foarte mic (< 0.10 RON)
-      const exists = finalBalance > 0.10;
-      
-      return { finalBalance: exists ? finalBalance : null, exists };
-    };
-
-    // Funcție pentru extragerea TUTUROR conturilor din balanță
-    const extractAllAccounts = (balanceText: string): {
-      class1to5: Array<{accountCode: string; accountName: string; finalBalanceDebit: number; finalBalanceCredit: number; netBalance: number; balanceType: 'debit' | 'credit'}>,
-      class6to7: Array<{accountCode: string; accountName: string; totalDebit: number; totalCredit: number; isBalanced: boolean}>,
-      anomalies: string[]
-    } => {
-      const class1to5: Array<{accountCode: string; accountName: string; finalBalanceDebit: number; finalBalanceCredit: number; netBalance: number; balanceType: 'debit' | 'credit'}> = [];
-      const class6to7: Array<{accountCode: string; accountName: string; totalDebit: number; totalCredit: number; isBalanced: boolean}> = [];
-      const anomalies: string[] = [];
-      
-      // Regex pentru linii de cont - flexibil pentru diverse formate
-      const lines = balanceText.split('\n');
-      
-      for (const line of lines) {
-        // Skip header lines și linii goale
-        if (!line.trim() || line.includes('Simbol') || line.includes('CLASE') || line.includes('===')) continue;
-        
-        // Extrage cod cont (3-4 cifre la început de linie) - regex flexibil pentru CSV
-        const codeMatch = line.match(/^\s*(\d{3,4})[^\d]/);
-        if (!codeMatch) continue;
-        
-        const accountCode = codeMatch[1];
-        const accountClass = parseInt(accountCode.charAt(0));
-        
-        // Extrage nume cont (text între cod și prima valoare numerică) - suport pentru virgulă
-        const nameMatch = line.match(/^\s*\d{3,4}[,|\s]+([^0-9,|]+)/);
-        const accountName = nameMatch ? nameMatch[1].trim() : 'Cont necunoscut';
-        
-        // Extrage toate valorile numerice din linie
-        const numbers = line.match(/\d+\.\d{2}/g)?.map(v => parseFloat(v)) || [];
-        
-        if (numbers.length === 0) continue;
-        
-        if (accountClass >= 1 && accountClass <= 5) {
-          // Clase 1-5: Extrage solduri finale (ultimele 2 valori)
-          if (numbers.length >= 2) {
-            const finalDebit = numbers[numbers.length - 2] || 0;
-            const finalCredit = numbers[numbers.length - 1] || 0;
-            
-            // Skip conturi fără sold
-            if (finalDebit < 0.10 && finalCredit < 0.10) continue;
-            
-            // ANOMALIE: Sold dublu (ambele coloane completate)
-            if (finalDebit > 0.10 && finalCredit > 0.10) {
-              anomalies.push(
-                `🔴 ANOMALIE CONT ${accountCode}: Sold final DEBIT (${finalDebit.toFixed(2)} RON) ` +
-                `ȘI CREDIT (${finalCredit.toFixed(2)} RON) simultan! Conturile 1-5 trebuie să aibă DOAR un sold.`
-              );
-            }
-            
-            const netBalance = finalDebit - finalCredit;
-            const balanceType: 'debit' | 'credit' = Math.abs(finalDebit) > Math.abs(finalCredit) ? 'debit' : 'credit';
-            
-            class1to5.push({
-              accountCode,
-              accountName,
-              finalBalanceDebit: finalDebit,
-              finalBalanceCredit: finalCredit,
-              netBalance,
-              balanceType
-            });
-          }
-        } else if (accountClass === 6 || accountClass === 7) {
-          // Clase 6-7: Extrage rulaje totale
-          // Format tipic: [soldInitDebit, soldInitCredit, rulajDebit, rulajCredit, soldFinalDebit, soldFinalCredit]
-          // sau: [soldInitDebit, soldInitCredit, totalDebit, totalCredit, soldFinalDebit, soldFinalCredit]
-          
-          if (numbers.length >= 4) {
-            // Ia valorile din mijloc (rulajele sau total sume)
-            const totalDebit = numbers.length === 6 ? numbers[2] : numbers[0];
-            const totalCredit = numbers.length === 6 ? numbers[3] : numbers[1];
-            
-            // Skip conturi fără activitate
-            if (totalDebit < 0.10 && totalCredit < 0.10) continue;
-            
-            const isBalanced = Math.abs(totalDebit - totalCredit) < 0.10;
-            
-            if (!isBalanced) {
-              anomalies.push(
-                `⚠️ DEBALANSARE CONT ${accountCode} (${accountName}): Rulaje DEBIT (${totalDebit.toFixed(2)} RON) ` +
-                `≠ CREDIT (${totalCredit.toFixed(2)} RON). Diferență: ${Math.abs(totalDebit - totalCredit).toFixed(2)} RON`
-              );
-            }
-            
-            class6to7.push({
-              accountCode,
-              accountName,
-              totalDebit,
-              totalCredit,
-              isBalanced
-            });
-          }
-        }
-      }
-      
-      console.log(`✅ Extrase ${class1to5.length} conturi din clasele 1-5`);
-      console.log(`✅ Extrase ${class6to7.length} conturi din clasele 6-7`);
-      console.log(`⚠️ Detectate ${anomalies.length} anomalii`);
-      
-      return { class1to5, class6to7, anomalies };
-    };
-
-    // Funcție pentru gruparea conturilor pe clase
-    const groupAccountsByClass = (accounts: Array<{accountCode: string; accountName: string; finalBalanceDebit: number; finalBalanceCredit: number; netBalance: number; balanceType: 'debit' | 'credit'}>) => {
-      return {
-        class1: accounts.filter(a => a.accountCode.startsWith('1')),
-        class2: accounts.filter(a => a.accountCode.startsWith('2')),
-        class3: accounts.filter(a => a.accountCode.startsWith('3')),
-        class4: accounts.filter(a => a.accountCode.startsWith('4')),
-        class5: accounts.filter(a => a.accountCode.startsWith('5'))
-      };
-    };
-
-    const groupExpenseRevenueAccounts = (accounts: Array<{accountCode: string; accountName: string; totalDebit: number; totalCredit: number; isBalanced: boolean}>) => {
-      return {
-        class6: accounts.filter(a => a.accountCode.startsWith('6')),
-        class7: accounts.filter(a => a.accountCode.startsWith('7'))
-      };
-    };
-
-    // Pornește cu metadata deterministă calculată din Excel
-    const metadata: Record<string, number> = { ...deterministic_metadata };
-    
-    console.log("🔍 Cautare sectiune INDICATORI FINANCIARI in analiza...");
-    
-    // Încearcă mai multe variante de formatare pentru secțiunea indicatorilor
-    let indicatorsMatch = analysis.match(/===\s*INDICATORI\s+FINANCIARI\s*===([\s\S]*?)(?=\n\n|===|$)/i);
-    
-    if (!indicatorsMatch) {
-      // Încearcă varianta fără spații extra
-      indicatorsMatch = analysis.match(/===INDICATORI FINANCIARI===([\s\S]*?)(?=\n\n|===|$)/i);
-    }
-    
-    if (!indicatorsMatch) {
-      // Încearcă varianta cu asterisc
-      indicatorsMatch = analysis.match(/\*\*\*\s*INDICATORI\s+FINANCIARI\s*\*\*\*([\s\S]*?)(?=\n\n|\*\*\*|$)/i);
-    }
-    
-    if (indicatorsMatch) {
-      console.log("✅ Sectiune INDICATORI FINANCIARI gasita!");
-      const indicators = indicatorsMatch[1];
-      console.log("📊 Continut sectiune:", indicators.substring(0, 200));
-      
-      // Regex mai flexibile pentru extragerea valorilor (acceptă separatori de mii și spații)
-      const dsoMatch = indicators.match(/DSO[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const dpoMatch = indicators.match(/DPO[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const cccMatch = indicators.match(/CCC[:\s]+(-?\d+(?:[.,]\d+)?)/i);
-      const ebitdaMatch = indicators.match(/EBITDA[:\s]+(-?\d+(?:[.,]\d+)?)/i);
-      const caMatch = indicators.match(/CA[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const cheltuieliMatch = indicators.match(/Cheltuieli[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const profitMatch = indicators.match(/Profit[:\s]+(-?\d+(?:[.,]\d+)?)/i);
-      const furnizoriMatch = indicators.match(/Sold\s+Furnizori[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const clientiMatch = indicators.match(/Sold\s+Clienti[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const bancaMatch = indicators.match(/Sold\s+Banca[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const casaMatch = indicators.match(/Sold\s+Casa[:\s]+(\d+(?:[.,]\d+)?)/i);
-      
-      // Populează metadata (elimină separatorii de mii)
-      const parseValue = (val: string) => parseFloat(val.replace(/,/g, ''));
-      
-      if (dsoMatch) metadata.dso = parseValue(dsoMatch[1]);
-      if (dpoMatch) metadata.dpo = parseValue(dpoMatch[1]);
-      if (cccMatch) metadata.cashConversionCycle = parseValue(cccMatch[1]);
-      if (ebitdaMatch) metadata.ebitda = parseValue(ebitdaMatch[1]);
-      if (caMatch) metadata.revenue = parseValue(caMatch[1]);
-      if (cheltuieliMatch) metadata.expenses = parseValue(cheltuieliMatch[1]);
-      if (profitMatch) metadata.profit = parseValue(profitMatch[1]);
-      if (furnizoriMatch) metadata.soldFurnizori = parseValue(furnizoriMatch[1]);
-      if (clientiMatch) metadata.soldClienti = parseValue(clientiMatch[1]);
-      if (bancaMatch) metadata.soldBanca = parseValue(bancaMatch[1]);
-      if (casaMatch) metadata.soldCasa = parseValue(casaMatch[1]);
-      
-      console.log("📈 Metadata extrase:", Object.keys(metadata).length, "indicatori");
-    } else {
-      console.warn("⚠️ Sectiune INDICATORI FINANCIARI NU a fost gasita in analiza!");
-      console.log("🔍 Ultimele 500 caractere din analiza:", analysis.slice(-500));
-      
-      // FALLBACK: Încearcă să extragi valorile din întregul text al analizei
-      console.log("🔄 Incerc extragere fallback din text complet...");
-      
-      const parseFromText = (regex: RegExp) => {
-        const match = analysis.match(regex);
-        return match ? parseFloat(match[1].replace(/[,\s]/g, '')) : undefined;
-      };
-      
-      const dso = parseFromText(/DSO[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const dpo = parseFromText(/DPO[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const ccc = parseFromText(/CCC[:\s]+(-?\d+(?:[.,]\d+)?)/i);
-      const ebitda = parseFromText(/EBITDA[:\s]+(-?\d+(?:[.,]\d+)?)/i);
-      const revenue = parseFromText(/(?:CA|Cifra de afaceri)[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const expenses = parseFromText(/Cheltuieli[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const profit = parseFromText(/Profit[:\s]+(-?\d+(?:[.,]\d+)?)/i);
-      const soldFurnizori = parseFromText(/Sold\s+Furnizori[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const soldClienti = parseFromText(/Sold\s+(?:Clienti|Clienți)[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const soldBanca = parseFromText(/Sold\s+Banca[:\s]+(\d+(?:[.,]\d+)?)/i);
-      const soldCasa = parseFromText(/Sold\s+Casa[:\s]+(\d+(?:[.,]\d+)?)/i);
-      
-      // Atribuie doar valorile non-undefined
-      if (dso !== undefined) metadata.dso = dso;
-      if (dpo !== undefined) metadata.dpo = dpo;
-      if (ccc !== undefined) metadata.cashConversionCycle = ccc;
-      if (ebitda !== undefined) metadata.ebitda = ebitda;
-      if (revenue !== undefined) metadata.revenue = revenue;
-      if (expenses !== undefined) metadata.expenses = expenses;
-      if (profit !== undefined) metadata.profit = profit;
-      if (soldFurnizori !== undefined) metadata.soldFurnizori = soldFurnizori;
-      if (soldClienti !== undefined) metadata.soldClienti = soldClienti;
-      if (soldBanca !== undefined) metadata.soldBanca = soldBanca;
-      if (soldCasa !== undefined) metadata.soldCasa = soldCasa;
-      
-      console.log("📊 Metadata fallback extrase:", Object.keys(metadata).length, "indicatori");
-    }
-    
-    // Extrage structura completă a balanței
+    // ✅ Extragere structură completă și validare (din module partajate)
     console.log("🔍 Extragere structură completă balanță...");
     let { class1to5, class6to7, anomalies: structuralAnomalies } = extractAllAccounts(balanceText);
 
-    // FAZA 2: Validare Plan Contabil General RO 2025 (LAYER SUPLIMENTAR)
-    // Import validation function
+    // FAZA 2: Validare Plan Contabil General RO 2025
     const { validateAccountCode } = await import('../_shared/planContabilGeneral.ts');
     
     console.log("🔍 [VALIDATION LAYER] Verificare Plan Contabil General...");
@@ -1462,17 +633,14 @@ REGULI OBLIGATORII:
     for (const acc of class1to5) {
       const validation = validateAccountCode(acc.accountCode);
       if (!validation.valid) {
-        invalidAccountsWarnings.push(
-          `⚠️ Cont ${acc.accountCode}: ${validation.error}`
-        );
+        invalidAccountsWarnings.push(`⚠️ Cont ${acc.accountCode}: ${validation.error}`);
       }
     }
 
-    // Adaugă warnings în structuralAnomalies (nu blochează analiza!)
     if (invalidAccountsWarnings.length > 0) {
       structuralAnomalies.push(
         `\n📋 **VERIFICARE PLAN CONTABIL:**\n` +
-        invalidAccountsWarnings.slice(0, 5).join('\n') + // Maxim 5 pentru a nu polua
+        invalidAccountsWarnings.slice(0, 5).join('\n') +
         (invalidAccountsWarnings.length > 5 ? `\n... și încă ${invalidAccountsWarnings.length - 5} conturi invalide` : '')
       );
     }
@@ -1481,7 +649,6 @@ REGULI OBLIGATORII:
     if (class1to5.length === 0 && class6to7.length === 0 && structuredData.accounts.length > 0) {
       console.log("⚠️ [FALLBACK] extractAllAccounts nu a găsit conturi - folosesc structuredData.accounts");
       
-      // Convertește structuredData.accounts în format AccountBalance/AccountActivity
       structuredData.accounts.forEach((acc: any) => {
         const accountClass = parseInt(acc.code.charAt(0));
         const finalDebit = acc.debit || 0;
@@ -1489,7 +656,6 @@ REGULI OBLIGATORII:
         
         if (accountClass >= 1 && accountClass <= 5) {
           if (finalDebit > 0.10 || finalCredit > 0.10) {
-            // Detectează anomalii: sold dublu
             if (finalDebit > 0.10 && finalCredit > 0.10) {
               structuralAnomalies.push(
                 `🔴 ANOMALIE CONT ${acc.code}: Sold final DEBIT (${finalDebit.toFixed(2)} RON) ` +
@@ -1507,7 +673,6 @@ REGULI OBLIGATORII:
             });
           }
         } else if (accountClass === 6 || accountClass === 7) {
-          // Pentru clase 6-7, folosim totalDebit/totalCredit dacă sunt disponibile
           const totalDebit = acc.totalDebit || finalDebit || 0;
           const totalCredit = acc.totalCredit || finalCredit || 0;
           
@@ -1538,19 +703,20 @@ REGULI OBLIGATORII:
     const groupedBalance = groupAccountsByClass(class1to5);
     const groupedActivity = groupExpenseRevenueAccounts(class6to7);
 
-    // FAZA 0: Type assertion pentru a rezolva build errors
+    // Extrage metadata din textul analizei AI (din modul partajat)
+    const aiMetadata = extractMetadataFromAnalysis(analysis);
+    
+    // Pornește cu metadata AI, apoi suprapune deterministic (prioritate)
+    const metadata: Record<string, number> = { ...aiMetadata, ...deterministic_metadata };
+
     // Prioritizează metadata deterministă peste cea extrasă din text
-    // (păstrează doar valorile AI dacă nu există în deterministic)
     const finalMetadata: any = { 
-      ...metadata, 
-      ...deterministic_metadata,
-      // Structură pentru Word
+      ...metadata,
       structuredData: {
         cui: structuredData.cui,
         company: structuredData.company,
         accounts: structuredData.accounts
       },
-      // Adaugă structura completă
       class1_FixedAssets: groupedBalance.class1,
       class2_CurrentAssets: groupedBalance.class2,
       class3_Inventory: groupedBalance.class3,
@@ -1561,25 +727,17 @@ REGULI OBLIGATORII:
       anomalies: structuralAnomalies.length > 0 ? structuralAnomalies : undefined
     };
     console.log("✅ Metadata final (prioritate determinist + structură completă):", Object.keys(finalMetadata).length, "chei");
-    console.log(`   - Calculat determinist: ${Object.keys(deterministic_metadata).length} indicatori`);
-    console.log(`   - Extras din AI: ${Object.keys(metadata).length - Object.keys(deterministic_metadata).length} indicatori`);
-    console.log(`   - Conturi clase 1-5: ${class1to5.length}`);
-    console.log(`   - Conturi clase 6-7: ${class6to7.length}`);
-    console.log(`   - Anomalii structurale: ${structuralAnomalies.length}`);
     
     // VALIDARE CRITICĂ: Verifică că valorile din alertele AI corespund cu balanța reală
-    const analysisNumbers = analysis.match(/(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/g) || [];
     const corrections: string[] = [];
     
-    // Verifică alerte despre conturi specifice
     const accountAlertPattern = /contul?\s+(\d{3,4})[^0-9]*?(\d{1,3}(?:[,.]\d{3})*(?:[,.]\d{2})?)\s*RON/gi;
     let alertMatch;
     while ((alertMatch = accountAlertPattern.exec(analysis)) !== null) {
       const accountCode = alertMatch[1];
       const reportedValue = parseFloat(alertMatch[2].replace(/[,.]/g, ''));
-      const accountData = extractAccountValue(accountCode);
+      const accountData = extractAccountValue(balanceText, accountCode);
       
-      // Verifică dacă AI-ul menționează un cont care nu există sau are sold 0
       if (!accountData.exists) {
         corrections.push(
           `🔴 **EROARE CRITICĂ**: Analiza AI menționează contul ${accountCode} cu ${reportedValue.toLocaleString('ro-RO')} RON, ` +
@@ -1588,7 +746,6 @@ REGULI OBLIGATORII:
           `AI-ul a inventat această informație! Ignoră orice alertă sau analiză legată de acest cont.`
         );
       } else if (accountData.finalBalance !== null && Math.abs(reportedValue - accountData.finalBalance) > 1) {
-        // Verifică dacă valoarea raportată este greșită
         corrections.push(
           `⚠️ **CORECȚIE AUTOMATĂ**: Analiza AI a raportat o valoare incorectă pentru contul ${accountCode}.\n` +
           `• Valoare GREȘITĂ raportată de AI: ${reportedValue.toLocaleString('ro-RO')} RON\n` +
@@ -1598,7 +755,6 @@ REGULI OBLIGATORII:
       }
     }
     
-    // Verifică dacă user-ul este admin pentru a afișa corecțiile
     let isAdmin = false;
     if (user) {
       const { data: adminCheck } = await supabaseClient.rpc('has_role', {
@@ -1609,13 +765,11 @@ REGULI OBLIGATORII:
     }
     
     if (corrections.length > 0) {
-      // Loghează corecțiile pentru debugging (vizibile în Supabase logs)
       console.log('⚠️ [CORRECTIONS] Detected', corrections.length, 'automatic corrections');
       corrections.forEach((corr, idx) => {
         console.log(`   Correction ${idx + 1}:`, corr.substring(0, 100));
       });
       
-      // Adaugă corecțiile în analiză DOAR pentru admini
       if (isAdmin) {
         const correctionsSection = `\n\n🔴 **CORECȚII AUTOMATE - VALORI INCORECTE DETECTATE ÎN ANALIZĂ** (Vizibil doar pentru admin)\n\n${corrections.join('\n\n')}`;
         return new Response(
@@ -1626,28 +780,23 @@ REGULI OBLIGATORII:
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      // Pentru useri normali, returnăm analiza fără corecții (dar cu metadata corectată)
     }
     
     // FAZA 5: Feature flag pentru activare/dezactivare validări
-    const enableAdvancedValidations = Deno.env.get('ENABLE_ADVANCED_VALIDATIONS') !== 'false'; // default: true
+    const enableAdvancedValidations = Deno.env.get('ENABLE_ADVANCED_VALIDATIONS') !== 'false';
     
     const validationWarnings: string[] = [];
     
-    // FAZA 3: Validări formule contabile (LAYER SUPLIMENTAR)
     if (enableAdvancedValidations) {
       console.log("🔍 [VALIDATION LAYER] Validări avansate ACTIVE");
       
       // VALIDARE 1: Total Sold final Debitor = Total Sold final Creditor
-      // IMPORTANT: o „Balanță de verificare” se validează prin egalitatea totalurilor de solduri finale,
-      // NU printr-o separare Activ/Pasiv (care ar necesita o clasificare de bilanț, nu de balanță).
-      console.log("🔍 [VALIDATION LAYER] Verificare echilibru balanță (Sold final Debitor = Sold final Creditor)...");
+      console.log("🔍 [VALIDATION LAYER] Verificare echilibru balanță...");
 
       let totalSoldFinalDebitor = 0;
       let totalSoldFinalCreditor = 0;
       let validationSource = 'calculated';
       
-      // ✅ PRIORITATE 1: Folosește rândul "Total general" dacă a fost găsit
       if (structuredData.totalGeneralFound && 
           (structuredData.totalGeneralDebit > 0 || structuredData.totalGeneralCredit > 0)) {
         totalSoldFinalDebitor = structuredData.totalGeneralDebit;
@@ -1655,7 +804,6 @@ REGULI OBLIGATORII:
         validationSource = 'total_general_row';
         console.log(`✅ [VALIDATION] Folosim TOTAL GENERAL din Excel: Debit=${totalSoldFinalDebitor.toFixed(2)}, Credit=${totalSoldFinalCreditor.toFixed(2)}`);
       } else {
-        // ✅ FALLBACK: Calculează suma din conturi dacă Total general nu există
         const accounts1to5 = structuredData.accounts.filter((acc: any) => 
           acc.accountClass >= 1 && acc.accountClass <= 5
         );
@@ -1663,12 +811,10 @@ REGULI OBLIGATORII:
         console.log(`📊 [VALIDATION] Total general NU găsit - calculăm din ${accounts1to5.length} conturi clase 1-5`);
         
         totalSoldFinalDebitor = accounts1to5.reduce(
-          (sum: number, acc: any) => sum + (Number(acc.finalDebit) || 0),
-          0
+          (sum: number, acc: any) => sum + (Number(acc.finalDebit) || 0), 0
         );
         totalSoldFinalCreditor = accounts1to5.reduce(
-          (sum: number, acc: any) => sum + (Number(acc.finalCredit) || 0),
-          0
+          (sum: number, acc: any) => sum + (Number(acc.finalCredit) || 0), 0
         );
       }
       
@@ -1676,7 +822,6 @@ REGULI OBLIGATORII:
 
       const diferentaSolduriFinale = Math.abs(totalSoldFinalDebitor - totalSoldFinalCreditor);
 
-      // Prag de semnificație: 10 RON (evită noise din rotunjiri / exporturi)
       if (diferentaSolduriFinale > 10) {
         const sourceLabel = validationSource === 'total_general_row' ? '(din Total general)' : '(calculat)';
         const bilantErrorWarning =
@@ -1685,10 +830,10 @@ REGULI OBLIGATORII:
           `• Total Sold final **CREDITOR**: ${totalSoldFinalCreditor.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON\n` +
           `• **DIFERENȚĂ: ${diferentaSolduriFinale.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON** ⚠️\n\n` +
           `**CAUZE POSIBILE:**\n` +
-          `1. Export incomplet / coloană greșită (nu sunt „Solduri finale”)\n` +
+          `1. Export incomplet / coloană greșită (nu sunt „Solduri finale")\n` +
           `2. Note contabile neînchise / erori de postare\n` +
           `3. Balanță generată pe o perioadă neînchisă\n\n` +
-          `**ACȚIUNE:** Re-exportați „Balanță de verificare” cu „Solduri finale (Debit/Credit)” și verificați totalurile de la final.`;
+          `**ACȚIUNE:** Re-exportați „Balanță de verificare" cu „Solduri finale (Debit/Credit)" și verificați totalurile de la final.`;
 
         validationWarnings.push(bilantErrorWarning);
         console.error(`🔴 [VALIDATION] SOLDURI FINALE NEECHILIBRATE! Diferență: ${diferentaSolduriFinale} RON (sursă: ${validationSource})`);
@@ -1703,14 +848,9 @@ REGULI OBLIGATORII:
       const totalVenituri = groupedActivity.class7.reduce((sum: number, acc: any) => sum + acc.totalCredit, 0);
       const totalCheltuieli = groupedActivity.class6.reduce((sum: number, acc: any) => sum + acc.totalDebit, 0);
       const rezultatCalculat = totalVenituri - totalCheltuieli;
-      // FIX: netBalance = finalDebit - finalCredit
-      // Pozitiv = PIERDERE (sold debitor), Negativ = PROFIT (sold creditor)
-      // Trebuie inversat pentru a alinia cu semantica (Venituri - Cheltuieli)
       const cont121Raw = groupedBalance.class1.find((a: any) => a.accountCode === '121');
       const rezultatCont121 = cont121Raw ? -(cont121Raw.netBalance) : 0;
-      // Acum: Negativ = PIERDERE, Pozitiv = PROFIT (aliniat cu V - C)
 
-      // Use unified, prioritized revenue/expenses for validations (R2)
       const revenueFinal = (typeof revenue_from_structured === 'number' && revenue_from_structured > 0)
         ? revenue_from_structured
         : (typeof deterministic_metadata.revenue === 'number' && deterministic_metadata.revenue > 0)
@@ -1725,75 +865,57 @@ REGULI OBLIGATORII:
       const diferentaRezultat = Math.abs(rezultatCalculatFinal - rezultatCont121);
 
       if (diferentaRezultat > 10) {
-        // ✅ v2.1.0: Mesaj îmbunătățit cu sursă explicită și explicații neutre
-        // Căutăm soldul inițial al contului 121 și rezultatul reportat (1171) pentru explicație
         const cont121Data = structuredData.accounts.find((acc: any) => acc.code === '121');
-        const cont1171Data = structuredData.accounts.find((acc: any) => acc.code === '1171');
-        const soldInitial121 = cont121Data ? ((cont121Data.initialDebit || 0) - (cont121Data.initialCredit || 0)) : 0;
-        const soldReportat1171 = cont1171Data ? ((cont1171Data.finalDebit || 0) - (cont1171Data.finalCredit || 0)) : 0;
+        const cont1171Data = structuredData.accounts.find((acc: any) => acc.code === '1171' || acc.code === '117');
         
-        // Construiește explicație contextuală neutră
-        let explicatieContextuala = '';
-        if (Math.abs(soldInitial121) > 1 || Math.abs(soldReportat1171) > 1) {
-          explicatieContextuala = `\n\n**EXPLICAȚIE TEHNICĂ:**\n` +
-            `Contul 121 include soldul inițial (${Math.abs(soldInitial121).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON) ` +
-            `și/sau rezultatul reportat din anii anteriori (cont 1171: ${Math.abs(soldReportat1171).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON).\n` +
-            `Aceasta este o situație normală pentru balanțe în curs de an.`;
-        }
+        let explanationNote = '';
         
-        const profitMismatchWarning = 
-          `ℹ️ **NOTĂ: DIFERENȚĂ ÎNTRE REZULTATUL CALCULAT ȘI CONTUL 121**\n\n` +
-          `📊 **Sursă date: Coloana "Total sume" (nu Rulaje perioadă)**\n\n` +
-          `• Total Venituri (clasa 7, Total sume Creditoare): ${revenueFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Total Cheltuieli (clasa 6, Total sume Debitoare): ${expensesFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Rezultat CALCULAT (7 - 6): ${rezultatCalculatFinal.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• Sold Contul 121: ${Math.abs(rezultatCont121).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-          `• **DIFERENȚĂ: ${diferentaRezultat.toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON**\n` +
-          explicatieContextuala +
-          `\n\n**CAUZE POSIBILE (necesită verificare):**\n` +
-          `1. Sold inițial în contul 121 (pierdere/profit reportat din perioadele anterioare)\n` +
-          `2. Rezultat reportat în contul 1171 necumulat\n` +
-          `3. Închideri parțiale ale conturilor de venituri/cheltuieli\n` +
-          `4. Operațiuni de regularizare (amortizări, provizioane)\n\n` +
-          `**RECOMANDARE:** Aceasta este o diferență de reconciliere contabilă, nu o eroare de parsare. ` +
-          `Verificați soldul inițial al contului 121 și contul 1171 în programul contabil.`;
-        
-        validationWarnings.push(profitMismatchWarning);
-        console.warn(`⚠️ [VALIDATION] Diferență rezultat: ${diferentaRezultat} RON (Sold inițial 121: ${soldInitial121}, Cont 1171: ${soldReportat1171})`);
-      }
-
-      // VALIDARE 3: TVA (doar dacă firma este plătitoare de TVA)
-      console.log("🔍 [VALIDATION LAYER] Verificare formule TVA...");
-
-      const tvColectata = groupedBalance.class4.find((a: any) => a.accountCode === '4427')?.netBalance || 0;
-      const tvDeductibila = groupedBalance.class4.find((a: any) => a.accountCode === '4426')?.netBalance || 0;
-      const tvDePlata = groupedBalance.class4.find((a: any) => a.accountCode === '4423')?.netBalance || 0;
-
-      if (tvColectata > 0 || tvDeductibila > 0) {
-        const tvCalculat = Math.abs(tvColectata) - Math.abs(tvDeductibila);
-        if (Math.abs(Math.abs(tvDePlata) - Math.abs(tvCalculat)) > 1) {
-          const tvaWarning = 
-            `⚠️ **NECONCORDANȚĂ TVA**\n\n` +
-            `• TVA Colectată (4427): ${Math.abs(tvColectata).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-            `• TVA Deductibilă (4426): ${Math.abs(tvDeductibila).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-            `• TVA de plată (calculat): ${Math.abs(tvCalculat).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON\n` +
-            `• TVA de plată (cont 4423): ${Math.abs(tvDePlata).toLocaleString('ro-RO', {minimumFractionDigits: 2})} RON`;
+        if (cont121Data) {
+          const si121Debit = cont121Data.finalDebit || 0;
+          const si121Credit = cont121Data.finalCredit || 0;
           
-          validationWarnings.push(tvaWarning);
+          if (si121Debit > 0 || si121Credit > 0) {
+            explanationNote += `\n\n**Detalii cont 121:** Sold final Debitor: ${si121Debit.toFixed(2)} RON, Sold final Creditor: ${si121Credit.toFixed(2)} RON`;
+          }
         }
+        
+        if (cont1171Data) {
+          const rezultatReportat = (cont1171Data.finalCredit || 0) - (cont1171Data.finalDebit || 0);
+          explanationNote += `\n**Rezultat reportat (cont 117/1171):** ${rezultatReportat.toFixed(2)} RON`;
+          explanationNote += `\n\n💡 **NOTĂ:** Diferența poate fi cauzată de soldul inițial al contului 121 (profit/pierdere din exercițiul anterior) care nu a fost încă repartizat pe contul 117.`;
+        }
+        
+        const profitWarning = 
+          `⚠️ **VERIFICARE PROFIT - DIFERENȚĂ DETECTATĂ**\n\n` +
+          `• Rezultat calculat (Cl.7 - Cl.6): ${rezultatCalculatFinal.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON\n` +
+          `  (Venituri: ${revenueFinal.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} - Cheltuieli: ${expensesFinal.toLocaleString('ro-RO', { minimumFractionDigits: 2 })})\n` +
+          `• Sold cont 121: ${Math.abs(rezultatCont121).toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON ${rezultatCont121 >= 0 ? '(PROFIT)' : '(PIERDERE)'}\n` +
+          `• Diferență: ${diferentaRezultat.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON` +
+          explanationNote;
+        
+        validationWarnings.push(profitWarning);
+        console.warn(`⚠️ [VALIDATION] Diferență profit: ${diferentaRezultat.toFixed(2)} RON (calculat=${rezultatCalculatFinal.toFixed(2)}, cont121=${rezultatCont121.toFixed(2)})`);
+      } else {
+        console.log(`✅ [VALIDATION] Formulă profit validă! Diferență: ${diferentaRezultat.toFixed(2)} RON`);
       }
 
-      // FAZA 6: Audit Trail (adaugă în finalMetadata)
+      // VALIDARE 3: TVA
+      console.log("🔍 [VALIDATION LAYER] Verificare TVA...");
+      const tvColectata = groupedBalance.class4.find(a => a.accountCode === '4427')?.netBalance || 0;
+      const tvDeductibila = groupedBalance.class4.find(a => a.accountCode === '4426')?.netBalance || 0;
+      const tvDePlata = groupedBalance.class4.find(a => a.accountCode === '4423')?.netBalance || 0;
+      
+      if (tvColectata !== 0 || tvDeductibila !== 0) {
+        const tvCalculat = Math.abs(tvColectata) - Math.abs(tvDeductibila);
+        console.log(`📊 [VALIDATION] TVA: Colectata=${Math.abs(tvColectata).toFixed(2)}, Deductibila=${Math.abs(tvDeductibila).toFixed(2)}, Calculat=${tvCalculat.toFixed(2)}, DePlata=${Math.abs(tvDePlata).toFixed(2)}`);
+      }
+
+      // Add audit trail
       finalMetadata.auditTrail = {
-        timestamp: new Date().toISOString(),
-        validationsRun: true,
-        columnsDetected: detectedColumns,
-        detectionWarnings: [ // ✅ R3: Marker explicit pentru coloane nedetectate
-          ...(detectedColumns.soldDebit < 0 ? ['⚠️ Sold Final DEBIT nedetectat - header non-standard sau lipsă'] : []),
-          ...(detectedColumns.soldCredit < 0 ? ['⚠️ Sold Final CREDIT nedetectat - header non-standard sau lipsă'] : []),
-          ...(detectedColumns.totalDebit < 0 ? ['⚠️ Total/Rulaj DEBIT nedetectat - verificați structura balanței'] : []),
-          ...(detectedColumns.totalCredit < 0 ? ['⚠️ Total/Rulaj CREDIT nedetectat - verificați structura balanței'] : [])
-        ],
+        parserVersion: PARSER_VERSION,
+        detectedColumns,
+        accountsExtracted: structuredData.accounts.length,
+        validationSource,
         balanceValidation: {
           totalSoldFinalDebitor,
           totalSoldFinalCreditor,
@@ -1804,8 +926,8 @@ REGULI OBLIGATORII:
           totalVenituri: revenueFinal,
           totalCheltuieli: expensesFinal,
           rezultatCalculat: rezultatCalculatFinal,
-          rezultatCont121: rezultatCont121, // Păstrăm semnul pentru audit
-          rezultatCont121Display: Math.abs(rezultatCont121), // Pentru afișare
+          rezultatCont121,
+          rezultatCont121Display: Math.abs(rezultatCont121),
           diferenta: diferentaRezultat,
           status: diferentaRezultat <= 10 ? 'OK' : 'WARNING'
         },
@@ -1821,44 +943,33 @@ REGULI OBLIGATORII:
       console.log("⏭️ [VALIDATION LAYER] Validări avansate DEZACTIVATE");
     }
     
-    // Adaugă warnings în finalMetadata.anomalies (NU înlocuiește, adaugă)
+    // Adaugă warnings în finalMetadata.anomalies
     if (validationWarnings.length > 0) {
       const existingAnomalies = finalMetadata.anomalies || [];
-      finalMetadata.anomalies = [
-        ...existingAnomalies,
-        ...validationWarnings
-      ];
+      finalMetadata.anomalies = [...existingAnomalies, ...validationWarnings];
     }
     
-    // Validare DSO folosind finalMetadata
+    // Validare DSO
     if (finalMetadata.dso && finalMetadata.dso > 90) {
       validationWarnings.push(`⚠️ ALERTĂ CRITICĂ: DSO extrem de ridicat (${finalMetadata.dso} zile) - Banii sunt blocați în creanțe prea mult timp`);
     }
     
-    // Validare Cash flow negativ
-    // ✅ v3.2.1: Eliminat "PIERDERE GARANTATĂ" - redundant, deja explicat în secțiunea 2.3
-    // Pierderea/profitul sunt prezentate profesional în analiză fără limbaj alarmist
-    
-    // Validare plafon casă folosind finalMetadata
+    // Validare plafon casă
     if (finalMetadata.soldCasa && finalMetadata.soldCasa > 50000) {
       validationWarnings.push(`⛔ NELEGAL: Plafon casă depășit! Aveți ${finalMetadata.soldCasa.toLocaleString('ro-RO')} RON în casă. Maximum legal: 50.000 RON`);
     }
     
-    // Validare CRITICĂ: Verifică dacă profitul din metadata corespunde cu contul 121
+    // Validare CRITICĂ: profit vs cont 121
     if (finalMetadata.profit !== undefined && structuredData.accounts.length > 0) {
       const cont121 = structuredData.accounts.find((acc: any) => acc.code === '121');
       
       if (cont121) {
-        // CORECȚIE: Contul 121 e clasa 1 → folosim finalDebit/finalCredit, NU debit/credit!
         const debit = cont121.finalDebit || 0;
         const credit = cont121.finalCredit || 0;
         const soldCont121 = (credit > debit) ? (credit - debit) : -(debit - credit);
         
-        // Verifică dacă metadata.profit se potrivește cu soldul contului 121
         if (Math.abs(finalMetadata.profit - soldCont121) > 1) {
           console.warn(`⚠️ [VALIDATION] DISCREPANȚĂ PROFIT: metadata=${finalMetadata.profit}, cont 121=${soldCont121}`);
-          
-          // Prioritizează soldul contului 121 (este sursa de adevăr!)
           finalMetadata.profit = soldCont121;
           console.log(`✅ [VALIDATION] Profitul CORECTAT la valoarea din cont 121: ${soldCont121} RON`);
           
@@ -1870,12 +981,11 @@ REGULI OBLIGATORII:
       }
     }
     
-    // Validare CRITICĂ: Verifică dacă interpretarea profitului/pierderii este corectă
+    // Validare interpretare profit/pierdere
     if (finalMetadata.profit !== undefined) {
       const profitValue = finalMetadata.profit;
       const analysisLower = analysis.toLowerCase();
       
-      // Detectează contradicții în interpretarea profitului
       if (profitValue < 0 && 
           (analysisLower.includes('profit de') || analysisLower.includes('profitul de')) && 
           !analysisLower.includes('pierdere')) {
@@ -1903,11 +1013,9 @@ REGULI OBLIGATORII:
     if (validationWarnings.length > 0) {
       const warningsSection = `\n\n🚨 **ALERTE AUTOMATE DE VALIDARE**\n\n${validationWarnings.join('\n\n')}`;
       
-      // Validare metadata: trebuie să aibă cel puțin un indicator > 0 SAU cel puțin 3 indicatori != 0
       const metadataValues = Object.values(finalMetadata).filter(v => typeof v === 'number');
       const hasValidData = metadataValues.some(v => v > 0) || metadataValues.filter(v => v !== 0).length >= 3;
       
-      // Adaugă badge consiliu AI
       let finalAnalysisWithWarnings = analysis + warningsSection;
       if (councilValidation) {
         if (councilValidation.validated && councilValidation.confidence >= 80) {
@@ -1917,7 +1025,6 @@ REGULI OBLIGATORII:
         }
       }
       
-      // 🆕 v3.0.0: Adaugă extractedValues pentru răspunsuri deterministe (cache)
       const extractedValuesForCache = {
         totalClasa7: deterministic_metadata.revenue || finalMetadata.revenue || 0,
         totalClasa6: deterministic_metadata.expenses || finalMetadata.expenses || 0,
@@ -1929,7 +1036,6 @@ REGULI OBLIGATORII:
         dpo: finalMetadata.dpo,
       };
       
-      // Attach to structuredData for persistence in yana_conversations metadata
       const structuredDataWithCache = {
         ...structuredData,
         extractedValues: extractedValuesForCache,
@@ -1946,18 +1052,15 @@ REGULI OBLIGATORII:
       );
     }
     
-    // Validare metadata: trebuie să aibă cel puțin un indicator > 0 SAU cel puțin 3 indicatori != 0
     const metadataValues = Object.values(finalMetadata).filter(v => typeof v === 'number');
     const hasValidData = metadataValues.some(v => v > 0) || metadataValues.filter(v => v !== 0).length >= 3;
     
-    // Adaugă badge de validare consiliu AI la analiza finală
     let finalAnalysisText = analysis;
     if (councilValidation) {
       if (councilValidation.validated && councilValidation.confidence >= 80) {
         finalAnalysisText += `\n\n---\n✅ **Validat de Consiliul AI** (${councilValidation.consensus.total}/3 AI-uri, Confidence: ${councilValidation.confidence}%)\n`;
         finalAnalysisText += `Această analiză a fost verificată de ${councilValidation.aiResponses.map((r: any) => r.provider).join(', ').toUpperCase()}.\n`;
         
-        // Afișează consensul pe indicatori
         if (councilValidation.agreements) {
           const consensusCount = councilValidation.consensus.indicatorsWithConsensus || 0;
           finalAnalysisText += `\n📊 Consens pe ${consensusCount}/10 indicatori financiari\n`;
@@ -1980,7 +1083,6 @@ REGULI OBLIGATORII:
           finalAnalysisText += `\n**Alerte consiliu:**\n${councilValidation.alerts.slice(0, 3).map((a: string) => `• ${a}`).join('\n')}\n`;
         }
       } else {
-        // Confidence moderat (70-80%)
         finalAnalysisText += `\n\n---\n⚡ **Validare Consiliu AI** (${councilValidation.consensus.total}/3 AI-uri, Confidence: ${councilValidation.confidence}%)\n`;
         finalAnalysisText += `Analiză verificată de consiliul AI cu consens parțial.\n`;
         
@@ -1990,7 +1092,6 @@ REGULI OBLIGATORII:
       }
     }
     
-    // 🆕 v3.0.0: Adaugă extractedValues pentru răspunsuri deterministe (cache) - path fără warnings
     const extractedValuesForCache = {
       totalClasa7: deterministic_metadata.revenue || 0,
       totalClasa6: deterministic_metadata.expenses || 0,
@@ -2018,7 +1119,6 @@ REGULI OBLIGATORII:
     );
 
   } catch (error) {
-    // ✅ SECURITY FIX: Sanitize error messages - don't expose internal details
     console.error("Eroare în analyze-balance:", error);
     return new Response(
       JSON.stringify({
