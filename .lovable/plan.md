@@ -1,108 +1,55 @@
 
 
-# Plan: Transformare YANA în Companion AI care merită 49 RON/lună
+# Plan: Memorie de context financiar intra-sesiune
 
-## Context
+## Problema
 
-- **76 utilizatori free access** = clienții/colegii tăi → NU se ating, plătesc credite la Strategic Advisor dacă depășesc
-- **0 plătitori** prin Stripe din 88 utilizatori cu trial expirat
-- Problema: utilizatorii vin, pun întrebări contabile ad-hoc, primesc răspuns, pleacă. Nu se creează legătură
+Când utilizatorul menționează valori financiare în conversație (ex: "am cifră de afaceri de 500.000 RON", "profitul e 80.000"), YANA nu le refolosește automat în răspunsurile ulterioare din aceeași sesiune. Deși istoricul conversației (25 mesaje) este trimis la AI, nu există o instrucțiune explicită care să-i spună AI-ului să extragă și să rețină aceste valori.
 
-## Cele 4 implementări
+## Soluția
 
----
+Două schimbări complementare:
 
-### 1. Onboarding relațional (la prima conversație)
+### 1. Instrucțiune explicită în system prompt (chat-ai)
+Adăugăm o secțiune în system prompt-ul din `supabase/functions/chat-ai/index.ts` care instruiește AI-ul:
+- Să extragă automat orice valori financiare menționate de utilizator în mesajele anterioare din history
+- Să le folosească ca referință în răspunsurile ulterioare fără a le cere din nou
+- Să facă referire la ele natural ("Ai menționat că CA e 500k...")
 
-Când un utilizator nou deschide prima conversație și `yana_client_profiles` nu are date pentru el, YANA inițiază un dialog de cunoaștere:
+### 2. Extracție automată din history și injectare ca context structurat (ai-router)
+În `supabase/functions/ai-router/index.ts`, înainte de a trimite payload-ul la chat-ai, scanăm mesajele din history pentru valori financiare (regex pe patterns precum "CA/cifră de afaceri: X", "profit: X", "angajați: X", "industrie: X") și construim un bloc de context structurat injectat în payload ca `userMentionedFacts`.
 
-- "Cu ce se ocupă firma ta?"
-- "De cât timp ești antreprenor?"  
-- "Ce te ține treaz noaptea legat de business?"
-- "Ce obiectiv ai pentru anul ăsta?"
+Acest bloc va fi apoi injectat în system prompt de chat-ai, astfel:
+```
+📝 VALORI FINANCIARE MENȚIONATE DE UTILIZATOR ÎN ACEASTĂ CONVERSAȚIE:
+- Cifră afaceri: 500.000 RON
+- Profit: 80.000 RON  
+- Industrie: retail
+- Angajați: 15
+⚠️ Folosește aceste valori ca referință! NU le cere din nou!
+```
 
-**Implementare:**
-- Adăugăm coloană `onboarding_completed` (boolean, default false) în `yana_client_profiles`
-- Modificăm `YanaChat.tsx`: la prima conversație (messages.length === 0), verificăm dacă profilul de client are `onboarding_completed = false` → afișăm un flow cu 4 întrebări în chat (nu modal, ci chiar în chat ca mesaje ale YANEI)
-- La final, salvăm răspunsurile prin `update-client-profile` edge function și setăm `onboarding_completed = true`
-- Din acest moment, fiecare apel la `ai-router`/`chat-ai` injectează profilul clientului în system prompt
+## Fișiere modificate
 
-**Fișiere:**
-- Migrație SQL: adaugă `onboarding_completed` în `yana_client_profiles`
-- `src/components/yana/YanaChat.tsx` — detectare & afișare flow onboarding
-- `src/components/yana/OnboardingFlow.tsx` — component nou cu cele 4 întrebări
-- `supabase/functions/ai-router/index.ts` — injectare profil client în contextul AI
+1. **`supabase/functions/ai-router/index.ts`** — Funcție nouă `extractUserMentionedFacts(history)` care scanează mesajele user din history cu regex-uri pentru valori financiare comune (CA, profit, angajați, industrie, datorii, cash, etc.). Rezultatul se adaugă la `routeDecision.payload.userMentionedFacts`.
 
----
+2. **`supabase/functions/chat-ai/index.ts`** — 
+   - Adăugare câmp `userMentionedFacts` în schema Zod
+   - Construire secțiune de context din valorile extrase
+   - Injectare în system prompt (secțiune dedicată)
+   - Adăugare instrucțiune în SYSTEM_PROMPT care spune explicit AI-ului să rețină și să referențieze valorile financiare menționate de utilizator
 
-### 2. Check-in proactiv săptămânal
+## Detalii tehnice
 
-Luni dimineața la 08:00, YANA trimite un email personalizat fiecărui utilizator activ (care a avut conversații în ultimele 30 zile):
+**Patterns de extracție (ai-router):**
+- `cifr[aă]\s*(?:de\s+)?afaceri\s*[:=\-]?\s*([0-9.,\s]+)` → CA
+- `profit\s*(?:net)?\s*[:=\-]?\s*([-]?[0-9.,\s]+)` → Profit
+- `(\d+)\s*angaja[tț]i` → Angajați
+- `industri[ea]\s*[:=\-]?\s*(\w+)` → Industrie
+- `cash\s*(?:disponibil)?\s*[:=\-]?\s*([0-9.,\s]+)` → Cash
+- `datorii\s*[:=\-]?\s*([0-9.,\s]+)` → Datorii
+- `venituri?\s*[:=\-]?\s*([0-9.,\s]+)` → Venituri
+- `cheltuieli\s*[:=\-]?\s*([0-9.,\s]+)` → Cheltuieli
 
-- Referă ultimul subiect discutat
-- Pune o întrebare specifică business-ului lor
-- Include un link direct la conversație
-
-**Implementare:**
-- Edge function nouă: `weekly-companion-checkin/index.ts`
-  1. Query utilizatori activi (ultimele 30 zile) din `ai_conversations`
-  2. Pentru fiecare: citește ultimele 3 conversații + profilul din `yana_client_profiles`
-  3. Generează mesaj personalizat cu Gemini Flash (ieftin)
-  4. Trimite email prin Resend (batch API, max 100)
-  5. Creează inițiativă în `yana_initiatives` pentru afișare în chat
-- Cron job: luni la 08:00 via `pg_cron` + `pg_net`
-
-**Fișiere:**
-- `supabase/functions/weekly-companion-checkin/index.ts` — funcția principală
-- SQL insert: cron job schedule
-
----
-
-### 3. Paywall emoțional (NoAccessOverlay cu statistici relaționale)
-
-Când trial-ul expiră, în loc de mesajul generic actual, YANA arată un rezumat al relației construite:
-
-- "Am avut 18 conversații împreună"
-- "Ultima oară am vorbit despre expansiunea firmei tale"
-- "Sunt aici când ești gata. 49 lei/lună."
-- Bonus: o conversație gratuită pe săptămână pentru a menține legătura (fără a pierde relația)
-
-**Implementare:**
-- Modificăm `NoAccessOverlay.tsx`: adăugăm query pe `ai_conversations` count + ultimul subiect
-- Adăugăm logica "1 conversație gratuită/săptămână" în `check-subscription/index.ts`: verificăm dacă utilizatorul a trimis un mesaj în ultima săptămână; dacă nu, permitem acces cu `access_type: 'weekly_free'`
-- Modificăm `Yana.tsx`: tratăm `access_type === 'weekly_free'` ca acces valid dar afișăm un banner subtil "Conversație gratuită de reconectare"
-
-**Fișiere:**
-- `src/components/yana/NoAccessOverlay.tsx` — redesign cu statistici
-- `supabase/functions/check-subscription/index.ts` — logica weekly free conversation
-- `src/pages/Yana.tsx` — tratare access_type 'weekly_free'
-
----
-
-### 4. Funcții premium vizibile
-
-War Room și Battle Plan sunt practic invizibile (1 mențiune fiecare în ultimele 90 zile). Le facem vizibile prin:
-
-- Card proactiv în chat la a 3-a conversație: "Știai că poți simula scenarii de criză cu War Room?"
-- Suggestion chips sub inputul de chat cu acțiuni rapide: "🎯 War Room", "📋 Battle Plan", "📊 Analizează balanța"
-- Acestea trimit mesajul corespunzător direct la YANA
-
-**Implementare:**
-- Modificăm `YanaChat.tsx`: adăugăm suggestion chips vizibile sub textarea (înainte de prima conversație și după fiecare răspuns)
-- La a 3-a conversație (verificăm count din `yana_conversations`), afișăm un card proactiv în chat despre War Room
-- Chipurile: "🏠 War Room", "⚔️ Battle Plan", "📊 Analizează balanță", "🧠 Strategie AI"
-
-**Fișiere:**
-- `src/components/yana/YanaChat.tsx` — suggestion chips + card proactiv
-- `src/components/yana/SuggestionChips.tsx` — component nou
-
----
-
-## Secțiune tehnică — ordine implementare
-
-1. **Migrație SQL**: `onboarding_completed` în `yana_client_profiles`
-2. **OnboardingFlow** + modificare YanaChat (impact maxim pe primele impresii)
-3. **SuggestionChips** (face funcțiile premium vizibile imediat)
-4. **NoAccessOverlay relațional** + weekly free conversation în check-subscription
-5. **weekly-companion-checkin** edge function + cron job (retenție pe termen lung)
+Scanarea se face doar pe mesajele cu `role === 'user'` din history. Extracția nu suprascrie datele din balanceContext (care au prioritate).
 
