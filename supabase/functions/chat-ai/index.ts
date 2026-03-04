@@ -1471,6 +1471,8 @@ const ChatAIRequestSchema = z.object({
   }).optional().nullable(),
   // 🆕 COMPANY MISMATCH WARNING: Avertisment când utilizatorul întreabă despre altă firmă
   companyMismatchWarning: z.string().max(1000).optional().nullable(),
+  // 🆕 MEMORIE INTRA-SESIUNE: Valori financiare menționate de utilizator în conversație
+  userMentionedFacts: z.record(z.string()).optional().nullable(),
   // 🆕 IMAGE DATA: Pentru analiza multimodală a capturilor de ecran
   imageData: z.object({
     base64: z.string(),
@@ -1537,7 +1539,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData, companyMismatchWarning } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData, companyMismatchWarning, userMentionedFacts } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -1992,7 +1994,39 @@ ${triggers.length > 0 ? `- Anticipare (menționează natural dacă e relevant):\
       ? `\n\n=== ⚠️ COMPANY MISMATCH WARNING (PRIORITATE MAXIMĂ) ===\n${companyMismatchWarning}\n=== END COMPANY MISMATCH ===\n` 
       : '';
     
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + companyMismatchSection + memorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    // 🆕 MEMORIE INTRA-SESIUNE: Injectează valorile financiare menționate de utilizator
+    let userFactsSection = '';
+    if (userMentionedFacts && Object.keys(userMentionedFacts).length > 0) {
+      const factLabels: Record<string, string> = {
+        cifraAfaceri: 'Cifră afaceri',
+        profit: 'Profit',
+        angajati: 'Angajați',
+        industrie: 'Industrie/Domeniu',
+        cash: 'Cash disponibil',
+        datorii: 'Datorii',
+        venituri: 'Venituri',
+        cheltuieli: 'Cheltuieli',
+        capitalSocial: 'Capital social',
+        investitie: 'Investiție',
+      };
+      const lines = Object.entries(userMentionedFacts)
+        .map(([key, val]) => `- ${factLabels[key] || key}: ${val}${!val.toLowerCase().includes('ron') && /^\d/.test(val) ? ' RON' : ''}`)
+        .join('\n');
+      
+      userFactsSection = `\n\n📝 VALORI FINANCIARE MENȚIONATE DE UTILIZATOR ÎN ACEASTĂ CONVERSAȚIE:
+${lines}
+
+⚠️ REGULI OBLIGATORII:
+- Folosește aceste valori ca referință în răspunsurile tale!
+- NU le cere din nou utilizatorului!
+- Referă-te la ele natural (ex: "Ai menționat că cifra de afaceri e X...")
+- Dacă ai și date din balanță (balanceContext), datele din balanță au PRIORITATE!
+- Aceste valori sunt utile DOAR când nu ai balanță încărcată sau pentru context suplimentar.
+`;
+      console.log(`[chat-ai][${requestId}] 📝 UserMentionedFacts injected: ${Object.keys(userMentionedFacts).join(', ')}`);
+    }
+    
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + companyMismatchSection + userFactsSection + memorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

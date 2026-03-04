@@ -353,6 +353,112 @@ function buildDeterministicResponse(
 }
 
 // =============================================================================
+// 🆕 EXTRACȚIE VALORI FINANCIARE DIN HISTORY (MEMORIE INTRA-SESIUNE)
+// =============================================================================
+
+interface UserMentionedFacts {
+  cifraAfaceri?: string;
+  profit?: string;
+  angajati?: string;
+  industrie?: string;
+  cash?: string;
+  datorii?: string;
+  venituri?: string;
+  cheltuieli?: string;
+  capitalSocial?: string;
+  investitie?: string;
+}
+
+function extractUserMentionedFacts(history: Array<{ role: string; content: string }>): UserMentionedFacts {
+  const facts: UserMentionedFacts = {};
+  
+  // Scanăm doar mesajele utilizatorului (cele mai recente au prioritate)
+  const userMessages = history
+    .filter(m => m.role === 'user' && m.content)
+    .map(m => m.content)
+    .reverse(); // cele mai recente primele
+  
+  const allUserText = userMessages.join(' ');
+  
+  const extractFirst = (patterns: RegExp[]): string | undefined => {
+    for (const p of patterns) {
+      const m = allUserText.match(p);
+      if (m && m[1]) return m[1].trim().replace(/\s+/g, '');
+    }
+    return undefined;
+  };
+  
+  // CA / Cifră de afaceri
+  facts.cifraAfaceri = extractFirst([
+    /cifr[aă]\s*(?:de\s+)?afaceri\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /\bCA\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /(?:am|avem|e|este)\s+(?:o\s+)?(?:cifr[aă]\s*(?:de\s+)?afaceri|CA)\s+(?:de\s+)?([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Profit
+  facts.profit = extractFirst([
+    /profit\s*(?:net|brut)?\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([-]?[0-9][0-9.,\s]*)/i,
+    /(?:am|avem|e|este)\s+(?:un\s+)?profit\s+(?:de\s+)?([-]?[0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Angajați
+  facts.angajati = extractFirst([
+    /(\d+)\s*(?:de\s+)?angaja[tț]i/i,
+    /angaja[tț]i\s*[:=\-–]?\s*(\d+)/i,
+    /(?:am|avem)\s+(\d+)\s+(?:de\s+)?(?:oameni|persoane|angaja)/i,
+  ]);
+  
+  // Industrie
+  facts.industrie = extractFirst([
+    /(?:industri[ea]|domeniu|sector|activitate)\s*[:=\-–]?\s*([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\.|,|$)/i,
+    /(?:lucr[aă]m?\s+[îi]n|activ[aă]m?\s+[îi]n|sunt?\s+[îi]n)\s+(?:domeniul?\s+)?([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\.|,|$)/i,
+  ]);
+  
+  // Cash / numerar disponibil
+  facts.cash = extractFirst([
+    /cash\s*(?:disponibil)?\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /numerar\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /(?:am|avem)\s+(?:în\s+)?(?:cont|bancă|banca)\s+([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Datorii
+  facts.datorii = extractFirst([
+    /datorii\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /(?:am|avem)\s+datorii\s+(?:de\s+)?([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Venituri
+  facts.venituri = extractFirst([
+    /venituri?\s*(?:totale?)?\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /(?:am|avem)\s+venituri\s+(?:de\s+)?([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Cheltuieli
+  facts.cheltuieli = extractFirst([
+    /cheltuieli\s*(?:totale?)?\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /(?:am|avem)\s+cheltuieli\s+(?:de\s+)?([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Capital social
+  facts.capitalSocial = extractFirst([
+    /capital\s*(?:social)?\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Investiție
+  facts.investitie = extractFirst([
+    /investi[tț]i[ea]\s*[:=\-–]?\s*(?:de\s+)?(?:RON\s*)?([0-9][0-9.,\s]*)/i,
+    /(?:am\s+investit|investesc)\s+([0-9][0-9.,\s]*)/i,
+  ]);
+  
+  // Curăță undefined
+  for (const key of Object.keys(facts) as (keyof UserMentionedFacts)[]) {
+    if (!facts[key]) delete facts[key];
+  }
+  
+  return facts;
+}
+
+// =============================================================================
 // ROUTING LOGIC (original)
 // =============================================================================
 
@@ -858,6 +964,15 @@ serve(async (req) => {
       // Adaug memoryContext, history, balanceContext la payload
       routeDecision.payload.memoryContext = memoryContext;
       routeDecision.payload.history = history;
+      
+      // 🆕 MEMORIE INTRA-SESIUNE: Extrage valori financiare menționate de utilizator în conversație
+      if (history && Array.isArray(history) && history.length > 0) {
+        const userMentionedFacts = extractUserMentionedFacts(history);
+        if (Object.keys(userMentionedFacts).length > 0) {
+          routeDecision.payload.userMentionedFacts = userMentionedFacts;
+          console.log(`[AI-Router] 📝 Extracted userMentionedFacts:`, userMentionedFacts);
+        }
+      }
       
       // 🆕 FIX COMPANY CONFUSION: Detectează dacă mesajul menționează o altă firmă decât cea din balanceContext
       const finalBalanceContext = effectiveBalanceContext || balanceContext || null;
