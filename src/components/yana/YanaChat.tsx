@@ -390,14 +390,31 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           // Chart 3: Cash Runway (numerar disponibil vs cheltuieli lunare)
           const cashAccounts = accounts.filter(
             (a: { code: string; finalDebit: number }) => 
-              a.code.startsWith('512') || a.code.startsWith('531') || a.code.startsWith('5121') || a.code.startsWith('5311')
+              a.code.startsWith('512') || a.code.startsWith('531')
           );
           const totalCash = cashAccounts.reduce(
             (sum: number, a: { finalDebit: number }) => sum + (a.finalDebit || 0), 0
           );
           
           if (totalCash > 0 && totalCheltuieli > 0) {
-            const cheltuieliLunare = totalCheltuieli / 12; // estimare simplificată
+            // Detectează numărul de luni din perioada balanței
+            const period = response.structuredData?.period || '';
+            let monthsInPeriod = 12; // fallback
+            const periodMatch = period.match(/(\d{2})\.(\d{4})\s*[-–]\s*(\d{2})\.(\d{4})/);
+            if (periodMatch) {
+              const startMonth = parseInt(periodMatch[1]);
+              const endMonth = parseInt(periodMatch[3]);
+              const startYear = parseInt(periodMatch[2]);
+              const endYear = parseInt(periodMatch[4]);
+              monthsInPeriod = Math.max(1, (endYear - startYear) * 12 + (endMonth - startMonth + 1));
+            } else {
+              // Fallback: caută doar o lună (ex: "Ianuarie 2025")
+              const singleMonthMatch = period.match(/(\d{2})\.(\d{4})$/);
+              if (singleMonthMatch) {
+                monthsInPeriod = parseInt(singleMonthMatch[1]) || 12;
+              }
+            }
+            const cheltuieliLunare = totalCheltuieli / monthsInPeriod;
             const runwayLuni = cheltuieliLunare > 0 ? totalCash / cheltuieliLunare : 0;
             artifacts.push({
               type: 'bar_chart',
@@ -450,23 +467,31 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       setMessages(prev => [...prev, assistantMessage]);
 
       // 🆕 Pro Tips after balance analysis - discovery organic al funcțiilor premium
+      // Arată Pro Tip doar o singură dată per utilizator (verificăm localStorage)
       if (response.route === 'analyze-balance' || response.route === 'analyze-balance-saga') {
-        const proTips = [
-          '💡 **Știai că pot să-ți simulez scenarii?** Spune "War Room" și îți arăt ce se întâmplă dacă pierzi cel mai mare client sau cresc costurile cu 20%.',
-          '⚔️ **Vrei un plan de acțiune concret?** Spune "Battle Plan" și îți creez un plan strategic bazat pe cifrele tale reale.',
-          '📊 **Compară perioade diferite!** Încarcă balanța lunii anterioare și îți arăt exact ce s-a schimbat.',
-        ];
-        const randomTip = proTips[Math.floor(Math.random() * proTips.length)];
+        const proTipShownKey = `yana_pro_tip_shown_${user!.id}`;
+        const alreadyShown = localStorage.getItem(proTipShownKey);
         
-        setTimeout(() => {
-          const tipMessage: Message = {
-            id: `pro-tip-${Date.now()}`,
-            role: 'assistant',
-            content: randomTip,
-            created_at: new Date().toISOString(),
-          };
-          setMessages(prev => [...prev, tipMessage]);
-        }, 2000);
+        if (!alreadyShown) {
+          const proTips = [
+            '💡 **Știai că pot să-ți simulez scenarii?** Spune "War Room" și îți arăt ce se întâmplă dacă pierzi cel mai mare client sau cresc costurile cu 20%.',
+            '⚔️ **Vrei un plan de acțiune concret?** Spune "Battle Plan" și îți creez un plan strategic bazat pe cifrele tale reale.',
+            '📊 **Compară perioade diferite!** Încarcă balanța lunii anterioare și îți arăt exact ce s-a schimbat.',
+          ];
+          const randomTip = proTips[Math.floor(Math.random() * proTips.length)];
+          
+          localStorage.setItem(proTipShownKey, new Date().toISOString());
+          
+          setTimeout(() => {
+            const tipMessage: Message = {
+              id: `pro-tip-${Date.now()}`,
+              role: 'assistant',
+              content: randomTip,
+              created_at: new Date().toISOString(),
+            };
+            setMessages(prev => [...prev, tipMessage]);
+          }, 2000);
+        }
       }
 
       // Update context if company name was detected or balance was uploaded
