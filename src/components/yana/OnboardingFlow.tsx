@@ -13,6 +13,8 @@ interface OnboardingFlowProps {
 }
 
 export interface OnboardingAnswers {
+  companyName: string;
+  companyCUI: string;
   businessDescription: string;
   entrepreneurYears: string;
   biggestWorry: string;
@@ -21,10 +23,22 @@ export interface OnboardingAnswers {
 
 const QUESTIONS = [
   {
-    key: 'businessDescription' as const,
-    question: 'Cu ce se ocupă firma ta? Spune-mi pe scurt — domeniu, ce vinzi sau ce servicii oferi.',
-    placeholder: 'Ex: Avem un magazin online de mobilă handmade...',
+    key: 'companyName' as const,
+    question: 'Cum se numește firma ta? Numele exact, ca să te recunosc data viitoare.',
+    placeholder: 'Ex: SC MOBILE DESIGN SRL',
     emoji: '🏢',
+  },
+  {
+    key: 'companyCUI' as const,
+    question: 'Care e CUI-ul firmei? Îl folosesc ca să-ți leg automat balanțele și analizele.',
+    placeholder: 'Ex: 12345678',
+    emoji: '🔢',
+  },
+  {
+    key: 'businessDescription' as const,
+    question: 'Cu ce se ocupă firma ta? Domeniu, ce vinzi sau ce servicii oferi — pe scurt.',
+    placeholder: 'Ex: Avem un magazin online de mobilă handmade...',
+    emoji: '💼',
   },
   {
     key: 'entrepreneurYears' as const,
