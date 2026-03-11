@@ -102,16 +102,31 @@ export function OnboardingFlow({ userId, userName, onComplete }: OnboardingFlowP
         // Auto-create company record if name and CUI provided
         if (onboardingAnswers.companyName.trim()) {
           const cleanCUI = onboardingAnswers.companyCUI.replace(/\D/g, '').trim();
-          await supabase
-            .from('companies')
-            .upsert({
-              company_name: onboardingAnswers.companyName.trim(),
-              cui: cleanCUI || null,
-              managed_by_accountant_id: userId,
-            } as never, { onConflict: 'cui' })
-            .then(({ error: companyErr }) => {
-              if (companyErr) console.error('[OnboardingFlow] Company save error:', companyErr);
-            });
+          
+          if (cleanCUI) {
+            // CUI valid → upsert pe conflict CUI
+            await supabase
+              .from('companies')
+              .upsert({
+                company_name: onboardingAnswers.companyName.trim(),
+                cui: cleanCUI,
+                managed_by_accountant_id: userId,
+              } as never, { onConflict: 'cui' })
+              .then(({ error: companyErr }) => {
+                if (companyErr) console.error('[OnboardingFlow] Company save error:', companyErr);
+              });
+          } else {
+            // Fără CUI → insert simplu (nu upsert, evităm duplicate pe NULL)
+            await supabase
+              .from('companies')
+              .insert({
+                company_name: onboardingAnswers.companyName.trim(),
+                managed_by_accountant_id: userId,
+              } as never)
+              .then(({ error: companyErr }) => {
+                if (companyErr) console.error('[OnboardingFlow] Company save error:', companyErr);
+              });
+          }
         }
 
         if (error) throw error;
