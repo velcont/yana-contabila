@@ -81,6 +81,8 @@ export function OnboardingFlow({ userId, userName, onComplete }: OnboardingFlowP
       setSaving(true);
       try {
         const onboardingAnswers: OnboardingAnswers = {
+          companyName: newAnswers.companyName || '',
+          companyCUI: newAnswers.companyCUI || '',
           businessDescription: newAnswers.businessDescription || '',
           entrepreneurYears: newAnswers.entrepreneurYears || '',
           biggestWorry: newAnswers.biggestWorry || '',
@@ -96,6 +98,21 @@ export function OnboardingFlow({ userId, userName, onComplete }: OnboardingFlowP
             onboarding_answers: onboardingAnswers as never,
             business_domain: onboardingAnswers.businessDescription.substring(0, 200),
           } as never, { onConflict: 'user_id' });
+
+        // Auto-create company record if name and CUI provided
+        if (onboardingAnswers.companyName.trim()) {
+          const cleanCUI = onboardingAnswers.companyCUI.replace(/\D/g, '').trim();
+          await supabase
+            .from('companies')
+            .upsert({
+              company_name: onboardingAnswers.companyName.trim(),
+              cui: cleanCUI || null,
+              managed_by_accountant_id: userId,
+            } as never, { onConflict: 'cui' })
+            .then(({ error: companyErr }) => {
+              if (companyErr) console.error('[OnboardingFlow] Company save error:', companyErr);
+            });
+        }
 
         if (error) throw error;
 
