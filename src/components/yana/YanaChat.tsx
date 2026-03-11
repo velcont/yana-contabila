@@ -390,14 +390,31 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
           // Chart 3: Cash Runway (numerar disponibil vs cheltuieli lunare)
           const cashAccounts = accounts.filter(
             (a: { code: string; finalDebit: number }) => 
-              a.code.startsWith('512') || a.code.startsWith('531') || a.code.startsWith('5121') || a.code.startsWith('5311')
+              a.code.startsWith('512') || a.code.startsWith('531')
           );
           const totalCash = cashAccounts.reduce(
             (sum: number, a: { finalDebit: number }) => sum + (a.finalDebit || 0), 0
           );
           
           if (totalCash > 0 && totalCheltuieli > 0) {
-            const cheltuieliLunare = totalCheltuieli / 12; // estimare simplificată
+            // Detectează numărul de luni din perioada balanței
+            const period = response.structuredData?.period || '';
+            let monthsInPeriod = 12; // fallback
+            const periodMatch = period.match(/(\d{2})\.(\d{4})\s*[-–]\s*(\d{2})\.(\d{4})/);
+            if (periodMatch) {
+              const startMonth = parseInt(periodMatch[1]);
+              const endMonth = parseInt(periodMatch[3]);
+              const startYear = parseInt(periodMatch[2]);
+              const endYear = parseInt(periodMatch[4]);
+              monthsInPeriod = Math.max(1, (endYear - startYear) * 12 + (endMonth - startMonth + 1));
+            } else {
+              // Fallback: caută doar o lună (ex: "Ianuarie 2025")
+              const singleMonthMatch = period.match(/(\d{2})\.(\d{4})$/);
+              if (singleMonthMatch) {
+                monthsInPeriod = parseInt(singleMonthMatch[1]) || 12;
+              }
+            }
+            const cheltuieliLunare = totalCheltuieli / monthsInPeriod;
             const runwayLuni = cheltuieliLunare > 0 ? totalCash / cheltuieliLunare : 0;
             artifacts.push({
               type: 'bar_chart',
