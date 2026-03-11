@@ -13,6 +13,8 @@ interface OnboardingFlowProps {
 }
 
 export interface OnboardingAnswers {
+  companyName: string;
+  companyCUI: string;
   businessDescription: string;
   entrepreneurYears: string;
   biggestWorry: string;
@@ -21,10 +23,22 @@ export interface OnboardingAnswers {
 
 const QUESTIONS = [
   {
-    key: 'businessDescription' as const,
-    question: 'Cu ce se ocupă firma ta? Spune-mi pe scurt — domeniu, ce vinzi sau ce servicii oferi.',
-    placeholder: 'Ex: Avem un magazin online de mobilă handmade...',
+    key: 'companyName' as const,
+    question: 'Cum se numește firma ta? Numele exact, ca să te recunosc data viitoare.',
+    placeholder: 'Ex: SC MOBILE DESIGN SRL',
     emoji: '🏢',
+  },
+  {
+    key: 'companyCUI' as const,
+    question: 'Care e CUI-ul firmei? Îl folosesc ca să-ți leg automat balanțele și analizele.',
+    placeholder: 'Ex: 12345678',
+    emoji: '🔢',
+  },
+  {
+    key: 'businessDescription' as const,
+    question: 'Cu ce se ocupă firma ta? Domeniu, ce vinzi sau ce servicii oferi — pe scurt.',
+    placeholder: 'Ex: Avem un magazin online de mobilă handmade...',
+    emoji: '💼',
   },
   {
     key: 'entrepreneurYears' as const,
@@ -67,6 +81,8 @@ export function OnboardingFlow({ userId, userName, onComplete }: OnboardingFlowP
       setSaving(true);
       try {
         const onboardingAnswers: OnboardingAnswers = {
+          companyName: newAnswers.companyName || '',
+          companyCUI: newAnswers.companyCUI || '',
           businessDescription: newAnswers.businessDescription || '',
           entrepreneurYears: newAnswers.entrepreneurYears || '',
           biggestWorry: newAnswers.biggestWorry || '',
@@ -82,6 +98,21 @@ export function OnboardingFlow({ userId, userName, onComplete }: OnboardingFlowP
             onboarding_answers: onboardingAnswers as never,
             business_domain: onboardingAnswers.businessDescription.substring(0, 200),
           } as never, { onConflict: 'user_id' });
+
+        // Auto-create company record if name and CUI provided
+        if (onboardingAnswers.companyName.trim()) {
+          const cleanCUI = onboardingAnswers.companyCUI.replace(/\D/g, '').trim();
+          await supabase
+            .from('companies')
+            .upsert({
+              company_name: onboardingAnswers.companyName.trim(),
+              cui: cleanCUI || null,
+              managed_by_accountant_id: userId,
+            } as never, { onConflict: 'cui' })
+            .then(({ error: companyErr }) => {
+              if (companyErr) console.error('[OnboardingFlow] Company save error:', companyErr);
+            });
+        }
 
         if (error) throw error;
 
