@@ -445,9 +445,29 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
         created_at: new Date().toISOString(),
         route: response.route,
         sources: response.citations || response.sources,
-        aiConversationId: response.aiConversationId || null, // Pentru feedback
+        aiConversationId: response.aiConversationId || null,
       };
       setMessages(prev => [...prev, assistantMessage]);
+
+      // 🆕 Pro Tips after balance analysis - discovery organic al funcțiilor premium
+      if (response.route === 'analyze-balance' || response.route === 'analyze-balance-saga') {
+        const proTips = [
+          '💡 **Știai că pot să-ți simulez scenarii?** Spune "War Room" și îți arăt ce se întâmplă dacă pierzi cel mai mare client sau cresc costurile cu 20%.',
+          '⚔️ **Vrei un plan de acțiune concret?** Spune "Battle Plan" și îți creez un plan strategic bazat pe cifrele tale reale.',
+          '📊 **Compară perioade diferite!** Încarcă balanța lunii anterioare și îți arăt exact ce s-a schimbat.',
+        ];
+        const randomTip = proTips[Math.floor(Math.random() * proTips.length)];
+        
+        setTimeout(() => {
+          const tipMessage: Message = {
+            id: `pro-tip-${Date.now()}`,
+            role: 'assistant',
+            content: randomTip,
+            created_at: new Date().toISOString(),
+          };
+          setMessages(prev => [...prev, tipMessage]);
+        }, 2000);
+      }
 
       // Update context if company name was detected or balance was uploaded
       if (response.companyName || response.structuredData) {
