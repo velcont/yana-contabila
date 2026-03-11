@@ -339,10 +339,80 @@ export function YanaChat({ conversationId, onConversationCreated }: YanaChatProp
       const artifacts: Artifact[] = response.artifacts || [];
 
       // Generate Word report for balance analysis and save balanceContext
-      if (response.route === 'analyze-balance' && response.structuredData) {
+      if ((response.route === 'analyze-balance' || response.route === 'analyze-balance-saga') && response.structuredData) {
         // Save balance context for future messages in this conversation
         setBalanceContext(response.structuredData);
         
+        // 🆕 AUTO-GENERATE 3 VISUAL CHARTS from structuredData
+        try {
+          const accounts = response.structuredData.accounts || [];
+          
+          // Chart 1: Profit / Pierdere (Venituri vs Cheltuieli)
+          const totalVenituri = accounts
+            .filter((a: { accountClass: number; credit: number }) => a.accountClass === 7)
+            .reduce((sum: number, a: { credit: number }) => sum + (a.credit || 0), 0);
+          const totalCheltuieli = accounts
+            .filter((a: { accountClass: number; debit: number }) => a.accountClass === 6)
+            .reduce((sum: number, a: { debit: number }) => sum + (a.debit || 0), 0);
+          const rezultat = totalVenituri - totalCheltuieli;
+          
+          if (totalVenituri > 0 || totalCheltuieli > 0) {
+            artifacts.push({
+              type: 'bar_chart',
+              title: `📊 Profit / Pierdere: ${rezultat >= 0 ? '+' : ''}${Math.round(rezultat).toLocaleString('ro-RO')} RON`,
+              data: {
+                'Venituri (Cl.7)': Math.round(totalVenituri),
+                'Cheltuieli (Cl.6)': Math.round(totalCheltuieli),
+                'Rezultat': Math.round(rezultat),
+              },
+            });
+          }
+
+          // Chart 2: Top 5 Cheltuieli (cele mai mari conturi din Clasa 6)
+          const cheltuieliConturi = accounts
+            .filter((a: { accountClass: number; debit: number; code: string }) => a.accountClass === 6 && a.debit > 0)
+            .sort((a: { debit: number }, b: { debit: number }) => b.debit - a.debit)
+            .slice(0, 5);
+          
+          if (cheltuieliConturi.length > 0) {
+            const topExpenses: Record<string, number> = {};
+            cheltuieliConturi.forEach((a: { code: string; name: string; debit: number }) => {
+              const label = `${a.code} ${(a.name || '').substring(0, 20)}`;
+              topExpenses[label] = Math.round(a.debit);
+            });
+            artifacts.push({
+              type: 'bar_chart',
+              title: '💰 Top 5 Cheltuieli',
+              data: topExpenses,
+            });
+          }
+
+          // Chart 3: Cash Runway (numerar disponibil vs cheltuieli lunare)
+          const cashAccounts = accounts.filter(
+            (a: { code: string; finalDebit: number }) => 
+              a.code.startsWith('512') || a.code.startsWith('531') || a.code.startsWith('5121') || a.code.startsWith('5311')
+          );
+          const totalCash = cashAccounts.reduce(
+            (sum: number, a: { finalDebit: number }) => sum + (a.finalDebit || 0), 0
+          );
+          
+          if (totalCash > 0 && totalCheltuieli > 0) {
+            const cheltuieliLunare = totalCheltuieli / 12; // estimare simplificată
+            const runwayLuni = cheltuieliLunare > 0 ? totalCash / cheltuieliLunare : 0;
+            artifacts.push({
+              type: 'bar_chart',
+              title: `🏦 Cash Runway: ~${Math.round(runwayLuni)} luni`,
+              data: {
+                'Cash disponibil': Math.round(totalCash),
+                'Cheltuieli/lună (est.)': Math.round(cheltuieliLunare),
+              },
+            });
+          }
+        } catch (chartError) {
+          console.error('Error generating charts:', chartError);
+        }
+
+        // Generate Word report
         try {
           const { blob, fileName } = await generatePremiumWordReport({
             structuredData: response.structuredData,
