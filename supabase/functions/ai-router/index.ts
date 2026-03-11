@@ -1276,6 +1276,69 @@ serve(async (req) => {
       result = await response.json();
     }
 
+    // =============================================================================
+    // 🆕 FIX: SALVARE AUTOMATĂ ÎN ANALYSES TABLE + CONFIRMARE CLARĂ
+    // =============================================================================
+    if (
+      (routeDecision.route === 'analyze-balance' || routeDecision.route === 'analyze-balance-saga') &&
+      result.analysis
+    ) {
+      const analysisText = result.analysis as string;
+      const structuredData = result.structuredData as {
+        company?: string;
+        period?: string;
+        accounts?: Array<unknown>;
+        extractedValues?: Record<string, unknown>;
+      } | null;
+      const metadata = result.metadata as Record<string, unknown> | null;
+      const councilValidation = result.councilValidation as Record<string, unknown> | null;
+
+      const companyFromAnalysis = structuredData?.company || detectedCompanyName || 'Firmă neidentificată';
+      const periodFromAnalysis = structuredData?.period || '';
+      const accountsCount = structuredData?.accounts?.length || 0;
+
+      // Build confirmation prefix
+      const confirmationPrefix = `✅ **Am primit și analizat balanța${companyFromAnalysis !== 'Firmă neidentificată' ? ` pentru ${companyFromAnalysis}` : ''}**${periodFromAnalysis ? ` (${periodFromAnalysis})` : ''}${accountsCount > 0 ? ` — ${accountsCount} conturi detectate` : ''}.\n\n---\n\n`;
+
+      // Prepend confirmation to the analysis
+      result.analysis = confirmationPrefix + analysisText;
+      result.response = confirmationPrefix + analysisText;
+
+      // Save to analyses table
+      try {
+        const { data: savedAnalysis, error: saveAnalysisError } = await supabase
+          .from('analyses')
+          .insert({
+            user_id: user.id,
+            company_id: detectedCompanyId,
+            company_name: companyFromAnalysis,
+            file_name: fileData?.fileName || 'balanta.xlsx',
+            analysis_text: analysisText.substring(0, 50000),
+            metadata: {
+              ...metadata,
+              period: periodFromAnalysis,
+              accountsCount,
+              route: routeDecision.route,
+              conversationId,
+              extractedValues: structuredData?.extractedValues || null,
+              analyzedAt: new Date().toISOString(),
+            },
+            council_validation: councilValidation || null,
+          })
+          .select('id')
+          .single();
+
+        if (saveAnalysisError) {
+          console.error('[AI-Router] ❌ Failed to save analysis:', saveAnalysisError);
+        } else {
+          console.log(`[AI-Router] ✅ Analysis saved to analyses table (id: ${savedAnalysis?.id}) for company: ${companyFromAnalysis}`);
+          result.analysisId = savedAnalysis?.id;
+        }
+      } catch (err) {
+        console.error('[AI-Router] ❌ Exception saving analysis:', err);
+      }
+    }
+
     // Save routing decision to yana_messages with ends_with_question tracking
     const assistantContent = (result.response as string) || (result.analysis as string) || (result.message as string) || 'Răspuns primit.';
     const endsWithQuestion = assistantContent.trim().endsWith('?');
