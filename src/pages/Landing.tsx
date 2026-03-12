@@ -35,6 +35,7 @@ const Landing = () => {
   return (
     <>
       <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} />
+      <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
       
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
         <div className="max-w-xl mx-auto text-center space-y-8">
