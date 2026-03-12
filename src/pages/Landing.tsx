@@ -11,10 +11,11 @@ const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
 
-  // Track page view on mount
+  // Track page view + scroll/time tracking
   useEffect(() => {
     analytics.pageView('landing');
   }, []);
+  useLandingTracking();
 
   const handleDemoClick = () => {
     analytics.landingCtaClick('demo', 'hero');
