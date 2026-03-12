@@ -1297,8 +1297,13 @@ serve(async (req) => {
       const periodFromAnalysis = structuredData?.period || '';
       const accountsCount = structuredData?.accounts?.length || 0;
 
+      // Sfat SAGA pentru redenumire fișier
+      const sagaTip = routeDecision.route === 'analyze-balance-saga'
+        ? `\n\n💡 **Sfat pentru data viitoare:** Salvează balanța din SAGA cu numele:\n\`Balanta_DenumireFirma_Luna_An.xlsx\`\n(exemplu: \`Balanta_DEMO_SRL_Ianuarie_2026.xlsx\`)\nAstfel pot extrage automat firma și perioada.\n\n`
+        : '';
+
       // Build confirmation prefix
-      const confirmationPrefix = `✅ **Am primit și analizat balanța${companyFromAnalysis !== 'Firmă neidentificată' ? ` pentru ${companyFromAnalysis}` : ''}**${periodFromAnalysis ? ` (${periodFromAnalysis})` : ''}${accountsCount > 0 ? ` — ${accountsCount} conturi detectate` : ''}.\n\n---\n\n`;
+      const confirmationPrefix = `✅ **Am primit și analizat balanța${companyFromAnalysis !== 'Firmă neidentificată' ? ` pentru ${companyFromAnalysis}` : ''}**${periodFromAnalysis ? ` (${periodFromAnalysis})` : ''}${accountsCount > 0 ? ` — ${accountsCount} conturi detectate` : ''}.${sagaTip}\n\n---\n\n`;
 
       // Prepend confirmation to the analysis
       result.analysis = confirmationPrefix + analysisText;
