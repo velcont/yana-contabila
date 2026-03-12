@@ -3,16 +3,19 @@ import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
 import { DemoChat } from '@/components/demo/DemoChat';
-import { MessageCircle } from 'lucide-react';
+import { ExitIntentPopup } from '@/components/ExitIntentPopup';
+import { useLandingTracking } from '@/hooks/useLandingTracking';
+import { MessageCircle, Users } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
 
-  // Track page view on mount
+  // Track page view + scroll/time tracking
   useEffect(() => {
     analytics.pageView('landing');
   }, []);
+  useLandingTracking();
 
   const handleDemoClick = () => {
     analytics.landingCtaClick('demo', 'hero');
@@ -32,6 +35,7 @@ const Landing = () => {
   return (
     <>
       <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} />
+      <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
       
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
         <div className="max-w-xl mx-auto text-center space-y-8">
@@ -98,6 +102,20 @@ const Landing = () => {
             >
               Autentifică-te
             </button>
+          </p>
+        </div>
+
+        {/* Social Proof */}
+        <div className="flex items-center justify-center gap-3 py-3">
+          <div className="flex -space-x-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center">
+                <Users className="w-3.5 h-3.5 text-primary" />
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">177+ antreprenori</strong> folosesc Yana
           </p>
         </div>
 
