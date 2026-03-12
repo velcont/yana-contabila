@@ -105,6 +105,20 @@ const Landing = () => {
           </p>
         </div>
 
+        {/* Social Proof */}
+        <div className="flex items-center justify-center gap-3 py-3">
+          <div className="flex -space-x-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center">
+                <Users className="w-3.5 h-3.5 text-primary" />
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-foreground">177+ antreprenori</strong> folosesc Yana
+          </p>
+        </div>
+
         {/* Companion benefits - emotional, not technical */}
         <div className="border border-border/50 rounded-xl p-6 bg-muted/30 space-y-4">
           <p className="text-sm font-medium text-foreground">
