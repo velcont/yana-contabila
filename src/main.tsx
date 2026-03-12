@@ -11,9 +11,12 @@ initSentry();
 // Mark app initialization
 performanceMonitor.mark('app-init');
 
-// Set dark mode as default
-const savedTheme = localStorage.getItem('theme') || 'dark';
-document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+// Set dark mode as default and persist preference
+const savedTheme = localStorage.getItem('theme');
+if (!savedTheme) {
+  localStorage.setItem('theme', 'dark');
+}
+document.documentElement.classList.toggle('dark', (savedTheme || 'dark') === 'dark');
 
 // PWA: Listener pentru SW controller change - forțează reload când SW nou preia controlul
 if ('serviceWorker' in navigator) {
