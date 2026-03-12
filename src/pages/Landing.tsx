@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
 import { DemoChat } from '@/components/demo/DemoChat';
-import { MessageCircle } from 'lucide-react';
+import { ExitIntentPopup } from '@/components/ExitIntentPopup';
+import { useLandingTracking } from '@/hooks/useLandingTracking';
+import { MessageCircle, Users } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
