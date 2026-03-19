@@ -93,8 +93,11 @@ export default function Yana() {
 
   if (loading || subscriptionLoading || creditsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
+        <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-pulse">
+          <span className="text-primary-foreground font-bold text-xl">Y</span>
+        </div>
+        <p className="text-sm text-muted-foreground animate-fade-in">Yana se pregătește...</p>
       </div>
     );
   }

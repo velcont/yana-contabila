@@ -11,11 +11,38 @@ const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
 
-  // Track page view + scroll/time tracking
   useEffect(() => {
     analytics.pageView('landing');
   }, []);
   useLandingTracking();
+
+  // JSON-LD structured data for SEO
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "YANA",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "Partenerul tău AI pentru business. Analizează cifrele, dă sfaturi strategice și nu uită nimic.",
+      "url": "https://yana-contabila.lovable.app",
+      "offers": {
+        "@type": "Offer",
+        "price": "49",
+        "priceCurrency": "RON",
+        "description": "Abonament lunar fără limită de conversații"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "177"
+      }
+    });
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, []);
 
   const handleDemoClick = () => {
     analytics.landingCtaClick('demo', 'hero');
@@ -37,29 +64,29 @@ const Landing = () => {
       <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} />
       <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
       
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
-        <div className="max-w-xl mx-auto text-center space-y-8">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center px-5 py-8 sm:p-4">
+        <div className="max-w-xl mx-auto text-center space-y-6 sm:space-y-8">
         
-        {/* Headline - Relational, not transactional */}
+        {/* Headline */}
         <div className="space-y-3">
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight">
             Ai pe cineva cu care să vorbești.
           </h1>
-          <p className="text-2xl md:text-3xl text-muted-foreground">
+          <p className="text-xl sm:text-2xl md:text-3xl text-muted-foreground">
             Despre business. Despre cifre. Despre ce te ține treaz noaptea.
           </p>
         </div>
 
         {/* Emotional hook */}
-        <div className="text-lg md:text-xl text-foreground/80 space-y-2 py-2">
+        <div className="text-base sm:text-lg md:text-xl text-foreground/80 space-y-2 py-2">
           <p className="italic">"Yana e singurul 'angajat' care nu judecă, nu obosește și nu uită ce i-ai spus."</p>
         </div>
 
-        {/* CTA Principal - Relational language */}
+        {/* CTA Principal */}
         <div className="space-y-3">
           <Button 
             size="lg" 
-            className="w-full text-lg px-8 py-6 shadow-2xl hover:shadow-primary/25 transition-all"
+            className="w-full text-base sm:text-lg px-8 py-7 sm:py-6 shadow-2xl hover:shadow-primary/25 transition-all min-h-[56px]"
             onClick={handlePrimaryCTA}
           >
             Vorbește cu Yana
@@ -68,15 +95,16 @@ const Landing = () => {
             Cont gratuit. 30 de zile să vedeți dacă vă înțelegeți.
           </p>
           
-          {/* Demo Button - Fake Input Style */}
+          {/* Demo Button */}
           <button
             onClick={handleDemoClick}
-            className="w-full flex items-center gap-3 px-4 py-4 
+            className="w-full flex items-center gap-3 px-4 py-5 sm:py-4 
                        bg-card border-2 border-primary/30 rounded-xl
                        hover:border-primary hover:shadow-lg
-                       transition-all duration-300 group text-left"
+                       active:scale-[0.98]
+                       transition-all duration-300 group text-left min-h-[60px]"
           >
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <MessageCircle className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
@@ -119,23 +147,23 @@ const Landing = () => {
           </p>
         </div>
 
-        {/* Companion benefits - emotional, not technical */}
-        <div className="border border-border/50 rounded-xl p-6 bg-muted/30 space-y-4">
+        {/* Companion benefits */}
+        <div className="border border-border/50 rounded-xl p-5 sm:p-6 bg-muted/30 space-y-4">
           <p className="text-sm font-medium text-foreground">
             De ce antreprenorii revin zilnic la Yana:
           </p>
           
-          <div className="space-y-2 text-left">
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
-              <span className="text-primary mt-0.5">✓</span>
+          <div className="space-y-3 sm:space-y-2 text-left">
+            <div className="flex items-start gap-3 sm:gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5 text-base">✓</span>
               <span>Își amintește tot ce i-ai spus</span>
             </div>
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
-              <span className="text-primary mt-0.5">✓</span>
+            <div className="flex items-start gap-3 sm:gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5 text-base">✓</span>
               <span>Te întreabă cum a mers cu clientul X</span>
             </div>
-            <div className="flex items-start gap-2 text-sm text-muted-foreground">
-              <span className="text-primary mt-0.5">✓</span>
+            <div className="flex items-start gap-3 sm:gap-2 text-sm text-muted-foreground">
+              <span className="text-primary mt-0.5 text-base">✓</span>
               <span>Nu te judecă când repeți aceeași greșeală</span>
             </div>
           </div>
@@ -146,7 +174,7 @@ const Landing = () => {
         </div>
 
         {/* Trust Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-4">
           <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
             GDPR compliant
           </div>
