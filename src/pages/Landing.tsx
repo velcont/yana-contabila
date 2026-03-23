@@ -13,6 +13,19 @@ const Landing = () => {
 
   useEffect(() => {
     analytics.pageView('landing');
+    
+    // Auto-open demo for YouTube traffic
+    const ref = document.referrer.toLowerCase();
+    if (ref.includes('youtube.com') || ref.includes('youtu.be')) {
+      const alreadyShown = sessionStorage.getItem('yana_yt_demo_shown');
+      if (!alreadyShown) {
+        sessionStorage.setItem('yana_yt_demo_shown', '1');
+        setTimeout(() => {
+          setShowDemo(true);
+          analytics.landingCtaClick('demo', 'youtube_auto');
+        }, 1500);
+      }
+    }
   }, []);
   useLandingTracking();
 
