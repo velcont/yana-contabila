@@ -1,55 +1,55 @@
 
 
-# Plan: Memorie de context financiar intra-sesiune
+# Plan: Integrare Conținut din Lucrarea Doctorală în YANA
 
-## Problema
+## Context
 
-Când utilizatorul menționează valori financiare în conversație (ex: "am cifră de afaceri de 500.000 RON", "profitul e 80.000"), YANA nu le refolosește automat în răspunsurile ulterioare din aceeași sesiune. Deși istoricul conversației (25 mesaje) este trimis la AI, nu există o instrucțiune explicită care să-i spună AI-ului să extragă și să rețină aceste valori.
+Lucrarea de cercetare doctorală "Inovație digitală și modele de afaceri sustenabile - Transformarea rezilienței în avantaj competitiv" conține cadre conceptuale, terminologie academică și referințe bibliografice care pot fi integrate în YANA pentru a consolida legătura dintre aplicație și cercetarea doctorală.
 
-## Soluția
+## Ce se poate insera din lucrare
 
-Două schimbări complementare:
+### 1. Cadrul Conceptual 4R vizualizat în Scorul de Reziliență
+YANA deja calculează dimensiuni de reziliență (Anticipare, Coping, Adaptare, Robustețe, Redundanță, Resurse, Rapiditate), dar lucrarea introduce explicit **modelul 4R al lui Bruneau et al. (2003)**: Robustețe, Redundanță, Ingeniozitate, Rapiditate. Se poate adăuga un panel informativ sub scorul de reziliență care explică legătura academică.
 
-### 1. Instrucțiune explicită în system prompt (chat-ai)
-Adăugăm o secțiune în system prompt-ul din `supabase/functions/chat-ai/index.ts` care instruiește AI-ul:
-- Să extragă automat orice valori financiare menționate de utilizator în mesajele anterioare din history
-- Să le folosească ca referință în răspunsurile ulterioare fără a le cere din nou
-- Să facă referire la ele natural ("Ai menționat că CA e 500k...")
+**Modificare:** `ResilienceScoreCard.tsx` - adaugă un expandable section "Cadru Academic" care explică:
+- Modelul 4R (Bruneau et al., 2003)
+- Modelul capabilităților (Duchek, 2020)  
+- Conexiunea antreprenor-firmă (Shepherd et al., 2015)
 
-### 2. Extracție automată din history și injectare ca context structurat (ai-router)
-În `supabase/functions/ai-router/index.ts`, înainte de a trimite payload-ul la chat-ai, scanăm mesajele din history pentru valori financiare (regex pe patterns precum "CA/cifră de afaceri: X", "profit: X", "angajați: X", "industrie: X") și construim un bloc de context structurat injectat în payload ca `userMentionedFacts`.
+### 2. Secțiune "Despre Cercetare" în pagina About/Footer
+Adaugă o pagină `/research` sau secțiune accesibilă din footer cu:
+- Titlul tezei
+- Cele 4 piloni: Reziliență Organizațională, Reziliență Antreprenorială, Transformare Digitală, Design Centrat pe Om
+- Maparea funcționalităților YANA la concepte academice (exact cum e descris în lucrare, pag.8)
+- Bibliografia selectivă (cele 40+ referințe)
 
-Acest bloc va fi apoi injectat în system prompt de chat-ai, astfel:
-```
-📝 VALORI FINANCIARE MENȚIONATE DE UTILIZATOR ÎN ACEASTĂ CONVERSAȚIE:
-- Cifră afaceri: 500.000 RON
-- Profit: 80.000 RON  
-- Industrie: retail
-- Angajați: 15
-⚠️ Folosește aceste valori ca referință! NU le cere din nou!
-```
+### 3. Maparea Funcționalități → Concepte Academice în YANA Chat
+Update la promptul YANA pentru a putea răspunde la întrebări despre fundamentul academic:
+- War Room = Agilitate Strategică (Warner & Wager, 2019)
+- Analiza Balanțe = Reducerea Sarcinii Cognitive (Norman, 2013; Baumeister et al., 2018)
+- Scor Reziliență = Cuantificarea Rezilienței (Duchek, 2020; Linnenluecke, 2017)
+- Battle Plan = Planificare Strategică Adaptivă (Teece, 2007)
+- Suport Empatic = Suport Socio-Digital (Torres & Thurik, 2019)
 
-## Fișiere modificate
+**Modificare:** `yana-identity-contract.md` - adaugă secțiune de cunoștințe academice
 
-1. **`supabase/functions/ai-router/index.ts`** — Funcție nouă `extractUserMentionedFacts(history)` care scanează mesajele user din history cu regex-uri pentru valori financiare comune (CA, profit, angajați, industrie, datorii, cash, etc.). Rezultatul se adaugă la `routeDecision.payload.userMentionedFacts`.
+### 4. Tooltip-uri Academice pe Funcționalitățile Cheie
+Adaugă tooltip-uri discrete pe butoanele War Room, Battle Plan și Scorul de Reziliență care arată referința academică (ex: "Bazat pe Dynamic Capabilities Framework - Teece, 2007").
 
-2. **`supabase/functions/chat-ai/index.ts`** — 
-   - Adăugare câmp `userMentionedFacts` în schema Zod
-   - Construire secțiune de context din valorile extrase
-   - Injectare în system prompt (secțiune dedicată)
-   - Adăugare instrucțiune în SYSTEM_PROMPT care spune explicit AI-ului să rețină și să referențieze valorile financiare menționate de utilizator
+### 5. Export PDF "Cadru Conceptual" pentru prezentarea la conferințe
+Adaugă opțiunea de a genera un PDF cu cadrul conceptual vizualizat, care mapează datele reale ale firmei la conceptele din lucrare - util pentru prezentări ICMEA.
 
-## Detalii tehnice
+## Detalii Tehnice
 
-**Patterns de extracție (ai-router):**
-- `cifr[aă]\s*(?:de\s+)?afaceri\s*[:=\-]?\s*([0-9.,\s]+)` → CA
-- `profit\s*(?:net)?\s*[:=\-]?\s*([-]?[0-9.,\s]+)` → Profit
-- `(\d+)\s*angaja[tț]i` → Angajați
-- `industri[ea]\s*[:=\-]?\s*(\w+)` → Industrie
-- `cash\s*(?:disponibil)?\s*[:=\-]?\s*([0-9.,\s]+)` → Cash
-- `datorii\s*[:=\-]?\s*([0-9.,\s]+)` → Datorii
-- `venituri?\s*[:=\-]?\s*([0-9.,\s]+)` → Venituri
-- `cheltuieli\s*[:=\-]?\s*([0-9.,\s]+)` → Cheltuieli
+| Pas | Fișiere afectate | Complexitate |
+|-----|-------------------|-------------|
+| Cadru 4R în Reziliență | `ResilienceScoreCard.tsx` | Mică |
+| Pagina /research | Nou: `src/pages/Research.tsx`, `App.tsx` (rută) | Medie |
+| Update prompt YANA | `yana-identity-contract.md` | Mică |
+| Tooltip-uri academice | `WarRoomSimulator.tsx`, `StrategicChart.tsx` | Mică |
+| Export PDF cadru | Nou: `src/utils/generateResearchFrameworkPDF.ts` | Mare |
 
-Scanarea se face doar pe mesajele cu `role === 'user'` din history. Extracția nu suprascrie datele din balanceContext (care au prioritate).
+## Recomandare de prioritate
+
+Pașii 1-3 sunt cei mai valoroși: consolidează poziționarea YANA ca "exemplu ilustrativ" în teză și oferă substanță academică vizibilă. Pasul 5 (PDF) e bonus pentru conferințe.
 
