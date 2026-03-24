@@ -52,6 +52,7 @@ const MyDocuments = lazy(() => import("./pages/MyDocuments"));
 const GenerateAcademicStatistics = lazy(() => import("./pages/GenerateAcademicStatistics"));
 const MyAICosts = lazy(() => import("./pages/MyAICosts"));
 const AIStrategy = lazy(() => import("./pages/AIStrategy"));
+const Research = lazy(() => import("./pages/Research"));
 
 const queryClient = new QueryClient();
 
