@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Shield, TrendingUp, Activity, AlertTriangle } from "lucide-react";
+import { Shield, TrendingUp, Activity, AlertTriangle, GraduationCap, ChevronDown, ChevronUp } from "lucide-react";
 import { ResilienceScore } from './types';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface ResilienceScoreCardProps {
   resilienceScore: ResilienceScore;
