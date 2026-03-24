@@ -105,6 +105,10 @@ export const Footer = () => {
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Confidențialitate
             </Link>
+            <Link to="/research" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+              <GraduationCap className="h-3 w-3" />
+              Cercetare
+            </Link>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <button className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
