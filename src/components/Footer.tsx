@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, FileText, Building2, Sparkles } from 'lucide-react';
+import { Mail, MessageCircle, FileText, Building2, Sparkles, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
