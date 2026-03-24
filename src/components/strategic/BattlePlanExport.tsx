@@ -165,6 +165,9 @@ export const BattlePlanExport: React.FC<BattlePlanExportProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             📋 BATTLE PLAN - Plan de Execuție 90 Zile
+            <span className="text-[10px] font-normal text-muted-foreground ml-auto" title="Bazat pe Planificare Strategică Adaptivă – Teece (2007); Helfat & Peteraf (2009)">
+              📚 Capabilități Dinamice
+            </span>
           </DialogTitle>
           <DialogDescription>
             Document strategic confidențial pentru implementarea rapidă

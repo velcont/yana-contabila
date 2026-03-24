@@ -271,6 +271,9 @@ export const WarRoomSimulator: React.FC<WarRoomSimulatorProps> = ({
           <SheetTitle className="text-red-500 flex items-center gap-2 text-xl">
             <AlertTriangle className="w-6 h-6" />
             WAR ROOM - Simulator Scenarii
+            <span className="text-[10px] font-normal text-slate-500 ml-auto" title="Bazat pe Dynamic Capabilities Framework – Teece (2018); Warner & Wager (2019)">
+              📚 Agilitate Strategică
+            </span>
           </SheetTitle>
         </SheetHeader>
 

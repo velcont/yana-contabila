@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, FileText, Building2, Sparkles } from 'lucide-react';
+import { Mail, MessageCircle, FileText, Building2, Sparkles, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -104,6 +104,10 @@ export const Footer = () => {
             </Link>
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
               Confidențialitate
+            </Link>
+            <Link to="/research" className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1">
+              <GraduationCap className="h-3 w-3" />
+              Cercetare
             </Link>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
