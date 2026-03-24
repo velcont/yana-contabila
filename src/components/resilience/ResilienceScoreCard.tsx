@@ -121,6 +121,8 @@ export const ResilienceScoreCard = ({ resilienceScore }: ResilienceScoreCardProp
             Scorurile sunt calculate pe baza metodologiilor academice validate (Duchek, 2020; Linnenluecke, 2017)
           </p>
         </div>
+
+        <AcademicFrameworkSection />
       </CardContent>
     </Card>
   );
