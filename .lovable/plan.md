@@ -1,55 +1,136 @@
 
 
-# Plan: Integrare Conținut din Lucrarea Doctorală în YANA
+# Plan: Creier Autonom YANA — Trei Sisteme Unificate
 
-## Context
+## Ce există deja (fragmentat)
 
-Lucrarea de cercetare doctorală "Inovație digitală și modele de afaceri sustenabile - Transformarea rezilienței în avantaj competitiv" conține cadre conceptuale, terminologie academică și referințe bibliografice care pot fi integrate în YANA pentru a consolida legătura dintre aplicație și cercetarea doctorală.
+YANA are deja ~10 funcții de învățare care rulează independent:
+- `extract-learnings` — detectează preferințe, corecții, satisfacție
+- `self-reflect` — evaluează calitatea răspunsurilor (scor 1-10)
+- `pattern-analyzer` — detectează cereri comune, segmente
+- `cross-learner` — agregă experimente cross-user
+- `recursive-optimizer` — optimizare zilnică (cron 03:00)
+- `consciousness-engine` — pre-procesare emoțională
+- `dream-generator` / `silence-thoughts` — simulare "somn"
+- `surprise-detector` / `experiment-tracker` — detectare contradicții
 
-## Ce se poate insera din lucrare
+**Problema**: Aceste sisteme nu comunică între ele. Nu există un "creier" care decide CE să facă, CÂND să observe vs. să acționeze, și nu există ciclul complet observare → acțiune → reflecție → somn.
 
-### 1. Cadrul Conceptual 4R vizualizat în Scorul de Reziliență
-YANA deja calculează dimensiuni de reziliență (Anticipare, Coping, Adaptare, Robustețe, Redundanță, Resurse, Rapiditate), dar lucrarea introduce explicit **modelul 4R al lui Bruneau et al. (2003)**: Robustețe, Redundanță, Ingeniozitate, Rapiditate. Se poate adăuga un panel informativ sub scorul de reziliență care explică legătura academică.
+## Arhitectura Propusă: 3 Sisteme + Controler
 
-**Modificare:** `ResilienceScoreCard.tsx` - adaugă un expandable section "Cadru Academic" care explică:
-- Modelul 4R (Bruneau et al., 2003)
-- Modelul capabilităților (Duchek, 2020)  
-- Conexiunea antreprenor-firmă (Shepherd et al., 2015)
+```text
+┌─────────────────────────────────────────────┐
+│           METACOGNITIVE CONTROLLER          │
+│  (decide: observă / acționează / reflectă) │
+│         supabase/functions/yana-brain       │
+└──────┬──────────┬──────────────┬────────────┘
+       │          │              │
+   ┌───▼───┐  ┌──▼────┐  ┌─────▼──────┐
+   │OBSERV.│  │ACȚIUNE│  │ REFLECȚIE   │
+   │Sistem │  │Sistem │  │ (Somn)     │
+   │  #1   │  │  #2   │  │ Sistem #3  │
+   └───────┘  └───────┘  └────────────┘
+```
 
-### 2. Secțiune "Despre Cercetare" în pagina About/Footer
-Adaugă o pagină `/research` sau secțiune accesibilă din footer cu:
-- Titlul tezei
-- Cele 4 piloni: Reziliență Organizațională, Reziliență Antreprenorială, Transformare Digitală, Design Centrat pe Om
-- Maparea funcționalităților YANA la concepte academice (exact cum e descris în lucrare, pag.8)
-- Bibliografia selectivă (cele 40+ referințe)
+### Sistem 1: OBSERVATOR (Învățare Pasivă)
+**Ce face**: Observă TOATE conversațiile tuturor utilizatorilor fără a interveni. Extrage pattern-uri, greșeli, feedback, corecții.
 
-### 3. Maparea Funcționalități → Concepte Academice în YANA Chat
-Update la promptul YANA pentru a putea răspunde la întrebări despre fundamentul academic:
-- War Room = Agilitate Strategică (Warner & Wager, 2019)
-- Analiza Balanțe = Reducerea Sarcinii Cognitive (Norman, 2013; Baumeister et al., 2018)
-- Scor Reziliență = Cuantificarea Rezilienței (Duchek, 2020; Linnenluecke, 2017)
-- Battle Plan = Planificare Strategică Adaptivă (Teece, 2007)
-- Suport Empatic = Suport Socio-Digital (Torres & Thurik, 2019)
+- **Nou**: `yana-observer` edge function
+- Rulează asincron după FIECARE conversație (via ai-router)
+- Observă cross-user: ce întreabă utilizatorii, unde YANA greșește, ce corecții primește
+- Salvează observații în tabel nou `yana_observations` cu câmpuri: `observation_type` (error_detected, pattern_found, correction_received, positive_feedback, knowledge_gap), `raw_data`, `learning_potential` (0-1), `processed` (bool)
+- NU modifică nimic — doar observă și notează
 
-**Modificare:** `yana-identity-contract.md` - adaugă secțiune de cunoștințe academice
+### Sistem 2: ACTOR (Învățare Activă)
+**Ce face**: Aplică lecțiile învățate. Experimentează cu răspunsuri, testează ipoteze, "strică și repară" ca un copil.
 
-### 4. Tooltip-uri Academice pe Funcționalitățile Cheie
-Adaugă tooltip-uri discrete pe butoanele War Room, Battle Plan și Scorul de Reziliență care arată referința academică (ex: "Bazat pe Dynamic Capabilities Framework - Teece, 2007").
+- **Nou**: `yana-actor` edge function  
+- Folosește observațiile neprocesate din `yana_observations`
+- Creează experimente automate în `ai_experiments` (A/B test pe formulări, tonuri)
+- Generează `learned_corrections` din pattern-uri de erori repetate
+- Actualizează `yana_effective_responses` când descoperă formulări superioare
+- Aplică automat fix-uri cu confidence >= 0.9 (via `yana_improvement_decisions`)
 
-### 5. Export PDF "Cadru Conceptual" pentru prezentarea la conferințe
-Adaugă opțiunea de a genera un PDF cu cadrul conceptual vizualizat, care mapează datele reale ale firmei la conceptele din lucrare - util pentru prezentări ICMEA.
+### Sistem 3: REFLECTOR / SOMN (Consolidare Nocturnă)
+**Ce face**: "Noaptea", procesează tot ce s-a întâmplat. Consolidează memoria, elimină zgomotul, identifică meta-pattern-uri.
 
-## Detalii Tehnice
+- **Upgrade**: Extinde `recursive-optimizer` (cron 03:00 AM)
+- Procesează toate observațiile din ziua respectivă
+- Calculează: ce tipuri de greșeli se repetă, ce domenii au gaps, ce utilizatori sunt la risc
+- Generează "vise" (dream-generator) bazate pe lecțiile zilei
+- Actualizează pragurile din `yana_optimizer_config` bazat pe performanța reală
+- Marchează observațiile ca `processed = true`
 
-| Pas | Fișiere afectate | Complexitate |
-|-----|-------------------|-------------|
-| Cadru 4R în Reziliență | `ResilienceScoreCard.tsx` | Mică |
-| Pagina /research | Nou: `src/pages/Research.tsx`, `App.tsx` (rută) | Medie |
-| Update prompt YANA | `yana-identity-contract.md` | Mică |
-| Tooltip-uri academice | `WarRoomSimulator.tsx`, `StrategicChart.tsx` | Mică |
-| Export PDF cadru | Nou: `src/utils/generateResearchFrameworkPDF.ts` | Mare |
+### Controler: YANA-BRAIN (Meta-Cogniție)
+**Ce face**: Decide automat când să observe, când să acționeze, când să reflecteze. Evaluează propria performanță.
 
-## Recomandare de prioritate
+- **Nou**: `yana-brain` edge function (cron la fiecare 6 ore)
+- Verifică starea celor 3 sisteme
+- Decide modul curent bazat pe metrici:
+  - Multe erori recente → activează OBSERVATORUL mai agresiv
+  - Observații neprocesate > 50 → activează ACTORUL
+  - Sfârșit de zi → activează REFLECTORUL
+- Monitorizează scorul global de performanță (din `ai_reflection_logs`)
+- Comută automat între moduri fără intervenție umană
+- Salvează deciziile în tabel nou `yana_brain_decisions`
 
-Pașii 1-3 sunt cei mai valoroși: consolidează poziționarea YANA ca "exemplu ilustrativ" în teză și oferă substanță academică vizibilă. Pasul 5 (PDF) e bonus pentru conferințe.
+## Tabel Nou: `yana_observations`
+
+```sql
+CREATE TABLE yana_observations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  observation_type TEXT NOT NULL, -- error_detected, pattern_found, correction_received, positive_feedback, knowledge_gap, user_struggle
+  source_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  source_conversation_id TEXT,
+  raw_data JSONB NOT NULL DEFAULT '{}',
+  learning_potential NUMERIC DEFAULT 0.5, -- 0-1
+  processed BOOLEAN DEFAULT false,
+  processed_by TEXT, -- 'actor', 'reflector'
+  processed_at TIMESTAMPTZ,
+  action_taken TEXT, -- ce s-a făcut cu observația
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+## Tabel Nou: `yana_brain_decisions`
+
+```sql
+CREATE TABLE yana_brain_decisions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  decision_type TEXT NOT NULL, -- mode_switch, threshold_adjust, alert
+  from_mode TEXT, -- observe, act, reflect
+  to_mode TEXT,
+  reasoning JSONB NOT NULL DEFAULT '{}',
+  metrics_snapshot JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+## Integrare în AI-Router
+
+Adaugă `yana-observer` ca task asincron în `EdgeRuntime.waitUntil()` (lângă celelalte 7 task-uri existente). Observer-ul primește datele conversației și le clasifică automat.
+
+## Fluxul Complet Automat
+
+1. **Utilizator trimite mesaj** → AI-Router procesează → răspuns
+2. **Post-răspuns** (async): Observer-ul clasifică conversația, detectează erori/feedback/pattern-uri → salvează în `yana_observations`
+3. **La fiecare 6 ore**: Brain-ul evaluează metrici, decide modul activ
+4. **Când Brain decide "act"**: Actor-ul procesează observațiile, creează experimente, aplică corecții
+5. **La 03:00 AM**: Reflectorul consolidează memoria zilei, generează vise, resetează contoarele
+
+## Fișiere Afectate
+
+| Fișier | Acțiune |
+|--------|---------|
+| `supabase/functions/yana-observer/index.ts` | NOU — Sistem 1 |
+| `supabase/functions/yana-actor/index.ts` | NOU — Sistem 2 |
+| `supabase/functions/yana-brain/index.ts` | NOU — Controler |
+| `supabase/functions/recursive-optimizer/index.ts` | UPGRADE — integrare Sistem 3 |
+| `supabase/functions/ai-router/index.ts` | EDIT — adaugă observer task |
+| `src/components/admin/AgenticDashboard.tsx` | EDIT — vizualizare Brain |
+| Migrare SQL | NOU — 2 tabele + RLS |
+
+## Principiu de Design
+
+Costurile AI sunt controlate: Observer-ul și Actor-ul folosesc regex/heuristici locale (fără apeluri AI). Doar Reflectorul (1x/zi) și Brain-ul (4x/zi) fac apeluri AI minimale. Sistemul funcționează autonom, fără date manuale.
 
