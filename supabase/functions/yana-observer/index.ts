@@ -82,16 +82,13 @@ function detectKnowledgeGaps(question: string, answer: string): string[] {
   return gaps;
 }
 
-function detectPositiveFeedback(question: string, answer: string): boolean {
+function detectPositiveFeedback(question: string): boolean {
   return /mulțumesc|perfect|excelent|exact ce|super|bravo|genial/i.test(question);
 }
 
-function detectUserStruggle(question: string, history?: string[]): boolean {
+function detectUserStruggle(question: string): boolean {
   // User reformulates the same question (struggle)
-  if (/adică|vreau să zic|nu asta am întrebat|altceva|din nou/i.test(question)) {
-    return true;
-  }
-  return false;
+  return /adică|vreau să zic|nu asta am întrebat|altceva|din nou/i.test(question);
 }
 
 function classifyTopic(question: string): string {
@@ -199,7 +196,7 @@ Deno.serve(async (req) => {
     }
 
     // 4. Detect positive feedback
-    if (detectPositiveFeedback(question, answer)) {
+    if (detectPositiveFeedback(question)) {
       observations.push({
         observation_type: "positive_feedback",
         source_user_id: userId,
