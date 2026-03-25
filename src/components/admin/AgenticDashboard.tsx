@@ -19,11 +19,249 @@ import {
   Activity,
   Clock,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Eye,
+  Cog,
+  Moon
 } from "lucide-react";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { toast } from "sonner";
+
+// ============= BRAIN TAB COMPONENT =============
+
+interface BrainDecision {
+  id: string;
+  decision_type: string;
+  from_mode: string;
+  to_mode: string;
+  reasoning: Record<string, unknown>;
+  metrics_snapshot: Record<string, unknown>;
+  actions_triggered: string[];
+  created_at: string;
+}
+
+interface Observation {
+  id: string;
+  observation_type: string;
+  learning_potential: number;
+  processed: boolean;
+  processed_by: string | null;
+  created_at: string;
+  raw_data: Record<string, unknown>;
+}
+
+function getModeIcon(mode: string) {
+  switch (mode) {
+    case "observe": return <Eye className="w-4 h-4" />;
+    case "act": return <Cog className="w-4 h-4" />;
+    case "reflect": return <Moon className="w-4 h-4" />;
+    default: return <Brain className="w-4 h-4" />;
+  }
+}
+
+function getModeColor(mode: string) {
+  switch (mode) {
+    case "observe": return "bg-blue-500";
+    case "act": return "bg-amber-500";
+    case "reflect": return "bg-purple-500";
+    default: return "bg-muted";
+  }
+}
+
+function BrainTab() {
+  const [brainDecisions, setBrainDecisions] = useState<BrainDecision[]>([]);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [obsStats, setObsStats] = useState({ total: 0, unprocessed: 0, byType: {} as Record<string, number> });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBrainData = async () => {
+      setLoading(true);
+      try {
+        const [decisionsRes, obsRes, unprocessedRes] = await Promise.all([
+          supabase
+            .from("yana_brain_decisions")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(20),
+          supabase
+            .from("yana_observations")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase
+            .from("yana_observations")
+            .select("*", { count: "exact", head: true })
+            .eq("processed", false),
+        ]);
+
+        setBrainDecisions((decisionsRes.data as BrainDecision[]) || []);
+        const obsData = (obsRes.data as Observation[]) || [];
+        setObservations(obsData);
+
+        // Aggregate stats
+        const byType: Record<string, number> = {};
+        for (const o of obsData) {
+          byType[o.observation_type] = (byType[o.observation_type] || 0) + 1;
+        }
+        setObsStats({
+          total: obsData.length,
+          unprocessed: unprocessedRes.count || 0,
+          byType,
+        });
+      } catch (err) {
+        console.error("Brain data fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBrainData();
+  }, []);
+
+  const currentMode = brainDecisions[0]?.to_mode || "observe";
+
+  const triggerBrain = async () => {
+    try {
+      const resp = await supabase.functions.invoke("yana-brain", { body: {} });
+      if (resp.error) throw resp.error;
+      toast.success(`Brain: mod ${resp.data?.new_mode}`, {
+        description: resp.data?.trigger || "Evaluare completă",
+      });
+    } catch (err) {
+      toast.error("Eroare la triggerarea Brain-ului");
+    }
+  };
+
+  const triggerActor = async () => {
+    try {
+      const resp = await supabase.functions.invoke("yana-actor", { body: {} });
+      if (resp.error) throw resp.error;
+      toast.success(`Actor: ${resp.data?.actions_applied || 0} acțiuni aplicate`, {
+        description: `${resp.data?.observations_processed || 0} observații procesate`,
+      });
+    } catch (err) {
+      toast.error("Eroare la triggerarea Actorului");
+    }
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-12"><RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Current Brain Mode */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getModeColor(currentMode)} text-white`}>
+                {getModeIcon(currentMode)}
+              </div>
+              <div>
+                <p className="font-bold text-lg">Mod Curent: {currentMode.toUpperCase()}</p>
+                <p className="text-sm text-muted-foreground">
+                  {brainDecisions[0]
+                    ? `Ultima decizie: ${format(new Date(brainDecisions[0].created_at), "d MMM HH:mm", { locale: ro })}`
+                    : "Nicio decizie încă"}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={triggerBrain}>
+                <Brain className="w-4 h-4 mr-1" /> Brain
+              </Button>
+              <Button size="sm" variant="outline" onClick={triggerActor}>
+                <Cog className="w-4 h-4 mr-1" /> Actor
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Observation Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Observații Total</p>
+            <p className="text-2xl font-bold">{obsStats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Neprocesate</p>
+            <p className="text-2xl font-bold text-amber-500">{obsStats.unprocessed}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Erori Detectate</p>
+            <p className="text-2xl font-bold text-destructive">{obsStats.byType["error_detected"] || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Feedback Pozitiv</p>
+            <p className="text-2xl font-bold text-green-500">{obsStats.byType["positive_feedback"] || 0}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Brain Decisions History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Decizii Brain</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[250px]">
+            <div className="space-y-2">
+              {brainDecisions.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">Nicio decizie încă. Brain-ul va rula automat.</p>
+              ) : (
+                brainDecisions.map((d) => (
+                  <div key={d.id} className="flex items-center gap-3 p-2 rounded border">
+                    <Badge className={getModeColor(d.to_mode)} >{d.to_mode}</Badge>
+                    <span className="text-sm flex-1">{(d.reasoning as Record<string, unknown>)?.description as string || d.decision_type}</span>
+                    <span className="text-xs text-muted-foreground">{format(new Date(d.created_at), "d MMM HH:mm", { locale: ro })}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Recent Observations */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Observații Recente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[250px]">
+            <div className="space-y-2">
+              {observations.slice(0, 20).map((o) => (
+                <div key={o.id} className="flex items-center gap-3 p-2 rounded border">
+                  <Badge variant={o.processed ? "secondary" : "default"}>
+                    {o.observation_type.replace(/_/g, " ")}
+                  </Badge>
+                  <Progress value={o.learning_potential * 100} className="h-2 w-16" />
+                  <span className="text-xs text-muted-foreground">
+                    {(o.learning_potential * 100).toFixed(0)}% LP
+                  </span>
+                  {o.processed && <span className="text-xs text-muted-foreground">✓ {o.processed_by}</span>}
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {format(new Date(o.created_at), "d MMM HH:mm", { locale: ro })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 interface ABExperiment {
   id: string;
@@ -312,8 +550,12 @@ export default function AgenticDashboard() {
         </div>
       )}
 
-      <Tabs defaultValue="experiments" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="brain" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="brain" className="flex items-center gap-2">
+            <Brain className="w-4 h-4" />
+            Creier
+          </TabsTrigger>
           <TabsTrigger value="experiments" className="flex items-center gap-2">
             <Beaker className="w-4 h-4" />
             A/B Testing
@@ -331,6 +573,11 @@ export default function AgenticDashboard() {
             Cereri Comune
           </TabsTrigger>
         </TabsList>
+
+        {/* Brain Tab - NEW */}
+        <TabsContent value="brain">
+          <BrainTab />
+        </TabsContent>
 
         {/* A/B Experiments Tab */}
         <TabsContent value="experiments">

@@ -1684,6 +1684,36 @@ serve(async (req) => {
         }
       };
       
+      // 🧠 OBSERVER TASK — Sistem 1 al Creierului Autonom
+      const observerTask = async () => {
+        try {
+          const observerResp = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/yana-observer`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              userId,
+              conversationId,
+              question: message,
+              answer: result.response || result.answer || "",
+              selfScore: undefined, // will be filled by self-reflect
+              wasCorrected: false,
+              processingTimeMs: 0, // approximate, real timing in self-reflect
+              modelUsed: result.modelUsed || "unknown",
+              route: routeDecision.route,
+            }),
+          });
+          if (observerResp.ok) {
+            const obsResult = await observerResp.json();
+            console.log(`[AI-Router] 🧠 Observer: ${obsResult.observations_count} observations logged`);
+          }
+        } catch (err) {
+          console.error('[AI-Router] Observer error (non-blocking):', err);
+        }
+      };
+
       // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
         // @ts-ignore
@@ -1694,9 +1724,10 @@ serve(async (req) => {
           journeyUpdaterTask(),
           captureSoulStateTask(),
           extractLearningsTask(),
-          updateClientProfileTask(), // 🆕 Consolidare profil client
+          updateClientProfileTask(),
+          observerTask(), // 🧠 Creier Autonom — Sistem 1
         ]));
-        console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil()');
+        console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil() (incl. Brain Observer)');
       } else {
         // Fallback pentru medii unde EdgeRuntime nu e disponibil
         Promise.all([
@@ -1706,9 +1737,10 @@ serve(async (req) => {
           journeyUpdaterTask(),
           captureSoulStateTask(),
           extractLearningsTask(),
-          updateClientProfileTask(), // 🆕 Consolidare profil client
+          updateClientProfileTask(),
+          observerTask(), // 🧠 Creier Autonom — Sistem 1
         ]).catch(console.error);
-        console.log('[AI-Router] All async tasks triggered (fallback mode)');
+        console.log('[AI-Router] All async tasks triggered (fallback mode, incl. Brain Observer)');
       }
     }
 

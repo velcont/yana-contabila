@@ -379,6 +379,82 @@ Deno.serve(async (req) => {
       // If meta_score > 0.7 — keep current strategy (no changes needed)
     }
 
+    // ===== PHASE 6 (NEW): SLEEP CONSOLIDATION =====
+    await supabase
+      .from("yana_optimization_cycles")
+      .update({ phase: "sleep_consolidation" })
+      .eq("id", cycleId);
+
+    let observationsConsolidated = 0;
+    let dreamsGenerated = 0;
+
+    // 6a: Mark remaining unprocessed observations as consolidated
+    const { data: dayObservations } = await supabase
+      .from("yana_observations")
+      .select("id, observation_type, raw_data, learning_potential")
+      .eq("processed", false)
+      .order("learning_potential", { ascending: false })
+      .limit(200);
+
+    if (dayObservations && dayObservations.length > 0) {
+      // Aggregate top learnings from the day
+      const topLearnings = dayObservations
+        .filter(o => o.learning_potential > 0.5)
+        .slice(0, 10)
+        .map(o => ({
+          type: o.observation_type,
+          topic: (o.raw_data as Record<string, unknown>)?.topic || "general",
+          potential: o.learning_potential,
+        }));
+
+      // Mark all as processed by reflector
+      const obsIds = dayObservations.map(o => o.id);
+      for (let i = 0; i < obsIds.length; i += 50) {
+        const batch = obsIds.slice(i, i + 50);
+        await supabase
+          .from("yana_observations")
+          .update({
+            processed: true,
+            processed_by: "reflector",
+            processed_at: new Date().toISOString(),
+            action_taken: "sleep_consolidation",
+          })
+          .in("id", batch);
+      }
+      observationsConsolidated = obsIds.length;
+
+      // 6b: Generate a "dream" based on the day's learnings
+      if (topLearnings.length > 0) {
+        const dreamContent = topLearnings.map(l => 
+          `Am observat un pattern "${l.type}" în domeniul ${l.topic} (potențial: ${(l.potential * 100).toFixed(0)}%)`
+        ).join(". ");
+
+        await supabase.from("yana_journal").insert({
+          entry_type: "dream",
+          content: `Vis de consolidare (ciclu #${cycleNumber}): ${dreamContent}`,
+          emotional_tone: metaScore > 0.5 ? "optimist" : "reflexiv",
+          metadata: { cycle: cycleNumber, learnings: topLearnings, meta_score: metaScore },
+        });
+        dreamsGenerated = 1;
+      }
+    }
+
+    // 6c: Log brain decision about the reflection
+    await supabase.from("yana_brain_decisions").insert({
+      decision_type: "reflection_complete",
+      from_mode: "reflect",
+      to_mode: "observe",
+      reasoning: {
+        trigger: "sleep_consolidation_done",
+        cycle: cycleNumber,
+        observations_consolidated: observationsConsolidated,
+        dreams_generated: dreamsGenerated,
+        meta_score: metaScore,
+      },
+      metrics_snapshot: metricsSnapshot,
+      actions_triggered: ["dream_generator", "observation_consolidation"],
+    });
+
     // Complete the cycle
     await supabase
       .from("yana_optimization_cycles")
@@ -399,6 +475,10 @@ Deno.serve(async (req) => {
         actions_generated: actions.length,
         meta_score: metaScore,
         adjustments: Object.keys(metaAdjustments).length,
+        sleep_consolidation: {
+          observations_consolidated: observationsConsolidated,
+          dreams_generated: dreamsGenerated,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
