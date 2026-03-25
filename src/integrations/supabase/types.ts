@@ -4983,6 +4983,39 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_brain_decisions: {
+        Row: {
+          actions_triggered: string[] | null
+          created_at: string | null
+          decision_type: string
+          from_mode: string | null
+          id: string
+          metrics_snapshot: Json | null
+          reasoning: Json
+          to_mode: string | null
+        }
+        Insert: {
+          actions_triggered?: string[] | null
+          created_at?: string | null
+          decision_type: string
+          from_mode?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          reasoning?: Json
+          to_mode?: string | null
+        }
+        Update: {
+          actions_triggered?: string[] | null
+          created_at?: string | null
+          decision_type?: string
+          from_mode?: string | null
+          id?: string
+          metrics_snapshot?: Json | null
+          reasoning?: Json
+          to_mode?: string | null
+        }
+        Relationships: []
+      }
       yana_client_profiles: {
         Row: {
           anticipation_triggers: Json | null
@@ -6013,6 +6046,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      yana_observations: {
+        Row: {
+          action_taken: string | null
+          created_at: string | null
+          id: string
+          learning_potential: number | null
+          observation_type: string
+          processed: boolean | null
+          processed_at: string | null
+          processed_by: string | null
+          raw_data: Json
+          source_conversation_id: string | null
+          source_user_id: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string | null
+          id?: string
+          learning_potential?: number | null
+          observation_type: string
+          processed?: boolean | null
+          processed_at?: string | null
+          processed_by?: string | null
+          raw_data?: Json
+          source_conversation_id?: string | null
+          source_user_id?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string | null
+          id?: string
+          learning_potential?: number | null
+          observation_type?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          processed_by?: string | null
+          raw_data?: Json
+          source_conversation_id?: string | null
+          source_user_id?: string | null
+        }
+        Relationships: []
       }
       yana_optimization_cycles: {
         Row: {
