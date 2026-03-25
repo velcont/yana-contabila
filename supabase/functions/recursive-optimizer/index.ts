@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
           decision_type: "optimizer_suggestion",
           description: action.details,
           proposed_change: { action: action.action, target: action.target },
-          confidence: action.confidence,
+          confidence_score: action.confidence,
           status: "pending",
           source: "recursive-optimizer",
           cycle_number: cycleNumber,
