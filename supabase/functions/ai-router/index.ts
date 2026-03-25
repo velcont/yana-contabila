@@ -1700,7 +1700,7 @@ serve(async (req) => {
               answer: result.response || result.answer || "",
               selfScore: undefined, // will be filled by self-reflect
               wasCorrected: false,
-              processingTimeMs: Date.now() - startTime,
+              processingTimeMs: 0, // approximate, real timing in self-reflect
               modelUsed: result.modelUsed || "unknown",
               route: routeDecision.route,
             }),

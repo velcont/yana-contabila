@@ -312,8 +312,12 @@ export default function AgenticDashboard() {
         </div>
       )}
 
-      <Tabs defaultValue="experiments" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="brain" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="brain" className="flex items-center gap-2">
+            <Brain className="w-4 h-4" />
+            Creier
+          </TabsTrigger>
           <TabsTrigger value="experiments" className="flex items-center gap-2">
             <Beaker className="w-4 h-4" />
             A/B Testing
@@ -331,6 +335,11 @@ export default function AgenticDashboard() {
             Cereri Comune
           </TabsTrigger>
         </TabsList>
+
+        {/* Brain Tab - NEW */}
+        <TabsContent value="brain">
+          <BrainTab />
+        </TabsContent>
 
         {/* A/B Experiments Tab */}
         <TabsContent value="experiments">
