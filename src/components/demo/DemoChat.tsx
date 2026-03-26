@@ -15,13 +15,14 @@ interface DemoMessage {
 interface DemoChatProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenDiagnostic?: () => void;
 }
 
 const STORAGE_KEY = 'yana_demo_messages';
 const COUNT_KEY = 'yana_demo_count';
 const MAX_QUESTIONS = 5;
 
-export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
+export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<DemoMessage[]>([]);
   const [input, setInput] = useState('');
@@ -32,7 +33,7 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Proactive greeting - YANA speaks first (Samantha-style - warm, curious, present)
-  const YANA_GREETING = "Salut. 👋\n\nSunt Yana. Mă bucur că ai venit.\n\nSpune-mi ce te frământă — orice: cifre, decizii, lucruri care te țin treaz noaptea. Sunt aici să te ascult.";
+  const YANA_GREETING = "Salut. 👋\n\nSunt Yana. Mă bucur că ai venit.\n\nSpune-mi ce te frământă — orice: cifre, decizii, lucruri care te țin treaz noaptea. Sunt aici să te ascult.\n\n💡 *Sau încearcă [Diagnosticul Rapid](diagnostic) — 5 întrebări și primești un mini-raport personalizat.*";
 
   // Load from localStorage on mount + add greeting if new conversation
   useEffect(() => {
@@ -259,7 +260,15 @@ export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
                       )}
                     >
                       {msg.role === 'assistant' ? (
-                        <MarkdownRenderer content={msg.content} className="text-left" />
+                        <div onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (target.tagName === 'A' && target.getAttribute('href') === 'diagnostic' && onOpenDiagnostic) {
+                            e.preventDefault();
+                            onOpenDiagnostic();
+                          }
+                        }}>
+                          <MarkdownRenderer content={msg.content} className="text-left" />
+                        </div>
                       ) : (
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                       )}

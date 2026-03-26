@@ -5,11 +5,13 @@ import { analytics } from '@/utils/analytics';
 import { DemoChat } from '@/components/demo/DemoChat';
 import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 import { useLandingTracking } from '@/hooks/useLandingTracking';
-import { MessageCircle, Users } from 'lucide-react';
+import { MessageCircle, Users, Stethoscope } from 'lucide-react';
+import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
 
 const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   useEffect(() => {
     analytics.pageView('landing');
@@ -62,6 +64,11 @@ const Landing = () => {
     setShowDemo(true);
   };
 
+  const handleDiagnosticClick = () => {
+    analytics.landingCtaClick('secondary', 'hero');
+    setShowDiagnostic(true);
+  };
+
   const handlePrimaryCTA = () => {
     analytics.landingCtaClick('primary', 'hero');
     navigate('/auth?redirect=/yana');
@@ -74,7 +81,8 @@ const Landing = () => {
 
   return (
     <>
-      <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} />
+      <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} onOpenDiagnostic={() => { setShowDemo(false); setShowDiagnostic(true); }} />
+      <BusinessDiagnostic isOpen={showDiagnostic} onClose={() => setShowDiagnostic(false)} onOpenDemo={() => { setShowDiagnostic(false); setShowDemo(true); }} />
       <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
       
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center px-5 py-8 sm:p-4">
@@ -108,9 +116,9 @@ const Landing = () => {
             Cont gratuit. 30 de zile să vedeți dacă vă înțelegeți.
           </p>
           
-          {/* Demo Button */}
+          {/* Diagnostic Button - Primary secondary CTA */}
           <button
-            onClick={handleDemoClick}
+            onClick={handleDiagnosticClick}
             className="w-full flex items-center gap-3 px-4 py-5 sm:py-4 
                        bg-card border-2 border-primary/30 rounded-xl
                        hover:border-primary hover:shadow-lg
@@ -118,22 +126,26 @@ const Landing = () => {
                        transition-all duration-300 group text-left min-h-[60px]"
           >
             <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <MessageCircle className="w-5 h-5 text-primary" />
+              <Stethoscope className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <span className="truncate">Scrie ce te frământă...</span>
-                <span className="animate-pulse">|</span>
+              <div className="flex items-center gap-1 text-foreground font-medium">
+                <span className="truncate">Diagnostic Gratuit — 2 minute</span>
               </div>
               <p className="text-xs text-muted-foreground/60 mt-0.5">
-                Click pentru a vorbi cu Yana
+                5 întrebări → raport personalizat de la YANA
               </p>
             </div>
           </button>
-          <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-medium">
-            <span>🎁</span>
-            <span>5 conversații gratuite. Fără cont.</span>
-          </div>
+
+          {/* Demo Chat Button */}
+          <button
+            onClick={handleDemoClick}
+            className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>sau vorbește direct cu YANA (5 mesaje gratuite)</span>
+          </button>
 
           <p className="text-sm text-muted-foreground pt-2">
             Ai deja cont?{' '}
