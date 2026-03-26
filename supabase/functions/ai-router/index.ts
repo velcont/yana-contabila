@@ -1714,6 +1714,31 @@ serve(async (req) => {
         }
       };
 
+      // 🎯 Action Engine — extrage acțiuni din conversație
+      const extractActionsTask = async () => {
+        try {
+          const extractResp = await fetch(`${supabaseUrl}/functions/v1/extract-actions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              userId: userId,
+              conversationId: body.conversationId,
+              userMessage: body.message,
+              assistantResponse: result.response || result.answer || "",
+            }),
+          });
+          if (extractResp.ok) {
+            const extractResult = await extractResp.json();
+            console.log(`[AI-Router] 🎯 Action Engine: ${extractResult.actions_saved} actions extracted`);
+          }
+        } catch (err) {
+          console.error('[AI-Router] Action Engine error (non-blocking):', err);
+        }
+      };
+
       // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
         // @ts-ignore
@@ -1726,8 +1751,9 @@ serve(async (req) => {
           extractLearningsTask(),
           updateClientProfileTask(),
           observerTask(), // 🧠 Creier Autonom — Sistem 1
+          extractActionsTask(), // 🎯 Action Engine
         ]));
-        console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil() (incl. Brain Observer)');
+        console.log('[AI-Router] All async tasks queued with EdgeRuntime.waitUntil() (incl. Brain Observer + Action Engine)');
       } else {
         // Fallback pentru medii unde EdgeRuntime nu e disponibil
         Promise.all([
@@ -1739,8 +1765,9 @@ serve(async (req) => {
           extractLearningsTask(),
           updateClientProfileTask(),
           observerTask(), // 🧠 Creier Autonom — Sistem 1
+          extractActionsTask(), // 🎯 Action Engine
         ]).catch(console.error);
-        console.log('[AI-Router] All async tasks triggered (fallback mode, incl. Brain Observer)');
+        console.log('[AI-Router] All async tasks triggered (fallback mode, incl. Brain Observer + Action Engine)');
       }
     }
 

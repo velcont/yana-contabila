@@ -4983,6 +4983,60 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_action_items: {
+        Row: {
+          action_text: string
+          category: string
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          deadline: string | null
+          generated_content: string | null
+          generated_doc_url: string | null
+          id: string
+          priority: string
+          reminder_at: string | null
+          source_context: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_text: string
+          category?: string
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          generated_content?: string | null
+          generated_doc_url?: string | null
+          id?: string
+          priority?: string
+          reminder_at?: string | null
+          source_context?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_text?: string
+          category?: string
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          deadline?: string | null
+          generated_content?: string | null
+          generated_doc_url?: string | null
+          id?: string
+          priority?: string
+          reminder_at?: string | null
+          source_context?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       yana_brain_decisions: {
         Row: {
           actions_triggered: string[] | null

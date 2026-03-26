@@ -20,6 +20,7 @@ import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
+import { ActionItemsPanel } from './ActionItemsPanel';
 
 interface Message {
   id: string;
@@ -861,6 +862,13 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               setOnboardingNeeded(false);
             }}
           />
+        )}
+
+        {/* Action Items Panel - shows pending tasks */}
+        {!onboardingNeeded && messages.length <= 1 && (
+          <div className="max-w-3xl mx-auto">
+            <ActionItemsPanel onAskYana={(msg) => sendMessage(msg)} />
+          </div>
         )}
 
         {messages.map((message) => (
