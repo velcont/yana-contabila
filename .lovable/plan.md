@@ -44,3 +44,34 @@
 - [ ] Email notificări pentru acțiuni overdue (integrare cu send-email)
 - [ ] Raport săptămânal automat (luni dimineața)
 - [ ] Export PDF al acțiunilor active
+
+---
+
+# Plan: "Diagnostic Rapid de Business" — Hook pentru Landing Page
+
+## ✅ Implementat
+
+### Edge Function: `generate-business-diagnostic`
+- verify_jwt = false (public)
+- Rate limit: 2 diagnostice/24h per IP (refolosește demo_rate_limits cu limit_type='diagnostic')
+- Lovable AI (gemini-2.5-flash-lite) cu tool calling pentru output structurat
+- Output: { risks[], opportunities[], urgent_recommendation }
+
+### Component: `BusinessDiagnostic.tsx`
+- Flow pas-cu-pas: 5 întrebări (industrie, revenue, echipă, grijă principală, baghetă magică)
+- Progress bar, animații, navigare înainte/înapoi
+- La submit: apel edge function → afișează DiagnosticResult
+
+### Component: `DiagnosticResult.tsx`
+- Carduri colorate: roșu=riscuri, verde=oportunități, albastru=recomandare urgentă
+- CTA: "Continuă cu YANA — 30 zile gratuit"
+- Link secundar: "Vorbește cu YANA acum" → deschide DemoChat
+
+### Integrare Landing.tsx
+- Buton "Diagnostic Gratuit — 2 minute" ca CTA secundar principal
+- Demo chat accesibil ca link secundar
+- Flow-uri interconectate: diagnostic ↔ demo chat
+
+### Integrare DemoChat.tsx
+- Sugestie în greeting: "Sau încearcă Diagnosticul Rapid"
+- Prop `onOpenDiagnostic` pentru navigare din chat către diagnostic
