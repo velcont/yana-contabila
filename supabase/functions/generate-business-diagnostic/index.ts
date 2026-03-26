@@ -96,71 +96,98 @@ REGULI:
 - Oportunitățile: acțiuni concrete pe care le poate face
 - Recomandarea urgentă: un singur lucru de făcut SĂPTĂMÂNA ASTA`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_diagnostic",
-              description: "Generate a structured business diagnostic with risks, opportunities, and an urgent recommendation.",
-              parameters: {
-                type: "object",
-                properties: {
-                  risks: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string" },
-                        description: { type: "string" },
-                      },
-                      required: ["title", "description"],
-                      additionalProperties: false,
-                    },
-                    maxItems: 3,
-                  },
-                  opportunities: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string" },
-                        description: { type: "string" },
-                      },
-                      required: ["title", "description"],
-                      additionalProperties: false,
-                    },
-                    maxItems: 2,
-                  },
-                  urgent_recommendation: {
+    // Retry logic for transient TLS errors
+    let aiResponse: Response | null = null;
+    let lastFetchError: Error | null = null;
+    const MAX_RETRIES = 3;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-lite",
+            messages: [
+              { role: "user", content: prompt },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "generate_diagnostic",
+                  description: "Generate a structured business diagnostic with risks, opportunities, and an urgent recommendation.",
+                  parameters: {
                     type: "object",
                     properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
+                      risks: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            title: { type: "string" },
+                            description: { type: "string" },
+                          },
+                          required: ["title", "description"],
+                          additionalProperties: false,
+                        },
+                        maxItems: 3,
+                      },
+                      opportunities: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            title: { type: "string" },
+                            description: { type: "string" },
+                          },
+                          required: ["title", "description"],
+                          additionalProperties: false,
+                        },
+                        maxItems: 2,
+                      },
+                      urgent_recommendation: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string" },
+                          description: { type: "string" },
+                        },
+                        required: ["title", "description"],
+                        additionalProperties: false,
+                      },
                     },
-                    required: ["title", "description"],
+                    required: ["risks", "opportunities", "urgent_recommendation"],
                     additionalProperties: false,
                   },
                 },
-                required: ["risks", "opportunities", "urgent_recommendation"],
-                additionalProperties: false,
               },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "generate_diagnostic" } },
-      }),
-    });
+            ],
+            tool_choice: { type: "function", function: { name: "generate_diagnostic" } },
+          }),
+        });
+        lastFetchError = null;
+        break; // Success, exit retry loop
+      } catch (err) {
+        lastFetchError = err instanceof Error ? err : new Error(String(err));
+        console.error(`AI gateway attempt ${attempt}/${MAX_RETRIES} failed:`, lastFetchError.message);
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    }
+
+    if (lastFetchError || !aiResponse) {
+      console.error("All AI gateway attempts failed:", lastFetchError?.message);
+      return new Response(JSON.stringify({
+        error: "Serviciul AI este temporar indisponibil. Te rog încearcă din nou în câteva secunde.",
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
