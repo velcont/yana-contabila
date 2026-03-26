@@ -15,13 +15,14 @@ interface DemoMessage {
 interface DemoChatProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenDiagnostic?: () => void;
 }
 
 const STORAGE_KEY = 'yana_demo_messages';
 const COUNT_KEY = 'yana_demo_count';
 const MAX_QUESTIONS = 5;
 
-export const DemoChat = ({ isOpen, onClose }: DemoChatProps) => {
+export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<DemoMessage[]>([]);
   const [input, setInput] = useState('');

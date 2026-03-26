@@ -65,7 +65,7 @@ const Landing = () => {
   };
 
   const handleDiagnosticClick = () => {
-    analytics.landingCtaClick('diagnostic', 'hero');
+    analytics.landingCtaClick('secondary', 'hero');
     setShowDiagnostic(true);
   };
 
