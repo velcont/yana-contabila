@@ -260,7 +260,15 @@ export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) =
                       )}
                     >
                       {msg.role === 'assistant' ? (
-                        <MarkdownRenderer content={msg.content} className="text-left" />
+                        <div onClick={(e) => {
+                          const target = e.target as HTMLElement;
+                          if (target.tagName === 'A' && target.getAttribute('href') === 'diagnostic' && onOpenDiagnostic) {
+                            e.preventDefault();
+                            onOpenDiagnostic();
+                          }
+                        }}>
+                          <MarkdownRenderer content={msg.content} className="text-left" />
+                        </div>
                       ) : (
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                       )}
