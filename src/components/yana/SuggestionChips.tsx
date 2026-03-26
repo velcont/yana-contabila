@@ -9,6 +9,13 @@ interface SuggestionChipsProps {
 
 const CHIPS = [
   {
+    label: 'Ce am de făcut?',
+    icon: FileUp,
+    message: 'Arată-mi lista de acțiuni pe care le am de făcut. Ce e urgent, ce e overdue, și cu ce mă poți ajuta?',
+    accent: 'border-emerald-500/30 hover:bg-emerald-500/10',
+    iconColor: 'text-emerald-500',
+  },
+  {
     label: 'War Room',
     icon: Shield,
     message: 'Vreau să simulez un scenariu de criză cu War Room. Ce riscuri ar trebui să iau în calcul?',
