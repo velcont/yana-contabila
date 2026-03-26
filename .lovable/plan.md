@@ -1,136 +1,127 @@
 
 
-# Plan: Creier Autonom YANA — Trei Sisteme Unificate
+# YANA Action Engine — De la sfat la acțiune
 
-## Ce există deja (fragmentat)
+## Conceptul: "OpenClaw for Business"
 
-YANA are deja ~10 funcții de învățare care rulează independent:
-- `extract-learnings` — detectează preferințe, corecții, satisfacție
-- `self-reflect` — evaluează calitatea răspunsurilor (scor 1-10)
-- `pattern-analyzer` — detectează cereri comune, segmente
-- `cross-learner` — agregă experimente cross-user
-- `recursive-optimizer` — optimizare zilnică (cron 03:00)
-- `consciousness-engine` — pre-procesare emoțională
-- `dream-generator` / `silence-thoughts` — simulare "somn"
-- `surprise-detector` / `experiment-tracker` — detectare contradicții
+OpenClaw a explodat pentru că AI-ul nu doar vorbește — **FACE lucruri**. YANA trebuie să facă același lucru, dar vertical pentru antreprenori români.
 
-**Problema**: Aceste sisteme nu comunică între ele. Nu există un "creier" care decide CE să facă, CÂND să observe vs. să acționeze, și nu există ciclul complet observare → acțiune → reflecție → somn.
+**Azi**: Antreprenorul întreabă → YANA răspunde cu sfaturi → antreprenorul trebuie să facă singur totul.
 
-## Arhitectura Propusă: 3 Sisteme + Controler
+**Mâine**: Antreprenorul întreabă → YANA răspunde cu sfaturi **+ ACȚIONEAZĂ**: generează emailul, creează planul, trimite reminder-ul, pregătește documentul.
+
+## Ce ACȚIUNI concrete poate face YANA
+
+Fără API-uri externe complexe, cu ce avem deja:
+
+| Acțiune | Cum funcționează | Exemplu concret |
+|---------|------------------|-----------------|
+| **Generează email** | AI scrie emailul, utilizatorul copiază/trimite | "Scrie-mi emailul către furnizorul X să negociez 60 zile termen" |
+| **Creează document** | Word/PDF generat instant | "Fă-mi un plan de cash flow pe 90 zile" |
+| **Setează reminder** | YANA trimite email la data X | "Amintește-mi peste 2 săptămâni să verific plățile" |
+| **Construiește to-do list** | Acțiuni extrase din conversație | "Din ce am discutat, ai 3 lucruri de făcut săptămâna asta" |
+| **Raport săptămânal** | Email luni dimineața cu status | "Săptămâna trecută ai zis că... Ai făcut?" |
+| **Draft contract/ofertă** | Șablon completat cu datele firmei | "Generează o ofertă de preț pentru clientul Y" |
+
+## Arhitectura: "Action Items Engine"
 
 ```text
-┌─────────────────────────────────────────────┐
-│           METACOGNITIVE CONTROLLER          │
-│  (decide: observă / acționează / reflectă) │
-│         supabase/functions/yana-brain       │
-└──────┬──────────┬──────────────┬────────────┘
-       │          │              │
-   ┌───▼───┐  ┌──▼────┐  ┌─────▼──────┐
-   │OBSERV.│  │ACȚIUNE│  │ REFLECȚIE   │
-   │Sistem │  │Sistem │  │ (Somn)     │
-   │  #1   │  │  #2   │  │ Sistem #3  │
-   └───────┘  └───────┘  └────────────┘
+Conversație YANA
+       ↓
+  AI detectează acțiuni posibile
+       ↓
+  ┌─────────────────────────────┐
+  │  ACTION ITEMS TABLE         │
+  │  - what (ce trebuie făcut)  │
+  │  - when (deadline)          │
+  │  - status (todo/done)       │
+  │  - reminder_at              │
+  │  - generated_doc_url        │
+  └─────────────────────────────┘
+       ↓                    ↓
+  Reminder Engine      Document Generator
+  (email la deadline)  (Word/PDF/Email draft)
 ```
 
-### Sistem 1: OBSERVATOR (Învățare Pasivă)
-**Ce face**: Observă TOATE conversațiile tuturor utilizatorilor fără a interveni. Extrage pattern-uri, greșeli, feedback, corecții.
+## Implementare tehnică
 
-- **Nou**: `yana-observer` edge function
-- Rulează asincron după FIECARE conversație (via ai-router)
-- Observă cross-user: ce întreabă utilizatorii, unde YANA greșește, ce corecții primește
-- Salvează observații în tabel nou `yana_observations` cu câmpuri: `observation_type` (error_detected, pattern_found, correction_received, positive_feedback, knowledge_gap), `raw_data`, `learning_potential` (0-1), `processed` (bool)
-- NU modifică nimic — doar observă și notează
+### 1. Tabel `yana_action_items`
+Stochează acțiunile extrase din conversații:
+- `user_id`, `conversation_id`, `action_text`, `category` (email/document/reminder/task)
+- `deadline`, `reminder_at`, `status` (pending/in_progress/completed/overdue)
+- `generated_content` (emailul/documentul generat de YANA)
+- `completed_at`
 
-### Sistem 2: ACTOR (Învățare Activă)
-**Ce face**: Aplică lecțiile învățate. Experimentează cu răspunsuri, testează ipoteze, "strică și repară" ca un copil.
+### 2. Edge Function: `extract-actions`
+Apelat async după fiecare conversație (via `EdgeRuntime.waitUntil`):
+- AI-ul analizează conversația și extrage acțiuni concrete
+- Le salvează în `yana_action_items`
+- Setează reminder-uri automate
 
-- **Nou**: `yana-actor` edge function  
-- Folosește observațiile neprocesate din `yana_observations`
-- Creează experimente automate în `ai_experiments` (A/B test pe formulări, tonuri)
-- Generează `learned_corrections` din pattern-uri de erori repetate
-- Actualizează `yana_effective_responses` când descoperă formulări superioare
-- Aplică automat fix-uri cu confidence >= 0.9 (via `yana_improvement_decisions`)
+### 3. Edge Function: `generate-action-document`
+Când utilizatorul cere un document/email:
+- Primește context din conversație + profil firmă
+- Generează draft personalizat (email, ofertă, plan)
+- Returnează text formatat sau Word downloadabil
 
-### Sistem 3: REFLECTOR / SOMN (Consolidare Nocturnă)
-**Ce face**: "Noaptea", procesează tot ce s-a întâmplat. Consolidează memoria, elimină zgomotul, identifică meta-pattern-uri.
+### 4. Edge Function: `action-reminder`
+Cron job zilnic care:
+- Verifică acțiunile cu `reminder_at <= now()`
+- Trimite email cu "YANA: Ai promis că faci X. Ai făcut?"
+- Marchează ca overdue dacă deadline-ul a trecut
 
-- **Upgrade**: Extinde `recursive-optimizer` (cron 03:00 AM)
-- Procesează toate observațiile din ziua respectivă
-- Calculează: ce tipuri de greșeli se repetă, ce domenii au gaps, ce utilizatori sunt la risc
-- Generează "vise" (dream-generator) bazate pe lecțiile zilei
-- Actualizează pragurile din `yana_optimizer_config` bazat pe performanța reală
-- Marchează observațiile ca `processed = true`
+### 5. Component: `ActionItemsPanel.tsx`
+Panou în interfața YANA cu:
+- Lista de acțiuni active (to-do list generat de AI)
+- Status vizual (verde/galben/roșu)
+- Buton "Marchează ca făcut"
+- Buton "YANA, ajută-mă cu asta" → deschide chat contextual
 
-### Controler: YANA-BRAIN (Meta-Cogniție)
-**Ce face**: Decide automat când să observe, când să acționeze, când să reflecteze. Evaluează propria performanță.
+### 6. Suggestion Chip: "📋 Ce am de făcut?"
+YANA răspunde cu lista de acțiuni active + status + ce a trecut de deadline.
 
-- **Nou**: `yana-brain` edge function (cron la fiecare 6 ore)
-- Verifică starea celor 3 sisteme
-- Decide modul curent bazat pe metrici:
-  - Multe erori recente → activează OBSERVATORUL mai agresiv
-  - Observații neprocesate > 50 → activează ACTORUL
-  - Sfârșit de zi → activează REFLECTORUL
-- Monitorizează scorul global de performanță (din `ai_reflection_logs`)
-- Comută automat între moduri fără intervenție umană
-- Salvează deciziile în tabel nou `yana_brain_decisions`
+### 7. Raport săptămânal automat (email)
+Luni dimineața, YANA trimite:
+- "Ai 3 acțiuni active, 1 e overdue"
+- "Săptămâna trecută ai discutat despre X — ai rezolvat?"
+- CTA: "Deschide YANA să continuăm"
 
-## Tabel Nou: `yana_observations`
-
-```sql
-CREATE TABLE yana_observations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  observation_type TEXT NOT NULL, -- error_detected, pattern_found, correction_received, positive_feedback, knowledge_gap, user_struggle
-  source_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  source_conversation_id TEXT,
-  raw_data JSONB NOT NULL DEFAULT '{}',
-  learning_potential NUMERIC DEFAULT 0.5, -- 0-1
-  processed BOOLEAN DEFAULT false,
-  processed_by TEXT, -- 'actor', 'reflector'
-  processed_at TIMESTAMPTZ,
-  action_taken TEXT, -- ce s-a făcut cu observația
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-## Tabel Nou: `yana_brain_decisions`
-
-```sql
-CREATE TABLE yana_brain_decisions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  decision_type TEXT NOT NULL, -- mode_switch, threshold_adjust, alert
-  from_mode TEXT, -- observe, act, reflect
-  to_mode TEXT,
-  reasoning JSONB NOT NULL DEFAULT '{}',
-  metrics_snapshot JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-## Integrare în AI-Router
-
-Adaugă `yana-observer` ca task asincron în `EdgeRuntime.waitUntil()` (lângă celelalte 7 task-uri existente). Observer-ul primește datele conversației și le clasifică automat.
-
-## Fluxul Complet Automat
-
-1. **Utilizator trimite mesaj** → AI-Router procesează → răspuns
-2. **Post-răspuns** (async): Observer-ul clasifică conversația, detectează erori/feedback/pattern-uri → salvează în `yana_observations`
-3. **La fiecare 6 ore**: Brain-ul evaluează metrici, decide modul activ
-4. **Când Brain decide "act"**: Actor-ul procesează observațiile, creează experimente, aplică corecții
-5. **La 03:00 AM**: Reflectorul consolidează memoria zilei, generează vise, resetează contoarele
-
-## Fișiere Afectate
+## Fișiere afectate
 
 | Fișier | Acțiune |
 |--------|---------|
-| `supabase/functions/yana-observer/index.ts` | NOU — Sistem 1 |
-| `supabase/functions/yana-actor/index.ts` | NOU — Sistem 2 |
-| `supabase/functions/yana-brain/index.ts` | NOU — Controler |
-| `supabase/functions/recursive-optimizer/index.ts` | UPGRADE — integrare Sistem 3 |
-| `supabase/functions/ai-router/index.ts` | EDIT — adaugă observer task |
-| `src/components/admin/AgenticDashboard.tsx` | EDIT — vizualizare Brain |
-| Migrare SQL | NOU — 2 tabele + RLS |
+| Migrare SQL | NOU — tabel `yana_action_items` cu RLS |
+| `supabase/functions/extract-actions/index.ts` | NOU — extragere acțiuni din conversații |
+| `supabase/functions/generate-action-document/index.ts` | NOU — generare documente/emailuri |
+| `supabase/functions/action-reminder/index.ts` | NOU — cron reminder zilnic |
+| `src/components/yana/ActionItemsPanel.tsx` | NOU — UI to-do list |
+| `src/components/yana/SuggestionChips.tsx` | EDIT — chip "Ce am de făcut?" |
+| `src/components/yana/YanaChat.tsx` | EDIT — integrare panel + detectare acțiuni |
+| `supabase/functions/ai-router/index.ts` | EDIT — trigger extract-actions async |
 
-## Principiu de Design
+## De ce e asta "OpenClaw for Business"
 
-Costurile AI sunt controlate: Observer-ul și Actor-ul folosesc regex/heuristici locale (fără apeluri AI). Doar Reflectorul (1x/zi) și Brain-ul (4x/zi) fac apeluri AI minimale. Sistemul funcționează autonom, fără date manuale.
+OpenClaw: "AI care face lucruri pe computerul tău"
+YANA: "AI care face lucruri pentru afacerea ta"
+
+- **Nu doar spune** "negociază cu furnizorul" → **scrie emailul**
+- **Nu doar spune** "fă un plan de 90 zile" → **generează documentul**
+- **Nu doar spune** "verifică cash flow-ul" → **trimite reminder peste 2 săptămâni**
+- **Nu doar spune** "ai 3 lucruri de făcut" → **urmărește și întreabă dacă le-ai făcut**
+
+## Diferențiatorul unic
+
+Nimeni în România (și puțini global) nu are un AI care:
+1. Ține minte tot ce ai discutat (YANA deja face asta)
+2. Extrage acțiuni concrete din conversație (NOU)
+3. Te urmărește proactiv să le faci (NOU)
+4. Generează documentele necesare pe loc (NOU)
+
+E diferența dintre un prieten care zice "ar trebui să faci sport" și un antrenor personal care îți face programul, te sună dimineața și te întreabă seara "ai fost?"
+
+## Cost per utilizator
+- Extract actions: ~0.01 EUR/conversație (Gemini Flash)
+- Reminders: 0 (cron + email)
+- Document generation: ~0.02-0.05 EUR/document
+- Total: ~1-2 EUR/lună per utilizator activ. La 49 RON (~10 EUR), marja e 80%+
 
