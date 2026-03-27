@@ -11,6 +11,7 @@ import { LandingBenefits } from '@/components/landing/LandingBenefits';
 import { LandingHowItWorks } from '@/components/landing/LandingHowItWorks';
 import { LandingPricing } from '@/components/landing/LandingPricing';
 import { LandingSocialProof } from '@/components/landing/LandingSocialProof';
+import { LandingAIProviders } from '@/components/landing/LandingAIProviders';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -173,6 +174,9 @@ const Landing = () => {
 
           {/* ===== SOCIAL PROOF ===== */}
           <LandingSocialProof />
+
+          {/* ===== AI PROVIDERS ===== */}
+          <LandingAIProviders />
 
           {/* ===== PRICING ===== */}
           <LandingPricing />
