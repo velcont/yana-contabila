@@ -16,7 +16,7 @@ export const LandingPricing = () => {
   const navigate = useNavigate();
 
   const handleCTA = () => {
-    analytics.landingCtaClick('pricing_cta', 'pricing_section');
+    analytics.landingCtaClick('primary', 'pricing_section');
     navigate('/auth?redirect=/yana');
   };
 
