@@ -15,11 +15,11 @@ export const LandingAIProviders = () => {
         <div className="flex items-center justify-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
           <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            5 AI-uri premium. Un singur preț.
+            De ce funcționează: 5 AI-uri lucrează împreună
           </h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Alții plătesc separat pentru fiecare AI. Tu le ai pe toate.
+          În spatele fiecărui răspuns, 5 modele AI premium analizează din unghiuri diferite.
         </p>
       </div>
 

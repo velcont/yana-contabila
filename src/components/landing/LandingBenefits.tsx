@@ -3,18 +3,18 @@ import { FileSpreadsheet, Brain, BellRing } from 'lucide-react';
 const benefits = [
   {
     icon: FileSpreadsheet,
-    title: 'Analizează balanța contabilă',
-    description: 'Încarcă un Excel și primești raport complet: lichiditate, profitabilitate, riscuri fiscale, recomandări concrete.',
+    title: 'Vezi instant unde pierzi bani',
+    description: 'Încarcă balanța și primești un raport clar: unde se duc banii, ce riscuri ai, ce poți face concret.',
   },
   {
     icon: Brain,
-    title: 'Consilier strategic AI',
-    description: 'War Room pentru simulări, Battle Plan cu pași concreți, predicții financiare bazate pe datele tale reale.',
+    title: 'Ia decizii cu cineva care vede tot tabloul',
+    description: 'Simulări de scenarii, plan de acțiune pas cu pas, predicții bazate pe cifrele tale reale.',
   },
   {
     icon: BellRing,
-    title: 'Nu uită nimic',
-    description: 'Își amintește fiecare conversație. Te întreabă cum a mers cu clientul X. Revine cu idei noi fără să-i ceri.',
+    title: 'Nu mai repeta aceleași greșeli',
+    description: 'Yana ține minte totul. Te atenționează înainte să greșești din nou. Revine cu idei fără să-i ceri.',
   },
 ];
 
@@ -22,7 +22,7 @@ export const LandingBenefits = () => {
   return (
     <section className="space-y-6">
       <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">
-        Ce face Yana concret
+        Cum te ajută Yana concret
       </h2>
       <div className="grid gap-4">
         {benefits.map((b, i) => (

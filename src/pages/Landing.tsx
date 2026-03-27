@@ -7,6 +7,7 @@ import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 import { useLandingTracking } from '@/hooks/useLandingTracking';
 import { MessageCircle, Stethoscope } from 'lucide-react';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
+import { LandingPainPoints } from '@/components/landing/LandingPainPoints';
 import { LandingBenefits } from '@/components/landing/LandingBenefits';
 import { LandingHowItWorks } from '@/components/landing/LandingHowItWorks';
 import { LandingPricing } from '@/components/landing/LandingPricing';
@@ -166,16 +167,19 @@ const Landing = () => {
             </div>
           </section>
 
-          {/* ===== CE FACE YANA ===== */}
+          {/* ===== DURERI REALE ===== */}
+          <LandingPainPoints />
+
+          {/* ===== SOCIAL PROOF (dovadă) ===== */}
+          <LandingSocialProof />
+
+          {/* ===== SOLUȚII (ce face Yana) ===== */}
           <LandingBenefits />
 
           {/* ===== CUM FUNCȚIONEAZĂ ===== */}
           <LandingHowItWorks />
 
-          {/* ===== SOCIAL PROOF ===== */}
-          <LandingSocialProof />
-
-          {/* ===== AI PROVIDERS ===== */}
+          {/* ===== DE CE FUNCȚIONEAZĂ (AI providers) ===== */}
           <LandingAIProviders />
 
           {/* ===== PRICING ===== */}
