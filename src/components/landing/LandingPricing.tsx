@@ -5,6 +5,7 @@ import { analytics } from '@/utils/analytics';
 
 const features = [
   'Conversații nelimitate cu Yana',
+  '5 AI-uri premium incluse (GPT-5, Claude, Grok, Gemini, Perplexity)',
   'Analiză balanță contabilă',
   'War Room — simulări strategice',
   'Battle Plan — plan de acțiune',
