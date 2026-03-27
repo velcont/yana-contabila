@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_DEMO_QUESTIONS = 5;
+const MAX_DEMO_QUESTIONS = 10;
 const RATE_LIMIT_WINDOW_HOURS = 24;
 
 // Simple hash function for IP (GDPR compliant - no raw IP stored)
@@ -28,16 +28,16 @@ function getClientIP(req: Request): string {
 function getCountdownMessage(currentCount: number): string {
   const remaining = MAX_DEMO_QUESTIONS - currentCount;
   
-  if (currentCount === 1) {
-    return "\n\n---\n📝 Mai ai **4 întrebări** în modul Demo. Creează cont pentru acces nelimitat!";
-  } else if (currentCount === 2) {
-    return "\n\n---\n📝 Mai ai **3 întrebări** în modul Demo.";
-  } else if (currentCount === 3) {
-    return "\n\n---\n📝 Mai ai **2 întrebări** în modul Demo.";
-  } else if (currentCount === 4) {
+  if (remaining > 5) {
+    return "";
+  } else if (remaining === 5) {
+    return "\n\n---\n📝 Mai ai **5 întrebări** în modul Demo. Creează cont pentru acces nelimitat!";
+  } else if (remaining >= 2) {
+    return `\n\n---\n📝 Mai ai **${remaining} întrebări** în modul Demo.`;
+  } else if (remaining === 1) {
     return "\n\n---\n📝 Aceasta e **ultima întrebare** gratuită!";
-  } else if (currentCount >= 5) {
-    return "\n\n---\n\n🎉 **Mi-a făcut plăcere să discutăm!**\n\nAi folosit toate cele 5 întrebări gratuite din Demo.\n\nCreează-ți un cont gratuit pentru a continua - primești **30 de zile** să testezi toate funcționalitățile YANA.\n\n👉 **Fără card, fără obligații.**";
+  } else if (remaining <= 0) {
+    return "\n\n---\n\n🎉 **Mi-a făcut plăcere să discutăm!**\n\nAi folosit toate cele 10 întrebări gratuite din Demo.\n\nCreează-ți un cont gratuit pentru a continua - primești **30 de zile** să testezi toate funcționalitățile YANA.\n\n👉 **Fără card, fără obligații.**";
   }
   return "";
 }
@@ -102,7 +102,7 @@ serve(async (req) => {
         if (rateData.request_count >= MAX_DEMO_QUESTIONS) {
           return new Response(
             JSON.stringify({ 
-              error: "Ai folosit toate cele 5 întrebări gratuite din Demo.",
+              error: "Ai folosit toate cele 10 întrebări gratuite din Demo.",
               limitReached: true,
               message: "Creează-ți un cont gratuit pentru a continua. Primești 30 de zile să testezi tot!"
             }),
