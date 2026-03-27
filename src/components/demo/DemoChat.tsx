@@ -20,7 +20,8 @@ interface DemoChatProps {
 
 const STORAGE_KEY = 'yana_demo_messages';
 const COUNT_KEY = 'yana_demo_count';
-const MAX_QUESTIONS = 5;
+const MAX_QUESTIONS = 10;
+const NUDGE_AT = 7;
 
 export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) => {
   const navigate = useNavigate();
