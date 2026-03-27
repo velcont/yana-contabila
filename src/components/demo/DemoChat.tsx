@@ -20,7 +20,8 @@ interface DemoChatProps {
 
 const STORAGE_KEY = 'yana_demo_messages';
 const COUNT_KEY = 'yana_demo_count';
-const MAX_QUESTIONS = 5;
+const MAX_QUESTIONS = 10;
+const NUDGE_AT = 7;
 
 export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) => {
   const navigate = useNavigate();
@@ -123,8 +124,11 @@ export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) =
         throw new Error(data.error || 'Eroare la procesare');
       }
 
-      // Add assistant response to the already updated messages
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+      // Add assistant response + nudge at message 7
+      const nudge = data.questionCount === NUDGE_AT 
+        ? '\n\n---\n💡 *Îți place cum gândesc? Cu un cont gratuit, putem continua oricât — și țin minte tot.*'
+        : '';
+      setMessages(prev => [...prev, { role: 'assistant', content: data.response + nudge }]);
       setQuestionCount(data.questionCount);
       
       // Track demo usage
