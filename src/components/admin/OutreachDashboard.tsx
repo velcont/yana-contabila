@@ -120,28 +120,28 @@ export const OutreachDashboard = () => {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <Search className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+            <Search className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
             <p className="text-2xl font-bold">{stats.new}</p>
-            <p className="text-xs text-muted-foreground">Noi</p>
+            <p className="text-xs text-muted-foreground">Noi (necontactați)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <Mail className="h-5 w-5 mx-auto mb-1 text-green-500" />
-            <p className="text-2xl font-bold">{stats.sent}</p>
-            <p className="text-xs text-muted-foreground">Trimise</p>
+            <Mail className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-2xl font-bold">{stats.consentSent}</p>
+            <p className="text-xs text-muted-foreground">Consimțământ trimis</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <CheckCircle className="h-5 w-5 mx-auto mb-1 text-emerald-500" />
-            <p className="text-2xl font-bold">{stats.converted}</p>
-            <p className="text-xs text-muted-foreground">Convertiți</p>
+            <CheckCircle className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{stats.optedIn}</p>
+            <p className="text-xs text-muted-foreground">Au acceptat (opt-in)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <XCircle className="h-5 w-5 mx-auto mb-1 text-red-500" />
+            <XCircle className="h-5 w-5 mx-auto mb-1 text-destructive" />
             <p className="text-2xl font-bold">{stats.unsubscribed}</p>
             <p className="text-xs text-muted-foreground">Dezabonați</p>
           </CardContent>
