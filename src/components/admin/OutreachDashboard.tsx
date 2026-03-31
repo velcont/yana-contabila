@@ -23,19 +23,19 @@ interface Lead {
 }
 
 const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  email_sent: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  opened: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  replied: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  converted: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
-  unsubscribed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  new: "bg-muted text-muted-foreground",
+  consent_sent: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  opted_in: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
+  presentation_sent: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  converted: "bg-primary/20 text-primary",
+  unsubscribed: "bg-destructive/20 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
   new: "Nou",
-  email_sent: "Trimis",
-  opened: "Deschis",
-  replied: "Răspuns",
+  consent_sent: "Consimțământ trimis",
+  opted_in: "✅ A acceptat",
+  presentation_sent: "Prezentare trimisă",
   converted: "Convertit",
   unsubscribed: "Dezabonat",
 };
