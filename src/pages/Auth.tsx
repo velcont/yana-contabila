@@ -984,6 +984,7 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <MiniFooter />
     </div>
