@@ -109,6 +109,20 @@ export const OutreachDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Automation indicator */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-4 flex items-center gap-3">
+          <span className="text-2xl">🤖</span>
+          <div>
+            <p className="font-semibold text-primary">Automatizare activă</p>
+            <p className="text-sm text-muted-foreground">
+              Prospectare zilnică la 08:00 UTC • Trimitere emailuri la 10:00 UTC • Butoanele de mai jos sunt backup manual
+            </p>
+          </div>
+          <Badge className="ml-auto bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">ACTIV</Badge>
+        </CardContent>
+      </Card>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
