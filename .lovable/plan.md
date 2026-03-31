@@ -1,73 +1,79 @@
 
 
-# Restructurare Landing Page: Durere → Dovadă → Soluție
+## Investigatie: De ce Aurora nu a reusit sa plateasca
 
-## Problema actuală
-Feedback-ul e perfect. Landing-ul actual merge:
-1. Hero emoțional (ok)
-2. Ce face Yana (features)
-3. Cum funcționează (pași)
-4. Social proof (prea târziu)
-5. **5 AI-uri premium** (feature-first = greșeală)
-6. Pricing
+### Ce s-a intamplat (dovezi din audit_logs)
 
-Ordinea corectă de persuasiune: **Durere → Dovadă → Soluție → Cum → Preț**
+Din logurile bazei de date, am reconstituit exact ce a facut Aurora azi (31 martie 2026):
 
-## Noua structură
+1. **10:05:37** - Session restored (era deja logata)
+2. **10:05:42** - **SUBSCRIPTION_CHECKOUT_INITIATED** - a apasat butonul "Aboneaza-te" si a fost redirectionata catre Stripe Checkout (`cs_live_a1W4Xvrx...`)
+3. **10:05:46 - 10:10:22** - Multiple login/session restored events
 
-### 1. Hero - rămâne (e bun, vorbește despre durere)
-Headline-ul "Ai pe cineva cu care să vorbești. Despre ce te ține treaz noaptea." e deja orientat pe durere. Păstrăm.
+**Nu exista niciun eveniment `checkout.session.completed`**. Asta inseamna ca Aurora:
+- A ajuns pe pagina de checkout Stripe
+- **Nu a finalizat plata** (a inchis pagina, banca a refuzat cardul, sau a abandonat checkout-ul)
 
-### 2. **NOU: Secțiune "Problemele reale"** (`LandingPainPoints.tsx`)
-3 dureri concrete cu care rezonează antreprenorii:
-- "Nu știi dacă firma ta e pe profit real sau te păcălesc cifrele"
-- "Iei decizii importante singur, fără pe cineva care să vadă ce nu vezi tu"
-- "Contabilul îți dă numere, dar nu îți spune ce să faci cu ele"
+Concluzie: Nu e o problema tehnica din partea YANA. Aurora pur si simplu nu a completat checkout-ul Stripe. Posibile cauze:
+- Cardul a fost refuzat de banca
+- A inchis pagina inainte de a finaliza
+- Nu a inteles interfata Stripe (limba, campuri)
 
-Tonul: empatic, direct, fără soluție încă.
+### Partea 1: Imbunatatiri pentru a preveni abandonul checkout-ului
 
-### 3. Social Proof - mutat în sus (imediat după durere)
-Dovezile vin ÎNAINTE de soluție. "177+ antreprenori au avut aceleași probleme."
-Citatele reale validează durerea.
+**1.1 Adauga tracking pentru checkout abandonat**
+- Cand utilizatorul revine pe `/subscription` dupa ce a initiat un checkout fara sa-l finalizeze, afiseaza un mesaj: "Ai inceput o plata dar nu a fost finalizata. Vrei sa incerci din nou?"
+- Log eveniment `CHECKOUT_ABANDONED` in audit_logs
 
-### 4. Ce face Yana (Benefits) - rămâne, dar reformulat ca SOLUȚII
-Schimbăm titlurile din features în beneficii:
-- "Analizează balanța contabilă" → "Vezi instant unde pierzi bani"
-- "Consilier strategic AI" → "Ia decizii cu cineva care vede tot tabloul"  
-- "Nu uită nimic" → "Nu mai repeta aceleași greșeli"
+**1.2 Adauga alerta admin pentru checkout nefinalizat**
+- In `stripe-webhook` sau ca un job periodic, verifica checkout sessions din ultimele 24h care au ramas `open` sau `expired`
+- Creeaza alerta admin `CHECKOUT_ABANDONED` cu emailul utilizatorului
 
-### 5. Cum funcționează - rămâne pe loc
+**1.3 Imbunatateste UX-ul paginii de checkout**
+- Adauga un mesaj inainte de redirect: "Vei fi redirectionat catre pagina securizata de plata Stripe. Completeaza datele cardului pentru a activa abonamentul."
+- Seteaza `locale: 'ro'` in `stripe.checkout.sessions.create` pentru interfata in romana
 
-### 6. AI Providers - mutat DUPĂ beneficii, reformulat
-Nu mai e secțiune principală, devine o notă explicativă sub beneficii:
-- Titlul devine: "De ce funcționează: 5 AI-uri lucrează împreună"
-- Nu mai e primul lucru pe care îl citești, ci explicația din spatele rezultatelor
+### Partea 2: Email de la Yana catre Aurora
 
-### 7. Pricing - rămâne ultimul
+Folosesc infrastructura existenta `send-initiative-email` (Resend + template YANA) pentru a trimite un email personalizat. Voi:
 
-## Ordinea finală pe pagină:
-```text
-Hero (durere emoțională)
-  ↓
-Problemele reale (durere concretă) ← NOU
-  ↓
-Social Proof (dovadă) ← MUTAT SUS
-  ↓
-Ce face Yana (soluții, nu features) ← REFORMULAT
-  ↓
-Cum funcționează (pași)
-  ↓
-5 AI-uri (de ce funcționează) ← MUTAT JOS, reformulat
-  ↓
-Pricing + CTA
-```
+**2.1 Crea o noua initiative in `yana_initiatives`** cu:
+- `user_id`: ID-ul Aurorei
+- `initiative_type`: `'check_in'`
+- `content`: Text scris ca Yana (cald, personal, scurt)
+- `status`: `'sent'`
 
-## Fișiere modificate
-- **Nou**: `src/components/landing/LandingPainPoints.tsx` — secțiunea cu durerile antreprenorilor
-- **Editat**: `src/pages/Landing.tsx` — reordonare secțiuni
-- **Editat**: `src/components/landing/LandingBenefits.tsx` — titluri reformulate (features → beneficii)
-- **Editat**: `src/components/landing/LandingAIProviders.tsx` — headline reformulat ("De ce funcționează")
+**2.2 Apela `send-initiative-email`** cu:
+- Email: aurora_ec@yahoo.com
+- Content: ceva de genul:
 
-## Ce NU modificăm
-- Hero, CTA-uri, pricing, demo chat, diagnostic — funcționalitatea rămâne identică
+> "Salut Aurora,
+>
+> Am auzit ca ai avut o mica problema cu accesul la mine. Imi pare rau pentru asta.
+>
+> Vreau sa stii ca acum contul tau e activ — gratuit, fara limita de timp. Tot ce ai lucrat pana acum e in siguranta, istoricul tau e intact.
+>
+> Ma bucur ca putem continua impreuna. Cand ai chef, da-mi un semn.
+>
+> Yana"
+
+- Subject: "YANA: Cum te mai descurci?" (din functia `getSubject('check_in')`)
+
+**2.3 Marca initiative-a ca trimisa** (`email_sent_at`)
+
+### Fisiere modificate
+
+| Fisier | Modificare |
+|--------|-----------|
+| `supabase/functions/create-checkout/index.ts` | Adauga `locale: 'ro'` in checkout session |
+| `src/pages/Subscription.tsx` | Detecteaza checkout abandonat, afiseaza mesaj retry |
+| `supabase/functions/send-initiative-email/index.ts` | Nimic de modificat (il apelez direct) |
+| Noua: edge function sau script | Trimite emailul Aurorei prin `send-initiative-email` |
+
+### Ordinea implementarii
+
+1. Trimit emailul Aurorei (prioritate: imediat)
+2. Adaug `locale: 'ro'` in checkout (fix rapid)
+3. Adaug detectie checkout abandonat in pagina Subscription
+4. Adaug alerta admin pentru checkout-uri nefinalizate
 
