@@ -208,7 +208,6 @@ const Subscription = () => {
             </AlertDescription>
           </Alert>
         )}
-        </div>
 
         <div className="text-center mb-12">
           <Badge className="mb-4" variant="secondary">
