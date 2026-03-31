@@ -3447,6 +3447,78 @@ export type Database = {
           },
         ]
       }
+      outreach_leads: {
+        Row: {
+          city: string | null
+          company_name: string
+          created_at: string
+          cui: string | null
+          email: string
+          email_content: string | null
+          email_sent_at: string | null
+          email_subject: string | null
+          id: string
+          industry: string | null
+          notes: string | null
+          source: string
+          status: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          city?: string | null
+          company_name: string
+          created_at?: string
+          cui?: string | null
+          email: string
+          email_content?: string | null
+          email_sent_at?: string | null
+          email_subject?: string | null
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          city?: string | null
+          company_name?: string
+          created_at?: string
+          cui?: string | null
+          email?: string
+          email_content?: string | null
+          email_sent_at?: string | null
+          email_subject?: string | null
+          id?: string
+          industry?: string | null
+          notes?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      outreach_unsubscribes: {
+        Row: {
+          email: string
+          id: string
+          unsubscribed_at: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          unsubscribed_at?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          unsubscribed_at?: string
+        }
+        Relationships: []
+      }
       plagiarism_analyses: {
         Row: {
           analysis_date: string
