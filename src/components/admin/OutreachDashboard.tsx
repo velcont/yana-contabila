@@ -23,19 +23,19 @@ interface Lead {
 }
 
 const statusColors: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  email_sent: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  opened: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  replied: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  converted: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
-  unsubscribed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  new: "bg-muted text-muted-foreground",
+  consent_sent: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  opted_in: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
+  presentation_sent: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  converted: "bg-primary/20 text-primary",
+  unsubscribed: "bg-destructive/20 text-destructive",
 };
 
 const statusLabels: Record<string, string> = {
   new: "Nou",
-  email_sent: "Trimis",
-  opened: "Deschis",
-  replied: "Răspuns",
+  consent_sent: "Consimțământ trimis",
+  opted_in: "✅ A acceptat",
+  presentation_sent: "Prezentare trimisă",
   converted: "Convertit",
   unsubscribed: "Dezabonat",
 };
@@ -102,9 +102,9 @@ export const OutreachDashboard = () => {
   const stats = {
     total: leads.length,
     new: leads.filter(l => l.status === 'new').length,
-    sent: leads.filter(l => l.status === 'email_sent').length,
+    consentSent: leads.filter(l => l.status === 'consent_sent').length,
+    optedIn: leads.filter(l => l.status === 'opted_in' || l.status === 'presentation_sent').length,
     unsubscribed: leads.filter(l => l.status === 'unsubscribed').length,
-    converted: leads.filter(l => l.status === 'converted').length,
   };
 
   return (
@@ -120,28 +120,28 @@ export const OutreachDashboard = () => {
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <Search className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+            <Search className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
             <p className="text-2xl font-bold">{stats.new}</p>
-            <p className="text-xs text-muted-foreground">Noi</p>
+            <p className="text-xs text-muted-foreground">Noi (necontactați)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <Mail className="h-5 w-5 mx-auto mb-1 text-green-500" />
-            <p className="text-2xl font-bold">{stats.sent}</p>
-            <p className="text-xs text-muted-foreground">Trimise</p>
+            <Mail className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-2xl font-bold">{stats.consentSent}</p>
+            <p className="text-xs text-muted-foreground">Consimțământ trimis</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <CheckCircle className="h-5 w-5 mx-auto mb-1 text-emerald-500" />
-            <p className="text-2xl font-bold">{stats.converted}</p>
-            <p className="text-xs text-muted-foreground">Convertiți</p>
+            <CheckCircle className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{stats.optedIn}</p>
+            <p className="text-xs text-muted-foreground">Au acceptat (opt-in)</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <XCircle className="h-5 w-5 mx-auto mb-1 text-red-500" />
+            <XCircle className="h-5 w-5 mx-auto mb-1 text-destructive" />
             <p className="text-2xl font-bold">{stats.unsubscribed}</p>
             <p className="text-xs text-muted-foreground">Dezabonați</p>
           </CardContent>
