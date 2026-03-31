@@ -102,9 +102,9 @@ export const OutreachDashboard = () => {
   const stats = {
     total: leads.length,
     new: leads.filter(l => l.status === 'new').length,
-    sent: leads.filter(l => l.status === 'email_sent').length,
+    consentSent: leads.filter(l => l.status === 'consent_sent').length,
+    optedIn: leads.filter(l => l.status === 'opted_in' || l.status === 'presentation_sent').length,
     unsubscribed: leads.filter(l => l.status === 'unsubscribed').length,
-    converted: leads.filter(l => l.status === 'converted').length,
   };
 
   return (
