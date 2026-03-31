@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, Brain, Sparkles } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Check, Brain, Sparkles, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +21,41 @@ const Subscription = () => {
   const hasStripeSubscription = accessType === 'subscription';
   const hasFreeAccess = accessType === 'free_access';
   const [loading, setLoading] = useState<string | null>(null);
+  const [showAbandonedAlert, setShowAbandonedAlert] = useState(false);
+
+  // Detectează checkout abandonat
+  useEffect(() => {
+    const checkAbandonedCheckout = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: logs } = await supabase
+          .from('audit_logs')
+          .select('created_at, metadata')
+          .eq('action_type', 'SUBSCRIPTION_CHECKOUT_INITIATED')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (logs && logs.length > 0) {
+          const lastCheckout = new Date(logs[0].created_at);
+          const hoursSince = (Date.now() - lastCheckout.getTime()) / (1000 * 60 * 60);
+          
+          // Dacă a inițiat checkout în ultimele 24h și nu e abonat
+          if (hoursSince < 24 && !hasStripeSubscription && !hasFreeAccess) {
+            setShowAbandonedAlert(true);
+          }
+        }
+      } catch (err) {
+        // Silent fail
+      }
+    };
+    
+    if (!hasStripeSubscription && !hasFreeAccess) {
+      checkAbandonedCheckout();
+    }
+  }, [hasStripeSubscription, hasFreeAccess]);
 
   // If user already has subscription or free access, show subscription details page
   if (hasStripeSubscription || hasFreeAccess) {
@@ -163,6 +199,15 @@ const Subscription = () => {
         <div className="mb-6">
           <YanaHomeButton />
         </div>
+
+        {showAbandonedAlert && (
+          <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-700 dark:text-amber-300">
+              Ai început o plată anterior, dar nu a fost finalizată. Dacă ai întâmpinat probleme, încearcă din nou sau contactează-ne.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="text-center mb-12">
           <Badge className="mb-4" variant="secondary">

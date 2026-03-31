@@ -110,6 +110,7 @@ serve(async (req) => {
         address: 'auto',
         name: 'auto',
       } : undefined,
+      locale: 'ro',
       success_url: `${req.headers.get('origin')}/subscription-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get('origin')}/subscription`,
     });
