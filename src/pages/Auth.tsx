@@ -33,7 +33,7 @@ const Auth = () => {
   };
   
   const [isInitializing, setIsInitializing] = useState(() => detectInitialResetMode());
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(!comingFromLanding);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(() => detectInitialResetMode());
   const [email, setEmail] = useState('');
