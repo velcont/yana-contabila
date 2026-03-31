@@ -945,9 +945,9 @@ const Auth = () => {
                     Nu ai cont?{' '}
                     <button
                       onClick={() => setIsLogin(false)}
-                      className="text-primary hover:underline font-medium"
+                      className="text-primary hover:underline font-semibold"
                     >
-                      Înregistrează-te
+                      Înregistrează-te gratuit →
                     </button>
                   </>
                 ) : (
@@ -963,6 +963,14 @@ const Auth = () => {
                 )}
               </div>
               
+              {!isLogin && (
+                <div className="text-center space-y-1.5 pt-2 border-t">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    ✅ Fără card bancar &nbsp;·&nbsp; ✅ Acces instant &nbsp;·&nbsp; ✅ Anulezi oricând
+                  </p>
+                </div>
+              )}
+              
               <div className="text-center text-xs text-muted-foreground space-y-2">
                 <div>
                   Prin {isLogin ? 'autentificare' : 'înregistrare'}, ești de acord cu{' '}
@@ -972,11 +980,6 @@ const Auth = () => {
                   {' '}și{' '}
                   <Link to="/privacy" target="_blank" className="text-primary hover:underline">
                     Politica de Confidențialitate
-                  </Link>
-                </div>
-                <div>
-                  <Link to="/pricing" className="text-primary hover:underline font-medium">
-                    📋 Vezi Politica de Tarife și Costuri
                   </Link>
                 </div>
               </div>
