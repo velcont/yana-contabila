@@ -16,6 +16,12 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const isMarketplaceEntry = searchParams.get('ref') === 'marketplace';
   
+  // Auto-detect if coming from landing/ads → default to signup
+  const comingFromLanding = document.referrer.includes('velcont.com') || 
+    document.referrer.includes('lovable.app') ||
+    searchParams.get('redirect') !== null ||
+    searchParams.get('ref') !== null;
+  
   // FIX CRITIC: Detectare IMEDIATĂ a reset mode ÎNAINTE de randare
   const detectInitialResetMode = () => {
     const hashFragment = window.location.hash.substring(1);
