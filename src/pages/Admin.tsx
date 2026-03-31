@@ -442,6 +442,10 @@ const Admin = () => {
                 <Activity className="h-4 w-4 mr-2" />
                 🔄 Optimizare Recursivă
               </TabsTrigger>
+              <TabsTrigger value="outreach">
+                <Send className="h-4 w-4 mr-2" />
+                📧 Outreach YANA
+              </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
