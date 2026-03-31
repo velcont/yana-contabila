@@ -942,6 +942,12 @@ const Admin = () => {
               <MoltbookPanel />
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="outreach">
+            <Suspense fallback={<TabContentLoader />}>
+              <OutreachDashboard />
+            </Suspense>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
