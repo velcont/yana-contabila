@@ -200,6 +200,16 @@ const Subscription = () => {
           <YanaHomeButton />
         </div>
 
+        {showAbandonedAlert && (
+          <Alert className="mb-6 border-amber-500/50 bg-amber-500/10">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-700 dark:text-amber-300">
+              Ai început o plată anterior, dar nu a fost finalizată. Dacă ai întâmpinat probleme, încearcă din nou sau contactează-ne.
+            </AlertDescription>
+          </Alert>
+        )}
+        </div>
+
         <div className="text-center mb-12">
           <Badge className="mb-4" variant="secondary">
             <Sparkles className="h-3 w-3 mr-1" />
