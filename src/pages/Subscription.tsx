@@ -21,6 +21,41 @@ const Subscription = () => {
   const hasStripeSubscription = accessType === 'subscription';
   const hasFreeAccess = accessType === 'free_access';
   const [loading, setLoading] = useState<string | null>(null);
+  const [showAbandonedAlert, setShowAbandonedAlert] = useState(false);
+
+  // Detectează checkout abandonat
+  useEffect(() => {
+    const checkAbandonedCheckout = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data: logs } = await supabase
+          .from('audit_logs')
+          .select('created_at, metadata')
+          .eq('action_type', 'SUBSCRIPTION_CHECKOUT_INITIATED')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (logs && logs.length > 0) {
+          const lastCheckout = new Date(logs[0].created_at);
+          const hoursSince = (Date.now() - lastCheckout.getTime()) / (1000 * 60 * 60);
+          
+          // Dacă a inițiat checkout în ultimele 24h și nu e abonat
+          if (hoursSince < 24 && !hasStripeSubscription && !hasFreeAccess) {
+            setShowAbandonedAlert(true);
+          }
+        }
+      } catch (err) {
+        // Silent fail
+      }
+    };
+    
+    if (!hasStripeSubscription && !hasFreeAccess) {
+      checkAbandonedCheckout();
+    }
+  }, [hasStripeSubscription, hasFreeAccess]);
 
   // If user already has subscription or free access, show subscription details page
   if (hasStripeSubscription || hasFreeAccess) {
