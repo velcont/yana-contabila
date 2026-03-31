@@ -642,16 +642,48 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-3 md:p-4">
       {/* Marketplace Entry Banner */}
       {isMarketplaceEntry && (
-        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-2 md:py-3 px-3 md:px-4 text-center shadow-lg z-50">
+        <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2 md:py-3 px-3 md:px-4 text-center shadow-lg z-50">
           <p className="text-xs md:text-sm font-medium">
             🎉 Marketplace Yana - 30 zile gratuite!
           </p>
         </div>
       )}
-      <Card className="w-full max-w-md mx-2 md:mx-0">
+      
+      <div className="w-full max-w-lg mx-2 md:mx-0 space-y-4">
+        {/* Value Proposition - shown on signup */}
+        {!isLogin && !isResetMode && !isForgotPassword && (
+          <div className="text-center space-y-3 px-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Partenerul tău AI de business
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Înregistrează-te gratuit și primești <span className="font-semibold text-primary">30 de zile</span> acces complet
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+              <div className="flex items-center gap-2 bg-card border rounded-lg p-2.5">
+                <span className="text-primary text-base">🔍</span>
+                <span className="text-foreground">Vezi unde pierzi bani</span>
+              </div>
+              <div className="flex items-center gap-2 bg-card border rounded-lg p-2.5">
+                <span className="text-primary text-base">📊</span>
+                <span className="text-foreground">Analiză financiară instant</span>
+              </div>
+              <div className="flex items-center gap-2 bg-card border rounded-lg p-2.5">
+                <span className="text-primary text-base">🛡️</span>
+                <span className="text-foreground">Alerte riscuri fiscale</span>
+              </div>
+              <div className="flex items-center gap-2 bg-card border rounded-lg p-2.5">
+                <span className="text-primary text-base">💡</span>
+                <span className="text-foreground">Sfaturi strategice 24/7</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <Card className="w-full">
         <CardHeader className="px-4 md:px-6 py-4 md:py-6">
           <CardTitle className="text-xl md:text-2xl text-center">
-            {isResetMode ? 'Resetare Parolă' : isForgotPassword ? 'Recuperare Parolă' : isLogin ? 'Autentificare' : 'Înregistrare'}
+            {isResetMode ? 'Resetare Parolă' : isForgotPassword ? 'Recuperare Parolă' : isLogin ? 'Bine ai revenit!' : 'Creează cont gratuit'}
           </CardTitle>
           <CardDescription className="text-center text-xs md:text-sm">
             {isResetMode 
@@ -660,7 +692,7 @@ const Auth = () => {
               ? 'Îți vom trimite un link de resetare'
               : isLogin 
               ? 'Intră în contul tău Yana' 
-              : 'Creează un cont nou'}
+              : 'Doar email și parolă — ești gata în 30 de secunde'}
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 md:px-6 pb-4 md:pb-6">
