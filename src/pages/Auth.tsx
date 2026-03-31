@@ -922,7 +922,7 @@ const Auth = () => {
                     Se procesează...
                   </>
                 ) : (
-                  isLogin ? 'Autentificare' : 'Înregistrare'
+                  isLogin ? 'Autentificare' : '🚀 Începe Gratuit — 30 Zile'
                 )}
               </Button>
               {!isLogin && (
