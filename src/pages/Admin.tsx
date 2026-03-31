@@ -38,6 +38,7 @@ const MoltbookPanel = lazy(() => import("@/components/admin/MoltbookPanel").then
 const KnowledgeValidationPanel = lazy(() => import("@/components/admin/KnowledgeValidationPanel").then(m => ({ default: m.KnowledgeValidationPanel })));
 const RecursiveOptimizerDashboard = lazy(() => import("@/components/admin/RecursiveOptimizerDashboard").then(m => ({ default: m.RecursiveOptimizerDashboard })));
 const YanaSubscribersDashboard = lazy(() => import("@/components/admin/YanaSubscribersDashboard").then(m => ({ default: m.YanaSubscribersDashboard })));
+const OutreachDashboard = lazy(() => import("@/components/admin/OutreachDashboard"));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
