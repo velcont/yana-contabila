@@ -367,8 +367,12 @@ async function generateXlsx(
       // Column widths
       if (sheetData.columnWidths) {
         for (const [col, width] of Object.entries(sheetData.columnWidths)) {
-          const colNum = col.charCodeAt(0) - 64; // A=1, B=2, etc.
-          if (colNum > 0 && colNum <= 26) {
+          // Support columns beyond Z (e.g., AA, AB)
+          let colNum = 0;
+          for (let i = 0; i < col.length; i++) {
+            colNum = colNum * 26 + (col.charCodeAt(i) - 64);
+          }
+          if (colNum > 0 && colNum <= 16384) {
             ws.getColumn(colNum).width = width;
           }
         }

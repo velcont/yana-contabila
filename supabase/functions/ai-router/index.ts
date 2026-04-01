@@ -1194,7 +1194,7 @@ serve(async (req) => {
         
         // Build artifact for download button
         const artifacts = [{
-          type: 'document_download',
+          type: 'download',
           title: docResult.documentTitle,
           data: {
             downloadUrl: docResult.downloadUrl,
