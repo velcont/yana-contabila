@@ -1223,11 +1223,15 @@ serve(async (req) => {
         documentType: string;
         templateType: string;
         description: string;
+        balanceContext?: Record<string, unknown>;
       };
       
       // Check if user provided email in message
       const emailMatch = (docPayload.message || '').match(/[\w.-]+@[\w.-]+\.\w+/);
       const recipientEmail = emailMatch ? emailMatch[0] : null;
+      
+      // 🆕 v3.0: Pass balanceContext to document generation for data-driven reports
+      const docBalanceContext = docPayload.balanceContext || routeDecision.payload.balanceContext || null;
       
       try {
         const docResponse = await fetch(`${supabaseUrl}/functions/v1/generate-office-document`, {
@@ -1242,7 +1246,9 @@ serve(async (req) => {
             title: '',
             description: docPayload.description,
             templateType: docPayload.templateType,
+            template: docPayload.templateType, // Also set as template for DOCX rendering
             recipientEmail,
+            balanceContext: docBalanceContext,
           }),
         });
         
