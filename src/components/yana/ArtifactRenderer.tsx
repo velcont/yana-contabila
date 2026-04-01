@@ -49,6 +49,8 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       return <TableArtifact data={artifact.data as Array<Record<string, unknown>>} title={artifact.title} />;
     case 'download':
       return <DownloadArtifact url={artifact.downloadUrl!} fileName={artifact.fileName!} title={artifact.title} />;
+    case 'document_download':
+      return <DocumentDownloadArtifact data={artifact.data as { downloadUrl: string; documentType: string; fileSize: number; fileName: string }} title={artifact.title} />;
     case 'war_room':
       return <WarRoomArtifact data={artifact.data} title={artifact.title} />;
     case 'battle_plan':
