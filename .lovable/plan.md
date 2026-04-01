@@ -1,111 +1,52 @@
 
+# ✅ IMPLEMENTAT: YANA Contextual Intelligence + 5 Features
 
-# Upgrade Document Generation Engine la nivel "Aria Tools"
+## Ce s-a implementat:
 
-## Situație curentă vs. Ce vrei
+### 1. ✅ Context Engine (Știri + Vreme + Calendar fiscal)
+- `buildContextualIntelligence()` în chat-ai - injectează automat vreme, știri și termene fiscale
+- Weather via Open-Meteo API (gratis, 18 orașe românești)
+- Știri din `fiscal_news` table (ultimele 5)
+- Termene fiscale din `fiscal-calendar` edge function
 
-YANA **deja are** ~80% din funcționalitate: DOCX, XLSX, PPTX, PDF (create + merge), email delivery, intent detection, Storage + signed URLs. Ce **lipsește** sunt câteva capabilități din spec-ul Aria:
+### 2. ✅ Gândire Integrativă în System Prompt
+- 5 principii: Contextuală, Strategică, Holistică, Profesională, Situațională
+- Exemple integrate de răspunsuri noi vs vechi
 
-| Funcționalitate Aria | Status YANA | Acțiune |
-|---|---|---|
-| `generate_excel` cu sheets/formule/styling | ✅ Implementat | Mic refactor prompt AI |
-| `generate_docx` cu template letterhead/report/notification | ✅ Implementat | Adăugare template-uri dedicate |
-| `generate_pdf` create/merge/convert_from_docx | ✅ create + merge | Adăugare mod `fill_form` + `convert_from_docx` |
-| `generate_pptx` | ✅ Implementat | — |
-| `read_document` — citire + clasificare inteligentă | ⚠️ Parțial (doar balanțe) | **Upgrade major**: citire orice PDF/Excel/Word |
-| `send_whatsapp_file` | ❌ Nu se aplică (YANA e web) | Înlocuit cu email delivery (existent) |
-| Proactive document generation | ❌ Nu există | Edge function scheduler |
-| AI tool-calling cu structured params | ❌ AI generează text liber | **Upgrade**: AI returnează JSON structurat |
+### 3. ✅ Dashboard Mode
+- Detectare keywords: dashboard, cum stau, tablou de bord, overview
+- Generare automată KPI table + bar_chart + line_chart
 
-## Plan de implementare
+### 4. ✅ Comparator Multi-Perioadă
+- Detectare: compară, comparație, evoluție, vs, față de
+- Tabel comparativ + trend chart via tools existente
 
-### Pas 1: AI Structured Tool Calling pentru documente
-**Fișier**: `supabase/functions/generate-office-document/index.ts`
+### 5. ✅ Calendar Fiscal Inteligent
+- **NOU**: `supabase/functions/fiscal-calendar/index.ts`
+- 12 tipuri de termene fiscale (D300, D112, D100, D212, bilanț, SAF-T, etc.)
+- Lookahead configurabil (default 14 zile)
+- Injecție proactivă în conversație
 
-Upgrade-ul `generateDocumentContent()` — în loc să cerem AI-ului text liber, îi cerem parametri structurați specifici per tip de document:
+### 6. ✅ Verificator ANAF CUI
+- **NOU**: `supabase/functions/verify-anaf-cui/index.ts`
+- Detectare automată CUI în mesaj (regex)
+- Apel API ANAF public (v9)
+- Prezentare: denumire, adresă, TVA, split TVA, stare
 
-- Pentru **DOCX**: AI returnează `{ filename, template, content: [{type, text, bold, items, headers, rows}], footer }`
-- Pentru **XLSX**: AI returnează `{ filename, sheets: [{name, headers, rows, formulas, column_widths}], styling }`
-- Pentru **PPTX**: AI returnează `{ filename, slides: [{layout, title, content, notes}] }`
+### 7. ✅ Mini-Cursuri Fiscale
+- Detectare: învață-mă, curs, explică-mi + termen fiscal
+- Structură: concept + exemplu + gotcha + quiz
+- Teme: TVA, e-Factura, Micro, CAS/CASS, Profit, Dividende, SAF-T
 
-Asta înseamnă prompt-uri separate per document type, cu schema JSON explicită.
+### 8. ✅ Surse știri extinse
+- `fetch-fiscal-news` extins cu: Economedia, Profit.ro, ZF.ro, Google News Economie/BNR
+- Keywords noi: inflație, BNR, curs valutar, buget, PIB, șomaj, etc.
 
-### Pas 2: Template-uri dedicate DOCX
-**Fișier**: `supabase/functions/generate-office-document/index.ts`
+### 9. ✅ DB Migration
+- Coloana `city` adăugată la `yana_client_profiles` (default: 'București')
 
-Adăugare template-uri concrete:
-- **`letterhead`**: Header cu logo placeholder, adresă firmă, CUI, footer cu paginare
-- **`client_notification`**: Bloc destinatar (Către, Firma, CUI), linie subiect, bloc semnătură cu nume/funcție
-- **`report`**: Pagină de titlu, secțiuni structurate, rezumat executiv
-- **`contract`**: Articole numerotate, clauze standard, bloc semnături bilateral
-
-### Pas 3: Citire documente inteligentă (read_document)
-**Fișier**: `supabase/functions/ai-router/index.ts`
-
-Când user-ul uploadează un PDF/Word/Excel care NU e balanță:
-- Extrage textul din document (deja parțial implementat)  
-- Trimite la AI cu prompt de clasificare: "Ce tip de document e? Rezumă conținutul cheie."
-- Răspuns contextual: "Am primit factura de la X, suma Y, din data Z."
-
-### Pas 4: PDF fill_form mode
-**Fișier**: `supabase/functions/generate-office-document/index.ts`
-
-Adăugare mod `fill_form` cu `pdf-lib`:
-- Primește `template_path` (din Storage) + `fields` (key-value)
-- Completează câmpurile AcroForm din PDF-ul template
-- Util pentru formulare ANAF sau documente standard
-
-### Pas 5: Prompt-uri AI îmbunătățite per template
-**Fișier**: `supabase/functions/generate-office-document/index.ts`
-
-Prompt-uri specifice per `templateType`:
-- **contract**: Include articole standard (părți, obiect, durată, preț, obligații, confidențialitate, reziliere, forță majoră, litigii, dispoziții finale) + disclaimer juridic
-- **propunere/ofertă**: Structură comercială (context, soluție, beneficii, preț, timeline)
-- **raport**: Rezumat executiv, detalii, concluzii, acțiuni
-- **factura**: Atenționare că NU înlocuiește SmartBill, dar poate genera un draft vizual
-
-### Pas 6: Proactive document suggestions
-**Fișier**: `supabase/functions/ai-router/index.ts`
-
-După analiză balanță, Yana sugerează automat:
-- "Pot genera un raport Word cu analiza completă"
-- "Vrei un Excel cu situația pe conturi?"
-
-(Asta deja e parțial implementat via SuggestionChips)
-
-## Detalii tehnice
-
-### Structura nouă a prompt-ului AI per document type
-
-```typescript
-// Contract prompt
-`Generează un contract profesional în format JSON structurat.
-Schema: {
-  "title": "Contract de [tip]",
-  "sections": [
-    { "heading": "ARTICOLUL 1 – PĂRȚILE", "content": "...", "type": "text" },
-    { "heading": "ARTICOLUL 2 – OBIECTUL", "content": "...", "type": "list" },
-    ...
-  ]
-}
-OBLIGATORIU: Ultima secțiune = disclaimer că e draft, necesită verificare avocat.`
-```
-
-### Fill form PDF (nou)
-```typescript
-async function fillPdfForm(supabase, templatePath, fields): Promise<Uint8Array> {
-  const { PDFDocument } = await import("npm:pdf-lib@1.17.1");
-  // Download template → load → getForm() → fill fields → save
-}
-```
-
-## Fișiere afectate
-1. `supabase/functions/generate-office-document/index.ts` — Upgrade prompt-uri, template-uri, fill_form
-2. `supabase/functions/ai-router/index.ts` — Transmite balanceContext la document generation, îmbunătățește clasificare upload-uri non-balanță
-3. `supabase/functions/_shared/prompts/chat-ai-prompt.md` — Actualizare instrucțiuni despre capabilități documente
-
-## Ce NU implementăm (nu se aplică)
-- WhatsApp integration (YANA e web-based)
-- OCR pe imagini (ar necesita Tesseract, nu e disponibil în Deno)
-- Malware scanning (Supabase Storage gestionează asta)
-
+## Fișiere modificate:
+- `supabase/functions/chat-ai/index.ts` - Context engine + prompt upgrade
+- `supabase/functions/fetch-fiscal-news/index.ts` - Surse extinse
+- `supabase/functions/fiscal-calendar/index.ts` - **NOU**
+- `supabase/functions/verify-anaf-cui/index.ts` - **NOU**
