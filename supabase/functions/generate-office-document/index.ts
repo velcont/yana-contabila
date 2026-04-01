@@ -1233,7 +1233,11 @@ Deno.serve(async (req) => {
     console.log(`[DOC-GEN][${requestId}] File generated: ${fileBuffer.length} bytes`);
 
     // Step 3: Upload to Storage
-    const sanitizedTitle = (docContent.title || title || "document").replace(/[^a-zA-Z0-9ăîâșțĂÎÂȘȚ\s-]/g, "_").substring(0, 50);
+    const sanitizedTitle = (docContent.title || title || "document")
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .substring(0, 50) || 'document';
     const fileName = `${user.id}/${sanitizedTitle}_${Date.now()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
