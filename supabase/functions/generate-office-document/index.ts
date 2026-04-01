@@ -500,30 +500,65 @@ Deno.serve(async (req) => {
       },
     });
 
-    // Step 6: If email requested, send via transactional email
+    // Step 6: If email requested, send via Resend
     let emailSent = false;
     if (recipientEmail) {
       try {
-        const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
-          body: {
-            templateName: "document-delivery",
-            recipientEmail,
-            idempotencyKey: `doc-delivery-${fileName}`,
-            templateData: {
-              documentTitle: docContent.title || title,
-              documentType: extension.toUpperCase(),
-              downloadUrl: signedUrlData.signedUrl,
-              expiresIn: "7 zile",
-            },
-          },
-        });
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL");
 
-        emailSent = !emailError;
-        if (emailError) {
-          console.warn(`[DOC-GEN][${requestId}] Email send failed:`, emailError);
+        if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) {
+          console.warn(`[DOC-GEN][${requestId}] Resend not configured`);
+        } else {
+          const docTitle = docContent.title || title || "Document";
+          const resendResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${RESEND_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: RESEND_FROM_EMAIL,
+              to: [recipientEmail],
+              subject: `📎 ${docTitle} — Document generat de Yana`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <div style="background: #1E2761; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 22px;">📄 Document generat de Yana</h1>
+                  </div>
+                  <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
+                    <h2 style="color: #1E2761; margin-top: 0;">${docTitle}</h2>
+                    <p style="color: #333; line-height: 1.6;">
+                      Documentul tău <strong>${extension.toUpperCase()}</strong> a fost generat cu succes.
+                    </p>
+                    <div style="text-align: center; margin: 25px 0;">
+                      <a href="${signedUrlData.signedUrl}" 
+                         style="background: #1E2761; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                        ⬇️ Descarcă documentul
+                      </a>
+                    </div>
+                    <p style="color: #888; font-size: 13px; text-align: center;">
+                      Link-ul expiră în 7 zile.
+                    </p>
+                  </div>
+                  <p style="color: #aaa; font-size: 11px; text-align: center; margin-top: 15px;">
+                    Generat automat de Yana AI • ${new Date().toLocaleDateString("ro-RO")}
+                  </p>
+                </div>
+              `,
+            }),
+          });
+
+          if (resendResponse.ok) {
+            emailSent = true;
+            console.log(`[DOC-GEN][${requestId}] Email sent via Resend to ${recipientEmail}`);
+          } else {
+            const resendError = await resendResponse.text();
+            console.warn(`[DOC-GEN][${requestId}] Resend error: ${resendResponse.status} - ${resendError}`);
+          }
         }
       } catch (emailErr) {
-        console.warn(`[DOC-GEN][${requestId}] Email service not available:`, emailErr);
+        console.warn(`[DOC-GEN][${requestId}] Email send failed:`, emailErr);
       }
     }
 
