@@ -520,17 +520,61 @@ function detectSagaFromBase64(base64Content: string): boolean {
 
 function detectDocumentType(fileName: string): string {
   const extension = fileName.toLowerCase().split('.').pop();
+  const lowerName = fileName.toLowerCase();
   
+  // Check if it's a balance sheet Excel (contains keywords like balanta, balance, etc.)
   if (['xlsx', 'xls'].includes(extension || '')) {
-    return 'balance_excel';
+    const isBalance = /balan[tț]|balance|sold|rulaj/i.test(lowerName);
+    if (isBalance) return 'balance_excel';
+    return 'general_excel'; // Non-balance Excel (e.g., bank statements, invoices)
   } else if (extension === 'pdf') {
     return 'pdf';
   } else if (['doc', 'docx'].includes(extension || '')) {
     return 'docx';
   } else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension || '')) {
     return 'image';
+  } else if (['pptx', 'ppt'].includes(extension || '')) {
+    return 'pptx';
   }
   return 'other';
+}
+
+// =============================================================================
+// 🆕 v3.0: SMART DOCUMENT CLASSIFICATION — Read & Understand uploads
+// =============================================================================
+function classifyDocumentFromName(fileName: string): { type: string; description: string } {
+  const lower = fileName.toLowerCase();
+  
+  // Bank statements
+  if (/extras|bancar|statement|tranzac[tț]i|brd|banca|bt\b|ing\b|raiffeisen|bcr|unicredit/i.test(lower)) {
+    return { type: 'bank_statement', description: 'extras bancar' };
+  }
+  // Invoices
+  if (/factur[aă]|invoice|fact_|proforma/i.test(lower)) {
+    return { type: 'invoice', description: 'factură' };
+  }
+  // Contracts
+  if (/contract|acord|nda|confiden[tț]ial/i.test(lower)) {
+    return { type: 'contract', description: 'contract' };
+  }
+  // Registry / ledger
+  if (/registr|jurnal|fisa_cont|fi[sș]a/i.test(lower)) {
+    return { type: 'ledger', description: 'registru contabil' };
+  }
+  // Tax forms
+  if (/d[0-9]{3}|declar|anaf|fiscal/i.test(lower)) {
+    return { type: 'tax_form', description: 'declarație fiscală' };
+  }
+  // Reports
+  if (/raport|report|bilan[tț]|situati/i.test(lower)) {
+    return { type: 'report', description: 'raport' };
+  }
+  // Receipts
+  if (/bon|chitan[tț][aă]|receipt/i.test(lower)) {
+    return { type: 'receipt', description: 'bon/chitanță' };
+  }
+  
+  return { type: 'document', description: 'document' };
 }
 
 function detectIntent(message: string): RouteDecision {
