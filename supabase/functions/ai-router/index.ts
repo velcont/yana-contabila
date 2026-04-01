@@ -520,17 +520,61 @@ function detectSagaFromBase64(base64Content: string): boolean {
 
 function detectDocumentType(fileName: string): string {
   const extension = fileName.toLowerCase().split('.').pop();
+  const lowerName = fileName.toLowerCase();
   
+  // Check if it's a balance sheet Excel (contains keywords like balanta, balance, etc.)
   if (['xlsx', 'xls'].includes(extension || '')) {
-    return 'balance_excel';
+    const isBalance = /balan[tț]|balance|sold|rulaj/i.test(lowerName);
+    if (isBalance) return 'balance_excel';
+    return 'general_excel'; // Non-balance Excel (e.g., bank statements, invoices)
   } else if (extension === 'pdf') {
     return 'pdf';
   } else if (['doc', 'docx'].includes(extension || '')) {
     return 'docx';
   } else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(extension || '')) {
     return 'image';
+  } else if (['pptx', 'ppt'].includes(extension || '')) {
+    return 'pptx';
   }
   return 'other';
+}
+
+// =============================================================================
+// 🆕 v3.0: SMART DOCUMENT CLASSIFICATION — Read & Understand uploads
+// =============================================================================
+function classifyDocumentFromName(fileName: string): { type: string; description: string } {
+  const lower = fileName.toLowerCase();
+  
+  // Bank statements
+  if (/extras|bancar|statement|tranzac[tț]i|brd|banca|bt\b|ing\b|raiffeisen|bcr|unicredit/i.test(lower)) {
+    return { type: 'bank_statement', description: 'extras bancar' };
+  }
+  // Invoices
+  if (/factur[aă]|invoice|fact_|proforma/i.test(lower)) {
+    return { type: 'invoice', description: 'factură' };
+  }
+  // Contracts
+  if (/contract|acord|nda|confiden[tț]ial/i.test(lower)) {
+    return { type: 'contract', description: 'contract' };
+  }
+  // Registry / ledger
+  if (/registr|jurnal|fisa_cont|fi[sș]a/i.test(lower)) {
+    return { type: 'ledger', description: 'registru contabil' };
+  }
+  // Tax forms
+  if (/d[0-9]{3}|declar|anaf|fiscal/i.test(lower)) {
+    return { type: 'tax_form', description: 'declarație fiscală' };
+  }
+  // Reports
+  if (/raport|report|bilan[tț]|situati/i.test(lower)) {
+    return { type: 'report', description: 'raport' };
+  }
+  // Receipts
+  if (/bon|chitan[tț][aă]|receipt/i.test(lower)) {
+    return { type: 'receipt', description: 'bon/chitanță' };
+  }
+  
+  return { type: 'document', description: 'document' };
 }
 
 function detectIntent(message: string): RouteDecision {
@@ -873,17 +917,40 @@ serve(async (req) => {
           },
           reason: `Excel balance sheet uploaded - ${isSaga ? 'SAGA format detected' : 'standard format'} (forceReprocess=true)`
         };
-      } else if (docType === 'pdf' || docType === 'docx') {
+      } else if (docType === 'general_excel') {
+        // 🆕 v3.0: SMART CLASSIFICATION for non-balance Excel files
+        const classification = classifyDocumentFromName(fileData.fileName);
+        console.log(`[AI-Router] 📊 Non-balance Excel uploaded: ${fileData.fileName} → classified as ${classification.type}`);
+        
+        routeDecision = {
+          route: 'chat-ai',
+          payload: {
+            message: message || `Am primit un fișier Excel: ${fileData.fileName}. Analizează-l.`,
+            documentClassification: classification,
+            documentName: fileData.fileName,
+            documentContent: fileData.fileContent,
+            memoryContext,
+            history,
+            balanceContext,
+          },
+          reason: `Non-balance Excel uploaded (${classification.type}: ${classification.description})`
+        };
+      } else if (docType === 'pdf' || docType === 'docx' || docType === 'pptx') {
+        // 🆕 v3.0: SMART CLASSIFICATION for PDF/Word/PPTX documents
+        const classification = classifyDocumentFromName(fileData.fileName);
+        console.log(`[AI-Router] 📄 Document uploaded: ${fileData.fileName} → classified as ${classification.type}`);
+        
         routeDecision = {
           route: 'strategic-advisor',
           payload: {
-            message: message || `Analizează documentul: ${fileData.fileName}`,
+            message: message || `Am primit un ${classification.description}: ${fileData.fileName}. Analizează-l.`,
             documentContent: fileData.fileContent,
             documentName: fileData.fileName,
+            documentClassification: classification,
             conversationId: conversationId,
-            memoryContext // Adaug contextul de memorie
+            memoryContext
           },
-          reason: 'Business document uploaded for strategic analysis'
+          reason: `${classification.description} uploaded for analysis (${classification.type})`
         };
       } else if (docType === 'image') {
         // 🆕 IMAGE ANALYSIS: Route images to chat-ai with multimodal support
@@ -904,15 +971,20 @@ serve(async (req) => {
           reason: 'Image uploaded for multimodal analysis'
         };
       } else {
+        // 🆕 v3.0: Generic classification for unknown file types
+        const classification = classifyDocumentFromName(fileData.fileName);
+        console.log(`[AI-Router] 📎 Unknown file type uploaded: ${fileData.fileName} → ${classification.type}`);
+        
         routeDecision = {
           route: 'chat-ai',
           payload: {
-            message: `Am primit un document: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
+            message: `Am primit un ${classification.description}: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
+            documentClassification: classification,
             memoryContext,
             history,
             balanceContext,
           },
-          reason: 'Non-balance document uploaded'
+          reason: `Document uploaded (${classification.type})`
         };
       }
     } else {
@@ -1151,11 +1223,15 @@ serve(async (req) => {
         documentType: string;
         templateType: string;
         description: string;
+        balanceContext?: Record<string, unknown>;
       };
       
       // Check if user provided email in message
       const emailMatch = (docPayload.message || '').match(/[\w.-]+@[\w.-]+\.\w+/);
       const recipientEmail = emailMatch ? emailMatch[0] : null;
+      
+      // 🆕 v3.0: Pass balanceContext to document generation for data-driven reports
+      const docBalanceContext = docPayload.balanceContext || routeDecision.payload.balanceContext || null;
       
       try {
         const docResponse = await fetch(`${supabaseUrl}/functions/v1/generate-office-document`, {
@@ -1170,7 +1246,9 @@ serve(async (req) => {
             title: '',
             description: docPayload.description,
             templateType: docPayload.templateType,
+            template: docPayload.templateType, // Also set as template for DOCX rendering
             recipientEmail,
+            balanceContext: docBalanceContext,
           }),
         });
         
