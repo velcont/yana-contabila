@@ -1138,19 +1138,125 @@ serve(async (req) => {
 
     console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}${memoryContext ? ' (with memory context)' : ''}${consciousnessContext ? ' (with consciousness)' : ''}`);
 
-  // Call the appropriate edge function
-  // Use enhanced ANAF risk analysis with Claude AI
-  const effectiveRoute = routeDecision.route === 'calculate-anaf-risk' 
-    ? 'calculate-anaf-risk-enhanced' 
-    : routeDecision.route;
-  const targetUrl = `${supabaseUrl}/functions/v1/${effectiveRoute}`;
+    // =============================================================================
+    // SPECIAL ROUTE: DOCUMENT GENERATION
+    // =============================================================================
+    if (routeDecision.route === 'generate-document') {
+      console.log('[AI-Router] 📄 Handling document generation route');
+      
+      const docPayload = routeDecision.payload as {
+        message: string;
+        documentType: string;
+        templateType: string;
+        description: string;
+      };
+      
+      // Check if user provided email in message
+      const emailMatch = (docPayload.message || '').match(/[\w.-]+@[\w.-]+\.\w+/);
+      const recipientEmail = emailMatch ? emailMatch[0] : null;
+      
+      try {
+        const docResponse = await fetch(`${supabaseUrl}/functions/v1/generate-office-document`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            documentType: docPayload.documentType,
+            title: '',
+            description: docPayload.description,
+            templateType: docPayload.templateType,
+            recipientEmail,
+          }),
+        });
+        
+        if (!docResponse.ok) {
+          const errorText = await docResponse.text();
+          throw new Error(`Document generation failed: ${errorText}`);
+        }
+        
+        const docResult = await docResponse.json();
+        
+        // Build response message
+        let responseText = `✅ **Am generat documentul "${docResult.documentTitle}"** (${docResult.documentType.toUpperCase()})\n\n`;
+        responseText += `📥 **[Descarcă documentul](${docResult.downloadUrl})**\n`;
+        responseText += `📊 Dimensiune: ${(docResult.fileSize / 1024).toFixed(1)} KB\n\n`;
+        
+        if (docResult.emailSent && recipientEmail) {
+          responseText += `📧 Am trimis documentul și pe email la **${recipientEmail}**.\n\n`;
+        } else if (!recipientEmail) {
+          responseText += `💡 *Dacă vrei să-ți trimit documentul pe email, spune-mi adresa ta de email.*\n\n`;
+        }
+        
+        responseText += `---\n*Link-ul de descărcare este valabil 7 zile.*`;
+        
+        // Build artifact for download button
+        const artifacts = [{
+          type: 'document_download',
+          title: docResult.documentTitle,
+          data: {
+            downloadUrl: docResult.downloadUrl,
+            documentType: docResult.documentType,
+            fileSize: docResult.fileSize,
+            fileName: `${docResult.documentTitle}.${docResult.documentType}`,
+          },
+        }];
+        
+        // Save to yana_messages
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: responseText,
+          artifacts,
+          ends_with_question: responseText.trim().endsWith('?'),
+        });
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            response: responseText,
+            route: 'generate-document',
+            artifacts,
+            documentGenerated: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (docErr) {
+        console.error('[AI-Router] ❌ Document generation error:', docErr);
+        const errorResponse = `❌ Nu am putut genera documentul. Eroare: ${docErr.message}\n\nÎncearcă din nou sau reformulează cererea.`;
+        
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: errorResponse,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: errorResponse, route: 'generate-document' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =============================================================================
+    // STANDARD ROUTES
+    // =============================================================================
+
+    // Call the appropriate edge function
+    // Use enhanced ANAF risk analysis with Claude AI
+    const effectiveRoute = routeDecision.route === 'calculate-anaf-risk' 
+      ? 'calculate-anaf-risk-enhanced' 
+      : routeDecision.route;
+    const targetUrl = `${supabaseUrl}/functions/v1/${effectiveRoute}`;
     
     response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
-        'x-called-from-router': 'true', // FIX DUPLICATE: chat-ai verifică acest header pentru a nu salva dublu
+        'x-called-from-router': 'true',
       },
       body: JSON.stringify(routeDecision.payload),
     });
