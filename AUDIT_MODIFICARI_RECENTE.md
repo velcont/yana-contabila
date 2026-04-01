@@ -1,4 +1,116 @@
-# ✅ AUDIT MODIFICĂRI RECENTE YANA - 4 Februarie 2026
+# 🔍 AUDIT MODIFICĂRI RECENTE — Document Generation Engine v2.0
+
+**Data audit:** 2026-04-01  
+**Fișiere auditate:**
+- `supabase/functions/generate-office-document/index.ts` (872 linii)
+- `supabase/functions/ai-router/index.ts` (1959 linii)
+- `src/components/yana/SuggestionChips.tsx` (117 linii)
+- `src/components/yana/YanaChat.tsx` (1141 linii)
+
+---
+
+## ✅ CE FUNCȚIONEAZĂ CORECT
+
+### 1. Excel Avansat (ExcelJS) — ✅ BINE IMPLEMENTAT
+- **Formule reale**: `cell.value = { formula: f.formula }` — funcționează în Deno
+- **Header coloring**: ARGB corect (`FF2E5090`), font alb, centrat
+- **Alternate row shading**: Rânduri pare cu `#F2F6FC`
+- **Freeze header**: `ws.views = [{ state: "frozen", ySplit: 1 }]`
+- **Auto-filter**: Corect configurat cu range dinamic
+- **Column widths**: Auto-fit cu maxLen + 4, cap la 50
+- **Fallback inteligent**: Dacă `excelConfig.sheets` nu e furnizat, parsează din AI content
+
+### 2. Word Templates (DOCX) — ✅ BINE IMPLEMENTAT
+- **Letterhead**: Header cu border bottom, dată, "DOCUMENT OFICIAL"
+- **Client notification**: Bloc dată + semnătură ("Cu stimă, ___")
+- **Footer cu paginare**: `PageNumber.CURRENT` / `TOTAL_PAGES` — corect
+- **Bullet lists**: Folosește `LevelFormat.BULLET` real (nu unicode hack)
+- **Tabele cu borduri**: `BorderStyle.SINGLE`, culori diferențiate header/body
+- **Stiluri Heading**: H1/H2 cu culori `1E2761` / `2E5090`
+
+### 3. PDF Merge (pdf-lib) — ✅ BINE IMPLEMENTAT
+- **Merge corect**: `PDFDocument.load()` → `copyPages()` → `addPage()`
+- **Handling erori**: `try/catch` per fișier, continuă dacă unul eșuează
+- **Validare**: Aruncă eroare dacă 0 pagini rezultă
+- **Storage**: Upload cu signed URL 7 zile
+
+### 4. Routing Document Intent — ✅ BINE IMPLEMENTAT
+- **Regex-uri comprehensive**: Detectează "creează contract", "generează excel", "fă-mi raport", "NDA", etc.
+- **Detecție tip document**: `xlsx` pentru "excel/tabel", `pptx` pentru "prezentare", `pdf`, default `docx`
+- **Detecție template**: contract, NDA, propunere, raport, prezentare, factură, proces-verbal, decizie, plan
+- **Email extraction**: Regex `[\w.-]+@[\w.-]+\.\w+` din mesaj
+- **Error handling complet**: Try/catch cu mesaj user-friendly
+
+### 5. Suggestion Chips Post-Analiză — ✅ BINE IMPLEMENTAT
+- **5 chip-uri**: Raport Word, Raport PDF, Excel situație, Trimite pe email, Risc ANAF
+- **Iconuri diferențiate**: FileText, BarChart3, Mail, Shield
+- **Prop `postAnalysis`**: Activat automat când `balanceContext` există
+
+### 6. Email via Resend — ✅ BINE IMPLEMENTAT
+- **Template HTML responsive**: Fundal #1E2761, buton download
+- **Signed URL**: 7 zile expirare
+- **Fallback**: Dacă Resend eșuează, documentul e disponibil prin download
+
+---
+
+## ⚠️ PROBLEME IDENTIFICATE
+
+### 🔴 P1 — CRITICE
+
+#### 1. Artifact type `document_download` NU e recunoscut de `ArtifactRenderer`
+**Fișier:** `ai-router/index.ts`, linia 1196-1205
+```typescript
+const artifacts = [{
+  type: 'document_download', // ← ACEST TIP NU EXISTĂ ÎN INTERFAȚA Artifact
+}];
+```
+**Fișier:** `YanaChat.tsx`, linia 37
+```typescript
+type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | ...
+```
+**Problemă:** `document_download` ≠ `download`. Artifact-ul generat de ai-router la document generation NU se va randa vizual.
+**Impact:** 🔴 CRITIC — user-ul nu vede buton download, doar link-ul inline din text Markdown.
+**Fix:** Schimbă `type: 'document_download'` → `type: 'download'`.
+
+### 🟡 P2 — MEDII
+
+#### 2. `excelConfig` cu coloane multi-literale nu funcționează
+**Fișier:** `generate-office-document/index.ts`, linia 370
+```typescript
+const colNum = col.charCodeAt(0) - 64; // A=1, B=2 — doar A-Z
+```
+**Problemă:** `columnWidths` cu chei "AA", "AB" nu funcționează.
+
+#### 3. AI prompt pentru generare document nu include `balanceContext`
+**Problemă:** Documentele generate post-analiză nu conțin cifrele reale din balanță.
+
+#### 4. Suggestion chip "Trimite pe email" nu extrage emailul automat
+**Problemă:** Yana va genera documentul dar va cere emailul manual în loc să-l ia din profil.
+
+#### 5. Lipsa input validation (Zod) în `generate-office-document`
+**Problemă:** Un request malformat poate cauza erori netratate.
+
+### 🟢 P3 — MINORE
+- Hardcoded brand colors (`1E2761`, `2E5090`)
+- `sanitizedTitle` nu acoperă diacritice non-românești
+- ExcelJS `eachCell` cu `any` types
+- `userId` redundant în payload (extras și din JWT)
+
+---
+
+## 📊 REZUMAT
+
+| Severitate | Număr | Fix recomandat |
+|---|---|---|
+| 🔴 Critic | 1 | Artifact type mismatch → `download` |
+| 🟡 Mediu | 4 | BalanceContext, validation, email auto, coloane |
+| 🟢 Minor | 4 | Cosmetice |
+
+**Stare generală: 85% COMPLET** — Implementarea este solidă funcțional. Blocant unic: artifact type mismatch.
+
+---
+
+## AUDIT ANTERIOR (Februarie 2026)
 
 ## 📋 Ultima Modificare: Single Source of Truth pentru Venituri/Cheltuieli
 
