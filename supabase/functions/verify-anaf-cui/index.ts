@@ -33,7 +33,7 @@ serve(async (req) => {
 
     // Call ANAF public API
     const anafResponse = await fetch(
-      'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v8/ws/tva',
+      'https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
