@@ -2025,6 +2025,29 @@ serve(async (req) => {
       console.log(`[chat-ai][${requestId}] Balance data section added to prompt (${balanceDataSection.length} chars)`);
     }
     
+    // 🆕 CONTEXTUAL INTELLIGENCE: Știri + Vreme + Calendar fiscal
+    let contextualIntelligenceSection = '';
+    try {
+      contextualIntelligenceSection = await buildContextualIntelligence(supabase, userId);
+      if (contextualIntelligenceSection) {
+        console.log(`[chat-ai][${requestId}] Contextual intelligence added (${contextualIntelligenceSection.length} chars)`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Contextual intelligence failed (non-blocking):`, err);
+    }
+
+    // 🆕 CUI DETECTION: Verificare automată ANAF
+    let cuiVerificationSection = '';
+    try {
+      const cuiResult = await detectAndVerifyCUI(message);
+      if (cuiResult) {
+        cuiVerificationSection = cuiResult;
+        console.log(`[chat-ai][${requestId}] CUI verification result injected`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] CUI detection failed (non-blocking):`, err);
+    }
+
     // 🆕 MEMORIE: Adaugă context din conversații anterioare cu firma
     const memorySection = memoryContext ? `\n\n${memoryContext}` : '';
     if (memoryContext) {
