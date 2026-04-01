@@ -674,6 +674,56 @@ function detectIntent(message: string): RouteDecision {
     };
   }
 
+  // =============================================================================
+  // ⚡ DOCUMENT GENERATION DETECTION
+  // =============================================================================
+  const docGenPatterns = [
+    // Direct creation requests
+    /(?:creeaz[aă]|genereaz[aă]|f[aă]|scrie|redacteaz[aă]|preg[aă]te[sș]te)\s+(?:un|o|un\s+fi[sș]ier|document)\s+(?:contract|acord|nda|proces\s*verbal|decizie|propunere|ofert[aă]|raport|prezentare|factur[aă]|scrisoare|cerere|adres[aă]|not[aă]|minute|protocol|regulament|procedur[aă]|stat\s*de\s*plat[aă]|chestionar|formular|plan|brief)/i,
+    /(?:creeaz[aă]|genereaz[aă]|f[aă])\s+(?:un\s+)?(?:word|excel|powerpoint|pptx?|docx?|xlsx?|pdf|spreadsheet|prezentare|tabel)/i,
+    /(?:vreau|am\s+nevoie\s+de|trebuie)\s+(?:un|o)\s+(?:contract|nda|acord|prezentare|raport|propunere|ofert[aă]|tabel|spreadsheet|document)/i,
+    // Editing requests
+    /(?:editeaz[aă]|modific[aă]|actualizeaz[aă]|completeaz[aă])\s+(?:documentul|contractul|raportul|prezentarea|tabelul|fi[sș]ierul)/i,
+    // Email + document
+    /(?:trimite|trimite-mi|expediaz[aă]|d[aă]-mi)\s+(?:pe\s+email|prin\s+email)?\s*(?:un|o)?\s*(?:contract|document|raport|prezentare|ofert[aă]|propunere)/i,
+    // Specific document types
+    /(?:contract\s+de\s+prest[aă]ri|contract\s+de\s+munc[aă]|act\s+adi[tț]ional|proces\s*verbal|decizie\s+aga|hot[aă]r[aâ]re\s+aga)/i,
+  ];
+  
+  const isDocumentRequest = docGenPatterns.some(p => p.test(lowerMessage));
+  
+  if (isDocumentRequest) {
+    // Detect document type from message
+    let docType: 'docx' | 'xlsx' | 'pptx' | 'pdf' = 'docx'; // default Word
+    if (/excel|xlsx?|spreadsheet|tabel|calcul/i.test(lowerMessage)) docType = 'xlsx';
+    else if (/power\s*point|pptx?|prezentare|slide/i.test(lowerMessage)) docType = 'pptx';
+    else if (/pdf/i.test(lowerMessage)) docType = 'pdf';
+    
+    // Detect template type
+    let templateType = 'general';
+    if (/contract/i.test(lowerMessage)) templateType = 'contract';
+    else if (/nda|confiden[tț]ialitate/i.test(lowerMessage)) templateType = 'nda';
+    else if (/propunere|ofert[aă]/i.test(lowerMessage)) templateType = 'propunere';
+    else if (/raport/i.test(lowerMessage)) templateType = 'raport';
+    else if (/prezentare|pitch/i.test(lowerMessage)) templateType = 'prezentare';
+    else if (/factur[aă]/i.test(lowerMessage)) templateType = 'factura';
+    else if (/proces\s*verbal/i.test(lowerMessage)) templateType = 'proces-verbal';
+    else if (/decizie|hot[aă]r[aâ]re/i.test(lowerMessage)) templateType = 'decizie';
+    else if (/plan/i.test(lowerMessage)) templateType = 'plan';
+    
+    console.log(`[AI-Router] 📄 DOCUMENT GENERATION DETECTED: type=${docType}, template=${templateType}`);
+    return {
+      route: 'generate-document',
+      payload: { 
+        message,
+        documentType: docType,
+        templateType,
+        description: message,
+      },
+      reason: `User requested document generation (${docType}, ${templateType})`
+    };
+  }
+
   // Strategic questions - EXPANDED for better detection
   if (
     lowerMessage.includes('strategi') ||
