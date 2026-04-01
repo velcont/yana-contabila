@@ -21,7 +21,13 @@ const RSS_FEEDS = [
   { url: 'https://news.google.com/rss/search?q=e-Factura+OR+SAF-T&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=TVA+OR+CASS+OR+CAS&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News' },
   { url: 'https://news.google.com/rss/search?q=%22impozit+pe+profit%22+OR+dividende&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News' },
-  { url: 'https://news.google.com/rss/search?q=microintreprinderi+impozit+venit+1%2525&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News' }
+  { url: 'https://news.google.com/rss/search?q=microintreprinderi+impozit+venit+1%2525&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News' },
+  // 🆕 Surse economice și politice extinse
+  { url: 'https://news.google.com/rss/search?q=site:economedia.ro&hl=ro&gl=RO&ceid=RO:ro', name: 'Economedia' },
+  { url: 'https://news.google.com/rss/search?q=site:profit.ro&hl=ro&gl=RO&ceid=RO:ro', name: 'Profit.ro' },
+  { url: 'https://news.google.com/rss/search?q=site:zf.ro+economie&hl=ro&gl=RO&ceid=RO:ro', name: 'ZF.ro' },
+  { url: 'https://news.google.com/rss/search?q=%22politica+economica%22+OR+%22buget+Romania%22+OR+inflatie+Romania&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News Economie' },
+  { url: 'https://news.google.com/rss/search?q=BNR+dobanda+OR+%22curs+valutar%22+OR+%22rata+inflatie%22&hl=ro&gl=RO&ceid=RO:ro', name: 'Google News BNR' }
 ];
 
 const FISCAL_KEYWORDS = [
@@ -32,7 +38,14 @@ const FISCAL_KEYWORDS = [
   'og 22/2025', 'ordonanța tva', '395.000 lei',
   'schema imm', 'sme', '100.000 €',
   'cod ex', 'număr ex',
-  'art. 310', 'cod fiscal'
+  'art. 310', 'cod fiscal',
+  // 🆕 Cuvinte cheie economice și politice
+  'inflație', 'inflatie', 'bnr', 'dobând', 'dobanda',
+  'curs valutar', 'euro', 'buget', 'pib',
+  'șomaj', 'somaj', 'recesiune', 'creștere economică',
+  'salariu minim', 'deficit', 'datorie publică',
+  'antreprenor', 'startup', 'investiți', 'creditare',
+  'anaf', 'fiscalitate', 'taxe', 'impozitare'
 ];
 
 function parseRSSFeed(xmlText: string): RSSItem[] {
