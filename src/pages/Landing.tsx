@@ -177,6 +177,9 @@ const Landing = () => {
           {/* ===== SOLUȚII (ce face Yana) ===== */}
           <LandingBenefits />
 
+          {/* ===== NOU: SUITA OFFICE ===== */}
+          <LandingOfficeAnnouncement />
+
           {/* ===== CUM FUNCȚIONEAZĂ ===== */}
           <LandingHowItWorks />
 

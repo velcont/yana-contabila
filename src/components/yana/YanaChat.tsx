@@ -838,6 +838,9 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
         />
       )}
 
+      {/* Office Feature Announcement */}
+      <OfficeFeatureAnnouncement />
+
       {/* Messages Area */}
       <div 
         ref={messagesContainerRef}
