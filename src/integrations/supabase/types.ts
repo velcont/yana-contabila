@@ -5146,6 +5146,7 @@ export type Database = {
         Row: {
           anticipation_triggers: Json | null
           business_domain: string | null
+          city: string | null
           communication_style: string | null
           company_size: string | null
           created_at: string
@@ -5165,6 +5166,7 @@ export type Database = {
         Insert: {
           anticipation_triggers?: Json | null
           business_domain?: string | null
+          city?: string | null
           communication_style?: string | null
           company_size?: string | null
           created_at?: string
@@ -5184,6 +5186,7 @@ export type Database = {
         Update: {
           anticipation_triggers?: Json | null
           business_domain?: string | null
+          city?: string | null
           communication_style?: string | null
           company_size?: string | null
           created_at?: string
