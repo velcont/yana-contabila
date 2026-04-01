@@ -21,6 +21,7 @@ import { TypingIndicator } from '@/components/TypingIndicator';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
+import { OfficeFeatureAnnouncement } from './OfficeFeatureAnnouncement';
 
 interface Message {
   id: string;
