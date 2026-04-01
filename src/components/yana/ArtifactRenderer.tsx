@@ -253,3 +253,46 @@ function BattlePlanArtifact({ data, title }: { data: unknown; title?: string }) 
     </Card>
   );
 }
+
+function DocumentDownloadArtifact({ data, title }: { data: { downloadUrl: string; documentType: string; fileSize: number; fileName: string }; title?: string }) {
+  const iconMap: Record<string, typeof FileText> = {
+    docx: FileText,
+    xlsx: FileSpreadsheet,
+    pptx: Presentation,
+    pdf: File,
+  };
+  const colorMap: Record<string, string> = {
+    docx: 'text-blue-500 bg-blue-500/10',
+    xlsx: 'text-green-500 bg-green-500/10',
+    pptx: 'text-orange-500 bg-orange-500/10',
+    pdf: 'text-red-500 bg-red-500/10',
+  };
+  
+  const Icon = iconMap[data.documentType] || File;
+  const colorClass = colorMap[data.documentType] || 'text-primary bg-primary/10';
+  const [iconBg, iconText] = colorClass.split(' ');
+
+  return (
+    <Card className="p-4 bg-background/50 border-primary/20">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${colorClass}`}>
+            <Icon className={`h-6 w-6`} />
+          </div>
+          <div>
+            <p className="font-medium text-foreground">{title || data.fileName}</p>
+            <p className="text-xs text-muted-foreground">
+              {data.documentType.toUpperCase()} • {(data.fileSize / 1024).toFixed(1)} KB
+            </p>
+          </div>
+        </div>
+        <Button variant="default" size="sm" asChild>
+          <a href={data.downloadUrl} download={data.fileName} target="_blank" rel="noopener noreferrer">
+            <Download className="h-4 w-4 mr-2" />
+            Descarcă
+          </a>
+        </Button>
+      </div>
+    </Card>
+  );
+}
