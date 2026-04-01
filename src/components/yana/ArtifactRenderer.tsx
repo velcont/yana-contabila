@@ -1,4 +1,4 @@
-import { Download, Maximize2, BarChart3, PieChart, Table2, Swords, Target } from 'lucide-react';
+import { Download, Maximize2, BarChart3, PieChart, Table2, Swords, Target, FileText, FileSpreadsheet, Presentation, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -22,7 +22,7 @@ import { AIStrategyResultsArtifact } from './AIStrategyResultsArtifact';
 import type { BusinessProfile, AIAnalysis } from '@/config/aiStrategyData';
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -49,6 +49,8 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       return <TableArtifact data={artifact.data as Array<Record<string, unknown>>} title={artifact.title} />;
     case 'download':
       return <DownloadArtifact url={artifact.downloadUrl!} fileName={artifact.fileName!} title={artifact.title} />;
+    case 'document_download':
+      return <DocumentDownloadArtifact data={artifact.data as { downloadUrl: string; documentType: string; fileSize: number; fileName: string }} title={artifact.title} />;
     case 'war_room':
       return <WarRoomArtifact data={artifact.data} title={artifact.title} />;
     case 'battle_plan':
@@ -246,6 +248,49 @@ function BattlePlanArtifact({ data, title }: { data: unknown; title?: string }) 
         <Button variant="outline" size="sm">
           <Download className="h-4 w-4 mr-2" />
           Export
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function DocumentDownloadArtifact({ data, title }: { data: { downloadUrl: string; documentType: string; fileSize: number; fileName: string }; title?: string }) {
+  const iconMap: Record<string, typeof FileText> = {
+    docx: FileText,
+    xlsx: FileSpreadsheet,
+    pptx: Presentation,
+    pdf: File,
+  };
+  const colorMap: Record<string, string> = {
+    docx: 'text-blue-500 bg-blue-500/10',
+    xlsx: 'text-green-500 bg-green-500/10',
+    pptx: 'text-orange-500 bg-orange-500/10',
+    pdf: 'text-red-500 bg-red-500/10',
+  };
+  
+  const Icon = iconMap[data.documentType] || File;
+  const colorClass = colorMap[data.documentType] || 'text-primary bg-primary/10';
+  const [iconBg, iconText] = colorClass.split(' ');
+
+  return (
+    <Card className="p-4 bg-background/50 border-primary/20">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${colorClass}`}>
+            <Icon className={`h-6 w-6`} />
+          </div>
+          <div>
+            <p className="font-medium text-foreground">{title || data.fileName}</p>
+            <p className="text-xs text-muted-foreground">
+              {data.documentType.toUpperCase()} • {(data.fileSize / 1024).toFixed(1)} KB
+            </p>
+          </div>
+        </div>
+        <Button variant="default" size="sm" asChild>
+          <a href={data.downloadUrl} download={data.fileName} target="_blank" rel="noopener noreferrer">
+            <Download className="h-4 w-4 mr-2" />
+            Descarcă
+          </a>
         </Button>
       </div>
     </Card>

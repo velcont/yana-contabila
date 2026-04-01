@@ -22,7 +22,7 @@ interface RouterRequest {
 }
 
 interface RouteDecision {
-  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response';
+  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document';
   payload: Record<string, unknown>;
   reason: string;
 }
@@ -674,6 +674,56 @@ function detectIntent(message: string): RouteDecision {
     };
   }
 
+  // =============================================================================
+  // ⚡ DOCUMENT GENERATION DETECTION
+  // =============================================================================
+  const docGenPatterns = [
+    // Direct creation requests
+    /(?:creeaz[aă]|genereaz[aă]|f[aă]|scrie|redacteaz[aă]|preg[aă]te[sș]te)\s+(?:un|o|un\s+fi[sș]ier|document)\s+(?:contract|acord|nda|proces\s*verbal|decizie|propunere|ofert[aă]|raport|prezentare|factur[aă]|scrisoare|cerere|adres[aă]|not[aă]|minute|protocol|regulament|procedur[aă]|stat\s*de\s*plat[aă]|chestionar|formular|plan|brief)/i,
+    /(?:creeaz[aă]|genereaz[aă]|f[aă])\s+(?:un\s+)?(?:word|excel|powerpoint|pptx?|docx?|xlsx?|pdf|spreadsheet|prezentare|tabel)/i,
+    /(?:vreau|am\s+nevoie\s+de|trebuie)\s+(?:un|o)\s+(?:contract|nda|acord|prezentare|raport|propunere|ofert[aă]|tabel|spreadsheet|document)/i,
+    // Editing requests
+    /(?:editeaz[aă]|modific[aă]|actualizeaz[aă]|completeaz[aă])\s+(?:documentul|contractul|raportul|prezentarea|tabelul|fi[sș]ierul)/i,
+    // Email + document
+    /(?:trimite|trimite-mi|expediaz[aă]|d[aă]-mi)\s+(?:pe\s+email|prin\s+email)?\s*(?:un|o)?\s*(?:contract|document|raport|prezentare|ofert[aă]|propunere)/i,
+    // Specific document types
+    /(?:contract\s+de\s+prest[aă]ri|contract\s+de\s+munc[aă]|act\s+adi[tț]ional|proces\s*verbal|decizie\s+aga|hot[aă]r[aâ]re\s+aga)/i,
+  ];
+  
+  const isDocumentRequest = docGenPatterns.some(p => p.test(lowerMessage));
+  
+  if (isDocumentRequest) {
+    // Detect document type from message
+    let docType: 'docx' | 'xlsx' | 'pptx' | 'pdf' = 'docx'; // default Word
+    if (/excel|xlsx?|spreadsheet|tabel|calcul/i.test(lowerMessage)) docType = 'xlsx';
+    else if (/power\s*point|pptx?|prezentare|slide/i.test(lowerMessage)) docType = 'pptx';
+    else if (/pdf/i.test(lowerMessage)) docType = 'pdf';
+    
+    // Detect template type
+    let templateType = 'general';
+    if (/contract/i.test(lowerMessage)) templateType = 'contract';
+    else if (/nda|confiden[tț]ialitate/i.test(lowerMessage)) templateType = 'nda';
+    else if (/propunere|ofert[aă]/i.test(lowerMessage)) templateType = 'propunere';
+    else if (/raport/i.test(lowerMessage)) templateType = 'raport';
+    else if (/prezentare|pitch/i.test(lowerMessage)) templateType = 'prezentare';
+    else if (/factur[aă]/i.test(lowerMessage)) templateType = 'factura';
+    else if (/proces\s*verbal/i.test(lowerMessage)) templateType = 'proces-verbal';
+    else if (/decizie|hot[aă]r[aâ]re/i.test(lowerMessage)) templateType = 'decizie';
+    else if (/plan/i.test(lowerMessage)) templateType = 'plan';
+    
+    console.log(`[AI-Router] 📄 DOCUMENT GENERATION DETECTED: type=${docType}, template=${templateType}`);
+    return {
+      route: 'generate-document',
+      payload: { 
+        message,
+        documentType: docType,
+        templateType,
+        description: message,
+      },
+      reason: `User requested document generation (${docType}, ${templateType})`
+    };
+  }
+
   // Strategic questions - EXPANDED for better detection
   if (
     lowerMessage.includes('strategi') ||
@@ -1088,19 +1138,125 @@ serve(async (req) => {
 
     console.log(`AI Router: Routing to ${routeDecision.route} - ${routeDecision.reason}${memoryContext ? ' (with memory context)' : ''}${consciousnessContext ? ' (with consciousness)' : ''}`);
 
-  // Call the appropriate edge function
-  // Use enhanced ANAF risk analysis with Claude AI
-  const effectiveRoute = routeDecision.route === 'calculate-anaf-risk' 
-    ? 'calculate-anaf-risk-enhanced' 
-    : routeDecision.route;
-  const targetUrl = `${supabaseUrl}/functions/v1/${effectiveRoute}`;
+    // =============================================================================
+    // SPECIAL ROUTE: DOCUMENT GENERATION
+    // =============================================================================
+    if (routeDecision.route === 'generate-document') {
+      console.log('[AI-Router] 📄 Handling document generation route');
+      
+      const docPayload = routeDecision.payload as {
+        message: string;
+        documentType: string;
+        templateType: string;
+        description: string;
+      };
+      
+      // Check if user provided email in message
+      const emailMatch = (docPayload.message || '').match(/[\w.-]+@[\w.-]+\.\w+/);
+      const recipientEmail = emailMatch ? emailMatch[0] : null;
+      
+      try {
+        const docResponse = await fetch(`${supabaseUrl}/functions/v1/generate-office-document`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            documentType: docPayload.documentType,
+            title: '',
+            description: docPayload.description,
+            templateType: docPayload.templateType,
+            recipientEmail,
+          }),
+        });
+        
+        if (!docResponse.ok) {
+          const errorText = await docResponse.text();
+          throw new Error(`Document generation failed: ${errorText}`);
+        }
+        
+        const docResult = await docResponse.json();
+        
+        // Build response message
+        let responseText = `✅ **Am generat documentul "${docResult.documentTitle}"** (${docResult.documentType.toUpperCase()})\n\n`;
+        responseText += `📥 **[Descarcă documentul](${docResult.downloadUrl})**\n`;
+        responseText += `📊 Dimensiune: ${(docResult.fileSize / 1024).toFixed(1)} KB\n\n`;
+        
+        if (docResult.emailSent && recipientEmail) {
+          responseText += `📧 Am trimis documentul și pe email la **${recipientEmail}**.\n\n`;
+        } else if (!recipientEmail) {
+          responseText += `💡 *Dacă vrei să-ți trimit documentul pe email, spune-mi adresa ta de email.*\n\n`;
+        }
+        
+        responseText += `---\n*Link-ul de descărcare este valabil 7 zile.*`;
+        
+        // Build artifact for download button
+        const artifacts = [{
+          type: 'document_download',
+          title: docResult.documentTitle,
+          data: {
+            downloadUrl: docResult.downloadUrl,
+            documentType: docResult.documentType,
+            fileSize: docResult.fileSize,
+            fileName: `${docResult.documentTitle}.${docResult.documentType}`,
+          },
+        }];
+        
+        // Save to yana_messages
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: responseText,
+          artifacts,
+          ends_with_question: responseText.trim().endsWith('?'),
+        });
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            response: responseText,
+            route: 'generate-document',
+            artifacts,
+            documentGenerated: true,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (docErr) {
+        console.error('[AI-Router] ❌ Document generation error:', docErr);
+        const errorResponse = `❌ Nu am putut genera documentul. Eroare: ${docErr.message}\n\nÎncearcă din nou sau reformulează cererea.`;
+        
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: errorResponse,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: errorResponse, route: 'generate-document' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =============================================================================
+    // STANDARD ROUTES
+    // =============================================================================
+
+    // Call the appropriate edge function
+    // Use enhanced ANAF risk analysis with Claude AI
+    const effectiveRoute = routeDecision.route === 'calculate-anaf-risk' 
+      ? 'calculate-anaf-risk-enhanced' 
+      : routeDecision.route;
+    const targetUrl = `${supabaseUrl}/functions/v1/${effectiveRoute}`;
     
     response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
-        'x-called-from-router': 'true', // FIX DUPLICATE: chat-ai verifică acest header pentru a nu salva dublu
+        'x-called-from-router': 'true',
       },
       body: JSON.stringify(routeDecision.payload),
     });
