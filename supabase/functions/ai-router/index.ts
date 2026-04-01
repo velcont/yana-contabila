@@ -678,16 +678,18 @@ function detectIntent(message: string): RouteDecision {
   // ⚡ DOCUMENT GENERATION DETECTION
   // =============================================================================
   const docGenPatterns = [
-    // Direct creation requests
-    /(?:creeaz[aă]|genereaz[aă]|f[aă]|scrie|redacteaz[aă]|preg[aă]te[sș]te)\s+(?:un|o|un\s+fi[sș]ier|document)\s+(?:contract|acord|nda|proces\s*verbal|decizie|propunere|ofert[aă]|raport|prezentare|factur[aă]|scrisoare|cerere|adres[aă]|not[aă]|minute|protocol|regulament|procedur[aă]|stat\s*de\s*plat[aă]|chestionar|formular|plan|brief)/i,
-    /(?:creeaz[aă]|genereaz[aă]|f[aă])\s+(?:un\s+)?(?:word|excel|powerpoint|pptx?|docx?|xlsx?|pdf|spreadsheet|prezentare|tabel)/i,
-    /(?:vreau|am\s+nevoie\s+de|trebuie)\s+(?:un|o)\s+(?:contract|nda|acord|prezentare|raport|propunere|ofert[aă]|tabel|spreadsheet|document)/i,
+    // Direct creation requests - flexible: handles -mi/-ne/-le suffixes and extra words like "draft de"
+    /(?:creeaz[aă]|genereaz[aă]|f[aă]|scrie|redacteaz[aă]|preg[aă]te[sș]te)(?:-mi|-ne|-le|-i)?\s+(?:un|o|un\s+fi[sș]ier|document)(?:\s+\w+){0,3}\s+(?:contract|acord|nda|proces\s*verbal|decizie|propunere|ofert[aă]|raport|prezentare|factur[aă]|scrisoare|cerere|adres[aă]|not[aă]|minute|protocol|regulament|procedur[aă]|stat\s*de\s*plat[aă]|chestionar|formular|plan|brief)/i,
+    /(?:creeaz[aă]|genereaz[aă]|f[aă])(?:-mi|-ne|-le|-i)?\s+(?:un\s+)?(?:word|excel|powerpoint|pptx?|docx?|xlsx?|pdf|spreadsheet|prezentare|tabel)/i,
+    /(?:vreau|am\s+nevoie\s+de|trebuie|d[aă]-mi|f[aă]-mi)(?:\s+\w+){0,2}\s+(?:un|o)\s+(?:\w+\s+){0,2}(?:contract|nda|acord|prezentare|raport|propunere|ofert[aă]|tabel|spreadsheet|document)/i,
     // Editing requests
-    /(?:editeaz[aă]|modific[aă]|actualizeaz[aă]|completeaz[aă])\s+(?:documentul|contractul|raportul|prezentarea|tabelul|fi[sș]ierul)/i,
+    /(?:editeaz[aă]|modific[aă]|actualizeaz[aă]|completeaz[aă])(?:-mi|-ne|-le|-i)?\s+(?:documentul|contractul|raportul|prezentarea|tabelul|fi[sș]ierul)/i,
     // Email + document
     /(?:trimite|trimite-mi|expediaz[aă]|d[aă]-mi)\s+(?:pe\s+email|prin\s+email)?\s*(?:un|o)?\s*(?:contract|document|raport|prezentare|ofert[aă]|propunere)/i,
     // Specific document types
-    /(?:contract\s+de\s+prest[aă]ri|contract\s+de\s+munc[aă]|act\s+adi[tț]ional|proces\s*verbal|decizie\s+aga|hot[aă]r[aâ]re\s+aga)/i,
+    /(?:contract\s+de\s+(?:prest[aă]ri|munc[aă]|servicii|colaborare|v[aâ]nzare|[îi]nchiriere|consultan[tț][aă])|act\s+adi[tț]ional|proces\s*verbal|decizie\s+aga|hot[aă]r[aâ]re\s+aga)/i,
+    // Catch-all: "contract" + context words suggesting generation intent
+    /(?:draft|model|[sș]ablon|template)\s+(?:de\s+)?(?:contract|acord|nda|propunere|ofert[aă]|raport)/i,
   ];
   
   const isDocumentRequest = docGenPatterns.some(p => p.test(lowerMessage));
