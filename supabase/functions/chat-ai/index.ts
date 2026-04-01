@@ -9,6 +9,184 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// =============================================================================
+// 🆕 CONTEXT ENGINE: Știri fiscale + Vreme + Calendar fiscal
+// =============================================================================
+
+const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
+  'București': { lat: 44.4268, lon: 26.1025 },
+  'Cluj-Napoca': { lat: 46.7712, lon: 23.6236 },
+  'Timișoara': { lat: 45.7489, lon: 21.2087 },
+  'Iași': { lat: 47.1585, lon: 27.6014 },
+  'Constanța': { lat: 44.1598, lon: 28.6348 },
+  'Craiova': { lat: 44.3302, lon: 23.7949 },
+  'Brașov': { lat: 45.6427, lon: 25.5887 },
+  'Galați': { lat: 45.4353, lon: 28.0080 },
+  'Ploiești': { lat: 44.9462, lon: 26.0254 },
+  'Oradea': { lat: 47.0465, lon: 21.9189 },
+  'Sibiu': { lat: 45.7983, lon: 24.1256 },
+  'Arad': { lat: 46.1866, lon: 21.3123 },
+  'Pitești': { lat: 44.8565, lon: 24.8692 },
+  'Bacău': { lat: 46.5670, lon: 26.9146 },
+  'Târgu Mureș': { lat: 46.5386, lon: 24.5575 },
+  'Baia Mare': { lat: 47.6567, lon: 23.5850 },
+  'Buzău': { lat: 45.1500, lon: 26.8333 },
+  'Suceava': { lat: 47.6514, lon: 26.2554 },
+};
+
+const WEATHER_DESCRIPTIONS: Record<number, string> = {
+  0: 'cer senin', 1: 'predominant senin', 2: 'parțial noros', 3: 'noros',
+  45: 'ceață', 48: 'ceață cu chiciură', 51: 'burniță ușoară', 53: 'burniță moderată',
+  55: 'burniță densă', 61: 'ploaie ușoară', 63: 'ploaie moderată', 65: 'ploaie puternică',
+  71: 'ninsoare ușoară', 73: 'ninsoare moderată', 75: 'ninsoare puternică',
+  80: 'averse ușoare', 81: 'averse moderate', 82: 'averse puternice',
+  95: 'furtună', 96: 'furtună cu grindină ușoară', 99: 'furtună cu grindină puternică',
+};
+
+async function buildContextualIntelligence(supabase: any, userId: string): Promise<string> {
+  const parts: string[] = [];
+  const now = new Date();
+  
+  const roDate = new Intl.DateTimeFormat('ro-RO', { 
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+  }).format(now);
+  parts.push(`📅 Data: ${roDate}`);
+
+  // 1. WEATHER
+  try {
+    const { data: profile } = await supabase
+      .from('yana_client_profiles')
+      .select('city')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    const city = profile?.city || 'București';
+    const coords = CITY_COORDS[city] || CITY_COORDS['București'];
+    
+    const weatherResponse = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    
+    if (weatherResponse.ok) {
+      const weatherData = await weatherResponse.json();
+      const cw = weatherData.current_weather;
+      if (cw) {
+        const desc = WEATHER_DESCRIPTIONS[cw.weathercode] || 'variabil';
+        parts.push(`🌤️ Vreme în ${city}: ${cw.temperature}°C, ${desc}`);
+      }
+    }
+  } catch (err) {
+    console.warn('Weather fetch failed (non-blocking):', err);
+  }
+
+  // 2. FISCAL NEWS
+  try {
+    const { data: news } = await supabase
+      .from('fiscal_news')
+      .select('title, source, published_at')
+      .order('published_at', { ascending: false })
+      .limit(5);
+    
+    if (news && news.length > 0) {
+      const newsLines = news.map((n: any) => {
+        const age = Math.floor((now.getTime() - new Date(n.published_at).getTime()) / (3600000));
+        const ageStr = age < 24 ? `acum ${age}h` : `acum ${Math.floor(age/24)} zile`;
+        return `- "${n.title}" (${n.source}, ${ageStr})`;
+      });
+      parts.push(`📰 Știri economice/fiscale recente:\n${newsLines.join('\n')}`);
+    }
+  } catch (err) {
+    console.warn('News fetch failed (non-blocking):', err);
+  }
+
+  // 3. FISCAL CALENDAR - next 7 days
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const calendarResponse = await fetch(
+      `${supabaseUrl}/functions/v1/fiscal-calendar?days=7`,
+      { 
+        headers: { 
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      }
+    );
+    
+    if (calendarResponse.ok) {
+      const calData = await calendarResponse.json();
+      if (calData.deadlines && calData.deadlines.length > 0) {
+        const deadlineLines = calData.deadlines.slice(0, 5).map((d: any) => {
+          const urgency = d.daysUntil === 0 ? '🔴 ASTĂZI' : 
+                          d.daysUntil <= 2 ? `🟠 în ${d.daysUntil} zile` : 
+                          `🟢 în ${d.daysUntil} zile`;
+          return `- ${urgency}: ${d.name} (${d.date})`;
+        });
+        parts.push(`⏰ Termene fiscale apropiate:\n${deadlineLines.join('\n')}`);
+      }
+    }
+  } catch (err) {
+    console.warn('Fiscal calendar fetch failed (non-blocking):', err);
+  }
+
+  if (parts.length <= 1) return ''; // Only date, no real context
+
+  return `
+=== INTELIGENȚĂ CONTEXTUALĂ ===
+${parts.join('\n')}
+
+→ Folosește aceste informații NATURAL în răspunsuri când sunt pertinente.
+→ NU forța referințele — doar când se leagă ORGANIC de discuție.
+→ Dacă un termen fiscal e în următoarele 3 zile, menționează-l proactiv!
+=== END CONTEXTUAL ===
+`;
+}
+
+// 🆕 CUI DETECTION
+async function detectAndVerifyCUI(message: string): Promise<string | null> {
+  const cuiPatterns = [
+    /(?:CUI|cui|cod\s*fiscal|cf|C\.U\.I\.?)\s*[:\s]*(\d{6,10})/i,
+    /(?:verifică|verifica|caută|cauta|info\s+despre)\s+(?:CUI|cui|firma)\s*[:\s]*(\d{6,10})/i,
+    /\bRO(\d{6,10})\b/,
+  ];
+
+  for (const pattern of cuiPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      const cui = match[1];
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/verify-anaf-cui`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cui }),
+            signal: AbortSignal.timeout(10000)
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.formattedMessage) {
+            return `\n\n📋 **REZULTAT VERIFICARE ANAF (CUI: ${cui}):**\n${data.formattedMessage}\n\n→ Prezintă aceste informații utilizatorului.\n`;
+          } else {
+            return `\n\n📋 **VERIFICARE ANAF:** CUI ${cui} nu a fost găsit. Recomandă verificarea corectitudinii.\n`;
+          }
+        }
+      } catch (err) {
+        console.warn('CUI verification failed:', err);
+        return `\n\n📋 **VERIFICARE ANAF:** Nu am putut verifica CUI ${cui} momentan. Sugerează să încerce mai târziu.\n`;
+      }
+    }
+  }
+  return null;
+}
+
 // 🆕 Funcție pentru a construi contextul balanței din datele structurate
 // RESPECTĂ REGULILE CONTABILE: Clasele 1-5 pe Solduri finale, Clasele 6-7 pe Total sume
 // FALLBACK: Folosește debit/credit dacă finalDebit/finalCredit nu există
