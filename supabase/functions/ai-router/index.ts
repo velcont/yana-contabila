@@ -917,17 +917,40 @@ serve(async (req) => {
           },
           reason: `Excel balance sheet uploaded - ${isSaga ? 'SAGA format detected' : 'standard format'} (forceReprocess=true)`
         };
-      } else if (docType === 'pdf' || docType === 'docx') {
+      } else if (docType === 'general_excel') {
+        // 🆕 v3.0: SMART CLASSIFICATION for non-balance Excel files
+        const classification = classifyDocumentFromName(fileData.fileName);
+        console.log(`[AI-Router] 📊 Non-balance Excel uploaded: ${fileData.fileName} → classified as ${classification.type}`);
+        
+        routeDecision = {
+          route: 'chat-ai',
+          payload: {
+            message: message || `Am primit un fișier Excel: ${fileData.fileName}. Analizează-l.`,
+            documentClassification: classification,
+            documentName: fileData.fileName,
+            documentContent: fileData.fileContent,
+            memoryContext,
+            history,
+            balanceContext,
+          },
+          reason: `Non-balance Excel uploaded (${classification.type}: ${classification.description})`
+        };
+      } else if (docType === 'pdf' || docType === 'docx' || docType === 'pptx') {
+        // 🆕 v3.0: SMART CLASSIFICATION for PDF/Word/PPTX documents
+        const classification = classifyDocumentFromName(fileData.fileName);
+        console.log(`[AI-Router] 📄 Document uploaded: ${fileData.fileName} → classified as ${classification.type}`);
+        
         routeDecision = {
           route: 'strategic-advisor',
           payload: {
-            message: message || `Analizează documentul: ${fileData.fileName}`,
+            message: message || `Am primit un ${classification.description}: ${fileData.fileName}. Analizează-l.`,
             documentContent: fileData.fileContent,
             documentName: fileData.fileName,
+            documentClassification: classification,
             conversationId: conversationId,
-            memoryContext // Adaug contextul de memorie
+            memoryContext
           },
-          reason: 'Business document uploaded for strategic analysis'
+          reason: `${classification.description} uploaded for analysis (${classification.type})`
         };
       } else if (docType === 'image') {
         // 🆕 IMAGE ANALYSIS: Route images to chat-ai with multimodal support
@@ -948,15 +971,20 @@ serve(async (req) => {
           reason: 'Image uploaded for multimodal analysis'
         };
       } else {
+        // 🆕 v3.0: Generic classification for unknown file types
+        const classification = classifyDocumentFromName(fileData.fileName);
+        console.log(`[AI-Router] 📎 Unknown file type uploaded: ${fileData.fileName} → ${classification.type}`);
+        
         routeDecision = {
           route: 'chat-ai',
           payload: {
-            message: `Am primit un document: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
+            message: `Am primit un ${classification.description}: ${fileData.fileName}. ${message || 'Analizează-l te rog.'}`,
+            documentClassification: classification,
             memoryContext,
             history,
             balanceContext,
           },
-          reason: 'Non-balance document uploaded'
+          reason: `Document uploaded (${classification.type})`
         };
       }
     } else {
