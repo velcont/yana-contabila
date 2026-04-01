@@ -1193,14 +1193,17 @@ serve(async (req) => {
         responseText += `---\n*Link-ul de descărcare este valabil 7 zile.*`;
         
         // Build artifact for download button
+        const docFileName = `${docResult.documentTitle}.${docResult.documentType}`;
         const artifacts = [{
           type: 'download',
           title: docResult.documentTitle,
+          downloadUrl: docResult.downloadUrl,
+          fileName: docFileName,
           data: {
             downloadUrl: docResult.downloadUrl,
             documentType: docResult.documentType,
             fileSize: docResult.fileSize,
-            fileName: `${docResult.documentTitle}.${docResult.documentType}`,
+            fileName: docFileName,
           },
         }];
         
