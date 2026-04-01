@@ -1085,6 +1085,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               onSendMessage={(msg) => sendMessage(msg)}
               onUpload={() => setShowUploader(true)}
               disabled={isLoading}
+              postAnalysis={!!balanceContext}
             />
           )}
           <div className="relative flex items-end gap-2">
