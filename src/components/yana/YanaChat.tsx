@@ -21,6 +21,7 @@ import { TypingIndicator } from '@/components/TypingIndicator';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
+import { OfficeFeatureAnnouncement } from './OfficeFeatureAnnouncement';
 
 interface Message {
   id: string;
@@ -836,6 +837,9 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
           onClear={() => setActiveContext(null)}
         />
       )}
+
+      {/* Office Feature Announcement */}
+      <OfficeFeatureAnnouncement />
 
       {/* Messages Area */}
       <div 
