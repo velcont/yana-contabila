@@ -696,30 +696,8 @@ function detectIntent(message: string): RouteDecision {
     };
   }
   
-  // ⚡ VELCONT ADMIN OVERRIDE - întrebări despre servicii/prețuri/programare Velcont
-  // Trebuie să ajungă în chat-ai (nu strategic) pentru a folosi blocul VELCONT din prompt
-  const velcontKeywords = ['velcont', 'contabilitate', 'contabil', 'smartbill', 'zoom', 'servicii contabilitate'];
-  const velcontAdminTriggers = [
-    'cât cost', 'cat cost', 'cât e', 'cat e', 'preț', 'pret', 'tarif', 'cost',
-    'program', 'evaluare', 'întâlnire', 'intalnire', 'call',
-    'vreau contabilitate', 'vreau sa incep', 'colaborare', 'contract', 'ofertă', 'oferta',
-    'cum încep', 'cum incep', 'cum fac', 'să lucrez', 'sa lucrez'
-  ];
-  
-  const hasVelcontContext = velcontKeywords.some(kw => lowerMessage.includes(kw));
-  const hasAdminTrigger = velcontAdminTriggers.some(trigger => lowerMessage.includes(trigger));
-  
-  if (hasVelcontContext && hasAdminTrigger) {
-    console.log('[AI-Router] VELCONT OVERRIDE: Admin question detected, routing to chat-ai');
-    return {
-      route: 'chat-ai',
-      payload: { message, velcontIntent: true },
-      reason: 'Velcont admin question override - pricing/scheduling/collaboration'
-    };
-  }
-
   // =============================================================================
-  // ⚡ DOCUMENT GENERATION DETECTION
+  // ⚡ DOCUMENT GENERATION DETECTION — MUST BE BEFORE Velcont and Strategic checks
   // =============================================================================
   const docGenPatterns = [
     // Direct creation requests - flexible: handles -mi/-ne/-le suffixes and extra words like "draft de"
@@ -767,6 +745,28 @@ function detectIntent(message: string): RouteDecision {
         description: message,
       },
       reason: `User requested document generation (${docType}, ${templateType})`
+    };
+  }
+
+  // ⚡ VELCONT ADMIN OVERRIDE - întrebări despre servicii/prețuri/programare Velcont
+  // Trebuie să ajungă în chat-ai (nu strategic) pentru a folosi blocul VELCONT din prompt
+  const velcontKeywords = ['velcont', 'contabilitate', 'contabil', 'smartbill', 'zoom', 'servicii contabilitate'];
+  const velcontAdminTriggers = [
+    'cât cost', 'cat cost', 'cât e', 'cat e', 'preț', 'pret', 'tarif', 'cost',
+    'program', 'evaluare', 'întâlnire', 'intalnire', 'call',
+    'vreau contabilitate', 'vreau sa incep', 'colaborare', 'ofertă', 'oferta',
+    'cum încep', 'cum incep', 'cum fac', 'să lucrez', 'sa lucrez'
+  ];
+  
+  const hasVelcontContext = velcontKeywords.some(kw => lowerMessage.includes(kw));
+  const hasAdminTrigger = velcontAdminTriggers.some(trigger => lowerMessage.includes(trigger));
+  
+  if (hasVelcontContext && hasAdminTrigger) {
+    console.log('[AI-Router] VELCONT OVERRIDE: Admin question detected, routing to chat-ai');
+    return {
+      route: 'chat-ai',
+      payload: { message, velcontIntent: true },
+      reason: 'Velcont admin question override - pricing/scheduling/collaboration'
     };
   }
 
