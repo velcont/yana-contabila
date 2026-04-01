@@ -13,6 +13,7 @@ import { LandingHowItWorks } from '@/components/landing/LandingHowItWorks';
 import { LandingPricing } from '@/components/landing/LandingPricing';
 import { LandingSocialProof } from '@/components/landing/LandingSocialProof';
 import { LandingAIProviders } from '@/components/landing/LandingAIProviders';
+import { LandingOfficeAnnouncement } from '@/components/landing/LandingOfficeAnnouncement';
 
 const Landing = () => {
   const navigate = useNavigate();
