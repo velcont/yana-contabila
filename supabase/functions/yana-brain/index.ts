@@ -252,6 +252,72 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ===== PLAN-AND-EXECUTE: Multi-step planning =====
+    // Check if there's already a running plan
+    const { data: runningPlan } = await supabase
+      .from("yana_execution_plans")
+      .select("*")
+      .eq("status", "running")
+      .limit(1)
+      .maybeSingle();
+
+    let planCreated = false;
+    if (!runningPlan && newMode !== currentMode) {
+      // Create a multi-step plan based on new mode
+      const planSteps: Array<{ step: string; precondition: string; agent: string }> = [];
+      
+      if (newMode === "recalibrate") {
+        planSteps.push(
+          { step: "observe", precondition: "always", agent: "yana-observer" },
+          { step: "recalibrate", precondition: "drift_detected", agent: "update-self-model" },
+          { step: "reflect", precondition: "recalibration_done", agent: "self-reflect" },
+        );
+      } else if (newMode === "act") {
+        planSteps.push(
+          { step: "observe", precondition: "unprocessed > 10", agent: "yana-observer" },
+          { step: "act", precondition: "observations_ready", agent: "yana-actor" },
+          { step: "reflect", precondition: "actions_applied", agent: "self-reflect" },
+        );
+      } else if (newMode === "explore") {
+        planSteps.push(
+          { step: "observe", precondition: "system_stable", agent: "yana-observer" },
+          { step: "explore", precondition: "stable_confirmed", agent: "yana-explorer" },
+          { step: "reflect", precondition: "exploration_done", agent: "self-reflect" },
+        );
+      }
+
+      if (planSteps.length > 0) {
+        await supabase.from("yana_execution_plans").insert({
+          plan_steps: planSteps,
+          current_step: 0,
+          status: "running",
+          started_at: new Date().toISOString(),
+        });
+        planCreated = true;
+        console.log(`[Brain] Created execution plan with ${planSteps.length} steps for mode: ${newMode}`);
+      }
+    }
+
+    // If running plan exists, advance its step
+    if (runningPlan) {
+      const steps = (runningPlan.plan_steps as any[]) || [];
+      const nextStep = (runningPlan.current_step || 0) + 1;
+      
+      if (nextStep >= steps.length) {
+        await supabase
+          .from("yana_execution_plans")
+          .update({ status: "completed", completed_at: new Date().toISOString(), current_step: nextStep })
+          .eq("id", runningPlan.id);
+        console.log(`[Brain] Execution plan completed (${steps.length} steps)`);
+      } else {
+        await supabase
+          .from("yana_execution_plans")
+          .update({ current_step: nextStep })
+          .eq("id", runningPlan.id);
+        console.log(`[Brain] Advanced plan to step ${nextStep}/${steps.length}: ${steps[nextStep]?.step}`);
+      }
+    }
+
     // ===== SAVE DECISION =====
     const { error: insertErr } = await supabase
       .from("yana_brain_decisions")
@@ -259,13 +325,29 @@ Deno.serve(async (req) => {
         decision_type: newMode !== currentMode ? "mode_switch" : "mode_maintain",
         from_mode: currentMode,
         to_mode: newMode,
-        reasoning,
+        reasoning: { ...reasoning, plan_created: planCreated },
         metrics_snapshot: metrics,
         actions_triggered: actionsTriggered,
         drift_score: driftScore,
       });
 
     if (insertErr) console.error("[Brain] Decision insert error:", insertErr);
+
+    // ===== AGENT TRACE =====
+    try {
+      const traceId = crypto.randomUUID();
+      await supabase.from("yana_agent_traces").insert({
+        trace_id: traceId,
+        agent_name: "yana-brain",
+        input_summary: `Mode: ${currentMode}, Metrics: errors=${metrics.recent_errors_6h}, unprocessed=${metrics.unprocessed_observations}, drift=${driftScore}`,
+        output_summary: `New mode: ${newMode}, Actions: ${actionsTriggered.join(", ") || "none"}, Plan: ${planCreated ? "created" : "none"}`,
+        duration_ms: Date.now() - now.getTime(),
+        tokens_used: 0,
+        cost_cents: 0,
+      });
+    } catch (traceErr) {
+      console.warn("[Brain] Trace logging failed:", traceErr);
+    }
 
     return new Response(
       JSON.stringify({
@@ -274,6 +356,7 @@ Deno.serve(async (req) => {
         new_mode: newMode,
         trigger: reasoning.trigger,
         actions_triggered: actionsTriggered,
+        plan_created: planCreated,
         metrics,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

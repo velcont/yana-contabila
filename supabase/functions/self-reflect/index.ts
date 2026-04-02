@@ -423,6 +423,22 @@ Returnează DOAR JSON-ul, fără alte explicații.`;
 
     console.log(`[self-reflect] ✅ Reflection saved (id: ${savedReflection?.id}, score: ${reflection.self_score}/10, ${processingTimeMs}ms)`);
 
+    // ===== AGENT TRACE =====
+    try {
+      const traceId = crypto.randomUUID();
+      await supabase.from("yana_agent_traces").insert({
+        trace_id: traceId,
+        agent_name: "self-reflect",
+        input_summary: `Q: ${question.slice(0, 100)}... | Route: ${route || "unknown"}`,
+        output_summary: `Score: ${reflection.self_score}/10, Confidence: ${reflection.confidence_level}, Error: ${!!errorAnalysisResult.errorId}`,
+        duration_ms: processingTimeMs,
+        tokens_used: tokensUsed,
+        cost_cents: 0,
+      });
+    } catch (traceErr) {
+      console.warn("[self-reflect] Trace logging failed:", traceErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

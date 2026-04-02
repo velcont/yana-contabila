@@ -5112,6 +5112,45 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_agent_traces: {
+        Row: {
+          agent_name: string
+          cost_cents: number | null
+          created_at: string | null
+          duration_ms: number | null
+          id: string
+          input_summary: string | null
+          output_summary: string | null
+          parent_trace_id: string | null
+          tokens_used: number | null
+          trace_id: string
+        }
+        Insert: {
+          agent_name: string
+          cost_cents?: number | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          input_summary?: string | null
+          output_summary?: string | null
+          parent_trace_id?: string | null
+          tokens_used?: number | null
+          trace_id: string
+        }
+        Update: {
+          agent_name?: string
+          cost_cents?: number | null
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: string
+          input_summary?: string | null
+          output_summary?: string | null
+          parent_trace_id?: string | null
+          tokens_used?: number | null
+          trace_id?: string
+        }
+        Relationships: []
+      }
       yana_brain_decisions: {
         Row: {
           actions_triggered: string[] | null
@@ -5396,6 +5435,39 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_delegation_log: {
+        Row: {
+          agents_involved: Json | null
+          conversation_id: string | null
+          coordinator_decision: Json | null
+          created_at: string | null
+          delegation_type: string | null
+          execution_time_ms: number | null
+          id: string
+          success: boolean | null
+        }
+        Insert: {
+          agents_involved?: Json | null
+          conversation_id?: string | null
+          coordinator_decision?: Json | null
+          created_at?: string | null
+          delegation_type?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          success?: boolean | null
+        }
+        Update: {
+          agents_involved?: Json | null
+          conversation_id?: string | null
+          coordinator_decision?: Json | null
+          created_at?: string | null
+          delegation_type?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       yana_dreams: {
         Row: {
           created_at: string | null
@@ -5546,6 +5618,36 @@ export type Database = {
           severity?: string | null
           trigger_factors?: Json | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      yana_execution_plans: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_step: number | null
+          id: string
+          plan_steps: Json
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          plan_steps?: Json
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          plan_steps?: Json
+          started_at?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -6901,6 +7003,45 @@ export type Database = {
           self_intentions?: Json | null
           updated_at?: string
           world_awareness?: Json
+        }
+        Relationships: []
+      }
+      yana_semantic_memory: {
+        Row: {
+          access_count: number | null
+          content: string
+          created_at: string | null
+          embedding_key: string | null
+          id: string
+          last_accessed_at: string | null
+          memory_type: string
+          relevance_score: number | null
+          source_conversation_id: string | null
+          user_id: string
+        }
+        Insert: {
+          access_count?: number | null
+          content: string
+          created_at?: string | null
+          embedding_key?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          memory_type?: string
+          relevance_score?: number | null
+          source_conversation_id?: string | null
+          user_id: string
+        }
+        Update: {
+          access_count?: number | null
+          content?: string
+          created_at?: string | null
+          embedding_key?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          memory_type?: string
+          relevance_score?: number | null
+          source_conversation_id?: string | null
+          user_id?: string
         }
         Relationships: []
       }
