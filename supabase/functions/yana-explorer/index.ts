@@ -197,11 +197,11 @@ Răspunde ca JSON:
   "exploration_topic": "..."
 }`;
 
-    const reflectionResp = await fetch(aiRouterUrl, {
+    const reflectionResp = await fetch(aiGatewayUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${supabaseKey}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
