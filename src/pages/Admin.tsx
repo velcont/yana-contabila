@@ -448,6 +448,10 @@ const Admin = () => {
                 <Send className="h-4 w-4 mr-2" />
                 📧 Outreach YANA
               </TabsTrigger>
+              <TabsTrigger value="explorations">
+                <Globe className="h-4 w-4 mr-2" />
+                🌐 Explorări
+              </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
