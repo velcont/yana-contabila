@@ -2036,7 +2036,24 @@ serve(async (req) => {
       console.warn(`[chat-ai][${requestId}] Contextual intelligence failed (non-blocking):`, err);
     }
 
-    // 🆕 CUI DETECTION: Verificare automată ANAF
+    // 🆕 EXPLORATION MEMORY: Ce a descoperit YANA explorând internetul
+    let explorationMemorySection = '';
+    try {
+      const { data: recentExplorations } = await supabase
+        .from('yana_explorations')
+        .select('exploration_topic, key_learnings, relevance_to_users, created_at')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (recentExplorations && recentExplorations.length > 0) {
+        const explorationLines = recentExplorations.map((e: any) => 
+          `• ${e.exploration_topic}: ${(e.relevance_to_users || e.key_learnings || '').slice(0, 200)}`
+        ).join('\n');
+        explorationMemorySection = `\n\n=== EXPLORATION MEMORY ===\nAi explorat recent internetul și ai descoperit:\n${explorationLines}\n→ Menționează DOAR dacă se leagă ORGANIC de conversația curentă.\n→ Poți spune: "Am citit recent despre X și m-a făcut să mă gândesc la situația ta..."\n=== END EXPLORATION ===\n`;
+        console.log(`[chat-ai][${requestId}] Exploration memory added (${recentExplorations.length} entries)`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Exploration memory failed (non-blocking):`, err);
     let cuiVerificationSection = '';
     try {
       const cuiResult = await detectAndVerifyCUI(message);
