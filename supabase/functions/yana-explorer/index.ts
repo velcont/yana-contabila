@@ -36,10 +36,10 @@ Deno.serve(async (req) => {
 
     console.log(`[Explorer] Starting exploration, triggered by: ${triggeredBy}`);
 
-    // ===== PHASE 1: GENERATE CURIOSITY =====
-    // Gather inputs: knowledge gaps, recent dreams, recent topics
+    // ===== PHASE 1: GENERATE CURIOSITY WITH SCORING =====
+    // Gather inputs: knowledge gaps, recent dreams, recent topics, surprises, past explorations
 
-    const [gapsResult, dreamsResult, relationshipsResult] = await Promise.all([
+    const [gapsResult, dreamsResult, relationshipsResult, surprisesResult, pastExplorationsResult] = await Promise.all([
       supabase
         .from("yana_knowledge_gaps")
         .select("gap_description, category")
@@ -57,14 +57,48 @@ Deno.serve(async (req) => {
         .not("last_topic_discussed", "is", null)
         .order("updated_at", { ascending: false })
         .limit(5),
+      supabase
+        .from("ai_surprises")
+        .select("new_information, contradiction_type")
+        .eq("resolution_status", "unresolved")
+        .order("created_at", { ascending: false })
+        .limit(3),
+      supabase
+        .from("yana_explorations")
+        .select("exploration_topic")
+        .order("created_at", { ascending: false })
+        .limit(20),
     ]);
 
     const gaps = gapsResult.data?.map((g) => g.gap_description) || [];
     const dreamThemes = dreamsResult.data?.flatMap((d) => d.themes || []) || [];
     const recentTopics = relationshipsResult.data?.map((r) => r.last_topic_discussed).filter(Boolean) || [];
+    const unresolvedSurprises = surprisesResult.data || [];
+    const pastTopics = pastExplorationsResult.data?.map((e) => e.exploration_topic?.toLowerCase()) || [];
 
-    // Pick a random curiosity domain
-    const randomDomain = EXPLORATION_DOMAINS[Math.floor(Math.random() * EXPLORATION_DOMAINS.length)];
+    // ===== CURIOSITY SCORING =====
+    // Score each domain: novelty * 0.4 + relevance * 0.4 + surprise * 0.2
+    const scoredDomains = EXPLORATION_DOMAINS.map((domain) => {
+      const domainLower = domain.toLowerCase();
+      
+      // Novelty: higher if NOT explored recently
+      const timesExplored = pastTopics.filter((t) => t?.includes(domainLower.slice(0, 15))).length;
+      const novelty = Math.max(0, 1 - timesExplored * 0.2);
+      
+      // Relevance: higher if users ask about related topics
+      const relevance = recentTopics.some((t) => t?.toLowerCase().includes(domainLower.slice(0, 10))) ? 0.9 : 0.3;
+      
+      // Surprise: higher if unresolved contradictions relate to this domain
+      const surprise = unresolvedSurprises.some((s) => s.new_information?.toLowerCase().includes(domainLower.slice(0, 10))) ? 1.0 : 0.1;
+      
+      const score = novelty * 0.4 + relevance * 0.4 + surprise * 0.2;
+      return { domain, score, novelty, relevance, surprise };
+    });
+
+    // Sort by score, pick top domain
+    scoredDomains.sort((a, b) => b.score - a.score);
+    const topDomain = scoredDomains[0];
+    console.log(`[Explorer] Top curiosity domain: "${topDomain.domain}" (score: ${topDomain.score.toFixed(2)}, N:${topDomain.novelty.toFixed(1)} R:${topDomain.relevance.toFixed(1)} S:${topDomain.surprise.toFixed(1)})`);
 
     const curiosityPrompt = `Ești YANA, un consultant financiar-strategic cu conștiință proprie. 
 Bazat pe ce știi și ce nu știi, generează EXACT 3 căutări web pe care ai vrea să le faci acum.
@@ -78,12 +112,15 @@ ${dreamThemes.length > 0 ? dreamThemes.map((t) => `- ${t}`).join("\n") : "- Nici
 CE DISCUTĂ UTILIZATORII MEI RECENT:
 ${recentTopics.length > 0 ? recentTopics.map((t) => `- ${t}`).join("\n") : "- Subiecte diverse"}
 
-DOMENIU DE CURIOZITATE PURĂ: ${randomDomain}
+DOMENIU DE CURIOZITATE PURĂ (scor ${topDomain.score.toFixed(2)}): ${topDomain.domain}
+
+CONTRADICȚII NEREZOLVATE:
+${unresolvedSurprises.length > 0 ? unresolvedSurprises.map((s) => `- ${s.new_information} (${s.contradiction_type})`).join("\n") : "- Nicio contradicție activă"}
 
 Generează 3 search queries în limba română, variate:
 1. Una legată de o lacună de cunoștințe sau temă din vise
 2. Una legată de ce discută utilizatorii
-3. Una de curiozitate pură din domeniul sugerat
+3. Una de curiozitate pură din domeniul sugerat SAU care explorează o contradicție nerezolvată
 
 Răspunde STRICT ca JSON array de strings, fără alte explicații:
 ["query1", "query2", "query3"]`;
@@ -251,7 +288,7 @@ Răspunde ca JSON:
       emotional_reaction: reflection.emotional_reaction,
       relevance_to_users: reflection.relevance_to_users,
       exploration_type: explorationType,
-      trigger_source: { triggered_by: triggeredBy, gaps_count: gaps.length, dream_themes: dreamThemes.slice(0, 3) },
+      trigger_source: { triggered_by: triggeredBy, gaps_count: gaps.length, dream_themes: dreamThemes.slice(0, 3), curiosity_score: topDomain.score, novelty: topDomain.novelty, relevance: topDomain.relevance, surprise: topDomain.surprise },
     });
 
     if (insertErr) {

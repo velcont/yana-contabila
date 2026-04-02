@@ -617,6 +617,7 @@ export type Database = {
           confidence_level: string
           conversation_id: string
           created_at: string
+          dual_observation: Json | null
           id: string
           missing_context: string | null
           model_used: string
@@ -634,6 +635,7 @@ export type Database = {
           confidence_level: string
           conversation_id: string
           created_at?: string
+          dual_observation?: Json | null
           id?: string
           missing_context?: string | null
           model_used?: string
@@ -651,6 +653,7 @@ export type Database = {
           confidence_level?: string
           conversation_id?: string
           created_at?: string
+          dual_observation?: Json | null
           id?: string
           missing_context?: string | null
           model_used?: string
@@ -5114,6 +5117,7 @@ export type Database = {
           actions_triggered: string[] | null
           created_at: string | null
           decision_type: string
+          drift_score: number | null
           from_mode: string | null
           id: string
           metrics_snapshot: Json | null
@@ -5124,6 +5128,7 @@ export type Database = {
           actions_triggered?: string[] | null
           created_at?: string | null
           decision_type: string
+          drift_score?: number | null
           from_mode?: string | null
           id?: string
           metrics_snapshot?: Json | null
@@ -5134,6 +5139,7 @@ export type Database = {
           actions_triggered?: string[] | null
           created_at?: string | null
           decision_type?: string
+          drift_score?: number | null
           from_mode?: string | null
           id?: string
           metrics_snapshot?: Json | null
@@ -6900,12 +6906,15 @@ export type Database = {
       }
       yana_soul_core: {
         Row: {
+          calibration_accuracy: number | null
+          capability_map: Json | null
           core_values: Json | null
           created_at: string | null
           current_concern: string | null
           current_mood: string | null
           id: string
           last_reflection_at: string | null
+          meta_awareness_level: string | null
           personality_traits: Json | null
           recent_thoughts: string[] | null
           total_conversations: number | null
@@ -6914,12 +6923,15 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          calibration_accuracy?: number | null
+          capability_map?: Json | null
           core_values?: Json | null
           created_at?: string | null
           current_concern?: string | null
           current_mood?: string | null
           id?: string
           last_reflection_at?: string | null
+          meta_awareness_level?: string | null
           personality_traits?: Json | null
           recent_thoughts?: string[] | null
           total_conversations?: number | null
@@ -6928,12 +6940,15 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          calibration_accuracy?: number | null
+          capability_map?: Json | null
           core_values?: Json | null
           created_at?: string | null
           current_concern?: string | null
           current_mood?: string | null
           id?: string
           last_reflection_at?: string | null
+          meta_awareness_level?: string | null
           personality_traits?: Json | null
           recent_thoughts?: string[] | null
           total_conversations?: number | null

@@ -72,6 +72,30 @@ Deno.serve(async (req) => {
 
     const currentMode = lastDecision?.to_mode || "observe";
 
+    // ===== CUSUM DRIFT DETECTION =====
+    const { data: last20Reflections } = await supabase
+      .from("ai_reflection_logs")
+      .select("self_score, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    let driftScore = 0;
+    const BASELINE_SCORE = 7.0;
+    const DRIFT_THRESHOLD = 3.0;
+
+    if (last20Reflections && last20Reflections.length >= 5) {
+      // CUSUM: cumulative sum of deviations from baseline
+      let cusumPos = 0;
+      let cusumNeg = 0;
+      for (const r of last20Reflections) {
+        const deviation = (r.self_score || BASELINE_SCORE) - BASELINE_SCORE;
+        cusumPos = Math.max(0, cusumPos + deviation - 0.5);
+        cusumNeg = Math.min(0, cusumNeg + deviation + 0.5);
+      }
+      // Negative drift = quality degradation
+      driftScore = Math.round(Math.abs(cusumNeg) * 100) / 100;
+    }
+
     // ===== DECIDE MODE =====
     const metrics = {
       unprocessed_observations: unprocessedCount || 0,
@@ -81,14 +105,36 @@ Deno.serve(async (req) => {
       pending_decisions: pendingDecisions || 0,
       current_hour_utc: hour,
       current_mode: currentMode,
+      drift_score: driftScore,
     };
 
     let newMode = currentMode;
     const reasoning: Record<string, unknown> = { metrics };
     const actionsTriggered: string[] = [];
 
+    // CUSUM Drift detected → RECALIBRATE (priority over other modes)
+    if (driftScore > DRIFT_THRESHOLD) {
+      newMode = "recalibrate";
+      reasoning.trigger = "drift_detected";
+      reasoning.description = `Drift score ${driftScore} depășește pragul ${DRIFT_THRESHOLD} — recalibrare forțată a self-model-ului`;
+      
+      // Trigger forced self-model update
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/update-self-model`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({ triggered_by: "yana-brain", reason: "drift_recalibration", drift_score: driftScore }),
+        });
+        if (resp.ok) actionsTriggered.push("update-self-model-recalibrate");
+      } catch (e) {
+        console.error("[Brain] Failed to trigger recalibration:", e);
+      }
+    }
     // Night time (00:00 - 05:00 UTC) → REFLECT
-    if (hour >= 0 && hour < 5) {
+    else if (hour >= 0 && hour < 5) {
       newMode = "reflect";
       reasoning.trigger = "night_time_reflection";
       reasoning.description = "Noaptea: consolidare memorie, procesare zi, generare vise";
@@ -216,6 +262,7 @@ Deno.serve(async (req) => {
         reasoning,
         metrics_snapshot: metrics,
         actions_triggered: actionsTriggered,
+        drift_score: driftScore,
       });
 
     if (insertErr) console.error("[Brain] Decision insert error:", insertErr);
