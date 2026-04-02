@@ -112,7 +112,10 @@ ${dreamThemes.length > 0 ? dreamThemes.map((t) => `- ${t}`).join("\n") : "- Nici
 CE DISCUTĂ UTILIZATORII MEI RECENT:
 ${recentTopics.length > 0 ? recentTopics.map((t) => `- ${t}`).join("\n") : "- Subiecte diverse"}
 
-DOMENIU DE CURIOZITATE PURĂ: ${randomDomain}
+DOMENIU DE CURIOZITATE PURĂ (scor ${topDomain.score.toFixed(2)}): ${topDomain.domain}
+
+CONTRADICȚII NEREZOLVATE:
+${unresolvedSurprises.length > 0 ? unresolvedSurprises.map((s) => `- ${s.new_information} (${s.contradiction_type})`).join("\n") : "- Nicio contradicție activă"}
 
 Generează 3 search queries în limba română, variate:
 1. Una legată de o lacună de cunoștințe sau temă din vise
