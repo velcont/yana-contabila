@@ -109,6 +109,10 @@ Răspunde STRICT ca JSON array de strings, fără alte explicații:
       }),
     });
 
+    if (!queriesResponse.ok) {
+      throw new Error(`AI gateway failed: ${queriesResponse.status}`);
+    }
+
     const queriesData = await queriesResponse.json();
     const queriesText = queriesData.choices?.[0]?.message?.content || "[]";
 
