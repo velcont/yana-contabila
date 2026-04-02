@@ -112,8 +112,29 @@ Deno.serve(async (req) => {
     const reasoning: Record<string, unknown> = { metrics };
     const actionsTriggered: string[] = [];
 
+    // CUSUM Drift detected → RECALIBRATE (priority over other modes)
+    if (driftScore > DRIFT_THRESHOLD) {
+      newMode = "recalibrate";
+      reasoning.trigger = "drift_detected";
+      reasoning.description = `Drift score ${driftScore} depășește pragul ${DRIFT_THRESHOLD} — recalibrare forțată a self-model-ului`;
+      
+      // Trigger forced self-model update
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/update-self-model`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({ triggered_by: "yana-brain", reason: "drift_recalibration", drift_score: driftScore }),
+        });
+        if (resp.ok) actionsTriggered.push("update-self-model-recalibrate");
+      } catch (e) {
+        console.error("[Brain] Failed to trigger recalibration:", e);
+      }
+    }
     // Night time (00:00 - 05:00 UTC) → REFLECT
-    if (hour >= 0 && hour < 5) {
+    else if (hour >= 0 && hour < 5) {
       newMode = "reflect";
       reasoning.trigger = "night_time_reflection";
       reasoning.description = "Noaptea: consolidare memorie, procesare zi, generare vise";
