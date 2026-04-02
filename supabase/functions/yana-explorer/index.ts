@@ -120,7 +120,7 @@ ${unresolvedSurprises.length > 0 ? unresolvedSurprises.map((s) => `- ${s.new_inf
 Generează 3 search queries în limba română, variate:
 1. Una legată de o lacună de cunoștințe sau temă din vise
 2. Una legată de ce discută utilizatorii
-3. Una de curiozitate pură din domeniul sugerat
+3. Una de curiozitate pură din domeniul sugerat SAU care explorează o contradicție nerezolvată
 
 Răspunde STRICT ca JSON array de strings, fără alte explicații:
 ["query1", "query2", "query3"]`;
