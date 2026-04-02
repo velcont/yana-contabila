@@ -954,6 +954,12 @@ const Admin = () => {
               <OutreachDashboard />
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="explorations">
+            <Suspense fallback={<TabContentLoader />}>
+              <ExplorationsDashboard />
+            </Suspense>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
