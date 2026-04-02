@@ -88,13 +88,18 @@ Generează 3 search queries în limba română, variate:
 Răspunde STRICT ca JSON array de strings, fără alte explicații:
 ["query1", "query2", "query3"]`;
 
-    // Call AI to generate queries
-    const aiRouterUrl = `${supabaseUrl}/functions/v1/ai-router`;
-    const queriesResponse = await fetch(aiRouterUrl, {
+    // Call Lovable AI to generate queries
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
+    }
+
+    const aiGatewayUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    const queriesResponse = await fetch(aiGatewayUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${supabaseKey}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
@@ -103,10 +108,6 @@ Răspunde STRICT ca JSON array de strings, fără alte explicații:
         temperature: 0.9,
       }),
     });
-
-    if (!queriesResponse.ok) {
-      throw new Error(`AI router failed: ${queriesResponse.status}`);
-    }
 
     const queriesData = await queriesResponse.json();
     const queriesText = queriesData.choices?.[0]?.message?.content || "[]";
