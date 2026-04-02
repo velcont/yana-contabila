@@ -317,6 +317,22 @@ Răspunde ca JSON:
 
     console.log(`[Explorer] Exploration complete: "${reflection.exploration_topic}" (${explorationType})`);
 
+    // ===== AGENT TRACE =====
+    try {
+      const traceId = crypto.randomUUID();
+      await supabase.from("yana_agent_traces").insert({
+        trace_id: traceId,
+        agent_name: "yana-explorer",
+        input_summary: `Trigger: ${triggeredBy}, Domain: ${topDomain.domain} (score: ${topDomain.score.toFixed(2)})`,
+        output_summary: `Topic: ${reflection.exploration_topic}, Type: ${explorationType}, Sources: ${sourcesVisited.length}`,
+        duration_ms: 0,
+        tokens_used: 0,
+        cost_cents: 0,
+      });
+    } catch (traceErr) {
+      console.warn("[Explorer] Trace logging failed:", traceErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

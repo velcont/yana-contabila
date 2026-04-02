@@ -253,6 +253,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ===== AGENT TRACE =====
+    try {
+      const traceId = crypto.randomUUID();
+      await supabase.from("yana_agent_traces").insert({
+        trace_id: traceId,
+        agent_name: "yana-observer",
+        input_summary: `User: ${input.userId?.slice(0, 8)}, Route: ${input.route || "unknown"}, Q: ${(input.question || "").slice(0, 80)}`,
+        output_summary: `Observations: ${observations.length} (${observations.map(o => o.observation_type).join(", ")})`,
+        duration_ms: 0,
+        tokens_used: 0,
+        cost_cents: 0,
+      });
+    } catch (traceErr) {
+      console.warn("[Observer] Trace logging failed:", traceErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
