@@ -288,7 +288,7 @@ Răspunde ca JSON:
       emotional_reaction: reflection.emotional_reaction,
       relevance_to_users: reflection.relevance_to_users,
       exploration_type: explorationType,
-      trigger_source: { triggered_by: triggeredBy, gaps_count: gaps.length, dream_themes: dreamThemes.slice(0, 3) },
+      trigger_source: { triggered_by: triggeredBy, gaps_count: gaps.length, dream_themes: dreamThemes.slice(0, 3), curiosity_score: topDomain.score, novelty: topDomain.novelty, relevance: topDomain.relevance, surprise: topDomain.surprise },
     });
 
     if (insertErr) {
