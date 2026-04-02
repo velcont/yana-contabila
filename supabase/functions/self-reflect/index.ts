@@ -370,6 +370,30 @@ Returnează DOAR JSON-ul, fără alte explicații.`;
 
     const processingTimeMs = Date.now() - startTime;
 
+    // === DUAL OBSERVATION STREAM ===
+    const dualObservation = {
+      governor_quality: {
+        completeness: reflection.self_score >= 7 ? 'complete' : reflection.self_score >= 5 ? 'partial' : 'incomplete',
+        accuracy_confidence: reflection.confidence_level,
+        relevance: reflection.what_went_well?.length > 0 ? 'relevant' : 'questionable',
+        reasoning_depth: answer.length > 1000 ? 'deep' : answer.length > 400 ? 'moderate' : 'shallow',
+      },
+      session_quality: {
+        user_sentiment: errorAnalysisResult.errorId ? 'corrective' : 'neutral',
+        corrections_detected: !!errorAnalysisResult.errorId,
+        error_type: errorAnalysisResult.errorType,
+        engagement_signal: question.length > 100 ? 'high' : question.length > 30 ? 'medium' : 'low',
+      },
+      cross_stream_anomaly: {
+        miscalibration_detected: reflection.confidence_level === 'high' && !!errorAnalysisResult.errorId,
+        overconfidence_flag: reflection.self_score >= 8 && !!errorAnalysisResult.errorId,
+        description: reflection.confidence_level === 'high' && errorAnalysisResult.errorId 
+          ? 'YANA was confident but user corrected — miscalibration detected' 
+          : null,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
     // Save to database
     const { data: savedReflection, error: saveError } = await supabase
       .from('ai_reflection_logs')
@@ -387,6 +411,7 @@ Returnează DOAR JSON-ul, fără alte explicații.`;
         model_used: 'gemini-2.5-flash-lite',
         tokens_used: tokensUsed,
         processing_time_ms: processingTimeMs,
+        dual_observation: dualObservation,
       })
       .select('id')
       .single();

@@ -262,6 +262,7 @@ Deno.serve(async (req) => {
         reasoning,
         metrics_snapshot: metrics,
         actions_triggered: actionsTriggered,
+        drift_score: driftScore,
       });
 
     if (insertErr) console.error("[Brain] Decision insert error:", insertErr);
