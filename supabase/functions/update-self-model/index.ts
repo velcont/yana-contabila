@@ -197,13 +197,159 @@ serve(async (req) => {
     }
 
     // =============================================================================
-    // 4. APPLY ALL UPDATES
+    // 4. CONFIDENCE CALIBRATION CURVE
     // =============================================================================
     
+    try {
+      const thirtyDaysAgo2 = new Date();
+      thirtyDaysAgo2.setDate(thirtyDaysAgo2.getDate() - 30);
+
+      // Get reflections with dual_observation data
+      const { data: calibrationData } = await supabase
+        .from('ai_reflection_logs')
+        .select('confidence_level, self_score, dual_observation')
+        .gte('created_at', thirtyDaysAgo2.toISOString())
+        .limit(200);
+
+      // Get actual user feedback
+      const { data: feedbackData } = await supabase
+        .from('ai_conversations')
+        .select('was_helpful')
+        .gte('created_at', thirtyDaysAgo2.toISOString())
+        .not('was_helpful', 'is', null)
+        .limit(200);
+
+      if (calibrationData && calibrationData.length > 10 && feedbackData && feedbackData.length > 5) {
+        // Count high-confidence responses
+        const highConfCount = calibrationData.filter(r => r.confidence_level === 'high').length;
+        const totalCount = calibrationData.length;
+        const selfReportedConfidence = highConfCount / totalCount;
+
+        // Actual success rate from feedback
+        const helpfulCount = feedbackData.filter(f => f.was_helpful === true).length;
+        const actualSuccessRate = helpfulCount / feedbackData.length;
+
+        // Calibration accuracy: 1.0 = perfect, 0.0 = completely miscalibrated
+        const calibrationGap = Math.abs(selfReportedConfidence - actualSuccessRate);
+        const calibrationAccuracy = Math.round((1 - calibrationGap) * 100) / 100;
+
+        // Count miscalibration events from dual observations
+        const miscalibrations = calibrationData.filter(r => {
+          const dualObs = r.dual_observation as Record<string, any> | null;
+          return dualObs?.cross_stream_anomaly?.miscalibration_detected === true;
+        }).length;
+
+        // Determine meta-awareness level
+        let metaAwarenessLevel = 'developing';
+        if (calibrationAccuracy > 0.8 && miscalibrations < 3) {
+          metaAwarenessLevel = 'calibrated';
+        } else if (calibrationAccuracy > 0.6) {
+          metaAwarenessLevel = 'aware';
+        } else if (miscalibrations > 5) {
+          metaAwarenessLevel = 'recalibrating';
+        }
+
+        updates.calibration_accuracy = calibrationAccuracy;
+        updates.meta_awareness_level = metaAwarenessLevel;
+
+        console.log(`[update-self-model] Calibration: ${calibrationAccuracy.toFixed(2)}, meta-awareness: ${metaAwarenessLevel}, miscalibrations: ${miscalibrations}`);
+      }
+    } catch (error) {
+      console.error("[update-self-model] Error in calibration calculation:", error);
+    }
+
+    // =============================================================================
+    // 5. CAPABILITY MAP — Strengths & Weaknesses
+    // =============================================================================
+    
+    try {
+      const { data: recentReflections2 } = await supabase
+        .from('ai_reflection_logs')
+        .select('self_score, what_went_well, what_could_improve, confidence_level, dual_observation')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (recentReflections2 && recentReflections2.length > 10) {
+        // Aggregate what_went_well and what_could_improve into capability areas
+        const strengths: Record<string, number> = {};
+        const weaknesses: Record<string, number> = {};
+
+        for (const r of recentReflections2) {
+          if (r.what_went_well) {
+            for (const item of r.what_went_well as string[]) {
+              const key = item.substring(0, 50);
+              strengths[key] = (strengths[key] || 0) + 1;
+            }
+          }
+          if (r.what_could_improve) {
+            for (const item of r.what_could_improve as string[]) {
+              const key = item.substring(0, 50);
+              weaknesses[key] = (weaknesses[key] || 0) + 1;
+            }
+          }
+        }
+
+        // Top 5 strengths and weaknesses
+        const topStrengths = Object.entries(strengths)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([area, count]) => ({ area, frequency: count }));
+
+        const topWeaknesses = Object.entries(weaknesses)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([area, count]) => ({ area, frequency: count }));
+
+        // Governor vs session quality distribution
+        let governorHighCount = 0;
+        let sessionCorrectiveCount = 0;
+        for (const r of recentReflections2) {
+          const dualObs = r.dual_observation as Record<string, any> | null;
+          if (dualObs?.governor_quality?.completeness === 'complete') governorHighCount++;
+          if (dualObs?.session_quality?.corrections_detected) sessionCorrectiveCount++;
+        }
+
+        updates.capability_map = {
+          strengths: topStrengths,
+          weaknesses: topWeaknesses,
+          governor_quality_rate: Math.round((governorHighCount / recentReflections2.length) * 100) / 100,
+          correction_rate: Math.round((sessionCorrectiveCount / recentReflections2.length) * 100) / 100,
+          total_reflections_analyzed: recentReflections2.length,
+          last_updated: new Date().toISOString(),
+        };
+
+        console.log(`[update-self-model] Capability map: ${topStrengths.length} strengths, ${topWeaknesses.length} weaknesses`);
+      }
+    } catch (error) {
+      console.error("[update-self-model] Error building capability map:", error);
+    }
+
+    // =============================================================================
+    // 6. APPLY ALL UPDATES
+    // =============================================================================
+    
+    // Update yana_self_model
     const { error: updateError } = await supabase
       .from('yana_self_model')
       .update(updates)
       .eq('id', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11');
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Also update yana_soul_core with calibration data
+    if (updates.calibration_accuracy !== undefined || updates.capability_map !== undefined) {
+      const soulCoreUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      if (updates.calibration_accuracy !== undefined) soulCoreUpdates.calibration_accuracy = updates.calibration_accuracy;
+      if (updates.capability_map !== undefined) soulCoreUpdates.capability_map = updates.capability_map;
+      if (updates.meta_awareness_level !== undefined) soulCoreUpdates.meta_awareness_level = updates.meta_awareness_level;
+
+      await supabase
+        .from('yana_soul_core')
+        .update(soulCoreUpdates)
+        .eq('id', '00000000-0000-0000-0000-000000000001');
+    }
 
     if (updateError) {
       throw updateError;
