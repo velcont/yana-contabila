@@ -2054,6 +2054,9 @@ serve(async (req) => {
       }
     } catch (err) {
       console.warn(`[chat-ai][${requestId}] Exploration memory failed (non-blocking):`, err);
+    }
+
+    // 🆕 CUI DETECTION: Verificare automată ANAF
     let cuiVerificationSection = '';
     try {
       const cuiResult = await detectAndVerifyCUI(message);
