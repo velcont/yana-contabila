@@ -72,6 +72,30 @@ Deno.serve(async (req) => {
 
     const currentMode = lastDecision?.to_mode || "observe";
 
+    // ===== CUSUM DRIFT DETECTION =====
+    const { data: last20Reflections } = await supabase
+      .from("ai_reflection_logs")
+      .select("self_score, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    let driftScore = 0;
+    const BASELINE_SCORE = 7.0;
+    const DRIFT_THRESHOLD = 3.0;
+
+    if (last20Reflections && last20Reflections.length >= 5) {
+      // CUSUM: cumulative sum of deviations from baseline
+      let cusumPos = 0;
+      let cusumNeg = 0;
+      for (const r of last20Reflections) {
+        const deviation = (r.self_score || BASELINE_SCORE) - BASELINE_SCORE;
+        cusumPos = Math.max(0, cusumPos + deviation - 0.5);
+        cusumNeg = Math.min(0, cusumNeg + deviation + 0.5);
+      }
+      // Negative drift = quality degradation
+      driftScore = Math.round(Math.abs(cusumNeg) * 100) / 100;
+    }
+
     // ===== DECIDE MODE =====
     const metrics = {
       unprocessed_observations: unprocessedCount || 0,
@@ -81,6 +105,7 @@ Deno.serve(async (req) => {
       pending_decisions: pendingDecisions || 0,
       current_hour_utc: hour,
       current_mode: currentMode,
+      drift_score: driftScore,
     };
 
     let newMode = currentMode;
