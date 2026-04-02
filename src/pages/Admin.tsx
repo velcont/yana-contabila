@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap, Activity, Download } from "lucide-react";
+import { Loader2, Users, FileText, MessageSquare, AlertCircle, User, Package, GraduationCap, Shield, HardDrive, FileDown, Mail, Send, DollarSign, Sparkles, Brain, Bot, PenLine, Heart, RefreshCw, Zap, Activity, Download, Globe } from "lucide-react";
 import { generateCopyrightPDF } from "@/utils/copyrightPdfExport";
 import { toast } from "sonner";
 import { UsersList } from "@/components/UsersList";
@@ -39,6 +39,7 @@ const KnowledgeValidationPanel = lazy(() => import("@/components/admin/Knowledge
 const RecursiveOptimizerDashboard = lazy(() => import("@/components/admin/RecursiveOptimizerDashboard").then(m => ({ default: m.RecursiveOptimizerDashboard })));
 const YanaSubscribersDashboard = lazy(() => import("@/components/admin/YanaSubscribersDashboard").then(m => ({ default: m.YanaSubscribersDashboard })));
 const OutreachDashboard = lazy(() => import("@/components/admin/OutreachDashboard"));
+const ExplorationsDashboard = lazy(() => import("@/components/admin/ExplorationsDashboard").then(m => ({ default: m.ExplorationsDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -446,6 +447,10 @@ const Admin = () => {
               <TabsTrigger value="outreach">
                 <Send className="h-4 w-4 mr-2" />
                 📧 Outreach YANA
+              </TabsTrigger>
+              <TabsTrigger value="explorations">
+                <Globe className="h-4 w-4 mr-2" />
+                🌐 Explorări
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -947,6 +952,12 @@ const Admin = () => {
           <TabsContent value="outreach">
             <Suspense fallback={<TabContentLoader />}>
               <OutreachDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="explorations">
+            <Suspense fallback={<TabContentLoader />}>
+              <ExplorationsDashboard />
             </Suspense>
           </TabsContent>
         </Tabs>

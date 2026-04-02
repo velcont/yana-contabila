@@ -5594,6 +5594,45 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_explorations: {
+        Row: {
+          created_at: string
+          emotional_reaction: string | null
+          exploration_topic: string
+          exploration_type: string
+          id: string
+          key_learnings: string | null
+          relevance_to_users: string | null
+          search_queries: Json
+          sources_visited: Json
+          trigger_source: Json | null
+        }
+        Insert: {
+          created_at?: string
+          emotional_reaction?: string | null
+          exploration_topic: string
+          exploration_type?: string
+          id?: string
+          key_learnings?: string | null
+          relevance_to_users?: string | null
+          search_queries?: Json
+          sources_visited?: Json
+          trigger_source?: Json | null
+        }
+        Update: {
+          created_at?: string
+          emotional_reaction?: string | null
+          exploration_topic?: string
+          exploration_type?: string
+          id?: string
+          key_learnings?: string | null
+          relevance_to_users?: string | null
+          search_queries?: Json
+          sources_visited?: Json
+          trigger_source?: Json | null
+        }
+        Relationships: []
+      }
       yana_flagged_learnings: {
         Row: {
           admin_decision: string | null
