@@ -147,6 +147,41 @@ Deno.serve(async (req) => {
       reasoning.trigger = "pending_decisions_backlog";
       reasoning.description = `${pendingDecisions} decizii în așteptare`;
     }
+    // Daytime + stable → EXPLORE (10:00-18:00 UTC, max 2/day)
+    else if (hour >= 10 && hour < 18) {
+      // Check how many explorations today
+      const todayStart = new Date(now);
+      todayStart.setUTCHours(0, 0, 0, 0);
+      const { count: todayExplorations } = await supabase
+        .from("yana_explorations")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", todayStart.toISOString());
+
+      if ((todayExplorations || 0) < 2) {
+        newMode = "explore";
+        reasoning.trigger = "stable_daytime_exploration";
+        reasoning.description = `Sistem stabil, ziua (${hour}:00 UTC) — explorare autonomă pe internet`;
+
+        // Trigger explorer
+        try {
+          const resp = await fetch(`${supabaseUrl}/functions/v1/yana-explorer`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({ triggered_by: "yana-brain", mode: "autonomous_exploration" }),
+          });
+          if (resp.ok) actionsTriggered.push("yana-explorer");
+        } catch (e) {
+          console.error("[Brain] Failed to trigger yana-explorer:", e);
+        }
+      } else {
+        newMode = "observe";
+        reasoning.trigger = "exploration_limit_reached";
+        reasoning.description = `Deja ${todayExplorations} explorări azi — observare pasivă`;
+      }
+    }
     // Everything looks good → balanced observe
     else {
       newMode = "observe";
