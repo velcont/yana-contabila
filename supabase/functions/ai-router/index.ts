@@ -22,7 +22,7 @@ interface RouterRequest {
 }
 
 interface RouteDecision {
-  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document';
+  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document' | 'analyze-supplier';
   payload: Record<string, unknown>;
   reason: string;
 }
