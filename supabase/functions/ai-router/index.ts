@@ -740,6 +740,50 @@ function detectIntent(message: string): RouteDecision {
     };
   }
 
+  // =============================================================================
+  // ⚡ PRICE COMPARISON / PRICE TRACKER — Compare prices across e-commerce
+  // =============================================================================
+  const priceComparisonPatterns = [
+    /(?:compar[aă]|compara[tț]ie)\s+(?:pre[tț]|pret)/i,
+    /(?:pre[tț]|pret)\s+(?:de\s+)?(?:pia[tț][aă]|piata|ofert[aă]|oferta)/i,
+    /(?:cel\s+mai\s+(?:ieftin|bun|mic)\s+pre[tț])/i,
+    /(?:caut[aă]|g[aă]se[sș]te|verific[aă])(?:-mi)?\s+(?:pre[tț]ul?|pretul?)/i,
+    /(?:pre[tț]|pret)\s+(?:pe|la|din)\s+(?:emag|amazon|aliexpress|olx|pcgarage|altex|cel\.ro|flanco)/i,
+    /(?:c[aâ]t\s+cost[aă]|cat\s+costa|pre[tț]ul?\s+(?:pentru|la|de))/i,
+    /(?:emag|amazon|aliexpress)\.(?:ro|com)/i,
+    /(?:monitor(?:izare|izeaz[aă])?\s+pre[tț])/i,
+    /(?:unde\s+(?:e|este|gasesc|găsesc)\s+mai\s+ieftin)/i,
+  ];
+
+  if (priceComparisonPatterns.some(p => p.test(lowerMessage))) {
+    // Extract product name from message
+    let product = message;
+    
+    // Try to extract URL and use it as product context
+    const urlMatch = message.match(/https?:\/\/[^\s]+/);
+    
+    // Try to extract product name from common patterns
+    const productMatch = message.match(/(?:pre[tț]ul?\s+(?:pentru|la|de)\s+)(.+?)(?:\s*[?.]|$)/i)
+      || message.match(/(?:c[aâ]t\s+cost[aă])\s+(.+?)(?:\s*[?.]|$)/i)
+      || message.match(/(?:compar[aă]\s+pre[tț]ul?\s+(?:de\s+ofert[aă]\s+cu\s+pre[tț]ul?\s+de\s+pia[tț][aă]\s+(?:a|al|ale?)\s+))(.+?)(?:\s*[?.]|$)/i)
+      || message.match(/(?:compar[aă]\s+pre[tț]ul?\s+(?:pentru|la|de)\s+)(.+?)(?:\s*[?.]|$)/i);
+    
+    if (productMatch) {
+      product = productMatch[1].trim();
+    }
+    
+    console.log(`[AI-Router] 💰 PRICE COMPARISON DETECTED: product="${product.substring(0, 80)}", url="${urlMatch?.[0] || 'none'}"`);
+    return {
+      route: 'search-prices',
+      payload: {
+        message,
+        product: product,
+        url: urlMatch?.[0] || null,
+      },
+      reason: `User requested price comparison for "${product.substring(0, 50)}"`
+    };
+  }
+
   // Fiscal questions - EXTENDED keywords pentru legislația 2026
   // Include forme articulate și variante pentru detecție robustă
   if (
