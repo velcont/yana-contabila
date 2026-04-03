@@ -40,6 +40,9 @@ const RecursiveOptimizerDashboard = lazy(() => import("@/components/admin/Recurs
 const YanaSubscribersDashboard = lazy(() => import("@/components/admin/YanaSubscribersDashboard").then(m => ({ default: m.YanaSubscribersDashboard })));
 const OutreachDashboard = lazy(() => import("@/components/admin/OutreachDashboard"));
 const ExplorationsDashboard = lazy(() => import("@/components/admin/ExplorationsDashboard").then(m => ({ default: m.ExplorationsDashboard })));
+const AlertRulesManager = lazy(() => import("@/components/admin/AlertRulesManager").then(m => ({ default: m.AlertRulesManager })));
+const LiveMetricsPanel = lazy(() => import("@/components/admin/LiveMetricsPanel").then(m => ({ default: m.LiveMetricsPanel })));
+const RetentionHeatmap = lazy(() => import("@/components/admin/RetentionHeatmap").then(m => ({ default: m.RetentionHeatmap })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
