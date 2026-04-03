@@ -14,9 +14,10 @@ import {
   Funnel,
   LabelList
 } from 'recharts';
-import { TrendingDown, Users, LogIn, MessageSquare, CreditCard, ArrowRight } from 'lucide-react';
+import { TrendingDown, Users, LogIn, MessageSquare, CreditCard, ArrowRight, Smartphone, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface FunnelStep {
   name: string;
