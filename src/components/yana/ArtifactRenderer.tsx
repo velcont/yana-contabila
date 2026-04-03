@@ -1,4 +1,5 @@
 import { Download, Maximize2, BarChart3, PieChart, Table2, Swords, Target, FileText, FileSpreadsheet, Presentation, File } from 'lucide-react';
+import { ActionConfirmationCard } from './ActionConfirmationCard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -22,7 +23,7 @@ import { AIStrategyResultsArtifact } from './AIStrategyResultsArtifact';
 import type { BusinessProfile, AIAnalysis } from '@/config/aiStrategyData';
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download' | 'action_confirmation';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -31,6 +32,9 @@ interface Artifact {
   isStrategyLoading?: boolean;
   isStrategySubmitted?: boolean;
   strategyProfile?: BusinessProfile;
+  onActionConfirm?: (actionId: string) => void;
+  onActionReject?: (actionId: string) => void;
+  onActionEdit?: (actionId: string) => void;
 }
 
 interface ArtifactRendererProps {
@@ -59,6 +63,14 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       return <AIStrategyFormArtifact onSubmit={artifact.onStrategySubmit!} isLoading={artifact.isStrategyLoading} isSubmitted={artifact.isStrategySubmitted} />;
     case 'ai_strategy_results':
       return <AIStrategyResultsArtifact analysis={artifact.data as AIAnalysis} profile={artifact.strategyProfile!} />;
+    case 'action_confirmation':
+      return <ActionConfirmationCard 
+        data={artifact.data as { actionId: string; actionText: string; category: string; preview?: string }} 
+        title={artifact.title}
+        onConfirm={artifact.onActionConfirm || (() => {})}
+        onReject={artifact.onActionReject || (() => {})}
+        onEdit={artifact.onActionEdit || (() => {})}
+      />;
     default:
       return null;
   }

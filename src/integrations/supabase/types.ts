@@ -1935,6 +1935,45 @@ export type Database = {
           },
         ]
       }
+      competitor_watches: {
+        Row: {
+          changes_detected: Json | null
+          competitor_name: string
+          competitor_url: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_checked_at: string | null
+          last_snapshot: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          changes_detected?: Json | null
+          competitor_name: string
+          competitor_url: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_checked_at?: string | null
+          last_snapshot?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          changes_detected?: Json | null
+          competitor_name?: string
+          competitor_url?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_checked_at?: string | null
+          last_snapshot?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_history: {
         Row: {
           content: string
@@ -2713,6 +2752,54 @@ export type Database = {
         }
         Relationships: []
       }
+      grant_opportunities: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          description: string | null
+          funding_amount: string | null
+          id: string
+          industry: string | null
+          is_notified: boolean | null
+          raw_data: Json | null
+          relevance_score: number | null
+          search_query: string | null
+          source_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          funding_amount?: string | null
+          id?: string
+          industry?: string | null
+          is_notified?: boolean | null
+          raw_data?: Json | null
+          relevance_score?: number | null
+          search_query?: string | null
+          source_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          funding_amount?: string | null
+          id?: string
+          industry?: string | null
+          is_notified?: boolean | null
+          raw_data?: Json | null
+          relevance_score?: number | null
+          search_query?: string | null
+          source_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hook_signals: {
         Row: {
           detected_at: string | null
@@ -3079,6 +3166,45 @@ export type Database = {
           risk_level?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      memory_relationships: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          id: string
+          object_value: string
+          predicate: string
+          source_conversation_id: string | null
+          subject: string
+          user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          object_value: string
+          predicate: string
+          source_conversation_id?: string | null
+          subject: string
+          user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          object_value?: string
+          predicate?: string
+          source_conversation_id?: string | null
+          subject?: string
+          user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Relationships: []
       }
@@ -5198,6 +5324,7 @@ export type Database = {
           action_text: string
           category: string
           completed_at: string | null
+          confirmation_status: string | null
           conversation_id: string | null
           created_at: string
           deadline: string | null
@@ -5215,6 +5342,7 @@ export type Database = {
           action_text: string
           category?: string
           completed_at?: string | null
+          confirmation_status?: string | null
           conversation_id?: string | null
           created_at?: string
           deadline?: string | null
@@ -5232,6 +5360,7 @@ export type Database = {
           action_text?: string
           category?: string
           completed_at?: string | null
+          confirmation_status?: string | null
           conversation_id?: string | null
           created_at?: string
           deadline?: string | null
@@ -7153,6 +7282,8 @@ export type Database = {
           relevance_score: number | null
           source_conversation_id: string | null
           user_id: string
+          valid_from: string | null
+          valid_until: string | null
         }
         Insert: {
           access_count?: number | null
@@ -7165,6 +7296,8 @@ export type Database = {
           relevance_score?: number | null
           source_conversation_id?: string | null
           user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Update: {
           access_count?: number | null
@@ -7177,6 +7310,8 @@ export type Database = {
           relevance_score?: number | null
           source_conversation_id?: string | null
           user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
         }
         Relationships: []
       }

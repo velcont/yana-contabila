@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search } from 'lucide-react';
+import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search, Lightbulb, TrendingUp, Euro } from 'lucide-react';
 
 interface SuggestionChipsProps {
   onSendMessage: (message: string) => void;
@@ -44,6 +44,27 @@ const DEFAULT_CHIPS = [
     message: 'Vreau să verific un furnizor. Caută-mi informații despre reputația și prețurile lui.',
     accent: 'border-orange-500/30 hover:bg-orange-500/10',
     iconColor: 'text-orange-500',
+  },
+  {
+    label: 'Ce să fac azi?',
+    icon: Lightbulb,
+    message: 'Ce ar trebui să fac azi? Care sunt cele mai importante acțiuni pe care trebuie să le fac acum?',
+    accent: 'border-yellow-500/30 hover:bg-yellow-500/10',
+    iconColor: 'text-yellow-500',
+  },
+  {
+    label: 'Cash Flow Forecast',
+    icon: TrendingUp,
+    message: 'Arată-mi o previziune a cash flow-ului pe următoarele 30/60/90 de zile.',
+    accent: 'border-cyan-500/30 hover:bg-cyan-500/10',
+    iconColor: 'text-cyan-500',
+  },
+  {
+    label: 'Fonduri Europene',
+    icon: Euro,
+    message: 'Ce fonduri europene nerambursabile sunt disponibile acum pentru industria mea?',
+    accent: 'border-green-500/30 hover:bg-green-500/10',
+    iconColor: 'text-green-500',
   },
   {
     label: 'Strategie AI',
