@@ -248,5 +248,11 @@ export function ExplorationsDashboard() {
         )}
       </div>
     </div>
+      </TabsContent>
+
+      <TabsContent value="traces">
+        <AgentTracesTab />
+      </TabsContent>
+    </Tabs>
   );
 }
