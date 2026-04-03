@@ -2073,6 +2073,47 @@ serve(async (req) => {
     if (memoryContext) {
       console.log(`[chat-ai][${requestId}] Memory context added to prompt (${memoryContext.length} chars)`);
     }
+
+    // 🆕 TIERED MEMORY INJECTION: Semantic + Episodic memories from yana_semantic_memory
+    let tieredMemorySection = '';
+    try {
+      // Fetch top 5 semantic memories (generalized knowledge)
+      const { data: semanticMemories } = await supabase
+        .from('yana_semantic_memory')
+        .select('content, relevance_score')
+        .eq('user_id', userId)
+        .eq('memory_type', 'semantic')
+        .order('relevance_score', { ascending: false })
+        .limit(5);
+
+      // Fetch top 3 recent episodic memories (specific facts)
+      const { data: episodicMemories } = await supabase
+        .from('yana_semantic_memory')
+        .select('content, relevance_score')
+        .eq('user_id', userId)
+        .eq('memory_type', 'episodic')
+        .order('last_accessed_at', { ascending: false })
+        .limit(3);
+
+      const parts: string[] = [];
+      
+      if (semanticMemories && semanticMemories.length > 0) {
+        const semLines = semanticMemories.map((m: any) => `• ${m.content}`).join('\n');
+        parts.push(`🧠 CUNOȘTINȚE GENERALIZATE (din interacțiuni repetate):\n${semLines}`);
+      }
+      
+      if (episodicMemories && episodicMemories.length > 0) {
+        const epiLines = episodicMemories.map((m: any) => `• ${m.content}`).join('\n');
+        parts.push(`📝 FAPTE RECENTE (din conversații specifice):\n${epiLines}`);
+      }
+
+      if (parts.length > 0) {
+        tieredMemorySection = `\n\n=== MEMORIE PERSISTENTĂ ===\n${parts.join('\n\n')}\n→ Folosește aceste cunoștințe NATURAL, fără a menționa că „ai memorat" ceva.\n→ Integrează-le când sunt relevante pentru conversația curentă.\n=== END MEMORIE ===\n`;
+        console.log(`[chat-ai][${requestId}] Tiered memory injected: ${semanticMemories?.length || 0} semantic, ${episodicMemories?.length || 0} episodic`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Tiered memory injection failed (non-blocking):`, err);
+    }
     
     // 🆕 CONSCIOUSNESS: Adaugă prompt injection din consciousness-engine pentru personalizare
     const consciousnessSection = consciousnessContext?.context?.promptInjection 
@@ -2280,7 +2321,7 @@ ${lines}
       console.log(`[chat-ai][${requestId}] 📝 UserMentionedFacts injected: ${Object.keys(userMentionedFacts).join(', ')}`);
     }
     
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

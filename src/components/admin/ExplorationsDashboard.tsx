@@ -3,10 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Globe, BookOpen, Sparkles, ExternalLink, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Globe, BookOpen, Sparkles, ExternalLink, RefreshCw, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
+import { AgentTracesTab } from "./AgentTracesTab";
 
 interface Exploration {
   id: string;
@@ -84,6 +86,19 @@ export function ExplorationsDashboard() {
   }
 
   return (
+    <Tabs defaultValue="explorations" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="explorations">
+          <Globe className="h-4 w-4 mr-2" />
+          Explorări
+        </TabsTrigger>
+        <TabsTrigger value="traces">
+          <Activity className="h-4 w-4 mr-2" />
+          Agent Traces
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="explorations">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -230,5 +245,11 @@ export function ExplorationsDashboard() {
         )}
       </div>
     </div>
+      </TabsContent>
+
+      <TabsContent value="traces">
+        <AgentTracesTab />
+      </TabsContent>
+    </Tabs>
   );
 }
