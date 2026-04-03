@@ -10,6 +10,7 @@ import MiniFooter from '@/components/MiniFooter';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
 import { YanaMemoryInsights } from '@/components/yana/YanaMemoryInsights';
 import { SubscriptionDetails } from '@/components/settings/SubscriptionDetails';
+import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
 import { useToast } from '@/hooks/use-toast';
 import { performVersionRefresh } from '@/utils/versionRefresh';
 import {
@@ -191,19 +192,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Preferințe Notificări</CardTitle>
-                <CardDescription>
-                  Alege ce notificări vrei să primești
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Setările de notificări vor fi disponibile în curând.
-                </p>
-              </CardContent>
-            </Card>
+            <NotificationPreferences />
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-6">
