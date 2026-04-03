@@ -412,7 +412,22 @@ serve(async (req) => {
     console.log('[FISCAL-CHAT] Parsed message:', message ? message.slice(0, 120) : '(empty)');
 
     // Extract full messages array for conversation history
-    const messagesArray = parsedBody.messages || [{ role: 'user', content: message }];
+    // ai-router sends history as 'history' field, but direct calls may use 'messages'
+    const rawBody2 = JSON.parse(rawBody);
+    const historyFromRouter = rawBody2.history as Array<{role: string; content: string}> | undefined;
+    
+    let messagesArray: Array<{role: string; content: string}>;
+    if (historyFromRouter && historyFromRouter.length > 0) {
+      // Build messages from router history + current message
+      // Take last 10 messages for context without exceeding token limits
+      const recentHistory = historyFromRouter.slice(-10);
+      messagesArray = [...recentHistory, { role: 'user', content: message }];
+      console.log('[FISCAL-CHAT] Using router history:', recentHistory.length, 'messages + current');
+    } else if (parsedBody.messages && parsedBody.messages.length > 0) {
+      messagesArray = parsedBody.messages;
+    } else {
+      messagesArray = [{ role: 'user', content: message }];
+    }
     console.log('[FISCAL-CHAT] Messages array length:', messagesArray.length);
 
     // Get Perplexity API key
@@ -504,7 +519,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'sonar',
+          model: 'sonar-pro',
           messages: [
             {
               role: 'system',
@@ -572,7 +587,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         endpoint: 'fiscal-chat',
-        model: 'sonar',
+        model: 'sonar-pro',
         estimated_cost_cents: 15, // 0.15 RON per fiscal query
         success: true,
         month_year: new Date().toISOString().slice(0, 7) // YYYY-MM
