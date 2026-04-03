@@ -182,6 +182,7 @@ const App = () => {
                       <Route path="/research" element={<Research />} />
                       <Route path="/install" element={<InstallPWA />} />
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
+                      <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
