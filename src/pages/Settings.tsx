@@ -8,6 +8,7 @@ import { YanaHomeButton } from '@/components/YanaHomeButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MiniFooter from '@/components/MiniFooter';
 import { AILearningDashboard } from '@/components/AILearningDashboard';
+import { YanaMemoryInsights } from '@/components/yana/YanaMemoryInsights';
 import { SubscriptionDetails } from '@/components/settings/SubscriptionDetails';
 import { useToast } from '@/hooks/use-toast';
 import { performVersionRefresh } from '@/utils/versionRefresh';
@@ -210,6 +211,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="ai-learning" className="space-y-6">
+            <YanaMemoryInsights />
             <AILearningDashboard />
           </TabsContent>
 
