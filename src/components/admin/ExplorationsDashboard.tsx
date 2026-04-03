@@ -89,6 +89,19 @@ export function ExplorationsDashboard() {
   }
 
   return (
+    <Tabs defaultValue="explorations" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="explorations">
+          <Globe className="h-4 w-4 mr-2" />
+          Explorări
+        </TabsTrigger>
+        <TabsTrigger value="traces">
+          <Activity className="h-4 w-4 mr-2" />
+          Agent Traces
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="explorations">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
