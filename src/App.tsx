@@ -172,14 +172,14 @@ const App = () => {
                       <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                       <Route path="/app" element={<Navigate to="/yana" replace />} />
                       
-                      <Route path="/generate-literature-review" element={<GenerateLiteratureReview />} />
-                      <Route path="/generate-conference-paper" element={<GenerateConferencePaper />} />
+                      <Route path="/generate-literature-review" element={<PrivateRoute><GenerateLiteratureReview /></PrivateRoute>} />
+                      <Route path="/generate-conference-paper" element={<PrivateRoute><GenerateConferencePaper /></PrivateRoute>} />
                       <Route path="/generate-academic-statistics" element={<PrivateRoute><GenerateAcademicStatistics /></PrivateRoute>} />
                       <Route path="/my-documents" element={<PrivateRoute><MyDocuments /></PrivateRoute>} />
                       <Route path="/my-ai-costs" element={<PrivateRoute><MyAICosts /></PrivateRoute>} />
                       
                       <Route path="/ai-strategy" element={<PrivateRoute><AIStrategy /></PrivateRoute>} />
-                      <Route path="/research" element={<Research />} />
+                      <Route path="/research" element={<PrivateRoute><Research /></PrivateRoute>} />
                       <Route path="/install" element={<InstallPWA />} />
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />

@@ -43,7 +43,19 @@ const WEATHER_DESCRIPTIONS: Record<number, string> = {
   95: 'furtună', 96: 'furtună cu grindină ușoară', 99: 'furtună cu grindină puternică',
 };
 
+// 🆕 IN-MEMORY CACHE pentru contextual intelligence (5 minute TTL)
+const contextCache: Map<string, { data: string; timestamp: number }> = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute
+
 async function buildContextualIntelligence(supabase: any, userId: string): Promise<string> {
+  // Check cache first
+  const cacheKey = `ctx_${userId}`;
+  const cached = contextCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+    console.log('[chat-ai] Using cached contextual intelligence');
+    return cached.data;
+  }
+  
   const parts: string[] = [];
   const now = new Date();
   
@@ -130,9 +142,11 @@ async function buildContextualIntelligence(supabase: any, userId: string): Promi
     console.warn('Fiscal calendar fetch failed (non-blocking):', err);
   }
 
-  if (parts.length <= 1) return ''; // Only date, no real context
+  if (parts.length <= 1) {
+    return ''; // Only date, no real context
+  }
 
-  return `
+  const result = `
 === INTELIGENȚĂ CONTEXTUALĂ ===
 ${parts.join('\n')}
 
@@ -141,6 +155,16 @@ ${parts.join('\n')}
 → Dacă un termen fiscal e în următoarele 3 zile, menționează-l proactiv!
 === END CONTEXTUAL ===
 `;
+  
+  // Save to cache
+  contextCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  // Cleanup old entries (max 100)
+  if (contextCache.size > 100) {
+    const oldest = [...contextCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) contextCache.delete(oldest[0]);
+  }
+  
+  return result;
 }
 
 // 🆕 CUI DETECTION
@@ -2588,27 +2612,33 @@ Răspunde natural, ca și cum ai vedea tu direct imaginea.
       const content = responseData.choices?.[0]?.message?.content || "";
       
       // ========================================
-      // DEDUCT CREDIT AFTER SUCCESS (non-streaming)
-      // ========================================
-      // Chat AI inclus în abonament - doar tracking pentru statistici
+      // TOKEN TRACKING (non-streaming)
       // ========================================
       if (content) {
-        // Track AI usage pentru statistici (fără deducere credite)
+        const usageData = responseData.usage || {};
+        const inputTokens = usageData.prompt_tokens || Math.ceil(JSON.stringify(messages).length / 4);
+        const outputTokens = usageData.completion_tokens || Math.ceil(content.length / 4);
+        const totalTokens = inputTokens + outputTokens;
+        // Gemini 2.5 Flash: $0.075/1M input, $0.30/1M output
+        const estimatedCostCents = Math.ceil((inputTokens / 1_000_000) * 7.5 + (outputTokens / 1_000_000) * 30);
+        
         await supabase
           .from('ai_usage')
           .insert({
             user_id: userId,
             endpoint: 'chat-ai',
             model: 'google/gemini-2.5-flash',
-            estimated_cost_cents: 0, // Inclus în abonament
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            total_tokens: totalTokens,
+            estimated_cost_cents: estimatedCostCents,
+            request_duration_ms: Date.now() - requestStartTime,
             success: true,
             month_year: new Date().toISOString().slice(0, 7)
           });
         const totalDuration = Date.now() - requestStartTime;
         console.log(`[chat-ai][${requestId}] ========== REQUEST COMPLETE (non-stream) ==========`);
-        console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms`);
-        console.log(`[chat-ai][${requestId}] Response length: ${content.length} chars`);
-        console.log(`[chat-ai][${requestId}] Status: SUCCESS`);
+        console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms, tokens: ${totalTokens} (in:${inputTokens}/out:${outputTokens}), cost: ${estimatedCostCents}¢`);
       }
       // ========================================
       
@@ -2771,14 +2801,17 @@ Răspunde natural, ca și cum ai vedea tu direct imaginea.
             accumulatedContent = fallback;
           }
 
-          // === Chat AI inclus în abonament - doar tracking pentru statistici ===
+          // === TOKEN TRACKING (streaming) ===
           if (sentAnyContent && accumulatedContent.length > 0) {
-            // Track AI usage pentru statistici (fără deducere credite)
             const totalDuration = Date.now() - requestStartTime;
+            // Estimate tokens from content length for streaming (no usage object available)
+            const estimatedInputTokens = Math.ceil(JSON.stringify(messages).length / 4);
+            const estimatedOutputTokens = Math.ceil(accumulatedContent.length / 4);
+            const totalTokens = estimatedInputTokens + estimatedOutputTokens;
+            const estimatedCostCents = Math.ceil((estimatedInputTokens / 1_000_000) * 7.5 + (estimatedOutputTokens / 1_000_000) * 30);
+            
             console.log(`[chat-ai][${requestId}] ========== REQUEST COMPLETE (stream) ==========`);
-            console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms`);
-            console.log(`[chat-ai][${requestId}] Response length: ${accumulatedContent.length} chars`);
-            console.log(`[chat-ai][${requestId}] Status: SUCCESS`);
+            console.log(`[chat-ai][${requestId}] Duration: ${totalDuration}ms, tokens: ~${totalTokens} (in:${estimatedInputTokens}/out:${estimatedOutputTokens}), cost: ${estimatedCostCents}¢`);
             
             await supabase
               .from('ai_usage')
@@ -2786,11 +2819,14 @@ Răspunde natural, ca și cum ai vedea tu direct imaginea.
                 user_id: userId,
                 endpoint: 'chat-ai',
                 model: 'google/gemini-2.5-flash',
-                estimated_cost_cents: 0, // Inclus în abonament
+                input_tokens: estimatedInputTokens,
+                output_tokens: estimatedOutputTokens,
+                total_tokens: totalTokens,
+                estimated_cost_cents: estimatedCostCents,
+                request_duration_ms: totalDuration,
                 success: true,
                 month_year: new Date().toISOString().slice(0, 7)
               });
-            console.log('[chat-ai] Message tracked (included in subscription)');
             
             // 📊 LOGGING: Monitorizare decizii AI
             const isFiscalRedirect = accumulatedContent.toLowerCase().includes('consultanță fiscală') ||
