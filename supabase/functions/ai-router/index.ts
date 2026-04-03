@@ -1790,8 +1790,248 @@ serve(async (req) => {
     }
 
     // =============================================================================
+    // SPECIAL ROUTE: ADMIN DATA QUERIES (direct DB access for admin users)
+    // =============================================================================
+    if (routeDecision.route === 'admin-data') {
+      console.log('[AI-Router] 👑 Handling admin data query');
+      
+      // Verify admin role
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: user.id,
+        _role: 'admin'
+      });
+      
+      if (!isAdmin) {
+        const denyResponse = '🔒 Această funcționalitate este disponibilă doar pentru administratori.';
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: denyResponse,
+        });
+        return new Response(
+          JSON.stringify({ success: true, response: denyResponse, route: 'admin-data' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      const adminMessage = message.toLowerCase();
+      let chatResponse = '';
+      
+      try {
+        // === USERS / SUBSCRIBERS ===
+        if (/(?:utilizatori|useri|users|conturi|clien[tț]i|clienti|abona[tț]i|abonati|total)/i.test(adminMessage)) {
+          const [
+            { count: totalUsers },
+            { count: activeSubscribers },
+            { count: trialUsers },
+            { count: freeAccessUsers },
+            { count: todayRegistered },
+            { data: recentUsers },
+            { count: activeSessions },
+          ] = await Promise.all([
+            supabase.from('profiles').select('id', { count: 'exact', head: true }),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('subscription_status', 'active'),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).gt('trial_ends_at', new Date().toISOString()),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('has_free_access', true),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', new Date().toISOString().split('T')[0]),
+            supabase.from('profiles').select('email, full_name, created_at, subscription_status').order('created_at', { ascending: false }).limit(5),
+            supabase.from('active_sessions').select('id', { count: 'exact', head: true }),
+          ]);
+          
+          chatResponse = `👑 **Raport Utilizatori YANA**\n\n`;
+          chatResponse += `📊 **Statistici generale:**\n`;
+          chatResponse += `• 👥 Total utilizatori: **${totalUsers || 0}**\n`;
+          chatResponse += `• ✅ Abonamente active: **${activeSubscribers || 0}**\n`;
+          chatResponse += `• 🆓 Acces gratuit: **${freeAccessUsers || 0}**\n`;
+          chatResponse += `• ⏳ Trial activ: **${trialUsers || 0}**\n`;
+          chatResponse += `• 🆕 Înregistrați azi: **${todayRegistered || 0}**\n`;
+          chatResponse += `• 🟢 Sesiuni active acum: **${activeSessions || 0}**\n\n`;
+          
+          if (totalUsers && totalUsers > 0) {
+            const conversionRate = ((activeSubscribers || 0) / totalUsers * 100).toFixed(1);
+            chatResponse += `📈 **Rată de conversie:** ${conversionRate}% (abonat/total)\n\n`;
+          }
+          
+          if (recentUsers && recentUsers.length > 0) {
+            chatResponse += `🆕 **Ultimii 5 utilizatori:**\n`;
+            recentUsers.forEach((u: any, i: number) => {
+              const date = new Date(u.created_at).toLocaleDateString('ro-RO');
+              const status = u.subscription_status === 'active' ? '✅' : '⏳';
+              chatResponse += `${i + 1}. ${status} ${u.email} (${u.full_name || 'fără nume'}) — ${date}\n`;
+            });
+          }
+        }
+        // === ANALYSES ===
+        else if (/(?:analize|balan[tț]e|balante)/i.test(adminMessage)) {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const [
+            { count: totalAnalyses },
+            { count: monthAnalyses },
+            { data: recentAnalyses },
+          ] = await Promise.all([
+            supabase.from('analyses').select('id', { count: 'exact', head: true }),
+            supabase.from('analyses').select('id', { count: 'exact', head: true }).gte('created_at', `${currentMonth}-01`),
+            supabase.from('analyses').select('company_name, file_name, created_at').order('created_at', { ascending: false }).limit(5),
+          ]);
+          
+          chatResponse = `📊 **Raport Analize**\n\n`;
+          chatResponse += `• 📁 Total analize: **${totalAnalyses || 0}**\n`;
+          chatResponse += `• 📅 Luna aceasta: **${monthAnalyses || 0}**\n\n`;
+          
+          if (recentAnalyses && recentAnalyses.length > 0) {
+            chatResponse += `🆕 **Ultimele 5 analize:**\n`;
+            recentAnalyses.forEach((a: any, i: number) => {
+              const date = new Date(a.created_at).toLocaleDateString('ro-RO');
+              chatResponse += `${i + 1}. ${a.company_name || a.file_name} — ${date}\n`;
+            });
+          }
+        }
+        // === CONVERSATIONS ===
+        else if (/(?:conversa[tț]ii|conversatii|mesaje|chat-uri)/i.test(adminMessage)) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const [
+            { count: totalConversations },
+            { count: todayConversations },
+            { count: totalMessages },
+          ] = await Promise.all([
+            supabase.from('yana_conversations').select('id', { count: 'exact', head: true }),
+            supabase.from('yana_conversations').select('id', { count: 'exact', head: true }).gte('created_at', todayStr),
+            supabase.from('yana_messages').select('id', { count: 'exact', head: true }),
+          ]);
+          
+          chatResponse = `💬 **Raport Conversații**\n\n`;
+          chatResponse += `• 🗂️ Total conversații: **${totalConversations || 0}**\n`;
+          chatResponse += `• 📅 Conversații azi: **${todayConversations || 0}**\n`;
+          chatResponse += `• 💬 Total mesaje: **${totalMessages || 0}**\n`;
+        }
+        // === AI COSTS ===
+        else if (/(?:cost(?:uri)?|cheltuieli)\s+(?:AI|ai|platform)/i.test(adminMessage) || /(?:erori|errors)/i.test(adminMessage)) {
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const todayStr = new Date().toISOString().split('T')[0];
+          const [
+            { data: monthlyUsage },
+            { count: todayRequests },
+            { count: todayErrors },
+          ] = await Promise.all([
+            supabase.from('ai_usage').select('estimated_cost_cents, total_tokens').eq('month_year', currentMonth),
+            supabase.from('ai_usage').select('id', { count: 'exact', head: true }).gte('created_at', todayStr),
+            supabase.from('ai_usage').select('id', { count: 'exact', head: true }).eq('success', false).gte('created_at', todayStr),
+          ]);
+          
+          const totalCost = (monthlyUsage || []).reduce((sum: number, r: any) => sum + (r.estimated_cost_cents || 0), 0) / 100;
+          const totalTokens = (monthlyUsage || []).reduce((sum: number, r: any) => sum + (r.total_tokens || 0), 0);
+          const totalRequests = (monthlyUsage || []).length;
+          const errorRate = todayRequests && todayRequests > 0 ? ((todayErrors || 0) / todayRequests * 100).toFixed(1) : '0';
+          
+          chatResponse = `💰 **Raport Costuri AI — ${currentMonth}**\n\n`;
+          chatResponse += `• 💸 Cost total luna: **${totalCost.toFixed(2)} RON**\n`;
+          chatResponse += `• 📊 Total request-uri: **${totalRequests}**\n`;
+          chatResponse += `• 🔤 Total tokeni: **${totalTokens.toLocaleString('ro-RO')}**\n`;
+          chatResponse += `• ⚡ Request-uri azi: **${todayRequests || 0}**\n`;
+          chatResponse += `• ❌ Erori azi: **${todayErrors || 0}** (${errorRate}%)\n`;
+          
+          if (totalRequests > 0) {
+            chatResponse += `• 📐 Cost mediu/request: **${(totalCost / totalRequests).toFixed(3)} RON**\n`;
+          }
+        }
+        // === SUBSCRIPTIONS / REVENUE ===
+        else if (/(?:venituri|revenue|MRR|mrr|abonamente|subscrip[tț]ii)/i.test(adminMessage)) {
+          const [
+            { count: activeSubscriptions },
+            { count: expiredSubscriptions },
+            { data: creditsPurchases },
+          ] = await Promise.all([
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('subscription_status', 'active').not('stripe_subscription_id', 'is', null),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('subscription_status', 'expired'),
+            supabase.from('credits_purchases').select('amount_paid_cents, credits_added').order('purchase_date', { ascending: false }).limit(100),
+          ]);
+          
+          const totalCreditRevenue = (creditsPurchases || []).reduce((sum: number, p: any) => sum + (p.amount_paid_cents || 0), 0) / 100;
+          const estimatedMRR = (activeSubscriptions || 0) * 49; // 49 RON/month
+          
+          chatResponse = `💵 **Raport Venituri & Abonamente**\n\n`;
+          chatResponse += `• ✅ Abonamente Stripe active: **${activeSubscriptions || 0}**\n`;
+          chatResponse += `• ❌ Abonamente expirate: **${expiredSubscriptions || 0}**\n`;
+          chatResponse += `• 📈 MRR estimat: **${estimatedMRR.toLocaleString('ro-RO')} RON**\n`;
+          chatResponse += `• 💳 Venituri din credite: **${totalCreditRevenue.toFixed(2)} RON** (ultimele 100 tranzacții)\n`;
+        }
+        // === EMAILS ===
+        else if (/(?:email|emailuri|mesaje\s+trimise)/i.test(adminMessage)) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const [
+            { count: totalEmails },
+            { count: todayEmails },
+          ] = await Promise.all([
+            supabase.from('email_logs').select('id', { count: 'exact', head: true }),
+            supabase.from('email_logs').select('id', { count: 'exact', head: true }).gte('sent_at', todayStr),
+          ]);
+          
+          chatResponse = `📧 **Raport Email-uri**\n\n`;
+          chatResponse += `• 📤 Total email-uri trimise: **${totalEmails || 0}**\n`;
+          chatResponse += `• 📅 Trimise azi: **${todayEmails || 0}**\n`;
+        }
+        // === GENERAL DASHBOARD ===
+        else {
+          // Catch-all: return a summary dashboard
+          const todayStr = new Date().toISOString().split('T')[0];
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          
+          const [
+            { count: totalUsers },
+            { count: activeSubscribers },
+            { count: activeSessions },
+            { count: todayAnalyses },
+            { count: todayConversations },
+            { data: monthlyAICost },
+          ] = await Promise.all([
+            supabase.from('profiles').select('id', { count: 'exact', head: true }),
+            supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('subscription_status', 'active'),
+            supabase.from('active_sessions').select('id', { count: 'exact', head: true }),
+            supabase.from('analyses').select('id', { count: 'exact', head: true }).gte('created_at', todayStr),
+            supabase.from('yana_conversations').select('id', { count: 'exact', head: true }).gte('created_at', todayStr),
+            supabase.from('ai_usage').select('estimated_cost_cents').eq('month_year', currentMonth),
+          ]);
+          
+          const aiCost = (monthlyAICost || []).reduce((sum: number, r: any) => sum + (r.estimated_cost_cents || 0), 0) / 100;
+          
+          chatResponse = `👑 **Dashboard Admin YANA**\n\n`;
+          chatResponse += `📊 **Utilizatori:**\n`;
+          chatResponse += `• 👥 Total: **${totalUsers || 0}** | ✅ Abonați: **${activeSubscribers || 0}** | 🟢 Online: **${activeSessions || 0}**\n\n`;
+          chatResponse += `📈 **Activitate azi:**\n`;
+          chatResponse += `• 📁 Analize: **${todayAnalyses || 0}** | 💬 Conversații: **${todayConversations || 0}**\n\n`;
+          chatResponse += `💰 **Costuri AI luna ${currentMonth}:** **${aiCost.toFixed(2)} RON**\n\n`;
+          chatResponse += `---\n*Întreabă-mă detalii: "câți utilizatori au trial?", "costuri AI azi", "ultimele analize", "venituri luna aceasta"*`;
+        }
+        
+        // Save response
+        if (conversationId) {
+          await supabase.from('yana_messages').insert({
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: chatResponse,
+            artifacts: [],
+            ends_with_question: false,
+          });
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, response: chatResponse, route: 'admin-data' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (adminErr: any) {
+        console.error('[AI-Router] ❌ Admin data query error:', adminErr);
+        const errorResponse = `❌ Eroare la interogarea datelor: ${adminErr.message}`;
+        return new Response(
+          JSON.stringify({ success: true, response: errorResponse, route: 'admin-data' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =============================================================================
     // STANDARD ROUTES
     // =============================================================================
+
 
     // Call the appropriate edge function
     // Use enhanced ANAF risk analysis with Claude AI
