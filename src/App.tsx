@@ -53,6 +53,7 @@ const GenerateAcademicStatistics = lazy(() => import("./pages/GenerateAcademicSt
 const MyAICosts = lazy(() => import("./pages/MyAICosts"));
 const AIStrategy = lazy(() => import("./pages/AIStrategy"));
 const Research = lazy(() => import("./pages/Research"));
+const PriceTracker = lazy(() => import("./pages/PriceTracker"));
 
 const queryClient = new QueryClient();
 
@@ -179,6 +180,7 @@ const App = () => {
                       <Route path="/ai-strategy" element={<PrivateRoute><AIStrategy /></PrivateRoute>} />
                       <Route path="/research" element={<Research />} />
                       <Route path="/install" element={<InstallPWA />} />
+                      <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
