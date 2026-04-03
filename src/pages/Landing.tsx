@@ -103,8 +103,8 @@ const Landing = () => {
               <p className="text-xl sm:text-2xl md:text-3xl text-muted-foreground">
                 Despre business. Despre cifre. Despre ce te ține treaz noaptea.
               </p>
-              <p className="text-sm sm:text-base text-muted-foreground/80 pt-1">
-                Partener AI de business: analizează balanța, dă sfaturi strategice, nu uită nimic.
+              <p className="text-sm sm:text-base font-medium text-foreground/90 pt-2 tracking-wide">
+                YANA nu este un chatbot. Este un AI pentru business.
               </p>
             </div>
 

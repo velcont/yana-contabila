@@ -153,7 +153,10 @@ export default function Yana() {
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-sm">Y</span>
               </div>
-              <span className="font-semibold text-foreground hidden sm:inline">Yana</span>
+              <div className="hidden sm:flex flex-col">
+                <span className="font-semibold text-foreground text-sm leading-tight">Yana</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">Nu e un chatbot. E un AI pentru business.</span>
+              </div>
             </div>
           </div>
           
