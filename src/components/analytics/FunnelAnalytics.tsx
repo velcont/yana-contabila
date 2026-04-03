@@ -14,9 +14,10 @@ import {
   Funnel,
   LabelList
 } from 'recharts';
-import { TrendingDown, Users, LogIn, MessageSquare, CreditCard, ArrowRight } from 'lucide-react';
+import { TrendingDown, Users, LogIn, MessageSquare, CreditCard, ArrowRight, Smartphone, Monitor } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface FunnelStep {
   name: string;
@@ -42,6 +43,7 @@ export function FunnelAnalytics() {
   const [funnelData, setFunnelData] = useState<FunnelData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('30d');
+  const [deviceBreakdown, setDeviceBreakdown] = useState<{ mobile: number; desktop: number }>({ mobile: 0, desktop: 0 });
 
   useEffect(() => {
     loadFunnelData();
@@ -131,6 +133,21 @@ export function FunnelAnalytics() {
         conversations: eventCounts[6].count || 0,
         checkouts: eventCounts[7].count || 0,
       });
+
+      // Device breakdown from user_agent
+      const { data: agentData } = await supabase
+        .from('analytics_events')
+        .select('user_agent')
+        .eq('event_name', 'page_view')
+        .gte('created_at', startDate?.toISOString() || '2020-01-01')
+        .limit(500);
+      
+      let mobile = 0, desktop = 0;
+      for (const e of agentData || []) {
+        if (e.user_agent && /mobile|android|iphone/i.test(e.user_agent)) mobile++;
+        else desktop++;
+      }
+      setDeviceBreakdown({ mobile, desktop });
     } catch (error) {
       console.error('Error loading funnel data:', error);
     } finally {
@@ -292,38 +309,81 @@ export function FunnelAnalytics() {
         </Card>
       )}
 
-      {/* Detalii drop-off */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Detalii Drop-off între Pași</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {dropOffs.map((drop, idx) => (
-              <div 
-                key={idx}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2 text-sm">
-                  <span>{drop.from}</span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  <span>{drop.to}</span>
+      {/* Detalii drop-off + Device breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg">Detalii Drop-off între Pași</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {dropOffs.map((drop, idx) => (
+                <div 
+                  key={idx}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-sm">
+                    <span>{drop.from}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <span>{drop.to}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      -{drop.lost} utilizatori
+                    </span>
+                    <Badge 
+                      variant={drop.dropOff > 70 ? 'destructive' : drop.dropOff > 40 ? 'secondary' : 'outline'}
+                    >
+                      -{drop.dropOff}%
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    -{drop.lost} utilizatori
-                  </span>
-                  <Badge 
-                    variant={drop.dropOff > 70 ? 'destructive' : drop.dropOff > 40 ? 'secondary' : 'outline'}
-                  >
-                    -{drop.dropOff}%
-                  </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Device Breakdown - PostHog style */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Smartphone className="h-4 w-4" /> Device Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Desktop</span>
                 </div>
+                <span className="font-medium">{deviceBreakdown.desktop}</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${(deviceBreakdown.desktop / Math.max(deviceBreakdown.desktop + deviceBreakdown.mobile, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Mobile</span>
+                </div>
+                <span className="font-medium">{deviceBreakdown.mobile}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-orange-500 transition-all"
+                  style={{ width: `${(deviceBreakdown.mobile / Math.max(deviceBreakdown.desktop + deviceBreakdown.mobile, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
