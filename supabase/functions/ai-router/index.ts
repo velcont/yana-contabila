@@ -1665,6 +1665,98 @@ serve(async (req) => {
     }
 
     // =============================================================================
+    // SPECIAL ROUTE: PRICE COMPARISON (search-prices)
+    // =============================================================================
+    if (routeDecision.route === 'search-prices') {
+      console.log('[AI-Router] 💰 Handling price comparison route from chat');
+      
+      const pricePayload = routeDecision.payload as {
+        message: string;
+        product: string;
+        url?: string;
+      };
+      
+      try {
+        const priceResponse = await fetch(`${supabaseUrl}/functions/v1/search-prices`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            product: pricePayload.url || pricePayload.product,
+            currency: 'RON',
+          }),
+        });
+        
+        if (!priceResponse.ok) {
+          const errText = await priceResponse.text();
+          throw new Error(`Price search failed: ${errText}`);
+        }
+        
+        const priceResult = await priceResponse.json();
+        const results = priceResult.results || [];
+        
+        let chatResponse = `🛒 **Comparație Prețuri: ${pricePayload.product.substring(0, 80)}**\n\n`;
+        
+        if (results.length === 0) {
+          chatResponse += `Nu am găsit prețuri pentru acest produs. Încearcă cu un nume mai specific.\n`;
+        } else {
+          // Sort by price ascending
+          const sorted = [...results].sort((a: any, b: any) => (a.price || 999999) - (b.price || 999999));
+          
+          if (priceResult.best_price) {
+            chatResponse += `⭐ **Cel mai bun preț: ${priceResult.best_price.toLocaleString('ro-RO')} RON** (pe ${priceResult.best_source})\n\n`;
+          }
+          
+          chatResponse += `📊 **${sorted.length} rezultate găsite:**\n\n`;
+          
+          sorted.forEach((r: any, i: number) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+            chatResponse += `${medal} **${r.store}** — ${r.price?.toLocaleString('ro-RO')} ${r.currency || 'RON'}\n`;
+            if (r.product_name) chatResponse += `   ${r.product_name}\n`;
+            if (r.url) chatResponse += `   🔗 [Vezi oferta](${r.url})\n`;
+            chatResponse += `\n`;
+          });
+          
+          if (priceResult.citations && priceResult.citations.length > 0) {
+            chatResponse += `🔗 **Surse:** ${priceResult.citations.slice(0, 3).join(', ')}\n\n`;
+          }
+        }
+        
+        chatResponse += `---\n*Vrei să caut prețuri pentru alt produs? Spune-mi ce te interesează.*`;
+        
+        // Save to yana_messages
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: chatResponse,
+          artifacts: [],
+          ends_with_question: true,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: chatResponse, route: 'search-prices' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (priceErr) {
+        console.error('[AI-Router] ❌ Price search error:', priceErr);
+        const errorResponse = `❌ Nu am putut căuta prețuri momentan. Eroare: ${priceErr.message}\n\nPoți încerca din pagina **Price Tracker** (din meniul lateral) sau reformulează cererea.`;
+        
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: errorResponse,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: errorResponse, route: 'search-prices' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =============================================================================
     // STANDARD ROUTES
     // =============================================================================
 
