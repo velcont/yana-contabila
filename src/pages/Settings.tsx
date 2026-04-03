@@ -211,6 +211,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="ai-learning" className="space-y-6">
+            <YanaMemoryInsights />
             <AILearningDashboard />
           </TabsContent>
 
