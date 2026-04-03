@@ -142,9 +142,11 @@ async function buildContextualIntelligence(supabase: any, userId: string): Promi
     console.warn('Fiscal calendar fetch failed (non-blocking):', err);
   }
 
-  if (parts.length <= 1) return ''; // Only date, no real context
+  if (parts.length <= 1) {
+    return ''; // Only date, no real context
+  }
 
-  return `
+  const result = `
 === INTELIGENȚĂ CONTEXTUALĂ ===
 ${parts.join('\n')}
 
@@ -153,6 +155,16 @@ ${parts.join('\n')}
 → Dacă un termen fiscal e în următoarele 3 zile, menționează-l proactiv!
 === END CONTEXTUAL ===
 `;
+  
+  // Save to cache
+  contextCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  // Cleanup old entries (max 100)
+  if (contextCache.size > 100) {
+    const oldest = [...contextCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) contextCache.delete(oldest[0]);
+  }
+  
+  return result;
 }
 
 // 🆕 CUI DETECTION
