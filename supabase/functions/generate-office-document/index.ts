@@ -2,8 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 
 /**
- * GENERATE-OFFICE-DOCUMENT v3.0 — Aria-Level Document Agent
- * Structured AI tool-calling, dedicated templates, PDF fill_form mode
+ * GENERATE-OFFICE-DOCUMENT v4.0 — Enhanced with OfficeCLI Design Principles
+ * Richer PPTX layouts, professional typography, varied slide designs
  */
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -20,13 +20,10 @@ interface DocumentRequest {
   template?: "blank" | "letterhead" | "report" | "client_notification" | "contract";
   customData?: Record<string, unknown>;
   recipientEmail?: string;
-  // PDF modes
   mode?: "create" | "merge" | "fill_form";
   sourceFiles?: string[];
-  // PDF fill_form
   templatePath?: string;
   fields?: Record<string, string>;
-  // Excel advanced
   excelConfig?: {
     sheets?: Array<{
       name: string;
@@ -43,12 +40,27 @@ interface DocumentRequest {
       freezeHeader?: boolean;
     };
   };
-  // Balance context for data-driven docs
   balanceContext?: Record<string, unknown>;
 }
 
 // =============================================================================
-// STRUCTURED AI PROMPTS PER DOCUMENT TYPE
+// COLOR PALETTES (inspired by OfficeCLI design system)
+// =============================================================================
+const PALETTES = {
+  midnight: { primary: "1E2761", secondary: "CADCFC", accent: "3B82F6", bg: "0F172A", text: "F8FAFC", muted: "94A3B8" },
+  ocean:    { primary: "065A82", secondary: "1C7293", accent: "21295C", bg: "0C2D48", text: "E0F2FE", muted: "7DD3FC" },
+  forest:   { primary: "2C5F2D", secondary: "97BC62", accent: "1B4332", bg: "14532D", text: "F0FDF4", muted: "86EFAC" },
+  coral:    { primary: "F96167", secondary: "F9E795", accent: "2F3C7E", bg: "1E293B", text: "FFF1F2", muted: "FDA4AF" },
+  teal:     { primary: "028090", secondary: "00A896", accent: "02C39A", bg: "134E4A", text: "F0FDFA", muted: "5EEAD4" },
+};
+
+function pickPalette(): typeof PALETTES.midnight {
+  const keys = Object.keys(PALETTES) as (keyof typeof PALETTES)[];
+  return PALETTES[keys[Math.floor(Math.random() * keys.length)]];
+}
+
+// =============================================================================
+// STRUCTURED AI PROMPTS PER DOCUMENT TYPE (v4.0 — enhanced)
 // =============================================================================
 
 function getStructuredPrompt(documentType: string, templateType: string, customData?: Record<string, unknown>, balanceContext?: Record<string, unknown>): string {
@@ -77,36 +89,61 @@ RĂSPUNDE DOAR CU JSON VALID. Schema OBLIGATORIE:
   ]
 }
 
-REGULI EXCEL:
+REGULI EXCEL PROFESIONALE:
 - Toate valorile numerice ca numere, nu string-uri
-- Include formule SUM/AVERAGE/COUNT acolo unde are sens
+- Include formule SUM/AVERAGE/COUNT/IF acolo unde are sens
 - Fiecare sheet max 31 caractere în nume
 - Adaugă sheet de sumar dacă datele sunt complexe
+- Formatează valorile monetare cu 2 zecimale
+- Adaugă totaluri și subtotaluri pe fiecare sheet
+- Column widths: minim 12 pentru cifre, minim 25 pentru text descriptiv
+- Organizează datele logic: categorii, subcategorii, valori
+- Adaugă un sheet "Sumar" cu KPI-urile principale dacă ai mai mult de 2 sheets
 ${balanceSection}
 ${customData ? `Date suplimentare: ${JSON.stringify(customData)}` : ''}`;
 
     case 'pptx':
-      return `Ești Yana, expert în prezentări profesionale.
-Generezi conținut structurat în format JSON pentru PowerPoint.
+      return `Ești Yana, expert în prezentări profesionale vizuale.
+Generezi conținut structurat în format JSON pentru PowerPoint cu layout-uri variate și design profesional.
 
 RĂSPUNDE DOAR CU JSON VALID. Schema OBLIGATORIE:
 {
   "title": "Titlul prezentării",
   "slides": [
     {
-      "layout": "title|title_content|two_column|blank",
+      "layout": "title|content|two_column|stats|comparison|quote|section_break|cta",
       "title": "Titlu slide",
-      "content": "Conținut principal (poate include bullet points cu \\n)",
-      "notes": "Note speaker opționale"
+      "content": "Conținut principal",
+      "subtitle": "Subtitlu opțional",
+      "notes": "Note speaker opționale",
+      "stats": [{"value": "25%", "label": "Creștere venituri"}, ...],
+      "left_content": "Conținut coloana stânga (pt two_column)",
+      "right_content": "Conținut coloana dreapta (pt two_column)",
+      "quote_author": "Autor citat (pt quote)"
     }
   ]
 }
 
-REGULI PPTX:
+TIPURI LAYOUT-URI (variază-le!):
+- "title" — slide de titlu principal (fundal întunecat, text mare centrat)
+- "content" — conținut standard cu titlu și text/bullets
+- "two_column" — două coloane cu left_content și right_content
+- "stats" — numere mari impactante (stats: array de {value, label})
+- "comparison" — comparație A vs B (left_content vs right_content cu titluri)
+- "quote" — citat inspirațional centrat + quote_author
+- "section_break" — slide de tranziție între secțiuni (fundal colorat)
+- "cta" — call-to-action final
+
+REGULI DESIGN PROFESIONAL:
+- VARIAZĂ layout-urile! Nu repeta același tip de 2 ori la rând
 - Max 6-8 slide-uri (concis, vizual)
-- Primul slide = titlu, ultimul = mulțumiri/CTA
-- Bullet points cu "- " la început de linie
-- Max 5-6 bullet points per slide
+- Primul slide = "title", ultimul = "cta"
+- Include cel puțin un slide "stats" dacă ai cifre
+- Include "two_column" pentru comparații sau pro/contra
+- Bullet points cu "- " la început de linie, max 4-5 per slide
+- Textul pe slide trebuie să fie SCURT — ideile lungi puse în notes
+- Fiecare slide transmite O SINGURĂ idee
+- Stats: maxim 3-4 valori per slide, valori scurte ("25%", "1.2M", "+15%")
 ${balanceSection}
 ${customData ? `Date suplimentare: ${JSON.stringify(customData)}` : ''}`;
 
@@ -282,7 +319,7 @@ async function generateDocumentContent(
   templateType?: string,
   customData?: Record<string, unknown>,
   balanceContext?: Record<string, unknown>
-): Promise<{ title: string; sections: Array<{ heading: string; content: string; type?: string }>; sheets?: unknown[] }> {
+): Promise<{ title: string; sections: Array<{ heading: string; content: string; type?: string }>; sheets?: unknown[]; slides?: unknown[] }> {
   const systemPrompt = getStructuredPrompt(documentType, templateType || 'general', customData, balanceContext);
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -312,7 +349,6 @@ async function generateDocumentContent(
   
   try {
     const parsed = JSON.parse(content);
-    // Normalize: ensure sections exist (for xlsx the AI returns sheets)
     if (!parsed.sections && parsed.sheets) {
       parsed.sections = parsed.sheets.map((s: { name: string }) => ({
         heading: s.name || 'Sheet',
@@ -320,7 +356,7 @@ async function generateDocumentContent(
         type: 'table',
       }));
     }
-    if (!parsed.sections) {
+    if (!parsed.sections && !parsed.slides) {
       parsed.sections = [{ heading: "Conținut", content: content || description, type: "text" }];
     }
     return parsed;
@@ -343,7 +379,6 @@ async function generateDocx(
   const isLetterhead = template === 'letterhead' || template === 'client_notification' || template === 'report';
   const isContract = template === 'contract' || template === 'nda';
 
-  // Numbering config for proper bullet lists AND numbered articles
   const numberingConfig = {
     config: [
       {
@@ -369,7 +404,6 @@ async function generateDocx(
     ],
   };
 
-  // Client notification: recipient block
   if (template === 'client_notification') {
     children.push(
       new Paragraph({ spacing: { after: 100 } }),
@@ -393,7 +427,6 @@ async function generateDocx(
     );
   }
 
-  // Contract: bilateral header
   if (isContract) {
     children.push(
       new Paragraph({
@@ -404,7 +437,6 @@ async function generateDocx(
     );
   }
 
-  // Title
   children.push(
     new Paragraph({
       children: [new TextRun({ text: docContent.title, bold: true, size: isContract ? 32 : 36, font: "Calibri", color: "1E2761" })],
@@ -413,7 +445,6 @@ async function generateDocx(
     })
   );
 
-  // Date (only for non-letterhead, non-contract)
   if (!isLetterhead && !isContract) {
     children.push(
       new Paragraph({
@@ -424,9 +455,7 @@ async function generateDocx(
     );
   }
 
-  // Sections
   for (const section of docContent.sections) {
-    // Detect DISCLAIMER section
     const isDisclaimer = section.heading?.toUpperCase().includes('DISCLAIMER');
 
     if (isDisclaimer) {
@@ -490,7 +519,6 @@ async function generateDocx(
       const paragraphs = section.content.split("\n\n");
       for (const para of paragraphs) {
         if (para.trim()) {
-          // Handle sub-lines within a paragraph
           const subLines = para.trim().split("\n");
           for (const line of subLines) {
             if (line.trim()) {
@@ -508,63 +536,29 @@ async function generateDocx(
     }
   }
 
-  // Contract: signature blocks
   if (isContract) {
     children.push(
       new Paragraph({ spacing: { before: 600 } }),
-      new Paragraph({
-        children: [new TextRun({ text: "PRESTATOR", bold: true, size: 22, font: "Calibri" })],
-        spacing: { after: 100 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "Denumire: [DENUMIRE PRESTATOR]", size: 22, font: "Calibri" })],
-        spacing: { after: 80 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "Reprezentant: [NUME REPREZENTANT]", size: 22, font: "Calibri" })],
-        spacing: { after: 80 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "Semnătura: ___________________________", size: 22, font: "Calibri", color: "999999" })],
-        spacing: { after: 300 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "BENEFICIAR", bold: true, size: 22, font: "Calibri" })],
-        spacing: { after: 100 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "Denumire: [DENUMIRE BENEFICIAR]", size: 22, font: "Calibri" })],
-        spacing: { after: 80 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "Reprezentant: [NUME REPREZENTANT]", size: 22, font: "Calibri" })],
-        spacing: { after: 80 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "Semnătura: ___________________________", size: 22, font: "Calibri", color: "999999" })],
-      }),
+      new Paragraph({ children: [new TextRun({ text: "PRESTATOR", bold: true, size: 22, font: "Calibri" })], spacing: { after: 100 } }),
+      new Paragraph({ children: [new TextRun({ text: "Denumire: [DENUMIRE PRESTATOR]", size: 22, font: "Calibri" })], spacing: { after: 80 } }),
+      new Paragraph({ children: [new TextRun({ text: "Reprezentant: [NUME REPREZENTANT]", size: 22, font: "Calibri" })], spacing: { after: 80 } }),
+      new Paragraph({ children: [new TextRun({ text: "Semnătura: ___________________________", size: 22, font: "Calibri", color: "999999" })], spacing: { after: 300 } }),
+      new Paragraph({ children: [new TextRun({ text: "BENEFICIAR", bold: true, size: 22, font: "Calibri" })], spacing: { after: 100 } }),
+      new Paragraph({ children: [new TextRun({ text: "Denumire: [DENUMIRE BENEFICIAR]", size: 22, font: "Calibri" })], spacing: { after: 80 } }),
+      new Paragraph({ children: [new TextRun({ text: "Reprezentant: [NUME REPREZENTANT]", size: 22, font: "Calibri" })], spacing: { after: 80 } }),
+      new Paragraph({ children: [new TextRun({ text: "Semnătura: ___________________________", size: 22, font: "Calibri", color: "999999" })] }),
     );
   }
 
-  // Signature block for client_notification
   if (template === 'client_notification') {
     children.push(
       new Paragraph({ spacing: { before: 600 } }),
-      new Paragraph({
-        children: [new TextRun({ text: "Cu stimă,", size: 22, font: "Calibri" })],
-        spacing: { after: 200 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "___________________________", size: 22, font: "Calibri", color: "999999" })],
-        spacing: { after: 100 },
-      }),
-      new Paragraph({
-        children: [new TextRun({ text: "[Semnătura / Numele complet / Funcția]", size: 18, font: "Calibri", color: "999999", italics: true })],
-      }),
+      new Paragraph({ children: [new TextRun({ text: "Cu stimă,", size: 22, font: "Calibri" })], spacing: { after: 200 } }),
+      new Paragraph({ children: [new TextRun({ text: "___________________________", size: 22, font: "Calibri", color: "999999" })], spacing: { after: 100 } }),
+      new Paragraph({ children: [new TextRun({ text: "[Semnătura / Numele complet / Funcția]", size: 18, font: "Calibri", color: "999999", italics: true })] }),
     );
   }
 
-  // Build headers/footers
   const headerChildren = isLetterhead ? [
     new Paragraph({
       children: [
@@ -622,16 +616,12 @@ async function generateDocx(
     sections: [{
       properties: {
         page: {
-          size: { width: 11906, height: 16838 }, // A4
+          size: { width: 11906, height: 16838 },
           margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
         },
       },
-      headers: headerChildren.length > 0 ? {
-        default: new Header({ children: headerChildren }),
-      } : undefined,
-      footers: {
-        default: new Footer({ children: footerChildren }),
-      },
+      headers: headerChildren.length > 0 ? { default: new Header({ children: headerChildren }) } : undefined,
+      footers: { default: new Footer({ children: footerChildren }) },
       children,
     }],
   });
@@ -640,7 +630,7 @@ async function generateDocx(
   return new Uint8Array(buffer);
 }
 
-// ==================== XLSX GENERATION v2.0 (Advanced Formatting) ====================
+// ==================== XLSX GENERATION v2.0 ====================
 async function generateXlsx(
   docContent: { title: string; sections: Array<{ heading: string; content: string; type?: string }>; sheets?: any[] },
   excelConfig?: DocumentRequest["excelConfig"]
@@ -658,17 +648,16 @@ async function generateXlsx(
   const autoFilter = styling.autoFilter !== false;
   const freezeHeader = styling.freezeHeader !== false;
 
-  // Priority: excelConfig.sheets > docContent.sheets (from AI) > parse from sections
   const sheetsData = excelConfig?.sheets || (docContent as any).sheets || null;
 
   if (sheetsData && sheetsData.length > 0) {
     for (const sheetData of sheetsData) {
       const ws = workbook.addWorksheet((sheetData.name || 'Sheet').substring(0, 31));
       
-      // Headers
       const headers = sheetData.headers || [];
       if (headers.length > 0) {
         const headerRow = ws.addRow(headers);
+        headerRow.height = 24;
         headerRow.eachCell((cell: any) => {
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${headerColor}` } };
           cell.font = { bold: true, color: { argb: `FF${headerFontColor}` }, size: 11, name: "Calibri" };
@@ -682,31 +671,37 @@ async function generateXlsx(
         });
       }
 
-      // Data rows with alternate coloring
       const rows = sheetData.rows || [];
       for (let i = 0; i < rows.length; i++) {
         const row = ws.addRow(rows[i]);
         row.eachCell((cell: any) => {
           cell.font = { size: 10, name: "Calibri" };
+          cell.alignment = { vertical: "middle" };
           cell.border = {
             bottom: { style: "thin", color: { argb: "FFE0E0E0" } },
           };
           if (i % 2 === 1) {
             cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${alternateRowColor}` } };
           }
+          // Auto-format numbers
+          if (typeof cell.value === 'number') {
+            if (cell.value % 1 !== 0) {
+              cell.numFmt = '#,##0.00';
+            } else if (cell.value > 999) {
+              cell.numFmt = '#,##0';
+            }
+          }
         });
       }
 
-      // Formulas
       if (sheetData.formulas) {
         for (const f of sheetData.formulas) {
           const cell = ws.getCell(f.cell);
           cell.value = { formula: f.formula } as any;
-          cell.font = { bold: true, size: 11, name: "Calibri" };
+          cell.font = { bold: true, size: 11, name: "Calibri", color: { argb: `FF${headerColor}` } };
         }
       }
 
-      // Column widths
       if (sheetData.columnWidths || sheetData.column_widths) {
         const widths = sheetData.columnWidths || sheetData.column_widths;
         for (const [col, width] of Object.entries(widths)) {
@@ -719,9 +714,8 @@ async function generateXlsx(
           }
         }
       } else {
-        // Auto-fit: estimate column widths
         ws.columns.forEach((col: any) => {
-          let maxLen = 10;
+          let maxLen = 12;
           col.eachCell?.({ includeEmpty: false }, (cell: any) => {
             const cellLen = String(cell.value || "").length;
             if (cellLen > maxLen) maxLen = cellLen;
@@ -730,12 +724,7 @@ async function generateXlsx(
         });
       }
 
-      // Freeze header row
-      if (freezeHeader) {
-        ws.views = [{ state: "frozen", ySplit: 1 }];
-      }
-
-      // Auto filter
+      if (freezeHeader) ws.views = [{ state: "frozen", ySplit: 1 }];
       if (autoFilter && headers.length > 0) {
         ws.autoFilter = {
           from: { row: 1, column: 1 },
@@ -744,7 +733,6 @@ async function generateXlsx(
       }
     }
   } else {
-    // Fallback: parse from AI content sections
     for (const section of docContent.sections) {
       const sheetName = section.heading.substring(0, 31);
 
@@ -755,6 +743,7 @@ async function generateXlsx(
         if (data.length > 0) {
           const ws = workbook.addWorksheet(sheetName);
           const headerRow = ws.addRow(data[0]);
+          headerRow.height = 24;
           headerRow.eachCell((cell: any) => {
             cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${headerColor}` } };
             cell.font = { bold: true, color: { argb: `FF${headerFontColor}` }, size: 11, name: "Calibri" };
@@ -770,7 +759,7 @@ async function generateXlsx(
             });
           }
           ws.columns.forEach((col: any) => {
-            let maxLen = 10;
+            let maxLen = 12;
             col.eachCell?.({ includeEmpty: false }, (cell: any) => {
               const cellLen = String(cell.value || "").length;
               if (cellLen > maxLen) maxLen = cellLen;
@@ -809,7 +798,7 @@ async function generateXlsx(
   return new Uint8Array(buffer);
 }
 
-// ==================== PPTX GENERATION ====================
+// ==================== PPTX GENERATION v4.0 — Rich Layouts ====================
 async function generatePptx(
   docContent: { title: string; sections: Array<{ heading: string; content: string; type?: string }>; slides?: any[] }
 ): Promise<Uint8Array> {
@@ -818,55 +807,293 @@ async function generatePptx(
   const pptx = new PptxGenJS();
   pptx.author = "Yana AI";
   pptx.title = docContent.title;
+  pptx.layout = "LAYOUT_16x9";
 
-  // Use structured slides from AI if available
+  const pal = pickPalette();
+
   const slides = (docContent as any).slides || null;
 
   if (slides && slides.length > 0) {
     for (const slideData of slides) {
       const slide = pptx.addSlide();
+      const layout = slideData.layout || 'content';
 
-      if (slideData.layout === 'title') {
-        slide.background = { color: "1E2761" };
-        slide.addText(slideData.title || docContent.title, {
-          x: 0.5, y: 1.5, w: 9, h: 2,
-          fontSize: 36, bold: true, color: "FFFFFF", fontFace: "Arial",
-          align: "center", valign: "middle",
-        });
-        if (slideData.content) {
-          slide.addText(slideData.content, {
-            x: 0.5, y: 3.8, w: 9, h: 1,
-            fontSize: 16, color: "CADCFC", fontFace: "Arial", align: "center",
+      switch (layout) {
+        case 'title': {
+          // Full dark background with centered title + subtitle
+          slide.background = { color: pal.bg };
+          // Decorative accent bar at top
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: 10, h: 0.06,
+            fill: { color: pal.accent },
           });
+          slide.addText(slideData.title || docContent.title, {
+            x: 1, y: 1.5, w: 8, h: 2,
+            fontSize: 40, bold: true, color: pal.text, fontFace: "Arial",
+            align: "center", valign: "middle",
+          });
+          if (slideData.subtitle || slideData.content) {
+            slide.addText(slideData.subtitle || slideData.content, {
+              x: 1.5, y: 3.8, w: 7, h: 1,
+              fontSize: 16, color: pal.muted, fontFace: "Arial", align: "center",
+            });
+          }
+          // Bottom branding
+          slide.addText(`Generat de Yana • ${new Date().toLocaleDateString("ro-RO")}`, {
+            x: 0, y: 5, w: 10, h: 0.4,
+            fontSize: 10, color: pal.muted, fontFace: "Arial", align: "center",
+          });
+          break;
         }
-      } else {
-        slide.background = { color: "FFFFFF" };
-        slide.addShape(pptx.ShapeType.rect, {
-          x: 0, y: 0, w: 10, h: 0.8,
-          fill: { color: "1E2761" },
-        });
-        slide.addText(slideData.title || '', {
-          x: 0.5, y: 0.1, w: 9, h: 0.6,
-          fontSize: 22, bold: true, color: "FFFFFF", fontFace: "Arial",
-        });
 
-        const content = (slideData.content || '').substring(0, 1500);
-        const lines = content.split("\n").filter((l: string) => l.trim());
-
-        if (lines.some((l: string) => l.startsWith("-") || l.startsWith("•"))) {
-          slide.addText(
-            lines.map((l: string) => ({
-              text: l.replace(/^[-•*]\s*/, ""),
-              options: { fontSize: 16, fontFace: "Arial", color: "333333", bullet: true, breakType: "break" as const },
-            })),
-            { x: 0.8, y: 1.2, w: 8.4, h: 4, valign: "top" }
-          );
-        } else {
-          slide.addText(content, {
-            x: 0.5, y: 1.2, w: 9, h: 4.2,
-            fontSize: 16, color: "333333", fontFace: "Arial", valign: "top",
-            lineSpacingMultiple: 1.3,
+        case 'section_break': {
+          // Full colored slide for section transitions
+          slide.background = { color: pal.primary };
+          slide.addText(slideData.title || '', {
+            x: 1, y: 1.8, w: 8, h: 2,
+            fontSize: 36, bold: true, color: "FFFFFF", fontFace: "Arial",
+            align: "center", valign: "middle",
           });
+          if (slideData.content) {
+            slide.addText(slideData.content, {
+              x: 2, y: 3.8, w: 6, h: 1,
+              fontSize: 16, color: pal.secondary, fontFace: "Arial", align: "center",
+            });
+          }
+          break;
+        }
+
+        case 'stats': {
+          // Large stat numbers in cards
+          slide.background = { color: "FFFFFF" };
+          // Title bar
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: 10, h: 0.9,
+            fill: { color: pal.bg },
+          });
+          slide.addText(slideData.title || '', {
+            x: 0.5, y: 0.12, w: 9, h: 0.65,
+            fontSize: 22, bold: true, color: pal.text, fontFace: "Arial",
+          });
+
+          const stats: Array<{ value: string; label: string }> = slideData.stats || [];
+          const count = Math.min(stats.length, 4);
+          if (count > 0) {
+            const cardW = count <= 2 ? 3.8 : 2.0;
+            const gap = count <= 2 ? 0.4 : 0.3;
+            const totalW = count * cardW + (count - 1) * gap;
+            let startX = (10 - totalW) / 2;
+
+            for (let i = 0; i < count; i++) {
+              const x = startX + i * (cardW + gap);
+              // Card background
+              slide.addShape(pptx.ShapeType.roundRect, {
+                x, y: 1.5, w: cardW, h: 2.8,
+                fill: { color: pal.bg },
+                rectRadius: 0.15,
+              });
+              // Big number
+              slide.addText(stats[i].value, {
+                x, y: 1.7, w: cardW, h: 1.6,
+                fontSize: count <= 2 ? 48 : 36, bold: true, color: pal.secondary,
+                fontFace: "Arial", align: "center", valign: "middle",
+              });
+              // Label
+              slide.addText(stats[i].label, {
+                x: x + 0.2, y: 3.3, w: cardW - 0.4, h: 0.8,
+                fontSize: 12, color: pal.muted, fontFace: "Arial",
+                align: "center", valign: "top",
+              });
+            }
+          }
+
+          // Additional content below
+          if (slideData.content) {
+            slide.addText(slideData.content, {
+              x: 1, y: 4.5, w: 8, h: 0.8,
+              fontSize: 13, color: "666666", fontFace: "Arial", align: "center",
+            });
+          }
+          break;
+        }
+
+        case 'two_column':
+        case 'comparison': {
+          slide.background = { color: "FFFFFF" };
+          // Title bar
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: 10, h: 0.9,
+            fill: { color: pal.bg },
+          });
+          slide.addText(slideData.title || '', {
+            x: 0.5, y: 0.12, w: 9, h: 0.65,
+            fontSize: 22, bold: true, color: pal.text, fontFace: "Arial",
+          });
+
+          // Left column
+          const leftContent = slideData.left_content || '';
+          const rightContent = slideData.right_content || '';
+
+          if (layout === 'comparison') {
+            // Colored backgrounds for comparison
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: 0.4, y: 1.2, w: 4.3, h: 3.8,
+              fill: { color: pal.bg },
+              rectRadius: 0.1,
+            });
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: 5.3, y: 1.2, w: 4.3, h: 3.8,
+              fill: { color: "F5F5F5" },
+              rectRadius: 0.1,
+            });
+          }
+
+          // Left
+          const leftLines = leftContent.split("\n").filter((l: string) => l.trim());
+          if (leftLines.some((l: string) => l.startsWith("-") || l.startsWith("•"))) {
+            slide.addText(
+              leftLines.map((l: string) => ({
+                text: l.replace(/^[-•*]\s*/, ""),
+                options: { fontSize: 14, fontFace: "Arial", color: layout === 'comparison' ? pal.text : "333333", bullet: true, breakType: "break" as const },
+              })),
+              { x: 0.6, y: 1.4, w: 3.8, h: 3.4, valign: "top" }
+            );
+          } else {
+            slide.addText(leftContent, {
+              x: 0.6, y: 1.4, w: 3.8, h: 3.4,
+              fontSize: 14, color: layout === 'comparison' ? pal.text : "333333", fontFace: "Arial", valign: "top",
+              lineSpacingMultiple: 1.3,
+            });
+          }
+
+          // Right
+          const rightLines = rightContent.split("\n").filter((l: string) => l.trim());
+          if (rightLines.some((l: string) => l.startsWith("-") || l.startsWith("•"))) {
+            slide.addText(
+              rightLines.map((l: string) => ({
+                text: l.replace(/^[-•*]\s*/, ""),
+                options: { fontSize: 14, fontFace: "Arial", color: "333333", bullet: true, breakType: "break" as const },
+              })),
+              { x: 5.5, y: 1.4, w: 3.8, h: 3.4, valign: "top" }
+            );
+          } else {
+            slide.addText(rightContent, {
+              x: 5.5, y: 1.4, w: 3.8, h: 3.4,
+              fontSize: 14, color: "333333", fontFace: "Arial", valign: "top",
+              lineSpacingMultiple: 1.3,
+            });
+          }
+
+          // Divider line
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 4.9, y: 1.4, w: 0.02, h: 3.4,
+            fill: { color: "DDDDDD" },
+          });
+          break;
+        }
+
+        case 'quote': {
+          slide.background = { color: pal.bg };
+          // Large quote mark
+          slide.addText('"', {
+            x: 1, y: 0.8, w: 2, h: 1.5,
+            fontSize: 120, color: pal.primary, fontFace: "Georgia",
+            bold: true,
+          });
+          // Quote text
+          slide.addText(slideData.content || '', {
+            x: 1.5, y: 2, w: 7, h: 2,
+            fontSize: 22, color: pal.text, fontFace: "Georgia",
+            italic: true, align: "center", valign: "middle",
+            lineSpacingMultiple: 1.5,
+          });
+          // Author
+          if (slideData.quote_author) {
+            slide.addText(`— ${slideData.quote_author}`, {
+              x: 2, y: 4.2, w: 6, h: 0.5,
+              fontSize: 14, color: pal.muted, fontFace: "Arial", align: "center",
+            });
+          }
+          break;
+        }
+
+        case 'cta': {
+          slide.background = { color: pal.bg };
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: 10, h: 0.06,
+            fill: { color: pal.accent },
+          });
+          slide.addText(slideData.title || "Mulțumesc!", {
+            x: 1, y: 1.5, w: 8, h: 1.5,
+            fontSize: 44, bold: true, color: pal.text, fontFace: "Arial",
+            align: "center", valign: "middle",
+          });
+          if (slideData.content) {
+            slide.addText(slideData.content, {
+              x: 2, y: 3.2, w: 6, h: 1.2,
+              fontSize: 18, color: pal.muted, fontFace: "Arial",
+              align: "center", valign: "top",
+            });
+          }
+          // Contact/action line
+          if (slideData.subtitle) {
+            slide.addShape(pptx.ShapeType.roundRect, {
+              x: 3, y: 4.3, w: 4, h: 0.6,
+              fill: { color: pal.primary },
+              rectRadius: 0.3,
+            });
+            slide.addText(slideData.subtitle, {
+              x: 3, y: 4.3, w: 4, h: 0.6,
+              fontSize: 14, bold: true, color: "FFFFFF", fontFace: "Arial",
+              align: "center", valign: "middle",
+            });
+          }
+          break;
+        }
+
+        default: {
+          // Standard content slide
+          slide.background = { color: "FFFFFF" };
+          // Title bar with gradient effect
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0, w: 10, h: 0.9,
+            fill: { color: pal.bg },
+          });
+          // Accent line under title bar
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 0, y: 0.9, w: 10, h: 0.04,
+            fill: { color: pal.primary },
+          });
+          slide.addText(slideData.title || '', {
+            x: 0.5, y: 0.12, w: 9, h: 0.65,
+            fontSize: 22, bold: true, color: pal.text, fontFace: "Arial",
+          });
+
+          const content = (slideData.content || '').substring(0, 1500);
+          const lines = content.split("\n").filter((l: string) => l.trim());
+
+          if (lines.some((l: string) => l.startsWith("-") || l.startsWith("•"))) {
+            slide.addText(
+              lines.map((l: string) => ({
+                text: l.replace(/^[-•*]\s*/, ""),
+                options: { fontSize: 15, fontFace: "Arial", color: "333333", bullet: { type: "bullet", style: "●", indent: 15 }, breakType: "break" as const },
+              })),
+              { x: 0.8, y: 1.3, w: 8.4, h: 3.8, valign: "top", lineSpacingMultiple: 1.4 }
+            );
+          } else {
+            slide.addText(content, {
+              x: 0.5, y: 1.3, w: 9, h: 3.8,
+              fontSize: 15, color: "333333", fontFace: "Arial", valign: "top",
+              lineSpacingMultiple: 1.4,
+            });
+          }
+
+          // Slide number in corner
+          slide.addText(`${slides.indexOf(slideData) + 1}`, {
+            x: 9.2, y: 5, w: 0.5, h: 0.4,
+            fontSize: 10, color: "BBBBBB", fontFace: "Arial", align: "right",
+          });
+          break;
         }
       }
 
@@ -877,27 +1104,35 @@ async function generatePptx(
   } else {
     // Fallback: generate from sections
     const titleSlide = pptx.addSlide();
-    titleSlide.background = { color: "1E2761" };
+    titleSlide.background = { color: pal.bg };
+    titleSlide.addShape(pptx.ShapeType.rect, {
+      x: 0, y: 0, w: 10, h: 0.06,
+      fill: { color: pal.accent },
+    });
     titleSlide.addText(docContent.title, {
-      x: 0.5, y: 1.5, w: 9, h: 2,
-      fontSize: 36, bold: true, color: "FFFFFF", fontFace: "Arial",
+      x: 1, y: 1.5, w: 8, h: 2,
+      fontSize: 40, bold: true, color: pal.text, fontFace: "Arial",
       align: "center", valign: "middle",
     });
     titleSlide.addText(`Generat de Yana • ${new Date().toLocaleDateString("ro-RO")}`, {
-      x: 0.5, y: 4, w: 9, h: 0.5,
-      fontSize: 14, color: "CADCFC", fontFace: "Arial", align: "center",
+      x: 1, y: 4, w: 8, h: 0.5,
+      fontSize: 12, color: pal.muted, fontFace: "Arial", align: "center",
     });
 
     for (const section of docContent.sections) {
       const slide = pptx.addSlide();
       slide.background = { color: "FFFFFF" };
       slide.addShape(pptx.ShapeType.rect, {
-        x: 0, y: 0, w: 10, h: 0.8,
-        fill: { color: "1E2761" },
+        x: 0, y: 0, w: 10, h: 0.9,
+        fill: { color: pal.bg },
+      });
+      slide.addShape(pptx.ShapeType.rect, {
+        x: 0, y: 0.9, w: 10, h: 0.04,
+        fill: { color: pal.primary },
       });
       slide.addText(section.heading, {
-        x: 0.5, y: 0.1, w: 9, h: 0.6,
-        fontSize: 22, bold: true, color: "FFFFFF", fontFace: "Arial",
+        x: 0.5, y: 0.12, w: 9, h: 0.65,
+        fontSize: 22, bold: true, color: pal.text, fontFace: "Arial",
       });
 
       const contentText = section.content.substring(0, 1500);
@@ -907,24 +1142,24 @@ async function generatePptx(
         slide.addText(
           lines.map((l: string) => ({
             text: l.replace(/^[-•*]\s*/, ""),
-            options: { fontSize: 16, fontFace: "Arial", color: "333333", bullet: true, breakType: "break" as const },
+            options: { fontSize: 15, fontFace: "Arial", color: "333333", bullet: true, breakType: "break" as const },
           })),
-          { x: 0.8, y: 1.2, w: 8.4, h: 4, valign: "top" }
+          { x: 0.8, y: 1.3, w: 8.4, h: 3.8, valign: "top", lineSpacingMultiple: 1.4 }
         );
       } else {
         slide.addText(contentText, {
-          x: 0.5, y: 1.2, w: 9, h: 4.2,
-          fontSize: 16, color: "333333", fontFace: "Arial", valign: "top",
-          lineSpacingMultiple: 1.3,
+          x: 0.5, y: 1.3, w: 9, h: 3.8,
+          fontSize: 15, color: "333333", fontFace: "Arial", valign: "top",
+          lineSpacingMultiple: 1.4,
         });
       }
     }
 
     const endSlide = pptx.addSlide();
-    endSlide.background = { color: "1E2761" };
+    endSlide.background = { color: pal.bg };
     endSlide.addText("Mulțumesc!", {
-      x: 0.5, y: 2, w: 9, h: 2,
-      fontSize: 44, bold: true, color: "FFFFFF", fontFace: "Arial",
+      x: 1, y: 2, w: 8, h: 2,
+      fontSize: 44, bold: true, color: pal.text, fontFace: "Arial",
       align: "center", valign: "middle",
     });
   }
@@ -933,7 +1168,7 @@ async function generatePptx(
   return new Uint8Array(arrayBuffer as ArrayBuffer);
 }
 
-// ==================== PDF GENERATION + MERGE + FILL_FORM ====================
+// ==================== PDF GENERATION ====================
 async function generatePdf(
   docContent: { title: string; sections: Array<{ heading: string; content: string; type?: string }> }
 ): Promise<Uint8Array> {
@@ -965,7 +1200,6 @@ async function generatePdf(
   for (const section of docContent.sections) {
     if (y > 260) { doc.addPage(); y = 20; }
 
-    // Disclaimer styling
     const isDisclaimer = section.heading?.toUpperCase().includes('DISCLAIMER');
 
     doc.setFontSize(isDisclaimer ? 10 : 16);
@@ -1032,13 +1266,11 @@ async function mergePdfs(supabase: any, sourceFiles: string[]): Promise<Uint8Arr
   return new Uint8Array(mergedBytes);
 }
 
-// ==================== PDF FILL FORM (NEW) ====================
 async function fillPdfForm(supabase: any, templatePath: string, fields: Record<string, string>): Promise<Uint8Array> {
   const { PDFDocument } = await import("npm:pdf-lib@1.17.1");
   
   console.log(`[PDF-FILL] Loading template: ${templatePath}`);
   
-  // Download template from Storage
   const { data, error } = await supabase.storage
     .from("generated-documents")
     .download(templatePath);
@@ -1067,7 +1299,6 @@ async function fillPdfForm(supabase: any, templatePath: string, fields: Record<s
       }
     }
     
-    // Flatten form so values are visible in all PDF readers
     form.flatten();
   } catch (formErr) {
     console.warn('[PDF-FILL] No AcroForm found in PDF, fields cannot be filled:', formErr);
@@ -1162,7 +1393,7 @@ Deno.serve(async (req) => {
         document_title: `Formular completat`,
         main_file_path: fileName,
         metadata: {
-          generated_by: "yana-office-generator-v3",
+          generated_by: "yana-office-generator-v4",
           mode: "fill_form",
           template_path: templatePath,
           fields_count: Object.keys(fields).length,
@@ -1193,14 +1424,12 @@ Deno.serve(async (req) => {
     const effectiveTemplate = template || templateType || 'general';
     console.log(`[DOC-GEN][${requestId}] Type: ${documentType}, Template: ${effectiveTemplate}, Title: ${title || 'auto'}`);
 
-    // Step 1: Generate content via AI (structured prompts per doc type)
     const docContent = content
       ? { title: title || "Document", sections: [{ heading: "Conținut", content, type: "text" }] }
       : await generateDocumentContent(description, documentType, effectiveTemplate, customData, balanceContext);
 
-    console.log(`[DOC-GEN][${requestId}] AI content generated: ${docContent.sections?.length || 0} sections, ${(docContent as any).sheets?.length || 0} sheets`);
+    console.log(`[DOC-GEN][${requestId}] AI content generated: ${docContent.sections?.length || 0} sections, ${(docContent as any).sheets?.length || 0} sheets, ${(docContent as any).slides?.length || 0} slides`);
 
-    // Step 2: Generate file
     let fileBuffer: Uint8Array;
     let contentType: string;
     let extension: string;
@@ -1232,7 +1461,6 @@ Deno.serve(async (req) => {
 
     console.log(`[DOC-GEN][${requestId}] File generated: ${fileBuffer.length} bytes`);
 
-    // Step 3: Upload to Storage
     const sanitizedTitle = (docContent.title || title || "document")
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-zA-Z0-9._-]+/g, '_')
@@ -1249,7 +1477,6 @@ Deno.serve(async (req) => {
       throw new Error(`Eroare la salvare: ${uploadError.message}`);
     }
 
-    // Step 4: Signed URL (7 days)
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("generated-documents")
       .createSignedUrl(fileName, 7 * 24 * 60 * 60);
@@ -1258,26 +1485,25 @@ Deno.serve(async (req) => {
       throw new Error(`Eroare la generare URL: ${signedUrlError.message}`);
     }
 
-    // Step 5: Save metadata
     await supabase.from("generated_documents").insert({
       user_id: user.id,
       document_type: templateType || documentType,
       document_title: docContent.title || title || "Document generat",
       main_file_path: fileName,
       metadata: {
-        generated_by: "yana-office-generator-v3",
+        generated_by: "yana-office-generator-v4",
         document_format: documentType,
         template_type: templateType,
         template: template,
         file_size_bytes: fileBuffer.length,
         sections_count: docContent.sections?.length || 0,
+        slides_count: (docContent as any).slides?.length || 0,
         recipient_email: recipientEmail || null,
         has_excel_config: !!excelConfig,
         has_balance_context: !!balanceContext,
       },
     });
 
-    // Step 6: Email via Resend
     let emailSent = false;
     if (recipientEmail) {
       try {
