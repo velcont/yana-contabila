@@ -1396,11 +1396,13 @@ serve(async (req) => {
         message: string;
         supplier_name?: string;
         product_description?: string;
+        location?: string;
+        search_mode?: boolean;
       };
       
-      // If no supplier name extracted, ask the user
-      if (!supplierPayload.supplier_name) {
-        const askResponse = `🏭 **Audit Furnizor**\n\nPentru a analiza un furnizor, am nevoie de câteva detalii:\n\n1. **Numele furnizorului** (obligatoriu)\n2. **CUI** (opțional, dar ajută la verificarea ANAF)\n3. **Ce produs/serviciu ofertează?**\n4. **Prețul din ofertă** (opțional, pentru comparație)\n\nExemplu: *"Verifică furnizorul MEGA DISTRIBUTION SRL cu CUI 12345678 pentru hârtie de birou la 25 RON/top"*`;
+      // In search mode, we don't need a supplier name - proceed directly
+      if (!supplierPayload.search_mode && !supplierPayload.supplier_name) {
+        const askResponse = `🏭 **Audit Furnizor**\n\nPentru a analiza un furnizor, am nevoie de câteva detalii:\n\n1. **Numele furnizorului** (obligatoriu)\n2. **CUI** (opțional, dar ajută la verificarea ANAF)\n3. **Ce produs/serviciu ofertează?**\n4. **Prețul din ofertă** (opțional, pentru comparație)\n\nExemplu: *"Verifică furnizorul MEGA DISTRIBUTION SRL cu CUI 12345678 pentru hârtie de birou la 25 RON/top"*\n\nSau dacă vrei să **caut furnizori**, spune: *"Caută-mi cel mai ieftin furnizor de hârtie din București"*`;
         
         await supabase.from('yana_messages').insert({
           conversation_id: conversationId,
@@ -1440,6 +1442,9 @@ serve(async (req) => {
             product_description: supplierPayload.product_description,
             offer_price: offerPrice,
             currency,
+            location: supplierPayload.location,
+            search_mode: supplierPayload.search_mode || false,
+            message: supplierPayload.message,
           }),
         });
         
@@ -1450,49 +1455,101 @@ serve(async (req) => {
         
         const supplierResult = await supplierResponse.json();
         
-        // Format response for chat display
-        const scores = supplierResult.scores || { price: 50, reliability: 50, risk: 50, overall: 50 };
-        const recEmoji = supplierResult.recommendation === 'APROBAT' ? '✅' : supplierResult.recommendation === 'RESPINS' ? '❌' : '⚠️';
-        const recText = supplierResult.recommendation === 'APROBAT' ? 'APROBAT' : supplierResult.recommendation === 'RESPINS' ? 'RESPINS' : 'DE REVIZUIT';
+        let chatResponse = '';
         
-        let chatResponse = `🏭 **Audit Furnizor: ${supplierPayload.supplier_name}**\n\n`;
-        chatResponse += `${recEmoji} **Recomandare: ${recText}** (Încredere: ${Math.round((supplierResult.confidence || 0.5) * 100)}%)\n\n`;
-        chatResponse += `---\n\n`;
-        chatResponse += `📊 **Scoruri:**\n`;
-        chatResponse += `• 💰 Preț competitiv: **${scores.price}/100**\n`;
-        chatResponse += `• 🤝 Fiabilitate: **${scores.reliability}/100**\n`;
-        chatResponse += `• 🛡️ Risc scăzut: **${scores.risk}/100**\n`;
-        chatResponse += `• ⭐ **Scor general: ${scores.overall}/100**\n\n`;
-        
-        if (supplierResult.reasoning) {
-          chatResponse += `💡 **Analiză:** ${supplierResult.reasoning}\n\n`;
+        // FORMAT RESPONSE based on mode
+        if (supplierResult.search_mode || supplierPayload.search_mode) {
+          // SEARCH MODE: Show list of found suppliers
+          const searchResults = supplierResult.search_results || [];
+          const productDesc = supplierPayload.product_description || 'servicii';
+          const locationDesc = supplierPayload.location || 'România';
+          
+          chatResponse = `🔍 **Căutare Furnizori: ${productDesc} în ${locationDesc}**\n\n`;
+          
+          if (searchResults.length === 0) {
+            chatResponse += `Nu am găsit furnizori specifici. Încearcă cu termeni mai generali sau altă locație.\n`;
+          } else {
+            searchResults.forEach((s: any, i: number) => {
+              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+              chatResponse += `${medal} **${s.name}**`;
+              if (s.score) chatResponse += ` — Scor: ${s.score}/100`;
+              chatResponse += `\n`;
+              if (s.location) chatResponse += `   📍 ${s.location}\n`;
+              if (s.price_range) chatResponse += `   💰 ${s.price_range}\n`;
+              if (s.rating) chatResponse += `   ⭐ Rating: ${s.rating}/5\n`;
+              if (s.website) chatResponse += `   🌐 ${s.website}\n`;
+              if (s.phone) chatResponse += `   📞 ${s.phone}\n`;
+              if (s.cui) chatResponse += `   🏢 CUI: ${s.cui}\n`;
+              if (s.highlights && s.highlights.length > 0) {
+                chatResponse += `   ✅ ${s.highlights.join(' • ')}\n`;
+              }
+              chatResponse += `\n`;
+            });
+            
+            if (supplierResult.cheapest) {
+              chatResponse += `💰 **Cel mai ieftin:** ${supplierResult.cheapest}\n`;
+            }
+            if (supplierResult.best_value) {
+              chatResponse += `⭐ **Cel mai bun raport calitate/preț:** ${supplierResult.best_value}\n`;
+            }
+            chatResponse += `\n`;
+          }
+          
+          if (supplierResult.summary) {
+            chatResponse += `💡 **Concluzie:** ${supplierResult.summary}\n\n`;
+          }
+          
+          if (supplierResult.web_sources && supplierResult.web_sources.length > 0) {
+            chatResponse += `🔗 **Surse:** ${supplierResult.web_sources.slice(0, 3).join(', ')}\n\n`;
+          }
+          
+          chatResponse += `---\n*Vrei să analizez în detaliu un furnizor specific din listă? Spune-mi numele.*`;
+          
+        } else {
+          // AUDIT MODE: Show scores (original format)
+          const scores = supplierResult.scores || { price: 50, reliability: 50, risk: 50, overall: 50 };
+          const recEmoji = supplierResult.recommendation === 'APROBAT' ? '✅' : supplierResult.recommendation === 'RESPINS' ? '❌' : '⚠️';
+          const recText = supplierResult.recommendation === 'APROBAT' ? 'APROBAT' : supplierResult.recommendation === 'RESPINS' ? 'RESPINS' : 'DE REVIZUIT';
+          
+          chatResponse = `🏭 **Audit Furnizor: ${supplierPayload.supplier_name}**\n\n`;
+          chatResponse += `${recEmoji} **Recomandare: ${recText}** (Încredere: ${Math.round((supplierResult.confidence || 0.5) * 100)}%)\n\n`;
+          chatResponse += `---\n\n`;
+          chatResponse += `📊 **Scoruri:**\n`;
+          chatResponse += `• 💰 Preț competitiv: **${scores.price}/100**\n`;
+          chatResponse += `• 🤝 Fiabilitate: **${scores.reliability}/100**\n`;
+          chatResponse += `• 🛡️ Risc scăzut: **${scores.risk}/100**\n`;
+          chatResponse += `• ⭐ **Scor general: ${scores.overall}/100**\n\n`;
+          
+          if (supplierResult.reasoning) {
+            chatResponse += `💡 **Analiză:** ${supplierResult.reasoning}\n\n`;
+          }
+          
+          if (supplierResult.strengths && supplierResult.strengths.length > 0) {
+            chatResponse += `✅ **Puncte forte:**\n`;
+            supplierResult.strengths.forEach((s: string) => { chatResponse += `• ${s}\n`; });
+            chatResponse += `\n`;
+          }
+          
+          if (supplierResult.risk_factors && supplierResult.risk_factors.length > 0) {
+            chatResponse += `⚠️ **Factori de risc:**\n`;
+            supplierResult.risk_factors.forEach((r: string) => { chatResponse += `• ${r}\n`; });
+            chatResponse += `\n`;
+          }
+          
+          if (supplierResult.market_prices && supplierResult.market_prices.length > 0) {
+            chatResponse += `💲 **Prețuri de piață găsite:**\n`;
+            supplierResult.market_prices.forEach((p: { source: string; price: number; currency: string }) => {
+              chatResponse += `• ${p.source}: ${p.price} ${p.currency}\n`;
+            });
+            chatResponse += `\n`;
+          }
+          
+          if (supplierResult.web_sources && supplierResult.web_sources.length > 0) {
+            chatResponse += `🔗 **Surse:** ${supplierResult.web_sources.slice(0, 3).join(', ')}\n\n`;
+          }
+          
+          chatResponse += `---\n*Poți verifica mai mulți furnizori pentru a compara scorurile.*`;
         }
-        
-        if (supplierResult.strengths && supplierResult.strengths.length > 0) {
-          chatResponse += `✅ **Puncte forte:**\n`;
-          supplierResult.strengths.forEach((s: string) => { chatResponse += `• ${s}\n`; });
-          chatResponse += `\n`;
-        }
-        
-        if (supplierResult.risk_factors && supplierResult.risk_factors.length > 0) {
-          chatResponse += `⚠️ **Factori de risc:**\n`;
-          supplierResult.risk_factors.forEach((r: string) => { chatResponse += `• ${r}\n`; });
-          chatResponse += `\n`;
-        }
-        
-        if (supplierResult.market_prices && supplierResult.market_prices.length > 0) {
-          chatResponse += `💲 **Prețuri de piață găsite:**\n`;
-          supplierResult.market_prices.forEach((p: { source: string; price: number; currency: string }) => {
-            chatResponse += `• ${p.source}: ${p.price} ${p.currency}\n`;
-          });
-          chatResponse += `\n`;
-        }
-        
-        if (supplierResult.web_sources && supplierResult.web_sources.length > 0) {
-          chatResponse += `🔗 **Surse:** ${supplierResult.web_sources.slice(0, 3).join(', ')}\n\n`;
-        }
-        
-        chatResponse += `---\n*Poți verifica mai mulți furnizori pentru a compara scorurile.*`;
         
         // Save to yana_messages
         await supabase.from('yana_messages').insert({
