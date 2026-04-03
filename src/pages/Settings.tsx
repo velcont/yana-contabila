@@ -191,19 +191,7 @@ const Settings = () => {
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Preferințe Notificări</CardTitle>
-                <CardDescription>
-                  Alege ce notificări vrei să primești
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Setările de notificări vor fi disponibile în curând.
-                </p>
-              </CardContent>
-            </Card>
+            <NotificationPreferences />
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-6">
