@@ -640,6 +640,39 @@ function detectIntent(message: string): RouteDecision {
     };
   }
   
+  // =============================================================================
+  // ⚡ ADMIN DATA QUERIES — Only for admin users, answered directly from DB
+  // =============================================================================
+  const adminDataPatterns = [
+    /(?:c[aâ][tț]i|cati|c[aâ]te|cate)\s+(?:utilizatori|useri|users|conturi|clienti|clienți|abona[tț]i|abonati)/i,
+    /(?:c[aâ][tț]i|cati)\s+(?:au\s+)?(?:pl[aă]tit|platit|abonament|abonat)/i,
+    /(?:lista|arat[aă]|arata|d[aă]-mi|dami)\s+(?:utilizatori|useri|clien[tț]i|clienti|abona[tț]i|abonati)/i,
+    /(?:utilizatori|useri|users)\s+(?:activi|noi|recen[tț]i|recenti|total|înregistra[tț]i|inregistrati)/i,
+    /(?:c[aâ]te|cate)\s+(?:analize|balan[tț]e|balante|conversa[tț]ii|conversatii)\s+(?:s-au|au\s+fost|avem|sunt)/i,
+    /(?:venituri|revenue|income|MRR|mrr|ARR|arr)\s+(?:lunar|total|pe\s+lun[aă]|luna)/i,
+    /(?:rata|procent)\s+(?:de\s+)?(?:conver(?:sie|tare)|churn|reten[tț]ie|retentie)/i,
+    /(?:stare|status|situa[tț]ie|situatie)\s+(?:platform[aă]|aplica[tț]ie|aplicatie|sistem)/i,
+    /(?:top|cele\s+mai)\s+(?:active|frecvente|utilizate|populare)/i,
+    /(?:cost(?:uri)?|cheltuieli)\s+(?:AI|ai|platform[aă]|luna)/i,
+    /(?:c[aâ][tț]i|cati)\s+(?:au\s+)?(?:trial|perioad[aă]\s+de\s+prob[aă])/i,
+    /(?:abonamente|subscrip[tț]ii|subscriptii)\s+(?:active|expirate|total)/i,
+    /(?:statistici|stats|metrici|date)\s+(?:platform[aă]|admin|general)/i,
+    /(?:raport|sumar|rezumat)\s+(?:admin|platform[aă]|zilnic|s[aă]pt[aă]m[aâ]nal|lunar)/i,
+    /(?:sesiuni\s+active|online\s+acum|cine\s+e\s+online)/i,
+    /(?:credite|credits)\s+(?:v[aâ]ndute|cump[aă]rate|achizi[tț]ionate)/i,
+    /(?:email-uri|emailuri|mesaje)\s+(?:trimise|livrate|expediate)/i,
+    /(?:erori|errors|bug-uri|probleme)\s+(?:AI|ai|sistem|azi|ast[aă]zi)/i,
+  ];
+
+  if (adminDataPatterns.some(p => p.test(lowerMessage))) {
+    console.log(`[AI-Router] 👑 ADMIN DATA QUERY DETECTED: "${message.substring(0, 60)}"`);
+    return {
+      route: 'admin-data' as any,
+      payload: { message },
+      reason: 'Admin data query detected - will check admin role and run DB queries'
+    };
+  }
+
   // ANAF Risk detection - MUST BE BEFORE general fiscal detection
   if (
     lowerMessage.includes('risc anaf') ||
