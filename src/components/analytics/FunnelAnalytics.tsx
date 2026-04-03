@@ -133,6 +133,21 @@ export function FunnelAnalytics() {
         conversations: eventCounts[6].count || 0,
         checkouts: eventCounts[7].count || 0,
       });
+
+      // Device breakdown from user_agent
+      const { data: agentData } = await supabase
+        .from('analytics_events')
+        .select('user_agent')
+        .eq('event_name', 'page_view')
+        .gte('created_at', startDate?.toISOString() || '2020-01-01')
+        .limit(500);
+      
+      let mobile = 0, desktop = 0;
+      for (const e of agentData || []) {
+        if (e.user_agent && /mobile|android|iphone/i.test(e.user_agent)) mobile++;
+        else desktop++;
+      }
+      setDeviceBreakdown({ mobile, desktop });
     } catch (error) {
       console.error('Error loading funnel data:', error);
     } finally {
