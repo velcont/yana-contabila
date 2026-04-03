@@ -23,7 +23,7 @@ import { AIStrategyResultsArtifact } from './AIStrategyResultsArtifact';
 import type { BusinessProfile, AIAnalysis } from '@/config/aiStrategyData';
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download' | 'action_confirmation';
   data: unknown;
   title?: string;
   downloadUrl?: string;
