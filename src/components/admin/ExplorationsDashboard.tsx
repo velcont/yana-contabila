@@ -9,9 +9,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { AgentTracesTab } from "./AgentTracesTab";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { ro } from "date-fns/locale";
 
 interface Exploration {
   id: string;
