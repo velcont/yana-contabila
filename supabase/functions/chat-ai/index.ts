@@ -2080,7 +2080,7 @@ serve(async (req) => {
       // Fetch top 5 semantic memories (generalized knowledge)
       const { data: semanticMemories } = await supabase
         .from('yana_semantic_memory')
-        .select('content, relevance_score, access_count')
+        .select('content, relevance_score')
         .eq('user_id', userId)
         .eq('memory_type', 'semantic')
         .order('relevance_score', { ascending: false })
@@ -2089,7 +2089,7 @@ serve(async (req) => {
       // Fetch top 3 recent episodic memories (specific facts)
       const { data: episodicMemories } = await supabase
         .from('yana_semantic_memory')
-        .select('content, relevance_score, created_at')
+        .select('content, relevance_score')
         .eq('user_id', userId)
         .eq('memory_type', 'episodic')
         .order('last_accessed_at', { ascending: false })
@@ -2110,15 +2110,6 @@ serve(async (req) => {
       if (parts.length > 0) {
         tieredMemorySection = `\n\n=== MEMORIE PERSISTENTĂ ===\n${parts.join('\n\n')}\n→ Folosește aceste cunoștințe NATURAL, fără a menționa că „ai memorat" ceva.\n→ Integrează-le când sunt relevante pentru conversația curentă.\n=== END MEMORIE ===\n`;
         console.log(`[chat-ai][${requestId}] Tiered memory injected: ${semanticMemories?.length || 0} semantic, ${episodicMemories?.length || 0} episodic`);
-        
-        // Update access_count for used memories
-        const usedIds = [
-          ...(semanticMemories || []).map((m: any) => m.id),
-          ...(episodicMemories || []).map((m: any) => m.id),
-        ].filter(Boolean);
-        if (usedIds.length > 0) {
-          await supabase.rpc('increment_memory_access', { memory_ids: usedIds }).catch(() => {});
-        }
       }
     } catch (err) {
       console.warn(`[chat-ai][${requestId}] Tiered memory injection failed (non-blocking):`, err);
