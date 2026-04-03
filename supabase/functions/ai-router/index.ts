@@ -583,9 +583,6 @@ function detectIntent(message: string): RouteDecision {
   // =============================================================================
   // ⚡ PRIORITY 0: GRAPH / VISUALIZATION REQUESTS (MUST OVERRIDE ALL strategic detection)
   // =============================================================================
-  // If user explicitly asks for a chart/graph/table visualization, we MUST route to
-  // chat-ai so it can return ```artifact ...``` blocks rendered in-chat.
-  // This MUST be the first check, before anything else!
   const graphKeywords = ['grafic', 'grafice', 'chart', 'diagrama', 'diagramă', 'vizualiz', 'tabel', 'tabele'];
   const isGraphRequest = graphKeywords.some(kw => lowerMessage.includes(kw));
   
@@ -598,6 +595,48 @@ function detectIntent(message: string): RouteDecision {
         graphRequest: true,
       },
       reason: 'User requested a chart/visualization (graph request - priority override)'
+    };
+  }
+
+  // =============================================================================
+  // ⚡ PRIORITY 0.5: CAPABILITIES / HELP / TASK MEMORY INTENTS (cost zero, direct response)
+  // =============================================================================
+  const capabilityPatterns = [
+    /ce\s+(?:poți|poti)\s+(?:face|să\s+faci|sa\s+faci)/i,
+    /ce\s+(?:funcții|functii|funcționalități|functionalitati)\s+(?:ai|are)/i,
+    /cu\s+ce\s+(?:mă|ma)\s+(?:ajuți|ajuti|poți|poti)\s+ajuta/i,
+    /cum\s+(?:te\s+)?(?:configurez|setez|activez)/i,
+    /ce\s+(?:știi|stii)\s+(?:să|sa)\s+faci/i,
+    /(?:ajutor|help)\s*[?!]?$/i,
+    /ce\s+(?:poate|face)\s+yana/i,
+    /(?:arată|arata|prezintă|prezinta)(?:-mi)?\s+(?:funcționalități|functionalitati|capabilități|capabilitati)/i,
+    /(?:ghid|instrucțiuni|instructiuni|tutorial)/i,
+  ];
+
+  if (capabilityPatterns.some(p => p.test(lowerMessage))) {
+    console.log(`[AI-Router] 🎯 CAPABILITY QUESTION DETECTED: "${message.substring(0, 60)}"`);
+    return {
+      route: 'chat-ai',
+      payload: { message, capabilityQuestion: true },
+      reason: 'User asked about YANA capabilities - will inject capabilities prompt'
+    };
+  }
+
+  // Task memory intents: "amână", "am rezolvat", "reamintește-mi"
+  const taskMemoryPatterns = [
+    /(?:amân[aă]|amana|postpone)/i,
+    /(?:am\s+rezolvat|am\s+terminat|am\s+făcut|am\s+facut|gata\s+cu)/i,
+    /(?:nu\s+mai\s+(?:e|este)\s+nevoie|anuleaz[aă]|cancel)/i,
+    /(?:reaminte[sș]te|reaminteste|remind)(?:-mi)?/i,
+    /(?:ad[aă]ug[aă]|adauga)\s+(?:task|sarcin[aă]|acțiune|actiune)/i,
+  ];
+
+  if (taskMemoryPatterns.some(p => p.test(lowerMessage))) {
+    console.log(`[AI-Router] 📋 TASK MEMORY ACTION DETECTED: "${message.substring(0, 60)}"`);
+    return {
+      route: 'chat-ai',
+      payload: { message, taskMemoryAction: true },
+      reason: 'User wants to manage tasks via chat (postpone/resolve/remind)'
     };
   }
   
