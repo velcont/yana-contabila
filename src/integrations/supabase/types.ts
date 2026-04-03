@@ -3620,6 +3620,42 @@ export type Database = {
           },
         ]
       }
+      price_searches: {
+        Row: {
+          best_price: number | null
+          best_source: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          product_query: string
+          results: Json | null
+          sources_checked: number | null
+          user_id: string
+        }
+        Insert: {
+          best_price?: number | null
+          best_source?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          product_query: string
+          results?: Json | null
+          sources_checked?: number | null
+          user_id: string
+        }
+        Update: {
+          best_price?: number | null
+          best_source?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          product_query?: string
+          results?: Json | null
+          sources_checked?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_type_selected: boolean | null
