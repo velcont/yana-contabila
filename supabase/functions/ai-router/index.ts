@@ -638,6 +638,48 @@ function detectIntent(message: string): RouteDecision {
     };
   }
   
+  // =============================================================================
+  // ⚡ SUPPLIER AUDIT DETECTION — Analyze/search suppliers from chat
+  // =============================================================================
+  const supplierPatterns = [
+    /(?:caut[aă]|g[aă]se[sș]te|verific[aă]|analizeaz[aă]|evalueaz[aă])(?:-mi|-ne)?\s+(?:un\s+)?(?:furnizor|supplier|provider)/i,
+    /(?:cel\s+mai\s+(?:ieftin|bun|fiabil))\s+(?:furnizor|supplier|provider)/i,
+    /(?:furnizor|supplier)\s+(?:pentru|de|ieftin|bun|fiabil|nou)/i,
+    /(?:compar[aă]|compara[tț]ie)\s+(?:furnizor|supplier|ofert[eă])/i,
+    /(?:scor|rating|evaluare|audit)\s+(?:furnizor|supplier)/i,
+    /(?:risc|fiabilitate|reputa[tț]ie)\s+(?:furnizor|supplier|firm[aă])/i,
+    /(?:ofert[aă]|pre[tț])\s+(?:de\s+la|furnizor)/i,
+    /(?:verific[aă]|caut[aă]|analizeaz[aă])(?:-mi)?\s+(?:firma|compania)\s+["„]?[A-Z]/i,
+    /(?:ce\s+[sș]ti[ie]\s+despre|informa[tț]ii\s+despre)\s+(?:firma|furnizor|compania)\s+/i,
+    /(?:caut[aă]|g[aă]se[sș]te)(?:-mi)?\s+(?:cel\s+mai\s+)?(?:ieftin|bun)\s+(?:pre[tț]|produs)/i,
+  ];
+  
+  const isSupplierRequest = supplierPatterns.some(p => p.test(lowerMessage));
+  
+  if (isSupplierRequest) {
+    // Extract supplier name from message if mentioned
+    const nameMatch = message.match(/(?:firma|furnizor|supplier|compania)\s+["„]?([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]+?)[""]?(?:\s|,|\.|$)/i) 
+      || message.match(/["„]([^"„""]+)[""]/)
+      || message.match(/despre\s+([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]+?)(?:\s*[,.\?!]|\s+(?:din|cu|care|pentru|și))/i);
+    
+    const supplierName = nameMatch ? nameMatch[1].trim() : null;
+    
+    // Extract product description
+    const productMatch = message.match(/(?:pentru|de)\s+([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\.|,|$|\?)/i);
+    const productDescription = productMatch ? productMatch[1].trim() : null;
+    
+    console.log(`[AI-Router] 🏭 SUPPLIER AUDIT DETECTED: supplier="${supplierName || 'TBD'}", product="${productDescription || 'general'}"`);
+    return {
+      route: 'analyze-supplier',
+      payload: { 
+        message,
+        supplier_name: supplierName,
+        product_description: productDescription,
+      },
+      reason: `User requested supplier analysis${supplierName ? ` for "${supplierName}"` : ''}`
+    };
+  }
+
   // Fiscal questions - EXTENDED keywords pentru legislația 2026
   // Include forme articulate și variante pentru detecție robustă
   if (
