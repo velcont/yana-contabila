@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail } from 'lucide-react';
+import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search } from 'lucide-react';
 
 interface SuggestionChipsProps {
   onSendMessage: (message: string) => void;
@@ -37,6 +37,13 @@ const DEFAULT_CHIPS = [
     accent: 'border-blue-500/30 hover:bg-blue-500/10',
     iconColor: 'text-blue-500',
     isUpload: true,
+  },
+  {
+    label: 'Audit Furnizor',
+    icon: Search,
+    message: 'Vreau să verific un furnizor. Caută-mi informații despre reputația și prețurile lui.',
+    accent: 'border-orange-500/30 hover:bg-orange-500/10',
+    iconColor: 'text-orange-500',
   },
   {
     label: 'Strategie AI',
