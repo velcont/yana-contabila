@@ -895,6 +895,48 @@ export type Database = {
         }
         Relationships: []
       }
+      alert_rules: {
+        Row: {
+          cooldown_minutes: number | null
+          created_at: string | null
+          created_by: string | null
+          enabled: boolean | null
+          id: string
+          last_triggered_at: string | null
+          metric: string
+          name: string
+          operator: string
+          severity: string
+          threshold: number
+        }
+        Insert: {
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_triggered_at?: string | null
+          metric: string
+          name: string
+          operator?: string
+          severity?: string
+          threshold: number
+        }
+        Update: {
+          cooldown_minutes?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_triggered_at?: string | null
+          metric?: string
+          name?: string
+          operator?: string
+          severity?: string
+          threshold?: number
+        }
+        Relationships: []
+      }
       analyses: {
         Row: {
           analysis_text: string
