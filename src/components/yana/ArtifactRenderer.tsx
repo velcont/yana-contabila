@@ -35,6 +35,7 @@ interface Artifact {
   onActionConfirm?: (actionId: string) => void;
   onActionReject?: (actionId: string) => void;
   onActionEdit?: (actionId: string) => void;
+}
 
 interface ArtifactRendererProps {
   artifact: Artifact;
