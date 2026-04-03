@@ -62,6 +62,14 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       return <AIStrategyFormArtifact onSubmit={artifact.onStrategySubmit!} isLoading={artifact.isStrategyLoading} isSubmitted={artifact.isStrategySubmitted} />;
     case 'ai_strategy_results':
       return <AIStrategyResultsArtifact analysis={artifact.data as AIAnalysis} profile={artifact.strategyProfile!} />;
+    case 'action_confirmation':
+      return <ActionConfirmationCard 
+        data={artifact.data as { actionId: string; actionText: string; category: string; preview?: string }} 
+        title={artifact.title}
+        onConfirm={artifact.onActionConfirm || (() => {})}
+        onReject={artifact.onActionReject || (() => {})}
+        onEdit={artifact.onActionEdit || (() => {})}
+      />;
     default:
       return null;
   }
