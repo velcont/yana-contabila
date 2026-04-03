@@ -2073,6 +2073,56 @@ serve(async (req) => {
     if (memoryContext) {
       console.log(`[chat-ai][${requestId}] Memory context added to prompt (${memoryContext.length} chars)`);
     }
+
+    // 🆕 TIERED MEMORY INJECTION: Semantic + Episodic memories from yana_semantic_memory
+    let tieredMemorySection = '';
+    try {
+      // Fetch top 5 semantic memories (generalized knowledge)
+      const { data: semanticMemories } = await supabase
+        .from('yana_semantic_memory')
+        .select('content, relevance_score, access_count')
+        .eq('user_id', userId)
+        .eq('memory_type', 'semantic')
+        .order('relevance_score', { ascending: false })
+        .limit(5);
+
+      // Fetch top 3 recent episodic memories (specific facts)
+      const { data: episodicMemories } = await supabase
+        .from('yana_semantic_memory')
+        .select('content, relevance_score, created_at')
+        .eq('user_id', userId)
+        .eq('memory_type', 'episodic')
+        .order('last_accessed_at', { ascending: false })
+        .limit(3);
+
+      const parts: string[] = [];
+      
+      if (semanticMemories && semanticMemories.length > 0) {
+        const semLines = semanticMemories.map((m: any) => `• ${m.content}`).join('\n');
+        parts.push(`🧠 CUNOȘTINȚE GENERALIZATE (din interacțiuni repetate):\n${semLines}`);
+      }
+      
+      if (episodicMemories && episodicMemories.length > 0) {
+        const epiLines = episodicMemories.map((m: any) => `• ${m.content}`).join('\n');
+        parts.push(`📝 FAPTE RECENTE (din conversații specifice):\n${epiLines}`);
+      }
+
+      if (parts.length > 0) {
+        tieredMemorySection = `\n\n=== MEMORIE PERSISTENTĂ ===\n${parts.join('\n\n')}\n→ Folosește aceste cunoștințe NATURAL, fără a menționa că „ai memorat" ceva.\n→ Integrează-le când sunt relevante pentru conversația curentă.\n=== END MEMORIE ===\n`;
+        console.log(`[chat-ai][${requestId}] Tiered memory injected: ${semanticMemories?.length || 0} semantic, ${episodicMemories?.length || 0} episodic`);
+        
+        // Update access_count for used memories
+        const usedIds = [
+          ...(semanticMemories || []).map((m: any) => m.id),
+          ...(episodicMemories || []).map((m: any) => m.id),
+        ].filter(Boolean);
+        if (usedIds.length > 0) {
+          await supabase.rpc('increment_memory_access', { memory_ids: usedIds }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Tiered memory injection failed (non-blocking):`, err);
+    }
     
     // 🆕 CONSCIOUSNESS: Adaugă prompt injection din consciousness-engine pentru personalizare
     const consciousnessSection = consciousnessContext?.context?.promptInjection 
