@@ -1,93 +1,50 @@
 
-
-# Plan: Grafana + PostHog Patterns pentru YANA
+# Plan: Procurement Intelligence Agent pentru YANA
 
 ## Rezumat
+Adaptăm conceptele din Agentic-Procure-Audit-AI la arhitectura YANA (Edge Functions + React), creând un sistem de analiză furnizori și oferte accesibil direct din chat-ul YANA.
 
-Integrăm 4 funcționalități inspirate din Grafana și PostHog care lipsesc din YANA:
+## Ce preluăm (adaptat)
 
-1. **Sistem de Alerting Configurabil** (Grafana-style) — reguli cu praguri care generează alerte automat
-2. **Session Heatmap & Retention Grid** (PostHog-style) — cohort retention vizualizat ca heatmap
-3. **Live Metrics Panel** (Grafana-style) — panouri KPI cu auto-refresh și sparklines
-4. **Drop-off Funnel Enhancement** (PostHog-style) — upgrade FunnelAnalytics cu breakdown pe device/source
+### 1. Edge Function `analyze-supplier` — Supplier Scoring Agent
+- Primește date furnizor (nume, CUI, ofertă, preț, termeni)
+- Folosește Perplexity pentru web research (reputație furnizor, prețuri piață)
+- Returnează scor multi-criteriu: **Preț (0-100), Fiabilitate (0-100), Risc (0-100)**
+- Recomandare: APROBAT / DE REVIZUIT / RESPINS cu explicații
+- Comparație cu prețuri de piață găsite online
 
----
+### 2. Edge Function `extract-bid-data` — Structured Bid Extraction
+- Primește text din document uploadat (ofertă/factură)
+- Extrage automat: furnizor, preț, monedă, termen livrare, garanție, referință
+- Returnează JSON structurat gata de utilizat
 
-## Pas 1: Tabel `alert_rules` + Edge Function `check-alert-rules`
+### 3. Tabel `supplier_analyses` — Istoric analize furnizori
+- user_id, supplier_name, cui, scores (JSONB), recommendation, market_prices, web_sources
+- RLS: utilizatorii văd doar propriile analize
 
-**Migrare SQL:**
-```sql
-CREATE TABLE public.alert_rules (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  metric TEXT NOT NULL, -- 'ai_cost_daily', 'error_rate', 'user_churn', 'low_engagement'
-  operator TEXT NOT NULL DEFAULT 'gt', -- 'gt', 'lt', 'eq'
-  threshold NUMERIC NOT NULL,
-  severity TEXT NOT NULL DEFAULT 'warning',
-  enabled BOOLEAN DEFAULT true,
-  cooldown_minutes INTEGER DEFAULT 60,
-  last_triggered_at TIMESTAMPTZ,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.alert_rules ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins manage alert rules" ON public.alert_rules
-  FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-```
+### 4. Pagina `/supplier-audit` — UI Procurement Intelligence
+- Formular: nume furnizor, CUI, preț ofertă, descriere produs
+- Card rezultat cu scoruri vizuale (progress bars)
+- Comparație prețuri piață
+- Istoric analize anterioare
 
-**Edge function `check-alert-rules`**: Iterează regulile active, evaluează metricile (query-uri pe `ai_usage`, `analytics_events`, `profiles`), și inserează în `admin_alerts` când pragul e depășit. Se va apela via cron la fiecare 5 minute.
+### 5. Integrare în Yana Chat
+- Când utilizatorul întreabă despre un furnizor, YANA poate invoca automat analiza
+- Adăugăm capabilitatea în ai-router
 
-## Pas 2: Componenta `AlertRulesManager.tsx`
-
-UI admin pentru CRUD pe `alert_rules`:
-- Lista regulilor existente cu toggle on/off
-- Formular de adăugare: metric (dropdown), operator, threshold, severity
-- Metrici disponibile: Cost AI zilnic (RON), Rata erori (%), Utilizatori noi/zi, Engagement score
-- Badge cu ultima declanșare
-
-## Pas 3: Componenta `LiveMetricsPanel.tsx`
-
-Card-uri KPI cu auto-refresh (30s) inspirate din Grafana:
-- **Utilizatori activi acum** (din `active_sessions`)
-- **Cost AI azi** (din `ai_usage` luna curentă, ziua curentă)
-- **Conversații azi** (din `analytics_events` event_name='chat_message_sent')
-- **Rata conversie trial→paid** (din `profiles`)
-- Fiecare card cu sparkline pe ultimele 7 zile (mini-LineChart Recharts)
-
-## Pas 4: Componenta `RetentionHeatmap.tsx`
-
-Heatmap PostHog-style pentru retenție pe cohorte:
-- Cohorte lunare (signup month)
-- Coloane: Săptămâna 0, 1, 2, 3, 4+
-- Celule colorate gradient (verde intens = retenție mare, roșu = drop-off)
-- Date din `analytics_events` (page_view per user per week)
-
-## Pas 5: Upgrade `FunnelAnalytics.tsx`
-
-Adăugăm breakdown PostHog-style:
-- Segmentare pe device (mobile/desktop din user_agent)
-- Segmentare pe sursă (referrer din event_data)
-- Vizualizare comparativă side-by-side
-
-## Pas 6: Integrare în Admin
-
-- Tab nou "Monitoring" în Admin.tsx cu: `LiveMetricsPanel`, `AlertRulesManager`, alertele recente din `admin_alerts`
-- `RetentionHeatmap` adăugat în tab-ul Analytics existent
-
-## Fișiere afectate
-
-| Fișier | Acțiune |
+## Fișiere noi
+| Fișier | Descriere |
 |---|---|
-| `src/components/admin/AlertRulesManager.tsx` | NOU |
-| `src/components/admin/LiveMetricsPanel.tsx` | NOU |
-| `src/components/admin/RetentionHeatmap.tsx` | NOU |
-| `supabase/functions/check-alert-rules/index.ts` | NOU |
-| `src/components/analytics/FunnelAnalytics.tsx` | EDIT — breakdown device/source |
-| `src/pages/Admin.tsx` | EDIT — tab Monitoring |
-| Migrare DB | `alert_rules` table + RLS |
+| `supabase/functions/analyze-supplier/index.ts` | Supplier scoring + web research |
+| `supabase/functions/extract-bid-data/index.ts` | Structured extraction din documente |
+| `src/pages/SupplierAudit.tsx` | Pagina UI |
+| Migrare DB | Tabel `supplier_analyses` |
 
-## Cost
-- Edge function cron: ~0 (doar query-uri DB)
-- Dashboard: 0 (client-side queries)
+## Fișiere editate
+| Fișier | Ce se schimbă |
+|---|---|
+| `src/App.tsx` | Ruta `/supplier-audit` |
 
+## Dependențe
+- Perplexity API (deja conectat) pentru web research
+- Lovable AI models pentru extracție structurată

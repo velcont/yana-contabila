@@ -54,6 +54,7 @@ const MyAICosts = lazy(() => import("./pages/MyAICosts"));
 const AIStrategy = lazy(() => import("./pages/AIStrategy"));
 const Research = lazy(() => import("./pages/Research"));
 const PriceTracker = lazy(() => import("./pages/PriceTracker"));
+const SupplierAudit = lazy(() => import("./pages/SupplierAudit"));
 
 const queryClient = new QueryClient();
 
@@ -181,6 +182,7 @@ const App = () => {
                       <Route path="/research" element={<Research />} />
                       <Route path="/install" element={<InstallPWA />} />
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
+                      <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
