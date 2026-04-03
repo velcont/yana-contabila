@@ -5331,8 +5331,13 @@ export type Database = {
           generated_content: string | null
           generated_doc_url: string | null
           id: string
+          original_deadline: string | null
+          postponed_at: string | null
+          postponed_reason: string | null
           priority: string
           reminder_at: string | null
+          resolution_notes: string | null
+          source: string | null
           source_context: Json | null
           status: string
           updated_at: string
@@ -5349,8 +5354,13 @@ export type Database = {
           generated_content?: string | null
           generated_doc_url?: string | null
           id?: string
+          original_deadline?: string | null
+          postponed_at?: string | null
+          postponed_reason?: string | null
           priority?: string
           reminder_at?: string | null
+          resolution_notes?: string | null
+          source?: string | null
           source_context?: Json | null
           status?: string
           updated_at?: string
@@ -5367,8 +5377,13 @@ export type Database = {
           generated_content?: string | null
           generated_doc_url?: string | null
           id?: string
+          original_deadline?: string | null
+          postponed_at?: string | null
+          postponed_reason?: string | null
           priority?: string
           reminder_at?: string | null
+          resolution_notes?: string | null
+          source?: string | null
           source_context?: Json | null
           status?: string
           updated_at?: string
@@ -5459,11 +5474,13 @@ export type Database = {
           communication_style: string | null
           company_size: string | null
           created_at: string
+          evening_debrief_enabled: boolean | null
           id: string
           interaction_patterns: Json | null
           language_complexity: string | null
           last_profile_update: string | null
           learned_corrections: Json | null
+          morning_briefing_enabled: boolean | null
           onboarding_answers: Json | null
           onboarding_completed: boolean
           personality_notes: string | null
@@ -5479,11 +5496,13 @@ export type Database = {
           communication_style?: string | null
           company_size?: string | null
           created_at?: string
+          evening_debrief_enabled?: boolean | null
           id?: string
           interaction_patterns?: Json | null
           language_complexity?: string | null
           last_profile_update?: string | null
           learned_corrections?: Json | null
+          morning_briefing_enabled?: boolean | null
           onboarding_answers?: Json | null
           onboarding_completed?: boolean
           personality_notes?: string | null
@@ -5499,11 +5518,13 @@ export type Database = {
           communication_style?: string | null
           company_size?: string | null
           created_at?: string
+          evening_debrief_enabled?: boolean | null
           id?: string
           interaction_patterns?: Json | null
           language_complexity?: string | null
           last_profile_update?: string | null
           learned_corrections?: Json | null
+          morning_briefing_enabled?: boolean | null
           onboarding_answers?: Json | null
           onboarding_completed?: boolean
           personality_notes?: string | null
