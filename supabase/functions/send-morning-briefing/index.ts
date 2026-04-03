@@ -39,6 +39,120 @@ const WEATHER_DESCRIPTIONS: Record<number, string> = {
 };
 
 // ============================================================
+// RSS Feed Sources
+// ============================================================
+const RSS_FEEDS = [
+  { url: 'https://www.profit.ro/rss', name: 'Profit.ro', category: 'business' },
+  { url: 'https://www.zf.ro/rss/zf-24.xml', name: 'Ziarul Financiar', category: 'business' },
+  { url: 'https://economedia.ro/feed', name: 'Economedia', category: 'economic' },
+  { url: 'https://www.hotnews.ro/rss/economie', name: 'HotNews Economie', category: 'economic' },
+  { url: 'https://www.hotnews.ro/rss/politic', name: 'HotNews Politic', category: 'politic' },
+  { url: 'https://www.digi24.ro/rss/economie', name: 'Digi24 Economie', category: 'business' },
+  { url: 'https://www.digi24.ro/rss/actualitate/politica', name: 'Digi24 Politic', category: 'politic' },
+];
+
+// Keywords for filtering relevant news
+const FISCAL_KEYWORDS = ['anaf', 'fiscal', 'impozit', 'tva', 'taxe', 'declarați', 'contribuți', 'buget', 'e-factura', 'saf-t', 'codul fiscal', 'omnibus'];
+const ACCOUNTING_KEYWORDS = ['contabil', 'bilanț', 'balanț', 'ceccar', 'expert contabil', 'audit', 'raportare', 'ifrs', 'omfp'];
+const BUSINESS_KEYWORDS = ['antreprenor', 'afaceri', 'startup', 'investiți', 'finanțare', 'fonduri europene', 'grant', 'pnrr', 'imm', 'creditare', 'bani', 'economie', 'pib', 'inflați', 'bnr', 'curs valutar', 'euro'];
+const POLITICAL_KEYWORDS = ['guvern', 'parlament', 'lege', 'ordonanț', 'oug', 'minister', 'premier', 'președint', 'alegeri', 'coaliți'];
+
+interface NewsItem {
+  title: string;
+  link: string;
+  source: string;
+  category: string;
+  pubDate?: Date;
+}
+
+function extractItems(xml: string, sourceName: string, sourceCategory: string): NewsItem[] {
+  const items: NewsItem[] = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const content = match[1];
+    const titleMatch = content.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/);
+    const linkMatch = content.match(/<link>(.*?)<\/link>/);
+    const pubDateMatch = content.match(/<pubDate>(.*?)<\/pubDate>/);
+    
+    const title = (titleMatch?.[1] || titleMatch?.[2] || '').trim();
+    const link = (linkMatch?.[1] || '').trim();
+    
+    if (title && link) {
+      items.push({
+        title,
+        link,
+        source: sourceName,
+        category: sourceCategory,
+        pubDate: pubDateMatch ? new Date(pubDateMatch[1]) : undefined,
+      });
+    }
+  }
+  return items;
+}
+
+function categorizeNews(item: NewsItem): string[] {
+  const lower = item.title.toLowerCase();
+  const cats: string[] = [];
+  if (FISCAL_KEYWORDS.some(k => lower.includes(k))) cats.push('fiscal');
+  if (ACCOUNTING_KEYWORDS.some(k => lower.includes(k))) cats.push('contabil');
+  if (BUSINESS_KEYWORDS.some(k => lower.includes(k))) cats.push('business');
+  if (POLITICAL_KEYWORDS.some(k => lower.includes(k))) cats.push('politic');
+  if (cats.length === 0) cats.push(item.category);
+  return cats;
+}
+
+async function fetchAllNews(): Promise<{ fiscal: NewsItem[]; accounting: NewsItem[]; business: NewsItem[]; political: NewsItem[] }> {
+  const allItems: NewsItem[] = [];
+  
+  const feedPromises = RSS_FEEDS.map(async (feed) => {
+    try {
+      const res = await fetch(feed.url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) return [];
+      const xml = await res.text();
+      return extractItems(xml, feed.name, feed.category);
+    } catch {
+      return [];
+    }
+  });
+
+  const results = await Promise.allSettled(feedPromises);
+  for (const r of results) {
+    if (r.status === 'fulfilled') allItems.push(...r.value);
+  }
+
+  // Filter to last 24 hours
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentItems = allItems.filter(item => !item.pubDate || item.pubDate > cutoff);
+
+  // Categorize and deduplicate by title similarity
+  const seen = new Set<string>();
+  const fiscal: NewsItem[] = [];
+  const accounting: NewsItem[] = [];
+  const business: NewsItem[] = [];
+  const political: NewsItem[] = [];
+
+  for (const item of recentItems) {
+    const key = item.title.substring(0, 50).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const cats = categorizeNews(item);
+    if (cats.includes('fiscal')) fiscal.push(item);
+    if (cats.includes('contabil')) accounting.push(item);
+    if (cats.includes('business')) business.push(item);
+    if (cats.includes('politic')) political.push(item);
+  }
+
+  return {
+    fiscal: fiscal.slice(0, 5),
+    accounting: accounting.slice(0, 3),
+    business: business.slice(0, 5),
+    political: political.slice(0, 3),
+  };
+}
+
+// ============================================================
 // Discovery Tips (rotative)
 // ============================================================
 const DISCOVERY_TIPS = [
@@ -86,6 +200,35 @@ function sectionCard(title: string, bgColor: string, borderColor: string, titleC
     </div>`;
 }
 
+function newsListHtml(items: NewsItem[]): string {
+  if (items.length === 0) return '';
+  return `<ul style="margin: 0; padding-left: 0; font-size: 13px; list-style: none;">
+    ${items.map(n => `<li style="margin-bottom: 8px; line-height: 1.4;">
+      <a href="${n.link}" style="color: #1e40af; text-decoration: none; font-weight: 500;">${n.title}</a>
+      <span style="color: #9ca3af; font-size: 11px;"> — ${n.source}</span>
+    </li>`).join('')}
+  </ul>`;
+}
+
+// ============================================================
+// Dedup guard: prevent sending same briefing twice in a day
+// ============================================================
+async function hasAlreadySentToday(supabase: any, userId: string, todayStr: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from('email_logs')
+      .select('id')
+      .eq('recipient_user_id', userId)
+      .eq('email_type', 'morning_briefing')
+      .gte('sent_at', todayStr + 'T00:00:00Z')
+      .lte('sent_at', todayStr + 'T23:59:59Z')
+      .limit(1);
+    return !!(data && data.length > 0);
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -105,13 +248,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: users, error: usersError } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, subscription_status, has_free_access')
-      .or('subscription_status.eq.active,has_free_access.eq.true')
-      .not('email', 'is', null);
+    // Fetch news in parallel with user loading
+    const [newsResult, usersResult] = await Promise.allSettled([
+      fetchAllNews(),
+      supabase
+        .from('profiles')
+        .select('id, email, full_name, subscription_status, has_free_access, yana_emails_enabled')
+        .or('subscription_status.eq.active,has_free_access.eq.true')
+        .not('email', 'is', null),
+    ]);
 
+    const news = newsResult.status === 'fulfilled' ? newsResult.value : { fiscal: [], accounting: [], business: [], political: [] };
+    if (usersResult.status === 'rejected') throw usersResult.reason;
+    const { data: users, error: usersError } = usersResult.value;
     if (usersError) throw usersError;
+
+    console.log(`[morning-briefing] News fetched: fiscal=${news.fiscal.length}, accounting=${news.accounting.length}, business=${news.business.length}, political=${news.political.length}`);
+
+    // Build news HTML sections (shared across all users)
+    const fiscalNewsHtml = news.fiscal.length > 0
+      ? sectionCard('📋 Știri Fiscale & Contabile', '#fffbeb', '#f59e0b', '#92400e',
+          newsListHtml([...news.fiscal, ...news.accounting].slice(0, 5)))
+      : '';
+
+    const businessNewsHtml = news.business.length > 0
+      ? sectionCard('💼 Știri Business & Economie', '#f0fdf4', '#22c55e', '#166534',
+          newsListHtml(news.business))
+      : '';
+
+    const politicalNewsHtml = news.political.length > 0
+      ? sectionCard('🏛️ Știri Politice Relevante', '#eff6ff', '#6366f1', '#312e81',
+          newsListHtml(news.political))
+      : '';
 
     const results: { email: string; status: string }[] = [];
     const now = new Date();
@@ -122,7 +290,13 @@ Deno.serve(async (req) => {
 
     for (const user of users || []) {
       try {
-        // Check preferences
+        // Check if user opted out of YANA emails globally
+        if (user.yana_emails_enabled === false) {
+          results.push({ email: user.email, status: 'skipped_global_opt_out' });
+          continue;
+        }
+
+        // Check morning briefing preference
         const { data: profile } = await supabase
           .from('yana_client_profiles')
           .select('morning_briefing_enabled, city')
@@ -134,13 +308,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Dedup: don't send twice in the same day
+        if (await hasAlreadySentToday(supabase, user.id, todayStr)) {
+          results.push({ email: user.email, status: 'skipped_already_sent_today' });
+          continue;
+        }
+
         const userCity = profile?.city || 'București';
         const firstName = (user.full_name || '').split(' ')[0] || 'CEO';
         const todayRo = now.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' });
 
         // ============ SECTION 1: WEATHER ============
         const weather = await getWeather(userCity);
-        const weatherHtml = weather ? `<p style="color: #374151; margin: 0; font-size: 14px;">🌤️ ${weather}</p>` : '';
 
         // ============ SECTION 2: CALENDAR / AGENDA ============
         const { data: todayActions } = await supabase
@@ -282,13 +461,6 @@ Deno.serve(async (req) => {
             </p>
           </div>`;
 
-        // ============ CHECK IF WE HAVE CONTENT ============
-        const hasContent = agendaHtml || fiscalHtml || financialHtml || actionsHtml || alertsHtml;
-        if (!hasContent) {
-          results.push({ email: user.email, status: 'skipped_no_content' });
-          continue;
-        }
-
         // ============ BUILD EMAIL ============
         const html = `
 <!DOCTYPE html>
@@ -298,7 +470,7 @@ Deno.serve(async (req) => {
   <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; padding: 28px; border-radius: 12px 12px 0 0;">
     <h1 style="margin: 0; font-size: 22px;">☀️ Bună dimineața, ${firstName}!</h1>
     <p style="margin: 8px 0 0; opacity: 0.85; font-size: 14px;">${todayRo}</p>
-    ${weather ? `<p style="margin: 6px 0 0; opacity: 0.75; font-size: 13px;">${weather}</p>` : ''}
+    ${weather ? `<p style="margin: 6px 0 0; opacity: 0.75; font-size: 13px;">🌤️ ${weather}</p>` : ''}
   </div>
   <div style="background: white; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e9ecef; border-top: none;">
     ${agendaHtml}
@@ -306,6 +478,9 @@ Deno.serve(async (req) => {
     ${financialHtml}
     ${actionsHtml}
     ${alertsHtml}
+    ${fiscalNewsHtml}
+    ${businessNewsHtml}
+    ${politicalNewsHtml}
     ${tipHtml}
     <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
     <p style="text-align: center;">
@@ -331,12 +506,29 @@ Deno.serve(async (req) => {
         });
 
         const emailResult = await emailRes.json();
-        results.push({ email: user.email, status: emailRes.ok ? 'sent' : `error: ${JSON.stringify(emailResult)}` });
+        const status = emailRes.ok ? 'sent' : `error: ${JSON.stringify(emailResult)}`;
+        results.push({ email: user.email, status });
+
+        // Log to email_logs for dedup tracking
+        await supabase.from('email_logs').insert({
+          recipient_user_id: user.id,
+          email_type: 'morning_briefing',
+          recipient_email: user.email,
+          subject: `☀️ Morning Briefing — ${todayRo}`,
+          status: emailRes.ok ? 'sent' : 'error',
+          sent_at: now.toISOString(),
+        });
+
+        // Small delay between sends
+        await new Promise(r => setTimeout(r, 300));
+
       } catch (userErr: unknown) {
         const msg = userErr instanceof Error ? userErr.message : 'unknown';
         results.push({ email: user.email, status: `error: ${msg}` });
       }
     }
+
+    console.log(`[morning-briefing] Done. Processed: ${results.length}, Sent: ${results.filter(r => r.status === 'sent').length}`);
 
     return new Response(JSON.stringify({ success: true, processed: results.length, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
