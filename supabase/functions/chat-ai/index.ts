@@ -2588,27 +2588,33 @@ Răspunde natural, ca și cum ai vedea tu direct imaginea.
       const content = responseData.choices?.[0]?.message?.content || "";
       
       // ========================================
-      // DEDUCT CREDIT AFTER SUCCESS (non-streaming)
-      // ========================================
-      // Chat AI inclus în abonament - doar tracking pentru statistici
+      // TOKEN TRACKING (non-streaming)
       // ========================================
       if (content) {
-        // Track AI usage pentru statistici (fără deducere credite)
+        const usageData = responseData.usage || {};
+        const inputTokens = usageData.prompt_tokens || Math.ceil(JSON.stringify(messages).length / 4);
+        const outputTokens = usageData.completion_tokens || Math.ceil(content.length / 4);
+        const totalTokens = inputTokens + outputTokens;
+        // Gemini 2.5 Flash: $0.075/1M input, $0.30/1M output
+        const estimatedCostCents = Math.ceil((inputTokens / 1_000_000) * 7.5 + (outputTokens / 1_000_000) * 30);
+        
         await supabase
           .from('ai_usage')
           .insert({
             user_id: userId,
             endpoint: 'chat-ai',
             model: 'google/gemini-2.5-flash',
-            estimated_cost_cents: 0, // Inclus în abonament
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            total_tokens: totalTokens,
+            estimated_cost_cents: estimatedCostCents,
+            request_duration_ms: Date.now() - requestStartTime,
             success: true,
             month_year: new Date().toISOString().slice(0, 7)
           });
         const totalDuration = Date.now() - requestStartTime;
         console.log(`[chat-ai][${requestId}] ========== REQUEST COMPLETE (non-stream) ==========`);
-        console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms`);
-        console.log(`[chat-ai][${requestId}] Response length: ${content.length} chars`);
-        console.log(`[chat-ai][${requestId}] Status: SUCCESS`);
+        console.log(`[chat-ai][${requestId}] Total duration: ${totalDuration}ms, tokens: ${totalTokens} (in:${inputTokens}/out:${outputTokens}), cost: ${estimatedCostCents}¢`);
       }
       // ========================================
       
