@@ -2891,6 +2891,38 @@ Răspunde natural, ca și cum ai vedea tu direct imaginea.
           }
           // === END SELF-REFLECT ===
 
+          // === MEMORY EXTRACTION (fire and forget) ===
+          if (userId && accumulatedContent.length > 50) {
+            (async () => {
+              try {
+                const memResp = await fetch(
+                  `${Deno.env.get("SUPABASE_URL")}/functions/v1/memory-manager`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+                    },
+                    body: JSON.stringify({
+                      action: "extract",
+                      userId,
+                      conversationId,
+                      question: message?.substring(0, 500),
+                      answer: accumulatedContent.substring(0, 1500),
+                    })
+                  }
+                );
+                if (memResp.ok) {
+                  const memResult = await memResp.json();
+                  console.log(`[chat-ai][${requestId}] Memory extracted: ${memResult.facts_extracted} facts, ${memResult.new_memories} new`);
+                }
+              } catch (memErr) {
+                console.warn(`[chat-ai][${requestId}] Memory extraction error:`, memErr);
+              }
+            })();
+          }
+          // === END MEMORY EXTRACTION ===
+
           // === ÎNVĂȚARE AUTOMATĂ: Salvăm răspunsul și extragem pattern-ul ===
           const responseTime = Date.now() - startTime;
           
