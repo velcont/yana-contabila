@@ -169,7 +169,7 @@ const PriceTracker = () => {
                             {result.store}
                           </Badge>
                           {idx === 0 && (
-                            <Badge variant="outline" className="text-green-600 border-green-600 shrink-0">
+                            <Badge variant="outline" className="text-primary border-primary shrink-0">
                               Cel mai ieftin
                             </Badge>
                           )}
