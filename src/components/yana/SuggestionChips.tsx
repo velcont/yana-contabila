@@ -46,6 +46,27 @@ const DEFAULT_CHIPS = [
     iconColor: 'text-orange-500',
   },
   {
+    label: 'Ce să fac azi?',
+    icon: Lightbulb,
+    message: 'Ce ar trebui să fac azi? Care sunt cele mai importante acțiuni pe care trebuie să le fac acum?',
+    accent: 'border-yellow-500/30 hover:bg-yellow-500/10',
+    iconColor: 'text-yellow-500',
+  },
+  {
+    label: 'Cash Flow Forecast',
+    icon: TrendingUp,
+    message: 'Arată-mi o previziune a cash flow-ului pe următoarele 30/60/90 de zile.',
+    accent: 'border-cyan-500/30 hover:bg-cyan-500/10',
+    iconColor: 'text-cyan-500',
+  },
+  {
+    label: 'Fonduri Europene',
+    icon: Euro,
+    message: 'Ce fonduri europene nerambursabile sunt disponibile acum pentru industria mea?',
+    accent: 'border-green-500/30 hover:bg-green-500/10',
+    iconColor: 'text-green-500',
+  },
+  {
     label: 'Strategie AI',
     icon: Brain,
     message: 'Vreau o analiză strategică AI pentru afacerea mea.',
