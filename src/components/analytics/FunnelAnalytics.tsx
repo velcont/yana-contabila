@@ -309,38 +309,81 @@ export function FunnelAnalytics() {
         </Card>
       )}
 
-      {/* Detalii drop-off */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Detalii Drop-off între Pași</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {dropOffs.map((drop, idx) => (
-              <div 
-                key={idx}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2 text-sm">
-                  <span>{drop.from}</span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  <span>{drop.to}</span>
+      {/* Detalii drop-off + Device breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg">Detalii Drop-off între Pași</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {dropOffs.map((drop, idx) => (
+                <div 
+                  key={idx}
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-sm">
+                    <span>{drop.from}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <span>{drop.to}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      -{drop.lost} utilizatori
+                    </span>
+                    <Badge 
+                      variant={drop.dropOff > 70 ? 'destructive' : drop.dropOff > 40 ? 'secondary' : 'outline'}
+                    >
+                      -{drop.dropOff}%
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground">
-                    -{drop.lost} utilizatori
-                  </span>
-                  <Badge 
-                    variant={drop.dropOff > 70 ? 'destructive' : drop.dropOff > 40 ? 'secondary' : 'outline'}
-                  >
-                    -{drop.dropOff}%
-                  </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Device Breakdown - PostHog style */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Smartphone className="h-4 w-4" /> Device Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Desktop</span>
                 </div>
+                <span className="font-medium">{deviceBreakdown.desktop}</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${(deviceBreakdown.desktop / Math.max(deviceBreakdown.desktop + deviceBreakdown.mobile, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">Mobile</span>
+                </div>
+                <span className="font-medium">{deviceBreakdown.mobile}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-orange-500 transition-all"
+                  style={{ width: `${(deviceBreakdown.mobile / Math.max(deviceBreakdown.desktop + deviceBreakdown.mobile, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
