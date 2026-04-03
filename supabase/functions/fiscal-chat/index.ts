@@ -587,7 +587,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         endpoint: 'fiscal-chat',
-        model: 'sonar',
+        model: 'sonar-pro',
         estimated_cost_cents: 15, // 0.15 RON per fiscal query
         success: true,
         month_year: new Date().toISOString().slice(0, 7) // YYYY-MM
