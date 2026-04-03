@@ -43,6 +43,7 @@ export function FunnelAnalytics() {
   const [funnelData, setFunnelData] = useState<FunnelData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('30d');
+  const [deviceBreakdown, setDeviceBreakdown] = useState<{ mobile: number; desktop: number }>({ mobile: 0, desktop: 0 });
 
   useEffect(() => {
     loadFunnelData();
