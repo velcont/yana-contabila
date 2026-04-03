@@ -40,9 +40,12 @@ export const Footer = () => {
       <div className="container mx-auto px-4 py-6">
         {/* Header cu descriere */}
         <div className="mb-6">
-          <h3 className="font-bold text-lg mb-2">YANA – AI-ul care analizează balanțe și dezvoltă afaceri</h3>
-          <p className="text-sm text-muted-foreground max-w-2xl">
-            Două module puternice pentru afacerea ta: <strong>Analiză Balanță</strong> (dashboard live + chat financiar) și <strong>Yana Strategică</strong> (consultant AI strategic).
+          <h3 className="font-bold text-lg mb-1">YANA</h3>
+          <p className="text-sm font-medium text-foreground/80 mb-2">
+            YANA nu este un chatbot. Este un AI pentru business.
+          </p>
+          <p className="text-xs text-muted-foreground max-w-2xl">
+            Analizează balanțe, dă sfaturi strategice, generează documente și nu uită nimic.
           </p>
         </div>
 
