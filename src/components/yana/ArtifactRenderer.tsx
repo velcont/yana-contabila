@@ -32,7 +32,9 @@ interface Artifact {
   isStrategyLoading?: boolean;
   isStrategySubmitted?: boolean;
   strategyProfile?: BusinessProfile;
-}
+  onActionConfirm?: (actionId: string) => void;
+  onActionReject?: (actionId: string) => void;
+  onActionEdit?: (actionId: string) => void;
 
 interface ArtifactRendererProps {
   artifact: Artifact;
