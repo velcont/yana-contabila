@@ -4554,6 +4554,63 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_analyses: {
+        Row: {
+          confidence: number | null
+          created_at: string | null
+          cui: string | null
+          currency: string | null
+          extracted_bid_data: Json | null
+          id: string
+          market_prices: Json | null
+          offer_price: number | null
+          product_description: string | null
+          raw_document_text: string | null
+          reasoning: string | null
+          recommendation: string | null
+          scores: Json | null
+          supplier_name: string
+          user_id: string
+          web_sources: string[] | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string | null
+          cui?: string | null
+          currency?: string | null
+          extracted_bid_data?: Json | null
+          id?: string
+          market_prices?: Json | null
+          offer_price?: number | null
+          product_description?: string | null
+          raw_document_text?: string | null
+          reasoning?: string | null
+          recommendation?: string | null
+          scores?: Json | null
+          supplier_name: string
+          user_id: string
+          web_sources?: string[] | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string | null
+          cui?: string | null
+          currency?: string | null
+          extracted_bid_data?: Json | null
+          id?: string
+          market_prices?: Json | null
+          offer_price?: number | null
+          product_description?: string | null
+          raw_document_text?: string | null
+          reasoning?: string | null
+          recommendation?: string | null
+          scores?: Json | null
+          supplier_name?: string
+          user_id?: string
+          web_sources?: string[] | null
+        }
+        Relationships: []
+      }
       system_health: {
         Row: {
           check_type: string
