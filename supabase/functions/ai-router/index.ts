@@ -657,26 +657,47 @@ function detectIntent(message: string): RouteDecision {
   const isSupplierRequest = supplierPatterns.some(p => p.test(lowerMessage));
   
   if (isSupplierRequest) {
-    // Extract supplier name from message if mentioned
-    const nameMatch = message.match(/(?:firma|furnizor|supplier|compania)\s+["„]?([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]+?)[""]?(?:\s|,|\.|$)/i) 
-      || message.match(/["„]([^"„""]+)[""]/)
-      || message.match(/despre\s+([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]+?)(?:\s*[,.\?!]|\s+(?:din|cu|care|pentru|și))/i);
+    // Common Romanian prepositions/articles to exclude from supplier name extraction
+    const stopWords = ['de', 'din', 'un', 'o', 'la', 'pe', 'cu', 'în', 'si', 'și', 'sau', 'cel', 'mai', 'pentru', 'care', 'nr', 'al', 'ale'];
     
-    const supplierName = nameMatch ? nameMatch[1].trim() : null;
+    // Extract supplier name — look for quoted names or "firma X" patterns
+    const nameMatch = message.match(/["„]([^"„""]{2,})[""]/) 
+      || message.match(/(?:firma|compania)\s+([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]{2,}?)(?:\s*[,.\?!]|\s+(?:din|cu|care|pentru|și|si|este|e\s))/i)
+      || message.match(/(?:despre|evalueaz[aă]|verific[aă]|analizeaz[aă])\s+(?:firma|compania|furnizorul)?\s*([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]{2,}?)(?:\s*[,.\?!]|\s+(?:din|cu|care|pentru|și|si))/i);
     
-    // Extract product description
-    const productMatch = message.match(/(?:pentru|de)\s+([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\.|,|$|\?)/i);
+    let supplierName = nameMatch ? nameMatch[1].trim() : null;
+    
+    // Reject if extracted name is just a stop word or too short
+    if (supplierName && (stopWords.includes(supplierName.toLowerCase()) || supplierName.length < 3)) {
+      supplierName = null;
+    }
+    
+    // Extract product/service description  
+    const productMatch = message.match(/(?:furnizor|supplier|provider)\s+(?:de\s+)?([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\s+din\s+|\.|,|$|\?)/i)
+      || message.match(/(?:servicii|produse|materiale)\s+([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\s+din\s+|\.|,|$|\?)/i)
+      || message.match(/(?:de)\s+([a-zA-ZăîâșțĂÎÂȘȚ\s]{4,}?)(?:\s+din\s+|\.|,|$|\?)/i);
     const productDescription = productMatch ? productMatch[1].trim() : null;
     
-    console.log(`[AI-Router] 🏭 SUPPLIER AUDIT DETECTED: supplier="${supplierName || 'TBD'}", product="${productDescription || 'general'}"`);
+    // Extract location if present
+    const locationMatch = message.match(/(?:din|în|la)\s+([A-ZĂÎÂȘȚ][a-zA-ZăîâșțĂÎÂȘȚ\s,]+?)(?:\.|,?\s*$|\?|!)/i);
+    const location = locationMatch ? locationMatch[1].trim() : null;
+    
+    // Determine if this is a search (no specific supplier) or an audit (specific supplier)
+    const isSearchMode = !supplierName;
+    
+    console.log(`[AI-Router] 🏭 SUPPLIER ${isSearchMode ? 'SEARCH' : 'AUDIT'} DETECTED: supplier="${supplierName || 'N/A'}", product="${productDescription || 'general'}", location="${location || 'N/A'}"`);
     return {
       route: 'analyze-supplier',
       payload: { 
         message,
         supplier_name: supplierName,
         product_description: productDescription,
+        location,
+        search_mode: isSearchMode,
       },
-      reason: `User requested supplier analysis${supplierName ? ` for "${supplierName}"` : ''}`
+      reason: isSearchMode 
+        ? `User searching for suppliers: ${productDescription || 'general'}${location ? ` in ${location}` : ''}`
+        : `User requested supplier analysis for "${supplierName}"`
     };
   }
 
