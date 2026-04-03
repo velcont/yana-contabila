@@ -22,7 +22,7 @@ interface RouterRequest {
 }
 
 interface RouteDecision {
-  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document' | 'analyze-supplier';
+  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document' | 'analyze-supplier' | 'search-prices';
   payload: Record<string, unknown>;
   reason: string;
 }
@@ -737,6 +737,50 @@ function detectIntent(message: string): RouteDecision {
       reason: isSearchMode 
         ? `User searching for suppliers: ${productDescription || 'general'}${location ? ` in ${location}` : ''}`
         : `User requested supplier analysis for "${supplierName}"`
+    };
+  }
+
+  // =============================================================================
+  // ⚡ PRICE COMPARISON / PRICE TRACKER — Compare prices across e-commerce
+  // =============================================================================
+  const priceComparisonPatterns = [
+    /(?:compar[aă]|compara[tț]ie)\s+(?:pre[tț]|pret)/i,
+    /(?:pre[tț]|pret)\s+(?:de\s+)?(?:pia[tț][aă]|piata|ofert[aă]|oferta)/i,
+    /(?:cel\s+mai\s+(?:ieftin|bun|mic)\s+pre[tț])/i,
+    /(?:caut[aă]|g[aă]se[sș]te|verific[aă])(?:-mi)?\s+(?:pre[tț]ul?|pretul?)/i,
+    /(?:pre[tț]|pret)\s+(?:pe|la|din)\s+(?:emag|amazon|aliexpress|olx|pcgarage|altex|cel\.ro|flanco)/i,
+    /(?:c[aâ]t\s+cost[aă]|cat\s+costa|pre[tț]ul?\s+(?:pentru|la|de))/i,
+    /(?:emag|amazon|aliexpress)\.(?:ro|com)/i,
+    /(?:monitor(?:izare|izeaz[aă])?\s+pre[tț])/i,
+    /(?:unde\s+(?:e|este|gasesc|găsesc)\s+mai\s+ieftin)/i,
+  ];
+
+  if (priceComparisonPatterns.some(p => p.test(lowerMessage))) {
+    // Extract product name from message
+    let product = message;
+    
+    // Try to extract URL and use it as product context
+    const urlMatch = message.match(/https?:\/\/[^\s]+/);
+    
+    // Try to extract product name from common patterns
+    const productMatch = message.match(/(?:pre[tț]ul?\s+(?:pentru|la|de)\s+)(.+?)(?:\s*[?.]|$)/i)
+      || message.match(/(?:c[aâ]t\s+cost[aă])\s+(.+?)(?:\s*[?.]|$)/i)
+      || message.match(/(?:compar[aă]\s+pre[tț]ul?\s+(?:de\s+ofert[aă]\s+cu\s+pre[tț]ul?\s+de\s+pia[tț][aă]\s+(?:a|al|ale?)\s+))(.+?)(?:\s*[?.]|$)/i)
+      || message.match(/(?:compar[aă]\s+pre[tț]ul?\s+(?:pentru|la|de)\s+)(.+?)(?:\s*[?.]|$)/i);
+    
+    if (productMatch) {
+      product = productMatch[1].trim();
+    }
+    
+    console.log(`[AI-Router] 💰 PRICE COMPARISON DETECTED: product="${product.substring(0, 80)}", url="${urlMatch?.[0] || 'none'}"`);
+    return {
+      route: 'search-prices',
+      payload: {
+        message,
+        product: product,
+        url: urlMatch?.[0] || null,
+      },
+      reason: `User requested price comparison for "${product.substring(0, 50)}"`
     };
   }
 
@@ -1615,6 +1659,98 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({ success: true, response: errorResponse, route: 'analyze-supplier' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =============================================================================
+    // SPECIAL ROUTE: PRICE COMPARISON (search-prices)
+    // =============================================================================
+    if (routeDecision.route === 'search-prices') {
+      console.log('[AI-Router] 💰 Handling price comparison route from chat');
+      
+      const pricePayload = routeDecision.payload as {
+        message: string;
+        product: string;
+        url?: string;
+      };
+      
+      try {
+        const priceResponse = await fetch(`${supabaseUrl}/functions/v1/search-prices`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            product: pricePayload.url || pricePayload.product,
+            currency: 'RON',
+          }),
+        });
+        
+        if (!priceResponse.ok) {
+          const errText = await priceResponse.text();
+          throw new Error(`Price search failed: ${errText}`);
+        }
+        
+        const priceResult = await priceResponse.json();
+        const results = priceResult.results || [];
+        
+        let chatResponse = `🛒 **Comparație Prețuri: ${pricePayload.product.substring(0, 80)}**\n\n`;
+        
+        if (results.length === 0) {
+          chatResponse += `Nu am găsit prețuri pentru acest produs. Încearcă cu un nume mai specific.\n`;
+        } else {
+          // Sort by price ascending
+          const sorted = [...results].sort((a: any, b: any) => (a.price || 999999) - (b.price || 999999));
+          
+          if (priceResult.best_price) {
+            chatResponse += `⭐ **Cel mai bun preț: ${priceResult.best_price.toLocaleString('ro-RO')} RON** (pe ${priceResult.best_source})\n\n`;
+          }
+          
+          chatResponse += `📊 **${sorted.length} rezultate găsite:**\n\n`;
+          
+          sorted.forEach((r: any, i: number) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+            chatResponse += `${medal} **${r.store}** — ${r.price?.toLocaleString('ro-RO')} ${r.currency || 'RON'}\n`;
+            if (r.product_name) chatResponse += `   ${r.product_name}\n`;
+            if (r.url) chatResponse += `   🔗 [Vezi oferta](${r.url})\n`;
+            chatResponse += `\n`;
+          });
+          
+          if (priceResult.citations && priceResult.citations.length > 0) {
+            chatResponse += `🔗 **Surse:** ${priceResult.citations.slice(0, 3).join(', ')}\n\n`;
+          }
+        }
+        
+        chatResponse += `---\n*Vrei să caut prețuri pentru alt produs? Spune-mi ce te interesează.*`;
+        
+        // Save to yana_messages
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: chatResponse,
+          artifacts: [],
+          ends_with_question: true,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: chatResponse, route: 'search-prices' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (priceErr) {
+        console.error('[AI-Router] ❌ Price search error:', priceErr);
+        const errorResponse = `❌ Nu am putut căuta prețuri momentan. Eroare: ${priceErr.message}\n\nPoți încerca din pagina **Price Tracker** (din meniul lateral) sau reformulează cererea.`;
+        
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: errorResponse,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: errorResponse, route: 'search-prices' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
