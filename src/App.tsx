@@ -53,6 +53,7 @@ const GenerateAcademicStatistics = lazy(() => import("./pages/GenerateAcademicSt
 const MyAICosts = lazy(() => import("./pages/MyAICosts"));
 const AIStrategy = lazy(() => import("./pages/AIStrategy"));
 const Research = lazy(() => import("./pages/Research"));
+const PriceTracker = lazy(() => import("./pages/PriceTracker"));
 
 const queryClient = new QueryClient();
 
