@@ -455,6 +455,10 @@ const Admin = () => {
                 <Globe className="h-4 w-4 mr-2" />
                 🌐 Explorări
               </TabsTrigger>
+              <TabsTrigger value="monitoring">
+                <Activity className="h-4 w-4 mr-2" />
+                📊 Monitoring
+              </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
