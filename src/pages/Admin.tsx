@@ -967,6 +967,16 @@ const Admin = () => {
               <ExplorationsDashboard />
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="monitoring">
+            <Suspense fallback={<TabContentLoader />}>
+              <div className="space-y-6">
+                <LiveMetricsPanel />
+                <AlertRulesManager />
+                <RetentionHeatmap />
+              </div>
+            </Suspense>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
