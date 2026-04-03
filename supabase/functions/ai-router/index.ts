@@ -22,7 +22,7 @@ interface RouterRequest {
 }
 
 interface RouteDecision {
-  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document';
+  route: 'analyze-balance' | 'analyze-balance-saga' | 'chat-ai' | 'strategic-advisor' | 'fiscal-chat' | 'calculate-resilience' | 'calculate-anaf-risk' | 'direct-response' | 'generate-document' | 'analyze-supplier';
   payload: Record<string, unknown>;
   reason: string;
 }
@@ -638,6 +638,48 @@ function detectIntent(message: string): RouteDecision {
     };
   }
   
+  // =============================================================================
+  // ⚡ SUPPLIER AUDIT DETECTION — Analyze/search suppliers from chat
+  // =============================================================================
+  const supplierPatterns = [
+    /(?:caut[aă]|g[aă]se[sș]te|verific[aă]|analizeaz[aă]|evalueaz[aă])(?:-mi|-ne)?\s+(?:un\s+)?(?:furnizor|supplier|provider)/i,
+    /(?:cel\s+mai\s+(?:ieftin|bun|fiabil))\s+(?:furnizor|supplier|provider)/i,
+    /(?:furnizor|supplier)\s+(?:pentru|de|ieftin|bun|fiabil|nou)/i,
+    /(?:compar[aă]|compara[tț]ie)\s+(?:furnizor|supplier|ofert[eă])/i,
+    /(?:scor|rating|evaluare|audit)\s+(?:furnizor|supplier)/i,
+    /(?:risc|fiabilitate|reputa[tț]ie)\s+(?:furnizor|supplier|firm[aă])/i,
+    /(?:ofert[aă]|pre[tț])\s+(?:de\s+la|furnizor)/i,
+    /(?:verific[aă]|caut[aă]|analizeaz[aă])(?:-mi)?\s+(?:firma|compania)\s+["„]?[A-Z]/i,
+    /(?:ce\s+[sș]ti[ie]\s+despre|informa[tț]ii\s+despre)\s+(?:firma|furnizor|compania)\s+/i,
+    /(?:caut[aă]|g[aă]se[sș]te)(?:-mi)?\s+(?:cel\s+mai\s+)?(?:ieftin|bun)\s+(?:pre[tț]|produs)/i,
+  ];
+  
+  const isSupplierRequest = supplierPatterns.some(p => p.test(lowerMessage));
+  
+  if (isSupplierRequest) {
+    // Extract supplier name from message if mentioned
+    const nameMatch = message.match(/(?:firma|furnizor|supplier|compania)\s+["„]?([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]+?)[""]?(?:\s|,|\.|$)/i) 
+      || message.match(/["„]([^"„""]+)[""]/)
+      || message.match(/despre\s+([A-Z][A-Za-zăîâșțĂÎÂȘȚ\s&.-]+?)(?:\s*[,.\?!]|\s+(?:din|cu|care|pentru|și))/i);
+    
+    const supplierName = nameMatch ? nameMatch[1].trim() : null;
+    
+    // Extract product description
+    const productMatch = message.match(/(?:pentru|de)\s+([a-zA-ZăîâșțĂÎÂȘȚ\s]+?)(?:\.|,|$|\?)/i);
+    const productDescription = productMatch ? productMatch[1].trim() : null;
+    
+    console.log(`[AI-Router] 🏭 SUPPLIER AUDIT DETECTED: supplier="${supplierName || 'TBD'}", product="${productDescription || 'general'}"`);
+    return {
+      route: 'analyze-supplier',
+      payload: { 
+        message,
+        supplier_name: supplierName,
+        product_description: productDescription,
+      },
+      reason: `User requested supplier analysis${supplierName ? ` for "${supplierName}"` : ''}`
+    };
+  }
+
   // Fiscal questions - EXTENDED keywords pentru legislația 2026
   // Include forme articulate și variante pentru detecție robustă
   if (
@@ -1318,6 +1360,144 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({ success: true, response: errorResponse, route: 'generate-document' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =============================================================================
+    // SPECIAL ROUTE: SUPPLIER ANALYSIS (inline from chat)
+    // =============================================================================
+    if (routeDecision.route === 'analyze-supplier') {
+      console.log('[AI-Router] 🏭 Handling supplier analysis route from chat');
+      
+      const supplierPayload = routeDecision.payload as {
+        message: string;
+        supplier_name?: string;
+        product_description?: string;
+      };
+      
+      // If no supplier name extracted, ask the user
+      if (!supplierPayload.supplier_name) {
+        const askResponse = `🏭 **Audit Furnizor**\n\nPentru a analiza un furnizor, am nevoie de câteva detalii:\n\n1. **Numele furnizorului** (obligatoriu)\n2. **CUI** (opțional, dar ajută la verificarea ANAF)\n3. **Ce produs/serviciu ofertează?**\n4. **Prețul din ofertă** (opțional, pentru comparație)\n\nExemplu: *"Verifică furnizorul MEGA DISTRIBUTION SRL cu CUI 12345678 pentru hârtie de birou la 25 RON/top"*`;
+        
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: askResponse,
+          artifacts: [],
+          ends_with_question: true,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: askResponse, route: 'analyze-supplier' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // Call analyze-supplier edge function
+      try {
+        // Extract CUI if mentioned
+        const cuiMatch = supplierPayload.message.match(/(?:CUI|cui|C\.U\.I\.?)\s*[:=]?\s*(\d{6,10})/i);
+        const cui = cuiMatch ? cuiMatch[1] : null;
+        
+        // Extract price if mentioned
+        const priceMatch = supplierPayload.message.match(/(\d+(?:[.,]\d+)?)\s*(?:RON|EUR|USD|lei|euro)/i);
+        const offerPrice = priceMatch ? parseFloat(priceMatch[1].replace(',', '.')) : null;
+        const currencyMatch = supplierPayload.message.match(/\d+(?:[.,]\d+)?\s*(RON|EUR|USD|lei|euro)/i);
+        const currency = currencyMatch ? (currencyMatch[1] === 'lei' ? 'RON' : currencyMatch[1] === 'euro' ? 'EUR' : currencyMatch[1].toUpperCase()) : 'RON';
+        
+        const supplierResponse = await fetch(`${supabaseUrl}/functions/v1/analyze-supplier`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+          },
+          body: JSON.stringify({
+            supplier_name: supplierPayload.supplier_name,
+            cui,
+            product_description: supplierPayload.product_description,
+            offer_price: offerPrice,
+            currency,
+          }),
+        });
+        
+        if (!supplierResponse.ok) {
+          const errText = await supplierResponse.text();
+          throw new Error(`Supplier analysis failed: ${errText}`);
+        }
+        
+        const supplierResult = await supplierResponse.json();
+        
+        // Format response for chat display
+        const scores = supplierResult.scores || { price: 50, reliability: 50, risk: 50, overall: 50 };
+        const recEmoji = supplierResult.recommendation === 'APROBAT' ? '✅' : supplierResult.recommendation === 'RESPINS' ? '❌' : '⚠️';
+        const recText = supplierResult.recommendation === 'APROBAT' ? 'APROBAT' : supplierResult.recommendation === 'RESPINS' ? 'RESPINS' : 'DE REVIZUIT';
+        
+        let chatResponse = `🏭 **Audit Furnizor: ${supplierPayload.supplier_name}**\n\n`;
+        chatResponse += `${recEmoji} **Recomandare: ${recText}** (Încredere: ${Math.round((supplierResult.confidence || 0.5) * 100)}%)\n\n`;
+        chatResponse += `---\n\n`;
+        chatResponse += `📊 **Scoruri:**\n`;
+        chatResponse += `• 💰 Preț competitiv: **${scores.price}/100**\n`;
+        chatResponse += `• 🤝 Fiabilitate: **${scores.reliability}/100**\n`;
+        chatResponse += `• 🛡️ Risc scăzut: **${scores.risk}/100**\n`;
+        chatResponse += `• ⭐ **Scor general: ${scores.overall}/100**\n\n`;
+        
+        if (supplierResult.reasoning) {
+          chatResponse += `💡 **Analiză:** ${supplierResult.reasoning}\n\n`;
+        }
+        
+        if (supplierResult.strengths && supplierResult.strengths.length > 0) {
+          chatResponse += `✅ **Puncte forte:**\n`;
+          supplierResult.strengths.forEach((s: string) => { chatResponse += `• ${s}\n`; });
+          chatResponse += `\n`;
+        }
+        
+        if (supplierResult.risk_factors && supplierResult.risk_factors.length > 0) {
+          chatResponse += `⚠️ **Factori de risc:**\n`;
+          supplierResult.risk_factors.forEach((r: string) => { chatResponse += `• ${r}\n`; });
+          chatResponse += `\n`;
+        }
+        
+        if (supplierResult.market_prices && supplierResult.market_prices.length > 0) {
+          chatResponse += `💲 **Prețuri de piață găsite:**\n`;
+          supplierResult.market_prices.forEach((p: { source: string; price: number; currency: string }) => {
+            chatResponse += `• ${p.source}: ${p.price} ${p.currency}\n`;
+          });
+          chatResponse += `\n`;
+        }
+        
+        if (supplierResult.web_sources && supplierResult.web_sources.length > 0) {
+          chatResponse += `🔗 **Surse:** ${supplierResult.web_sources.slice(0, 3).join(', ')}\n\n`;
+        }
+        
+        chatResponse += `---\n*Poți verifica mai mulți furnizori pentru a compara scorurile.*`;
+        
+        // Save to yana_messages
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: chatResponse,
+          artifacts: [],
+          ends_with_question: false,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: chatResponse, route: 'analyze-supplier' }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (supplierErr) {
+        console.error('[AI-Router] ❌ Supplier analysis error:', supplierErr);
+        const errorResponse = `❌ Nu am putut analiza furnizorul. Eroare: ${supplierErr.message}\n\nÎncearcă din nou cu mai multe detalii (nume, CUI, produs).`;
+        
+        await supabase.from('yana_messages').insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: errorResponse,
+        });
+        
+        return new Response(
+          JSON.stringify({ success: true, response: errorResponse, route: 'analyze-supplier' }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
