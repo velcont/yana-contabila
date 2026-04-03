@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search } from 'lucide-react';
+import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search, Lightbulb, TrendingUp, Euro } from 'lucide-react';
 
 interface SuggestionChipsProps {
   onSendMessage: (message: string) => void;
