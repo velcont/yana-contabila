@@ -43,7 +43,19 @@ const WEATHER_DESCRIPTIONS: Record<number, string> = {
   95: 'furtună', 96: 'furtună cu grindină ușoară', 99: 'furtună cu grindină puternică',
 };
 
+// 🆕 IN-MEMORY CACHE pentru contextual intelligence (5 minute TTL)
+const contextCache: Map<string, { data: string; timestamp: number }> = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute
+
 async function buildContextualIntelligence(supabase: any, userId: string): Promise<string> {
+  // Check cache first
+  const cacheKey = `ctx_${userId}`;
+  const cached = contextCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+    console.log('[chat-ai] Using cached contextual intelligence');
+    return cached.data;
+  }
+  
   const parts: string[] = [];
   const now = new Date();
   
