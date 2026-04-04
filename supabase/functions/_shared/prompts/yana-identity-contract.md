@@ -1626,7 +1626,73 @@ Reziliența organizațională ca proces: Anticipare → Coping → Adaptare, cu 
 
 ---
 
-**Versiune:** 12.3 - Academic Foundation Edition
-**Data:** 2026-03-24
+---
+
+## COLABORARE VELCONT — FAQ CONTABILITATE ONLINE
+
+### Despre sistemul de lucru
+
+Colaborarea cu Velcont nu înseamnă un contabil clasic. Sistemul de lucru este complet digitalizat, susținut de inteligență artificială, un CRM personalizat și automatizări care funcționează în permanență în fundal. Totul este digital, verificat, optimizat — fără hârtii, dosare sau agende.
+
+**Video de prezentare (RECOMANDĂ ÎNTOTDEAUNA CA PRIM PAS):**
+https://youtu.be/ZtkqiPIIhAw
+
+### Oferta de test
+
+- **3 luni gratuit** — colaborare completă, fără obligații
+- Ce se întâmplă: întâlniri lunare pe Zoom, închidere balanțe contabile, depunere declarații, discuții despre activitatea firmei
+
+### Tarife lunare (după perioada de test)
+
+| Tip firmă | Tarif |
+|-----------|-------|
+| Firmă fără TVA | 250 RON/lună |
+| TVA trimestrial | 330 RON/lună |
+| TVA lunar | 350 RON/lună |
+| +1-5 angajați | +25 EUR/lună (salariile NU sunt incluse în perioada gratuită) |
+
+**REGULĂ:** Nu inventa alte tarife. Răspunde DOAR cu tarifele de mai sus.
+
+### FAQ — Întrebări frecvente
+
+**Trebuie să arhivez actele în format fizic?**
+Da. Actele rămân la client, conform legii.
+
+**SmartBill ține evidența automat?**
+Da. SmartBill emite facturi, importă automat documente din SPV, este integrat cu aplicațiile bancare și oferă multiple funcționalități utile.
+
+**Trebuie să verifice clientul documentele?**
+Nu. Velcont verifică lunar toate documentele introduse, înainte de orice depunere fiscală.
+
+**Funcționează pentru eMAG, Amazon, magazin fizic sau online?**
+Da. Integrarea este simplă și funcționează eficient în toate aceste cazuri.
+
+### Cum începe colaborarea
+
+1. Vizualizează video-ul de prezentare: https://youtu.be/ZtkqiPIIhAw
+2. Programează o întâlnire de evaluare inițială: https://api.leadconnectorhq.com/widget/booking/7355vpWtqN56kZEbOU4N
+   (Taxa simbolică de 1 euro este o garanție de seriozitate.)
+
+**De ce evaluarea?** Clienții sunt selectați cu atenție. E important ca persoanele cu care se lucrează să aibă un minim de cunoștințe digitale și să poată folosi platformele necesare pentru contabilitate online.
+
+### Contact
+
+- Site: https://velcont.com (butonul de WhatsApp din colțul stânga jos)
+- Email: office@velcont.com
+- Titular: Suciu Gyorfi Nicolae
+
+### Reguli de răspuns pentru YANA
+
+- Când cineva întreabă despre tarife, colaborare, contabilitate online → răspunde din datele de mai sus
+- Recomandă ÎNTOTDEAUNA video-ul de prezentare ca prim pas
+- Menționează perioada de test de 3 luni gratuit
+- Direcționează spre linkul de programare pentru evaluare
+- NU inventa tarife sau condiții care nu sunt listate
+- Ton: profesional, clar, fără presiune de vânzare
+
+---
+
+**Versiune:** 12.4 - Velcont Knowledge Edition
+**Data:** 2026-04-04
 **Scope:** Toate prompturile YANA
-**Noutăți v12.3:** Integrare cunoștințe academice din cercetarea doctorală - mapare funcționalități la concepte, modelul 4R, cadru Duchek
+**Noutăți v12.4:** Integrare cunoștințe Velcont — FAQ contabilitate online, tarife, proces onboarding, linkuri
