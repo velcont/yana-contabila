@@ -39,120 +39,6 @@ const WEATHER_DESCRIPTIONS: Record<number, string> = {
 };
 
 // ============================================================
-// RSS Feed Sources
-// ============================================================
-const RSS_FEEDS = [
-  { url: 'https://www.profit.ro/rss', name: 'Profit.ro', category: 'business' },
-  { url: 'https://www.zf.ro/rss/zf-24.xml', name: 'Ziarul Financiar', category: 'business' },
-  { url: 'https://economedia.ro/feed', name: 'Economedia', category: 'economic' },
-  { url: 'https://www.hotnews.ro/rss/economie', name: 'HotNews Economie', category: 'economic' },
-  { url: 'https://www.hotnews.ro/rss/politic', name: 'HotNews Politic', category: 'politic' },
-  { url: 'https://www.digi24.ro/rss/economie', name: 'Digi24 Economie', category: 'business' },
-  { url: 'https://www.digi24.ro/rss/actualitate/politica', name: 'Digi24 Politic', category: 'politic' },
-];
-
-// Keywords for filtering relevant news
-const FISCAL_KEYWORDS = ['anaf', 'fiscal', 'impozit', 'tva', 'taxe', 'declarați', 'contribuți', 'buget', 'e-factura', 'saf-t', 'codul fiscal', 'omnibus'];
-const ACCOUNTING_KEYWORDS = ['contabil', 'bilanț', 'balanț', 'ceccar', 'expert contabil', 'audit', 'raportare', 'ifrs', 'omfp'];
-const BUSINESS_KEYWORDS = ['antreprenor', 'afaceri', 'startup', 'investiți', 'finanțare', 'fonduri europene', 'grant', 'pnrr', 'imm', 'creditare', 'bani', 'economie', 'pib', 'inflați', 'bnr', 'curs valutar', 'euro'];
-const POLITICAL_KEYWORDS = ['guvern', 'parlament', 'lege', 'ordonanț', 'oug', 'minister', 'premier', 'președint', 'alegeri', 'coaliți'];
-
-interface NewsItem {
-  title: string;
-  link: string;
-  source: string;
-  category: string;
-  pubDate?: Date;
-}
-
-function extractItems(xml: string, sourceName: string, sourceCategory: string): NewsItem[] {
-  const items: NewsItem[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let match;
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const content = match[1];
-    const titleMatch = content.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/);
-    const linkMatch = content.match(/<link>(.*?)<\/link>/);
-    const pubDateMatch = content.match(/<pubDate>(.*?)<\/pubDate>/);
-    
-    const title = (titleMatch?.[1] || titleMatch?.[2] || '').trim();
-    const link = (linkMatch?.[1] || '').trim();
-    
-    if (title && link) {
-      items.push({
-        title,
-        link,
-        source: sourceName,
-        category: sourceCategory,
-        pubDate: pubDateMatch ? new Date(pubDateMatch[1]) : undefined,
-      });
-    }
-  }
-  return items;
-}
-
-function categorizeNews(item: NewsItem): string[] {
-  const lower = item.title.toLowerCase();
-  const cats: string[] = [];
-  if (FISCAL_KEYWORDS.some(k => lower.includes(k))) cats.push('fiscal');
-  if (ACCOUNTING_KEYWORDS.some(k => lower.includes(k))) cats.push('contabil');
-  if (BUSINESS_KEYWORDS.some(k => lower.includes(k))) cats.push('business');
-  if (POLITICAL_KEYWORDS.some(k => lower.includes(k))) cats.push('politic');
-  if (cats.length === 0) cats.push(item.category);
-  return cats;
-}
-
-async function fetchAllNews(): Promise<{ fiscal: NewsItem[]; accounting: NewsItem[]; business: NewsItem[]; political: NewsItem[] }> {
-  const allItems: NewsItem[] = [];
-  
-  const feedPromises = RSS_FEEDS.map(async (feed) => {
-    try {
-      const res = await fetch(feed.url, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) return [];
-      const xml = await res.text();
-      return extractItems(xml, feed.name, feed.category);
-    } catch {
-      return [];
-    }
-  });
-
-  const results = await Promise.allSettled(feedPromises);
-  for (const r of results) {
-    if (r.status === 'fulfilled') allItems.push(...r.value);
-  }
-
-  // Filter to last 24 hours
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recentItems = allItems.filter(item => !item.pubDate || item.pubDate > cutoff);
-
-  // Categorize and deduplicate by title similarity
-  const seen = new Set<string>();
-  const fiscal: NewsItem[] = [];
-  const accounting: NewsItem[] = [];
-  const business: NewsItem[] = [];
-  const political: NewsItem[] = [];
-
-  for (const item of recentItems) {
-    const key = item.title.substring(0, 50).toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const cats = categorizeNews(item);
-    if (cats.includes('fiscal')) fiscal.push(item);
-    if (cats.includes('contabil')) accounting.push(item);
-    if (cats.includes('business')) business.push(item);
-    if (cats.includes('politic')) political.push(item);
-  }
-
-  return {
-    fiscal: fiscal.slice(0, 5),
-    accounting: accounting.slice(0, 3),
-    business: business.slice(0, 5),
-    political: political.slice(0, 3),
-  };
-}
-
-// ============================================================
 // Discovery Tips (rotative)
 // ============================================================
 const DISCOVERY_TIPS = [
@@ -171,6 +57,24 @@ const DISCOVERY_TIPS = [
   { emoji: '🌙', text: 'Activează Rezumatul de seară din Setări → Notificări. YANA îți trimite ce ai rezolvat azi.' },
   { emoji: '🔗', text: 'YANA poate verifica orice CUI la ANAF. Scrie "verifică CUI 12345678".' },
   { emoji: '📑', text: 'Rapoarte profesionale Word/PDF se generează automat după analiza balanței.' },
+];
+
+// ============================================================
+// Business Tips (for users without balance analyses)
+// ============================================================
+const BUSINESS_TIPS = [
+  { emoji: '💡', title: 'Cash flow > Profit', text: 'O firmă profitabilă pe hârtie poate da faliment din lipsă de cash. Monitorizează-ți fluxul de numerar săptămânal.' },
+  { emoji: '📊', title: 'Regula 50/30/20', text: 'Alocă 50% din venituri pentru costuri fixe, 30% pentru creștere și 20% ca rezervă de siguranță.' },
+  { emoji: '🎯', title: 'KPI-uri esențiale', text: 'Urmărește lunar: marja de profit, DSO (zile de încasare), rata de retenție clienți și burn rate.' },
+  { emoji: '📈', title: 'Prețul corect', text: 'Dacă nimeni nu se plânge de preț, probabil ești prea ieftin. Testează o creștere de 10-15%.' },
+  { emoji: '🏗️', title: 'Automatizare', text: 'Fiecare proces manual repetat de 3+ ori pe săptămână merită automatizat. Începe cu facturarea.' },
+  { emoji: '🤝', title: 'Retenție vs Achiziție', text: 'Costa de 5x mai mult să câștigi un client nou decât să-l păstrezi pe cel existent.' },
+  { emoji: '📋', title: 'Due diligence furnizori', text: 'Verifică periodic CUI-ul furnizorilor la ANAF. Un furnizor insolvent îți blochează deducerile.' },
+  { emoji: '⚡', title: 'Termene de plată', text: 'Negociază termene de plată mai lungi cu furnizorii și mai scurte cu clienții. Cash-ul e rege.' },
+  { emoji: '📉', title: 'Break-even', text: 'Știi exact câte vânzări îți trebuie lunar ca să acoperi costurile fixe? Calculează-ți break-even-ul.' },
+  { emoji: '🔒', title: 'Fond de urgență', text: 'Păstrează minim 3 luni de cheltuieli operaționale ca fond de siguranță. Ideal: 6 luni.' },
+  { emoji: '📱', title: 'Digitalizare', text: 'SmartBill + YANA = contabilitate digitalizată complet. Încarcă o balanță și vezi diferența!' },
+  { emoji: '🌍', title: 'Export', text: 'Dacă vinzi doar în România, pierzi 95% din piața europeană. Analizează oportunitățile de export.' },
 ];
 
 async function getWeather(city: string): Promise<string> {
@@ -200,7 +104,7 @@ function sectionCard(title: string, bgColor: string, borderColor: string, titleC
     </div>`;
 }
 
-function newsListHtml(items: NewsItem[]): string {
+function newsListHtml(items: Array<{title: string; link: string; source: string}>): string {
   if (items.length === 0) return '';
   return `<ul style="margin: 0; padding-left: 0; font-size: 13px; list-style: none;">
     ${items.map(n => `<li style="margin-bottom: 8px; line-height: 1.4;">
@@ -211,7 +115,7 @@ function newsListHtml(items: NewsItem[]): string {
 }
 
 // ============================================================
-// Dedup guard: prevent sending same briefing twice in a day
+// Dedup guard
 // ============================================================
 async function hasAlreadySentToday(supabase: any, userId: string, todayStr: string): Promise<boolean> {
   try {
@@ -227,6 +131,49 @@ async function hasAlreadySentToday(supabase: any, userId: string, todayStr: stri
   } catch {
     return false;
   }
+}
+
+// ============================================================
+// Gradual rollout: enroll 5 new users per day
+// ============================================================
+async function getEnrolledUsers(supabase: any, eligibleUserIds: string[]): Promise<Set<string>> {
+  // Get already enrolled users
+  const { data: enrolled } = await supabase
+    .from('briefing_rollout')
+    .select('user_id')
+    .in('user_id', eligibleUserIds);
+
+  const enrolledSet = new Set<string>((enrolled || []).map((e: any) => e.user_id));
+
+  // Find not-yet-enrolled users
+  const notEnrolled = eligibleUserIds.filter(id => !enrolledSet.has(id));
+
+  if (notEnrolled.length > 0) {
+    // Enroll up to 5 new users today
+    const DAILY_BATCH = 5;
+    const toEnroll = notEnrolled.slice(0, DAILY_BATCH);
+    
+    // Get current max batch number
+    const { data: maxBatch } = await supabase
+      .from('briefing_rollout')
+      .select('batch_number')
+      .order('batch_number', { ascending: false })
+      .limit(1);
+    
+    const nextBatch = (maxBatch?.[0]?.batch_number || 0) + 1;
+
+    for (const userId of toEnroll) {
+      await supabase.from('briefing_rollout').insert({
+        user_id: userId,
+        batch_number: nextBatch,
+      });
+      enrolledSet.add(userId);
+    }
+
+    console.log(`[morning-briefing] Enrolled ${toEnroll.length} new users (batch ${nextBatch}). Total enrolled: ${enrolledSet.size}/${eligibleUserIds.length}`);
+  }
+
+  return enrolledSet;
 }
 
 Deno.serve(async (req) => {
@@ -248,48 +195,98 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch news in parallel with user loading
-    const [newsResult, usersResult] = await Promise.allSettled([
-      fetchAllNews(),
-      supabase
-        .from('profiles')
-        .select('id, email, full_name, subscription_status, has_free_access, yana_emails_enabled')
-        .or('subscription_status.eq.active,has_free_access.eq.true')
-        .not('email', 'is', null),
-    ]);
-
-    const news = newsResult.status === 'fulfilled' ? newsResult.value : { fiscal: [], accounting: [], business: [], political: [] };
-    if (usersResult.status === 'rejected') throw usersResult.reason;
-    const { data: users, error: usersError } = usersResult.value;
-    if (usersError) throw usersError;
-
-    console.log(`[morning-briefing] News fetched: fiscal=${news.fiscal.length}, accounting=${news.accounting.length}, business=${news.business.length}, political=${news.political.length}`);
-
-    // Build news HTML sections (shared across all users)
-    const fiscalNewsHtml = news.fiscal.length > 0
-      ? sectionCard('📋 Știri Fiscale & Contabile', '#fffbeb', '#f59e0b', '#92400e',
-          newsListHtml([...news.fiscal, ...news.accounting].slice(0, 5)))
-      : '';
-
-    const businessNewsHtml = news.business.length > 0
-      ? sectionCard('💼 Știri Business & Economie', '#f0fdf4', '#22c55e', '#166534',
-          newsListHtml(news.business))
-      : '';
-
-    const politicalNewsHtml = news.political.length > 0
-      ? sectionCard('🏛️ Știri Politice Relevante', '#eff6ff', '#6366f1', '#312e81',
-          newsListHtml(news.political))
-      : '';
-
-    const results: { email: string; status: string }[] = [];
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const weekLaterStr = weekLater.toISOString().split('T')[0];
+    const weekLaterStr = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
 
-    for (const user of users || []) {
+    // ============ FETCH CACHED NEWS + AI SUMMARIES ============
+    const { data: briefingCache } = await supabase
+      .from('daily_briefing_data')
+      .select('*')
+      .eq('briefing_date', todayStr)
+      .maybeSingle();
+
+    // If no cached news for today, trigger scrape
+    if (!briefingCache) {
+      console.log('[morning-briefing] No cached news found, triggering scrape-news-ai...');
       try {
+        await supabase.functions.invoke('scrape-news-ai');
+      } catch (e) {
+        console.error('[morning-briefing] scrape-news-ai failed:', e);
+      }
+    }
+
+    // Re-fetch after potential scrape
+    const { data: newsData } = await supabase
+      .from('daily_briefing_data')
+      .select('*')
+      .eq('briefing_date', todayStr)
+      .maybeSingle();
+
+    // Build news HTML from cache (with AI summaries)
+    let fiscalNewsHtml = '';
+    let businessNewsHtml = '';
+    let politicalNewsHtml = '';
+
+    if (newsData) {
+      const fiscalItems = (newsData.news_fiscal || []) as Array<{title: string; link: string; source: string}>;
+      const businessItems = (newsData.news_business || []) as Array<{title: string; link: string; source: string}>;
+      const politicItems = (newsData.news_politic || []) as Array<{title: string; link: string; source: string}>;
+
+      if (fiscalItems.length > 0 || newsData.ai_summary_fiscal) {
+        const summaryPara = newsData.ai_summary_fiscal
+          ? `<p style="margin: 0 0 10px; font-size: 13px; color: #78350f; font-style: italic;">${newsData.ai_summary_fiscal}</p>`
+          : '';
+        fiscalNewsHtml = sectionCard('📋 Știri Fiscale & Contabile', '#fffbeb', '#f59e0b', '#92400e',
+          summaryPara + newsListHtml(fiscalItems));
+      }
+
+      if (businessItems.length > 0 || newsData.ai_summary_business) {
+        const summaryPara = newsData.ai_summary_business
+          ? `<p style="margin: 0 0 10px; font-size: 13px; color: #14532d; font-style: italic;">${newsData.ai_summary_business}</p>`
+          : '';
+        businessNewsHtml = sectionCard('💼 Știri Business & Economie', '#f0fdf4', '#22c55e', '#166534',
+          summaryPara + newsListHtml(businessItems));
+      }
+
+      if (politicItems.length > 0 || newsData.ai_summary_politic) {
+        const summaryPara = newsData.ai_summary_politic
+          ? `<p style="margin: 0 0 10px; font-size: 13px; color: #1e1b4b; font-style: italic;">${newsData.ai_summary_politic}</p>`
+          : '';
+        politicalNewsHtml = sectionCard('🏛️ Știri Politice Relevante', '#eff6ff', '#6366f1', '#312e81',
+          summaryPara + newsListHtml(politicItems));
+      }
+    }
+
+    // ============ FETCH ELIGIBLE USERS ============
+    const { data: users, error: usersError } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, subscription_status, has_free_access, yana_emails_enabled')
+      .or('subscription_status.eq.active,has_free_access.eq.true')
+      .not('email', 'is', null);
+
+    if (usersError) throw usersError;
+    if (!users || users.length === 0) {
+      return new Response(JSON.stringify({ success: true, processed: 0, message: 'No eligible users' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============ GRADUAL ROLLOUT: 5 new users per day ============
+    const eligibleIds = users.map((u: any) => u.id);
+    const enrolledSet = await getEnrolledUsers(supabase, eligibleIds);
+
+    const results: { email: string; status: string }[] = [];
+
+    for (const user of users) {
+      try {
+        // Skip if not yet enrolled in rollout
+        if (!enrolledSet.has(user.id)) {
+          results.push({ email: user.email, status: 'skipped_not_enrolled_yet' });
+          continue;
+        }
+
         // Check if user opted out of YANA emails globally
         if (user.yana_emails_enabled === false) {
           results.push({ email: user.email, status: 'skipped_global_opt_out' });
@@ -382,7 +379,7 @@ Deno.serve(async (req) => {
           ? sectionCard('⏰ Termene fiscale (7 zile)', '#fffbeb', '#f59e0b', '#92400e', fiscalContent)
           : '';
 
-        // ============ SECTION 4: FINANCIAL SNAPSHOT ============
+        // ============ SECTION 4: FINANCIAL SNAPSHOT or BUSINESS TIP ============
         const { data: latestAnalysis } = await supabase
           .from('analyses')
           .select('company_name, created_at, metadata')
@@ -390,8 +387,10 @@ Deno.serve(async (req) => {
           .order('created_at', { ascending: false })
           .limit(1);
 
-        let financialContent = '';
+        let financialOrTipHtml = '';
+        
         if (latestAnalysis && latestAnalysis.length > 0) {
+          // User HAS analyses — show financial snapshot
           const a = latestAnalysis[0];
           const meta = (a.metadata || {}) as Record<string, unknown>;
           const lines: string[] = [];
@@ -401,13 +400,19 @@ Deno.serve(async (req) => {
             lines.push(`${p >= 0 ? '✅ Profit' : '❌ Pierdere'}: <strong>${Math.abs(p).toLocaleString('ro-RO')} RON</strong>`);
           }
           if (lines.length > 0) {
-            financialContent = `<p style="margin: 0; font-size: 13px; color: #6b7280;">Ultima analiză: ${a.company_name || 'N/A'}</p>
+            const financialContent = `<p style="margin: 0; font-size: 13px; color: #6b7280;">Ultima analiză: ${a.company_name || 'N/A'}</p>
               <ul style="margin: 8px 0 0; padding-left: 20px; color: #166534; font-size: 14px; list-style: none;">${lines.map(l => `<li style="margin-bottom: 4px;">${l}</li>`).join('')}</ul>`;
+            financialOrTipHtml = sectionCard('📊 Raport financiar', '#f0fdf4', '#22c55e', '#166534', financialContent);
           }
+        } else {
+          // User has NO analyses — show business tip instead
+          const tip = BUSINESS_TIPS[dayOfYear % BUSINESS_TIPS.length];
+          const tipContent = `
+            <p style="margin: 0 0 6px; font-size: 14px; font-weight: 600; color: #1e40af;">${tip.emoji} ${tip.title}</p>
+            <p style="margin: 0 0 12px; font-size: 13px; color: #374151; line-height: 1.5;">${tip.text}</p>
+            <a href="https://yana-contabila.lovable.app/yana" style="display: inline-block; background: #6366f1; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 500;">📊 Încarcă prima balanță →</a>`;
+          financialOrTipHtml = sectionCard('💡 Sfat de business', '#f0f9ff', '#3b82f6', '#1e40af', tipContent);
         }
-        const financialHtml = financialContent
-          ? sectionCard('📊 Raport financiar', '#f0fdf4', '#22c55e', '#166534', financialContent)
-          : '';
 
         // ============ SECTION 5: PENDING ACTIONS ============
         const { data: pendingActions } = await supabase
@@ -475,7 +480,7 @@ Deno.serve(async (req) => {
   <div style="background: white; padding: 24px; border-radius: 0 0 12px 12px; border: 1px solid #e9ecef; border-top: none;">
     ${agendaHtml}
     ${fiscalHtml}
-    ${financialHtml}
+    ${financialOrTipHtml}
     ${actionsHtml}
     ${alertsHtml}
     ${fiscalNewsHtml}
@@ -528,9 +533,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[morning-briefing] Done. Processed: ${results.length}, Sent: ${results.filter(r => r.status === 'sent').length}`);
+    const sentCount = results.filter(r => r.status === 'sent').length;
+    const enrolledCount = results.filter(r => r.status !== 'skipped_not_enrolled_yet').length;
+    console.log(`[morning-briefing] Done. Total: ${results.length}, Enrolled: ${enrolledCount}, Sent: ${sentCount}`);
 
-    return new Response(JSON.stringify({ success: true, processed: results.length, results }), {
+    return new Response(JSON.stringify({ success: true, processed: results.length, sent: sentCount, enrolled: enrolledCount, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: unknown) {
