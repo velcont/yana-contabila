@@ -2205,6 +2205,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_briefing_data: {
+        Row: {
+          ai_summary_business: string | null
+          ai_summary_fiscal: string | null
+          ai_summary_politic: string | null
+          briefing_date: string
+          created_at: string
+          id: string
+          news_business: Json | null
+          news_fiscal: Json | null
+          news_politic: Json | null
+          scraped_at: string | null
+        }
+        Insert: {
+          ai_summary_business?: string | null
+          ai_summary_fiscal?: string | null
+          ai_summary_politic?: string | null
+          briefing_date: string
+          created_at?: string
+          id?: string
+          news_business?: Json | null
+          news_fiscal?: Json | null
+          news_politic?: Json | null
+          scraped_at?: string | null
+        }
+        Update: {
+          ai_summary_business?: string | null
+          ai_summary_fiscal?: string | null
+          ai_summary_politic?: string | null
+          briefing_date?: string
+          created_at?: string
+          id?: string
+          news_business?: Json | null
+          news_fiscal?: Json | null
+          news_politic?: Json | null
+          scraped_at?: string | null
+        }
+        Relationships: []
+      }
       deleted_users: {
         Row: {
           created_at: string
