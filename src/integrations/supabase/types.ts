@@ -1248,6 +1248,27 @@ export type Database = {
           },
         ]
       }
+      briefing_rollout: {
+        Row: {
+          batch_number: number
+          enrolled_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          batch_number?: number
+          enrolled_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          batch_number?: number
+          enrolled_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           color_id: string | null
