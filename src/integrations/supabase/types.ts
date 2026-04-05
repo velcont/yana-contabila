@@ -1248,6 +1248,27 @@ export type Database = {
           },
         ]
       }
+      briefing_rollout: {
+        Row: {
+          batch_number: number
+          enrolled_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          batch_number?: number
+          enrolled_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          batch_number?: number
+          enrolled_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           color_id: string | null
@@ -2181,6 +2202,45 @@ export type Database = {
           pattern_type?: string
           recommended_response?: string | null
           success_rate?: number | null
+        }
+        Relationships: []
+      }
+      daily_briefing_data: {
+        Row: {
+          ai_summary_business: string | null
+          ai_summary_fiscal: string | null
+          ai_summary_politic: string | null
+          briefing_date: string
+          created_at: string
+          id: string
+          news_business: Json | null
+          news_fiscal: Json | null
+          news_politic: Json | null
+          scraped_at: string | null
+        }
+        Insert: {
+          ai_summary_business?: string | null
+          ai_summary_fiscal?: string | null
+          ai_summary_politic?: string | null
+          briefing_date: string
+          created_at?: string
+          id?: string
+          news_business?: Json | null
+          news_fiscal?: Json | null
+          news_politic?: Json | null
+          scraped_at?: string | null
+        }
+        Update: {
+          ai_summary_business?: string | null
+          ai_summary_fiscal?: string | null
+          ai_summary_politic?: string | null
+          briefing_date?: string
+          created_at?: string
+          id?: string
+          news_business?: Json | null
+          news_fiscal?: Json | null
+          news_politic?: Json | null
+          scraped_at?: string | null
         }
         Relationships: []
       }
