@@ -418,8 +418,6 @@ serve(async (req) => {
     
     let messagesArray: Array<{role: string; content: string}>;
     if (historyFromRouter && historyFromRouter.length > 0) {
-      // Build messages from router history + current message
-      // Take last 10 messages for context without exceeding token limits
       const recentHistory = historyFromRouter.slice(-10);
       messagesArray = [...recentHistory, { role: 'user', content: message }];
       console.log('[FISCAL-CHAT] Using router history:', recentHistory.length, 'messages + current');
@@ -428,7 +426,30 @@ serve(async (req) => {
     } else {
       messagesArray = [{ role: 'user', content: message }];
     }
-    console.log('[FISCAL-CHAT] Messages array length:', messagesArray.length);
+
+    // Sanitize messages: Perplexity requires alternating user/assistant roles
+    // Remove system messages and ensure strict alternation
+    const sanitizedMessages: Array<{role: string; content: string}> = [];
+    for (const msg of messagesArray) {
+      if (msg.role === 'system') continue;
+      const lastRole = sanitizedMessages.length > 0 ? sanitizedMessages[sanitizedMessages.length - 1].role : null;
+      if (msg.role === lastRole) {
+        // Merge consecutive same-role messages
+        sanitizedMessages[sanitizedMessages.length - 1].content += '\n' + msg.content;
+      } else {
+        sanitizedMessages.push({ role: msg.role, content: msg.content });
+      }
+    }
+    // Ensure first message is from user
+    if (sanitizedMessages.length > 0 && sanitizedMessages[0].role !== 'user') {
+      sanitizedMessages.shift();
+    }
+    // Ensure last message is from user
+    if (sanitizedMessages.length > 0 && sanitizedMessages[sanitizedMessages.length - 1].role !== 'user') {
+      sanitizedMessages.push({ role: 'user', content: message });
+    }
+    messagesArray = sanitizedMessages;
+    console.log('[FISCAL-CHAT] Messages array length (sanitized):', messagesArray.length);
 
     // Get Perplexity API key
     const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
