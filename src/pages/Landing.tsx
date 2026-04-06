@@ -5,7 +5,7 @@ import { analytics } from '@/utils/analytics';
 import { DemoChat } from '@/components/demo/DemoChat';
 import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 import { useLandingTracking } from '@/hooks/useLandingTracking';
-import { MessageCircle, Stethoscope } from 'lucide-react';
+import { Stethoscope } from 'lucide-react';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
 import { LandingPainPoints } from '@/components/landing/LandingPainPoints';
 import { LandingBenefits } from '@/components/landing/LandingBenefits';
