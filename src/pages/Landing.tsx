@@ -95,76 +95,36 @@ const Landing = () => {
         <div className="max-w-xl mx-auto space-y-12 sm:space-y-16">
         
           {/* ===== HERO ===== */}
-          <section className="text-center space-y-6 sm:space-y-8 pt-4 sm:pt-12">
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold leading-tight">
-                Ai pe cineva cu care să vorbești.
-              </h1>
-              <p className="text-xl sm:text-2xl md:text-3xl text-muted-foreground">
-                Despre business. Despre cifre. Despre ce te ține treaz noaptea.
-              </p>
-              <p className="text-sm sm:text-base font-medium text-foreground/90 pt-2 tracking-wide">
-                YANA nu este un chatbot. Este un AI pentru business.
-              </p>
-            </div>
+          <section className="text-center space-y-6 pt-8 sm:pt-16">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+              AI-ul tău de business.
+            </h1>
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-md mx-auto">
+              Analizează cifre, dă sfaturi și nu uită nimic.
+            </p>
 
-            <div className="text-base sm:text-lg md:text-xl text-foreground/80 space-y-2 py-2">
-              <p className="italic">"Yana e singurul 'angajat' care nu judecă, nu obosește și nu uită ce i-ai spus."</p>
-            </div>
+            <Button 
+              size="lg" 
+              className="w-full text-base sm:text-lg px-8 py-7 sm:py-6 shadow-2xl hover:shadow-primary/25 transition-all min-h-[56px]"
+              onClick={handlePrimaryCTA}
+            >
+              Încearcă gratuit — 30 zile, fără card
+            </Button>
 
-            {/* CTA Principal */}
-            <div className="space-y-3">
-              <Button 
-                size="lg" 
-                className="w-full text-base sm:text-lg px-8 py-7 sm:py-6 shadow-2xl hover:shadow-primary/25 transition-all min-h-[56px]"
-                onClick={handlePrimaryCTA}
-              >
-                Vorbește cu Yana — 30 zile gratuit
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Cont gratuit. Fără card. 30 de zile să vedeți dacă vă înțelegeți.
-              </p>
-              
-              {/* Diagnostic Button */}
+            <div className="flex items-center justify-center gap-4 pt-2">
               <button
                 onClick={handleDiagnosticClick}
-                className="w-full flex items-center gap-3 px-4 py-5 sm:py-4 
-                           bg-card border-2 border-primary/30 rounded-xl
-                           hover:border-primary hover:shadow-lg
-                           active:scale-[0.98]
-                           transition-all duration-300 group text-left min-h-[60px]"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
               >
-                <div className="w-11 h-11 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Stethoscope className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 text-foreground font-medium">
-                    <span className="truncate">Diagnostic Gratuit — 2 minute</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground/60 mt-0.5">
-                    5 întrebări → raport personalizat de la YANA
-                  </p>
-                </div>
+                Diagnostic rapid gratuit
               </button>
-
-              {/* Demo Chat Button */}
-              <button
-                onClick={handleDemoClick}
-                className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+              <span className="text-muted-foreground/30">•</span>
+              <button 
+                onClick={handleLoginCTA} 
+                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>sau vorbește direct cu YANA (10 mesaje gratuite)</span>
+                Am deja cont
               </button>
-
-              <p className="text-sm text-muted-foreground pt-2">
-                Ai deja cont?{' '}
-                <button 
-                  onClick={handleLoginCTA} 
-                  className="text-primary hover:underline"
-                >
-                  Autentifică-te
-                </button>
-              </p>
             </div>
           </section>
 
