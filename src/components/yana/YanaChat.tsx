@@ -52,7 +52,7 @@ interface YanaChatProps {
   resetKey?: number;
 }
 
-export function YanaChat({ conversationId, onConversationCreated }: YanaChatProps) {
+export function YanaChat({ conversationId, onConversationCreated, resetKey }: YanaChatProps) {
   const { user } = useAuth();
   const { hasCredits, hasFreeAccess, isLoading: creditsLoading } = useAICredits();
   const { accessType, loading: subLoading } = useSubscription();
