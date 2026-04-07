@@ -194,7 +194,10 @@ export function ConversationSidebar({
         </div>
         
         <Button
-          onClick={onNewConversation}
+          onClick={() => {
+            onNewConversation();
+            if (isMobile) onClose();
+          }}
           className="w-full justify-start gap-2"
           variant="outline"
         >

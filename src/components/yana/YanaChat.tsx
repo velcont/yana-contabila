@@ -821,10 +821,13 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
     }
   }, [conversationId, messages.length, welcomeMessageShown, isNewUser, userName]);
 
-  // Reset welcome shown when starting a new conversation
+  // Reset welcome shown AND clear messages when starting a new conversation
   useEffect(() => {
     if (conversationId === null) {
+      setMessages([]);
       setWelcomeMessageShown(false);
+      setActiveContext(null);
+      setBalanceContext(null);
     }
   }, [conversationId]);
 

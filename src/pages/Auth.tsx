@@ -649,17 +649,17 @@ const Auth = () => {
         </div>
       )}
       
-      <div className="w-full max-w-lg mx-2 md:mx-0 space-y-4">
+      <div className="w-full max-w-lg mx-4 md:mx-0 space-y-4 px-1">
         {/* Value Proposition - shown on signup */}
         {!isLogin && !isResetMode && !isForgotPassword && (
-          <div className="text-center space-y-3 px-2">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          <div className="text-center space-y-3 px-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
               Partenerul tău AI de business
             </h1>
-            <p className="text-muted-foreground text-sm md:text-base">
+            <p className="text-muted-foreground text-xs sm:text-sm md:text-base">
               Înregistrează-te gratuit și primești <span className="font-semibold text-primary">30 de zile</span> acces complet
             </p>
-            <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2 text-xs md:text-sm">
               <div className="flex items-center gap-2 bg-card border rounded-lg p-2.5">
                 <span className="text-primary text-base">🔍</span>
                 <span className="text-foreground">Vezi unde pierzi bani</span>
