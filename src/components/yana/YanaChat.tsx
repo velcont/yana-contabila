@@ -582,6 +582,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       }
     } finally {
       setIsLoading(false);
+      isSendingRef.current = false;
     }
   }, [conversationId, user, onConversationCreated]);
 
