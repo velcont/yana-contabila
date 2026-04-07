@@ -31,6 +31,7 @@ export function ConversationSidebar({
   onSelectConversation,
   onNewConversation,
   onClose,
+  isMobile,
 }: ConversationSidebarProps) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
