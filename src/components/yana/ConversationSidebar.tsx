@@ -23,6 +23,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
 export function ConversationSidebar({
