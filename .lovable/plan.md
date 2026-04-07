@@ -1,43 +1,30 @@
 
 
-# Fix: UX mobil Yana + butonul "Conversație nouă"
+# Fix: Weekly Check-in — Yana trimite email cu placeholdere [brackets]
 
-## Probleme identificate
+## Problema
 
-### 1. Pagina Auth — conținut tăiat pe mobil
-Pe screenshot se vede clar: textul "Partenerul tău AI de business" și cardurile cu beneficii sunt tăiate pe stânga. Cauza: containerul are `mx-2` dar nu are padding suficient, iar cardurile grid nu se adaptează pe ecrane mici (<380px).
+Funcția `weekly-companion-checkin` generează emailuri personalizate cu Gemini Flash Lite. Când un utilizator nu are context de business sau conversații anterioare, modelul pune placeholdere de tipul `[un aspect specific din discuția anterioară]` în loc să scrie ceva concret.
 
-### 2. Chat Yana — layout mobil aglomerat  
-- Banner-ul "NOU — Yana generează Word/Excel" ocupă spațiu valoros pe mobil
-- Onboarding flow + suggestion chips + credits banner + input area = prea multe elemente suprapuse în zona de jos
-- Inputul de text și butoanele sunt prea înghesuite
+Cauza: promptul nu interzice explicit bracket placeholders și nu oferă instrucțiuni clare pentru cazul în care datele lipsesc.
 
-### 3. Butonul "Conversație nouă" nu funcționează
-Când apeși "Conversație nouă" pe mobil:
-- `onNewConversation()` setează `activeConversationId = null`
-- Sidebar-ul se închide (`onClose`)
-- Dar `welcomeMessageShown` rămâne `true` din conversația anterioară
-- Effect-ul de welcome verifică `conversationId === null && messages.length === 0` — dar mesajele vechi nu sunt șterse imediat
-- **Fix**: resetarea stării `welcomeMessageShown` + ștergerea mesajelor trebuie să fie sincronă cu `onNewConversation`
+## Soluția
 
-## Modificări planificate
+### Fișier: `supabase/functions/weekly-companion-checkin/index.ts`
 
-### Fișier 1: `src/pages/Auth.tsx`
-- Adăugare padding lateral mai mare pe mobil (`px-4` în loc de `px-2`)
-- Grid beneficii: `grid-cols-1` pe ecrane sub 380px, `grid-cols-2` pe rest
-- Titlu h1: reducere font-size pe mobil mic
+**1. Îmbunătățire prompt AI (linia 124-128):**
+- Adaugă regulă explicită: `NU folosi NICIODATĂ paranteze pătrate [...] sau placeholdere. Scrie DOAR text concret.`
+- Adaugă instrucțiune: `Dacă nu ai informații despre business-ul lor, pune o întrebare generală dar concretă (ex: "Cum merge cu vânzările luna asta?", "Ai reușit să angajezi pe cineva?").`
+- Adaugă: `NU menționa că nu știi detalii despre ei. Scrie natural, ca și cum ai fi un prieten care se interesează.`
 
-### Fișier 2: `src/components/yana/YanaChat.tsx`
-- **Fix "Conversație nouă"**: În useEffect-ul care monitorizează `conversationId`, când devine `null`, forțează `setMessages([])` și `setWelcomeMessageShown(false)` sincron
-- Ascunde `SuggestionChips` pe mobil când onboarding-ul este activ
-- Reduce padding-ul zonei de input pe mobil
+**2. Validare output AI (după linia 148):**
+- După generarea mesajului, verifică dacă conține `[` sau `]` — dacă da, skip acest email (nu-l trimite)
+- Log warning pentru monitorizare
 
-### Fișier 3: `src/components/yana/OfficeFeatureAnnouncement.tsx`
-- Ascunde complet pe mobil sau fă-l mai compact (o singură linie)
+**3. Îmbunătățire context user (liniile 132-135):**
+- Când `businessContext` e gol, nu trimite `necunoscut` — trimite `Nu avem detalii despre business. Pune o întrebare generală despre antreprenoriat.`
+- Când `lastTopics` e gol, trimite `Nu au discutat subiecte specifice recent. Întreabă cum le merge în general.`
 
-### Fișier 4: `src/components/yana/ConversationSidebar.tsx`
-- La click pe "Conversație nouă" pe mobil, apelează `onClose()` automat după `onNewConversation()`
-
-### Fișier 5: `src/pages/Yana.tsx`
-- Actualizare `handleNewConversation` pentru a închide sidebar-ul pe mobil automat
+## Rezultat
+Emailurile vor fi întotdeauna naturale, fără brackets, chiar și pentru utilizatori noi fără context.
 
