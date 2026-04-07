@@ -830,7 +830,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       setActiveContext(null);
       setBalanceContext(null);
     }
-  }, [conversationId]);
+  }, [conversationId, resetKey]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">

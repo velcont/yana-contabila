@@ -212,6 +212,7 @@ export default function Yana() {
         <YanaChat
           conversationId={activeConversationId}
           onConversationCreated={setActiveConversationId}
+          resetKey={resetKey}
         />
       </main>
     </div>
