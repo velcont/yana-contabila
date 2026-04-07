@@ -69,8 +69,10 @@ export default function Yana() {
   // Handler pentru conversație nouă - șterge persistența
   const handleNewConversation = () => {
     setActiveConversationId(null);
+    setResetKey(k => k + 1);
     localStorage.removeItem('yana_last_conversation_id');
     analytics.yanaConversationStarted('new');
+    if (isMobile) setSidebarOpen(false);
   };
 
   const handleSignOut = async () => {
