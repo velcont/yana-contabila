@@ -34,6 +34,7 @@ export default function Yana() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [resetKey, setResetKey] = useState(0);
   const hasTrackedPageView = useRef(false);
   
   // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
