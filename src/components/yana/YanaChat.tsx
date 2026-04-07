@@ -49,6 +49,7 @@ interface Artifact {
 interface YanaChatProps {
   conversationId: string | null;
   onConversationCreated: (id: string) => void;
+  resetKey?: number;
 }
 
 export function YanaChat({ conversationId, onConversationCreated }: YanaChatProps) {
