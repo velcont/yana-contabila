@@ -125,6 +125,7 @@ export default function Yana() {
           onSelectConversation={handleSelectConversation}
           onNewConversation={handleNewConversation}
           onClose={() => setSidebarOpen(false)}
+          isMobile={isMobile}
         />
       </aside>
 

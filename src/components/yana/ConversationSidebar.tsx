@@ -23,6 +23,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
 export function ConversationSidebar({
@@ -30,6 +31,7 @@ export function ConversationSidebar({
   onSelectConversation,
   onNewConversation,
   onClose,
+  isMobile,
 }: ConversationSidebarProps) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -192,7 +194,10 @@ export function ConversationSidebar({
         </div>
         
         <Button
-          onClick={onNewConversation}
+          onClick={() => {
+            onNewConversation();
+            if (isMobile) onClose();
+          }}
           className="w-full justify-start gap-2"
           variant="outline"
         >

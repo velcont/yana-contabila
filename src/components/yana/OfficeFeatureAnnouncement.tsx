@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { FileText, Table, FileDown, Presentation, Sparkles, X } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const STORAGE_KEY = 'yana_office_announcement_dismissed';
 
 export const OfficeFeatureAnnouncement = () => {
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(STORAGE_KEY) === '1');
+  const isMobile = useIsMobile();
 
-  if (dismissed) return null;
+  // Hide on mobile to save vertical space
+  if (dismissed || isMobile) return null;
 
   const handleDismiss = () => {
     localStorage.setItem(STORAGE_KEY, '1');
