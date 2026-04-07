@@ -36,6 +36,7 @@ export default function Yana() {
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [resetKey, setResetKey] = useState(0);
   const hasTrackedPageView = useRef(false);
+  const initialLoadDone = useRef(false);
   
   // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
   // DAR permite accesul dacă au credite AI cumpărate
@@ -94,7 +95,12 @@ export default function Yana() {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  if (loading || subscriptionLoading || creditsLoading) {
+  // Mark initial load as done once all states resolve
+  if (!loading && !subscriptionLoading && !creditsLoading) {
+    initialLoadDone.current = true;
+  }
+
+  if ((loading || subscriptionLoading || creditsLoading) && !initialLoadDone.current) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
         <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center animate-pulse">
