@@ -34,6 +34,7 @@ export default function Yana() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [resetKey, setResetKey] = useState(0);
   const hasTrackedPageView = useRef(false);
   
   // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
@@ -68,8 +69,10 @@ export default function Yana() {
   // Handler pentru conversație nouă - șterge persistența
   const handleNewConversation = () => {
     setActiveConversationId(null);
+    setResetKey(k => k + 1);
     localStorage.removeItem('yana_last_conversation_id');
     analytics.yanaConversationStarted('new');
+    if (isMobile) setSidebarOpen(false);
   };
 
   const handleSignOut = async () => {
@@ -209,6 +212,7 @@ export default function Yana() {
         <YanaChat
           conversationId={activeConversationId}
           onConversationCreated={setActiveConversationId}
+          resetKey={resetKey}
         />
       </main>
     </div>

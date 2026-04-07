@@ -49,9 +49,10 @@ interface Artifact {
 interface YanaChatProps {
   conversationId: string | null;
   onConversationCreated: (id: string) => void;
+  resetKey?: number;
 }
 
-export function YanaChat({ conversationId, onConversationCreated }: YanaChatProps) {
+export function YanaChat({ conversationId, onConversationCreated, resetKey }: YanaChatProps) {
   const { user } = useAuth();
   const { hasCredits, hasFreeAccess, isLoading: creditsLoading } = useAICredits();
   const { accessType, loading: subLoading } = useSubscription();
@@ -829,7 +830,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       setActiveContext(null);
       setBalanceContext(null);
     }
-  }, [conversationId]);
+  }, [conversationId, resetKey]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
