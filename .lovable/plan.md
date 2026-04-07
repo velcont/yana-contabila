@@ -1,30 +1,43 @@
 
 
-# Fix: Weekly Check-in — Yana trimite email cu placeholdere [brackets]
+# Fix: Butonul "Conversație nouă" nu funcționează
 
-## Problema
+## Problema reală
 
-Funcția `weekly-companion-checkin` generează emailuri personalizate cu Gemini Flash Lite. Când un utilizator nu are context de business sau conversații anterioare, modelul pune placeholdere de tipul `[un aspect specific din discuția anterioară]` în loc să scrie ceva concret.
-
-Cauza: promptul nu interzice explicit bracket placeholders și nu oferă instrucțiuni clare pentru cazul în care datele lipsesc.
+Bug-ul este mai subtil decit se credea. Cind userul apasă "Conversație nouă":
+- `handleNewConversation()` apelează `setActiveConversationId(null)`
+- **Dar dacă `activeConversationId` este DEJA `null`** (userul e deja pe ecranul de conversație nouă, sau a mai apăsat o dată), React nu declanșează re-render — valoarea nu se schimbă
+- Efectul de reset din YanaChat (linia 824) nu se reexecută
+- Mesajele vechi rămân pe ecran, welcome message nu se regenerează
+- **Rezultat: butonul pare că nu face nimic**
 
 ## Soluția
 
-### Fișier: `supabase/functions/weekly-companion-checkin/index.ts`
+Introducem un **counter de reset** (`resetKey`) care se incrementează la fiecare apăsare pe "Conversație nouă", indiferent de starea curentă a `conversationId`.
 
-**1. Îmbunătățire prompt AI (linia 124-128):**
-- Adaugă regulă explicită: `NU folosi NICIODATĂ paranteze pătrate [...] sau placeholdere. Scrie DOAR text concret.`
-- Adaugă instrucțiune: `Dacă nu ai informații despre business-ul lor, pune o întrebare generală dar concretă (ex: "Cum merge cu vânzările luna asta?", "Ai reușit să angajezi pe cineva?").`
-- Adaugă: `NU menționa că nu știi detalii despre ei. Scrie natural, ca și cum ai fi un prieten care se interesează.`
+### Fișier 1: `src/pages/Yana.tsx`
+- Adaugă state: `const [resetKey, setResetKey] = useState(0)`
+- În `handleNewConversation`: incrementează `setResetKey(k => k + 1)` pe lângă `setActiveConversationId(null)`
+- Pasează `resetKey` ca prop la `<YanaChat>`
 
-**2. Validare output AI (după linia 148):**
-- După generarea mesajului, verifică dacă conține `[` sau `]` — dacă da, skip acest email (nu-l trimite)
-- Log warning pentru monitorizare
+### Fișier 2: `src/components/yana/YanaChat.tsx`
+- Adaugă `resetKey` în interfața `YanaChatProps`
+- Modifică useEffect-ul de reset (linia 824) să depindă de `resetKey` în loc de doar `conversationId`:
+  ```typescript
+  useEffect(() => {
+    if (conversationId === null) {
+      setMessages([]);
+      setWelcomeMessageShown(false);
+      setActiveContext(null);
+      setBalanceContext(null);
+    }
+  }, [conversationId, resetKey]);
+  ```
+- Asta garantează că efectul se reexecută chiar dacă `conversationId` e deja `null`
 
-**3. Îmbunătățire context user (liniile 132-135):**
-- Când `businessContext` e gol, nu trimite `necunoscut` — trimite `Nu avem detalii despre business. Pune o întrebare generală despre antreprenoriat.`
-- Când `lastTopics` e gol, trimite `Nu au discutat subiecte specifice recent. Întreabă cum le merge în general.`
+### Fișier 3: `src/components/yana/ConversationSidebar.tsx`  
+- Verifică că butonul "Conversație nouă" apelează `onNewConversation()` + `onClose()` pe mobil (deja implementat la linia 198-199, OK)
 
 ## Rezultat
-Emailurile vor fi întotdeauna naturale, fără brackets, chiar și pentru utilizatori noi fără context.
+Butonul va funcționa mereu — inclusiv la apăsări repetate, pe mobil și desktop.
 
