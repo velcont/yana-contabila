@@ -164,6 +164,9 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
 
   // Track if conversation is fully loaded (for blocking send)
   const conversationLoadedRef = useRef(false);
+  
+  // Guard: prevent loadMessages from overwriting state during active send
+  const isSendingRef = useRef(false);
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -174,6 +177,12 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         setMessages([]);
         setActiveContext(null);
         setBalanceContext(null);
+        return;
+      }
+
+      // Skip loading if we're in the middle of sending a message (race condition fix)
+      if (isSendingRef.current) {
+        conversationLoadedRef.current = true;
         return;
       }
 
@@ -242,6 +251,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
 
     setIsLoading(true);
     setInput('');
+    isSendingRef.current = true;
 
     try {
       // Create conversation if needed
