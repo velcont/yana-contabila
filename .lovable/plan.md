@@ -1,48 +1,48 @@
 
 
-## Plan: Învață Yana să genereze documente de business (CV, oferte, scrisori, emailuri)
+## Plan: Adăugare cunoștințe juridice despre societăți comerciale în România
 
 ### Situația actuală
-Yana deja are un motor de generare documente Office v5.0 funcțional. AI Router-ul detectează cereri de documente prin regex-uri și le trimite la `generate-office-document`. Există deja template-uri pentru: contract, NDA, propunere, raport, factură, decizie, proces-verbal.
-
-**Ce lipsește:** CV-uri, oferte de preț, scrisori de intenție, emailuri comerciale (cerere preț, ofertă) și alte documente tipice de firmă.
+Yana are în `chat-ai-prompt.md` o regulă explicită care spune: *"Drept comercial complex → Nu-i zona mea principală"*. Yana refuză sau se retrage din întrebări juridice despre societăți comerciale, deși utilizatorii au nevoie de aceste informații.
 
 ### Ce vom face
 
-**1. Extindere AI Router — detectarea noilor tipuri de documente**
+**1. Crearea unui fișier de cunoștințe juridice**: `supabase/functions/_shared/prompts/drept-comercial-romania.md`
 
-Adăugăm noi pattern-uri regex în `ai-router/index.ts`:
-- `cv|curriculum|rezumat profesional` → templateType `cv`
-- `ofert[aă] de pre[tț]|cotație|price quote` → templateType `oferta-pret`
-- `scrisoare de inten[tț]ie|letter of intent` → templateType `scrisoare-intentie`
-- `email.*ofert[aă]|email.*pre[tț]|cerere.*pre[tț]|solicitare.*pre[tț]` → templateType `email-comercial`
-- `scrisoare.*recomandare` → templateType `scrisoare-recomandare`
-- `memo|notă internă|comunicare internă` → templateType `memo`
-- `minută|minute.*ședință|minutes` → templateType `minuta`
-- `fișa postului|job description` → templateType `fisa-post`
+Conținut structurat cu legislația română relevantă:
 
-**2. Adăugare template-uri AI în `generate-office-document/index.ts`**
+- **Legea 31/1990** (Legea Societăților): tipuri de societăți (SRL, SA, SNC, SCS, SCA), capital social minim, număr asociați, răspundere, organe de conducere
+- **Legea 26/1990**: Registrul Comerțului — înființare, modificare, radiere, sediu social, puncte de lucru
+- **OUG 44/2008**: PFA, Întreprindere Individuală, Întreprindere Familială — diferențe și obligații
+- **Legea 85/2014**: Insolvență — proceduri, reorganizare, faliment, termene
+- **Codul Civil** (art. relevante): contracte comerciale, obligații, garanții, clauze penale
+- **Cesiune părți sociale**: procedură, restricții, drepturi de preemțiune
+- **Dizolvare și lichidare**: cauze, proceduri, termene, radierea de la ONRC
+- **AGA / Decizii asociat unic**: convocări, cvorum, majorități, tipuri de hotărâri
+- **Administrator**: mandat, puteri, revocare, răspundere solidară, interdicții
+- **Dividende**: distribuire, termene, impozitare (8%), restricții legale
+- **Praguri și obligații**: audit obligatoriu, raportare, beneficiar real, prevenirea spălării banilor (Legea 129/2019)
 
-Adăugăm noi case-uri în funcția `getDocxPrompt()`, fiecare cu structură JSON specifică:
+**2. Actualizare `chat-ai-prompt.md`**
 
-- **CV profesional** — Secțiuni: Date personale, Profil profesional, Experiență, Educație, Competențe, Limbi, Certificări
-- **Ofertă de preț** — Secțiuni: Date furnizor, Date client, Descriere servicii/produse, Tabel prețuri, Condiții comerciale, Valabilitate, Semnătură
-- **Scrisoare de intenție** — Secțiuni: Destinatar, Introducere, Motivație, Competențe relevante, Încheiere
-- **Email comercial (cerere/ofertă preț)** — Format scurt: Subiect, Salut, Corp, Call-to-action, Semnătură
-- **Scrisoare de recomandare** — Secțiuni: Destinatar, Context relație, Calități, Realizări, Recomandare
-- **Memo intern** — Format: De la, Către, Subiect, Data, Corp
-- **Minută ședință** — Secțiuni: Participanți, Agendă, Discuții, Decizii, Acțiuni, Termen
-- **Fișa postului** — Secțiuni: Titlu post, Departament, Subordonare, Responsabilități, Cerințe, Beneficii
+- Schimbăm "Drept comercial complex → Nu-i zona mea principală" în "Drept comercial — societăți comerciale → Cunoștințe solide, cu disclaimer"
+- Adăugăm secțiune nouă care injectează cunoștințele juridice în prompt
+- Adăugăm regula: Yana răspunde la întrebări juridice despre societăți comerciale dar include **disclaimer** că nu înlocuiește un avocat
 
-**3. Actualizare capabilities prompt**
+**3. Importul cunoștințelor în `chat-ai/index.ts`**
 
-Update `yana-capabilities-prompt.md` secțiunea "Generare Documente" cu noile tipuri.
+- Import fișierul `drept-comercial-romania.md` și îl injectăm în system prompt alături de celelalte cunoștințe
+
+**4. Actualizare `yana-capabilities-prompt.md`**
+
+- Adăugăm secțiune nouă: "Consultanță Drept Comercial — Societăți"
 
 ### Fișiere modificate
-1. `supabase/functions/ai-router/index.ts` — regex-uri noi + templateType mapping
-2. `supabase/functions/generate-office-document/index.ts` — 8 template-uri noi în `getDocxPrompt()`
-3. `supabase/functions/_shared/prompts/yana-capabilities-prompt.md` — lista actualizată
+1. `supabase/functions/_shared/prompts/drept-comercial-romania.md` — **NOU** — bază de cunoștințe juridice (~300 rânduri)
+2. `supabase/functions/_shared/prompts/chat-ai-prompt.md` — ridicăm limita pe drept comercial, referințăm noua bază
+3. `supabase/functions/chat-ai/index.ts` — import și injectare în system prompt
+4. `supabase/functions/_shared/prompts/yana-capabilities-prompt.md` — documentare nouă capabilitate
 
 ### Risc
-Minim — extinde funcționalitate existentă fără a modifica logica curentă. Aceleași fluxuri, aceleași formate JSON.
+Minim — adăugăm cunoștințe noi fără a modifica logica existentă. Disclaimer-ul legal rămâne obligatoriu în toate răspunsurile juridice.
 
