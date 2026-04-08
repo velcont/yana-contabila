@@ -1,49 +1,48 @@
 
 
-# Fix: Două buguri pe /yana — "refresh" la revenire în tab + prima întrebare dispare
+## Plan: Învață Yana să genereze documente de business (CV, oferte, scrisori, emailuri)
 
-## Problema 1: Pagina pare că se reîncarcă la revenirea în tab
+### Situația actuală
+Yana deja are un motor de generare documente Office v5.0 funcțional. AI Router-ul detectează cereri de documente prin regex-uri și le trimite la `generate-office-document`. Există deja template-uri pentru: contract, NDA, propunere, raport, factură, decizie, proces-verbal.
 
-Când utilizatorul pleacă din tab (alt-tab, altă fereastră) și revine, Supabase GoTrueClient face automat refresh la auth token. Asta declanșează `onAuthStateChange` → `useAuth` actualizează starea `user`/`session` → `useSubscription` și `useAICredits` reintră în loading (`loading: true`) → linia 97 din Yana.tsx afișează spinner-ul "Yana se pregătește..." → când loading-ul se termină, componentele se re-montează de la zero, pierdem scroll-ul, și pare un refresh complet.
+**Ce lipsește:** CV-uri, oferte de preț, scrisori de intenție, emailuri comerciale (cerere preț, ofertă) și alte documente tipice de firmă.
 
-**Fix**: Nu mai afișa spinner-ul dacă utilizatorul a fost deja autentificat. Folosim o referință `initialLoadDone` care devine `true` după prima încărcare reușită. La re-verificări ulterioare (token refresh), nu mai arătăm spinner.
+### Ce vom face
 
-### Fișier: `src/pages/Yana.tsx`
-- Adaugă `const initialLoadDone = useRef(false)`
-- După ce toate loading-urile se termină prima dată, setează `initialLoadDone.current = true`
-- La condiția de loading (linia 97), verifică: `if ((loading || subscriptionLoading || creditsLoading) && !initialLoadDone.current)` — adică spinner-ul apare DOAR la prima încărcare, nu la re-verificări
+**1. Extindere AI Router — detectarea noilor tipuri de documente**
 
----
+Adăugăm noi pattern-uri regex în `ai-router/index.ts`:
+- `cv|curriculum|rezumat profesional` → templateType `cv`
+- `ofert[aă] de pre[tț]|cotație|price quote` → templateType `oferta-pret`
+- `scrisoare de inten[tț]ie|letter of intent` → templateType `scrisoare-intentie`
+- `email.*ofert[aă]|email.*pre[tț]|cerere.*pre[tț]|solicitare.*pre[tț]` → templateType `email-comercial`
+- `scrisoare.*recomandare` → templateType `scrisoare-recomandare`
+- `memo|notă internă|comunicare internă` → templateType `memo`
+- `minută|minute.*ședință|minutes` → templateType `minuta`
+- `fișa postului|job description` → templateType `fisa-post`
 
-## Problema 2: Prima întrebare a utilizatorului dispare
+**2. Adăugare template-uri AI în `generate-office-document/index.ts`**
 
-Când utilizatorul trimite primul mesaj pe o conversație nouă (`conversationId === null`):
+Adăugăm noi case-uri în funcția `getDocxPrompt()`, fiecare cu structură JSON specifică:
 
-1. `sendMessage` creează o conversație nouă (linia 250)
-2. Apelează `onConversationCreated(convId)` (linia 251) — asta setează `activeConversationId` în parent
-3. Adaugă mesajul user-ului în UI (linia 290)
-4. Salvează mesajul în DB (linia 293)
-5. **RACE CONDITION**: Schimbarea `conversationId` de la `null` la `convId` declanșează `useEffect[conversationId]` (linia 169) care apelează `loadMessages()`
-6. `loadMessages` face `setMessages(...)` cu datele din DB — suprascrie starea curentă
-7. Mesajul user-ului adăugat la pasul 3 poate fi pierdut dacă `loadMessages` rulează la momentul nepotrivit
+- **CV profesional** — Secțiuni: Date personale, Profil profesional, Experiență, Educație, Competențe, Limbi, Certificări
+- **Ofertă de preț** — Secțiuni: Date furnizor, Date client, Descriere servicii/produse, Tabel prețuri, Condiții comerciale, Valabilitate, Semnătură
+- **Scrisoare de intenție** — Secțiuni: Destinatar, Introducere, Motivație, Competențe relevante, Încheiere
+- **Email comercial (cerere/ofertă preț)** — Format scurt: Subiect, Salut, Corp, Call-to-action, Semnătură
+- **Scrisoare de recomandare** — Secțiuni: Destinatar, Context relație, Calități, Realizări, Recomandare
+- **Memo intern** — Format: De la, Către, Subiect, Data, Corp
+- **Minută ședință** — Secțiuni: Participanți, Agendă, Discuții, Decizii, Acțiuni, Termen
+- **Fișa postului** — Secțiuni: Titlu post, Departament, Subordonare, Responsabilități, Cerințe, Beneficii
 
-**Fix**: Adaugă un flag `isSendingRef` care previne `loadMessages` de la suprascrierea mesajelor în timp ce `sendMessage` este activ.
+**3. Actualizare capabilities prompt**
 
-### Fișier: `src/components/yana/YanaChat.tsx`
-- Adaugă `const isSendingRef = useRef(false)`
-- În `sendMessage`: setează `isSendingRef.current = true` la început, `false` în `finally`
-- În `loadMessages` (useEffect la linia 169): dacă `isSendingRef.current === true`, skip — nu suprascrie mesajele
+Update `yana-capabilities-prompt.md` secțiunea "Generare Documente" cu noile tipuri.
 
----
+### Fișiere modificate
+1. `supabase/functions/ai-router/index.ts` — regex-uri noi + templateType mapping
+2. `supabase/functions/generate-office-document/index.ts` — 8 template-uri noi în `getDocxPrompt()`
+3. `supabase/functions/_shared/prompts/yana-capabilities-prompt.md` — lista actualizată
 
-## Rezumat modificări
-
-| Fișier | Ce se schimbă |
-|--------|--------------|
-| `src/pages/Yana.tsx` | Spinner doar la prima încărcare, nu la token refresh |
-| `src/components/yana/YanaChat.tsx` | Guard `isSendingRef` în loadMessages pentru a preveni race condition |
-
-## Rezultat
-- Tab switch nu mai cauzează flash/spinner
-- Prima întrebare rămâne vizibilă după ce Yana răspunde
+### Risc
+Minim — extinde funcționalitate existentă fără a modifica logica curentă. Aceleași fluxuri, aceleași formate JSON.
 
