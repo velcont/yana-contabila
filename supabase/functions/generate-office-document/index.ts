@@ -543,6 +543,277 @@ REGULI FIȘĂ POST:
 - Beneficii concrete, nu vagi
 ${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
 
+    case 'contract-munca':
+      return `${baseRules}
+
+Generezi un CONTRACT INDIVIDUAL DE MUNCĂ (CIM) conform Codului Muncii din România.
+
+Schema OBLIGATORIE:
+{
+  "title": "CONTRACT INDIVIDUAL DE MUNCĂ",
+  "summary": "Contract individual de muncă pe durată [nedeterminată/determinată]...",
+  "keywords": ["CIM", "contract muncă", "angajare"],
+  "sections": [
+    { "heading": "ARTICOLUL 1 – PĂRȚILE CONTRACTANTE", "content": "ANGAJATOR:\\nDenumire: [DENUMIRE SOCIETATE]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nReprezentant legal: [NUME], în calitate de [FUNCȚIE]\\n\\nANGAJAT:\\nNume și prenume: [NUME COMPLET]\\nCNP: [CNP]\\nDomiciliu: [ADRESĂ]\\nAct identitate: [TIP] seria [SERIA] nr. [NR.]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – OBIECTUL CONTRACTULUI", "content": "Prezentul contract reglementează raportul de muncă dintre angajator și angajat, în conformitate cu Legea nr. 53/2003 – Codul Muncii.", "type": "text" },
+    { "heading": "ARTICOLUL 3 – DURATA CONTRACTULUI", "content": "Contractul se încheie pe durată [nedeterminată/determinată de X luni].\\nData începerii activității: [DATA]\\nPerioada de probă: [30/45/90] zile calendaristice.", "type": "text" },
+    { "heading": "ARTICOLUL 4 – LOCUL DE MUNCĂ", "content": "Activitatea se desfășoară la sediul angajatorului din [ADRESĂ] / în regim de telemuncă conform Legii 81/2018.", "type": "text" },
+    { "heading": "ARTICOLUL 5 – FELUL MUNCII", "content": "Funcția/Meseria: [DENUMIRE POST]\\nCod COR: [COD COR]\\nAtribuțiile postului sunt prevăzute în fișa postului, anexă la prezentul contract.", "type": "text" },
+    { "heading": "ARTICOLUL 6 – PROGRAMA DE LUCRU", "content": "Durata timpului de muncă: [8] ore/zi, [40] ore/săptămână.\\nProgram: Luni-Vineri, [09:00-17:00].", "type": "text" },
+    { "heading": "ARTICOLUL 7 – SALARIUL", "content": "Salariul de bază lunar brut: [SUMA] RON\\nAlte elemente: [sporuri, bonusuri, tichete de masă]\\nData plății: [ziua X a lunii]\\nModalitatea de plată: transfer bancar", "type": "text" },
+    { "heading": "ARTICOLUL 8 – CONCEDIUL DE ODIHNĂ", "content": "Durata concediului anual: [20/21/25] zile lucrătoare.\\nIndemnizația de concediu conform art. 150 din Codul Muncii.", "type": "text" },
+    { "heading": "ARTICOLUL 9 – OBLIGAȚIILE ANGAJATORULUI", "content": "- Să acorde salariului toate drepturile din contract\\n- Să asigure condiții de muncă corespunzătoare\\n- Să informeze salariatul asupra condițiilor de muncă\\n- Să asigure confidențialitatea datelor personale", "type": "list" },
+    { "heading": "ARTICOLUL 10 – OBLIGAȚIILE ANGAJATULUI", "content": "- Să îndeplinească atribuțiile din fișa postului\\n- Să respecte disciplina muncii și regulamentul intern\\n- Să respecte normele SSM\\n- Să fie loial angajatorului", "type": "list" },
+    { "heading": "ARTICOLUL 11 – CLAUZE SPECIFICE", "content": "Clauza de confidențialitate: [DETALII]\\nClauza de neconcurență: [DACĂ ESTE CAZUL]\\nClauza de mobilitate: [DACĂ ESTE CAZUL]", "type": "text" },
+    { "heading": "ARTICOLUL 12 – ÎNCETAREA CONTRACTULUI", "content": "Încetare conform Codului Muncii:\\n- De drept (art. 56)\\n- Acord părți (art. 55 lit. b)\\n- Demisie (art. 81) – preaviz [20] zile lucrătoare\\n- Concediere (art. 58-67)", "type": "list" },
+    { "heading": "SEMNĂTURI", "content": "ANGAJATOR: _______________\\nANGAJAT: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un specialist în dreptul muncii înainte de utilizare.", "type": "text" }
+  ]
+}
+
+REGULI CIM:
+- Respectă structura Codului Muncii (Legea 53/2003)
+- Include toate elementele obligatorii: părți, durată, loc, funcție, salariu, concediu
+- Perioadă de probă: max 90 zile execuție, 120 conducere
+- DISCLAIMER obligatoriu
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'contract-vanzare-cumparare':
+      return `${baseRules}
+
+Generezi un CONTRACT DE VÂNZARE-CUMPĂRARE profesional.
+
+Schema OBLIGATORIE:
+{
+  "title": "CONTRACT DE VÂNZARE-CUMPĂRARE",
+  "summary": "Contract de vânzare-cumpărare pentru [OBIECT]...",
+  "keywords": ["vânzare", "cumpărare", "transfer proprietate"],
+  "sections": [
+    { "heading": "ARTICOLUL 1 – PĂRȚILE CONTRACTANTE", "content": "VÂNZĂTORUL: [DENUMIRE], CUI/CNP [X], adresă [X], cont [IBAN]\\n\\nCUMPĂRĂTORUL: [DENUMIRE], CUI/CNP [X], adresă [X], cont [IBAN]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – OBIECTUL CONTRACTULUI", "content": "Vânzătorul vinde, iar Cumpărătorul cumpără:\\n\\nNr. | Descriere | Cantitate | Preț unitar | Total\\n1 | [DESCRIERE] | [CANT.] | [PREȚ] RON | [TOTAL] RON\\n\\nStare: [NOU/FOLOSIT]", "type": "table" },
+    { "heading": "ARTICOLUL 3 – PREȚUL ȘI PLATA", "content": "Preț total: [SUMĂ] RON + TVA [19%] = [TOTAL] RON.\\nPlata: [transfer bancar/numerar/rate]\\nTermen: [la livrare / 30 zile]\\nPenalități: [0.1%/zi] din suma restantă.", "type": "text" },
+    { "heading": "ARTICOLUL 4 – LIVRAREA ȘI RECEPȚIA", "content": "Termen livrare: [X] zile lucrătoare.\\nLoc livrare: [ADRESĂ].\\nTransport în sarcina [VÂNZĂTORULUI/CUMPĂRĂTORULUI].\\nRecepție pe bază de proces-verbal.", "type": "text" },
+    { "heading": "ARTICOLUL 5 – TRANSFERUL PROPRIETĂȚII", "content": "Proprietatea se transferă la [livrare/plata integrală]. Riscurile se transferă odată cu proprietatea.", "type": "text" },
+    { "heading": "ARTICOLUL 6 – GARANȚIE", "content": "Garanție [X] luni/ani. Acoperă defecte de fabricație. Nu acoperă uzura normală.", "type": "text" },
+    { "heading": "ARTICOLUL 7 – OBLIGAȚIILE PĂRȚILOR", "content": "Vânzătorul: livrare, calitate, documente.\\nCumpărătorul: plată, recepție, utilizare conformă.", "type": "list" },
+    { "heading": "ARTICOLUL 8 – RĂSPUNDERE ȘI LITIGII", "content": "Nerespectarea obligațiilor: rezoluțiune + daune. Forța majoră exonerează. Litigii: instanțe competente.", "type": "text" },
+    { "heading": "ARTICOLUL 9 – DISPOZIȚII FINALE", "content": "Încheiat în 2 exemplare. Modificări prin act adițional.\\n\\nVÂNZĂTOR: _______________\\nCUMPĂRĂTOR: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un avocat înainte de semnare.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'contract-inchiriere':
+      return `${baseRules}
+
+Generezi un CONTRACT DE ÎNCHIRIERE profesional.
+
+Schema OBLIGATORIE:
+{
+  "title": "CONTRACT DE ÎNCHIRIERE",
+  "summary": "Contract de închiriere pentru [TIP SPAȚIU]...",
+  "keywords": ["închiriere", "chirie", "locațiune"],
+  "sections": [
+    { "heading": "ARTICOLUL 1 – PĂRȚILE", "content": "PROPRIETAR (Locator): [NUME], CUI/CNP [X], adresă [X]\\n\\nCHIRIAȘ (Locatar): [NUME], CUI/CNP [X], adresă [X]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – OBIECTUL", "content": "Imobilul din [ADRESĂ], compus din [DESCRIERE], suprafață [X] mp.", "type": "text" },
+    { "heading": "ARTICOLUL 3 – DESTINAȚIA", "content": "Exclusiv ca [locuință/birou/spațiu comercial]. Schimbarea doar cu acord scris.", "type": "text" },
+    { "heading": "ARTICOLUL 4 – DURATA", "content": "Perioadă: [X] luni/ani, de la [DATA] la [DATA]. Prelungire prin act adițional.", "type": "text" },
+    { "heading": "ARTICOLUL 5 – CHIRIA", "content": "Chirie lunară: [SUMĂ] RON/EUR. Plata până pe [X] ale lunii. Indexare anuală [X]%. Penalități: [0.1%/zi].", "type": "text" },
+    { "heading": "ARTICOLUL 6 – GARANȚIA", "content": "Depozit: [X] chirii = [SUMĂ] RON. Se restituie la încetare minus daune/restanțe.", "type": "text" },
+    { "heading": "ARTICOLUL 7 – OBLIGAȚII PROPRIETAR", "content": "- Predare spațiu corespunzător\\n- Folosință liniștită\\n- Reparații capitale", "type": "list" },
+    { "heading": "ARTICOLUL 8 – OBLIGAȚII CHIRIAȘ", "content": "- Plata chiriei la termen\\n- Folosire conform destinației\\n- Reparații locative\\n- Plata utilități\\n- Fără subînchiriere fără acord", "type": "list" },
+    { "heading": "ARTICOLUL 9 – ÎNCETAREA", "content": "Expirare, acord, reziliere (preaviz 30 zile), denunțare unilaterală (preaviz 60 zile).", "type": "list" },
+    { "heading": "ARTICOLUL 10 – DISPOZIȚII FINALE", "content": "2 exemplare. Art. 1777-1835 Cod Civil.\\n\\nPROPRIETAR: _______________\\nCHIRIAȘ: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un avocat/notar.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'contract-comodat':
+      return `${baseRules}
+
+Generezi un CONTRACT DE COMODAT (folosință gratuită).
+
+Schema OBLIGATORIE:
+{
+  "title": "CONTRACT DE COMODAT",
+  "summary": "Contract de comodat pentru [OBIECT]...",
+  "keywords": ["comodat", "folosință", "gratuit"],
+  "sections": [
+    { "heading": "ARTICOLUL 1 – PĂRȚILE", "content": "COMODANT: [NUME], CUI/CNP [X]\\nCOMODATAR: [NUME], CUI/CNP [X]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – OBIECTUL", "content": "Comodantul transmite gratuit dreptul de folosință asupra [BINE/SPAȚIU] din [ADRESĂ].", "type": "text" },
+    { "heading": "ARTICOLUL 3 – DURATA", "content": "De la [DATA] la [DATA]. Prelungire prin act adițional.", "type": "text" },
+    { "heading": "ARTICOLUL 4 – DESTINAȚIA", "content": "Exclusiv ca [sediu social/locuință/depozit].", "type": "text" },
+    { "heading": "ARTICOLUL 5 – OBLIGAȚII COMODATAR", "content": "- Conservare ca bun proprietar\\n- Folosire conform destinației\\n- Suportarea cheltuielilor de utilizare\\n- Restituire la termen\\n- Fără subcesiune", "type": "list" },
+    { "heading": "ARTICOLUL 6 – OBLIGAȚII COMODANT", "content": "- Predare în stare corespunzătoare\\n- Neturburare pe durata contractului", "type": "list" },
+    { "heading": "ARTICOLUL 7 – DISPOZIȚII FINALE", "content": "2 exemplare. Art. 2146-2157 Cod Civil.\\nCOMODANT: _______________\\nCOMODATAR: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un avocat.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'contract-cesiune':
+      return `${baseRules}
+
+Generezi un CONTRACT DE CESIUNE.
+
+Schema OBLIGATORIE:
+{
+  "title": "CONTRACT DE CESIUNE",
+  "summary": "Cesiune de [creanță/părți sociale/drepturi]...",
+  "keywords": ["cesiune", "transfer", "drepturi"],
+  "sections": [
+    { "heading": "ARTICOLUL 1 – PĂRȚILE", "content": "CEDENT: [NUME], CUI/CNP [X]\\nCESIONAR: [NUME], CUI/CNP [X]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – OBIECTUL CESIUNII", "content": "Cedentul cedează [creanță de X RON / X părți sociale / drepturi de proprietate intelectuală].", "type": "text" },
+    { "heading": "ARTICOLUL 3 – PREȚUL", "content": "Preț: [SUMĂ] RON, plătibil prin [transfer bancar] în [X] zile.", "type": "text" },
+    { "heading": "ARTICOLUL 4 – DECLARAȚII CEDENT", "content": "- Titular exclusiv\\n- Fără sarcini sau litigii\\n- Nu a cedat altei persoane\\n- Va notifica debitorul cedat", "type": "list" },
+    { "heading": "ARTICOLUL 5 – EFECTE", "content": "Efecte de la [semnare/notificare/înregistrare ONRC].", "type": "text" },
+    { "heading": "ARTICOLUL 6 – DISPOZIȚII FINALE", "content": "2 exemplare. Art. 1566-1592 Cod Civil.\\nCEDENT: _______________\\nCESIONAR: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un avocat.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'procura':
+      return `${baseRules}
+
+Generezi o PROCURĂ.
+
+Schema OBLIGATORIE:
+{
+  "title": "PROCURĂ",
+  "summary": "Procură pentru [SCOP]...",
+  "keywords": ["procură", "împuternicire", "mandat"],
+  "sections": [
+    { "heading": "MANDANT", "content": "Subsemnatul/a [NUME], CNP [CNP], domiciliat/ă în [ADRESĂ], CI seria [X] nr. [X].", "type": "text" },
+    { "heading": "MANDATAR", "content": "Împuternicesc pe [NUME MANDATAR], CNP [CNP], domiciliat/ă în [ADRESĂ], CI seria [X] nr. [X].", "type": "text" },
+    { "heading": "OBIECTUL PROCURII", "content": "Mandatarul este împuternicit să mă reprezinte la [INSTITUȚIE] în vederea:\\n- [Acțiune 1]\\n- [Acțiune 2]\\n- [Acțiune 3]\\ninclusiv să semneze orice acte necesare.", "type": "list" },
+    { "heading": "DURATA", "content": "Valabilă [X] luni/ani de la autentificare / până la îndeplinirea mandatului.", "type": "text" },
+    { "heading": "SEMNĂTURĂ", "content": "Data: [DATA]\\nMandant: _______________", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Anumite procuri necesită autentificare notarială.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'act-aditional':
+      return `${baseRules}
+
+Generezi un ACT ADIȚIONAL la un contract existent.
+
+Schema OBLIGATORIE:
+{
+  "title": "ACT ADIȚIONAL NR. [X]",
+  "summary": "Act adițional la contractul nr. [NR] din [DATA]...",
+  "keywords": ["act adițional", "modificare", "contract"],
+  "sections": [
+    { "heading": "PREAMBUL", "content": "Act adițional nr. [X] la Contractul [TIP] nr. [NR] din [DATA]\\n\\n1. [PARTE 1]\\n2. [PARTE 2]", "type": "text" },
+    { "heading": "ARTICOLUL 1 – MODIFICĂRI", "content": "1.1. Art. [X] se modifică:\\nText vechi: \\\"[...]\\\"\\nText nou: \\\"[...]\\\"\\n\\n1.2. Art. [Y] se modifică: [DETALII]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – INTRAREA ÎN VIGOARE", "content": "Intră în vigoare la semnare. Celelalte clauze rămân neschimbate.\\n\\nPartea 1: _______________\\nPartea 2: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un avocat.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'cerere-concediu':
+      return `${baseRules}
+
+Generezi o CERERE DE CONCEDIU.
+
+Schema OBLIGATORIE:
+{
+  "title": "CERERE DE CONCEDIU DE ODIHNĂ",
+  "summary": "Cerere concediu [DATA-DATA]...",
+  "keywords": ["concediu", "cerere", "odihnă"],
+  "sections": [
+    { "heading": "DESTINATAR", "content": "Către: Conducerea [COMPANIE]\\nÎn atenția: [HR/Director]", "type": "text" },
+    { "heading": "CERERE", "content": "Subsemnatul/a [NUME], funcția [FUNCȚIE], dept. [DEPT], CIM nr. [NR] din [DATA], rog aprobarea concediului [DATA ÎNCEPUT] – [DATA SFÂRȘIT], total [X] zile lucrătoare.\\n\\nÎnlocuitor: [NUME COLEG].\\nSarcinile au fost predate corespunzător.", "type": "text" },
+    { "heading": "SEMNĂTURĂ", "content": "Data: [DATA]\\nNume: [NUME]\\nSemnătura: _______________\\n\\nAviz șef: _______________\\nAviz HR: _______________", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'cerere-demisie':
+      return `${baseRules}
+
+Generezi o CERERE DE DEMISIE.
+
+Schema OBLIGATORIE:
+{
+  "title": "CERERE DE DEMISIE",
+  "summary": "Notificare demisie cu preaviz [X] zile...",
+  "keywords": ["demisie", "preaviz", "încetare"],
+  "sections": [
+    { "heading": "DESTINATAR", "content": "Către: Conducerea [COMPANIE]", "type": "text" },
+    { "heading": "CERERE", "content": "Subsemnatul/a [NUME], funcția [FUNCȚIE], notific decizia de a demisiona cu preaviz de [20] zile lucrătoare (art. 81 Codul Muncii).\\n\\nUltima zi de lucru: [DATA].\\n\\nMă angajez să predau sarcinile în perioada de preaviz.\\n\\nVă mulțumesc pentru colaborare.", "type": "text" },
+    { "heading": "SEMNĂTURĂ", "content": "Data: [DATA]\\nNume: [NUME]\\nSemnătura: _______________\\n\\nNr. înregistrare: _______________", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'adeverinta':
+      return `${baseRules}
+
+Generezi o ADEVERINȚĂ.
+
+Schema OBLIGATORIE:
+{
+  "title": "ADEVERINȚĂ",
+  "summary": "Adeverință de salariat...",
+  "keywords": ["adeverință", "salariat", "confirmare"],
+  "sections": [
+    { "heading": "ANTET", "content": "[COMPANIE]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nNr. [X] din [DATA]", "type": "text" },
+    { "heading": "ADEVERINȚĂ", "content": "Adeverim că dl./dna. [NUME], CNP [CNP], este angajat/ă ca [FUNCȚIE], CIM nr. [NR] din [DATA], durată [nedeterminată/determinată].\\n\\nSalariu brut: [SUMA] RON.\\nVechime: [X] ani.\\n\\nEliberată la cerere pentru [SCOP].", "type": "text" },
+    { "heading": "SEMNĂTURĂ", "content": "Director: [NUME] _______________\\nHR: [NUME] _______________\\nȘtampila", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'conventie-civila':
+      return `${baseRules}
+
+Generezi o CONVENȚIE CIVILĂ DE PRESTĂRI SERVICII.
+
+Schema OBLIGATORIE:
+{
+  "title": "CONVENȚIE CIVILĂ DE PRESTĂRI SERVICII",
+  "summary": "Convenție civilă pentru [SERVICII]...",
+  "keywords": ["convenție civilă", "prestări servicii", "PFA"],
+  "sections": [
+    { "heading": "ARTICOLUL 1 – PĂRȚILE", "content": "BENEFICIAR: [DENUMIRE], CUI [X]\\nPRESTATOR: [NUME/PFA], CUI/CNP [X]", "type": "text" },
+    { "heading": "ARTICOLUL 2 – OBIECTUL", "content": "Prestatorul prestează: [DESCRIERE SERVICII]. Livrabile: [CONCRETE].", "type": "text" },
+    { "heading": "ARTICOLUL 3 – DURATA", "content": "De la [DATA] la [DATA].", "type": "text" },
+    { "heading": "ARTICOLUL 4 – REMUNERAȚIA", "content": "Remunerație: [SUMA] RON. Plata în [X] zile de la factură. Prestatorul răspunde fiscal.", "type": "text" },
+    { "heading": "ARTICOLUL 5 – OBLIGAȚII", "content": "Prestator: calitate, termene, confidențialitate, factură.\\nBeneficiar: plată, informații, recepție.", "type": "list" },
+    { "heading": "ARTICOLUL 6 – DISPOZIȚII FINALE", "content": "⚠️ NU generează raporturi de muncă.\\n2 exemplare.\\nBENEFICIAR: _______________\\nPRESTATOR: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Consultați un avocat/contabil.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'regulament-intern':
+      return `${baseRules}
+
+Generezi un REGULAMENT INTERN conform Codului Muncii.
+
+Schema OBLIGATORIE:
+{
+  "title": "REGULAMENT INTERN",
+  "summary": "Regulament intern al [COMPANIE]...",
+  "keywords": ["regulament", "disciplină", "norme"],
+  "sections": [
+    { "heading": "CAP. I – DISPOZIȚII GENERALE", "content": "Art. 1. Conform art. 241-246 din Legea 53/2003.\\nArt. 2. Se aplică tuturor salariaților.", "type": "text" },
+    { "heading": "CAP. II – PROGRAM DE LUCRU", "content": "Art. 3. Program: L-V, [09:00-17:00], 8h/zi.\\nArt. 4. Pauza: [30/60] min.\\nArt. 5. Ore suplimentare: conform art. 120-124 CM.", "type": "text" },
+    { "heading": "CAP. III – CONCEDII", "content": "Art. 6. CO: min [20] zile/an.\\nArt. 7. CM: conform legislației.\\nArt. 8. Zile libere legale.\\nArt. 9. CFP: la cerere, cu aprobare.", "type": "text" },
+    { "heading": "CAP. IV – DREPTURI ȘI OBLIGAȚII", "content": "Drepturi: salariu, condiții, demnitate, informare.\\nObligații: program, atribuții, SSM, confidențialitate.", "type": "list" },
+    { "heading": "CAP. V – DISCIPLINA MUNCII", "content": "Sancțiuni (art. 248): avertisment, retrogradare (max 60 zile), reducere salariu (max 10%, 3 luni), desfacere.\\nProcedura: cercetare disciplinară (art. 251).", "type": "list" },
+    { "heading": "CAP. VI – SSM", "content": "Instruire la angajare și periodic. Respectarea normelor SSM.", "type": "text" },
+    { "heading": "CAP. VII – GDPR", "content": "Prelucrare date conform GDPR. Drepturi: informare, acces, rectificare, ștergere.", "type": "text" },
+    { "heading": "CAP. VIII – DISPOZIȚII FINALE", "content": "Se aduce la cunoștință prin semnare. Modificări cu consultarea salariaților. Intră în vigoare: [DATA].\\n\\nAdministrator: _______________\\nData: [DATA]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Adaptați la specificul companiei cu un specialist.", "type": "text" }
+  ]
+}
+${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
+
     default:
       return `${baseRules}
 
