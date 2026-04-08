@@ -971,6 +971,7 @@ const Admin = () => {
           <TabsContent value="monitoring">
             <Suspense fallback={<TabContentLoader />}>
               <div className="space-y-6">
+                <FunnelDashboard />
                 <LiveMetricsPanel />
                 <AlertRulesManager />
                 <RetentionHeatmap />

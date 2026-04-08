@@ -5,7 +5,6 @@ import { analytics } from '@/utils/analytics';
 import { DemoChat } from '@/components/demo/DemoChat';
 import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 import { useLandingTracking } from '@/hooks/useLandingTracking';
-import { Stethoscope } from 'lucide-react';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
 import { LandingPainPoints } from '@/components/landing/LandingPainPoints';
 import { LandingBenefits } from '@/components/landing/LandingBenefits';
@@ -14,6 +13,8 @@ import { LandingPricing } from '@/components/landing/LandingPricing';
 import { LandingSocialProof } from '@/components/landing/LandingSocialProof';
 import { LandingAIProviders } from '@/components/landing/LandingAIProviders';
 import { LandingOfficeAnnouncement } from '@/components/landing/LandingOfficeAnnouncement';
+import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
+import { Users } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -41,34 +42,69 @@ const Landing = () => {
   useEffect(() => {
     const script = document.createElement('script');
     script.type = 'application/ld+json';
-    script.text = JSON.stringify({
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "YANA",
-      "applicationCategory": "BusinessApplication",
-      "operatingSystem": "Web",
-      "description": "Partenerul tău AI pentru business. Analizează cifrele, dă sfaturi strategice și nu uită nimic.",
-      "url": "https://yana-contabila.lovable.app",
-      "offers": {
-        "@type": "Offer",
-        "price": "49",
-        "priceCurrency": "RON",
-        "description": "Abonament lunar fără limită de conversații"
+    script.text = JSON.stringify([
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "YANA",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Partenerul tău AI pentru business. Analizează cifrele, dă sfaturi strategice și nu uită nimic.",
+        "url": "https://yana-contabila.lovable.app",
+        "offers": {
+          "@type": "Offer",
+          "price": "49",
+          "priceCurrency": "RON",
+          "description": "Abonament lunar fără limită de conversații"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "177"
+        }
       },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "reviewCount": "177"
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "YANA by Velcont",
+        "url": "https://yana-contabila.lovable.app",
+        "email": "office@velcont.com",
+        "description": "AI pentru antreprenori - analiză financiară și strategie business"
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Ce este YANA?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "YANA este un AI de business care analizează balanțe contabile, oferă sfaturi strategice și memorează tot istoricul conversațiilor tale."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Cât costă YANA?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "YANA costă 49 RON/lună cu 30 de zile gratuit, fără card. Include conversații nelimitate și 5 AI-uri premium."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Este YANA GDPR compliant?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Da, YANA este 100% GDPR compliant, cu date criptate și servere în Uniunea Europeană."
+            }
+          }
+        ]
       }
-    });
+    ]);
     document.head.appendChild(script);
     return () => { document.head.removeChild(script); };
   }, []);
-
-  const handleDemoClick = () => {
-    analytics.landingCtaClick('demo', 'hero');
-    setShowDemo(true);
-  };
 
   const handleDiagnosticClick = () => {
     analytics.landingCtaClick('secondary', 'hero');
@@ -90,18 +126,25 @@ const Landing = () => {
       <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} onOpenDiagnostic={() => { setShowDemo(false); setShowDiagnostic(true); }} />
       <BusinessDiagnostic isOpen={showDiagnostic} onClose={() => setShowDiagnostic(false)} onOpenDemo={() => { setShowDiagnostic(false); setShowDemo(true); }} />
       <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
+      <LandingStickyMobileCTA />
       
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-8 sm:p-4">
-        <div className="max-w-xl mx-auto space-y-12 sm:space-y-16">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
+        <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
           {/* ===== HERO ===== */}
-          <section className="text-center space-y-6 pt-8 sm:pt-16">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+          <section className="text-center space-y-5 pt-6 sm:pt-16">
+            <h1 className="text-4xl sm:text-4xl md:text-5xl font-bold leading-tight">
               AI-ul tău de business.
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground max-w-md mx-auto">
               Analizează cifre, dă sfaturi și nu uită nimic.
             </p>
+
+            {/* Inline social proof */}
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Users className="w-4 h-4 text-primary" />
+              <span><strong className="text-foreground">177+</strong> antreprenori folosesc YANA</span>
+            </div>
 
             <Button 
               size="lg" 
@@ -111,7 +154,7 @@ const Landing = () => {
               Încearcă gratuit — 30 zile, fără card
             </Button>
 
-            <div className="flex items-center justify-center gap-4 pt-2">
+            <div className="flex items-center justify-center gap-4 pt-1">
               <button
                 onClick={handleDiagnosticClick}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
@@ -128,11 +171,11 @@ const Landing = () => {
             </div>
           </section>
 
+          {/* ===== SOCIAL PROOF (moved up — before pain points) ===== */}
+          <LandingSocialProof />
+
           {/* ===== DURERI REALE ===== */}
           <LandingPainPoints />
-
-          {/* ===== SOCIAL PROOF (dovadă) ===== */}
-          <LandingSocialProof />
 
           {/* ===== SOLUȚII (ce face Yana) ===== */}
           <LandingBenefits />
@@ -163,7 +206,7 @@ const Landing = () => {
           </div>
 
           {/* ===== FOOTER ===== */}
-          <div className="pt-8 border-t border-border/40 space-y-3 pb-8">
+          <div className="pt-8 border-t border-border/40 space-y-3 pb-20 md:pb-8">
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
               <Link to="/terms" className="hover:text-primary transition-colors">
                 Termeni și condiții
