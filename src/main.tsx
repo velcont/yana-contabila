@@ -18,13 +18,8 @@ if (!savedTheme) {
 }
 document.documentElement.classList.toggle('dark', (savedTheme || 'dark') === 'dark');
 
-// PWA: Listener pentru SW controller change - forțează reload când SW nou preia controlul
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    console.log('[PWA] Service Worker controller changed - reloading');
-    window.location.reload();
-  });
-}
+// PWA: NU mai facem reload la controllerchange - cauza loop-ului infinit
+// Service Worker-ul gestionează update-urile prin skipWaiting + clientsClaim
 
 // Randează aplicația imediat - versioning-ul se face prin VersionUpdateBanner
 const root = createRoot(document.getElementById("root")!);

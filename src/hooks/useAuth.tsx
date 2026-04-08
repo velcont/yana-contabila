@@ -79,7 +79,8 @@ export const useAuth = () => {
           
           // Protecție anti-loop: verificăm dacă am făcut deja refresh în această sesiune
           const refreshGuard = sessionStorage.getItem('yana_login_refresh_guard');
-          if (refreshGuard === 'true') {
+          const refreshCount = parseInt(sessionStorage.getItem('yana_refresh_count') || '0', 10);
+          if (refreshGuard === 'true' || refreshCount >= 2) {
             console.log('🔄 [useAuth] Refresh guard active - skipping version check');
             return;
           }
