@@ -1,13 +1,38 @@
 // KEY separată pentru versiunea semantică (din DB) vs BUILD_VERSION (pentru PWA cache)
-// yana_app_version = BUILD_VERSION (timestamp) - folosit în index.html pentru PWA cache busting
-// yana_db_version = versiunea semantică din DB (ex: 4.0.0) - folosit pentru VersionUpdateBanner
 const DB_VERSION_KEY = 'yana_db_version';
+const REFRESH_COUNT_KEY = 'yana_refresh_count';
+const MAX_REFRESH_COUNT = 2;
+
+/**
+ * Verifică dacă am depășit limita de refresh-uri în sesiunea curentă
+ */
+const isRefreshLimitReached = (): boolean => {
+  const count = parseInt(sessionStorage.getItem(REFRESH_COUNT_KEY) || '0', 10);
+  return count >= MAX_REFRESH_COUNT;
+};
+
+/**
+ * Incrementează contorul de refresh-uri
+ */
+const incrementRefreshCount = (): void => {
+  const count = parseInt(sessionStorage.getItem(REFRESH_COUNT_KEY) || '0', 10);
+  sessionStorage.setItem(REFRESH_COUNT_KEY, String(count + 1));
+};
 
 /**
  * Funcție comună pentru refresh-ul aplicației cu curățare completă a cache-ului
- * Folosită la login, logout recovery și verificare inactivitate >24h
+ * Include protecție anti-loop: maxim 2 refresh-uri per sesiune
  */
 export const performVersionRefresh = async () => {
+  // GUARD: Verificăm dacă am depășit limita de refresh-uri
+  if (isRefreshLimitReached()) {
+    console.warn('[VERSION_REFRESH] Refresh limit reached (' + MAX_REFRESH_COUNT + ') - stopping to prevent loop');
+    return;
+  }
+
+  // Incrementăm contorul ÎNAINTE de refresh
+  incrementRefreshCount();
+
   try {
     // STEP 1: Dezînregistrează toate Service Worker-urile
     if ('serviceWorker' in navigator) {
@@ -29,14 +54,12 @@ export const performVersionRefresh = async () => {
     window.location.href = window.location.href.split('?')[0] + '?v=' + Date.now();
   } catch (error) {
     console.error('[VERSION_REFRESH] Error during refresh:', error);
-    // Fallback: refresh simplu dacă curățarea cache-ului eșuează
     window.location.reload();
   }
 };
 
 /**
  * Verifică dacă există o versiune nouă în DB față de localStorage
- * Folosește DB_VERSION_KEY pentru versiunea semantică
  */
 export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
   try {
@@ -47,7 +70,6 @@ export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
       .eq('status', 'published')
       .maybeSingle();
     
-    // Dacă nu există versiune în DB, nu forța refresh
     if (error || !data) return false;
     
     const localVersion = localStorage.getItem(DB_VERSION_KEY);
@@ -59,8 +81,7 @@ export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
 };
 
 /**
- * Salvează versiunea curentă în localStorage
- * Folosește DB_VERSION_KEY pentru versiunea semantică
+ * Salvează versiunea curentă în localStorage - SINCRON și verificat
  */
 export const saveCurrentVersion = async (supabase: any): Promise<void> => {
   try {
@@ -73,6 +94,11 @@ export const saveCurrentVersion = async (supabase: any): Promise<void> => {
     
     if (data?.version) {
       localStorage.setItem(DB_VERSION_KEY, data.version);
+      // Verificare că s-a salvat corect
+      const saved = localStorage.getItem(DB_VERSION_KEY);
+      if (saved !== data.version) {
+        console.error('[VERSION_SAVE] Verification failed! Expected:', data.version, 'Got:', saved);
+      }
     }
   } catch (error) {
     console.warn('[VERSION_SAVE] Failed to save version:', error);
