@@ -946,6 +946,13 @@ function detectIntent(message: string): RouteDecision {
     else if (/adeverin[tț][aă]/i.test(lowerMessage)) templateType = 'adeverinta';
     else if (/conven[tț]ie\s+civil[aă]/i.test(lowerMessage)) templateType = 'conventie-civila';
     else if (/regulament\s+intern/i.test(lowerMessage)) templateType = 'regulament-intern';
+    // v8.0: Documente financiar-juridice
+    else if (/notificare\s+(?:de\s+)?plat[aă]|notificare\s+restant[aă]/i.test(lowerMessage)) templateType = 'notificare-plata';
+    else if (/soma[tț]ie|punere\s+[îi]n\s+[îi]nt[aâ]rziere/i.test(lowerMessage)) templateType = 'somatie';
+    else if (/confirmare\s+(?:de\s+)?sold\s+(?:furnizor|de\s+la\s+furnizor)/i.test(lowerMessage)) templateType = 'confirmare-sold-furnizor';
+    else if (/confirmare\s+(?:de\s+)?sold\s+(?:client|de\s+la\s+client)/i.test(lowerMessage)) templateType = 'confirmare-sold-client';
+    else if (/confirmare\s+(?:de\s+)?sold/i.test(lowerMessage)) templateType = 'confirmare-sold-client';
+    else if (/adres[aă]\s+(?:oficial[aă]|de\s+informare|de\s+solicitare|c[aă]tre)/i.test(lowerMessage)) templateType = 'adresa';
     else if (/contract/i.test(lowerMessage)) templateType = 'contract';
     else if (/nda|confiden[tț]ialitate/i.test(lowerMessage)) templateType = 'nda';
     else if (/nda|confiden[tț]ialitate/i.test(lowerMessage)) templateType = 'nda';
