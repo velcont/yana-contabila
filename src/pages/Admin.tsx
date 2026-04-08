@@ -43,6 +43,7 @@ const ExplorationsDashboard = lazy(() => import("@/components/admin/Explorations
 const AlertRulesManager = lazy(() => import("@/components/admin/AlertRulesManager").then(m => ({ default: m.AlertRulesManager })));
 const LiveMetricsPanel = lazy(() => import("@/components/admin/LiveMetricsPanel").then(m => ({ default: m.LiveMetricsPanel })));
 const RetentionHeatmap = lazy(() => import("@/components/admin/RetentionHeatmap").then(m => ({ default: m.RetentionHeatmap })));
+const FunnelDashboard = lazy(() => import("@/components/admin/FunnelDashboard").then(m => ({ default: m.FunnelDashboard })));
 
 const TabContentLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
@@ -971,6 +972,7 @@ const Admin = () => {
           <TabsContent value="monitoring">
             <Suspense fallback={<TabContentLoader />}>
               <div className="space-y-6">
+                <FunnelDashboard />
                 <LiveMetricsPanel />
                 <AlertRulesManager />
                 <RetentionHeatmap />

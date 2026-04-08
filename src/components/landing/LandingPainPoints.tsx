@@ -3,15 +3,15 @@ import { AlertTriangle, UserX, FileQuestion } from 'lucide-react';
 const pains = [
   {
     icon: AlertTriangle,
-    text: 'Nu știi dacă firma ta e pe profit real sau te păcălesc cifrele.',
+    text: 'Nu știi dacă ești pe profit real.',
   },
   {
     icon: UserX,
-    text: 'Iei decizii importante singur, fără pe cineva care să vadă ce nu vezi tu.',
+    text: 'Iei decizii singur, fără o a doua opinie.',
   },
   {
     icon: FileQuestion,
-    text: 'Contabilul îți dă numere, dar nu îți spune ce să faci cu ele.',
+    text: 'Contabilul dă numere. Nimeni nu-ți spune ce să faci.',
   },
 ];
 
