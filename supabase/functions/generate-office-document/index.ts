@@ -842,10 +842,10 @@ REGULI NOTIFICARE DE PLATĂ:
 - Termen clar de plată (10-15 zile)
 - Cont IBAN complet pentru plată
 - Se trimite prin scrisoare recomandată cu confirmare de primire
-${customData ? \`\\nContext specific: \${JSON.stringify(customData)}\` : ''}`;
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
 
     case 'somatie':
-      return \`\${baseRules}
+      return `${baseRules}
 
 Generezi o SOMAȚIE DE PLATĂ formală (punere în întârziere conform art. 1522 Cod Civil).
 
@@ -875,10 +875,10 @@ REGULI SOMAȚIE:
 - Enumerare explicită a consecințelor juridice
 - Mențiune: "constituie punere în întârziere"
 - Se trimite OBLIGATORIU prin scrisoare recomandată
-\${customData ? \`\\nContext specific: \${JSON.stringify(customData)}\` : ''}\`;
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
 
     case 'adresa':
-      return \`\${baseRules}
+      return `${baseRules}
 
 Generezi o ADRESĂ OFICIALĂ (corespondență comercială formală).
 
@@ -904,10 +904,10 @@ REGULI ADRESĂ:
 - Structură: context → expunere → solicitare
 - Include lista documentelor anexate dacă este cazul
 - Semnătură completă cu funcție și ștampilă
-\${customData ? \`\\nContext specific: \${JSON.stringify(customData)}\` : ''}\`;
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
 
     case 'confirmare-sold-furnizor':
-      return \`\${baseRules}
+      return `${baseRules}
 
 Generezi o CONFIRMARE DE SOLD FURNIZOR (soldul pe care NOI îl datorăm furnizorului).
 
@@ -933,10 +933,10 @@ REGULI CONFIRMARE SOLD FURNIZOR:
 - Include câmpuri pentru răspunsul furnizorului (confirmare/diferență)
 - Bloc dublu de semnătură (emitent + destinatar)
 - Se emite de regulă la finalul trimestrului sau anului fiscal
-\${customData ? \`\\nContext specific: \${JSON.stringify(customData)}\` : ''}\`;
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
 
     case 'confirmare-sold-client':
-      return \`\${baseRules}
+      return `${baseRules}
 
 Generezi o CONFIRMARE DE SOLD CLIENT (soldul pe care CLIENTUL ni-l datorează).
 
@@ -962,7 +962,7 @@ REGULI CONFIRMARE SOLD CLIENT:
 - Include câmpuri pentru răspunsul clientului
 - Mențiune: soldul se consideră confirmat în absența răspunsului
 - Bloc dublu de semnătură (emitent + destinatar)
-\${customData ? \`\\nContext specific: \${JSON.stringify(customData)}\` : ''}\`;
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
 
     default:
       return `${baseRules}
