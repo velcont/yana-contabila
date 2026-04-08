@@ -125,5 +125,68 @@ Cel puțin 2 din 3 criterii (2 exerciții consecutive):
 - Impreviziunea (art. 1271): adaptare la circumstanțe extraordinare
 - Prescripție extinctivă: 3 ani drepturi de creanță, 10 ani drepturi reale
 
+## RECUPERAREA CREANȚELOR COMERCIALE
+
+### Etapele recuperării:
+1. **Confirmare de sold** — document bilateral (furnizor ↔ client) care atestă soldul datoriei la o dată. Se trimite periodic (trimestrial/anual) sau la cerere. Se emite în 2 exemplare, se semnează și ștampilează de ambele părți.
+2. **Notificare de plată** (amiabilă) — comunicare scrisă prin care creditorul informează debitorul asupra sumei datorate, termenului scadent și solicită plata. NU are caracter juridic obligatoriu, dar dovedește buna-credință.
+3. **Somație de plată** — punere în întârziere formală (art. 1522 Cod Civil). Se transmite prin scrisoare recomandată cu confirmare de primire sau executor judecătoresc. Constituie probă în instanță.
+4. **Somație de plată — OUG 119/2007**: Procedură specială simplificată pentru creanțe certe, lichide și exigibile. Instanța emite ordonanță de plată fără dezbateri. Valoare oricât. Executorie.
+5. **Cerere de chemare în judecată** — acțiune civilă în fața instanței competente.
+6. **Executare silită** — prin executor judecătoresc, pe baza titlului executoriu.
+
+### Notificarea de plată — conținut obligatoriu:
+- Datele complete ale creditorului și debitorului (denumire, CUI, sediu)
+- Numărul și data facturii/facturilor restante
+- Suma totală datorată (desfășurată pe facturi)
+- Termenul de plată inițial (scadența din contract/factură)
+- Numărul de zile de întârziere
+- Penalități de întârziere (dacă sunt prevăzute contractual)
+- Termen de plată solicitat (de regulă 5-15 zile)
+- Cont IBAN pentru plată
+- Mențiunea că în absența plății se vor iniția demersuri juridice
+
+### Somația — conținut obligatoriu:
+- Antet complet al creditorului
+- Date complete debitor
+- Temeiul juridic: art. 1522 Cod Civil (punere în întârziere) + contract/factură
+- Detalierea creanței: facturi, sume, scadențe, penalități
+- Termen imperativ de plată (5-10 zile)
+- Mențiune explicită: "În absența plății în termenul indicat, vom proceda la recuperarea creanței pe cale judiciară, inclusiv cheltuieli de judecată și onorariu avocat"
+- Data, semnătura, ștampila
+- Se trimite OBLIGATORIU prin scrisoare recomandată cu confirmare de primire
+
+### Confirmarea de sold — conținut:
+- Antetul emitentului (furnizor sau client)
+- Denumirea și datele destinatarului
+- Data de referință a soldului
+- Tabel cu: Nr. factură | Data factură | Valoare | Plăți efectuate | Sold rămas
+- Total sold la data de referință
+- Mențiune: "Vă rugăm să confirmați soldul de mai sus prin returnarea unui exemplar semnat și ștampilat"
+- Bloc semnătură dublu: emitent + destinatar
+- Variante: confirmare sold furnizor (noi datorăm furnizorului) și confirmare sold client (clientul ne datorează)
+
+### Adresa — document generic de corespondență comercială:
+- Document formal emis de o societate către altă entitate
+- Conținut: cereri, informări, solicitări, răspunsuri, confirmări
+- Structură: antet, nr. înregistrare, destinatar, obiect, corp, semnătură
+- Exemple: adresă de informare, adresă de solicitare documente, adresă de confirmare colaborare
+
+### Penalități de întârziere:
+- Contractuale: cele prevăzute în contract (de regulă 0.01%-0.5%/zi)
+- Legale: dobânda legală penalizatoare = dobânda de referință BNR + 8 puncte procentuale (relații comerciale)
+- OG 13/2011: dobânda legală remuneratorie și penalizatoare
+- Directiva 2011/7/UE transpusă prin Legea 72/2013: termen max plată 60 zile, compensație 40 EUR
+
+### Prescripție creanțe comerciale:
+- Termen general: 3 ani de la data scadenței
+- Întrerupere prescripție: recunoaștere datorie, somație, cerere de chemare în judecată
+- Suspendare: negocieri, forță majoră
+
+## RELAȚII COMERCIALE CU STATUL / INSTITUȚII PUBLICE
+- Legea 98/2016: achiziții publice
+- Termen plată: 30 zile (60 zile excepțional) de la recepție
+- Contestații: CNSC (10 zile de la comunicare rezultat)
+
 === SFÂRȘIT CUNOȘTINȚE JURIDICE ===
 `;

@@ -814,6 +814,156 @@ Schema OBLIGATORIE:
 }
 ${customData ? `\\nContext: ${JSON.stringify(customData)}` : ''}`;
 
+    case 'notificare-plata':
+      return `${baseRules}
+
+Generezi o NOTIFICARE DE PLATĂ profesională pentru recuperarea unei creanțe comerciale.
+
+Schema OBLIGATORIE:
+{
+  "title": "NOTIFICARE DE PLATĂ",
+  "summary": "Notificare amiabilă privind achitarea sumei de [X] RON...",
+  "keywords": ["notificare", "plată", "creanță", "restanță"],
+  "sections": [
+    { "heading": "ANTET EMITENT", "content": "Denumire: [DENUMIRE CREDITOR]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nCont IBAN: [IBAN] – [BANCĂ]\\nTel: [TELEFON]\\nEmail: [EMAIL]\\n\\nNr. [X] din [DATA]", "type": "text" },
+    { "heading": "DESTINATAR", "content": "Către: [DENUMIRE DEBITOR]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nÎn atenția: [NUME PERSOANĂ/DEPARTAMENT FINANCIAR]", "type": "text" },
+    { "heading": "OBIECT", "content": "Ref: Notificare de plată privind facturi restante", "type": "highlight" },
+    { "heading": "CONȚINUT", "content": "Stimate partener,\\n\\nPrin prezenta vă aducem la cunoștință că, conform evidențelor noastre contabile, înregistrați următoarele facturi restante:\\n\\nNr. factură | Data emitere | Scadența | Valoare (RON) | Zile întârziere\\n[NR] | [DATA] | [SCADENȚA] | [SUMA] | [ZILE]\\n[NR] | [DATA] | [SCADENȚA] | [SUMA] | [ZILE]\\n\\nTotal restanță: [TOTAL] RON\\nPenalități de întârziere calculate: [PENALITĂȚI] RON (conform contractului / [0.X]%/zi)\\nTotal de plată: [TOTAL GENERAL] RON", "type": "table" },
+    { "heading": "SOLICITARE", "content": "Vă rugăm să efectuați plata sumei de [TOTAL] RON în contul IBAN [IBAN], deschis la [BANCĂ], în termen de [10/15] zile calendaristice de la primirea prezentei notificări.\\n\\nMenționăm că, în conformitate cu prevederile contractuale și ale legislației în vigoare (OG 13/2011, Legea 72/2013), ne rezervăm dreptul de a calcula penalități de întârziere și de a iniția demersuri juridice în vederea recuperării creanței.", "type": "text" },
+    { "heading": "ÎNCHEIERE", "content": "Sperăm într-o soluționare amiabilă și vă stăm la dispoziție pentru orice clarificări.\\n\\nCu stimă,\\n\\n[NUME REPREZENTANT]\\n[FUNCȚIE]\\n[DENUMIRE CREDITOR]\\n\\nData: [DATA]\\nSemnătura: _______________\\nȘtampila", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Verificați datele și consultați un specialist înainte de trimitere.", "type": "text" }
+  ]
+}
+
+REGULI NOTIFICARE DE PLATĂ:
+- Ton profesional, ferm dar politicos (nu amenințător)
+- Include OBLIGATORIU: tabel facturi, scadențe, zile întârziere, penalități
+- Menționează temeiul legal (OG 13/2011, Legea 72/2013)
+- Termen clar de plată (10-15 zile)
+- Cont IBAN complet pentru plată
+- Se trimite prin scrisoare recomandată cu confirmare de primire
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'somatie':
+      return `${baseRules}
+
+Generezi o SOMAȚIE DE PLATĂ formală (punere în întârziere conform art. 1522 Cod Civil).
+
+Schema OBLIGATORIE:
+{
+  "title": "SOMAȚIE DE PLATĂ",
+  "summary": "Somație pentru achitarea debitului de [X] RON...",
+  "keywords": ["somație", "punere în întârziere", "creanță", "recuperare"],
+  "sections": [
+    { "heading": "ANTET EMITENT", "content": "Denumire: [DENUMIRE CREDITOR]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nJ[NR]/[AN]\\nCont IBAN: [IBAN] – [BANCĂ]\\n\\nNr. [X] din [DATA]", "type": "text" },
+    { "heading": "DESTINATAR", "content": "Către: [DENUMIRE DEBITOR]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nJ[NR]/[AN]", "type": "text" },
+    { "heading": "OBIECT", "content": "SOMAȚIE DE PLATĂ\\n(Punere în întârziere conform art. 1522 Cod Civil)", "type": "highlight" },
+    { "heading": "TEMEIUL JURIDIC", "content": "În temeiul:\\n- Contractului nr. [NR] din [DATA] / Comenzii nr. [NR] / Facturii nr. [NR]\\n- Art. 1522 Cod Civil (punerea în întârziere a debitorului)\\n- OG 13/2011 privind dobânda legală\\n- Legea 72/2013 privind măsurile de combatere a întârzierilor în plată\\n- OUG 119/2007 privind procedura ordonanței de plată", "type": "text" },
+    { "heading": "EXPUNEREA CREANȚEI", "content": "Vă somăm să achitați debitul restant compus din:\\n\\nNr. factură | Data | Scadența | Valoare (RON) | Zile întârziere\\n[NR] | [DATA] | [SCADENȚA] | [SUMA] | [ZILE]\\n\\nDebit principal: [SUMA] RON\\nPenalități de întârziere ([X]%/zi × [Y] zile): [PENALITĂȚI] RON\\nDobânda legală penalizatoare (BNR + 8pp): [DOBÂNDĂ] RON\\nCompensație conform Legea 72/2013: 200 RON (echiv. 40 EUR)\\n\\nTOTAL DE PLATĂ: [TOTAL] RON", "type": "table" },
+    { "heading": "TERMENUL DE PLATĂ", "content": "Vă acordăm un termen de 5 (cinci) zile calendaristice de la primirea prezentei somații pentru achitarea integrală a sumei de [TOTAL] RON în contul:\\n\\nIBAN: [IBAN]\\nBanca: [BANCĂ]\\nTitular: [DENUMIRE CREDITOR]\\nDetalii plată: 'Plata fact. [NR] din [DATA]'", "type": "highlight" },
+    { "heading": "CONSECINȚE", "content": "În cazul neachitării debitului în termenul acordat, vă informăm că vom proceda la:\\n- Introducerea cererii de ordonanță de plată (OUG 119/2007) sau cererii de chemare în judecată\\n- Solicitarea cheltuielilor de judecată și a onorariului de avocat\\n- Raportarea la Centrala Incidentelor de Plăți\\n- Executarea silită prin executor judecătoresc\\n\\nPrezenta somație constituie punere în întârziere în sensul art. 1522 Cod Civil.", "type": "list" },
+    { "heading": "SEMNĂTURĂ", "content": "[NUME REPREZENTANT]\\n[FUNCȚIE]\\n[DENUMIRE CREDITOR]\\n\\nData: [DATA]\\nSemnătura: _______________\\nȘtampila\\n\\nTrimis prin scrisoare recomandată cu confirmare de primire nr. [NR]", "type": "text" },
+    { "heading": "DISCLAIMER", "content": "⚠️ DRAFT generat de Yana AI. Verificați datele, temeiurile juridice și consultați un avocat înainte de trimitere.", "type": "text" }
+  ]
+}
+
+REGULI SOMAȚIE:
+- Ton FORMAL, JURIDIC, FERM (nu agresiv, dar fără ambiguitate)
+- Temei juridic OBLIGATORIU (art. 1522 Cod Civil, OG 13/2011, Legea 72/2013)
+- Tabel detaliat cu facturi, scadențe, penalități
+- Termen scurt de plată (5-10 zile)
+- Enumerare explicită a consecințelor juridice
+- Mențiune: "constituie punere în întârziere"
+- Se trimite OBLIGATORIU prin scrisoare recomandată
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'adresa':
+      return `${baseRules}
+
+Generezi o ADRESĂ OFICIALĂ (corespondență comercială formală).
+
+Schema OBLIGATORIE:
+{
+  "title": "ADRESĂ",
+  "summary": "Adresă oficială privind [SUBIECT]...",
+  "keywords": ["adresă", "corespondență", "oficial"],
+  "sections": [
+    { "heading": "ANTET", "content": "[DENUMIRE SOCIETATE]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nTel: [TELEFON] | Email: [EMAIL]\\n\\nNr. [X] din [DATA]", "type": "text" },
+    { "heading": "DESTINATAR", "content": "Către: [DENUMIRE DESTINATAR]\\nÎn atenția: [NUME/DEPARTAMENT]\\nAdresă: [ADRESĂ DESTINATAR]", "type": "text" },
+    { "heading": "SUBIECT", "content": "Ref: [OBIECTUL ADRESEI - clar și concis]", "type": "highlight" },
+    { "heading": "CONȚINUT", "content": "Stimate/Stimată [TITLU],\\n\\n[Paragraf 1: Context — motivul adresei, referire la documente/contracte anterioare]\\n\\n[Paragraf 2: Expunerea detaliată a solicitării/informării/răspunsului]\\n\\n[Paragraf 3: Acțiuni solicitate sau informații suplimentare]", "type": "text" },
+    { "heading": "DOCUMENTE ANEXATE", "content": "Anexăm prezentei:\\n- [Document 1]\\n- [Document 2]\\n- [Document 3]", "type": "list" },
+    { "heading": "ÎNCHEIERE", "content": "Rămânem la dispoziția dumneavoastră pentru orice informații suplimentare.\\n\\nCu stimă,\\n\\n[NUME REPREZENTANT]\\n[FUNCȚIE]\\n[DENUMIRE SOCIETATE]\\n\\nData: [DATA]\\nSemnătura: _______________\\nȘtampila", "type": "text" }
+  ]
+}
+
+REGULI ADRESĂ:
+- Ton formal, profesional, clar
+- Număr de înregistrare obligatoriu
+- Subiect clar (Ref:)
+- Structură: context → expunere → solicitare
+- Include lista documentelor anexate dacă este cazul
+- Semnătură completă cu funcție și ștampilă
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'confirmare-sold-furnizor':
+      return `${baseRules}
+
+Generezi o CONFIRMARE DE SOLD FURNIZOR (soldul pe care NOI îl datorăm furnizorului).
+
+Schema OBLIGATORIE:
+{
+  "title": "CONFIRMARE DE SOLD FURNIZOR",
+  "summary": "Confirmare sold furnizor la data de [DATA]...",
+  "keywords": ["confirmare sold", "furnizor", "reconciliere"],
+  "sections": [
+    { "heading": "ANTET EMITENT", "content": "[DENUMIRE SOCIETATE NOASTRĂ]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nJ[NR]/[AN]\\n\\nNr. [X] din [DATA]", "type": "text" },
+    { "heading": "DESTINATAR", "content": "Către: [DENUMIRE FURNIZOR]\\nCUI: [CUI FURNIZOR]\\nSediu: [ADRESĂ FURNIZOR]\\nÎn atenția: Departament Financiar-Contabil", "type": "text" },
+    { "heading": "OBIECT", "content": "CONFIRMARE DE SOLD la data de [DATA REFERINȚĂ]\\n(Sold cont furnizor – cont 401)", "type": "highlight" },
+    { "heading": "SITUAȚIA SOLDULUI", "content": "Vă rugăm să confirmați soldul evidențiat în contabilitatea noastră la data de [DATA]:\\n\\nNr. factură | Data factură | Valoare factură (RON) | Plăți efectuate (RON) | Sold rămas (RON)\\n[NR] | [DATA] | [SUMA] | [PLĂȚI] | [SOLD]\\n[NR] | [DATA] | [SUMA] | [PLĂȚI] | [SOLD]\\n[NR] | [DATA] | [SUMA] | [PLĂȚI] | [SOLD]\\n\\nTOTAL SOLD DATORAT FURNIZORULUI: [TOTAL] RON", "type": "table" },
+    { "heading": "SOLICITARE CONFIRMARE", "content": "Vă rugăm să verificați datele de mai sus și să ne returnați un exemplar al prezentei confirmări, semnat și ștampilat, cu una dintre următoarele mențiuni:\\n\\n☐ Confirmăm soldul de [TOTAL] RON în favoarea dumneavoastră\\n☐ Soldul conform evidențelor noastre este de _______ RON\\n☐ Observații: _______________________________________\\n\\nTermenul de răspuns solicitat: [15] zile calendaristice de la primire.", "type": "text" },
+    { "heading": "SEMNĂTURI", "content": "EMITENT (societatea noastră):\\n[NUME] – Director\\nSemnătura: _______________\\n[NUME] – Contabil\\nSemnătura: _______________\\nȘtampila\\nData: [DATA]\\n\\n─────────────────────────\\n\\nDESTINATAR (furnizorul):\\n[NUME] – Director\\nSemnătura: _______________\\n[NUME] – Contabil\\nSemnătura: _______________\\nȘtampila\\nData: _______________", "type": "text" }
+  ]
+}
+
+REGULI CONFIRMARE SOLD FURNIZOR:
+- Cont contabil 401 (Furnizori)
+- Sold = datoria NOASTRĂ către furnizor
+- Include tabel cu toate facturile neachitate/parțial achitate
+- Include câmpuri pentru răspunsul furnizorului (confirmare/diferență)
+- Bloc dublu de semnătură (emitent + destinatar)
+- Se emite de regulă la finalul trimestrului sau anului fiscal
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'confirmare-sold-client':
+      return `${baseRules}
+
+Generezi o CONFIRMARE DE SOLD CLIENT (soldul pe care CLIENTUL ni-l datorează).
+
+Schema OBLIGATORIE:
+{
+  "title": "CONFIRMARE DE SOLD CLIENT",
+  "summary": "Confirmare sold client la data de [DATA]...",
+  "keywords": ["confirmare sold", "client", "creanță", "reconciliere"],
+  "sections": [
+    { "heading": "ANTET EMITENT", "content": "[DENUMIRE SOCIETATE NOASTRĂ]\\nCUI: [CUI]\\nSediu: [ADRESĂ]\\nJ[NR]/[AN]\\n\\nNr. [X] din [DATA]", "type": "text" },
+    { "heading": "DESTINATAR", "content": "Către: [DENUMIRE CLIENT]\\nCUI: [CUI CLIENT]\\nSediu: [ADRESĂ CLIENT]\\nÎn atenția: Departament Financiar-Contabil", "type": "text" },
+    { "heading": "OBIECT", "content": "CONFIRMARE DE SOLD la data de [DATA REFERINȚĂ]\\n(Sold cont client – cont 4111)", "type": "highlight" },
+    { "heading": "SITUAȚIA SOLDULUI", "content": "Vă rugăm să confirmați soldul evidențiat în contabilitatea noastră la data de [DATA]:\\n\\nNr. factură | Data factură | Valoare factură (RON) | Încasări (RON) | Sold rămas (RON)\\n[NR] | [DATA] | [SUMA] | [ÎNCASĂRI] | [SOLD]\\n[NR] | [DATA] | [SUMA] | [ÎNCASĂRI] | [SOLD]\\n[NR] | [DATA] | [SUMA] | [ÎNCASĂRI] | [SOLD]\\n\\nTOTAL SOLD DE ÎNCASAT DE LA CLIENT: [TOTAL] RON\\n\\nDin care:\\n- Facturi în termen: [X] RON\\n- Facturi restante (1-30 zile): [Y] RON\\n- Facturi restante (31-60 zile): [Z] RON\\n- Facturi restante (peste 60 zile): [W] RON", "type": "table" },
+    { "heading": "SOLICITARE CONFIRMARE", "content": "Vă rugăm să verificați datele de mai sus și să ne returnați un exemplar al prezentei confirmări, semnat și ștampilat, cu una dintre următoarele mențiuni:\\n\\n☐ Confirmăm soldul de [TOTAL] RON în favoarea dumneavoastră\\n☐ Soldul conform evidențelor noastre este de _______ RON\\n☐ Observații: _______________________________________\\n\\nTermenul de răspuns solicitat: [15] zile calendaristice de la primire.\\n\\nÎn cazul în care nu primim răspuns în termenul menționat, soldul va fi considerat confirmat.", "type": "text" },
+    { "heading": "SEMNĂTURI", "content": "EMITENT (societatea noastră):\\n[NUME] – Director\\nSemnătura: _______________\\n[NUME] – Contabil\\nSemnătura: _______________\\nȘtampila\\nData: [DATA]\\n\\n─────────────────────────\\n\\nDESTINATAR (clientul):\\n[NUME] – Director\\nSemnătura: _______________\\n[NUME] – Contabil\\nSemnătura: _______________\\nȘtampila\\nData: _______________", "type": "text" }
+  ]
+}
+
+REGULI CONFIRMARE SOLD CLIENT:
+- Cont contabil 4111 (Clienți)
+- Sold = creanța NOASTRĂ asupra clientului (ce ne datorează)
+- Include aging analysis (vechime facturi: în termen, 1-30, 31-60, peste 60 zile)
+- Include câmpuri pentru răspunsul clientului
+- Mențiune: soldul se consideră confirmat în absența răspunsului
+- Bloc dublu de semnătură (emitent + destinatar)
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
     default:
       return `${baseRules}
 
