@@ -1,48 +1,87 @@
 
 
-## Plan: Adăugare cunoștințe juridice despre societăți comerciale în România
+# Plan: Optimizare Landing Page + Mobile + Funnel Tracking + SEO
 
-### Situația actuală
-Yana are în `chat-ai-prompt.md` o regulă explicită care spune: *"Drept comercial complex → Nu-i zona mea principală"*. Yana refuză sau se retrage din întrebări juridice despre societăți comerciale, deși utilizatorii au nevoie de aceste informații.
+## Problema actuala (din analytics 1-8 Aprilie)
+- **68% bounce rate** - 2 din 3 vizitatori pleaca imediat
+- **74% mobile** - landing page-ul trebuie optimizat pentru telefon
+- **Doar 8% ajung la /auth** - funnel-ul pierde masiv pe landing
+- **0 trafic organic** - lipseste sitemap.xml, robots.txt incomplet
+- Funnel tracking exista in cod dar nu e vizualizat in admin
 
-### Ce vom face
+---
 
-**1. Crearea unui fișier de cunoștințe juridice**: `supabase/functions/_shared/prompts/drept-comercial-romania.md`
+## 1. Optimizare Landing Page (reduce bounce rate)
 
-Conținut structurat cu legislația română relevantă:
+**Landing.tsx** - restructurare hero pentru impact imediat:
+- Adaugare **video testimonial scurt** sau animatie care capteaza atentia in primele 3 secunde
+- Hero CTA mai agresiv: buton mai mare, pulsant, cu urgenta ("Locuri limitate luna aceasta")
+- Adaugare **social proof inline in hero**: "177+ antreprenori deja folosesc YANA"
+- Mutare `LandingSocialProof` imediat sub hero (inainte de PainPoints) - dovada sociala reduce bounce
+- Adaugare **sticky CTA bottom bar pe mobile** - buton fix in josul ecranului pe scroll
 
-- **Legea 31/1990** (Legea Societăților): tipuri de societăți (SRL, SA, SNC, SCS, SCA), capital social minim, număr asociați, răspundere, organe de conducere
-- **Legea 26/1990**: Registrul Comerțului — înființare, modificare, radiere, sediu social, puncte de lucru
-- **OUG 44/2008**: PFA, Întreprindere Individuală, Întreprindere Familială — diferențe și obligații
-- **Legea 85/2014**: Insolvență — proceduri, reorganizare, faliment, termene
-- **Codul Civil** (art. relevante): contracte comerciale, obligații, garanții, clauze penale
-- **Cesiune părți sociale**: procedură, restricții, drepturi de preemțiune
-- **Dizolvare și lichidare**: cauze, proceduri, termene, radierea de la ONRC
-- **AGA / Decizii asociat unic**: convocări, cvorum, majorități, tipuri de hotărâri
-- **Administrator**: mandat, puteri, revocare, răspundere solidară, interdicții
-- **Dividende**: distribuire, termene, impozitare (8%), restricții legale
-- **Praguri și obligații**: audit obligatoriu, raportare, beneficiar real, prevenirea spălării banilor (Legea 129/2019)
+**LandingPainPoints.tsx** - mai putin text, mai mult impact:
+- Reformulare mai scurta si directa
 
-**2. Actualizare `chat-ai-prompt.md`**
+**LandingPricing.tsx** - adaugare urgenta:
+- Adaugare countdown sau "X locuri ramase" pentru FOMO
 
-- Schimbăm "Drept comercial complex → Nu-i zona mea principală" în "Drept comercial — societăți comerciale → Cunoștințe solide, cu disclaimer"
-- Adăugăm secțiune nouă care injectează cunoștințele juridice în prompt
-- Adăugăm regula: Yana răspunde la întrebări juridice despre societăți comerciale dar include **disclaimer** că nu înlocuiește un avocat
+## 2. Optimizare Mobile (74% din trafic)
 
-**3. Importul cunoștințelor în `chat-ai/index.ts`**
+**Landing.tsx**:
+- Sticky bottom CTA bar vizibil doar pe mobile (`fixed bottom-0 md:hidden`)
+- Reducere padding pe mobile (deja `px-5 py-8` - ok)
+- Font-uri mai mari pe hero mobile (text-4xl minim)
+- Reducere spatiu vertical intre sectiuni pe mobile
 
-- Import fișierul `drept-comercial-romania.md` și îl injectăm în system prompt alături de celelalte cunoștințe
+**Componente landing**:
+- Touch targets minim 48px pe toate butoanele
+- Imagini/iconite optimizate pentru retina
 
-**4. Actualizare `yana-capabilities-prompt.md`**
+## 3. Funnel Tracking Detaliat
 
-- Adăugăm secțiune nouă: "Consultanță Drept Comercial — Societăți"
+**Nou component: `src/components/admin/FunnelDashboard.tsx`**
+- Vizualizare funnel cu drop-off pe fiecare pas:
+  1. Landing page view → CTA click (% conversie)
+  2. Auth page view → Form started (% conversie)
+  3. Form started → Signup success (% conversie)
+  4. Signup success → Yana page view (% conversie)
+  5. Yana page view → First message (% conversie)
+- Query-uri pe tabelul `analytics_events` cu evenimentele deja existente
+- Vizualizare ca barchart/funnel cu procente de drop-off
+- Filtru pe perioada (ultimele 7/30 zile)
+- Segmentare pe device (mobile/desktop) si sursa (facebook/direct/youtube)
 
-### Fișiere modificate
-1. `supabase/functions/_shared/prompts/drept-comercial-romania.md` — **NOU** — bază de cunoștințe juridice (~300 rânduri)
-2. `supabase/functions/_shared/prompts/chat-ai-prompt.md` — ridicăm limita pe drept comercial, referințăm noua bază
-3. `supabase/functions/chat-ai/index.ts` — import și injectare în system prompt
-4. `supabase/functions/_shared/prompts/yana-capabilities-prompt.md` — documentare nouă capabilitate
+**Integrare in Admin panel** - tab nou sau sectiune in Monitoring
 
-### Risc
-Minim — adăugăm cunoștințe noi fără a modifica logica existentă. Disclaimer-ul legal rămâne obligatoriu în toate răspunsurile juridice.
+## 4. SEO Complet
+
+**`public/sitemap.xml`** (fisier nou):
+- Pagini: `/`, `/auth`, `/terms`, `/privacy`, `/contact`
+- Priority si changefreq corecte
+
+**`public/robots.txt`** - adaugare:
+- `Sitemap: https://yana-contabila.lovable.app/sitemap.xml`
+
+**`index.html`** - deja are meta tags bune, dar adaugam:
+- `<meta name="keywords">` cu termeni relevanti
+- Hreflang tag `ro`
+
+**Landing.tsx** - JSON-LD deja exista, imbunatatiri:
+- Adaugare FAQ schema (intrebari frecvente despre YANA)
+- Adaugare Organization schema cu logo
+
+---
+
+## Fisiere modificate/create
+
+| Fisier | Actiune |
+|--------|---------|
+| `src/pages/Landing.tsx` | Restructurare hero, sticky CTA, social proof sus |
+| `src/components/landing/LandingSocialProof.tsx` | Inline stats in hero |
+| `src/components/landing/LandingStickyMobileCTA.tsx` | **NOU** - buton fix pe mobile |
+| `src/components/admin/FunnelDashboard.tsx` | **NOU** - vizualizare funnel |
+| `public/sitemap.xml` | **NOU** |
+| `public/robots.txt` | Adaugare sitemap |
+| `index.html` | Keywords, hreflang |
 
