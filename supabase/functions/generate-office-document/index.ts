@@ -333,6 +333,216 @@ Schema:
 }
 ${customData ? `\nContext: ${JSON.stringify(customData)}` : ''}`;
 
+    case 'cv':
+      return `${baseRules}
+
+Generezi un CV PROFESIONAL structurat.
+
+Schema OBLIGATORIE:
+{
+  "title": "CURRICULUM VITAE",
+  "summary": "Profil profesional de [X] ani experiență în [domeniu]...",
+  "keywords": ["CV", "experiență", "competențe"],
+  "sections": [
+    { "heading": "DATE PERSONALE", "content": "Nume: [NUME COMPLET]\\nEmail: [EMAIL]\\nTelefon: [TELEFON]\\nLinkedIn: [URL]\\nLocație: [ORAȘ, ȚARĂ]", "type": "text" },
+    { "heading": "PROFIL PROFESIONAL", "content": "Rezumat de 3-4 fraze despre experiența, competențele cheie și obiectivele profesionale ale candidatului.", "type": "highlight" },
+    { "heading": "EXPERIENȚĂ PROFESIONALĂ", "content": "[POZIȚIE] | [COMPANIE] | [PERIOADA]\\n- Realizare/responsabilitate concretă cu cifre/rezultate\\n- ...\\n\\n[POZIȚIE] | [COMPANIE] | [PERIOADA]\\n- ...", "type": "list" },
+    { "heading": "EDUCAȚIE", "content": "[DIPLOMĂ/TITLU] | [UNIVERSITATE] | [ANUL]\\n- Specializare/Teză: [DETALII]\\n\\n[DIPLOMĂ] | [LICEU/FACULTATE] | [ANUL]", "type": "list" },
+    { "heading": "COMPETENȚE TEHNICE", "content": "- Competență 1 (Nivel: Avansat)\\n- Competență 2 (Nivel: Intermediar)\\n- Software/Unelte: [LISTĂ]", "type": "list" },
+    { "heading": "LIMBI STRĂINE", "content": "Limba | Nivel\\nRomână | Nativă\\nEngleză | [NIVEL C1/B2]\\nFranceză | [NIVEL]", "type": "table" },
+    { "heading": "CERTIFICĂRI ȘI CURSURI", "content": "- [CERTIFICARE] – [EMITENT] – [ANUL]\\n- [CURS] – [PLATFORMA] – [ANUL]", "type": "list" },
+    { "heading": "PROIECTE RELEVANTE", "content": "- [PROIECT]: [Descriere scurtă, impact, tehnologii utilizate]", "type": "list" }
+  ]
+}
+
+REGULI CV:
+- Conținut orientat pe REALIZĂRI, nu doar responsabilități
+- Folosește verbe de acțiune: implementat, coordonat, optimizat, crescut, redus
+- Include cifre și rezultate concrete acolo unde e posibil (ex: "Crescut vânzările cu 25%")
+- Placeholder-uri clare între paranteze pătrate [TEXT] pentru datele personalizabile
+- Ordinea: cele mai recente experiențe primele (cronologie inversă)
+- Adaptat domeniului menționat de utilizator
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'oferta-pret':
+      return `${baseRules}
+
+Generezi o OFERTĂ DE PREȚ profesională, structurată și clară.
+
+Schema OBLIGATORIE:
+{
+  "title": "OFERTĂ DE PREȚ",
+  "summary": "Ofertă comercială pentru [servicii/produse]...",
+  "keywords": ["ofertă", "preț", "servicii"],
+  "sections": [
+    { "heading": "DATE FURNIZOR", "content": "Denumire: [DENUMIRE FURNIZOR]\\nCUI: [CUI]\\nAdresă: [ADRESĂ]\\nTelefon: [TELEFON]\\nEmail: [EMAIL]\\nCont bancar: [IBAN] – [BANCĂ]", "type": "text" },
+    { "heading": "DATE CLIENT", "content": "Denumire: [DENUMIRE CLIENT]\\nCUI: [CUI CLIENT]\\nAdresă: [ADRESĂ CLIENT]\\nPersoană de contact: [NUME] – [FUNCȚIE]", "type": "text" },
+    { "heading": "OBIECTUL OFERTEI", "content": "Descriere detaliată a serviciilor/produselor oferite, specificații tehnice, standarde de calitate.", "type": "text" },
+    { "heading": "TABEL PREȚURI", "content": "Nr. | Descriere serviciu/produs | U.M. | Cantitate | Preț unitar (RON) | Total (RON)\\n1 | [Serviciu 1] | buc | 1 | [PREȚ] | [TOTAL]\\n2 | [Serviciu 2] | ore | 10 | [PREȚ] | [TOTAL]\\n\\nSubtotal: [X] RON\\nTVA (19%): [Y] RON\\nTOTAL GENERAL: [Z] RON", "type": "table" },
+    { "heading": "CONDIȚII COMERCIALE", "content": "- Termen de plată: [30/60] zile de la facturare\\n- Modalitate de plată: transfer bancar\\n- Termen de livrare: [X] zile lucrătoare de la confirmarea comenzii\\n- Garanție: [DETALII]", "type": "list" },
+    { "heading": "VALABILITATE", "content": "Prezenta ofertă este valabilă [30] zile calendaristice de la data emiterii.", "type": "highlight" },
+    { "heading": "SEMNĂTURĂ", "content": "Cu stimă,\\n\\n[NUME REPREZENTANT]\\n[FUNCȚIE]\\n[DENUMIRE FURNIZOR]\\n\\nData: [DATA]\\nSemnătura: _______________", "type": "text" }
+  ]
+}
+
+REGULI OFERTĂ DE PREȚ:
+- Tabelul de prețuri OBLIGATORIU cu: Nr., Descriere, U.M., Cantitate, Preț unitar, Total
+- Include subtotal, TVA și total general
+- Condiții comerciale clare (termen plată, livrare, garanție)
+- Valabilitate specificată explicit
+- Ton profesional dar accesibil
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'scrisoare-intentie':
+      return `${baseRules}
+
+Generezi o SCRISOARE DE INTENȚIE profesională pentru candidatură.
+
+Schema OBLIGATORIE:
+{
+  "title": "SCRISOARE DE INTENȚIE",
+  "summary": "Scrisoare de intenție pentru poziția de [POST]...",
+  "keywords": ["scrisoare", "intenție", "candidatură"],
+  "sections": [
+    { "heading": "DESTINATAR", "content": "Către: [NUME MANAGER/DEPARTAMENT HR]\\n[DENUMIRE COMPANIE]\\n[ADRESĂ]\\n\\nData: [DATA]", "type": "text" },
+    { "heading": "SUBIECT", "content": "Ref: Candidatură pentru poziția de [DENUMIRE POST]", "type": "highlight" },
+    { "heading": "INTRODUCERE", "content": "Paragraf de deschidere: cum am aflat de oportunitate, de ce mă interesează compania și rolul. Ton profesional dar entuziast. 3-4 propoziții.", "type": "text" },
+    { "heading": "MOTIVAȚIE ȘI ALINIERE", "content": "De ce sunt potrivit/ă pentru acest rol. Ce mă motivează la această companie. Cum se aliniază valorile mele cu ale companiei. 4-5 propoziții cu exemple concrete.", "type": "text" },
+    { "heading": "COMPETENȚE ȘI REALIZĂRI RELEVANTE", "content": "- Competență 1 + realizare concretă cu cifre\\n- Competență 2 + impact demonstrabil\\n- Competență 3 + proiect relevant\\nMaxim 3-4 puncte, fiecare cu dovadă concretă.", "type": "list" },
+    { "heading": "ÎNCHEIERE", "content": "Paragraf de încheiere: disponibilitate pentru interviu, mulțumire, date de contact. 2-3 propoziții.\\n\\nCu respect,\\n\\n[NUME COMPLET]\\n[TELEFON]\\n[EMAIL]", "type": "text" }
+  ]
+}
+
+REGULI SCRISOARE DE INTENȚIE:
+- Ton: profesional, sincer, entuziast (nu servil)
+- Lungime: max 1 pagină (concis și la obiect)
+- Focalizată pe VALOARE adusă companiei, nu pe nevoile candidatului
+- Include realizări cuantificabile (cifre, procente, rezultate)
+- Personalizată pentru compania și rolul specific
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'email-comercial':
+      return `${baseRules}
+
+Generezi un EMAIL COMERCIAL profesional (cerere de preț, ofertă, follow-up).
+
+Schema OBLIGATORIE:
+{
+  "title": "EMAIL COMERCIAL",
+  "summary": "Email de [cerere preț/ofertă/follow-up] pentru...",
+  "keywords": ["email", "comercial", "ofertă"],
+  "sections": [
+    { "heading": "SUBIECT EMAIL", "content": "[Subiect clar și concis, max 60 caractere]", "type": "highlight" },
+    { "heading": "SALUT", "content": "Stimat(ă) [Doamnă/Domnule NUME],", "type": "text" },
+    { "heading": "CORP EMAIL", "content": "Paragraf 1: Context și motiv al contactării (2-3 propoziții)\\n\\nParagraf 2: Detalii specifice ale cererii/ofertei (specificații, cantități, termene)\\n\\nParagraf 3: Condiții sau cerințe suplimentare", "type": "text" },
+    { "heading": "CALL TO ACTION", "content": "Vă rog să ne transmiteți [oferta de preț/confirmarea/răspunsul] până la data de [TERMEN].\\nPentru clarificări suplimentare, mă puteți contacta la [TELEFON] sau [EMAIL].", "type": "text" },
+    { "heading": "SEMNĂTURĂ", "content": "Cu stimă,\\n\\n[NUME COMPLET]\\n[FUNCȚIE]\\n[DENUMIRE COMPANIE]\\nTel: [TELEFON]\\nEmail: [EMAIL]\\nWeb: [WEBSITE]", "type": "text" }
+  ]
+}
+
+REGULI EMAIL COMERCIAL:
+- Subiect: clar, specific, max 60 caractere
+- Ton: profesional, direct, politicos
+- Corp: max 3 paragrafe scurte (emailul se citește rapid)
+- Include TOATE detaliile necesare (cantitate, specificații, termen)
+- Call to action clar cu termen specific
+- Semnătură completă cu toate datele de contact
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'scrisoare-recomandare':
+      return `${baseRules}
+
+Generezi o SCRISOARE DE RECOMANDARE profesională.
+
+Schema OBLIGATORIE:
+{
+  "title": "SCRISOARE DE RECOMANDARE",
+  "summary": "Recomandare profesională pentru [NUME PERSOANĂ]...",
+  "keywords": ["recomandare", "referință", "profesional"],
+  "sections": [
+    { "heading": "DESTINATAR", "content": "Către cine este interesat,\\n\\nData: [DATA]", "type": "text" },
+    { "heading": "IDENTIFICARE AUTOR", "content": "Subsemnatul/a [NUME], în calitate de [FUNCȚIE] la [COMPANIE], recomand prin prezenta pe [NUME PERSOANĂ RECOMANDATĂ].", "type": "text" },
+    { "heading": "CONTEXT COLABORARE", "content": "Am colaborat cu [NUME] în perioada [PERIOADĂ], în cadrul [DEPARTAMENT/PROIECT]. Descriere a relației profesionale și a contextului colaborării. 3-4 propoziții.", "type": "text" },
+    { "heading": "CALITĂȚI PROFESIONALE", "content": "- Calitate 1: [Descriere cu exemplu concret]\\n- Calitate 2: [Descriere cu exemplu concret]\\n- Calitate 3: [Descriere cu exemplu concret]\\n- Calitate 4: [Descriere cu exemplu concret]", "type": "list" },
+    { "heading": "REALIZĂRI NOTABILE", "content": "Descriere a 2-3 realizări concrete ale persoanei recomandate, cu cifre și impact demonstrabil.", "type": "text" },
+    { "heading": "RECOMANDARE", "content": "Recomand cu căldură pe [NUME] pentru [tipul de oportunitate]. Sunt convins/ă că va aduce valoare semnificativă oricărei echipe.\\n\\nPentru detalii suplimentare, mă puteți contacta la [TELEFON/EMAIL].\\n\\nCu stimă,\\n\\n[NUME AUTOR]\\n[FUNCȚIE]\\n[COMPANIE]", "type": "text" }
+  ]
+}
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'memo':
+      return `${baseRules}
+
+Generezi un MEMO / NOTĂ INTERNĂ profesională.
+
+Schema OBLIGATORIE:
+{
+  "title": "NOTĂ INTERNĂ",
+  "summary": "Comunicare internă privind [SUBIECT]...",
+  "keywords": ["memo", "notă internă", "comunicare"],
+  "sections": [
+    { "heading": "ANTET", "content": "DE LA: [NUME, FUNCȚIE]\\nCĂTRE: [DESTINATARI/DEPARTAMENT]\\nDATA: [DATA]\\nSUBIECT: [SUBIECT CLAR ȘI CONCIS]", "type": "highlight" },
+    { "heading": "CONTEXT", "content": "Descriere a situației sau motivului pentru care se emite această notă internă. 2-3 propoziții clare.", "type": "text" },
+    { "heading": "DETALII", "content": "Informații detaliate, decizii luate, măsuri necesare. Structurat pe puncte dacă sunt mai multe aspecte.", "type": "text" },
+    { "heading": "ACȚIUNI NECESARE", "content": "- Acțiune 1 – Responsabil: [NUME] – Termen: [DATA]\\n- Acțiune 2 – Responsabil: [NUME] – Termen: [DATA]", "type": "list" },
+    { "heading": "OBSERVAȚII", "content": "Note suplimentare, excepții sau clarificări.", "type": "text" }
+  ]
+}
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'minuta':
+      return `${baseRules}
+
+Generezi o MINUTĂ DE ȘEDINȚĂ profesională.
+
+Schema OBLIGATORIE:
+{
+  "title": "MINUTĂ DE ȘEDINȚĂ",
+  "summary": "Minută ședință din [DATA] privind [SUBIECT]...",
+  "keywords": ["minută", "ședință", "decizii"],
+  "sections": [
+    { "heading": "INFORMAȚII GENERALE", "content": "Data: [DATA]\\nOra: [ORA ÎNCEPUT] – [ORA SFÂRȘIT]\\nLocație: [LOCAȚIE/ONLINE]\\nModerator: [NUME]", "type": "text" },
+    { "heading": "PARTICIPANȚI", "content": "Nr. | Nume | Funcție | Prezent\\n1 | [NUME 1] | [FUNCȚIE] | Da\\n2 | [NUME 2] | [FUNCȚIE] | Da\\n3 | [NUME 3] | [FUNCȚIE] | Nu (scuzat)", "type": "table" },
+    { "heading": "AGENDA", "content": "1. [Punct 1 pe ordinea de zi]\\n2. [Punct 2 pe ordinea de zi]\\n3. [Punct 3 pe ordinea de zi]\\n4. Diverse", "type": "list" },
+    { "heading": "DISCUȚII ȘI CONCLUZII", "content": "Punct 1: [Rezumat discuții, opinii exprimate, argumente]\\n\\nPunct 2: [Rezumat discuții]\\n\\nPunct 3: [Rezumat discuții]", "type": "text" },
+    { "heading": "DECIZII LUATE", "content": "- Decizie 1: [DESCRIERE] – Aprobat în unanimitate/cu [X] voturi\\n- Decizie 2: [DESCRIERE] – Aprobat cu majoritate", "type": "list" },
+    { "heading": "ACȚIUNI ȘI RESPONSABILI", "content": "Nr. | Acțiune | Responsabil | Termen\\n1 | [ACȚIUNE 1] | [NUME] | [DATA]\\n2 | [ACȚIUNE 2] | [NUME] | [DATA]\\n3 | [ACȚIUNE 3] | [NUME] | [DATA]", "type": "table" },
+    { "heading": "URMĂTOAREA ȘEDINȚĂ", "content": "Data: [DATA]\\nOra: [ORA]\\nSubiect principal: [SUBIECT]", "type": "text" }
+  ]
+}
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
+    case 'fisa-post':
+      return `${baseRules}
+
+Generezi o FIȘĂ A POSTULUI profesională, conformă cu legislația muncii din România.
+
+Schema OBLIGATORIE:
+{
+  "title": "FIȘA POSTULUI",
+  "summary": "Fișa postului pentru poziția de [DENUMIRE POST]...",
+  "keywords": ["fișa postului", "job description", "responsabilități"],
+  "sections": [
+    { "heading": "IDENTIFICARE POST", "content": "Denumire post: [DENUMIRE]\\nDepartament: [DEPARTAMENT]\\nCod COR: [COD COR]\\nNivel post: [Execuție/Conducere]\\nNorma de lucru: [Full-time/Part-time]\\nLocul desfășurării activității: [LOCAȚIE]", "type": "text" },
+    { "heading": "RELAȚII IERARHICE", "content": "Se subordonează: [FUNCȚIE SUPERIOARĂ]\\nAre în subordine: [FUNCȚII/Nimeni]\\nColaborează cu: [DEPARTAMENTE/FUNCȚII]\\nReprezintă compania în relația cu: [PARTENERI/CLIENȚI]", "type": "text" },
+    { "heading": "SCOPUL POSTULUI", "content": "Descriere concisă (2-3 fraze) a scopului principal al postului și contribuția la obiectivele organizației.", "type": "highlight" },
+    { "heading": "RESPONSABILITĂȚI PRINCIPALE", "content": "- Responsabilitate 1 (descriere detaliată)\\n- Responsabilitate 2 (descriere detaliată)\\n- Responsabilitate 3\\n- Responsabilitate 4\\n- Responsabilitate 5\\n- Alte sarcini atribuite de superiorul ierarhic", "type": "list" },
+    { "heading": "CERINȚE OBLIGATORII", "content": "- Studii: [Superioare/Medii] în domeniul [DOMENIU]\\n- Experiență: minim [X] ani în [DOMENIU]\\n- Cunoștințe: [SPECIFICARE]\\n- Competențe digitale: [SOFTWARE/UNELTE]\\n- Limbi străine: [LIMBA – NIVEL]", "type": "list" },
+    { "heading": "CERINȚE PREFERENȚIALE", "content": "- Certificări: [CERTIFICĂRI]\\n- Experiență specifică: [DETALII]\\n- Competențe suplimentare: [DETALII]", "type": "list" },
+    { "heading": "COMPETENȚE PERSONALE", "content": "- Abilități de comunicare și lucru în echipă\\n- Capacitate de organizare și planificare\\n- Orientare către rezultate\\n- Capacitate de analiză și sinteză\\n- Rezistență la stres", "type": "list" },
+    { "heading": "CONDIȚII DE MUNCĂ", "content": "- Program: [PROGRAM]\\n- Deplasări: [DA/NU – FRECVENȚĂ]\\n- Condiții speciale: [DETALII]", "type": "text" },
+    { "heading": "BENEFICII", "content": "- Salariu competitiv: [INTERVAL]\\n- Tichete de masă: [VALOARE]\\n- Asigurare medicală privată\\n- Zile libere suplimentare\\n- Oportunități de dezvoltare profesională", "type": "list" },
+    { "heading": "SEMNĂTURI", "content": "Întocmit de: [FUNCȚIE] _______________\\nAprobat de: [FUNCȚIE] _______________\\nLuat la cunoștință de titular: _______________\\nData: [DATA]", "type": "text" }
+  ]
+}
+
+REGULI FIȘĂ POST:
+- Include Cod COR dacă este menționat domeniul
+- Responsabilități clare, măsurabile, orientate pe rezultate
+- Cerințe realiste și nediscriminatorii
+- Beneficii concrete, nu vagi
+${customData ? `\nContext specific: ${JSON.stringify(customData)}` : ''}`;
+
     default:
       return `${baseRules}
 
