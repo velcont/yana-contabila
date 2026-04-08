@@ -888,9 +888,9 @@ function detectIntent(message: string): RouteDecision {
     // Email + document
     /(?:trimite|trimite-mi|expediaz[aă]|d[aă]-mi)\s+(?:pe\s+email|prin\s+email)?\s*(?:un|o)?\s*(?:contract|document|raport|prezentare|ofert[aă]|propunere)/i,
     // Specific document types
-    /(?:contract\s+de\s+(?:prest[aă]ri|munc[aă]|servicii|colaborare|v[aâ]nzare|[îi]nchiriere|consultan[tț][aă])|act\s+adi[tț]ional|proces\s*verbal|decizie\s+aga|hot[aă]r[aâ]re\s+aga)/i,
+    /(?:contract\s+de\s+(?:prest[aă]ri|munc[aă]|servicii|colaborare|v[aâ]nzare|[îi]nchiriere|consultan[tț][aă]|comodat|cesiune|mandat|furnizare|distribu[tț]ie|agent|franciz[aă]|licen[tț][aă]|sponsorizare|dona[tț]ie|împrumut|imprumut)|act\s+adi[tț]ional|proces\s*verbal|decizie\s+aga|hot[aă]r[aâ]re\s+aga)/i,
     // Catch-all: "contract" + context words suggesting generation intent
-    /(?:draft|model|[sș]ablon|template)\s+(?:de\s+)?(?:contract|acord|nda|propunere|ofert[aă]|raport|cv|scrisoare|memo)/i,
+    /(?:draft|model|[sș]ablon|template)\s+(?:de\s+)?(?:contract|acord|nda|propunere|ofert[aă]|raport|cv|scrisoare|memo|procur[aă]|cerere)/i,
     // NEW v6.0: CV, oferte de preț, scrisori, emailuri comerciale, memo, minută, fișa postului
     /(?:cv|curriculum\s*vitae|rezumat\s*profesional)/i,
     /(?:ofert[aă]\s+de\s+pre[tț]|cota[tț]ie|price\s+quote)/i,
@@ -900,6 +900,18 @@ function detectIntent(message: string): RouteDecision {
     /(?:memo\s|not[aă]\s+intern[aă]|comunicare\s+intern[aă])/i,
     /(?:minut[aă]\s|minute\s+(?:de\s+)?[sș]edin[tț][aă])/i,
     /(?:fi[sș]a\s+postului|job\s+description)/i,
+    // NEW v7.0: Contracte specializate, documente juridice
+    /(?:contract\s+(?:individual\s+)?de\s+munc[aă]|CIM|angajare)/i,
+    /(?:contract\s+de\s+v[aâ]nzare[\s-]?cump[aă]rare|v[aâ]nzare[\s-]?cump[aă]rare)/i,
+    /(?:contract\s+de\s+[îi]nchiriere|[îi]nchiriere\s+(?:apartament|spa[tț]iu|birou|locuin[tț][aă]))/i,
+    /(?:contract\s+de\s+comodat|comodat)/i,
+    /(?:contract\s+de\s+cesiune|cesiune\s+(?:p[aă]r[tț]i|drepturi|crean[tț][aă]))/i,
+    /(?:procur[aă]\s+(?:special[aă]|general[aă]|notarial[aă])?)/i,
+    /(?:act\s+adi[tț]ional)/i,
+    /(?:cerere\s+(?:de\s+)?(?:concediu|demisie|angajare|transfer))/i,
+    /(?:adeverin[tț][aă])/i,
+    /(?:conven[tț]ie\s+civil[aă])/i,
+    /(?:regulament\s+(?:intern|de\s+ordine))/i,
   ];
   
   const isDocumentRequest = docGenPatterns.some(p => p.test(lowerMessage));
@@ -921,7 +933,21 @@ function detectIntent(message: string): RouteDecision {
     else if (/memo\b|not[aă]\s+intern[aă]|comunicare\s+intern[aă]/i.test(lowerMessage)) templateType = 'memo';
     else if (/minut[aă]|minute\s+(?:de\s+)?[sș]edin[tț][aă]/i.test(lowerMessage)) templateType = 'minuta';
     else if (/fi[sș]a\s+postului|job\s+description/i.test(lowerMessage)) templateType = 'fisa-post';
+    // v7.0: Contracte specializate
+    else if (/contract\s+(?:individual\s+)?de\s+munc[aă]|CIM\b|angajare/i.test(lowerMessage)) templateType = 'contract-munca';
+    else if (/v[aâ]nzare[\s-]?cump[aă]rare/i.test(lowerMessage)) templateType = 'contract-vanzare-cumparare';
+    else if (/[îi]nchiriere/i.test(lowerMessage)) templateType = 'contract-inchiriere';
+    else if (/comodat/i.test(lowerMessage)) templateType = 'contract-comodat';
+    else if (/cesiune/i.test(lowerMessage)) templateType = 'contract-cesiune';
+    else if (/procur[aă]/i.test(lowerMessage)) templateType = 'procura';
+    else if (/act\s+adi[tț]ional/i.test(lowerMessage)) templateType = 'act-aditional';
+    else if (/cerere\s+(?:de\s+)?concediu/i.test(lowerMessage)) templateType = 'cerere-concediu';
+    else if (/cerere\s+(?:de\s+)?demisie|demisie/i.test(lowerMessage)) templateType = 'cerere-demisie';
+    else if (/adeverin[tț][aă]/i.test(lowerMessage)) templateType = 'adeverinta';
+    else if (/conven[tț]ie\s+civil[aă]/i.test(lowerMessage)) templateType = 'conventie-civila';
+    else if (/regulament\s+intern/i.test(lowerMessage)) templateType = 'regulament-intern';
     else if (/contract/i.test(lowerMessage)) templateType = 'contract';
+    else if (/nda|confiden[tț]ialitate/i.test(lowerMessage)) templateType = 'nda';
     else if (/nda|confiden[tț]ialitate/i.test(lowerMessage)) templateType = 'nda';
     else if (/propunere|ofert[aă]/i.test(lowerMessage)) templateType = 'propunere';
     else if (/raport/i.test(lowerMessage)) templateType = 'raport';
