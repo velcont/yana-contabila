@@ -1405,6 +1405,101 @@ const TOOLS = [
         required: ["analysis1_id", "analysis2_id"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_portfolio_summary",
+      description: "Obține rezumatul portofoliului de investiții al utilizatorului (poziții active, valoare totală, P&L, alocare pe sectoare/platforme). Folosește când utilizatorul întreabă despre portofoliul lui, pozițiile sale, sau performanța investițiilor.",
+      parameters: {
+        type: "object",
+        properties: {}
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "save_portfolio_positions",
+      description: "Salvează pozițiile de investiții extrase din screenshot sau menționate de utilizator în portofoliul persistent. Folosește după analiza unui screenshot de trading pentru a oferi utilizatorului opțiunea de a salva pozițiile.",
+      parameters: {
+        type: "object",
+        properties: {
+          positions: {
+            type: "array",
+            description: "Lista de poziții de salvat",
+            items: {
+              type: "object",
+              properties: {
+                ticker: { type: "string", description: "Simbolul acțiunii (ex: AAPL, TSLA)" },
+                company_name: { type: "string", description: "Numele companiei" },
+                platform: { type: "string", description: "Platforma (eToro, XTB, etc.)" },
+                quantity: { type: "number", description: "Numărul de unități" },
+                avg_buy_price: { type: "number", description: "Prețul mediu de achiziție" },
+                current_price: { type: "number", description: "Prețul curent" },
+                currency: { type: "string", description: "Moneda (USD, EUR, RON)" },
+                asset_type: { type: "string", description: "Tipul (stock, etf, crypto)" },
+                sector: { type: "string", description: "Sectorul (technology, healthcare, etc.)" }
+              },
+              required: ["ticker", "quantity", "avg_buy_price", "currency"]
+            }
+          }
+        },
+        required: ["positions"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate_investment_tax",
+      description: "Calculează impozitul pe câștigurile de capital din investiții (10% impozit + CASS dacă e cazul) conform legislației din România. Folosește când utilizatorul întreabă despre taxe pe investiții, impozit pe acțiuni, D212, sau CASS pe câștiguri de capital.",
+      parameters: {
+        type: "object",
+        properties: {
+          tax_year: { type: "number", description: "Anul fiscal (default: anul curent)" },
+          positions: {
+            type: "array",
+            description: "Pozițiile vândute (realizate)",
+            items: {
+              type: "object",
+              properties: {
+                ticker: { type: "string" },
+                quantity: { type: "number" },
+                buy_price: { type: "number" },
+                sell_price: { type: "number" },
+                currency: { type: "string", description: "USD, EUR, RON" }
+              },
+              required: ["ticker", "quantity", "buy_price", "sell_price", "currency"]
+            }
+          },
+          exchange_rate_usd_ron: { type: "number", description: "Curs USD/RON (default: 4.60)" },
+          exchange_rate_eur_ron: { type: "number", description: "Curs EUR/RON (default: 4.97)" }
+        },
+        required: ["positions"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_investment_news_sentiment",
+      description: "Caută cele mai recente știri și analizează sentimentul pieței pentru acțiuni/tickers specifice sau piața generală. Folosește Perplexity pentru date live din ultimele 7 zile. Folosește când utilizatorul întreabă despre știri despre acțiuni, sentimentul pieței, sau ce se întâmplă cu o acțiune.",
+      parameters: {
+        type: "object",
+        properties: {
+          tickers: {
+            type: "array",
+            items: { type: "string" },
+            description: "Lista de tickere pentru care să caute știri (ex: ['AAPL', 'TSLA', 'NVDA'])"
+          },
+          query: {
+            type: "string",
+            description: "Întrebare specifică despre piață (alternativă la tickers)"
+          }
+        }
+      }
+    }
   }
 ];
 
@@ -1650,6 +1745,78 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           break;
         }
         
+        case "get_portfolio_summary": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const portfolioResponse = await fetch(
+            `${supabaseUrl}/functions/v1/manage-portfolio`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ action: "summary" })
+            }
+          );
+          result = await portfolioResponse.json();
+          break;
+        }
+
+        case "save_portfolio_positions": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const saveResponse = await fetch(
+            `${supabaseUrl}/functions/v1/manage-portfolio`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ action: "add", positions: args.positions })
+            }
+          );
+          result = await saveResponse.json();
+          break;
+        }
+
+        case "calculate_investment_tax": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const taxResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-tax-calculator`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify(args)
+            }
+          );
+          result = await taxResponse.json();
+          break;
+        }
+
+        case "get_investment_news_sentiment": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const newsResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-news-sentiment`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ tickers: args.tickers, query: args.query })
+            }
+          );
+          result = await newsResponse.json();
+          break;
+        }
+
         default:
           result = { error: "Unknown function: " + functionName };
       }
