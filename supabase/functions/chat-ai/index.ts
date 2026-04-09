@@ -1904,6 +1904,113 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           break;
         }
 
+        case "create_price_alert": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const alertResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-price-alerts`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ 
+                action: "create", 
+                ticker: args.ticker, 
+                target_price: args.target_price, 
+                direction: args.direction 
+              })
+            }
+          );
+          result = await alertResponse.json();
+          break;
+        }
+
+        case "check_price_alerts": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const checkAction = args.action || "list";
+          const checkResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-price-alerts`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ action: checkAction })
+            }
+          );
+          result = await checkResponse.json();
+          break;
+        }
+
+        case "run_backtesting": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const btResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-backtesting`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({
+                ticker: args.ticker,
+                total_investment: args.total_investment,
+                period_months: args.period_months || 12,
+                currency: args.currency || "USD"
+              })
+            }
+          );
+          result = await btResponse.json();
+          break;
+        }
+
+        case "screen_stocks": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const screenResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-stock-screener`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({
+                strategy: args.strategy,
+                sector: args.sector,
+                market: args.market || "US",
+                criteria: args.criteria || {},
+                limit: args.limit || 10
+              })
+            }
+          );
+          result = await screenResponse.json();
+          break;
+        }
+
+        case "generate_portfolio_report": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const reportResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-portfolio-report`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ report_type: args.report_type || "full" })
+            }
+          );
+          result = await reportResponse.json();
+          break;
+        }
+
         default:
           result = { error: "Unknown function: " + functionName };
       }
