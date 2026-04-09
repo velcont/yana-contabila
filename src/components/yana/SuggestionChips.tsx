@@ -60,6 +60,13 @@ const DEFAULT_CHIPS = [
     iconColor: 'text-cyan-500',
   },
   {
+    label: 'Analiză Investiții',
+    icon: TrendingUp,
+    message: 'Vreau sfaturi de investiții. Ce acțiuni, ETF-uri sau strategii îmi recomanzi pentru profilul meu de risc? Cum funcționează taxarea în România?',
+    accent: 'border-indigo-500/30 hover:bg-indigo-500/10',
+    iconColor: 'text-indigo-500',
+  },
+  {
     label: 'Fonduri Europene',
     icon: Euro,
     message: 'Ce fonduri europene nerambursabile sunt disponibile acum pentru industria mea?',
