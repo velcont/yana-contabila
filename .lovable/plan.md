@@ -1,65 +1,68 @@
 
 
-# Fix: Eliminare Loop Infinit de Refresh
+# Plan: Modul Analiză Investiții — Orice Platformă de Trading
 
-## Cauza root a loop-ului
+## Obiectiv
 
-Există **4 probleme** care se combină într-un loop infinit:
+Yana va putea analiza capturi de ecran de pe **orice platformă de trading** (eToro, Trading 212, XTB, Interactive Brokers, Revolut, BT Capital, TradeVille, Freedom24, Saxo, Degiro, Plus500, etc.) și va oferi:
+- Analiza portofoliului din screenshot
+- Recomandări de investiții bazate pe profil de risc
+- Previziuni și scenarii
+- Sfaturi de diversificare
+- Informații despre taxare în România (10% pe câștig capital)
 
-### Bug 1: Race condition între SW unregister și controllerchange
-- `performVersionRefresh()` dezînregistrează Service Worker-ul
-- Asta declanșează evenimentul `controllerchange` din `main.tsx` (linia 24)
-- Care face `window.location.reload()` ÎNAINTE ca `window.location.href = ...` să se execute
-- Rezultat: reload infinit fără să se salveze versiunea
+## Ce se implementează
 
-### Bug 2: Protecția `justRefreshed` durează doar 5 secunde
-- După refresh, banner-ul e ascuns 5 secunde (`setTimeout → setJustRefreshed(false)`)
-- După 5s, dacă query-ul DB returnează altă versiune → banner reapare → countdown → refresh din nou
+### 1. Prompt specializat investiții (fișier nou)
+**Fișier:** `supabase/functions/_shared/investment-analysis-prompt.ts`
 
-### Bug 3: Triggere multiple de refresh care se bat
-- `VersionUpdateBanner` (countdown 60s)
-- `useAuth` (la login)
-- `App.tsx` (inactivitate 24h)
-- Toate apelează `performVersionRefresh()` independent, pot rula simultan
+Knowledge base cuprinzător:
+- Recunoaștere screenshot-uri de pe **orice platformă** (nu doar eToro): coloane tipice (ticker, P&L, avg price, current price, allocation %)
+- Analiza fundamentală: P/E, P/B, dividend yield, market cap, beta, EPS
+- Analiza tehnică: suport/rezistență, RSI, MACD, medii mobile, volume
+- Strategii: DCA, value investing, growth, dividende, ETF-uri
+- Taxare România: 10% impozit pe câștiguri capital, declarația unică ANAF, compensare pierderi
+- Currency risk: RON→USD/EUR
+- Disclaimer obligatoriu la fiecare răspuns
 
-### Bug 4: localStorage save poate eșua
-- `localStorage.setItem(DB_VERSION_KEY, currentVersion)` se face înainte de refresh
-- Dar dacă reload-ul vine din `controllerchange` (Bug 1), save-ul nu s-a completat
-- După reload: versiunea locală e tot cea veche → detectează "versiune nouă" → loop
+### 2. Detecție investiții în ai-router
+**Fișier:** `supabase/functions/ai-router/index.ts`
 
-## Soluția
+- Keywords: investiții, acțiuni, portofoliu, trading, bursă, stocks, ETF, dividende, broker, S&P500, NASDAQ, crypto, Bitcoin, plus orice nume de platformă (eToro, XTB, Trading 212, Revolut, TradeVille, etc.)
+- Dacă mesajul conține imagine + keywords → flag `isInvestmentQuery: true`
+- Dacă doar text cu keywords de investiții → tot flag-ul se aplică
 
-### 1. Eliminare `controllerchange` reload din `main.tsx`
-- Eliminăm listener-ul agresiv care face reload la schimbarea SW
-- PWA-ul deja gestionează update-urile prin `skipWaiting + clientsClaim`
+### 3. Integrare în chat-ai
+**Fișier:** `supabase/functions/chat-ai/index.ts`
 
-### 2. Protecție anti-loop cu MAX_REFRESH_COUNT
-- Salvăm în sessionStorage un contor de refresh-uri
-- Dacă s-au făcut >2 refresh-uri în aceeași sesiune, STOP - nu mai forțăm
-- Resetăm contorul doar la navigare manuală
+- Când `isInvestmentQuery === true`: injectează promptul de investiții în system prompt
+- Instrucțiuni multimodale: "Analizează screenshot-ul. Identifică platforma, lista de active, prețuri, profit/pierdere, alocare procentuală. Recomandă acțiuni concrete."
+- Forțează disclaimer legal la final
 
-### 3. Eliminare force refresh automat (countdown)
-- Banner-ul rămâne vizibil dar NU mai face refresh automat după 60s
-- Utilizatorul decide când dă click - fără FOMO de countdown
-- Elimină complet riscul de loop automat
+### 4. Actualizare capabilities
+**Fișier:** `supabase/functions/_shared/prompts/yana-capabilities-prompt.md`
 
-### 4. Salvare versiune ROBUST înainte de orice refresh
-- `localStorage.setItem` se face SINCRON înainte de orice altceva
-- Adăugăm verificare că s-a salvat corect
-- Folosim `sessionStorage` ca backup anti-loop
+Adăugăm secțiunea de analiză investiții cu toate platformele suportate.
 
-## Fișiere modificate
+### 5. Actualizare chat-ai-prompt
+**Fișier:** `supabase/functions/_shared/prompts/chat-ai-prompt.md`
 
-| Fișier | Modificare |
-|--------|-----------|
-| `src/main.tsx` | Eliminare `controllerchange` listener |
-| `src/components/VersionUpdateBanner.tsx` | Eliminare countdown/force refresh, adăugare anti-loop guard |
-| `src/utils/versionRefresh.ts` | Adăugare MAX_REFRESH guard, salvare versiune robustă |
-| `src/hooks/useAuth.tsx` | Adăugare guard anti-loop la login refresh |
+Secțiune nouă despre competența de investiții + disclaimer obligatoriu.
 
-## Comportament nou
-- Banner apare când există versiune nouă (non-agresiv, fără countdown)
-- Click pe "Actualizează" → refresh sigur, o singură dată
-- Dacă refresh-ul nu rezolvă (DB version persistă diferit) → banner rămâne vizibil dar NU mai forțează refresh
-- Zero risc de loop infinit
+## Detalii tehnice
+
+- **Fără tabele noi** — conversațiile se salvează în `ai_conversations` existent
+- **Fără edge function nouă** — folosim `chat-ai` cu prompt injection
+- **Model:** Gemini 2.5 Flash (deja configurat, suport multimodal/imagini)
+- **Fără API extern** — analiza se face prin AI pe baza cunoștințelor modelului + ce vede în imagine
+- **Deploy:** `chat-ai`, `ai-router`
+
+## Platforme suportate (recunoaștere vizuală)
+
+eToro, Trading 212, XTB, Interactive Brokers, Revolut, TradeVille, BT Capital Partners, Freedom24, Saxo Bank, Degiro, Plus500, IG Markets, Exante, Webull, Robinhood, MetaTrader 4/5, TradingView, Binance, Coinbase, Kraken, și orice altă platformă cu interfață tabelară.
+
+## Disclaimer obligatoriu
+
+Fiecare răspuns despre investiții va conține:
+> "⚠️ Aceste informații sunt orientative și NU constituie sfat financiar profesionist. Investițiile implică riscuri, inclusiv pierderea integrală a capitalului. Consultă un consilier financiar autorizat ASF."
 
