@@ -1587,6 +1587,59 @@ const TOOLS = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_ips",
+      description: "Generează un Investment Policy Statement (IPS) personalizat bazat pe profilul investitorului. Folosește când utilizatorul cere 'plan de investiții', 'IPS', 'politică investițională', 'cum să încep să investesc', sau 'strategie personalizată de investiții'.",
+      parameters: {
+        type: "object",
+        properties: {
+          age: { type: "number", description: "Vârsta investitorului" },
+          monthly_income: { type: "number", description: "Venitul lunar (RON)" },
+          monthly_savings: { type: "number", description: "Suma lunară disponibilă pentru investiții (RON)" },
+          risk_tolerance: { type: "string", enum: ["conservative", "moderate", "aggressive"], description: "Toleranța la risc" },
+          investment_horizon_years: { type: "number", description: "Orizontul de investiție (ani)" },
+          goals: { type: "array", items: { type: "string" }, description: "Obiective (ex: 'pensie', 'avans casă', 'educație copil')" },
+          existing_portfolio_value: { type: "number", description: "Valoare portofoliu existent (RON)" },
+          has_emergency_fund: { type: "boolean", description: "Are fond de urgență constituit?" },
+          preferred_platforms: { type: "array", items: { type: "string" }, description: "Platforme preferate (XTB, T212, etc.)" }
+        },
+        required: ["age", "monthly_income"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "compare_brokers",
+      description: "Compară comisioanele și caracteristicile brokerilor de investiții (XTB, Trading 212, Interactive Brokers, Revolut, eToro, TradeVille). Folosește când utilizatorul întreabă 'ce broker să aleg', 'comisioane XTB vs T212', 'comparație brokeri', sau 'cel mai ieftin broker'.",
+      parameters: {
+        type: "object",
+        properties: {
+          brokers: { type: "array", items: { type: "string" }, description: "Brokeri de comparat (ex: ['XTB', 'Trading 212']). Gol = toți." },
+          investment_amount: { type: "number", description: "Suma de investit pentru estimare costuri (EUR)" },
+          monthly_trades: { type: "number", description: "Număr estimat de tranzacții lunare" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_exchange_rates",
+      description: "Obține cursul valutar oficial BNR (RON/EUR, RON/USD, etc.) sau convertește o sumă între monede. Folosește când utilizatorul întreabă 'curs euro', 'cât e dolarul', 'convertește 1000 EUR în RON', sau 'curs valutar'.",
+      parameters: {
+        type: "object",
+        properties: {
+          currencies: { type: "array", items: { type: "string" }, description: "Monede dorite (ex: ['EUR', 'USD', 'GBP'])" },
+          amount: { type: "number", description: "Suma de convertit (opțional)" },
+          from: { type: "string", description: "Moneda sursă pentru conversie" },
+          to: { type: "string", description: "Moneda destinație pentru conversie" }
+        }
+      }
+    }
   }
 ];
 
@@ -2008,6 +2061,69 @@ async function executeTools(toolCalls: any[], authHeader: string) {
             }
           );
           result = await reportResponse.json();
+          break;
+        }
+
+        case "generate_ips": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const ipsResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-ips-generator`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify(args)
+            }
+          );
+          result = await ipsResponse.json();
+          break;
+        }
+
+        case "compare_brokers": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const brokerResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-broker-comparison`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({
+                brokers: args.brokers || [],
+                investment_amount: args.investment_amount || 10000,
+                monthly_trades: args.monthly_trades || 10
+              })
+            }
+          );
+          result = await brokerResponse.json();
+          break;
+        }
+
+        case "get_exchange_rates": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const ratesResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-exchange-rates`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({
+                currencies: args.currencies,
+                amount: args.amount,
+                from: args.from,
+                to: args.to
+              })
+            }
+          );
+          result = await ratesResponse.json();
           break;
         }
 
