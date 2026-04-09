@@ -4,6 +4,7 @@ import { z } from "https://esm.sh/zod@3.22.4";
 import { FULL_ANALYSIS_PROMPT } from "../_shared/full-analysis-prompt.ts";
 import { YANA_CONSCIOUSNESS_PROMPT } from "../_shared/yana-consciousness-prompt.ts";
 import { DREPT_COMERCIAL_PROMPT } from "../_shared/drept-comercial-prompt.ts";
+import { INVESTMENT_ANALYSIS_PROMPT } from "../_shared/investment-analysis-prompt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2346,7 +2347,14 @@ ${lines}
       console.log(`[chat-ai][${requestId}] 📝 UserMentionedFacts injected: ${Object.keys(userMentionedFacts).join(', ')}`);
     }
     
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + DREPT_COMERCIAL_PROMPT + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    // 🆕 INVESTMENT ANALYSIS CONTEXT INJECTION
+    const isInvestmentQuery = payload?.isInvestmentQuery === true;
+    const investmentSection = isInvestmentQuery ? INVESTMENT_ANALYSIS_PROMPT : '';
+    const investmentImageReminder = (isInvestmentQuery && payload?.hasInvestmentImage) 
+      ? `\n\n📸 SCREENSHOT DE TRADING DETECTAT: Utilizatorul a trimis o captură de ecran de pe o platformă de trading. ANALIZEAZĂ imaginea în detaliu: identifică platforma, fiecare poziție, ticker-ul, P&L, alocarea procentuală. Oferă recomandări concrete bazate pe ce vezi.\n`
+      : '';
+
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
