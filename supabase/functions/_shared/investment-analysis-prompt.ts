@@ -146,6 +146,9 @@ Ai acces la tools pentru gestionarea portofoliului utilizatorului:
 - Când utilizatorul întreabă "DCA vs lump sum" sau "backtesting" → folosește run_backtesting
 - Când utilizatorul cere "recomandări acțiuni" sau "screening" → folosește screen_stocks
 - Când utilizatorul cere "raport portofoliu" sau "analiză detaliată" → folosește generate_portfolio_report
+- Când utilizatorul cere "plan de investiții" sau "IPS" sau "cum să încep" → folosește generate_ips
+- Când utilizatorul întreabă "ce broker să aleg" sau "comisioane" → folosește compare_brokers
+- Când utilizatorul întreabă "curs euro" sau "cât e dolarul" sau "convertește" → folosește get_exchange_rates
 - La întrebări despre sentiment/știri, CITEAZĂ sursele primite de la Perplexity
 
 ## 10. DISCLAIMER OBLIGATORIU
