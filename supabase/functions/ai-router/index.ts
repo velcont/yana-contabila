@@ -577,8 +577,62 @@ function classifyDocumentFromName(fileName: string): { type: string; description
   return { type: 'document', description: 'document' };
 }
 
-function detectIntent(message: string): RouteDecision {
+function detectIntent(message: string, hasImage: boolean = false): RouteDecision {
   const lowerMessage = message.toLowerCase();
+
+  // =============================================================================
+  // ⚡ PRIORITY -1: INVESTMENT / TRADING ANALYSIS (with or without image)
+  // =============================================================================
+  const investmentKeywords = [
+    'investiți', 'investitii', 'investesc', 'investit', 'investiție', 'investitie',
+    'acțiuni', 'actiuni', 'acțiune', 'actiune', 'stocks', 'stock',
+    'portofoliu', 'portfolio',
+    'trading', 'trade', 'trader',
+    'bursă', 'bursa', 'bursier',
+    'etf', 'fond mutual', 'fond de investiții',
+    'dividende', 'dividend',
+    'broker',
+    's&p500', 's&p 500', 'sp500', 'nasdaq', 'dow jones', 'ftse', 'dax',
+    'crypto', 'bitcoin', 'btc', 'ethereum', 'eth', 'blockchain',
+    'etoro', 'trading 212', 'trading212', 'xtb', 'xstation',
+    'interactive brokers', 'ibkr', 'tws',
+    'revolut invest', 'revolut trading',
+    'tradeville', 'bt capital', 'freedom24', 'saxo',
+    'degiro', 'plus500', 'ig markets', 'exante',
+    'webull', 'robinhood', 'metatrader', 'mt4', 'mt5',
+    'tradingview', 'binance', 'coinbase', 'kraken', 'crypto.com',
+    'bull', 'bear', 'bullish', 'bearish',
+    'cumpăr acțiuni', 'cumpar actiuni', 'vând acțiuni', 'vand actiuni',
+    'câștig capital', 'castig capital',
+    'stop loss', 'take profit',
+    'p/e', 'price earnings', 'rsi', 'macd',
+    'dca', 'dollar cost',
+    'short', 'long position',
+    'margin', 'leverage', 'levier',
+    'alocare portofoliu', 'diversificare portofoliu',
+    'randament', 'return', 'roi investiție',
+  ];
+
+  const isInvestmentQuery = investmentKeywords.some(kw => lowerMessage.includes(kw));
+  const isInvestmentWithImage = hasImage && (isInvestmentQuery || 
+    lowerMessage.includes('ce vezi') || 
+    lowerMessage.includes('analizează') || 
+    lowerMessage.includes('analizeaza') ||
+    lowerMessage.includes('ce zici') ||
+    lowerMessage.includes('recomand'));
+
+  if (isInvestmentQuery || isInvestmentWithImage) {
+    console.log(`[AI-Router] 📈 INVESTMENT QUERY DETECTED${hasImage ? ' (with image)' : ''}: "${message.substring(0, 60)}..."`);
+    return {
+      route: 'chat-ai',
+      payload: {
+        message,
+        isInvestmentQuery: true,
+        hasInvestmentImage: hasImage,
+      },
+      reason: `Investment/trading analysis request${hasImage ? ' with screenshot' : ''}`
+    };
+  }
 
   // =============================================================================
   // ⚡ PRIORITY 0: GRAPH / VISUALIZATION REQUESTS (MUST OVERRIDE ALL strategic detection)
@@ -1293,7 +1347,8 @@ serve(async (req) => {
       }
       
       // No deterministic response available - proceed with normal AI routing
-      routeDecision = detectIntent(message);
+      const hasImage = !!(fileData && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileData.fileName?.toLowerCase()?.split('.')?.pop() || ''));
+      routeDecision = detectIntent(message, hasImage);
       
       // =============================================================================
       // 🆕 v3.2.0: FISCAL + BALANCE OVERRIDE
