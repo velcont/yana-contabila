@@ -2064,6 +2064,69 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           break;
         }
 
+        case "generate_ips": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const ipsResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-ips-generator`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify(args)
+            }
+          );
+          result = await ipsResponse.json();
+          break;
+        }
+
+        case "compare_brokers": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const brokerResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-broker-comparison`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({
+                brokers: args.brokers || [],
+                investment_amount: args.investment_amount || 10000,
+                monthly_trades: args.monthly_trades || 10
+              })
+            }
+          );
+          result = await brokerResponse.json();
+          break;
+        }
+
+        case "get_exchange_rates": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const ratesResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-exchange-rates`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({
+                currencies: args.currencies,
+                amount: args.amount,
+                from: args.from,
+                to: args.to
+              })
+            }
+          );
+          result = await ratesResponse.json();
+          break;
+        }
+
         default:
           result = { error: "Unknown function: " + functionName };
       }
