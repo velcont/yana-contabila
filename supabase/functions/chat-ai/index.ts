@@ -1500,6 +1500,93 @@ const TOOLS = [
         }
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_price_alert",
+      description: "Creează o alertă de preț pentru o acțiune. Utilizatorul va fi notificat când prețul depășește sau scade sub un prag. Folosește când utilizatorul spune 'anunță-mă când X ajunge la Y' sau 'setează alertă pentru AAPL la 200'.",
+      parameters: {
+        type: "object",
+        properties: {
+          ticker: { type: "string", description: "Simbolul acțiunii (ex: AAPL, TSLA)" },
+          target_price: { type: "number", description: "Prețul țintă pentru alertă" },
+          direction: { type: "string", enum: ["above", "below"], description: "Direcția: 'above' = când depășește, 'below' = când scade sub" }
+        },
+        required: ["ticker", "target_price", "direction"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_price_alerts",
+      description: "Verifică toate alertele active de preț ale utilizatorului contra prețurilor curente. Folosește când utilizatorul întreabă 'verifică alertele mele' sau 'ce alerte am'.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "check"], description: "list = listează, check = verifică contra prețuri live" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_backtesting",
+      description: "Simulează și compară strategii DCA vs Lump Sum pe date istorice pentru un ticker. Folosește când utilizatorul întreabă 'ce ar fi fost dacă investeam X în Y', 'DCA vs lump sum', 'backtesting', sau 'simulare investiție'.",
+      parameters: {
+        type: "object",
+        properties: {
+          ticker: { type: "string", description: "Simbolul acțiunii (ex: AAPL, NVDA, SPY)" },
+          total_investment: { type: "number", description: "Suma totală de investit" },
+          period_months: { type: "number", description: "Perioada de analiză în luni (default: 12)" },
+          currency: { type: "string", description: "Moneda (USD, EUR, RON)" }
+        },
+        required: ["ticker", "total_investment"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "screen_stocks",
+      description: "Caută și filtrează acțiuni după criterii fundamentale (P/E, dividend yield, etc.) sau după strategie (value, growth, dividend, momentum). Folosește când utilizatorul cere recomandări de acțiuni, screening, sau filtrare pe criterii.",
+      parameters: {
+        type: "object",
+        properties: {
+          strategy: { type: "string", enum: ["value", "growth", "dividend", "momentum"], description: "Strategie predefinită" },
+          sector: { type: "string", description: "Sector specific (ex: technology, healthcare)" },
+          market: { type: "string", description: "Piața (US, EU). Default: US" },
+          criteria: {
+            type: "object",
+            description: "Criterii custom de filtrare",
+            properties: {
+              pe_max: { type: "number" },
+              pe_min: { type: "number" },
+              dividend_yield_min: { type: "number" },
+              market_cap_min: { type: "number" },
+              revenue_growth_min: { type: "number" },
+              debt_equity_max: { type: "number" }
+            }
+          },
+          limit: { type: "number", description: "Câte rezultate (default: 10)" }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_portfolio_report",
+      description: "Generează un raport complet al portofoliului: alocare pe sectoare/platforme, risc, diversificare, P&L, și sumar fiscal. Folosește când utilizatorul cere 'raport portofoliu', 'analiză portofoliu detaliată', sau 'performanța portofoliului'.",
+      parameters: {
+        type: "object",
+        properties: {
+          report_type: { type: "string", enum: ["full", "summary", "tax", "allocation"], description: "Tipul raportului (default: full)" }
+        }
+      }
+    }
   }
 ];
 
