@@ -1728,7 +1728,15 @@ const ChatAIRequestSchema = z.object({
       concernLevel: z.number().optional()
     }).optional(),
     processingTimeMs: z.number().optional()
-  }).optional().nullable()
+  }).optional().nullable(),
+  // 🆕 INVESTMENT: Flags pentru analiza investiții
+  isInvestmentQuery: z.boolean().optional().nullable(),
+  hasInvestmentImage: z.boolean().optional().nullable(),
+  // Allow extra fields from router
+  graphRequest: z.boolean().optional().nullable(),
+  capabilityQuestion: z.boolean().optional().nullable(),
+  taskMemoryAction: z.boolean().optional().nullable(),
+  fiscalQuestionWithBalance: z.boolean().optional().nullable(),
 });
 
 serve(async (req) => {
