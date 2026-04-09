@@ -2973,6 +2973,57 @@ export type Database = {
           },
         ]
       }
+      investment_tax_calculations: {
+        Row: {
+          cass_amount: number
+          cass_applicable: boolean
+          created_at: string
+          exchange_rate_used: number | null
+          id: string
+          net_taxable_ron: number
+          notes: string | null
+          positions_data: Json | null
+          tax_10_percent: number
+          tax_year: number
+          total_gains_ron: number
+          total_losses_ron: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cass_amount?: number
+          cass_applicable?: boolean
+          created_at?: string
+          exchange_rate_used?: number | null
+          id?: string
+          net_taxable_ron?: number
+          notes?: string | null
+          positions_data?: Json | null
+          tax_10_percent?: number
+          tax_year: number
+          total_gains_ron?: number
+          total_losses_ron?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cass_amount?: number
+          cass_applicable?: boolean
+          created_at?: string
+          exchange_rate_used?: number | null
+          id?: string
+          net_taxable_ron?: number
+          notes?: string | null
+          positions_data?: Json | null
+          tax_10_percent?: number
+          tax_year?: number
+          total_gains_ron?: number
+          total_losses_ron?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_offers: {
         Row: {
           accountant_id: string
@@ -5123,6 +5174,66 @@ export type Database = {
           relationship_level?: number | null
           total_conversations?: number | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_portfolios: {
+        Row: {
+          asset_type: string
+          avg_buy_price: number
+          closed_at: string | null
+          company_name: string | null
+          created_at: string
+          currency: string
+          current_price: number | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          platform: string | null
+          quantity: number
+          sector: string | null
+          sell_price: number | null
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_type?: string
+          avg_buy_price?: number
+          closed_at?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string
+          current_price?: number | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          platform?: string | null
+          quantity?: number
+          sector?: string | null
+          sell_price?: number | null
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_type?: string
+          avg_buy_price?: number
+          closed_at?: string | null
+          company_name?: string | null
+          created_at?: string
+          currency?: string
+          current_price?: number | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          platform?: string | null
+          quantity?: number
+          sector?: string | null
+          sell_price?: number | null
+          ticker?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
