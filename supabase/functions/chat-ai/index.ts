@@ -1784,7 +1784,7 @@ serve(async (req) => {
       );
     }
 
-    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData, companyMismatchWarning, userMentionedFacts } = requestBody;
+    const { message, history, conversationId, summaryType, stream: streamResponse, balanceContext: rawBalanceContext, memoryContext, consciousnessContext, imageData, companyMismatchWarning, userMentionedFacts, isInvestmentQuery: isInvestmentQueryFlag, hasInvestmentImage: hasInvestmentImageFlag } = requestBody;
     
     // ========== LOGGING: Request details ==========
     console.log(`[chat-ai][${requestId}] Message length: ${message.length} chars`);
@@ -2356,9 +2356,9 @@ ${lines}
     }
     
     // 🆕 INVESTMENT ANALYSIS CONTEXT INJECTION
-    const isInvestmentQuery = payload?.isInvestmentQuery === true;
+    const isInvestmentQuery = isInvestmentQueryFlag === true;
     const investmentSection = isInvestmentQuery ? INVESTMENT_ANALYSIS_PROMPT : '';
-    const investmentImageReminder = (isInvestmentQuery && payload?.hasInvestmentImage) 
+    const investmentImageReminder = (isInvestmentQuery && hasInvestmentImageFlag) 
       ? `\n\n📸 SCREENSHOT DE TRADING DETECTAT: Utilizatorul a trimis o captură de ecran de pe o platformă de trading. ANALIZEAZĂ imaginea în detaliu: identifică platforma, fiecare poziție, ticker-ul, P&L, alocarea procentuală. Oferă recomandări concrete bazate pe ce vezi.\n`
       : '';
 
