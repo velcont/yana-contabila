@@ -1745,6 +1745,78 @@ async function executeTools(toolCalls: any[], authHeader: string) {
           break;
         }
         
+        case "get_portfolio_summary": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const portfolioResponse = await fetch(
+            `${supabaseUrl}/functions/v1/manage-portfolio`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ action: "summary" })
+            }
+          );
+          result = await portfolioResponse.json();
+          break;
+        }
+
+        case "save_portfolio_positions": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const saveResponse = await fetch(
+            `${supabaseUrl}/functions/v1/manage-portfolio`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ action: "add", positions: args.positions })
+            }
+          );
+          result = await saveResponse.json();
+          break;
+        }
+
+        case "calculate_investment_tax": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const taxResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-tax-calculator`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify(args)
+            }
+          );
+          result = await taxResponse.json();
+          break;
+        }
+
+        case "get_investment_news_sentiment": {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const newsResponse = await fetch(
+            `${supabaseUrl}/functions/v1/investment-news-sentiment`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": authHeader,
+                "apikey": Deno.env.get("SUPABASE_ANON_KEY")!
+              },
+              body: JSON.stringify({ tickers: args.tickers, query: args.query })
+            }
+          );
+          result = await newsResponse.json();
+          break;
+        }
+
         default:
           result = { error: "Unknown function: " + functionName };
       }
