@@ -1347,7 +1347,8 @@ serve(async (req) => {
       }
       
       // No deterministic response available - proceed with normal AI routing
-      routeDecision = detectIntent(message);
+      const hasImage = !!(fileData && ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileData.fileName?.toLowerCase()?.split('.')?.pop() || ''));
+      routeDecision = detectIntent(message, hasImage);
       
       // =============================================================================
       // 🆕 v3.2.0: FISCAL + BALANCE OVERRIDE
