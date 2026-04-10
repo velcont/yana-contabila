@@ -47,7 +47,7 @@ serve(async (req) => {
       supabase.from('analyses').select('id', { count: 'exact', head: true }).gte('created_at', today),
       supabase.from('ai_conversations').select('id', { count: 'exact', head: true }),
       supabase.from('ai_conversations').select('id', { count: 'exact', head: true }).gte('created_at', today),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('subscription_status', 'active'),
+      supabase.from('subscription_payments').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     ]);
 
     return new Response(JSON.stringify({
