@@ -194,7 +194,7 @@ serve(async (req) => {
     const extractionSchema = buildExtractionSchema(documentType, extractFields);
 
     // Call Lovable AI Gateway (Gemini Flash for speed)
-    const aiResponse = await fetch('https://ai-gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

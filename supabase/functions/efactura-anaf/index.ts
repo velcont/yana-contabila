@@ -278,7 +278,7 @@ async function lookupCompanyByCUI(cui: string) {
   const cleanCui = cui.replace(/^RO/i, '').trim();
   const today = new Date().toISOString().split('T')[0];
 
-  const response = await fetch('https://webservicesp.anaf.ro/api/sync', {
+  const response = await fetch('https://webservicesp.anaf.ro/AsynchWebService/api/v8/ws/tva', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify([{ cui: parseInt(cleanCui), data: today }]),
