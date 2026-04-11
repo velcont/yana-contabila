@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import {
-  TrendingUp, TrendingDown, Minus, BarChart3, Activity,
-  Brain, Gauge, AlertTriangle, LineChart, CandlestickChart, Zap,
+  TrendingUp, TrendingDown, Minus, BarChart3,
+  Brain, Gauge, AlertTriangle, CandlestickChart, Zap,
   Shield, Target
 } from 'lucide-react';
 import type { SignalDirection } from '@/utils/trading';
