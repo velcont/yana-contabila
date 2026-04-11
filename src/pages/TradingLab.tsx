@@ -16,8 +16,6 @@ import {
 import {
   fullAnalysis,
   generateSignals,
-  backtestSMAStrategy,
-  backtestRSIStrategy,
   compareStrategies,
   buildSentimentReport,
   combineTechAndSentiment,
@@ -25,11 +23,9 @@ import {
   type SignalDirection,
 } from '@/utils/trading';
 
-// Generate realistic sample data for testing
 function generateSampleCandles(symbol: string, days = 100): CandleData[] {
   const candles: CandleData[] = [];
   let price = symbol === 'AAPL' ? 185 : symbol === 'TSLA' ? 245 : symbol === 'MSFT' ? 415 : symbol === 'NVDA' ? 880 : 100;
-  
   for (let i = 0; i < days; i++) {
     const change = (Math.random() - 0.48) * price * 0.03;
     const open = price;
@@ -86,11 +82,11 @@ export default function TradingLab() {
   const analysis = useMemo(() => fullAnalysis(candles), [candles]);
   const signals = useMemo(() => generateSignals(candles), [candles]);
   const strategies = useMemo(() => compareStrategies(candles), [candles]);
-  const sentiment = useMemo(() => buildSentimentReport(symbol, symbol, [
-    { source: 'reddit' as const, buzzScore: 72, bullishPct: 64, trend: 'rising' as const, confidence: 65 },
-    { source: 'news' as const, buzzScore: 55, bullishPct: 58, trend: 'stable' as const, confidence: 70 },
-    { source: 'analyst' as const, buzzScore: 80, bullishPct: 71, trend: 'rising' as const, confidence: 85 },
-  ]), [symbol]);
+  const sentiment = useMemo(() => buildSentimentReport(symbol, symbol, {
+    reddit: { buzzScore: 72, bullishPct: 64, trend: 'rising' as const, metricValue: 1240 },
+    news: { buzzScore: 55, bullishPct: 58, trend: 'stable' as const, metricValue: 34 },
+    analyst: { buzzScore: 80, bullishPct: 71, trend: 'rising' as const, metricValue: 12 },
+  }), [symbol]);
   const combined = useMemo(() => combineTechAndSentiment(
     signals.overallSignal, signals.overallConfidence, sentiment
   ), [signals, sentiment]);
@@ -102,9 +98,13 @@ export default function TradingLab() {
   const prevClose = candles[candles.length - 2]?.close ?? lastClose;
   const dayChange = ((lastClose - prevClose) / prevClose) * 100;
 
+  // Determine combined signal display
+  const combinedSignal: SignalDirection = combined.alignment === 'confirmed'
+    ? combined.technicalSignal
+    : combined.alignment === 'divergent' ? 'hold' : combined.technicalSignal;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -116,9 +116,7 @@ export default function TradingLab() {
               <h1 className="text-xl font-bold">Trading Lab</h1>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-          </div>
+          <ThemeToggle />
         </div>
       </div>
 
@@ -144,12 +142,8 @@ export default function TradingLab() {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {POPULAR_SYMBOLS.map(s => (
-                  <Button
-                    key={s}
-                    variant={symbol === s ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => { setSymbol(s); setInputSymbol(s); }}
-                  >
+                  <Button key={s} variant={symbol === s ? 'default' : 'outline'} size="sm"
+                    onClick={() => { setSymbol(s); setInputSymbol(s); }}>
                     {s}
                   </Button>
                 ))}
@@ -160,7 +154,7 @@ export default function TradingLab() {
 
         {/* Overview cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-primary/5 to-primary/10">
+          <Card className="bg-primary/5">
             <CardContent className="pt-6 text-center">
               <p className="text-sm text-muted-foreground">{symbol}</p>
               <p className="text-3xl font-bold">${lastClose.toFixed(2)}</p>
@@ -169,7 +163,6 @@ export default function TradingLab() {
               </p>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-sm text-muted-foreground">Semnal General</p>
@@ -178,7 +171,6 @@ export default function TradingLab() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-sm text-muted-foreground">Fear & Greed</p>
@@ -186,12 +178,11 @@ export default function TradingLab() {
               <p className="text-xs text-muted-foreground">{sentiment.fearGreedLabel}</p>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-sm text-muted-foreground">Combinat Tech+Sentiment</p>
               <div className="mt-2 flex justify-center">
-                <SignalBadge direction={combined.finalSignal} confidence={combined.finalConfidence} />
+                <SignalBadge direction={combinedSignal} confidence={combined.combinedConfidence} />
               </div>
             </CardContent>
           </Card>
@@ -205,40 +196,32 @@ export default function TradingLab() {
             <TabsTrigger value="backtest"><Target className="h-4 w-4 mr-1" />Backtest</TabsTrigger>
           </TabsList>
 
-          {/* Tab: Indicators */}
+          {/* Indicators */}
           <TabsContent value="indicators" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <LineChart className="h-5 w-5" /> Indicatori Tehnici
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5" /> Indicatori Tehnici</CardTitle>
                 <CardDescription>15+ indicatori calculați pe ultimele 100 de lumânări</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {analysis.rsi.length > 0 && (
+                  {analysis.rsi14.length > 0 && (
                     <IndicatorCard
                       label="RSI (14)"
-                      value={analysis.rsi[analysis.rsi.length - 1]}
-                      description={analysis.rsi[analysis.rsi.length - 1] > 70 ? '⚠️ Supracumpărat' : analysis.rsi[analysis.rsi.length - 1] < 30 ? '⚠️ Supravândut' : '✅ Neutru'}
-                      color={analysis.rsi[analysis.rsi.length - 1] > 70 ? 'text-red-600' : analysis.rsi[analysis.rsi.length - 1] < 30 ? 'text-green-600' : undefined}
+                      value={analysis.rsi14[analysis.rsi14.length - 1]}
+                      description={analysis.rsi14[analysis.rsi14.length - 1] > 70 ? '⚠️ Supracumpărat' : analysis.rsi14[analysis.rsi14.length - 1] < 30 ? '⚠️ Supravândut' : '✅ Neutru'}
+                      color={analysis.rsi14[analysis.rsi14.length - 1] > 70 ? 'text-destructive' : analysis.rsi14[analysis.rsi14.length - 1] < 30 ? 'text-green-600' : undefined}
                     />
                   )}
-                  {analysis.sma20.length > 0 && (
-                    <IndicatorCard label="SMA 20" value={analysis.sma20[analysis.sma20.length - 1]} description="Media mobilă simplă" />
-                  )}
-                  {analysis.sma50.length > 0 && (
-                    <IndicatorCard label="SMA 50" value={analysis.sma50[analysis.sma50.length - 1]} description="Media mobilă pe 50 zile" />
-                  )}
-                  {analysis.ema12.length > 0 && (
-                    <IndicatorCard label="EMA 12" value={analysis.ema12[analysis.ema12.length - 1]} description="Media mobilă exponențială" />
-                  )}
+                  {analysis.sma20.length > 0 && <IndicatorCard label="SMA 20" value={analysis.sma20[analysis.sma20.length - 1]} description="Media mobilă simplă" />}
+                  {analysis.sma50.length > 0 && <IndicatorCard label="SMA 50" value={analysis.sma50[analysis.sma50.length - 1]} description="Media mobilă pe 50 zile" />}
+                  {analysis.ema12.length > 0 && <IndicatorCard label="EMA 12" value={analysis.ema12[analysis.ema12.length - 1]} description="Media mobilă exponențială" />}
                   {analysis.macd.length > 0 && (
                     <IndicatorCard
                       label="MACD"
                       value={analysis.macd[analysis.macd.length - 1].MACD}
                       description={`Signal: ${(analysis.macd[analysis.macd.length - 1].signal ?? 0).toFixed(2)}`}
-                      color={analysis.macd[analysis.macd.length - 1].MACD > 0 ? 'text-green-600' : 'text-red-600'}
+                      color={analysis.macd[analysis.macd.length - 1].MACD > 0 ? 'text-green-600' : 'text-destructive'}
                     />
                   )}
                   {analysis.bollingerBands.length > 0 && (
@@ -248,14 +231,12 @@ export default function TradingLab() {
                       <IndicatorCard label="BB %B" value={analysis.bollingerBands[analysis.bollingerBands.length - 1].pb} description="Poziția prețului în benzi" />
                     </>
                   )}
-                  {analysis.atr.length > 0 && (
-                    <IndicatorCard label="ATR (14)" value={analysis.atr[analysis.atr.length - 1]} description="Volatilitate medie" />
-                  )}
-                  {analysis.adx.length > 0 && (
+                  {analysis.atr14.length > 0 && <IndicatorCard label="ATR (14)" value={analysis.atr14[analysis.atr14.length - 1]} description="Volatilitate medie" />}
+                  {analysis.adx14.length > 0 && (
                     <IndicatorCard
                       label="ADX"
-                      value={analysis.adx[analysis.adx.length - 1]}
-                      description={analysis.adx[analysis.adx.length - 1] > 25 ? '📈 Trend puternic' : '↔️ Fără trend'}
+                      value={analysis.adx14[analysis.adx14.length - 1]}
+                      description={analysis.adx14[analysis.adx14.length - 1] > 25 ? '📈 Trend puternic' : '↔️ Fără trend'}
                     />
                   )}
                   {analysis.superTrend.length > 0 && (
@@ -263,28 +244,24 @@ export default function TradingLab() {
                       label="SuperTrend"
                       value={analysis.superTrend[analysis.superTrend.length - 1].supertrend}
                       description={analysis.superTrend[analysis.superTrend.length - 1].direction === 1 ? '🟢 Uptrend' : '🔴 Downtrend'}
-                      color={analysis.superTrend[analysis.superTrend.length - 1].direction === 1 ? 'text-green-600' : 'text-red-600'}
+                      color={analysis.superTrend[analysis.superTrend.length - 1].direction === 1 ? 'text-green-600' : 'text-destructive'}
                     />
                   )}
-                  {analysis.obv.length > 0 && (
-                    <IndicatorCard label="OBV" value={(analysis.obv[analysis.obv.length - 1] / 1e6).toFixed(1) + 'M'} description="On-Balance Volume" />
-                  )}
+                  {analysis.obv.length > 0 && <IndicatorCard label="OBV" value={(analysis.obv[analysis.obv.length - 1] / 1e6).toFixed(1) + 'M'} description="On-Balance Volume" />}
                 </div>
 
-                {/* Candle Patterns */}
-                {analysis.candlePatterns.length > 0 && (
+                {analysis.patterns.length > 0 && (
                   <div className="mt-6">
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <CandlestickChart className="h-4 w-4" /> Pattern-uri Candlestick Detectate
                     </h4>
                     <div className="flex flex-wrap gap-2">
-                      {analysis.candlePatterns.map((p, i) => (
+                      {analysis.patterns.map((p, i) => (
                         <Badge key={i} variant="outline" className={
-                          p.signal === 'bullish' ? 'bg-green-500/10 text-green-600 border-green-500/30' :
-                          p.signal === 'bearish' ? 'bg-red-500/10 text-red-600 border-red-500/30' :
-                          'bg-muted'
+                          p.type === 'bullish' ? 'bg-green-500/10 text-green-600 border-green-500/30' :
+                          p.type === 'bearish' ? 'bg-red-500/10 text-red-600 border-red-500/30' : 'bg-muted'
                         }>
-                          {p.name} ({p.signal}) — {p.date}
+                          {p.name} ({p.type})
                         </Badge>
                       ))}
                     </div>
@@ -294,24 +271,19 @@ export default function TradingLab() {
             </Card>
           </TabsContent>
 
-          {/* Tab: Signals */}
+          {/* Signals */}
           <TabsContent value="signals" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" /> Semnale de Trading
-                </CardTitle>
-                <CardDescription>
-                  Trend: {signals.trendDirection} | Volatilitate: {signals.volatility} | Momentum: {signals.momentum}
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" /> Semnale de Trading</CardTitle>
+                <CardDescription>Trend: {signals.trendDirection} | Volatilitate: {signals.volatility} | Momentum: {signals.momentum}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   <IndicatorCard label="Suport" value={`$${signals.supportLevel.toFixed(2)}`} description="Nivel de suport" color="text-green-600" />
-                  <IndicatorCard label="Rezistență" value={`$${signals.resistanceLevel.toFixed(2)}`} description="Nivel de rezistență" color="text-red-600" />
+                  <IndicatorCard label="Rezistență" value={`$${signals.resistanceLevel.toFixed(2)}`} description="Nivel de rezistență" color="text-destructive" />
                   <IndicatorCard label="Risk/Reward" value={signals.riskRewardRatio.toFixed(2)} description="Raport risc/recompensă" />
                 </div>
-
                 <div className="space-y-3">
                   <h4 className="font-semibold">Semnale Individuale ({signals.signals.length})</h4>
                   {signals.signals.map((sig, i) => (
@@ -325,8 +297,7 @@ export default function TradingLab() {
                     </div>
                   ))}
                 </div>
-
-                <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-700 dark:text-yellow-400 flex items-start gap-2">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>{signals.disclaimer}</span>
                 </div>
@@ -334,24 +305,17 @@ export default function TradingLab() {
             </Card>
           </TabsContent>
 
-          {/* Tab: Sentiment */}
+          {/* Sentiment */}
           <TabsContent value="sentiment" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" /> Analiză de Sentiment
-                </CardTitle>
-                <CardDescription>
-                  Sentiment general: {sentiment.overallSentiment} | Scor: {sentiment.overallScore.toFixed(0)} | Surse: {sentiment.availableSources}
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5" /> Analiză de Sentiment</CardTitle>
+                <CardDescription>Sentiment: {sentiment.overallSentiment} | Scor: {sentiment.overallScore.toFixed(0)} | Surse: {sentiment.availableSources}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Fear & Greed */}
-                <div className="p-4 rounded-lg bg-gradient-to-r from-red-500/10 via-yellow-500/10 to-green-500/10 border">
+                <div className="p-4 rounded-lg border bg-muted/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold flex items-center gap-2">
-                      <Gauge className="h-4 w-4" /> Fear & Greed Index
-                    </span>
+                    <span className="font-semibold flex items-center gap-2"><Gauge className="h-4 w-4" /> Fear & Greed Index</span>
                     <span className="text-2xl font-bold">{sentiment.fearGreedIndex}</span>
                   </div>
                   <Progress value={sentiment.fearGreedIndex} className="h-3" />
@@ -362,7 +326,6 @@ export default function TradingLab() {
                   </div>
                 </div>
 
-                {/* Sources */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {sentiment.sources.map((src, i) => (
                     <div key={i} className="p-3 rounded-lg border bg-card space-y-2">
@@ -374,17 +337,12 @@ export default function TradingLab() {
                         <span className="text-muted-foreground">Bullish: </span>
                         <span className="font-medium">{src.bullishPct ?? '-'}%</span>
                       </div>
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Trend: </span>
-                        <span className="font-medium">{src.trend ?? '-'}</span>
-                      </div>
                       <Progress value={src.confidence} className="h-1.5" />
                       <p className="text-xs text-muted-foreground">Încredere: {src.confidence}%</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Sentiment Signals */}
                 {sentiment.signals.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="font-semibold">Semnale Sentiment</h4>
@@ -392,8 +350,7 @@ export default function TradingLab() {
                       <div key={i} className={`p-3 rounded-lg border ${
                         s.type === 'bullish' ? 'bg-green-500/5 border-green-500/20' :
                         s.type === 'bearish' ? 'bg-red-500/5 border-red-500/20' :
-                        s.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' :
-                        'bg-muted'
+                        s.type === 'warning' ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-muted'
                       }`}>
                         <p className="font-medium text-sm">{s.title}</p>
                         <p className="text-xs text-muted-foreground">{s.description}</p>
@@ -402,15 +359,14 @@ export default function TradingLab() {
                   </div>
                 )}
 
-                {/* Combined signal */}
                 <Card className="bg-primary/5 border-primary/20">
                   <CardContent className="pt-4">
                     <h4 className="font-semibold mb-2 flex items-center gap-2">
                       <Shield className="h-4 w-4" /> Semnal Combinat (Tehnic + Sentiment)
                     </h4>
-                    <div className="flex items-center gap-4">
-                      <SignalBadge direction={combined.finalSignal} confidence={combined.finalConfidence} />
-                      <p className="text-sm text-muted-foreground">{combined.reasoning}</p>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <SignalBadge direction={combinedSignal} confidence={combined.combinedConfidence} />
+                      <p className="text-sm text-muted-foreground flex-1">{combined.recommendation}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -418,13 +374,11 @@ export default function TradingLab() {
             </Card>
           </TabsContent>
 
-          {/* Tab: Backtest */}
+          {/* Backtest */}
           <TabsContent value="backtest" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" /> Backtesting Strategii
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> Backtesting Strategii</CardTitle>
                 <CardDescription>Comparație de strategii pe date simulate ({candles.length} lumânări)</CardDescription>
               </CardHeader>
               <CardContent>
@@ -442,16 +396,16 @@ export default function TradingLab() {
                       </tr>
                     </thead>
                     <tbody>
-                      {strategies.results.map((r, i) => (
+                      {strategies.strategies.map((r, i) => (
                         <tr key={i} className={`border-b ${strategies.bestStrategy === r.strategy ? 'bg-primary/5' : ''}`}>
                           <td className="py-2 pr-3 font-medium">
                             {r.strategy}
                             {strategies.bestStrategy === r.strategy && <Badge className="ml-2 text-[10px]" variant="default">Best</Badge>}
                           </td>
-                          <td className={`text-right py-2 px-3 font-semibold ${r.totalReturn >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className={`text-right py-2 px-3 font-semibold ${r.totalReturn >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                             {r.totalReturn >= 0 ? '+' : ''}{r.totalReturn.toFixed(2)}%
                           </td>
-                          <td className="text-right py-2 px-3 text-red-600">{r.maxDrawdown.toFixed(2)}%</td>
+                          <td className="text-right py-2 px-3 text-destructive">{r.maxDrawdown.toFixed(2)}%</td>
                           <td className="text-right py-2 px-3">{r.winRate.toFixed(1)}%</td>
                           <td className="text-right py-2 px-3">{r.sharpeRatio.toFixed(2)}</td>
                           <td className="text-right py-2 px-3">{r.totalTrades}</td>
@@ -461,14 +415,10 @@ export default function TradingLab() {
                     </tbody>
                   </table>
                 </div>
-
-                <p className="mt-4 text-sm text-muted-foreground">
-                  📊 <strong>Recomandare:</strong> {strategies.recommendation}
-                </p>
-
-                <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-700 dark:text-yellow-400 flex items-start gap-2">
+                <p className="mt-4 text-sm text-muted-foreground">📊 <strong>Recomandare:</strong> {strategies.recommendation}</p>
+                <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-xs text-destructive flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span>⚠️ Backtesting pe date simulate. Performanța trecută nu garantează rezultate viitoare. Acestea NU sunt recomandări de investiții.</span>
+                  <span>⚠️ Backtesting pe date simulate. Performanța trecută nu garantează rezultate viitoare.</span>
                 </div>
               </CardContent>
             </Card>
