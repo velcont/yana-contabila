@@ -72,6 +72,8 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
         onReject={artifact.onActionReject || (() => {})}
         onEdit={artifact.onActionEdit || (() => {})}
       />;
+    case 'trading_analysis':
+      return <TradingAnalysisArtifact data={artifact.data as TradingAnalysisData} />;
     default:
       return null;
   }
