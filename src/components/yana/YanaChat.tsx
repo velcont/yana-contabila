@@ -13,6 +13,7 @@ import { ContextIndicator } from './ContextIndicator';
 import { SourcesDisplay } from './SourcesDisplay';
 import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { cn } from '@/lib/utils';
+import { isTradingAnalysisQuery, buildTradingAnalysis } from '@/utils/trading/buildAnalysis';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
