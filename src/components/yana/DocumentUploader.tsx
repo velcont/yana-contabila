@@ -1,10 +1,15 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileSpreadsheet, FileText, Image, X, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileText, Image, X, Loader2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+export interface UploadedFile {
+  file: File;
+  content: string;
+}
+
 interface DocumentUploaderProps {
-  onUpload: (file: File, content: string) => void;
+  onUpload: (files: UploadedFile[]) => void;
   onClose: () => void;
 }
 
@@ -17,22 +22,21 @@ function readAsDataURL(file: File): Promise<string> {
   });
 }
 
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILES = 10;
+
 export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<UploadedFile[]>([]);
+  const [processingCount, setProcessingCount] = useState(0);
 
-  const MAX_FILE_SIZE_MB = 10;
-
-  const processFile = async (file: File) => {
-    // Guard clause: verificare dimensiune fișier
+  const processFile = async (file: File): Promise<UploadedFile | null> => {
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      setError(`Fișierul este prea mare (${(file.size / 1024 / 1024).toFixed(1)}MB). Limita este ${MAX_FILE_SIZE_MB}MB.`);
-      return;
+      setError(`${file.name} este prea mare (${(file.size / 1024 / 1024).toFixed(1)}MB). Limita: ${MAX_FILE_SIZE_MB}MB.`);
+      return null;
     }
-
-    setIsProcessing(true);
-    setError(null);
 
     try {
       const extension = file.name.toLowerCase().split('.').pop();
@@ -55,24 +59,56 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
         content = await file.text();
       }
 
-      onUpload(file, content);
+      return { file, content };
     } catch (err) {
       console.error('Error processing file:', err);
-      setError('Nu am putut procesa fișierul. Încearcă din nou.');
-    } finally {
-      setIsProcessing(false);
+      setError(`Nu am putut procesa ${file.name}.`);
+      return null;
     }
+  };
+
+  const addFiles = async (fileList: File[]) => {
+    const totalAfter = pendingFiles.length + fileList.length;
+    if (totalAfter > MAX_FILES) {
+      setError(`Maximum ${MAX_FILES} fișiere. Ai selectat ${totalAfter}.`);
+      return;
+    }
+
+    // Filter duplicates by name
+    const existingNames = new Set(pendingFiles.map(f => f.file.name));
+    const newFiles = fileList.filter(f => !existingNames.has(f.name));
+    if (newFiles.length === 0) return;
+
+    setIsProcessing(true);
+    setError(null);
+    setProcessingCount(newFiles.length);
+
+    const results: UploadedFile[] = [];
+    for (const file of newFiles) {
+      const result = await processFile(file);
+      if (result) results.push(result);
+    }
+
+    setPendingFiles(prev => [...prev, ...results]);
+    setIsProcessing(false);
+    setProcessingCount(0);
+  };
+
+  const removeFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = () => {
+    if (pendingFiles.length === 0) return;
+    onUpload(pendingFiles);
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      processFile(file);
-    }
-  }, []);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) addFiles(files);
+  }, [pendingFiles]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -85,10 +121,10 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) addFiles(files);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
   };
 
   return (
@@ -96,7 +132,14 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
       <div className="w-full max-w-lg bg-card rounded-xl border border-border shadow-lg">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="font-semibold text-foreground">Încarcă document</h3>
+          <h3 className="font-semibold text-foreground">
+            Încarcă documente
+            {pendingFiles.length > 0 && (
+              <span className="ml-2 text-sm text-muted-foreground font-normal">
+                ({pendingFiles.length}/{MAX_FILES})
+              </span>
+            )}
+          </h3>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-5 w-5" />
           </Button>
@@ -109,7 +152,7 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             className={cn(
-              'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
+              'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
               isDragging ? 'border-primary bg-primary/5' : 'border-border',
               isProcessing && 'opacity-50 pointer-events-none'
             )}
@@ -117,7 +160,7 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
             {isProcessing ? (
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-muted-foreground">Se procesează...</p>
+                <p className="text-muted-foreground">Se procesează {processingCount} fișier(e)...</p>
               </div>
             ) : (
               <>
@@ -134,10 +177,10 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
                 </div>
                 
                 <p className="text-foreground font-medium mb-1">
-                  Trage un fișier aici
+                  Trage fișierele aici
                 </p>
                 <p className="text-muted-foreground text-sm mb-4">
-                  sau click pentru a selecta
+                  sau click pentru a selecta (max {MAX_FILES} fișiere)
                 </p>
                 
                 <input
@@ -146,16 +189,38 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
                   className="hidden"
                   accept=".xlsx,.xls,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
                   onChange={handleFileSelect}
+                  multiple
                 />
                 <Button variant="outline" asChild>
                   <label htmlFor="file-upload" className="cursor-pointer">
                     <Upload className="h-4 w-4 mr-2" />
-                    Selectează fișier
+                    Selectează fișiere
                   </label>
                 </Button>
               </>
             )}
           </div>
+
+          {/* Pending files list */}
+          {pendingFiles.length > 0 && (
+            <div className="mt-4 space-y-2 max-h-40 overflow-y-auto">
+              {pendingFiles.map((uf, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg text-sm">
+                  <Check className="h-4 w-4 text-success shrink-0" />
+                  <span className="truncate flex-1 text-foreground">{uf.file.name}</span>
+                  <span className="text-muted-foreground text-xs shrink-0">
+                    {(uf.file.size / 1024).toFixed(0)} KB
+                  </span>
+                  <button
+                    onClick={() => removeFile(i)}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {error && (
             <p className="mt-3 text-sm text-destructive text-center">{error}</p>
@@ -163,8 +228,18 @@ export function DocumentUploader({ onUpload, onClose }: DocumentUploaderProps) {
 
           <div className="mt-4 text-xs text-muted-foreground text-center">
             <p>Formate acceptate: Excel (.xlsx, .xls), PDF, Word (.doc, .docx), Imagini (PNG, JPG, WEBP)</p>
-            <p className="mt-1">Balanțele Excel sunt procesate automat pentru analiză.</p>
           </div>
+
+          {/* Submit button */}
+          {pendingFiles.length > 0 && (
+            <Button
+              className="w-full mt-4"
+              onClick={handleSubmit}
+              disabled={isProcessing}
+            >
+              Trimite {pendingFiles.length} fișier{pendingFiles.length > 1 ? 'e' : ''}
+            </Button>
+          )}
         </div>
       </div>
     </div>
