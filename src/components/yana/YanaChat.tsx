@@ -467,6 +467,21 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         }
       }
 
+      // 🆕 Auto-generate trading analysis artifact when query matches
+      const tradingSymbol = isTradingAnalysisQuery(content);
+      if (tradingSymbol) {
+        try {
+          const tradingData = buildTradingAnalysis(tradingSymbol);
+          artifacts.push({
+            type: 'trading_analysis' as const,
+            data: tradingData,
+            title: `Analiză Tehnică ${tradingSymbol}`,
+          });
+        } catch (e) {
+          console.error('Error building trading analysis:', e);
+        }
+      }
+
       // Add assistant response
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
