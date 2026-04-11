@@ -1,5 +1,6 @@
 import { Download, Maximize2, BarChart3, PieChart, Table2, Swords, Target, FileText, FileSpreadsheet, Presentation, File } from 'lucide-react';
 import { ActionConfirmationCard } from './ActionConfirmationCard';
+import { TradingAnalysisArtifact, type TradingAnalysisData } from './TradingAnalysisArtifact';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
