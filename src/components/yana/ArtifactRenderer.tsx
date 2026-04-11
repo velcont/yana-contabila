@@ -1,5 +1,6 @@
 import { Download, Maximize2, BarChart3, PieChart, Table2, Swords, Target, FileText, FileSpreadsheet, Presentation, File } from 'lucide-react';
 import { ActionConfirmationCard } from './ActionConfirmationCard';
+import { TradingAnalysisArtifact, type TradingAnalysisData } from './TradingAnalysisArtifact';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -23,7 +24,7 @@ import { AIStrategyResultsArtifact } from './AIStrategyResultsArtifact';
 import type { BusinessProfile, AIAnalysis } from '@/config/aiStrategyData';
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download' | 'action_confirmation';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download' | 'action_confirmation' | 'trading_analysis';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -71,6 +72,8 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
         onReject={artifact.onActionReject || (() => {})}
         onEdit={artifact.onActionEdit || (() => {})}
       />;
+    case 'trading_analysis':
+      return <TradingAnalysisArtifact data={artifact.data as TradingAnalysisData} />;
     default:
       return null;
   }

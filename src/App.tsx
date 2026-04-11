@@ -53,7 +53,7 @@ const GenerateAcademicStatistics = lazy(() => import("./pages/GenerateAcademicSt
 const MyAICosts = lazy(() => import("./pages/MyAICosts"));
 const AIStrategy = lazy(() => import("./pages/AIStrategy"));
 const Research = lazy(() => import("./pages/Research"));
-const TradingLab = lazy(() => import("./pages/TradingLab"));
+
 const PriceTracker = lazy(() => import("./pages/PriceTracker"));
 const SupplierAudit = lazy(() => import("./pages/SupplierAudit"));
 
@@ -184,7 +184,7 @@ const App = () => {
                       <Route path="/install" element={<InstallPWA />} />
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
-                      <Route path="/trading-lab" element={<PrivateRoute><TradingLab /></PrivateRoute>} />
+                      
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>

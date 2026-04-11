@@ -13,6 +13,7 @@ import { ContextIndicator } from './ContextIndicator';
 import { SourcesDisplay } from './SourcesDisplay';
 import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { cn } from '@/lib/utils';
+import { isTradingAnalysisQuery, buildTradingAnalysis } from '@/utils/trading/buildAnalysis';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
@@ -35,7 +36,7 @@ interface Message {
 }
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -463,6 +464,21 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
           });
         } catch (wordError) {
           console.error('Error generating Word report:', wordError);
+        }
+      }
+
+      // 🆕 Auto-generate trading analysis artifact when query matches
+      const tradingSymbol = isTradingAnalysisQuery(content);
+      if (tradingSymbol) {
+        try {
+          const tradingData = buildTradingAnalysis(tradingSymbol);
+          artifacts.push({
+            type: 'trading_analysis' as const,
+            data: tradingData,
+            title: `Analiză Tehnică ${tradingSymbol}`,
+          });
+        } catch (e) {
+          console.error('Error building trading analysis:', e);
         }
       }
 
