@@ -705,13 +705,33 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
     }
   };
 
-  const handleFileUpload = async (file: File, content: string) => {
+  const handleFileUpload = async (files: import('./DocumentUploader').UploadedFile[]) => {
     setShowUploader(false);
-    await sendMessage(`Analizează documentul: ${file.name}`, {
-      fileName: file.name,
-      fileContent: content,
-      fileType: file.type,
-    });
+    if (files.length === 1) {
+      // Single file - send as before
+      await sendMessage(`Analizează documentul: ${files[0].file.name}`, {
+        fileName: files[0].file.name,
+        fileContent: files[0].content,
+        fileType: files[0].file.type,
+      });
+    } else {
+      // Multiple files - send sequentially so AI gets context for each
+      const fileNames = files.map(f => f.file.name).join(', ');
+      // Send first file with summary message
+      await sendMessage(`Analizează ${files.length} documente: ${fileNames}`, {
+        fileName: files[0].file.name,
+        fileContent: files[0].content,
+        fileType: files[0].file.type,
+      });
+      // Send remaining files
+      for (let i = 1; i < files.length; i++) {
+        await sendMessage(`Analizează documentul: ${files[i].file.name}`, {
+          fileName: files[i].file.name,
+          fileContent: files[i].content,
+          fileType: files[i].file.type,
+        });
+      }
+    }
   };
 
   const handleFeedback = async (messageId: string, wasHelpful: boolean) => {
