@@ -316,11 +316,8 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         .order('created_at', { ascending: true })
         .limit(30);
       
-      // Include the current user message in history
-      const allMessages = [
-        ...(freshMessages || []),
-        { role: 'user', content: content }
-      ];
+      // freshMessages already includes the just-inserted user message
+      const allMessages = freshMessages || [];
       
       // 🆕 FIX: Truncare inteligentă - păstrează primul 500 + ultimul 2000 caractere
       // Astfel păstrăm atât contextul inițial cât și cel recent/relevant
