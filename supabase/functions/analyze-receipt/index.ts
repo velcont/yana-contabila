@@ -45,9 +45,11 @@ function buildExtractionSchema(documentType: string, customFields?: string[]) {
     vat_rate: { type: 'number', description: 'Rata TVA (ex: 19, 9, 5)' },
     total_amount: { type: 'number', description: 'Totalul cu TVA inclus' },
     payment_method: { type: 'string', description: 'Metoda de plată (numerar, card, transfer bancar)' },
-    category: { type: 'string', description: 'Categoria cheltuielii: materiale, servicii, utilități, transport, salarii, chirii, echipamente, altele' },
+    category: { type: 'string', description: 'Categoria cheltuielii: materiale_consumabile, combustibil, servicii_IT, servicii_profesionale, utilități, transport, salarii, chirii, echipamente_fixe, protocol_reprezentare, deplasari_cazare, telecomunicatii, asigurari, amortizare, marketing_publicitate, mentenanta_reparatii, taxe_impozite, dobanzi_comisioane, altele' },
     is_deductible: { type: 'boolean', description: 'Este cheltuiala deductibilă fiscal?' },
-    deductibility_notes: { type: 'string', description: 'Note despre deductibilitate și limite' },
+    deductibility_percent: { type: 'number', description: 'Procentul deductibil (50, 100, sau limita specifică)' },
+    deductibility_notes: { type: 'string', description: 'Note despre deductibilitate, limite și condiții specifice' },
+    risk_flags: { type: 'array', description: 'Semnale de atenție: lipsă CUI, dată depășită, sumă neobișnuită' },
   };
 
   if (documentType === 'bank_statement') {
@@ -115,27 +117,46 @@ function buildAnalysisPrompt(documentType: string, language: string): string {
 
   const docName = typeNames[documentType] || 'document';
 
-  return `Ești un expert contabil român cu certificare CECCAR. Analizează următoarea ${docName} și extrage toate informațiile structurate.
+  return `Ești un expert contabil român cu certificare CECCAR și experiență de 15+ ani. Analizează următoarea ${docName} și extrage toate informațiile structurate.
 
 REGULI IMPORTANTE:
 1. Extrage EXACT valorile din document - nu aproxima și nu calcula
 2. Pentru CUI/CIF, caută formatul RO + cifre sau doar cifre (ex: RO12345678, 12345678)
 3. Data trebuie convertită la format YYYY-MM-DD
 4. Moneda implicită este RON dacă nu e specificată altfel
-5. Categorisează cheltuiala conform planului de conturi românesc
-6. Sugerează conturile contabile conform OMFP 1802/2014
-7. Evaluează deductibilitatea conform Codului Fiscal actualizat 2024-2025
+5. Categorisează cheltuiala conform planului de conturi românesc actualizat
+6. Sugerează conturile contabile conform OMFP 1802/2014 actualizat 2025
+7. Evaluează deductibilitatea conform Codului Fiscal actualizat 2025
 8. Pentru TVA, verifică dacă rata este 19%, 9% sau 5%
 9. Dacă un câmp nu poate fi extras, returnează null
 10. Identifică TOATE produsele/serviciile individuale în array-ul "items"
+11. Marchează risk_flags pentru: CUI lipsă, data > 90 zile, sumă > 10.000 RON fără justificare
 
-CONTEXT FISCAL ROMÂNESC:
-- TVA standard: 19%
-- TVA redusă: 9% (alimente, medicamente, turism)
-- TVA super-redusă: 5% (cărți, locuințe sociale)
-- Cheltuieli de protocol: deductibile 2% din profit brut
-- Cheltuieli deplasare: diurnă internă max 57.5 RON/zi
-- Cheltuieli auto: deductibile 50% sau 100% (cu foaie de parcurs)
+CATEGORII FISCALE ROMÂNEȘTI (Plan de Conturi 2025):
+- materiale_consumabile: 6021-6028 (materii prime, combustibil, piese, rechizite)
+- combustibil: 6022 (motorină, benzină, GPL auto)
+- servicii_IT: 628 (software, hosting, licențe, cloud)
+- servicii_profesionale: 622 (consultanță, audit, juridic, contabilitate)
+- utilități: 605 (electricitate, gaz, apă, internet)
+- transport: 624 (curierat, transport marfă, taxi)
+- chirii: 612 (chirii operaționale, leasing operațional)
+- echipamente_fixe: 2131-2133 (dacă > 2.500 RON → imobilizări)
+- protocol_reprezentare: 623 (masă, cadouri, evenimente) — LIMITA: 2% din profit brut
+- deplasari_cazare: 625 (hotel, diurnă, bilete) — diurnă internă max 57.5 RON/zi
+- telecomunicatii: 626 (telefon, internet mobil)
+- marketing_publicitate: 623.1 (ads, campanii, materiale promo)
+- mentenanta_reparatii: 611 (reparații, întreținere)
+- taxe_impozite: 635 (impozit clădiri, auto, teren)
+
+REGULI DEDUCTIBILITATE 2025:
+- TVA standard: 19% | TVA redusă: 9% (alimente, medicamente, turism) | TVA super-redusă: 5% (cărți, locuințe)
+- Cheltuieli protocol: deductibile max 2% din profit brut
+- Cheltuieli deplasare: diurnă internă max 57.5 RON/zi, externă conform HG
+- Cheltuieli auto: 50% deductibil (fără foaie de parcurs) sau 100% (cu foaie de parcurs)
+- Cheltuieli sponsorizare: deductibile max 0.75% din CA (min 20% din impozit pe profit)
+- Provizioane: nedeductibile, cu excepția celor reglementate
+- Amenzi: NICIODATĂ deductibile
+- Dobânzi: deductibile integral dacă grad îndatorare < 1
 
 Returnează DOAR JSON valid conform schemei furnizate.`;
 }
