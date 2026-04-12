@@ -1,6 +1,9 @@
 import { Download, Maximize2, BarChart3, PieChart, Table2, Swords, Target, FileText, FileSpreadsheet, Presentation, File } from 'lucide-react';
 import { ActionConfirmationCard } from './ActionConfirmationCard';
 import { TradingAnalysisArtifact, type TradingAnalysisData } from './TradingAnalysisArtifact';
+import { DeepResearchArtifact, type DeepResearchData } from './DeepResearchArtifact';
+import { CFOHealthArtifact } from './CFOHealthArtifact';
+import type { HealthScore } from '@/utils/cfoHealthScoring';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -24,7 +27,7 @@ import { AIStrategyResultsArtifact } from './AIStrategyResultsArtifact';
 import type { BusinessProfile, AIAnalysis } from '@/config/aiStrategyData';
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download' | 'action_confirmation' | 'trading_analysis';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'document_download' | 'action_confirmation' | 'trading_analysis' | 'deep_research' | 'cfo_health';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -74,6 +77,10 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       />;
     case 'trading_analysis':
       return <TradingAnalysisArtifact data={artifact.data as TradingAnalysisData} />;
+    case 'deep_research':
+      return <DeepResearchArtifact data={artifact.data as DeepResearchData} />;
+    case 'cfo_health':
+      return <CFOHealthArtifact data={artifact.data as HealthScore} />;
     default:
       return null;
   }
