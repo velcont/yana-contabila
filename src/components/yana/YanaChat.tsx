@@ -14,6 +14,7 @@ import { SourcesDisplay } from './SourcesDisplay';
 import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { cn } from '@/lib/utils';
 import { isTradingAnalysisQuery, buildTradingAnalysis } from '@/utils/trading/buildAnalysis';
+import { quickDiagnostic } from '@/utils/cfoHealthScoring';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
@@ -36,7 +37,7 @@ interface Message {
 }
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis' | 'deep_research' | 'cfo_health';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -476,6 +477,43 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
           });
         } catch (e) {
           console.error('Error building trading analysis:', e);
+        }
+      }
+
+      // 🆕 Deep Research — triggered by "cercetează X" or "research X"
+      const deepResearchMatch = content.match(/^(?:cercetează|cerceteaza|research|deep research)\s+(.+)/i);
+      if (deepResearchMatch) {
+        try {
+          const { data: researchResult, error: researchError } = await supabase.functions.invoke('deep-research', {
+            body: { question: deepResearchMatch[1].trim(), maxIterations: 2 },
+          });
+          if (!researchError && researchResult?.report) {
+            artifacts.push({
+              type: 'deep_research' as const,
+              data: researchResult,
+              title: `Cercetare: ${deepResearchMatch[1].trim().slice(0, 50)}`,
+            });
+          }
+        } catch (e) {
+          console.error('Deep research error:', e);
+        }
+      }
+
+      // 🆕 CFO Health Diagnostic — triggered on balance analysis with metadata
+      if (response.metadata && typeof response.metadata === 'object') {
+        const meta = response.metadata as Record<string, number>;
+        const hasFinancialData = meta.ca || meta.profit || meta.cheltuieli || meta.active_totale;
+        if (hasFinancialData) {
+          try {
+            const healthScore = quickDiagnostic(meta);
+            artifacts.push({
+              type: 'cfo_health' as const,
+              data: healthScore,
+              title: 'Diagnostic Financiar CFO',
+            });
+          } catch (e) {
+            console.error('CFO health error:', e);
+          }
         }
       }
 
