@@ -7467,6 +7467,7 @@ export type Database = {
           access_count: number | null
           content: string
           created_at: string | null
+          embedding: string | null
           embedding_key: string | null
           id: string
           last_accessed_at: string | null
@@ -7481,6 +7482,7 @@ export type Database = {
           access_count?: number | null
           content: string
           created_at?: string | null
+          embedding?: string | null
           embedding_key?: string | null
           id?: string
           last_accessed_at?: string | null
@@ -7495,6 +7497,7 @@ export type Database = {
           access_count?: number | null
           content?: string
           created_at?: string | null
+          embedding?: string | null
           embedding_key?: string | null
           id?: string
           last_accessed_at?: string | null
@@ -8228,6 +8231,24 @@ export type Database = {
       log_security_event: {
         Args: { event_details?: Json; event_type: string }
         Returns: undefined
+      }
+      match_semantic_memories: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          match_user_id: string
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          context: Json
+          created_at: string
+          id: string
+          importance_score: number
+          memory_type: string
+          similarity: number
+          user_id: string
+        }[]
       }
       track_user_context_evolution: {
         Args: {
