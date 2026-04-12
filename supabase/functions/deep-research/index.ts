@@ -25,7 +25,7 @@ interface ResearchStep {
  */
 
 async function decompose(question: string, lovableKey: string): Promise<string[]> {
-  const res = await fetch("https://ai.lovable.dev/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${lovableKey}`,
@@ -93,7 +93,7 @@ async function identifyGaps(
     .map((s, i) => `[${i + 1}] ${s.query}\n${s.findings.slice(0, 500)}`)
     .join("\n\n");
 
-  const res = await fetch("https://ai.lovable.dev/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${lovableKey}`,
@@ -140,7 +140,7 @@ async function synthesize(
 
   const allSources = [...new Set(steps.flatMap((s) => s.sources))];
 
-  const res = await fetch("https://ai.lovable.dev/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${lovableKey}`,

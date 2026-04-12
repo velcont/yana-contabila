@@ -19,7 +19,7 @@ const corsHeaders = {
 async function generateEmbedding(text: string, lovableKey: string): Promise<number[]> {
   // Use Gemini to generate a pseudo-embedding via structured output
   // Real embeddings would use a dedicated embedding model
-  const res = await fetch("https://ai.lovable.dev/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${lovableKey}`,
