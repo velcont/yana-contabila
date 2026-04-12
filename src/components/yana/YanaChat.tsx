@@ -14,6 +14,7 @@ import { SourcesDisplay } from './SourcesDisplay';
 import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { cn } from '@/lib/utils';
 import { isTradingAnalysisQuery, buildTradingAnalysis } from '@/utils/trading/buildAnalysis';
+import { quickDiagnostic } from '@/utils/cfoHealthScoring';
 import { toast } from 'sonner';
 import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
@@ -36,7 +37,7 @@ interface Message {
 }
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis' | 'deep_research' | 'cfo_health';
   data: unknown;
   title?: string;
   downloadUrl?: string;
