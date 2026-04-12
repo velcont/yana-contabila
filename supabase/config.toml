@@ -260,3 +260,6 @@ verify_jwt = false
 
 [functions.deep-research]
 verify_jwt = true
+
+[functions.semantic-search]
+verify_jwt = true
