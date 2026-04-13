@@ -540,6 +540,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         } catch (e) {
           console.error('Bilant generation error:', e);
         }
+      }
 
       // 🆕 CFO Health Diagnostic — triggered on balance analysis with metadata
       if (response.metadata && typeof response.metadata === 'object') {
