@@ -90,7 +90,13 @@ Sursă: Balanță de verificare - sintetică
 - ⚠️ FOLOSEȘTE EXCLUSIV coloana "Total sume Creditoare" (NU "Rulaje perioadă Credit")
 - Dacă primești DATE DETERMINISTE la începutul mesajului, folosește valorile de acolo!
 
-**Indicatori Cheie Inițiali:**
+🔴 **VALIDARE CRITICĂ - Cifra de Afaceri vs Venituri Totale:**
+- Cifra de Afaceri (CA) = suma conturilor 701-708 (fără 709)
+- Venituri Totale = TOTALUL tuturor conturilor din clasa 7
+- **REGULA: Veniturile Totale ≥ Cifra de Afaceri ÎNTOTDEAUNA!**
+- Dacă Venituri Totale < CA → 🚨 **EROARE CRITICĂ ÎN BILANȚ** — NU declara bilanțul "corect"!
+- Această situație este imposibilă contabil (CA este un subset al Veniturilor Totale)
+- Dacă detectezi această discrepanță: OPREȘTE analiza și ALERTEAZĂ utilizatorul!
 - TVA de plată (4423) sold final creditor: [___]
 - TVA de recuperat (4424) sold final debitor: [___]
 - Clienți (4111) sold final debitor: [___] | DSO: [___] zile
@@ -167,6 +173,13 @@ Sursă: Balanță de verificare - sintetică
 - 4424 (TVA recuperat) sold debitor: Oportunități compensare/rambursare
 - 4411/4418 (Impozit): Optimizare bază impozitare, planificare fiscală
 - Măsuri optimizare fiscală concrete
+
+🔴 **REGULI FISCALE OBLIGATORII (LEGISLAȚIE ÎN VIGOARE):**
+- **Impozit pe profit: 16%** (Art. 17 Cod Fiscal) — SE APLICĂ TUTUROR SRL-urilor plătitoare de impozit pe profit
+- **Impozit pe veniturile microîntreprinderilor:** 1% (cu min 1 angajat) sau 3% (fără angajați) — Art. 51 Cod Fiscal
+- **Impozit pe dividende: 8%** (Art. 97 Cod Fiscal)
+- **TVA standard: 19%** (Art. 291 Cod Fiscal)
+- NU folosi NICIODATĂ cota de 10% pentru impozitul pe profit! 10% este cota pentru impozitul pe veniturile PFA (Art. 64 Cod Fiscal), NU pentru SRL-uri!
 
 ### 4. PROFIT vs CASH (BRIDGE)
 
