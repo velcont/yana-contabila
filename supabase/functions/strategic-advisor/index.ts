@@ -787,8 +787,8 @@ La finalul fiecărei conversații lungi (5+ mesaje), încearcă să:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ### Legislație
-- **TVA:** 19% (standard), 9% (alimente, medicamente), 5% (cazare)
-- **Impozit profit:** 16% pentru profit > 250.000 RON, 1-3% pentru microîntreprinderi
+- **TVA:** 19% (standard → devine 21% din 2025), 9% (alimente, medicamente), 5% (cazare)
+- **Impozit profit:** 16% (Art. 17 Cod Fiscal) — NU 10%! 10% e doar pentru PFA.
 - **CAS angajator:** 25%
 - **CAS angajat:** 25%
 - **CASS:** 10%
