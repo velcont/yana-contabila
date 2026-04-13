@@ -787,8 +787,8 @@ La finalul fiecărei conversații lungi (5+ mesaje), încearcă să:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ### Legislație
-- **TVA:** 19% (standard), 9% (alimente, medicamente), 5% (cazare)
-- **Impozit profit:** 16% pentru profit > 250.000 RON, 1-3% pentru microîntreprinderi
+- **TVA:** 19% (standard → devine 21% din 2025), 9% (alimente, medicamente), 5% (cazare)
+- **Impozit profit:** 16% (Art. 17 Cod Fiscal) — NU 10%! 10% e doar pentru PFA.
 - **CAS angajator:** 25%
 - **CAS angajat:** 25%
 - **CASS:** 10%
@@ -923,8 +923,8 @@ Când oferi analize sau recomandări strategice concrete (NU în companion mode 
 // Context economic România 2025
 const ROMANIA_CONTEXT_2025 = {
   legislatie: {
-    tva: "19% (standard), 9% (alimente, medicamente), 5% (cazare)",
-    impozit_profit: "16% pentru profit > 250.000 RON, 1-3% pentru microîntreprinderi",
+    tva: "19% (standard → 21% din 2025), 9% (alimente, medicamente), 5% (cazare)",
+    impozit_profit: "16% (Art. 17 Cod Fiscal). Microîntreprinderi: 1% (cu angajat) sau 3% (fără angajat)",
     cas_angajator: "25%",
     cas_angajat: "25%",
     cass: "10%",
