@@ -133,6 +133,23 @@ export function extractAllAccounts(balanceText: string): {
   console.log(`✅ Extrase ${class6to7.length} conturi din clasele 6-7`);
   console.log(`⚠️ Detectate ${anomalies.length} anomalii`);
   
+  // 🔴 VALIDARE CRITICĂ: CA ≤ Venituri Totale
+  const class7Accounts = class6to7.filter(a => a.accountCode.startsWith('7'));
+  const caAccounts = class7Accounts.filter(a => {
+    const code = parseInt(a.accountCode);
+    return code >= 701 && code <= 708;
+  });
+  const totalVenituri = class7Accounts.reduce((sum, a) => sum + a.totalCredit, 0);
+  const cifraAfaceri = caAccounts.reduce((sum, a) => sum + a.totalCredit, 0);
+  
+  if (cifraAfaceri > 0 && totalVenituri > 0 && totalVenituri < cifraAfaceri) {
+    anomalies.unshift(
+      `🚨 EROARE CRITICĂ BILANȚ: Cifra de Afaceri (${cifraAfaceri.toFixed(2)} RON) este MAI MARE decât ` +
+      `Veniturile Totale (${totalVenituri.toFixed(2)} RON). Aceasta este IMPOSIBIL contabil — ` +
+      `CA este un subset al Veniturilor Totale. NU DEPUNEȚI acest bilanț! Verificați cu contabilul.`
+    );
+  }
+
   return { class1to5, class6to7, anomalies };
 }
 
