@@ -82,6 +82,8 @@ export function ArtifactRenderer({ artifact }: ArtifactRendererProps) {
       return <DeepResearchArtifact data={artifact.data as DeepResearchData} />;
     case 'cfo_health':
       return <CFOHealthArtifact data={artifact.data as HealthScore} />;
+    case 'eu_grants':
+      return <EUGrantsArtifact data={artifact.data as EUGrantData} />;
     default:
       return null;
   }
