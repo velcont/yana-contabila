@@ -37,7 +37,7 @@ interface Message {
 }
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis' | 'deep_research' | 'cfo_health' | 'eu_grants';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis' | 'deep_research' | 'cfo_health' | 'eu_grants' | 'bilant';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -515,6 +515,30 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
           }
         } catch (e) {
           console.error('EU grants scanner error:', e);
+        }
+      }
+
+      // 🆕 Bilanț Generator — triggered by "bilanț", "genereaza bilant", "situatii financiare"
+      const bilantMatch = content.match(/(?:bilan[tț](?!\s*(?:de\s+verificare|contabil[aă]))|situa[tț]ii\s*financiare|genereaz[aă]\s*bilan[tț]|f10\b|formular(?:ul)?\s*10)/i);
+      if (bilantMatch && balanceContext) {
+        try {
+          const { data: bilantResult, error: bilantError } = await supabase.functions.invoke('generate-bilant', {
+            body: { 
+              balanceData: balanceContext,
+              companyName: activeContext?.companyName || '',
+              period: '',
+              cui: '',
+            },
+          });
+          if (!bilantError && bilantResult?.bilant) {
+            artifacts.push({
+              type: 'bilant' as const,
+              data: bilantResult,
+              title: `Bilanț Contabil — ${bilantResult.companyName || 'Firmă'}`,
+            });
+          }
+        } catch (e) {
+          console.error('Bilant generation error:', e);
         }
       }
 
