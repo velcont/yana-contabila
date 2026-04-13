@@ -499,6 +499,25 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         }
       }
 
+      // 🆕 EU Grants Scanner — triggered by "fonduri europene", "grants", "finanțare"
+      const grantsMatch = content.match(/(?:fonduri\s*europene|grants?|finan[tț]are|fonduri\s*nerambursabile|PNRR|accesare\s*fonduri)/i);
+      if (grantsMatch) {
+        try {
+          const { data: grantsResult, error: grantsError } = await supabase.functions.invoke('eu-grants-scanner', {
+            body: { industry: null },
+          });
+          if (!grantsError && grantsResult?.grants?.length > 0) {
+            artifacts.push({
+              type: 'eu_grants' as const,
+              data: grantsResult,
+              title: `Fonduri Europene — ${grantsResult.grants.length} oportunități`,
+            });
+          }
+        } catch (e) {
+          console.error('EU grants scanner error:', e);
+        }
+      }
+
       // 🆕 CFO Health Diagnostic — triggered on balance analysis with metadata
       if (response.metadata && typeof response.metadata === 'object') {
         const meta = response.metadata as Record<string, number>;
