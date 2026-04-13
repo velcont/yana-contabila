@@ -133,12 +133,33 @@ const Landing = () => {
         
           {/* ===== HERO ===== */}
           <section className="text-center space-y-5 pt-6 sm:pt-16">
-            <h1 className="text-4xl sm:text-4xl md:text-5xl font-bold leading-tight">
-              AI-ul tău de business.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+              Știi exact cât câștigi?
+              <span className="block text-primary mt-1">Sau doar speri?</span>
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-md mx-auto">
-              Analizează cifre, dă sfaturi și nu uită nimic.
+            <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
+              YANA îți analizează firma în 2 minute și îți spune 
+              ce nu-ți spune nimeni: unde pierzi bani și ce poți face.
             </p>
+
+            {/* Primary CTA — Diagnostic (instant value, no signup) */}
+            <Button 
+              size="lg" 
+              className="w-full text-base sm:text-lg px-8 py-7 sm:py-6 shadow-2xl hover:shadow-primary/25 transition-all min-h-[56px]"
+              onClick={handleDiagnosticClick}
+            >
+              🔍 Fă-ți diagnosticul gratuit — 2 minute
+            </Button>
+
+            {/* Secondary CTA */}
+            <Button 
+              variant="outline"
+              size="lg" 
+              className="w-full text-sm py-5 min-h-[48px]"
+              onClick={handlePrimaryCTA}
+            >
+              Încearcă gratuit 30 zile — fără card
+            </Button>
 
             {/* Inline social proof */}
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -146,29 +167,12 @@ const Landing = () => {
               <span><strong className="text-foreground">177+</strong> antreprenori folosesc YANA</span>
             </div>
 
-            <Button 
-              size="lg" 
-              className="w-full text-base sm:text-lg px-8 py-7 sm:py-6 shadow-2xl hover:shadow-primary/25 transition-all min-h-[56px]"
-              onClick={handlePrimaryCTA}
+            <button 
+              onClick={handleLoginCTA} 
+              className="text-xs text-muted-foreground/60 hover:text-primary transition-colors underline underline-offset-4"
             >
-              Încearcă gratuit — 30 zile, fără card
-            </Button>
-
-            <div className="flex items-center justify-center gap-4 pt-1">
-              <button
-                onClick={handleDiagnosticClick}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
-              >
-                Diagnostic rapid gratuit
-              </button>
-              <span className="text-muted-foreground/30">•</span>
-              <button 
-                onClick={handleLoginCTA} 
-                className="text-sm text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
-              >
-                Am deja cont
-              </button>
-            </div>
+              Am deja cont
+            </button>
           </section>
 
           {/* ===== SOCIAL PROOF (moved up — before pain points) ===== */}

@@ -19,7 +19,7 @@ export const LandingStickyMobileCTA = () => {
     <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-sm border-t border-border/50 px-4 py-3 safe-area-pb">
       <Button
         size="lg"
-        className="w-full text-base py-5 min-h-[52px] shadow-lg animate-pulse hover:animate-none"
+        className="w-full text-base py-5 min-h-[52px] shadow-lg"
         onClick={() => {
           analytics.landingCtaClick('primary', 'sticky_mobile');
           navigate('/auth?redirect=/yana');
