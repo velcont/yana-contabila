@@ -37,7 +37,7 @@ interface Message {
 }
 
 interface Artifact {
-  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis' | 'deep_research' | 'cfo_health';
+  type: 'radar_chart' | 'bar_chart' | 'line_chart' | 'table' | 'download' | 'document_download' | 'war_room' | 'battle_plan' | 'ai_strategy_form' | 'ai_strategy_results' | 'trading_analysis' | 'deep_research' | 'cfo_health' | 'eu_grants';
   data: unknown;
   title?: string;
   downloadUrl?: string;
@@ -496,6 +496,25 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
           }
         } catch (e) {
           console.error('Deep research error:', e);
+        }
+      }
+
+      // 🆕 EU Grants Scanner — triggered by "fonduri europene", "grants", "finanțare"
+      const grantsMatch = content.match(/(?:fonduri\s*europene|grants?|finan[tț]are|fonduri\s*nerambursabile|PNRR|accesare\s*fonduri)/i);
+      if (grantsMatch) {
+        try {
+          const { data: grantsResult, error: grantsError } = await supabase.functions.invoke('eu-grants-scanner', {
+            body: { industry: null },
+          });
+          if (!grantsError && grantsResult?.grants?.length > 0) {
+            artifacts.push({
+              type: 'eu_grants' as const,
+              data: grantsResult,
+              title: `Fonduri Europene — ${grantsResult.grants.length} oportunități`,
+            });
+          }
+        } catch (e) {
+          console.error('EU grants scanner error:', e);
         }
       }
 
