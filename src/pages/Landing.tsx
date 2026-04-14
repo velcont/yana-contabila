@@ -144,16 +144,10 @@ const Landing = () => {
               ce nu-ți spune nimeni: unde pierzi bani și ce poți face.
             </p>
 
-            {/* Primary CTA — Diagnostic (instant value, no signup) */}
-            <Button 
-              size="lg" 
-              className="w-full text-base sm:text-lg px-8 py-7 sm:py-6 shadow-2xl hover:shadow-primary/25 transition-all min-h-[56px]"
-              onClick={handleDiagnosticClick}
-            >
-              🔍 Fă-ți diagnosticul gratuit — 2 minute
-            </Button>
+            {/* Primary — Inline Diagnostic (instant value, no signup) */}
+            <LandingHeroDiagnostic />
 
-            {/* Secondary CTA */}
+            {/* Secondary CTA — signup (pushed below diagnostic) */}
             <Button 
               variant="outline"
               size="lg" 
