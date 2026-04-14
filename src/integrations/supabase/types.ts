@@ -6779,6 +6779,60 @@ export type Database = {
           },
         ]
       }
+      yana_meta_learning: {
+        Row: {
+          blind_spots_detected: string[] | null
+          capacity_index: number | null
+          coherence_score: number | null
+          corrections_by_domain: Json
+          created_at: string
+          entropy_delta: number | null
+          evaluation_period: string
+          id: string
+          learning_goals_generated: Json | null
+          meta_insights: string | null
+          rollback_triggered: boolean
+          safety_envelope: Json | null
+          safety_violations: number
+          total_corrections: number
+          updated_at: string
+        }
+        Insert: {
+          blind_spots_detected?: string[] | null
+          capacity_index?: number | null
+          coherence_score?: number | null
+          corrections_by_domain?: Json
+          created_at?: string
+          entropy_delta?: number | null
+          evaluation_period: string
+          id?: string
+          learning_goals_generated?: Json | null
+          meta_insights?: string | null
+          rollback_triggered?: boolean
+          safety_envelope?: Json | null
+          safety_violations?: number
+          total_corrections?: number
+          updated_at?: string
+        }
+        Update: {
+          blind_spots_detected?: string[] | null
+          capacity_index?: number | null
+          coherence_score?: number | null
+          corrections_by_domain?: Json
+          created_at?: string
+          entropy_delta?: number | null
+          evaluation_period?: string
+          id?: string
+          learning_goals_generated?: Json | null
+          meta_insights?: string | null
+          rollback_triggered?: boolean
+          safety_envelope?: Json | null
+          safety_violations?: number
+          total_corrections?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       yana_observations: {
         Row: {
           action_taken: string | null
