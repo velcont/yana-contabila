@@ -112,6 +112,7 @@ const Landing = () => {
     setShowDiagnostic(true);
   };
 
+
   const handlePrimaryCTA = () => {
     analytics.landingCtaClick('primary', 'hero');
     navigate('/auth?redirect=/yana');
