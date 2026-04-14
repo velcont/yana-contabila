@@ -14,6 +14,7 @@ import { LandingSocialProof } from '@/components/landing/LandingSocialProof';
 import { LandingAIProviders } from '@/components/landing/LandingAIProviders';
 import { LandingOfficeAnnouncement } from '@/components/landing/LandingOfficeAnnouncement';
 import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
+import { LandingHeroDiagnostic } from '@/components/landing/LandingHeroDiagnostic';
 import { Users } from 'lucide-react';
 
 const Landing = () => {
