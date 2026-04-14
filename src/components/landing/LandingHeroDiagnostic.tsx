@@ -125,7 +125,7 @@ export const LandingHeroDiagnostic = () => {
   if (diagnostic) {
     return (
       <div className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 space-y-3">
-        <DiagnosticResult diagnostic={diagnostic} />
+        <DiagnosticResult diagnostic={diagnostic} onOpenDemo={() => {}} onClose={reset} />
         <Button variant="ghost" size="sm" onClick={reset} className="w-full text-xs">
           Refă diagnosticul
         </Button>
