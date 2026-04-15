@@ -15,6 +15,7 @@ import { LandingAIProviders } from '@/components/landing/LandingAIProviders';
 import { LandingOfficeAnnouncement } from '@/components/landing/LandingOfficeAnnouncement';
 import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
 import { LandingHeroDiagnostic } from '@/components/landing/LandingHeroDiagnostic';
+import { LandingFinalUltimatum } from '@/components/landing/LandingFinalUltimatum';
 import { Users } from 'lucide-react';
 
 const Landing = () => {
@@ -107,12 +108,6 @@ const Landing = () => {
     return () => { document.head.removeChild(script); };
   }, []);
 
-  const handleDiagnosticClick = () => {
-    analytics.landingCtaClick('secondary', 'hero');
-    setShowDiagnostic(true);
-  };
-
-
   const handlePrimaryCTA = () => {
     analytics.landingCtaClick('primary', 'hero');
     navigate('/auth?redirect=/yana');
@@ -133,28 +128,28 @@ const Landing = () => {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
         <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
-          {/* ===== HERO ===== */}
+          {/* ===== HERO — Atacul frontal ===== */}
           <section className="text-center space-y-5 pt-6 sm:pt-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-              Știi exact cât câștigi?
-              <span className="block text-primary mt-1">Sau doar speri?</span>
+              Contabilul tău nu te minte.
+              <span className="block text-primary mt-1">Doar nu-i pasă.</span>
             </h1>
             <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-              YANA îți analizează firma în 2 minute și îți spune 
-              ce nu-ți spune nimeni: unde pierzi bani și ce poți face.
+              YANA e singurul care îți spune adevărul
+              despre banii tăi. <strong className="text-foreground">În 2 minute.</strong>
             </p>
 
-            {/* Primary — Inline Diagnostic (instant value, no signup) */}
+            {/* Primary — Inline Diagnostic (instant value) */}
             <LandingHeroDiagnostic />
 
-            {/* Secondary CTA — signup (pushed below diagnostic) */}
+            {/* Secondary CTA */}
             <Button 
               variant="outline"
               size="lg" 
               className="w-full text-sm py-5 min-h-[48px]"
               onClick={handlePrimaryCTA}
             >
-              Încearcă gratuit 30 zile — fără card
+              Află adevărul — gratuit
             </Button>
 
             {/* Inline social proof */}
@@ -171,26 +166,29 @@ const Landing = () => {
             </button>
           </section>
 
-          {/* ===== SOCIAL PROOF (moved up — before pain points) ===== */}
-          <LandingSocialProof />
-
-          {/* ===== DURERI REALE ===== */}
+          {/* ===== PAIN POINTS — Dark dramatic ===== */}
           <LandingPainPoints />
 
-          {/* ===== SOLUȚII (ce face Yana) ===== */}
+          {/* ===== SOCIAL PROOF — Testimoniale agresive ===== */}
+          <LandingSocialProof />
+
+          {/* ===== BENEFITS — Tabel comparativ polarizant ===== */}
           <LandingBenefits />
 
-          {/* ===== NOU: SUITA OFFICE ===== */}
+          {/* ===== OFFICE ANNOUNCEMENT ===== */}
           <LandingOfficeAnnouncement />
 
           {/* ===== CUM FUNCȚIONEAZĂ ===== */}
           <LandingHowItWorks />
 
-          {/* ===== DE CE FUNCȚIONEAZĂ (AI providers) ===== */}
+          {/* ===== AI PROVIDERS ===== */}
           <LandingAIProviders />
 
-          {/* ===== PRICING ===== */}
+          {/* ===== PRICING — Framing pierdere ===== */}
           <LandingPricing />
+
+          {/* ===== ULTIMATUM FINAL ===== */}
+          <LandingFinalUltimatum />
 
           {/* ===== TRUST BADGES ===== */}
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">

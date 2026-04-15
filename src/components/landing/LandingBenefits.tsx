@@ -1,41 +1,40 @@
-import { FileSpreadsheet, Brain, BellRing } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
-const benefits = [
-  {
-    icon: FileSpreadsheet,
-    title: 'Vezi instant unde pierzi bani',
-    description: 'Încarcă balanța și primești un raport clar: unde se duc banii, ce riscuri ai, ce poți face concret.',
-  },
-  {
-    icon: Brain,
-    title: 'Ia decizii cu cineva care vede tot tabloul',
-    description: 'Simulări de scenarii, plan de acțiune pas cu pas, predicții bazate pe cifrele tale reale.',
-  },
-  {
-    icon: BellRing,
-    title: 'Nu mai repeta aceleași greșeli',
-    description: 'Yana ține minte totul. Te atenționează înainte să greșești din nou. Revine cu idei fără să-i ceri.',
-  },
+const rows = [
+  { without: 'Sperăm că e profit', with: 'Știm exact cifra' },
+  { without: 'Decidem pe gut feeling', with: 'Decidem pe date' },
+  { without: 'Greșelile se repetă', with: 'Yana ține minte totul' },
+  { without: 'Nimeni nu te avertizează', with: 'Alerte înainte de criză' },
 ];
 
 export const LandingBenefits = () => {
   return (
-    <section className="space-y-6">
+    <section className="space-y-5">
       <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">
-        Cum te ajută Yana concret
+        Diferența e simplă
       </h2>
-      <div className="grid gap-4">
-        {benefits.map((b, i) => (
-          <div
-            key={i}
-            className="flex items-start gap-4 p-4 sm:p-5 rounded-xl border border-border/50 bg-card hover:border-primary/30 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <b.icon className="w-5 h-5 text-primary" />
+
+      <div className="rounded-2xl border border-border/50 overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-2">
+          <div className="bg-destructive/10 px-4 py-3 text-center">
+            <span className="text-xs font-bold tracking-widest uppercase text-destructive">Fără YANA</span>
+          </div>
+          <div className="bg-primary/10 px-4 py-3 text-center">
+            <span className="text-xs font-bold tracking-widest uppercase text-primary">Cu YANA</span>
+          </div>
+        </div>
+
+        {/* Rows */}
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-2 border-t border-border/30">
+            <div className="flex items-center gap-2 px-4 py-3 bg-destructive/5">
+              <X className="w-4 h-4 text-destructive flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-muted-foreground">{r.without}</span>
             </div>
-            <div className="space-y-1 min-w-0">
-              <h3 className="font-semibold text-foreground text-sm sm:text-base">{b.title}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{b.description}</p>
+            <div className="flex items-center gap-2 px-4 py-3">
+              <Check className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-foreground font-medium">{r.with}</span>
             </div>
           </div>
         ))}

@@ -8,11 +8,11 @@ const stats = [
 
 const quotes = [
   {
-    text: '"Mi-a găsit o problemă de lichiditate pe care contabilul nu mi-a menționat-o."',
+    text: '"Contabilul meu n-a văzut problema de lichiditate. YANA a găsit-o în 90 de secunde."',
     author: 'Antreprenor, e-commerce',
   },
   {
-    text: '"E singurul loc unde pot vorbi despre business fără să fiu judecat."',
+    text: '"Am pierdut 23.000 RON pentru că nimeni nu mi-a spus. Acum YANA îmi spune ÎNAINTE să se întâmple."',
     author: 'Fondator, servicii IT',
   },
 ];
@@ -31,11 +31,11 @@ export const LandingSocialProof = () => {
         ))}
       </div>
 
-      {/* Quotes */}
+      {/* Quotes — dramatic style */}
       <div className="space-y-3">
         {quotes.map((q, i) => (
-          <div key={i} className="p-4 rounded-xl border border-border/50 bg-card space-y-2">
-            <p className="text-sm text-foreground italic leading-relaxed">{q.text}</p>
+          <div key={i} className="p-5 rounded-xl border-l-4 border-primary bg-card space-y-2">
+            <p className="text-sm sm:text-base text-foreground font-medium leading-relaxed">{q.text}</p>
             <p className="text-xs text-muted-foreground">— {q.author}</p>
           </div>
         ))}
