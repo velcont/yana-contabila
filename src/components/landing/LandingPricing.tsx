@@ -22,10 +22,16 @@ export const LandingPricing = () => {
   };
 
   return (
-    <section className="space-y-4">
-      <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">
-        Un singur plan. Tot inclus.
-      </h2>
+    <section className="space-y-5">
+      <div className="text-center space-y-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+          Cât te costă să NU știi?
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          O decizie greșită = zeci de mii de RON.<br />
+          YANA = <strong className="text-foreground">49 RON/lună</strong>. Matematica e simplă.
+        </p>
+      </div>
 
       <div className="rounded-2xl border-2 border-primary/40 bg-card p-6 sm:p-8 space-y-5">
         <div className="text-center space-y-1">
@@ -50,7 +56,7 @@ export const LandingPricing = () => {
           className="w-full text-base py-6 min-h-[52px]"
           onClick={handleCTA}
         >
-          Începe gratuit — 30 de zile
+          Oprește pierderile — gratuit 30 zile
         </Button>
       </div>
     </section>
