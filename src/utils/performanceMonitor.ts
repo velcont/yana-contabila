@@ -45,20 +45,22 @@ class PerformanceMonitor {
         console.warn('FID observer not supported');
       }
 
-      // Monitor long tasks
+      // Monitor long tasks - only warn for truly problematic ones (>200ms)
+      // and only in development to avoid console noise in production
       try {
         const longTaskObserver = new PerformanceObserver((list) => {
+          if (import.meta.env.MODE !== 'development') return;
           const entries = list.getEntries();
           entries.forEach((entry) => {
-            if (entry.duration > 50) {
-              console.warn('⚠️ Long task detected:', entry.duration, 'ms');
+            if (entry.duration > 200) {
+              console.warn('⚠️ Long task detected:', Math.round(entry.duration), 'ms');
             }
           });
         });
         longTaskObserver.observe({ entryTypes: ['longtask'] });
         this.observers.push(longTaskObserver);
       } catch (e) {
-        console.warn('Long task observer not supported');
+        // Long task observer not supported
       }
     }
   }
