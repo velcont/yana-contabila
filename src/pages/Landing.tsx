@@ -115,7 +115,7 @@ const Landing = () => {
 
   const handleLoginCTA = () => {
     analytics.landingCtaClick('login', 'hero');
-    navigate('/auth');
+    navigate('/auth?mode=login');
   };
 
   return (

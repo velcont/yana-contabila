@@ -16,6 +16,9 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const isMarketplaceEntry = searchParams.get('ref') === 'marketplace';
   
+  // Explicit mode param has priority (e.g. ?mode=login from "Am deja cont" button)
+  const explicitMode = searchParams.get('mode');
+  
   // Auto-detect if coming from landing/ads → default to signup
   const comingFromLanding = document.referrer.includes('velcont.com') || 
     document.referrer.includes('lovable.app') ||
@@ -33,7 +36,10 @@ const Auth = () => {
   };
   
   const [isInitializing, setIsInitializing] = useState(() => detectInitialResetMode());
-  const [isLogin, setIsLogin] = useState(!comingFromLanding);
+  // Priority: explicit ?mode=login → login; ?mode=signup → signup; else auto-detect
+  const [isLogin, setIsLogin] = useState(
+    explicitMode === 'login' ? true : explicitMode === 'signup' ? false : !comingFromLanding
+  );
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(() => detectInitialResetMode());
   const [email, setEmail] = useState('');
