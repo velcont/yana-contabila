@@ -3,13 +3,33 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from '@/utils/versionRefresh';
 
-// Helper pentru logging autentificare - async, non-blocant
+// Dedup guard: previne logarea multiplă a aceluiași eveniment auth
+const _authLogDedup = new Map<string, number>();
+const AUTH_LOG_DEDUP_MS = 5000; // 5 secunde dedup window
+
+// Helper pentru logging autentificare - async, non-blocant, cu dedup
 const logAuthEvent = async (
   eventType: 'AUTH_LOGIN' | 'AUTH_SESSION_RESTORED' | 'AUTH_TOKEN_REFRESH',
   userId: string | null,
   userEmail: string | null,
   metadata: Record<string, unknown>
 ) => {
+  // Dedup: nu loga același eveniment de mai multe ori în 5 secunde
+  const dedupKey = `${eventType}_${userId}`;
+  const lastLogged = _authLogDedup.get(dedupKey);
+  const now = Date.now();
+  if (lastLogged && now - lastLogged < AUTH_LOG_DEDUP_MS) {
+    return; // Skip duplicate
+  }
+  _authLogDedup.set(dedupKey, now);
+  
+  // Cleanup vechi entries
+  if (_authLogDedup.size > 20) {
+    for (const [key, ts] of _authLogDedup) {
+      if (now - ts > AUTH_LOG_DEDUP_MS * 2) _authLogDedup.delete(key);
+    }
+  }
+
   try {
     await supabase.from('audit_logs').insert({
       user_id: userId,
@@ -26,7 +46,6 @@ const logAuthEvent = async (
     console.log(`[AuthLogging] ${eventType} logged for ${userEmail}`);
   } catch (error) {
     console.warn('[AuthLogging] Failed to log event:', error);
-    // Nu blocăm autentificarea!
   }
 };
 
