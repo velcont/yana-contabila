@@ -433,130 +433,86 @@ const Auth = () => {
           const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;
 
           if (isAlreadyReg) {
-            // 1) Încearcă autentificarea cu parola introdusă
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
+            // SECURITY FIX: NU mai încercăm auto-signin cu parola introdusă (privacy leak +
+            // permitea oricui să verifice dacă un email există cu o parolă oarecare).
+            // În loc, comutăm la login și informăm utilizatorul.
+            toast({
+              title: 'Acest email are deja cont',
+              description: 'Te rugăm să te autentifici. Dacă ai uitat parola, folosește "Am uitat parola".',
             });
-
-            if (!signInError && signInData?.user) {
-              // 2) Am autentificat – aplicăm aceleași update-uri de profil și tracking termeni
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                try {
-                  await supabase.functions.invoke('track-terms-acceptance', {
-                    body: {
-                      userId: user.id,
-                      email: user.email,
-                      termsVersion: '1.0'
-                    }
-                  });
-                } catch (trackError) {
-                  logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_existing_user' });
-                }
-
-                await supabase
-                  .from('profiles')
-                  .update({
-                    subscription_type: 'entrepreneur',
-                    account_type_selected: true,
-                    terms_accepted: true,
-                    terms_accepted_at: new Date().toISOString()
-                  })
-                  .eq('id', user.id);
-              }
-
-              toast({
-                title: 'Cont existent – autentificat',
-                description: 'Te-am autentificat cu succes!',
-              });
-
-              const redirectTo = searchParams.get('redirect');
-              navigate(redirectTo || '/yana');
-              return;
-            } else {
-              // 3) Parola nu e corectă – trimitem automat email de resetare
-              try {
-                await supabase.functions.invoke('send-reset-password', { body: { email } });
-              } catch (e) {
-                logError(e instanceof Error ? e : new Error('Auto reset email error'), { context: 'auto_password_reset', email });
-              }
-
-              toast({
-                title: 'Email deja înregistrat',
-                description: 'Ți-am trimis un link de resetare a parolei. După autentificare, vom seta contul conform selecției tale.',
-              });
-
-              // Comută la login după reset
-              setIsForgotPassword(false);
-              setIsLogin(true);
-              return;
-            }
+            setIsLogin(true);
+            setIsForgotPassword(false);
+            return;
           }
 
           // Alte erori – propagă
           throw signUpResult.error;
         }
-        
-        // Update profile with account type and terms acceptance
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          console.log('🟡 [AUTH] User created, verifying profile update for accountType:', accountType);
-          
-          // Track terms acceptance with IP and user agent
-          try {
-            await supabase.functions.invoke('track-terms-acceptance', {
-              body: {
-                userId: user.id,
-                email: user.email,
-                termsVersion: '1.0'
-              }
-            });
-          } catch (trackError) {
-            logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_new_user' });
-            // Don't block registration if tracking fails
-          }
 
-          const { data: profileUpdate, error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              subscription_type: accountType,
-              account_type_selected: true,
-              terms_accepted: true,
-              terms_accepted_at: new Date().toISOString()
-            })
-            .eq('id', user.id)
-            .select();
-            
-          console.log('🟡 [AUTH] Profile update result:', profileUpdate, 'Error:', updateError);
-          
-          // Verify the profile was updated correctly
-          const { data: verifyProfile } = await supabase
-            .from('profiles')
-            .select('subscription_type, account_type_selected')
-            .eq('id', user.id)
-            .single();
-            
-          console.log('🟡 [AUTH] Profile verification after update:', verifyProfile);
+        // Cu auto-confirm DEZACTIVAT, după signUp NU avem sesiune până la confirmarea emailului.
+        // Verificăm dacă există sesiune; dacă nu, afișăm mesaj de verificare și oprim flow-ul.
+        const { data: { session: postSignupSession } } = await supabase.auth.getSession();
+
+        if (!postSignupSession) {
+          // Email confirmation flow – fără sesiune, nu putem actualiza profilul aici.
+          // Trigger-ul handle_new_user a creat profilul cu metadata corectă din signUp.
+          toast({
+            title: '✉️ Verifică-ți emailul',
+            description: 'Ți-am trimis un link de confirmare. După ce confirmi emailul, te poți autentifica.',
+            duration: 10000,
+          });
+
+          // Track signup (înainte de confirmare)
+          if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
+            (window as any).gtag_report_conversion();
+          }
+          analytics.authSignupSuccess('email', localStorage.getItem('marketplace_entry') === 'true');
+
+          // Comutăm la login pentru pasul următor
+          setIsLogin(true);
+          setPassword('');
+          return;
         }
-        
+
+        // Caz auto-confirm ON (sesiune disponibilă imediat) – update profil + tracking termeni
+        const user = postSignupSession.user;
+        console.log('🟡 [AUTH] User created with active session, updating profile');
+
+        try {
+          await supabase.functions.invoke('track-terms-acceptance', {
+            body: {
+              userId: user.id,
+              email: user.email,
+              termsVersion: '1.0'
+            }
+          });
+        } catch (trackError) {
+          logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_new_user' });
+        }
+
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_type: accountType,
+            account_type_selected: true,
+            terms_accepted: true,
+            terms_accepted_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
         toast({
           title: "Cont creat cu succes!",
           description: "Contul tău a fost configurat cu succes! Ai 30 de zile gratuite!",
         });
-        
-        // Track Google Ads conversion
+
         if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
           (window as any).gtag_report_conversion();
         }
-        
-        // Redirect logic: check for redirect param first, then marketplace, then default
+
         const redirectTo = searchParams.get('redirect');
         const isMarketplaceEntry = localStorage.getItem('marketplace_entry') === 'true';
-        
-        // Track signup success
         analytics.authSignupSuccess('email', isMarketplaceEntry);
-        
+
         if (redirectTo) {
           navigate(redirectTo);
         } else if (isMarketplaceEntry) {
