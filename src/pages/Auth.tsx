@@ -93,128 +93,67 @@ const Auth = () => {
     }
   }, [isMarketplaceEntry, toast]);
 
-  // FIX CRITIC: Inițializare și așteptare procesare token Supabase
+  // CONSOLIDAT: O singură logică pentru detectarea recovery (înlocuiește 3 useEffect duplicate)
   useEffect(() => {
     const initializeAuth = async () => {
       const hashFragment = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hashFragment);
       const hasAccessToken = hashFragment.includes('access_token');
-      const isRecovery = hashFragment.includes('type=recovery');
-      
-      console.log('🔐 [AUTH INIT] Starting...', { hasAccessToken, isRecovery, hash: window.location.hash });
-      
+      const isRecovery = hashParams.get('type') === 'recovery' || hashFragment.includes('type=recovery');
+      const resetParam = searchParams.get('reset') === 'true';
+      const recoveryQuery = searchParams.get('type') === 'recovery';
+
+      console.log('🔐 [AUTH INIT] Starting...', { hasAccessToken, isRecovery, isResetPath, resetParam });
+
+      // Caz 1: Token de recovery în hash → activăm reset mode și așteptăm Supabase să-l proceseze
       if (hasAccessToken && isRecovery) {
-        console.log('🔐 [AUTH INIT] Recovery token detected - waiting for Supabase to process...');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
-        
-        // Așteptăm Supabase să proceseze token-ul
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Verificăm sesiunea
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 [AUTH INIT] Session after wait:', session?.user?.email);
-        
-        // Curățăm URL-ul
+
+        // Așteptăm ca Supabase să proceseze token-ul (max 3s)
+        for (let i = 0; i < 6; i++) {
+          await new Promise(r => setTimeout(r, 500));
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('🔐 [AUTH INIT] Recovery session ready:', session.user.email);
+            break;
+          }
+        }
+
         cleanResetUrl();
-      } else if (isResetPath) {
-        console.log('🔐 [AUTH INIT] Reset password route detected');
+        setIsInitializing(false);
+        return;
+      }
+
+      // Caz 2: Pe ruta /reset-password sau cu ?reset=true / ?type=recovery → activăm reset mode
+      if (isResetPath || resetParam || recoveryQuery) {
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
+        cleanResetUrl();
       }
-      
+
       setIsInitializing(false);
     };
-    
+
     initializeAuth();
   }, []);
 
-  // Ascultă evenimentul PASSWORD_RECOVERY de la Supabase Auth
+  // Listener pentru evenimentul PASSWORD_RECOVERY emis de Supabase după procesarea token-ului
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔐 [AUTH] Auth state change:', event, session?.user?.email);
-      
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔐 [AUTH] PASSWORD_RECOVERY event detected');
+        console.log('🔐 [AUTH] PASSWORD_RECOVERY event');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
-        setIsInitializing(false); // Oprește loading-ul când evenimentul e detectat
-        
-        // Curățăm URL-ul de parametrii sensibili
+        setIsInitializing(false);
         cleanResetUrl();
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
-
-  // Verifică și parametrii din URL și hash fragment la încărcare
-  // FIX CRITIC: Așteptăm ca Supabase să proceseze token-ul din hash ÎNAINTE de a verifica sesiunea
-  useEffect(() => {
-    const checkResetMode = async () => {
-      // Metodă 1: Verifică parametrul ?reset=true
-      const resetParam = searchParams.get('reset') === 'true';
-      
-      // Metodă 2: Verifică parametrul type=recovery din query string
-      const recoveryType = searchParams.get('type') === 'recovery';
-      
-      // Metodă 3: Verifică hash fragment-ul pentru type=recovery SAU access_token
-      const hashFragment = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hashFragment);
-      const hashRecoveryType = hashParams.get('type') === 'recovery';
-      const hasAccessToken = hashFragment.includes('access_token');
-      
-      console.log('🔐 [AUTH] Check reset mode:', { 
-        resetParam, 
-        recoveryType, 
-        hashRecoveryType,
-        hasAccessToken,
-        hash: window.location.hash
-      });
-      
-      // FIX CRITIC: Dacă avem access_token în hash, Supabase are nevoie de timp să-l proceseze
-      if (hasAccessToken && (hashRecoveryType || hashFragment.includes('type=recovery'))) {
-        console.log('🔐 [AUTH] Access token detected in hash - waiting for Supabase to process...');
-        
-        // Setăm reset mode IMEDIAT pentru a arăta formularul corect
-        setIsResetMode(true);
-        setIsLogin(false);
-        setIsForgotPassword(false);
-        
-        // Așteptăm 1.5 secunde pentru ca Supabase să proceseze token-ul din hash
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Verificăm dacă sesiunea a fost creată
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 [AUTH] Session after wait:', session?.user?.email);
-        
-        // Curățăm URL-ul DUPĂ ce Supabase a procesat token-ul
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = '';
-        cleanUrl.searchParams.delete('type');
-        cleanUrl.searchParams.delete('token');
-        cleanUrl.searchParams.delete('token_hash');
-        cleanUrl.searchParams.set('reset', 'true');
-        window.history.replaceState({}, '', cleanUrl.toString());
-        return;
-      }
-      
-      // Activăm reset mode dacă oricare dintre metode confirmă (fără access_token)
-      if (isResetPath || resetParam || recoveryType || hashRecoveryType) {
-        console.log('🔐 [AUTH] Reset mode activated via URL params');
-        setIsResetMode(true);
-        setIsLogin(false);
-        setIsForgotPassword(false);
-        
-        // Curățăm URL-ul de parametrii sensibili
-        cleanResetUrl();
-      }
-    };
-    
-    checkResetMode();
-  }, [searchParams, isResetPath]);
 
   // UX-007: Password strength calculation with strict requirements
   const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {
