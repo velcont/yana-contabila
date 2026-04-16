@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'; // v3.0.0 - single unified plan
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +14,9 @@ import { analytics } from '@/utils/analytics';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const isMarketplaceEntry = searchParams.get('ref') === 'marketplace';
+  const isResetPath = location.pathname === '/reset-password';
   
   // Explicit mode param has priority (e.g. ?mode=login from "Am deja cont" button)
   const explicitMode = searchParams.get('mode');
@@ -32,14 +34,26 @@ const Auth = () => {
     const hasAccessToken = hashFragment.includes('access_token');
     const isRecovery = hashParams.get('type') === 'recovery' || hashFragment.includes('type=recovery');
     const resetParam = new URLSearchParams(window.location.search).get('reset') === 'true';
-    return (hasAccessToken && isRecovery) || resetParam;
+    return isResetPath || (hasAccessToken && isRecovery) || resetParam;
+  };
+
+  const cleanResetUrl = () => {
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.pathname = '/reset-password';
+    cleanUrl.hash = '';
+    cleanUrl.searchParams.delete('type');
+    cleanUrl.searchParams.delete('token');
+    cleanUrl.searchParams.delete('token_hash');
+    cleanUrl.searchParams.set('reset', 'true');
+    window.history.replaceState({}, '', cleanUrl.toString());
   };
   
   const [isInitializing, setIsInitializing] = useState(() => detectInitialResetMode());
   // Priority: explicit ?mode=login → login; ?mode=signup → signup; else auto-detect
-  const [isLogin, setIsLogin] = useState(
-    explicitMode === 'login' ? true : explicitMode === 'signup' ? false : !comingFromLanding
-  );
+  const [isLogin, setIsLogin] = useState(() => {
+    if (detectInitialResetMode()) return false;
+    return explicitMode === 'login' ? true : explicitMode === 'signup' ? false : !comingFromLanding;
+  });
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(() => detectInitialResetMode());
   const [email, setEmail] = useState('');
@@ -102,10 +116,12 @@ const Auth = () => {
         console.log('🔐 [AUTH INIT] Session after wait:', session?.user?.email);
         
         // Curățăm URL-ul
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = '';
-        cleanUrl.searchParams.set('reset', 'true');
-        window.history.replaceState({}, '', cleanUrl.toString());
+        cleanResetUrl();
+      } else if (isResetPath) {
+        console.log('🔐 [AUTH INIT] Reset password route detected');
+        setIsResetMode(true);
+        setIsLogin(false);
+        setIsForgotPassword(false);
       }
       
       setIsInitializing(false);
@@ -127,10 +143,7 @@ const Auth = () => {
         setIsInitializing(false); // Oprește loading-ul când evenimentul e detectat
         
         // Curățăm URL-ul de parametrii sensibili
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = '';
-        cleanUrl.searchParams.set('reset', 'true');
-        window.history.replaceState({}, '', cleanUrl.toString());
+        cleanResetUrl();
       }
     });
 
@@ -189,25 +202,19 @@ const Auth = () => {
       }
       
       // Activăm reset mode dacă oricare dintre metode confirmă (fără access_token)
-      if (resetParam || recoveryType || hashRecoveryType) {
+      if (isResetPath || resetParam || recoveryType || hashRecoveryType) {
         console.log('🔐 [AUTH] Reset mode activated via URL params');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
         
         // Curățăm URL-ul de parametrii sensibili
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = '';
-        cleanUrl.searchParams.delete('type');
-        cleanUrl.searchParams.delete('token');
-        cleanUrl.searchParams.delete('token_hash');
-        cleanUrl.searchParams.set('reset', 'true');
-        window.history.replaceState({}, '', cleanUrl.toString());
+        cleanResetUrl();
       }
     };
     
     checkResetMode();
-  }, [searchParams]);
+  }, [searchParams, isResetPath]);
 
   // UX-007: Password strength calculation with strict requirements
   const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {

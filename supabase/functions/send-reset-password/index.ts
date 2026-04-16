@@ -28,7 +28,7 @@ serve(async (req) => {
     // Dynamically determine the redirect URL from request headers
     const origin = req.headers.get('origin') || req.headers.get('referer');
     const baseUrl = origin ? new URL(origin).origin : 'https://yana-contabila.lovable.app';
-    const redirectTo = `${baseUrl}/auth?reset=true`;
+    const redirectTo = `${baseUrl}/reset-password`;
 
     console.log('🔐 [RESET-PASSWORD] Redirect URL:', redirectTo);
     console.log('🔐 [RESET-PASSWORD] Origin:', origin);
