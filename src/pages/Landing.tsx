@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, Link } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
@@ -6,17 +6,21 @@ import { DemoChat } from '@/components/demo/DemoChat';
 import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 import { useLandingTracking } from '@/hooks/useLandingTracking';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
-import { LandingPainPoints } from '@/components/landing/LandingPainPoints';
-import { LandingBenefits } from '@/components/landing/LandingBenefits';
-import { LandingHowItWorks } from '@/components/landing/LandingHowItWorks';
-import { LandingPricing } from '@/components/landing/LandingPricing';
-import { LandingSocialProof } from '@/components/landing/LandingSocialProof';
-import { LandingAIProviders } from '@/components/landing/LandingAIProviders';
-import { LandingOfficeAnnouncement } from '@/components/landing/LandingOfficeAnnouncement';
 import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
 import { LandingHeroDiagnostic } from '@/components/landing/LandingHeroDiagnostic';
-import { LandingFinalUltimatum } from '@/components/landing/LandingFinalUltimatum';
 import { Users } from 'lucide-react';
+
+// Lazy-load below-fold sections to improve LCP on mobile
+const LandingPainPoints = lazy(() => import('@/components/landing/LandingPainPoints').then(m => ({ default: m.LandingPainPoints })));
+const LandingBenefits = lazy(() => import('@/components/landing/LandingBenefits').then(m => ({ default: m.LandingBenefits })));
+const LandingHowItWorks = lazy(() => import('@/components/landing/LandingHowItWorks').then(m => ({ default: m.LandingHowItWorks })));
+const LandingPricing = lazy(() => import('@/components/landing/LandingPricing').then(m => ({ default: m.LandingPricing })));
+const LandingSocialProof = lazy(() => import('@/components/landing/LandingSocialProof').then(m => ({ default: m.LandingSocialProof })));
+const LandingAIProviders = lazy(() => import('@/components/landing/LandingAIProviders').then(m => ({ default: m.LandingAIProviders })));
+const LandingOfficeAnnouncement = lazy(() => import('@/components/landing/LandingOfficeAnnouncement').then(m => ({ default: m.LandingOfficeAnnouncement })));
+const LandingFinalUltimatum = lazy(() => import('@/components/landing/LandingFinalUltimatum').then(m => ({ default: m.LandingFinalUltimatum })));
+
+const SectionFallback = () => <div className="h-32 animate-pulse bg-muted/20 rounded-lg" />;
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -125,11 +129,24 @@ const Landing = () => {
       <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
       <LandingStickyMobileCTA />
       
+      {/* ===== TOP HEADER — login shortcut ===== */}
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border/40">
+        <div className="max-w-xl mx-auto px-5 py-2.5 flex items-center justify-between">
+          <span className="text-sm font-bold text-primary">YANA</span>
+          <button
+            onClick={handleLoginCTA}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+          >
+            Am deja cont →
+          </button>
+        </div>
+      </header>
+
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
         <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
           {/* ===== HERO — Atacul frontal ===== */}
-          <section className="text-center space-y-5 pt-6 sm:pt-16">
+          <section className="text-center space-y-5 pt-2 sm:pt-10">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
               Contabilul tău nu te minte.
               <span className="block text-primary mt-1">Doar nu-i pasă.</span>
@@ -139,56 +156,27 @@ const Landing = () => {
               despre banii tăi. <strong className="text-foreground">În 2 minute.</strong>
             </p>
 
-            {/* Primary — Inline Diagnostic (instant value) */}
+            {/* Single primary CTA — Inline Diagnostic (instant value) */}
             <LandingHeroDiagnostic />
-
-            {/* Secondary CTA */}
-            <Button 
-              variant="outline"
-              size="lg" 
-              className="w-full text-sm py-5 min-h-[48px]"
-              onClick={handlePrimaryCTA}
-            >
-              Află adevărul — gratuit
-            </Button>
 
             {/* Inline social proof */}
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Users className="w-4 h-4 text-primary" />
               <span><strong className="text-foreground">177+</strong> antreprenori folosesc YANA</span>
             </div>
-
-            <button 
-              onClick={handleLoginCTA} 
-              className="text-xs text-muted-foreground/60 hover:text-primary transition-colors underline underline-offset-4"
-            >
-              Am deja cont
-            </button>
           </section>
 
-          {/* ===== PAIN POINTS — Dark dramatic ===== */}
-          <LandingPainPoints />
-
-          {/* ===== SOCIAL PROOF — Testimoniale agresive ===== */}
-          <LandingSocialProof />
-
-          {/* ===== BENEFITS — Tabel comparativ polarizant ===== */}
-          <LandingBenefits />
-
-          {/* ===== OFFICE ANNOUNCEMENT ===== */}
-          <LandingOfficeAnnouncement />
-
-          {/* ===== CUM FUNCȚIONEAZĂ ===== */}
-          <LandingHowItWorks />
-
-          {/* ===== AI PROVIDERS ===== */}
-          <LandingAIProviders />
-
-          {/* ===== PRICING — Framing pierdere ===== */}
-          <LandingPricing />
-
-          {/* ===== ULTIMATUM FINAL ===== */}
-          <LandingFinalUltimatum />
+          {/* ===== Below-fold lazy-loaded sections ===== */}
+          <Suspense fallback={<SectionFallback />}>
+            <LandingPainPoints />
+            <LandingSocialProof />
+            <LandingBenefits />
+            <LandingOfficeAnnouncement />
+            <LandingHowItWorks />
+            <LandingAIProviders />
+            <LandingPricing />
+            <LandingFinalUltimatum />
+          </Suspense>
 
           {/* ===== TRUST BADGES ===== */}
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
