@@ -93,128 +93,67 @@ const Auth = () => {
     }
   }, [isMarketplaceEntry, toast]);
 
-  // FIX CRITIC: Inițializare și așteptare procesare token Supabase
+  // CONSOLIDAT: O singură logică pentru detectarea recovery (înlocuiește 3 useEffect duplicate)
   useEffect(() => {
     const initializeAuth = async () => {
       const hashFragment = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hashFragment);
       const hasAccessToken = hashFragment.includes('access_token');
-      const isRecovery = hashFragment.includes('type=recovery');
-      
-      console.log('🔐 [AUTH INIT] Starting...', { hasAccessToken, isRecovery, hash: window.location.hash });
-      
+      const isRecovery = hashParams.get('type') === 'recovery' || hashFragment.includes('type=recovery');
+      const resetParam = searchParams.get('reset') === 'true';
+      const recoveryQuery = searchParams.get('type') === 'recovery';
+
+      console.log('🔐 [AUTH INIT] Starting...', { hasAccessToken, isRecovery, isResetPath, resetParam });
+
+      // Caz 1: Token de recovery în hash → activăm reset mode și așteptăm Supabase să-l proceseze
       if (hasAccessToken && isRecovery) {
-        console.log('🔐 [AUTH INIT] Recovery token detected - waiting for Supabase to process...');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
-        
-        // Așteptăm Supabase să proceseze token-ul
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Verificăm sesiunea
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 [AUTH INIT] Session after wait:', session?.user?.email);
-        
-        // Curățăm URL-ul
+
+        // Așteptăm ca Supabase să proceseze token-ul (max 3s)
+        for (let i = 0; i < 6; i++) {
+          await new Promise(r => setTimeout(r, 500));
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('🔐 [AUTH INIT] Recovery session ready:', session.user.email);
+            break;
+          }
+        }
+
         cleanResetUrl();
-      } else if (isResetPath) {
-        console.log('🔐 [AUTH INIT] Reset password route detected');
+        setIsInitializing(false);
+        return;
+      }
+
+      // Caz 2: Pe ruta /reset-password sau cu ?reset=true / ?type=recovery → activăm reset mode
+      if (isResetPath || resetParam || recoveryQuery) {
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
+        cleanResetUrl();
       }
-      
+
       setIsInitializing(false);
     };
-    
+
     initializeAuth();
   }, []);
 
-  // Ascultă evenimentul PASSWORD_RECOVERY de la Supabase Auth
+  // Listener pentru evenimentul PASSWORD_RECOVERY emis de Supabase după procesarea token-ului
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔐 [AUTH] Auth state change:', event, session?.user?.email);
-      
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        console.log('🔐 [AUTH] PASSWORD_RECOVERY event detected');
+        console.log('🔐 [AUTH] PASSWORD_RECOVERY event');
         setIsResetMode(true);
         setIsLogin(false);
         setIsForgotPassword(false);
-        setIsInitializing(false); // Oprește loading-ul când evenimentul e detectat
-        
-        // Curățăm URL-ul de parametrii sensibili
+        setIsInitializing(false);
         cleanResetUrl();
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
-
-  // Verifică și parametrii din URL și hash fragment la încărcare
-  // FIX CRITIC: Așteptăm ca Supabase să proceseze token-ul din hash ÎNAINTE de a verifica sesiunea
-  useEffect(() => {
-    const checkResetMode = async () => {
-      // Metodă 1: Verifică parametrul ?reset=true
-      const resetParam = searchParams.get('reset') === 'true';
-      
-      // Metodă 2: Verifică parametrul type=recovery din query string
-      const recoveryType = searchParams.get('type') === 'recovery';
-      
-      // Metodă 3: Verifică hash fragment-ul pentru type=recovery SAU access_token
-      const hashFragment = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hashFragment);
-      const hashRecoveryType = hashParams.get('type') === 'recovery';
-      const hasAccessToken = hashFragment.includes('access_token');
-      
-      console.log('🔐 [AUTH] Check reset mode:', { 
-        resetParam, 
-        recoveryType, 
-        hashRecoveryType,
-        hasAccessToken,
-        hash: window.location.hash
-      });
-      
-      // FIX CRITIC: Dacă avem access_token în hash, Supabase are nevoie de timp să-l proceseze
-      if (hasAccessToken && (hashRecoveryType || hashFragment.includes('type=recovery'))) {
-        console.log('🔐 [AUTH] Access token detected in hash - waiting for Supabase to process...');
-        
-        // Setăm reset mode IMEDIAT pentru a arăta formularul corect
-        setIsResetMode(true);
-        setIsLogin(false);
-        setIsForgotPassword(false);
-        
-        // Așteptăm 1.5 secunde pentru ca Supabase să proceseze token-ul din hash
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Verificăm dacă sesiunea a fost creată
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔐 [AUTH] Session after wait:', session?.user?.email);
-        
-        // Curățăm URL-ul DUPĂ ce Supabase a procesat token-ul
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.hash = '';
-        cleanUrl.searchParams.delete('type');
-        cleanUrl.searchParams.delete('token');
-        cleanUrl.searchParams.delete('token_hash');
-        cleanUrl.searchParams.set('reset', 'true');
-        window.history.replaceState({}, '', cleanUrl.toString());
-        return;
-      }
-      
-      // Activăm reset mode dacă oricare dintre metode confirmă (fără access_token)
-      if (isResetPath || resetParam || recoveryType || hashRecoveryType) {
-        console.log('🔐 [AUTH] Reset mode activated via URL params');
-        setIsResetMode(true);
-        setIsLogin(false);
-        setIsForgotPassword(false);
-        
-        // Curățăm URL-ul de parametrii sensibili
-        cleanResetUrl();
-      }
-    };
-    
-    checkResetMode();
-  }, [searchParams, isResetPath]);
 
   // UX-007: Password strength calculation with strict requirements
   const calculatePasswordStrength = (pwd: string): 'weak' | 'medium' | 'strong' => {
@@ -494,130 +433,86 @@ const Auth = () => {
           const isAlreadyReg = msg.includes('already') || (signUpResult.error as any)?.status === 422;
 
           if (isAlreadyReg) {
-            // 1) Încearcă autentificarea cu parola introdusă
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
+            // SECURITY FIX: NU mai încercăm auto-signin cu parola introdusă (privacy leak +
+            // permitea oricui să verifice dacă un email există cu o parolă oarecare).
+            // În loc, comutăm la login și informăm utilizatorul.
+            toast({
+              title: 'Acest email are deja cont',
+              description: 'Te rugăm să te autentifici. Dacă ai uitat parola, folosește "Am uitat parola".',
             });
-
-            if (!signInError && signInData?.user) {
-              // 2) Am autentificat – aplicăm aceleași update-uri de profil și tracking termeni
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                try {
-                  await supabase.functions.invoke('track-terms-acceptance', {
-                    body: {
-                      userId: user.id,
-                      email: user.email,
-                      termsVersion: '1.0'
-                    }
-                  });
-                } catch (trackError) {
-                  logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_existing_user' });
-                }
-
-                await supabase
-                  .from('profiles')
-                  .update({
-                    subscription_type: 'entrepreneur',
-                    account_type_selected: true,
-                    terms_accepted: true,
-                    terms_accepted_at: new Date().toISOString()
-                  })
-                  .eq('id', user.id);
-              }
-
-              toast({
-                title: 'Cont existent – autentificat',
-                description: 'Te-am autentificat cu succes!',
-              });
-
-              const redirectTo = searchParams.get('redirect');
-              navigate(redirectTo || '/yana');
-              return;
-            } else {
-              // 3) Parola nu e corectă – trimitem automat email de resetare
-              try {
-                await supabase.functions.invoke('send-reset-password', { body: { email } });
-              } catch (e) {
-                logError(e instanceof Error ? e : new Error('Auto reset email error'), { context: 'auto_password_reset', email });
-              }
-
-              toast({
-                title: 'Email deja înregistrat',
-                description: 'Ți-am trimis un link de resetare a parolei. După autentificare, vom seta contul conform selecției tale.',
-              });
-
-              // Comută la login după reset
-              setIsForgotPassword(false);
-              setIsLogin(true);
-              return;
-            }
+            setIsLogin(true);
+            setIsForgotPassword(false);
+            return;
           }
 
           // Alte erori – propagă
           throw signUpResult.error;
         }
-        
-        // Update profile with account type and terms acceptance
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          console.log('🟡 [AUTH] User created, verifying profile update for accountType:', accountType);
-          
-          // Track terms acceptance with IP and user agent
-          try {
-            await supabase.functions.invoke('track-terms-acceptance', {
-              body: {
-                userId: user.id,
-                email: user.email,
-                termsVersion: '1.0'
-              }
-            });
-          } catch (trackError) {
-            logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_new_user' });
-            // Don't block registration if tracking fails
-          }
 
-          const { data: profileUpdate, error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              subscription_type: accountType,
-              account_type_selected: true,
-              terms_accepted: true,
-              terms_accepted_at: new Date().toISOString()
-            })
-            .eq('id', user.id)
-            .select();
-            
-          console.log('🟡 [AUTH] Profile update result:', profileUpdate, 'Error:', updateError);
-          
-          // Verify the profile was updated correctly
-          const { data: verifyProfile } = await supabase
-            .from('profiles')
-            .select('subscription_type, account_type_selected')
-            .eq('id', user.id)
-            .single();
-            
-          console.log('🟡 [AUTH] Profile verification after update:', verifyProfile);
+        // Cu auto-confirm DEZACTIVAT, după signUp NU avem sesiune până la confirmarea emailului.
+        // Verificăm dacă există sesiune; dacă nu, afișăm mesaj de verificare și oprim flow-ul.
+        const { data: { session: postSignupSession } } = await supabase.auth.getSession();
+
+        if (!postSignupSession) {
+          // Email confirmation flow – fără sesiune, nu putem actualiza profilul aici.
+          // Trigger-ul handle_new_user a creat profilul cu metadata corectă din signUp.
+          toast({
+            title: '✉️ Verifică-ți emailul',
+            description: 'Ți-am trimis un link de confirmare. După ce confirmi emailul, te poți autentifica.',
+            duration: 10000,
+          });
+
+          // Track signup (înainte de confirmare)
+          if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
+            (window as any).gtag_report_conversion();
+          }
+          analytics.authSignupSuccess('email', localStorage.getItem('marketplace_entry') === 'true');
+
+          // Comutăm la login pentru pasul următor
+          setIsLogin(true);
+          setPassword('');
+          return;
         }
-        
+
+        // Caz auto-confirm ON (sesiune disponibilă imediat) – update profil + tracking termeni
+        const user = postSignupSession.user;
+        console.log('🟡 [AUTH] User created with active session, updating profile');
+
+        try {
+          await supabase.functions.invoke('track-terms-acceptance', {
+            body: {
+              userId: user.id,
+              email: user.email,
+              termsVersion: '1.0'
+            }
+          });
+        } catch (trackError) {
+          logError(trackError instanceof Error ? trackError : new Error('Terms tracking error'), { context: 'terms_acceptance_new_user' });
+        }
+
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_type: accountType,
+            account_type_selected: true,
+            terms_accepted: true,
+            terms_accepted_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+
         toast({
           title: "Cont creat cu succes!",
           description: "Contul tău a fost configurat cu succes! Ai 30 de zile gratuite!",
         });
-        
-        // Track Google Ads conversion
+
         if (typeof window !== 'undefined' && (window as any).gtag_report_conversion) {
           (window as any).gtag_report_conversion();
         }
-        
-        // Redirect logic: check for redirect param first, then marketplace, then default
+
         const redirectTo = searchParams.get('redirect');
         const isMarketplaceEntry = localStorage.getItem('marketplace_entry') === 'true';
-        
-        // Track signup success
         analytics.authSignupSuccess('email', isMarketplaceEntry);
-        
+
         if (redirectTo) {
           navigate(redirectTo);
         } else if (isMarketplaceEntry) {
