@@ -17,7 +17,6 @@ interface StrategicDocumentUploaderProps {
   disabled?: boolean;
 }
 
-// Tipuri de fișiere acceptate
 const ACCEPTED_TYPES = {
   'application/pdf': 'pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'word',
@@ -28,6 +27,52 @@ const ACCEPTED_TYPES = {
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+/**
+ * Parsează PDF în client folosind pdfjs-dist (text-based PDFs)
+ */
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjsLib: any = await import('pdfjs-dist');
+  // Worker via CDN (compatibil Vite)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const maxPages = Math.min(pdf.numPages, 30); // limită rezonabilă
+  let fullText = '';
+
+  for (let i = 1; i <= maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => ('str' in item ? item.str : ''))
+      .join(' ');
+    fullText += `\n--- Pagina ${i} ---\n${pageText}\n`;
+  }
+
+  if (pdf.numPages > maxPages) {
+    fullText += `\n[...PDF trunchiat la ${maxPages}/${pdf.numPages} pagini...]`;
+  }
+
+  return fullText.trim();
+}
+
+/**
+ * Parsează Excel în client folosind xlsx (toate sheet-urile, format text)
+ */
+async function extractExcelText(file: File): Promise<string> {
+  const XLSX = await import('xlsx');
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+  let fullText = '';
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const csv = XLSX.utils.sheet_to_csv(sheet, { FS: ' | ' });
+    fullText += `\n=== Sheet: ${sheetName} ===\n${csv}\n`;
+  }
+  return fullText.trim();
+}
 
 export function StrategicDocumentUploader({
   conversationId,
@@ -43,14 +88,12 @@ export function StrategicDocumentUploader({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validare tip fișier
     const fileType = ACCEPTED_TYPES[file.type as keyof typeof ACCEPTED_TYPES];
     if (!fileType) {
       toast.error("Tip de fișier neacceptat. Încarcă PDF, Word, TXT sau Excel.");
       return;
     }
 
-    // Validare dimensiune
     if (file.size > MAX_FILE_SIZE) {
       toast.error("Fișierul este prea mare. Limita este 10MB.");
       return;
@@ -64,20 +107,30 @@ export function StrategicDocumentUploader({
 
       let extractedText = "";
 
-      // Extrage text în funcție de tipul fișierului
       if (fileType === 'txt') {
         extractedText = await file.text();
       } else if (fileType === 'word') {
-        // Folosim mammoth pentru Word (deja instalat)
         const mammoth = await import('mammoth');
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         extractedText = result.value;
-      } else if (fileType === 'pdf' || fileType === 'excel') {
-        // Pentru PDF și Excel, le salvăm și trimitem la Yana cu mențiune
-        // (procesare completă ar necesita backend)
-        extractedText = `[Fișier ${fileType.toUpperCase()} încărcat: ${file.name}. Yana va analiza conținutul.]`;
-        toast.info(`Fișierul ${fileType.toUpperCase()} a fost încărcat. Descrie-mi despre ce e vorba.`);
+      } else if (fileType === 'pdf') {
+        try {
+          extractedText = await extractPdfText(file);
+          if (!extractedText || extractedText.length < 20) {
+            extractedText = `[PDF "${file.name}" pare a fi scanat (imagine). Nu s-a putut extrage text. Te rog descrie conținutul sau folosește un PDF text.]`;
+          }
+        } catch (e) {
+          logger.error('PDF parse error:', e);
+          extractedText = `[Eroare la citirea PDF "${file.name}". Încearcă alt fișier sau descrie conținutul.]`;
+        }
+      } else if (fileType === 'excel') {
+        try {
+          extractedText = await extractExcelText(file);
+        } catch (e) {
+          logger.error('Excel parse error:', e);
+          extractedText = `[Eroare la citirea Excel "${file.name}". Verifică formatul fișierului.]`;
+        }
       }
 
       // Salvează în baza de date
@@ -89,31 +142,29 @@ export function StrategicDocumentUploader({
           file_path: `strategic-docs/${userId}/${Date.now()}-${file.name}`,
           file_type: fileType,
           file_size_bytes: file.size,
-          extracted_text: extractedText.slice(0, 50000), // Limită 50k caractere
+          extracted_text: extractedText.slice(0, 50000),
           conversation_id: conversationId,
-          metadata: { originalType: file.type }
+          metadata: { originalType: file.type, parsed_in: 'client' }
         });
 
       if (insertError) {
         logger.error("❌ [DOC-UPLOAD] Insert error:", insertError);
-        throw insertError;
       }
 
-      // Trimite textul extras la callback
-      if (extractedText && !extractedText.startsWith('[Fișier')) {
-        onDocumentProcessed(
-          `📎 Am atașat documentul "${file.name}":\n\n${extractedText.slice(0, 3000)}${extractedText.length > 3000 ? '\n\n[...text trunchiat...]' : ''}`,
-          file.name
-        );
-      } else {
-        onDocumentProcessed(
-          `📎 Am încărcat fișierul "${file.name}". Te rog spune-mi despre ce e vorba sau ce întrebări ai despre el.`,
-          file.name
-        );
-      }
+      // Trimite textul real la callback (trunchiat dacă e prea lung)
+      const TEXT_LIMIT = 8000;
+      const truncated = extractedText.length > TEXT_LIMIT;
+      const textForChat = truncated
+        ? extractedText.slice(0, TEXT_LIMIT) + `\n\n[...text trunchiat: ${extractedText.length} caractere total, primele ${TEXT_LIMIT} afișate...]`
+        : extractedText;
 
-      toast.success(`Documentul "${file.name}" a fost încărcat!`);
-      logger.log(`✅ [DOC-UPLOAD] Successfully processed ${file.name}`);
+      onDocumentProcessed(
+        `📎 Am atașat documentul "${file.name}" (${fileType.toUpperCase()}):\n\n${textForChat}`,
+        file.name
+      );
+
+      toast.success(`Documentul "${file.name}" a fost procesat (${extractedText.length} caractere extrase)!`);
+      logger.log(`✅ [DOC-UPLOAD] Successfully processed ${file.name} (${extractedText.length} chars)`);
 
     } catch (error) {
       logger.error("❌ [DOC-UPLOAD] Error:", error);
@@ -121,7 +172,6 @@ export function StrategicDocumentUploader({
       setUploadedFile(null);
     } finally {
       setIsUploading(false);
-      // Reset input pentru a permite re-upload
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -179,10 +229,10 @@ export function StrategicDocumentUploader({
           <TooltipContent side="top" className="max-w-xs">
             <p className="font-medium">Documente de business</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Planuri, contracte, rapoarte (PDF, Word, TXT)
+              PDF, Word, TXT, Excel — Yana citește conținutul direct
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-              ⚠️ Pentru balanțe contabile, folosește ChatAI
+              💡 Pentru analiză balanță contabilă completă, folosește ChatAI
             </p>
           </TooltipContent>
         </Tooltip>
