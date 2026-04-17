@@ -73,6 +73,15 @@ export const checkForNewVersion = async (supabase: any): Promise<boolean> => {
     if (error || !data) return false;
     
     const localVersion = localStorage.getItem(DB_VERSION_KEY);
+    
+    // FIX: Dacă nu avem versiune salvată local (prima vizită pe acest device/browser),
+    // salvăm versiunea curentă fără a declanșa refresh - altfel utilizatorul vede pagina
+    // reîncărcându-se singură în primele secunde după login.
+    if (!localVersion) {
+      localStorage.setItem(DB_VERSION_KEY, data.version);
+      return false;
+    }
+    
     return data.version !== localVersion;
   } catch (error) {
     console.warn('[VERSION_CHECK] Failed to check version:', error);
