@@ -160,12 +160,12 @@ FUNCȚII INEXISTENTE (NU le menționa ca existente):
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: selectedModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: question }
         ],
-        max_completion_tokens: 4096,
+        max_completion_tokens: isFiscalQuery ? 16000 : 4096,
       }),
     });
 
