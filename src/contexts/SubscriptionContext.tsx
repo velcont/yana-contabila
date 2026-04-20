@@ -1,7 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+
+// Cache subscription response per user pentru 30s pentru a preveni
+// apelurile duplicate la check-subscription la fiecare mount/render.
+const SUBSCRIPTION_CACHE_TTL_MS = 30_000;
 
 type SubscriptionType = 'yana_strategic' | 'entrepreneur' | 'accounting_firm'; // Legacy support
 type SubscriptionStatus = 'active' | 'inactive' | 'trial_expired' | 'loading';
@@ -42,6 +46,12 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [hasShownToast, setHasShownToast] = useState(false);
 
+  // Guards anti-duplicate-call:
+  // - inFlightRef: dacă există deja o cerere în zbor pentru același user, nu mai pornim alta.
+  // - lastFetchRef: cache simplu (userId + timestamp) ca să sărim refetch-urile sub TTL.
+  const inFlightRef = useRef<Promise<void> | null>(null);
+  const lastFetchRef = useRef<{ userId: string; at: number } | null>(null);
+
   const checkSubscription = async (showLoading = true) => {
     if (!user) {
       setSubscriptionStatus('inactive');
@@ -51,6 +61,21 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Skip dacă avem deja un fetch recent pentru acest user
+    const cached = lastFetchRef.current;
+    if (cached && cached.userId === user.id && Date.now() - cached.at < SUBSCRIPTION_CACHE_TTL_MS) {
+      console.log('[SubscriptionContext] Using cached subscription (age:', Date.now() - cached.at, 'ms)');
+      if (showLoading) setLoading(false);
+      return;
+    }
+
+    // Dedup: dacă există deja o cerere în zbor, așteaptă pe ea în loc să pornești una nouă
+    if (inFlightRef.current) {
+      console.log('[SubscriptionContext] Reusing in-flight subscription request');
+      return inFlightRef.current;
+    }
+
+    const run = (async () => {
     try {
       if (showLoading) {
         setLoading(true);
@@ -111,6 +136,8 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         trialExpired: data.trial_expired || backendAccessType === 'trial_expired'
       });
 
+      // Marchează succesul în cache (doar dacă nu a aruncat eroare)
+      lastFetchRef.current = { userId: user.id, at: Date.now() };
     } catch (error) {
       console.error('[SubscriptionContext] Error checking subscription:', error);
       setSubscriptionStatus('inactive');
@@ -119,6 +146,14 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       if (showLoading) {
         setLoading(false);
       }
+    }
+    })();
+
+    inFlightRef.current = run;
+    try {
+      await run;
+    } finally {
+      inFlightRef.current = null;
     }
   };
 

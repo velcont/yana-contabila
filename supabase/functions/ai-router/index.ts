@@ -2771,10 +2771,10 @@ serve(async (req) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseKey}`,
+              'Authorization': `Bearer ${supabaseServiceKey}`,
             },
             body: JSON.stringify({
-              userId: userId,
+              userId: user.id,
               conversationId: body.conversationId,
               userMessage: body.message,
               assistantResponse: result.response || result.answer || "",
