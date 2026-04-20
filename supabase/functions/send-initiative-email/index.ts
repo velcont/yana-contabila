@@ -83,18 +83,24 @@ ${content}
             </td>
           </tr>
           
-          <!-- Footer -->
+          <!-- Footer (compliance) -->
           <tr>
             <td style="padding: 24px 40px; background-color: #f8fafc; border-radius: 0 0 16px 16px; border-top: 1px solid #e2e8f0;">
               <p style="margin: 0 0 12px 0; color: #64748b; font-size: 13px; text-align: center;">
-                Ai primit acest email pentru că YANA ține la tine. 💚
+                Ai primit acest email pentru că YANA s-a gândit la tine. 💚
               </p>
-              <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
-                Nu mai vrei să primești? 
-                <a href="${unsubscribeUrl}" style="color: #64748b; text-decoration: underline;">Dezabonare</a>
+              <p style="margin: 0 0 12px 0; color: #94a3b8; font-size: 12px; text-align: center;">
+                <a href="https://yana-contabila.velcont.com/settings?tab=notifications" style="color: #64748b; text-decoration: underline; margin: 0 6px;">Gestionează preferințe</a>
+                •
+                <a href="${unsubscribeUrl}" style="color: #64748b; text-decoration: underline; margin: 0 6px;">Dezabonare cu un singur click</a>
               </p>
-              <p style="margin: 16px 0 0 0; color: #cbd5e1; font-size: 11px; text-align: center;">
-                © ${new Date().getFullYear()} YANA Contabilă • yana-contabila.velcont.com
+              <p style="margin: 12px 0 0 0; color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.6;">
+                <strong style="color: #64748b;">YANA</strong> — AI Business Companion<br>
+                Operator: Suciu Gyorfi Nicolae PFA · Sediu: România<br>
+                Contact: <a href="mailto:office@velcont.com" style="color: #94a3b8; text-decoration: underline;">office@velcont.com</a>
+              </p>
+              <p style="margin: 12px 0 0 0; color: #cbd5e1; font-size: 11px; text-align: center;">
+                © ${new Date().getFullYear()} YANA by Velcont • yana-contabila.velcont.com
               </p>
             </td>
           </tr>
