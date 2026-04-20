@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Sparkles, Settings, LogOut, User, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/useAuth";
-import { ChatAI } from "@/components/ChatAI";
-import { Dashboard } from "@/components/Dashboard";
+// ChatAI și Dashboard sunt grele (~MB de cod). Lazy-load ca să nu blocheze
+// LCP-ul pentru utilizatorii neautentificați (90% din traficul mobil din YouTube).
+const ChatAI = lazy(() => import("@/components/ChatAI").then(m => ({ default: m.ChatAI })));
+const Dashboard = lazy(() => import("@/components/Dashboard").then(m => ({ default: m.Dashboard })));
 import { Footer } from "@/components/Footer";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -18,7 +20,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import Landing from "@/pages/Landing";
+// Landing e prima vedere pentru utilizatori neautentificați (mobil/YouTube).
+// Lazy-load ca să eliminăm Dashboard/ChatAI din path-ul critic.
+const Landing = lazy(() => import("@/pages/Landing"));
 import { SubscriptionBadge } from "@/components/SubscriptionBadge";
 import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
 import { CreditAndTrialIndicator } from "@/components/CreditAndTrialIndicator";
@@ -116,10 +120,14 @@ const Index = () => {
     );
   }
 
-  // Dacă utilizatorul NU este autentificat, afișează Landing page
+  // Dacă utilizatorul NU este autentificat, afișează Landing page (lazy-loaded)
   if (!user) {
     logger.log('User is not authenticated, showing Landing page');
-    return <Landing />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <Landing />
+      </Suspense>
+    );
   }
 
   logger.log('User is authenticated:', user.email);

@@ -149,8 +149,10 @@ Scrie un email scurt de check-in săptămânal.`
 
         if (!personalizedMessage) continue;
 
-        const appUrl = 'https://yana-contabila.lovable.app/yana';
-        const unsubscribeUrl = `https://yana-contabila.lovable.app/settings`;
+        const appUrl = 'https://yana-contabila.velcont.com/yana';
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${profile.id}`;
+        const preferencesUrl = 'https://yana-contabila.velcont.com/settings?tab=notifications';
 
         emailBatch.push({
           from: RESEND_FROM_EMAIL,
@@ -166,9 +168,17 @@ Scrie un email scurt de check-in săptămânal.`
                   Continuă conversația
                 </a>
               </div>
-              <p style="margin-top: 32px; font-size: 12px; color: #999;">
-                — Yana, companion-ul tău de business<br/>
-                <a href="${unsubscribeUrl}" style="color: #999;">Dezabonare din emailurile săptămânale</a>
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0 16px;">
+              <p style="font-size: 12px; color: #6b7280; line-height: 1.6; text-align: center;">
+                Primești acest email pentru că ai activat <strong>check-in-ul săptămânal YANA</strong>.<br>
+                <a href="${preferencesUrl}" style="color: #6366f1; text-decoration: underline; margin: 0 6px;">Gestionează preferințe</a>
+                •
+                <a href="${unsubscribeUrl}" style="color: #6366f1; text-decoration: underline; margin: 0 6px;">Dezabonare cu un singur click</a>
+              </p>
+              <p style="font-size: 11px; color: #9ca3af; text-align: center; margin: 12px 0 0;">
+                <strong style="color: #4b5563;">YANA</strong> — AI Business Companion<br>
+                Operator: Suciu Gyorfi Nicolae PFA · Sediu: România · <a href="mailto:office@velcont.com" style="color: #9ca3af;">office@velcont.com</a><br>
+                © ${new Date().getFullYear()} YANA by Velcont
               </p>
             </div>
           `,

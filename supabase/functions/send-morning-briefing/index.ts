@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { renderEmailFooter } from '../_shared/email-footer.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -489,9 +490,9 @@ Deno.serve(async (req) => {
     ${tipHtml}
     <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
     <p style="text-align: center;">
-      <a href="https://yana-contabila.lovable.app/yana" style="display: inline-block; background: #6366f1; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">Deschide YANA →</a>
+      <a href="https://yana-contabila.velcont.com/yana" style="display: inline-block; background: #6366f1; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">Deschide YANA →</a>
     </p>
-    <p style="text-align: center; color: #888; font-size: 12px; margin-top: 16px;">Acest email este trimis automat de YANA, companion-ul tău de business.</p>
+    ${renderEmailFooter({ userId: user.id, emailTypeLabel: 'Briefing-ul de dimineață' })}
   </div>
 </body>
 </html>`;
