@@ -50,7 +50,7 @@ export function renderEmailFooter(opts: FooterOptions): string {
           <strong style="color: #4b5563;">YANA</strong> — AI Business Companion
         </p>
         <p style="margin: 0 0 4px; color: #9ca3af;">
-          Operator: Suciu Gyorfi Nicolae PFA
+          Operator: Suciu Gyorfi Nicolae
         </p>
         <p style="margin: 0 0 4px; color: #9ca3af;">
           Sediu: România · Contact: <a href="mailto:office@velcont.com" style="color: #9ca3af; text-decoration: underline;">office@velcont.com</a>

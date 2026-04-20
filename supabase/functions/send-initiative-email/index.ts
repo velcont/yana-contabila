@@ -96,7 +96,7 @@ ${content}
               </p>
               <p style="margin: 12px 0 0 0; color: #94a3b8; font-size: 11px; text-align: center; line-height: 1.6;">
                 <strong style="color: #64748b;">YANA</strong> — AI Business Companion<br>
-                Operator: Suciu Gyorfi Nicolae PFA · Sediu: România<br>
+                Operator: Suciu Gyorfi Nicolae · Sediu: România<br>
                 Contact: <a href="mailto:office@velcont.com" style="color: #94a3b8; text-decoration: underline;">office@velcont.com</a>
               </p>
               <p style="margin: 12px 0 0 0; color: #cbd5e1; font-size: 11px; text-align: center;">
