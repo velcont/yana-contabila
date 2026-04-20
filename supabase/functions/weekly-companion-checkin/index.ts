@@ -177,7 +177,7 @@ Scrie un email scurt de check-in săptămânal.`
               </p>
               <p style="font-size: 11px; color: #9ca3af; text-align: center; margin: 12px 0 0;">
                 <strong style="color: #4b5563;">YANA</strong> — AI Business Companion<br>
-                Operator: Suciu Gyorfi Nicolae PFA · Sediu: România · <a href="mailto:office@velcont.com" style="color: #9ca3af;">office@velcont.com</a><br>
+                Operator: Suciu Gyorfi Nicolae · Sediu: România · <a href="mailto:office@velcont.com" style="color: #9ca3af;">office@velcont.com</a><br>
                 © ${new Date().getFullYear()} YANA by Velcont
               </p>
             </div>
