@@ -19,6 +19,11 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
+// Relaxed thresholds — older values were too strict and produced 0 spawns.
+const WEAK_REFLECTION_SCORE_MAX = 0.7;     // was 0.5
+const TOPIC_FREQUENCY_MIN = 3;             // was 5
+const OBSERVATION_LP_MIN = 0.6;            // new signal
+
 function slugify(name: string): string {
   return name.toLowerCase()
     .normalize("NFD")
@@ -31,8 +36,14 @@ function slugify(name: string): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const startTime = Date.now();
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const spawned: Array<Record<string, unknown>> = [];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  const modelUsed = "google/gemini-2.5-flash";
+  let forceMode = false;
+  try { const body = await req.clone().json(); forceMode = !!body?.force; } catch { /* ignore */ }
 
   try {
     // Cap total active agents to prevent runaway spawning
@@ -50,7 +61,7 @@ Deno.serve(async (req) => {
     const { data: weakReflections } = await supabase
       .from("ai_reflection_logs")
       .select("question, self_score, what_could_improve, missing_context")
-      .lt("self_score", 0.5)
+      .lt("self_score", WEAK_REFLECTION_SCORE_MAX)
       .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
       .limit(20);
 
@@ -65,7 +76,23 @@ Deno.serve(async (req) => {
       const t = (r.topic || "general").toLowerCase();
       topicFreq[t] = (topicFreq[t] || 0) + 1;
     });
-    const hotTopics = Object.entries(topicFreq).filter(([, c]) => c >= 5).map(([t]) => t);
+    const hotTopics = Object.entries(topicFreq).filter(([, c]) => c >= TOPIC_FREQUENCY_MIN).map(([t]) => t);
+
+    // === Signal 3: High-LP observations not yet processed ===
+    const { data: highLpObs } = await supabase
+      .from("yana_observations")
+      .select("observation_type, raw_data")
+      .eq("processed", false)
+      .gte("learning_potential", OBSERVATION_LP_MIN)
+      .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
+      .limit(20);
+
+    // === Signal 4: Recent AI corrections (humans fixing YANA) ===
+    const { data: corrections } = await supabase
+      .from("ai_corrections")
+      .select("original_question, correction_type")
+      .gte("created_at", new Date(Date.now() - 14 * 86400000).toISOString())
+      .limit(10);
 
     // Existing agents to avoid dupes
     const { data: existing } = await supabase
@@ -83,12 +110,31 @@ Deno.serve(async (req) => {
         gaps: r.what_could_improve,
       })),
       hot_topics: hotTopics.filter((t) => !existingTopics.has(t)).slice(0, 5),
+      high_lp_observations: (highLpObs || []).slice(0, 5).map((o) => ({
+        type: o.observation_type,
+        snippet: JSON.stringify(o.raw_data || {}).slice(0, 200),
+      })),
+      corrections: (corrections || []).slice(0, 5).map((c) => ({
+        q: String(c.original_question || "").slice(0, 150),
+        type: c.correction_type,
+      })),
+      force_mode: forceMode,
     };
 
-    if (brief.weak_reflections.length === 0 && brief.hot_topics.length === 0) {
+    const totalSignals =
+      brief.weak_reflections.length +
+      brief.hot_topics.length +
+      brief.high_lp_observations.length +
+      brief.corrections.length;
+    if (totalSignals === 0 && !forceMode) {
       return new Response(JSON.stringify({ spawned: [], reason: "No spawn signals" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // În force mode fără semnale, propunem un agent generic util pentru contabili români
+    if (totalSignals === 0 && forceMode) {
+      brief.hot_topics = ["tva-deductibilitate", "termene-fiscale-luna-curenta"];
     }
 
     // Ask LLM to propose 1-3 new agents
@@ -106,7 +152,7 @@ Returnează DOAR un obiect: { "agents": [...] }. Dacă nu e nevoie de nimeni, { 
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: modelUsed,
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       }),
@@ -117,6 +163,8 @@ Returnează DOAR un obiect: { "agents": [...] }. Dacă nu e nevoie de nimeni, { 
       });
     }
     const aiData = await aiResp.json();
+    totalInputTokens += aiData.usage?.prompt_tokens || 0;
+    totalOutputTokens += aiData.usage?.completion_tokens || 0;
     let parsed: { agents?: Array<Record<string, unknown>> } = {};
     try { parsed = JSON.parse(aiData.choices?.[0]?.message?.content || "{}"); } catch { /* ignore */ }
 
@@ -137,6 +185,25 @@ Returnează DOAR un obiect: { "agents": [...] }. Dacă nu e nevoie de nimeni, { 
         metadata: { topic: a.topic || null, source_brief: brief },
       }).select("id, agent_slug, display_name").single();
       if (!error && data) spawned.push(data);
+    }
+
+    // Log AI cost (best-effort)
+    if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      const costCents = Math.ceil(
+        (totalInputTokens * 0.00001875 + totalOutputTokens * 0.000075) * 100,
+      );
+      await supabase.from("ai_usage").insert({
+        user_id: "00000000-0000-0000-0000-000000000000",
+        endpoint: "yana-agent-spawner",
+        model: modelUsed,
+        month_year: new Date().toISOString().slice(0, 7),
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalInputTokens + totalOutputTokens,
+        estimated_cost_cents: costCents,
+        request_duration_ms: Date.now() - startTime,
+        success: true,
+      }).then(() => {}, () => {});
     }
 
     return new Response(JSON.stringify({ spawned, signals: brief }), {

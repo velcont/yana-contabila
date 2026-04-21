@@ -8385,6 +8385,10 @@ export type Database = {
           success: boolean
         }[]
       }
+      increment_yana_agent_stats: {
+        Args: { p_agent_id: string; p_success: boolean }
+        Returns: undefined
+      }
       link_orphan_analyses_to_companies: {
         Args: { p_user_id: string }
         Returns: {
