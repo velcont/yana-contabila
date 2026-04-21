@@ -54,13 +54,13 @@ Deno.serve(async (req) => {
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-    // === SIGNAL 1: Weak reflections ===
+    // === SIGNAL 1: Weak reflections (relaxed threshold: <0.85) ===
     const { data: weakRefl } = await supabase
       .from("ai_reflection_logs")
       .select("id, question, self_score, what_could_improve, missing_context")
-      .lt("self_score", 0.7)
+      .lt("self_score", 0.85)
       .gte("created_at", sevenDaysAgo)
-      .limit(50);
+      .limit(100);
 
     const reflByTopic: Record<string, { ids: string[]; samples: string[]; avg_score: number }> = {};
     (weakRefl || []).forEach((r: any) => {
