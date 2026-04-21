@@ -225,13 +225,16 @@ Deno.serve(async (req) => {
     const steps: Array<Record<string, unknown>> = [];
     let finalText = "";
     const MAX_STEPS = 4;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const modelUsed = "google/gemini-2.5-flash";
 
     for (let step = 0; step < MAX_STEPS; step++) {
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: modelUsed,
           messages,
           ...(tools.length > 0 ? { tools, tool_choice: "auto" } : {}),
         }),
@@ -241,6 +244,8 @@ Deno.serve(async (req) => {
         break;
       }
       const aiData = await aiResp.json();
+      totalInputTokens += aiData.usage?.prompt_tokens || 0;
+      totalOutputTokens += aiData.usage?.completion_tokens || 0;
       const choice = aiData.choices?.[0];
       const toolCalls = choice?.message?.tool_calls;
       if (!toolCalls || toolCalls.length === 0) {
