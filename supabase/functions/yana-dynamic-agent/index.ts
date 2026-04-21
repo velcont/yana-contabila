@@ -279,11 +279,11 @@ Deno.serve(async (req) => {
       success: !!finalText,
       duration_ms: durationMs,
     });
-    await supabase.from("yana_generated_agents").update({
-      execution_count: (agent.execution_count || 0) + 1,
-      success_count: (agent.success_count || 0) + (finalText ? 1 : 0),
-      last_executed_at: new Date().toISOString(),
-    }).eq("id", agent.id);
+    // Atomic counter increment via RPC (avoids race conditions on concurrent runs)
+    await supabase.rpc("increment_yana_agent_stats", {
+      p_agent_id: agent.id,
+      p_success: !!finalText,
+    });
 
     // Log AI cost (best-effort) — Gemini 2.5 Flash pricing approx
     if (totalInputTokens > 0 || totalOutputTokens > 0) {
