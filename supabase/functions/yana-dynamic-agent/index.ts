@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     // Load agent spec
     const { data: agent, error: agentErr } = await supabase
       .from("yana_generated_agents")
-      .select("id, display_name, system_prompt, allowed_tools, is_active")
+      .select("id, display_name, system_prompt, allowed_tools, is_active, execution_count, success_count")
       .eq("agent_slug", agent_slug)
       .single();
     if (agentErr || !agent) {
