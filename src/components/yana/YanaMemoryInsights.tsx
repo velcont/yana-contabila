@@ -192,7 +192,7 @@ export function YanaMemoryInsights() {
           </div>
         ) : (
           <Tabs defaultValue="semantic">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="semantic" className="gap-1.5">
                 <Lightbulb className="h-3.5 w-3.5" />
                 Cunoștințe ({semanticCount})
@@ -200,6 +200,10 @@ export function YanaMemoryInsights() {
               <TabsTrigger value="episodic" className="gap-1.5">
                 <Clock className="h-3.5 w-3.5" />
                 Fapte recente ({episodicCount})
+              </TabsTrigger>
+              <TabsTrigger value="agents" className="gap-1.5">
+                <Bot className="h-3.5 w-3.5" />
+                Agenți
               </TabsTrigger>
             </TabsList>
             <TabsContent value="semantic" className="space-y-2 mt-3">
@@ -217,6 +221,9 @@ export function YanaMemoryInsights() {
                   Niciun fapt episodic recent.
                 </p>
               )}
+            </TabsContent>
+            <TabsContent value="agents" className="space-y-2 mt-3">
+              <YanaGeneratedAgentsPanel />
             </TabsContent>
           </Tabs>
         )}
