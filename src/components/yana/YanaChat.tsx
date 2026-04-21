@@ -24,6 +24,10 @@ import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
 import { OfficeFeatureAnnouncement } from './OfficeFeatureAnnouncement';
+import { useYanaAgent, type AgentStep } from '@/hooks/useYanaAgent';
+import { AgentStepsPanel } from './AgentStepsPanel';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface Message {
   id: string;
@@ -34,6 +38,7 @@ interface Message {
   route?: string;
   sources?: string[];
   aiConversationId?: string; // ID din ai_conversations pentru feedback
+  agentSteps?: AgentStep[];
 }
 
 interface Artifact {
