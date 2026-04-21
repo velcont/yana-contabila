@@ -132,6 +132,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    // În force mode fără semnale, propunem un agent generic util pentru contabili români
+    if (totalSignals === 0 && forceMode) {
+      brief.hot_topics = ["tva-deductibilitate", "termene-fiscale-luna-curenta"];
+    }
+
     // Ask LLM to propose 1-3 new agents
     const prompt = `Ești un meta-orchestrator pentru YANA (AI pentru business RO).
 Analizează semnalele de mai jos și propune între 0 și 3 agenți noi specializați.
