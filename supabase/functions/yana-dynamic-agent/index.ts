@@ -280,10 +280,29 @@ Deno.serve(async (req) => {
       duration_ms: durationMs,
     });
     await supabase.from("yana_generated_agents").update({
-      execution_count: ((agent as unknown as { execution_count?: number }).execution_count || 0) + 1,
-      success_count: ((agent as unknown as { success_count?: number }).success_count || 0) + (finalText ? 1 : 0),
+      execution_count: (agent.execution_count || 0) + 1,
+      success_count: (agent.success_count || 0) + (finalText ? 1 : 0),
       last_executed_at: new Date().toISOString(),
     }).eq("id", agent.id);
+
+    // Log AI cost (best-effort) — Gemini 2.5 Flash pricing approx
+    if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      const costCents = Math.ceil(
+        (totalInputTokens * 0.00001875 + totalOutputTokens * 0.000075) * 100,
+      );
+      await supabase.from("ai_usage").insert({
+        user_id: userId,
+        endpoint: `yana-dynamic-agent:${agent_slug}`,
+        model: modelUsed,
+        month_year: new Date().toISOString().slice(0, 7),
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalInputTokens + totalOutputTokens,
+        estimated_cost_cents: costCents,
+        request_duration_ms: durationMs,
+        success: !!finalText,
+      });
+    }
 
     return new Response(JSON.stringify({
       success: true,
