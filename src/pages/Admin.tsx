@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 // Lazy load heavy admin components
 const AcademicThesisAssistant = lazy(() => import("@/components/AcademicThesisAssistant"));
 const AuditLogs = lazy(() => import("@/components/AuditLogs").then(m => ({ default: m.AuditLogs })));
+const SelfDevelopmentTab = lazy(() => import("@/components/admin/SelfDevelopmentTab").then(m => ({ default: m.SelfDevelopmentTab })));
 const StorageManager = lazy(() => import("@/components/StorageManager").then(m => ({ default: m.StorageManager })));
 const StrategicConversationsViewer = lazy(() => import("@/components/StrategicConversationsViewer").then(m => ({ default: m.StrategicConversationsViewer })));
 const IntellectualPropertyCertificate = lazy(() => import("@/components/IntellectualPropertyCertificate").then(m => ({ default: m.IntellectualPropertyCertificate })));
@@ -459,6 +460,10 @@ const Admin = () => {
               <TabsTrigger value="monitoring">
                 <Activity className="h-4 w-4 mr-2" />
                 📊 Monitoring
+              </TabsTrigger>
+              <TabsTrigger value="self-development">
+                <Brain className="h-4 w-4 mr-2" />
+                🧬 Self-Development
               </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
@@ -977,6 +982,12 @@ const Admin = () => {
                 <AlertRulesManager />
                 <RetentionHeatmap />
               </div>
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="self-development">
+            <Suspense fallback={<TabContentLoader />}>
+              <SelfDevelopmentTab />
             </Suspense>
           </TabsContent>
         </Tabs>
