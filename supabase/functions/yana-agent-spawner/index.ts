@@ -19,6 +19,11 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
+// Relaxed thresholds — older values were too strict and produced 0 spawns.
+const WEAK_REFLECTION_SCORE_MAX = 0.7;     // was 0.5
+const TOPIC_FREQUENCY_MIN = 3;             // was 5
+const OBSERVATION_LP_MIN = 0.6;            // new signal
+
 function slugify(name: string): string {
   return name.toLowerCase()
     .normalize("NFD")
@@ -31,8 +36,14 @@ function slugify(name: string): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const startTime = Date.now();
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   const spawned: Array<Record<string, unknown>> = [];
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  const modelUsed = "google/gemini-2.5-flash";
+  let forceMode = false;
+  try { const body = await req.clone().json(); forceMode = !!body?.force; } catch { /* ignore */ }
 
   try {
     // Cap total active agents to prevent runaway spawning
