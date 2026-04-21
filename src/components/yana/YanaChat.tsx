@@ -1084,6 +1084,10 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                   : 'bg-muted text-foreground'
               )}
             >
+              {/* 🆕 Agent steps panel — afișat dacă mesajul are pași și showAgentProcess e ON */}
+              {message.role === 'assistant' && message.agentSteps && message.agentSteps.length > 0 && showAgentProcess && (
+                <AgentStepsPanel steps={message.agentSteps} isRunning={false} defaultOpen={false} />
+              )}
               {/* Render content - Markdown for assistant, plain text for user */}
               {message.role === 'assistant' ? (
                 <MarkdownRenderer content={message.content} className="text-left" />
