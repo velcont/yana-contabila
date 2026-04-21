@@ -87,6 +87,25 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
+  // 🆕 AGENT MODE — Multi-step autonomous AI agent with tool calling
+  const [agentMode, setAgentMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('yana_agent_mode');
+    return saved === null ? true : saved === 'true';
+  });
+  const [showAgentProcess, setShowAgentProcess] = useState<boolean>(() => {
+    return localStorage.getItem('yana_show_process') === 'true';
+  });
+  const yanaAgent = useYanaAgent();
+
+  const toggleAgentMode = (enabled: boolean) => {
+    setAgentMode(enabled);
+    localStorage.setItem('yana_agent_mode', String(enabled));
+  };
+  const toggleShowProcess = (enabled: boolean) => {
+    setShowAgentProcess(enabled);
+    localStorage.setItem('yana_show_process', String(enabled));
+  };
+
   // Fetch user profile for personalized greeting
   useEffect(() => {
     const fetchProfile = async () => {
