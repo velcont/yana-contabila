@@ -1228,6 +1228,9 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
 
         {isLoading && (
           <div className="max-w-3xl mx-auto">
+            {agentMode && yanaAgent.isRunning && yanaAgent.steps.length > 0 && (
+              <AgentStepsPanel steps={yanaAgent.steps} isRunning={true} defaultOpen={showAgentProcess} />
+            )}
             <TypingIndicator 
               variant={activeContext?.companyName ? 'analyzing' : 'thinking'} 
               showProgress={true}
