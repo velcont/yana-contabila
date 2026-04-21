@@ -984,6 +984,12 @@ const Admin = () => {
               </div>
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="self-development">
+            <Suspense fallback={<TabContentLoader />}>
+              <SelfDevelopmentTab />
+            </Suspense>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
