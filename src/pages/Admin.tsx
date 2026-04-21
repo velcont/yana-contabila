@@ -461,6 +461,10 @@ const Admin = () => {
                 <Activity className="h-4 w-4 mr-2" />
                 📊 Monitoring
               </TabsTrigger>
+              <TabsTrigger value="self-development">
+                <Brain className="h-4 w-4 mr-2" />
+                🧬 Self-Development
+              </TabsTrigger>
               </TabsList>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
