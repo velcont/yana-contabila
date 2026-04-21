@@ -24,6 +24,10 @@ import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
 import { OfficeFeatureAnnouncement } from './OfficeFeatureAnnouncement';
+import { useYanaAgent, type AgentStep } from '@/hooks/useYanaAgent';
+import { AgentStepsPanel } from './AgentStepsPanel';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface Message {
   id: string;
@@ -34,6 +38,7 @@ interface Message {
   route?: string;
   sources?: string[];
   aiConversationId?: string; // ID din ai_conversations pentru feedback
+  agentSteps?: AgentStep[];
 }
 
 interface Artifact {
@@ -81,6 +86,25 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
 
   const [onboardingNeeded, setOnboardingNeeded] = useState<boolean | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
+
+  // 🆕 AGENT MODE — Multi-step autonomous AI agent with tool calling
+  const [agentMode, setAgentMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('yana_agent_mode');
+    return saved === null ? true : saved === 'true';
+  });
+  const [showAgentProcess, setShowAgentProcess] = useState<boolean>(() => {
+    return localStorage.getItem('yana_show_process') === 'true';
+  });
+  const yanaAgent = useYanaAgent();
+
+  const toggleAgentMode = (enabled: boolean) => {
+    setAgentMode(enabled);
+    localStorage.setItem('yana_agent_mode', String(enabled));
+  };
+  const toggleShowProcess = (enabled: boolean) => {
+    setShowAgentProcess(enabled);
+    localStorage.setItem('yana_show_process', String(enabled));
+  };
 
   // Fetch user profile for personalized greeting
   useEffect(() => {
@@ -333,6 +357,40 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         role: m.role,
         content: smartTruncate(m.content)
       }));
+
+      // 🆕 AGENT MODE — Multi-step autonomous agent with tool calling
+      // Cheamă yana-agent în loc de ai-router când modul agent e activ
+      if (agentMode) {
+        try {
+          yanaAgent.reset();
+          const finalText = await yanaAgent.run(content, historyForAI);
+          // Capturăm pașii din state-ul curent al hook-ului prin setTimeout 0
+          // (sau citim direct yanaAgent.steps - dar e closure-stale, deci facem snapshot)
+          const stepsSnapshot: AgentStep[] = [...yanaAgent.steps];
+
+          const assistantMessage: Message = {
+            id: `assistant-${Date.now()}`,
+            role: 'assistant',
+            content: finalText || 'Am procesat cererea, dar fără răspuns explicit.',
+            created_at: new Date().toISOString(),
+            agentSteps: stepsSnapshot,
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+
+          await supabase.from('yana_messages').insert({
+            conversation_id: convId,
+            role: 'assistant',
+            content: assistantMessage.content,
+          });
+
+          isSendingRef.current = false;
+          setIsLoading(false);
+          return;
+        } catch (agentErr) {
+          console.error('[YanaChat] Agent mode failed, fallback to ai-router:', agentErr);
+          // continue to ai-router fallback below
+        }
+      }
 
       // Call AI router with history and balanceContext
       const { data: response, error } = await supabase.functions.invoke('ai-router', {
@@ -1026,6 +1084,10 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                   : 'bg-muted text-foreground'
               )}
             >
+              {/* 🆕 Agent steps panel — afișat dacă mesajul are pași și showAgentProcess e ON */}
+              {message.role === 'assistant' && message.agentSteps && message.agentSteps.length > 0 && showAgentProcess && (
+                <AgentStepsPanel steps={message.agentSteps} isRunning={false} defaultOpen={false} />
+              )}
               {/* Render content - Markdown for assistant, plain text for user */}
               {message.role === 'assistant' ? (
                 <MarkdownRenderer content={message.content} className="text-left" />
@@ -1166,6 +1228,9 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
 
         {isLoading && (
           <div className="max-w-3xl mx-auto">
+            {agentMode && yanaAgent.isRunning && yanaAgent.steps.length > 0 && (
+              <AgentStepsPanel steps={yanaAgent.steps} isRunning={true} defaultOpen={showAgentProcess} />
+            )}
             <TypingIndicator 
               variant={activeContext?.companyName ? 'analyzing' : 'thinking'} 
               showProgress={true}
@@ -1221,6 +1286,23 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               postAnalysis={!!balanceContext}
             />
           )}
+          {/* 🆕 Toggle-uri Mod Agent + Vezi proces */}
+          <div className="flex items-center gap-4 px-1 pb-2 text-xs">
+            <div className="flex items-center gap-2">
+              <Switch id="agent-mode" checked={agentMode} onCheckedChange={toggleAgentMode} />
+              <Label htmlFor="agent-mode" className="cursor-pointer text-muted-foreground">
+                🤖 Mod Agent {agentMode && <span className="text-primary">(autonom)</span>}
+              </Label>
+            </div>
+            {agentMode && (
+              <div className="flex items-center gap-2">
+                <Switch id="show-process" checked={showAgentProcess} onCheckedChange={toggleShowProcess} />
+                <Label htmlFor="show-process" className="cursor-pointer text-muted-foreground">
+                  Vezi procesul
+                </Label>
+              </div>
+            )}
+          </div>
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"
