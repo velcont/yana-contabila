@@ -232,6 +232,10 @@ export const useAuth = () => {
         );
       }
       
+      // Reset version check flag - va fi verificat din nou la următorul login
+      sessionStorage.removeItem('yana_version_checked');
+      sessionStorage.removeItem('yana_login_refresh_guard');
+      
       // Setăm flag pentru a forța refresh la următorul login
       localStorage.setItem('pending_refresh', 'true');
     } catch (error) {
