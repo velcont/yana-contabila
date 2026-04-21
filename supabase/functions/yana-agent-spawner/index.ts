@@ -147,7 +147,7 @@ Returnează DOAR un obiect: { "agents": [...] }. Dacă nu e nevoie de nimeni, { 
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: modelUsed,
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       }),
@@ -158,6 +158,8 @@ Returnează DOAR un obiect: { "agents": [...] }. Dacă nu e nevoie de nimeni, { 
       });
     }
     const aiData = await aiResp.json();
+    totalInputTokens += aiData.usage?.prompt_tokens || 0;
+    totalOutputTokens += aiData.usage?.completion_tokens || 0;
     let parsed: { agents?: Array<Record<string, unknown>> } = {};
     try { parsed = JSON.parse(aiData.choices?.[0]?.message?.content || "{}"); } catch { /* ignore */ }
 
@@ -178,6 +180,25 @@ Returnează DOAR un obiect: { "agents": [...] }. Dacă nu e nevoie de nimeni, { 
         metadata: { topic: a.topic || null, source_brief: brief },
       }).select("id, agent_slug, display_name").single();
       if (!error && data) spawned.push(data);
+    }
+
+    // Log AI cost (best-effort)
+    if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      const costCents = Math.ceil(
+        (totalInputTokens * 0.00001875 + totalOutputTokens * 0.000075) * 100,
+      );
+      await supabase.from("ai_usage").insert({
+        user_id: "00000000-0000-0000-0000-000000000000",
+        endpoint: "yana-agent-spawner",
+        model: modelUsed,
+        month_year: new Date().toISOString().slice(0, 7),
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalInputTokens + totalOutputTokens,
+        estimated_cost_cents: costCents,
+        request_duration_ms: Date.now() - startTime,
+        success: true,
+      }).then(() => {}, () => {});
     }
 
     return new Response(JSON.stringify({ spawned, signals: brief }), {
