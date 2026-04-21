@@ -54,13 +54,13 @@ Deno.serve(async (req) => {
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-    // === SIGNAL 1: Weak reflections ===
+    // === SIGNAL 1: Weak reflections (relaxed threshold: <0.85) ===
     const { data: weakRefl } = await supabase
       .from("ai_reflection_logs")
       .select("id, question, self_score, what_could_improve, missing_context")
-      .lt("self_score", 0.7)
+      .lt("self_score", 0.85)
       .gte("created_at", sevenDaysAgo)
-      .limit(50);
+      .limit(100);
 
     const reflByTopic: Record<string, { ids: string[]; samples: string[]; avg_score: number }> = {};
     (weakRefl || []).forEach((r: any) => {
@@ -71,14 +71,14 @@ Deno.serve(async (req) => {
       reflByTopic[t].avg_score = (reflByTopic[t].avg_score + r.self_score) / 2;
     });
     Object.entries(reflByTopic).forEach(([topic, info]) => {
-      if (info.ids.length >= 2) {
+      if (info.ids.length >= 1) {
         newGaps.push({
           gap_type: "weak_reflection",
           topic,
           description: `YANA s-a auto-evaluat slab (${info.avg_score.toFixed(2)}) la ${info.ids.length} întrebări despre "${topic}".`,
           evidence: { reflection_ids: info.ids, sample_questions: info.samples },
           frequency: info.ids.length,
-          severity: 1 - info.avg_score, // lower score → higher severity
+          severity: 1 - info.avg_score,
         });
       }
     });

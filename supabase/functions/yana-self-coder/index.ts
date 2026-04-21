@@ -60,13 +60,15 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ skipped: `Max concurrent proposals (${maxConcurrent}) reached` }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Get top open gaps with relevant discoveries
+    // Get top open gaps with relevant discoveries (process max 2 per run to stay under 150s timeout)
+    const slotsAvailable = maxConcurrent - (activeProposals || 0);
+    const batchSize = Math.min(slotsAvailable, 2);
     const { data: gaps } = await supabase
       .from("yana_capability_gaps")
       .select("id, gap_type, topic, description, evidence, impact_score")
       .eq("status", "open")
       .order("impact_score", { ascending: false })
-      .limit(maxConcurrent - (activeProposals || 0));
+      .limit(batchSize);
 
     if (!gaps || gaps.length === 0) {
       return new Response(JSON.stringify({ skipped: "No open gaps to address" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -106,7 +108,7 @@ Propune UN agent specializat care rezolvă acest gap. JSON valid.`;
           method: "POST",
           headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "openai/gpt-5",
+            model: "openai/gpt-5-mini",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: userPrompt },
