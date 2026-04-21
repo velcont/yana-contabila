@@ -126,6 +126,49 @@ const TOOLS = [
   },
 ];
 
+// Inject dynamically generated agents as callable tools (run_dynamic_agent + spawn_agent)
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "run_dynamic_agent",
+      description: "Execută un sub-agent specializat creat anterior de YANA. Folosește când există deja un agent potrivit pentru sarcină.",
+      parameters: {
+        type: "object",
+        properties: {
+          agent_slug: { type: "string", description: "Identificator (slug) al agentului existent" },
+          input: { type: "string", description: "Inputul/cererea pentru agent" },
+        },
+        required: ["agent_slug", "input"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "spawn_agent",
+      description: "Creează AUTONOM un nou sub-agent specializat când detectezi un task recurent sau o slăbiciune ce necesită un agent dedicat. Agentul devine imediat activ și disponibil.",
+      parameters: {
+        type: "object",
+        properties: {
+          display_name: { type: "string", description: "Nume scurt al agentului (ex: 'Monitor ANAF')" },
+          description: { type: "string", description: "La ce e bun, în 1-2 fraze" },
+          agent_type: { type: "string", enum: ["sub_agent", "meta_improvement"], description: "sub_agent = task concret; meta_improvement = analizează YANA însăși" },
+          system_prompt: { type: "string", description: "Promptul de sistem al noului agent (1-3 paragrafe, în română)" },
+          allowed_tools: {
+            type: "array",
+            items: { type: "string", enum: ["search_companies", "get_latest_balance", "create_task", "create_calendar_event", "save_note", "web_research", "get_user_context"] },
+            description: "Whitelist de unelte pe care le poate folosi noul agent",
+          },
+          schedule: { type: "string", enum: ["on_demand", "hourly", "daily", "weekly"], description: "Cum rulează" },
+          creation_reason: { type: "string", description: "Motivul auto-creării (ex: 'detectat 5 cereri similare despre TVA')" },
+        },
+        required: ["display_name", "description", "agent_type", "system_prompt", "allowed_tools", "schedule"],
+      },
+    },
+  },
+);
+
 // ============= TOOL EXECUTORS =============
 
 async function executeTool(
@@ -250,6 +293,54 @@ async function executeTool(
         companies_count: companiesCount || 0,
         analyses_count: analysesCount || 0,
       };
+    }
+
+    case "spawn_agent": {
+      const slug = String(args.display_name || "agent")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        .slice(0, 50) + "-" + Date.now().toString(36);
+      const { data, error } = await supabase
+        .from("yana_generated_agents")
+        .insert({
+          agent_slug: slug,
+          display_name: args.display_name,
+          description: args.description,
+          agent_type: args.agent_type,
+          system_prompt: args.system_prompt,
+          allowed_tools: args.allowed_tools || [],
+          schedule: args.schedule || "on_demand",
+          created_by: "yana",
+          creation_reason: args.creation_reason || null,
+          is_active: true,
+        })
+        .select("id, agent_slug, display_name")
+        .single();
+      if (error) return { error: error.message };
+      return { success: true, agent_slug: data.agent_slug, message: `Agent nou creat: "${data.display_name}" (${data.agent_slug}). E activ și apelabil prin run_dynamic_agent.` };
+    }
+
+    case "run_dynamic_agent": {
+      const slug = args.agent_slug as string;
+      const input = args.input as string;
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/yana-dynamic-agent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "x-yana-user-id": userId,
+          },
+          body: JSON.stringify({ agent_slug: slug, input, trigger_source: "parent_agent" }),
+        });
+        if (!resp.ok) return { error: `Dynamic agent failed: ${resp.status}` };
+        return await resp.json();
+      } catch (e) {
+        return { error: (e as Error).message };
+      }
     }
 
     default:

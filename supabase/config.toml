@@ -263,3 +263,12 @@ verify_jwt = true
 
 [functions.semantic-search]
 verify_jwt = true
+
+[functions.yana-dynamic-agent]
+verify_jwt = false
+
+[functions.yana-agent-spawner]
+verify_jwt = false
+
+[functions.yana-agents-orchestrator]
+verify_jwt = false
