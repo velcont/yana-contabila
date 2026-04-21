@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     const { data: weakReflections } = await supabase
       .from("ai_reflection_logs")
       .select("question, self_score, what_could_improve, missing_context")
-      .lt("self_score", 0.5)
+      .lt("self_score", WEAK_REFLECTION_SCORE_MAX)
       .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
       .limit(20);
 
@@ -76,7 +76,23 @@ Deno.serve(async (req) => {
       const t = (r.topic || "general").toLowerCase();
       topicFreq[t] = (topicFreq[t] || 0) + 1;
     });
-    const hotTopics = Object.entries(topicFreq).filter(([, c]) => c >= 5).map(([t]) => t);
+    const hotTopics = Object.entries(topicFreq).filter(([, c]) => c >= TOPIC_FREQUENCY_MIN).map(([t]) => t);
+
+    // === Signal 3: High-LP observations not yet processed ===
+    const { data: highLpObs } = await supabase
+      .from("yana_observations")
+      .select("observation_type, raw_data")
+      .eq("processed", false)
+      .gte("learning_potential", OBSERVATION_LP_MIN)
+      .gte("created_at", new Date(Date.now() - 7 * 86400000).toISOString())
+      .limit(20);
+
+    // === Signal 4: Recent AI corrections (humans fixing YANA) ===
+    const { data: corrections } = await supabase
+      .from("ai_corrections")
+      .select("original_question, correction_type")
+      .gte("created_at", new Date(Date.now() - 14 * 86400000).toISOString())
+      .limit(10);
 
     // Existing agents to avoid dupes
     const { data: existing } = await supabase
@@ -94,9 +110,23 @@ Deno.serve(async (req) => {
         gaps: r.what_could_improve,
       })),
       hot_topics: hotTopics.filter((t) => !existingTopics.has(t)).slice(0, 5),
+      high_lp_observations: (highLpObs || []).slice(0, 5).map((o) => ({
+        type: o.observation_type,
+        snippet: JSON.stringify(o.raw_data || {}).slice(0, 200),
+      })),
+      corrections: (corrections || []).slice(0, 5).map((c) => ({
+        q: String(c.original_question || "").slice(0, 150),
+        type: c.correction_type,
+      })),
+      force_mode: forceMode,
     };
 
-    if (brief.weak_reflections.length === 0 && brief.hot_topics.length === 0) {
+    const totalSignals =
+      brief.weak_reflections.length +
+      brief.hot_topics.length +
+      brief.high_lp_observations.length +
+      brief.corrections.length;
+    if (totalSignals === 0 && !forceMode) {
       return new Response(JSON.stringify({ spawned: [], reason: "No spawn signals" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
