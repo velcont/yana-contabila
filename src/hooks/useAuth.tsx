@@ -96,21 +96,29 @@ export const useAuth = () => {
             });
           }, 0);
           
-          // Protecție anti-loop: verificăm dacă am făcut deja refresh în această sesiune
+          // FIX BUG: SIGNED_IN se emite și la TOKEN_REFRESHED (refresh periodic al sesiunii),
+          // ceea ce cauza:
+          //   1) După login → page reload pe /auth înainte ca navigate('/yana') să prindă
+          //   2) În chat → reload care ștergea inputul tastat de utilizator
+          // Fix: verificăm versiunea DOAR o singură dată per sesiune browser (nu per SIGNED_IN event)
+          // și DOAR dacă utilizatorul a fost deja loggat (nu la primul login al sesiunii).
+          const versionCheckedThisSession = sessionStorage.getItem('yana_version_checked');
           const refreshGuard = sessionStorage.getItem('yana_login_refresh_guard');
           const refreshCount = parseInt(sessionStorage.getItem('yana_refresh_count') || '0', 10);
-          if (refreshGuard === 'true' || refreshCount >= 2) {
-            console.log('🔄 [useAuth] Refresh guard active - skipping version check');
-            return;
+          
+          if (versionCheckedThisSession === 'true' || refreshGuard === 'true' || refreshCount >= 2) {
+            return; // Skip silent - este un TOKEN_REFRESHED sau am făcut deja check
           }
           
-          // Delay mic pentru a evita deadlock Supabase
+          sessionStorage.setItem('yana_version_checked', 'true');
+          
+          // Delay mai mare (3 secunde) pentru a permite navigarea + a evita reload în mijloc de UX
           setTimeout(async () => {
             if (!mounted) return;
             try {
               const hasNewVersion = await checkForNewVersion(supabase);
               if (hasNewVersion) {
-                console.log('🔄 [useAuth] New version detected at login - refreshing...');
+                console.log('🔄 [useAuth] New version detected - refreshing...');
                 sessionStorage.setItem('yana_login_refresh_guard', 'true');
                 await saveCurrentVersion(supabase);
                 await performVersionRefresh();
@@ -118,7 +126,7 @@ export const useAuth = () => {
             } catch (error) {
               console.warn('[useAuth] Version check failed:', error);
             }
-          }, 100);
+          }, 3000);
         }
       }
     );
@@ -223,6 +231,10 @@ export const useAuth = () => {
           cacheNames.map(cacheName => caches.delete(cacheName))
         );
       }
+      
+      // Reset version check flag - va fi verificat din nou la următorul login
+      sessionStorage.removeItem('yana_version_checked');
+      sessionStorage.removeItem('yana_login_refresh_guard');
       
       // Setăm flag pentru a forța refresh la următorul login
       localStorage.setItem('pending_refresh', 'true');
