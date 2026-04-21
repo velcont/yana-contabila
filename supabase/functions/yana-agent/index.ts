@@ -295,6 +295,54 @@ async function executeTool(
       };
     }
 
+    case "spawn_agent": {
+      const slug = String(args.display_name || "agent")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+        .slice(0, 50) + "-" + Date.now().toString(36);
+      const { data, error } = await supabase
+        .from("yana_generated_agents")
+        .insert({
+          agent_slug: slug,
+          display_name: args.display_name,
+          description: args.description,
+          agent_type: args.agent_type,
+          system_prompt: args.system_prompt,
+          allowed_tools: args.allowed_tools || [],
+          schedule: args.schedule || "on_demand",
+          created_by: "yana",
+          creation_reason: args.creation_reason || null,
+          is_active: true,
+        })
+        .select("id, agent_slug, display_name")
+        .single();
+      if (error) return { error: error.message };
+      return { success: true, agent_slug: data.agent_slug, message: `Agent nou creat: "${data.display_name}" (${data.agent_slug}). E activ și apelabil prin run_dynamic_agent.` };
+    }
+
+    case "run_dynamic_agent": {
+      const slug = args.agent_slug as string;
+      const input = args.input as string;
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/yana-dynamic-agent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+            "x-yana-user-id": userId,
+          },
+          body: JSON.stringify({ agent_slug: slug, input, trigger_source: "parent_agent" }),
+        });
+        if (!resp.ok) return { error: `Dynamic agent failed: ${resp.status}` };
+        return await resp.json();
+      } catch (e) {
+        return { error: (e as Error).message };
+      }
+    }
+
     default:
       return { error: `Tool necunoscut: ${name}` };
   }
