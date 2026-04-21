@@ -40,7 +40,7 @@ export function AgentStepsPanel({ steps, isRunning, defaultOpen = false }: Agent
           {isRunning ? (
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
           ) : (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            <CheckCircle2 className="h-4 w-4 text-primary" />
           )}
           <span className="font-medium text-foreground">
             {isRunning ? 'Agent lucrează...' : `Proces agent (${toolCalls} unelte)`}
@@ -99,9 +99,9 @@ function StepItem({ step }: { step: AgentStep }) {
     return (
       <div className={cn(
         "flex items-start gap-2 text-xs ml-5 pl-2 border-l-2",
-        isError ? "border-destructive/40 text-destructive" : "border-emerald-500/40 text-muted-foreground"
+        isError ? "border-destructive/40 text-destructive" : "border-primary/40 text-muted-foreground"
       )}>
-        <CheckCircle2 className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", isSuccess ? "text-emerald-500" : "text-muted-foreground/50")} />
+        <CheckCircle2 className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", isSuccess ? "text-primary" : "text-muted-foreground/50")} />
         <span className="truncate">
           {isError
             ? `Eroare: ${(result as { error: string }).error}`
