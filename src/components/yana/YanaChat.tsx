@@ -358,6 +358,40 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         content: smartTruncate(m.content)
       }));
 
+      // 🆕 AGENT MODE — Multi-step autonomous agent with tool calling
+      // Cheamă yana-agent în loc de ai-router când modul agent e activ
+      if (agentMode) {
+        try {
+          yanaAgent.reset();
+          const finalText = await yanaAgent.run(content, historyForAI);
+          // Capturăm pașii din state-ul curent al hook-ului prin setTimeout 0
+          // (sau citim direct yanaAgent.steps - dar e closure-stale, deci facem snapshot)
+          const stepsSnapshot: AgentStep[] = [...yanaAgent.steps];
+
+          const assistantMessage: Message = {
+            id: `assistant-${Date.now()}`,
+            role: 'assistant',
+            content: finalText || 'Am procesat cererea, dar fără răspuns explicit.',
+            created_at: new Date().toISOString(),
+            agentSteps: stepsSnapshot,
+          };
+          setMessages(prev => [...prev, assistantMessage]);
+
+          await supabase.from('yana_messages').insert({
+            conversation_id: convId,
+            role: 'assistant',
+            content: assistantMessage.content,
+          });
+
+          isSendingRef.current = false;
+          setIsLoading(false);
+          return;
+        } catch (agentErr) {
+          console.error('[YanaChat] Agent mode failed, fallback to ai-router:', agentErr);
+          // continue to ai-router fallback below
+        }
+      }
+
       // Call AI router with history and balanceContext
       const { data: response, error } = await supabase.functions.invoke('ai-router', {
         body: {
