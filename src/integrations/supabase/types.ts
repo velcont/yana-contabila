@@ -5562,6 +5562,65 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_agent_executions: {
+        Row: {
+          agent_id: string
+          cost_cents: number | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          input_summary: string | null
+          learning_extracted: string | null
+          output_summary: string | null
+          steps: Json | null
+          success: boolean
+          tokens_used: number | null
+          trigger_source: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          cost_cents?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input_summary?: string | null
+          learning_extracted?: string | null
+          output_summary?: string | null
+          steps?: Json | null
+          success?: boolean
+          tokens_used?: number | null
+          trigger_source?: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          cost_cents?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input_summary?: string | null
+          learning_extracted?: string | null
+          output_summary?: string | null
+          steps?: Json | null
+          success?: boolean
+          tokens_used?: number | null
+          trigger_source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_agent_executions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "yana_generated_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       yana_agent_traces: {
         Row: {
           agent_name: string
@@ -6265,6 +6324,72 @@ export type Database = {
             referencedColumns: ["source_type"]
           },
         ]
+      }
+      yana_generated_agents: {
+        Row: {
+          agent_slug: string
+          agent_type: string
+          allowed_tools: string[]
+          created_at: string
+          created_by: string
+          creation_reason: string | null
+          description: string
+          display_name: string
+          execution_count: number
+          id: string
+          is_active: boolean
+          last_executed_at: string | null
+          last_learning: string | null
+          metadata: Json | null
+          schedule: string
+          success_count: number
+          system_prompt: string
+          trigger_pattern: Json | null
+          updated_at: string
+        }
+        Insert: {
+          agent_slug: string
+          agent_type: string
+          allowed_tools?: string[]
+          created_at?: string
+          created_by?: string
+          creation_reason?: string | null
+          description: string
+          display_name: string
+          execution_count?: number
+          id?: string
+          is_active?: boolean
+          last_executed_at?: string | null
+          last_learning?: string | null
+          metadata?: Json | null
+          schedule?: string
+          success_count?: number
+          system_prompt: string
+          trigger_pattern?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          agent_slug?: string
+          agent_type?: string
+          allowed_tools?: string[]
+          created_at?: string
+          created_by?: string
+          creation_reason?: string | null
+          description?: string
+          display_name?: string
+          execution_count?: number
+          id?: string
+          is_active?: boolean
+          last_executed_at?: string | null
+          last_learning?: string | null
+          metadata?: Json | null
+          schedule?: string
+          success_count?: number
+          system_prompt?: string
+          trigger_pattern?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       yana_ground_truth: {
         Row: {
