@@ -49,6 +49,12 @@ Deno.serve(async (req) => {
       const runAsUserId = (a.metadata as { run_as_user_id?: string })?.run_as_user_id;
       if (!runAsUserId) continue; // skip if no user context configured
 
+      // Mark last_executed_at NOW to prevent re-trigger if the call hangs/fails
+      await supabase
+        .from("yana_generated_agents")
+        .update({ last_executed_at: new Date().toISOString() })
+        .eq("agent_slug", a.agent_slug);
+
       const resp = await fetch(`${supabaseUrl}/functions/v1/yana-dynamic-agent`, {
         method: "POST",
         headers: {

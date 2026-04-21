@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     // Load agent spec
     const { data: agent, error: agentErr } = await supabase
       .from("yana_generated_agents")
-      .select("id, display_name, system_prompt, allowed_tools, is_active")
+      .select("id, display_name, system_prompt, allowed_tools, is_active, execution_count, success_count")
       .eq("agent_slug", agent_slug)
       .single();
     if (agentErr || !agent) {
@@ -225,13 +225,16 @@ Deno.serve(async (req) => {
     const steps: Array<Record<string, unknown>> = [];
     let finalText = "";
     const MAX_STEPS = 4;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const modelUsed = "google/gemini-2.5-flash";
 
     for (let step = 0; step < MAX_STEPS; step++) {
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: modelUsed,
           messages,
           ...(tools.length > 0 ? { tools, tool_choice: "auto" } : {}),
         }),
@@ -241,6 +244,8 @@ Deno.serve(async (req) => {
         break;
       }
       const aiData = await aiResp.json();
+      totalInputTokens += aiData.usage?.prompt_tokens || 0;
+      totalOutputTokens += aiData.usage?.completion_tokens || 0;
       const choice = aiData.choices?.[0];
       const toolCalls = choice?.message?.tool_calls;
       if (!toolCalls || toolCalls.length === 0) {
@@ -275,10 +280,29 @@ Deno.serve(async (req) => {
       duration_ms: durationMs,
     });
     await supabase.from("yana_generated_agents").update({
-      execution_count: ((agent as unknown as { execution_count?: number }).execution_count || 0) + 1,
-      success_count: ((agent as unknown as { success_count?: number }).success_count || 0) + (finalText ? 1 : 0),
+      execution_count: (agent.execution_count || 0) + 1,
+      success_count: (agent.success_count || 0) + (finalText ? 1 : 0),
       last_executed_at: new Date().toISOString(),
     }).eq("id", agent.id);
+
+    // Log AI cost (best-effort) — Gemini 2.5 Flash pricing approx
+    if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      const costCents = Math.ceil(
+        (totalInputTokens * 0.00001875 + totalOutputTokens * 0.000075) * 100,
+      );
+      await supabase.from("ai_usage").insert({
+        user_id: userId,
+        endpoint: `yana-dynamic-agent:${agent_slug}`,
+        model: modelUsed,
+        month_year: new Date().toISOString().slice(0, 7),
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        total_tokens: totalInputTokens + totalOutputTokens,
+        estimated_cost_cents: costCents,
+        request_duration_ms: durationMs,
+        success: !!finalText,
+      });
+    }
 
     return new Response(JSON.stringify({
       success: true,
