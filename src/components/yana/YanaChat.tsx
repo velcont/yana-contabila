@@ -1286,6 +1286,23 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               postAnalysis={!!balanceContext}
             />
           )}
+          {/* 🆕 Toggle-uri Mod Agent + Vezi proces */}
+          <div className="flex items-center gap-4 px-1 pb-2 text-xs">
+            <div className="flex items-center gap-2">
+              <Switch id="agent-mode" checked={agentMode} onCheckedChange={toggleAgentMode} />
+              <Label htmlFor="agent-mode" className="cursor-pointer text-muted-foreground">
+                🤖 Mod Agent {agentMode && <span className="text-primary">(autonom)</span>}
+              </Label>
+            </div>
+            {agentMode && (
+              <div className="flex items-center gap-2">
+                <Switch id="show-process" checked={showAgentProcess} onCheckedChange={toggleShowProcess} />
+                <Label htmlFor="show-process" className="cursor-pointer text-muted-foreground">
+                  Vezi procesul
+                </Label>
+              </div>
+            )}
+          </div>
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"
