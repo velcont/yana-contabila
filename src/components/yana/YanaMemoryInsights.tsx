@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Brain, Lightbulb, Trash2, FileText, Loader2, Sparkles, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { YanaGeneratedAgentsPanel } from './YanaGeneratedAgentsPanel';
+import { Bot } from 'lucide-react';
 
 interface MemoryRecord {
   id: string;
