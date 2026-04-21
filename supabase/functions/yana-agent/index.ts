@@ -126,6 +126,49 @@ const TOOLS = [
   },
 ];
 
+// Inject dynamically generated agents as callable tools (run_dynamic_agent + spawn_agent)
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "run_dynamic_agent",
+      description: "Execută un sub-agent specializat creat anterior de YANA. Folosește când există deja un agent potrivit pentru sarcină.",
+      parameters: {
+        type: "object",
+        properties: {
+          agent_slug: { type: "string", description: "Identificator (slug) al agentului existent" },
+          input: { type: "string", description: "Inputul/cererea pentru agent" },
+        },
+        required: ["agent_slug", "input"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "spawn_agent",
+      description: "Creează AUTONOM un nou sub-agent specializat când detectezi un task recurent sau o slăbiciune ce necesită un agent dedicat. Agentul devine imediat activ și disponibil.",
+      parameters: {
+        type: "object",
+        properties: {
+          display_name: { type: "string", description: "Nume scurt al agentului (ex: 'Monitor ANAF')" },
+          description: { type: "string", description: "La ce e bun, în 1-2 fraze" },
+          agent_type: { type: "string", enum: ["sub_agent", "meta_improvement"], description: "sub_agent = task concret; meta_improvement = analizează YANA însăși" },
+          system_prompt: { type: "string", description: "Promptul de sistem al noului agent (1-3 paragrafe, în română)" },
+          allowed_tools: {
+            type: "array",
+            items: { type: "string", enum: ["search_companies", "get_latest_balance", "create_task", "create_calendar_event", "save_note", "web_research", "get_user_context"] },
+            description: "Whitelist de unelte pe care le poate folosi noul agent",
+          },
+          schedule: { type: "string", enum: ["on_demand", "hourly", "daily", "weekly"], description: "Cum rulează" },
+          creation_reason: { type: "string", description: "Motivul auto-creării (ex: 'detectat 5 cereri similare despre TVA')" },
+        },
+        required: ["display_name", "description", "agent_type", "system_prompt", "allowed_tools", "schedule"],
+      },
+    },
+  },
+);
+
 // ============= TOOL EXECUTORS =============
 
 async function executeTool(
