@@ -71,14 +71,14 @@ Deno.serve(async (req) => {
       reflByTopic[t].avg_score = (reflByTopic[t].avg_score + r.self_score) / 2;
     });
     Object.entries(reflByTopic).forEach(([topic, info]) => {
-      if (info.ids.length >= 2) {
+      if (info.ids.length >= 1) {
         newGaps.push({
           gap_type: "weak_reflection",
           topic,
           description: `YANA s-a auto-evaluat slab (${info.avg_score.toFixed(2)}) la ${info.ids.length} întrebări despre "${topic}".`,
           evidence: { reflection_ids: info.ids, sample_questions: info.samples },
           frequency: info.ids.length,
-          severity: 1 - info.avg_score, // lower score → higher severity
+          severity: 1 - info.avg_score,
         });
       }
     });
