@@ -5696,6 +5696,51 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_capability_gaps: {
+        Row: {
+          description: string
+          detected_at: string | null
+          evidence: Json | null
+          frequency: number | null
+          gap_type: string
+          id: string
+          impact_score: number | null
+          resolved_by_proposal_id: string | null
+          severity: number | null
+          status: string | null
+          topic: string
+          updated_at: string | null
+        }
+        Insert: {
+          description: string
+          detected_at?: string | null
+          evidence?: Json | null
+          frequency?: number | null
+          gap_type: string
+          id?: string
+          impact_score?: number | null
+          resolved_by_proposal_id?: string | null
+          severity?: number | null
+          status?: string | null
+          topic: string
+          updated_at?: string | null
+        }
+        Update: {
+          description?: string
+          detected_at?: string | null
+          evidence?: Json | null
+          frequency?: number | null
+          gap_type?: string
+          id?: string
+          impact_score?: number | null
+          resolved_by_proposal_id?: string | null
+          severity?: number | null
+          status?: string | null
+          topic?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       yana_client_profiles: {
         Row: {
           anticipation_triggers: Json | null
@@ -5980,6 +6025,51 @@ export type Database = {
           execution_time_ms?: number | null
           id?: string
           success?: boolean | null
+        }
+        Relationships: []
+      }
+      yana_discovery_feed: {
+        Row: {
+          ai_evaluation: string | null
+          description: string | null
+          discovered_at: string | null
+          evaluated_at: string | null
+          id: string
+          matched_gap_ids: string[] | null
+          raw_data: Json | null
+          relevance_score: number | null
+          source: string
+          status: string | null
+          title: string
+          url: string
+        }
+        Insert: {
+          ai_evaluation?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          evaluated_at?: string | null
+          id?: string
+          matched_gap_ids?: string[] | null
+          raw_data?: Json | null
+          relevance_score?: number | null
+          source: string
+          status?: string | null
+          title: string
+          url: string
+        }
+        Update: {
+          ai_evaluation?: string | null
+          description?: string | null
+          discovered_at?: string | null
+          evaluated_at?: string | null
+          id?: string
+          matched_gap_ids?: string[] | null
+          raw_data?: Json | null
+          relevance_score?: number | null
+          source?: string
+          status?: string | null
+          title?: string
+          url?: string
         }
         Relationships: []
       }
@@ -7360,6 +7450,68 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_proposal_tests: {
+        Row: {
+          avg_latency_ms: number | null
+          created_at: string | null
+          decided_at: string | null
+          decision: string | null
+          decision_reason: string | null
+          failure_count: number | null
+          id: string
+          invocation_count: number | null
+          metrics_window_end: string | null
+          metrics_window_start: string | null
+          proposal_id: string
+          success_count: number | null
+          total_cost_cents: number | null
+          user_feedback_negative: number | null
+          user_feedback_positive: number | null
+        }
+        Insert: {
+          avg_latency_ms?: number | null
+          created_at?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          failure_count?: number | null
+          id?: string
+          invocation_count?: number | null
+          metrics_window_end?: string | null
+          metrics_window_start?: string | null
+          proposal_id: string
+          success_count?: number | null
+          total_cost_cents?: number | null
+          user_feedback_negative?: number | null
+          user_feedback_positive?: number | null
+        }
+        Update: {
+          avg_latency_ms?: number | null
+          created_at?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          decision_reason?: string | null
+          failure_count?: number | null
+          id?: string
+          invocation_count?: number | null
+          metrics_window_end?: string | null
+          metrics_window_start?: string | null
+          proposal_id?: string
+          success_count?: number | null
+          total_cost_cents?: number | null
+          user_feedback_negative?: number | null
+          user_feedback_positive?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_proposal_tests_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "yana_self_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       yana_question_clusters: {
         Row: {
           avg_satisfaction: number | null
@@ -7599,6 +7751,45 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_self_dev_settings: {
+        Row: {
+          ai_budget_cents_per_day: number | null
+          enabled: boolean | null
+          enabled_sources: string[] | null
+          id: string
+          max_concurrent_proposals: number | null
+          min_test_invocations: number | null
+          notify_email: string | null
+          rollback_threshold_percent: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          ai_budget_cents_per_day?: number | null
+          enabled?: boolean | null
+          enabled_sources?: string[] | null
+          id?: string
+          max_concurrent_proposals?: number | null
+          min_test_invocations?: number | null
+          notify_email?: string | null
+          rollback_threshold_percent?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          ai_budget_cents_per_day?: number | null
+          enabled?: boolean | null
+          enabled_sources?: string[] | null
+          id?: string
+          max_concurrent_proposals?: number | null
+          min_test_invocations?: number | null
+          notify_email?: string | null
+          rollback_threshold_percent?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       yana_self_model: {
         Row: {
           capabilities: Json
@@ -7638,6 +7829,75 @@ export type Database = {
           self_intentions?: Json | null
           updated_at?: string
           world_awareness?: Json
+        }
+        Relationships: []
+      }
+      yana_self_proposals: {
+        Row: {
+          baseline_success_rate: number | null
+          created_at: string | null
+          created_by: string | null
+          current_success_rate: number | null
+          deployed_agent_id: string | null
+          deployed_at: string | null
+          estimated_impact: number | null
+          generated_code: string | null
+          generated_config: Json | null
+          id: string
+          proposal_type: string
+          rationale: string
+          rejection_reason: string | null
+          rolled_back_at: string | null
+          shadow_started_at: string | null
+          shadow_traffic_percent: number | null
+          source_discovery_ids: string[] | null
+          status: string | null
+          target_gap_ids: string[] | null
+          title: string
+        }
+        Insert: {
+          baseline_success_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_success_rate?: number | null
+          deployed_agent_id?: string | null
+          deployed_at?: string | null
+          estimated_impact?: number | null
+          generated_code?: string | null
+          generated_config?: Json | null
+          id?: string
+          proposal_type: string
+          rationale: string
+          rejection_reason?: string | null
+          rolled_back_at?: string | null
+          shadow_started_at?: string | null
+          shadow_traffic_percent?: number | null
+          source_discovery_ids?: string[] | null
+          status?: string | null
+          target_gap_ids?: string[] | null
+          title: string
+        }
+        Update: {
+          baseline_success_rate?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          current_success_rate?: number | null
+          deployed_agent_id?: string | null
+          deployed_at?: string | null
+          estimated_impact?: number | null
+          generated_code?: string | null
+          generated_config?: Json | null
+          id?: string
+          proposal_type?: string
+          rationale?: string
+          rejection_reason?: string | null
+          rolled_back_at?: string | null
+          shadow_started_at?: string | null
+          shadow_traffic_percent?: number | null
+          source_discovery_ids?: string[] | null
+          status?: string | null
+          target_gap_ids?: string[] | null
+          title?: string
         }
         Relationships: []
       }
@@ -8432,6 +8692,15 @@ export type Database = {
           similarity: number
           user_id: string
         }[]
+      }
+      record_proposal_test_outcome: {
+        Args: {
+          p_cost_cents?: number
+          p_latency_ms?: number
+          p_proposal_id: string
+          p_success: boolean
+        }
+        Returns: undefined
       }
       track_user_context_evolution: {
         Args: {
