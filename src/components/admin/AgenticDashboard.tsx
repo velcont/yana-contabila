@@ -27,6 +27,7 @@ import {
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import { toast } from "sonner";
+import AutoDevelopmentTab from "./AutoDevelopmentTab";
 
 // ============= BRAIN TAB COMPONENT =============
 
@@ -551,10 +552,14 @@ export default function AgenticDashboard() {
       )}
 
       <Tabs defaultValue="brain" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="brain" className="flex items-center gap-2">
             <Brain className="w-4 h-4" />
             Creier
+          </TabsTrigger>
+          <TabsTrigger value="autodev" className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Auto-Dezvoltare
           </TabsTrigger>
           <TabsTrigger value="experiments" className="flex items-center gap-2">
             <Beaker className="w-4 h-4" />
@@ -577,6 +582,11 @@ export default function AgenticDashboard() {
         {/* Brain Tab - NEW */}
         <TabsContent value="brain">
           <BrainTab />
+        </TabsContent>
+
+        {/* Auto-Development Tab - dovezi că YANA "angajează" agenți AI */}
+        <TabsContent value="autodev">
+          <AutoDevelopmentTab />
         </TabsContent>
 
         {/* A/B Experiments Tab */}
