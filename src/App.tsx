@@ -56,6 +56,7 @@ const Research = lazy(() => import("./pages/Research"));
 
 const PriceTracker = lazy(() => import("./pages/PriceTracker"));
 const SupplierAudit = lazy(() => import("./pages/SupplierAudit"));
+const LocalDevice = lazy(() => import("./pages/LocalDevice"));
 
 const queryClient = new QueryClient();
 
