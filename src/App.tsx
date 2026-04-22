@@ -186,6 +186,7 @@ const App = () => {
                       <Route path="/install" element={<InstallPWA />} />
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
+                      <Route path="/yana/local-device" element={<PrivateRoute><LocalDevice /></PrivateRoute>} />
                       
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
