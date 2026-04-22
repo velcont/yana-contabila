@@ -58,20 +58,29 @@ Deno.serve(async (req) => {
     for (const p of pending || []) {
       try {
         const cfg = p.generated_config || {};
-        // Create the agent in yana_generated_agents table (shadow mode flag in config)
+        // Create the agent in yana_generated_agents table (shadow mode flag in metadata)
+        const slug = (cfg.agent_name || `auto_${p.id.slice(0, 8)}`)
+          .toLowerCase().replace(/[^a-z0-9_-]/g, "_").slice(0, 60);
         const { data: agent, error: agentErr } = await supabase
           .from("yana_generated_agents")
           .insert({
-            agent_name: cfg.agent_name || `auto_${p.id.slice(0, 8)}`,
-            purpose: cfg.agent_purpose || p.title,
+            agent_slug: slug,
+            display_name: cfg.agent_name || p.title,
+            description: cfg.agent_purpose || p.title,
+            agent_type: cfg.agent_type || "sub_agent",
             system_prompt: cfg.system_prompt || "",
-            trigger_keywords: cfg.trigger_keywords || [],
-            model: cfg.model || "google/gemini-2.5-flash",
-            topic: (cfg.trigger_keywords || [])[0] || "general",
-            tools_whitelist: cfg.tools_needed || [],
+            allowed_tools: cfg.tools_needed || cfg.tools_whitelist || [],
+            schedule: cfg.schedule || "on_demand",
             is_active: true,
             created_by: "yana-self-coder",
-            metadata: { shadow_mode: true, proposal_id: p.id, traffic_percent: 10 },
+            creation_reason: p.title,
+            trigger_pattern: { keywords: cfg.trigger_keywords || [] },
+            metadata: {
+              shadow_mode: true,
+              proposal_id: p.id,
+              traffic_percent: 10,
+              model: cfg.model || "google/gemini-2.5-flash",
+            },
           })
           .select("id")
           .single();
