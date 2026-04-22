@@ -839,6 +839,8 @@ REGULI:
 5. Maxim 5 pași de tool calling per răspuns.
 6. La final, dă un răspuns clar și acționabil — nu lista pașii executați (userul îi vede separat).`;
 
+const SYSTEM_PROMPT_FULL = SYSTEM_PROMPT + YANA_CHIEF_OF_STAFF_PROMPT;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -880,7 +882,7 @@ Deno.serve(async (req) => {
 
       try {
         const messages: Array<Record<string, unknown>> = [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: SYSTEM_PROMPT_FULL },
           ...conversation_history.slice(-10).map((m: { role: string; content: string }) => ({
             role: m.role, content: m.content,
           })),
