@@ -284,6 +284,78 @@ function buildAgentToolSlugMap(dynamicTools: Array<Record<string, unknown>>): Re
 
 // ============= TOOL EXECUTORS =============
 
+/**
+ * Sends a command to the user's local device by inserting into yana_local_commands.
+ * The local agent (running on Mac) listens via Realtime, executes, and writes back result.
+ * We poll for the result with a timeout.
+ */
+async function executeLocalCommand(
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+  commandType: string,
+  params: Record<string, unknown>,
+  timeoutMs = 35000,
+): Promise<unknown> {
+  // Find active device for this user (most recent active)
+  const { data: device, error: devErr } = await supabase
+    .from("yana_local_devices")
+    .select("id, status, last_seen_at")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("last_seen_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (devErr) return { error: `DB error: ${devErr.message}` };
+  if (!device) {
+    return {
+      error: "Niciun laptop conectat. Roagă utilizatorul să acceseze /yana → Settings → Conectare laptop și să instaleze agentul local.",
+    };
+  }
+
+  // Stale check: if last_seen older than 60s, agent likely offline
+  if (device.last_seen_at) {
+    const ageMs = Date.now() - new Date(device.last_seen_at as string).getTime();
+    if (ageMs > 60_000) {
+      return { error: "Agentul local pare offline (heartbeat lipsă). Roagă utilizatorul să-l pornească: `npx yana-local-agent`" };
+    }
+  }
+
+  // Insert command
+  const { data: cmd, error: insErr } = await supabase
+    .from("yana_local_commands")
+    .insert({
+      device_id: device.id,
+      user_id: userId,
+      command_type: commandType,
+      command_params: params,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (insErr) return { error: `Insert failed: ${insErr.message}` };
+
+  // Poll for result
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 600));
+    const { data: row } = await supabase
+      .from("yana_local_commands")
+      .select("status, result, error, duration_ms")
+      .eq("id", cmd.id)
+      .maybeSingle();
+    if (row && (row.status === "completed" || row.status === "failed")) {
+      if (row.status === "failed") return { error: row.error || "Local execution failed" };
+      return { result: row.result, duration_ms: row.duration_ms };
+    }
+  }
+
+  // Timeout — mark as such
+  await supabase.from("yana_local_commands").update({ status: "timeout", error: "No response in 35s" }).eq("id", cmd.id);
+  return { error: "Timeout: agentul local nu a răspuns în 35s." };
+}
+
 async function executeTool(
   name: string,
   args: Record<string, unknown>,
