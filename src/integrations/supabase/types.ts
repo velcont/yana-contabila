@@ -5741,6 +5741,216 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_ceo_briefings: {
+        Row: {
+          briefing_date: string
+          contacts_referenced: string[] | null
+          content_markdown: string
+          created_at: string
+          goals_referenced: string[] | null
+          id: string
+          tasks_referenced: string[] | null
+          user_id: string
+          was_helpful: boolean | null
+        }
+        Insert: {
+          briefing_date?: string
+          contacts_referenced?: string[] | null
+          content_markdown: string
+          created_at?: string
+          goals_referenced?: string[] | null
+          id?: string
+          tasks_referenced?: string[] | null
+          user_id: string
+          was_helpful?: boolean | null
+        }
+        Update: {
+          briefing_date?: string
+          contacts_referenced?: string[] | null
+          content_markdown?: string
+          created_at?: string
+          goals_referenced?: string[] | null
+          id?: string
+          tasks_referenced?: string[] | null
+          user_id?: string
+          was_helpful?: boolean | null
+        }
+        Relationships: []
+      }
+      yana_ceo_contacts: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_stale: boolean
+          last_interaction_at: string | null
+          linkedin_url: string | null
+          notes: string | null
+          phone: string | null
+          recommended_cadence_days: number | null
+          relationship_context: string | null
+          role: string | null
+          tags: string[] | null
+          tier: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_stale?: boolean
+          last_interaction_at?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          recommended_cadence_days?: number | null
+          relationship_context?: string | null
+          role?: string | null
+          tags?: string[] | null
+          tier?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_stale?: boolean
+          last_interaction_at?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          recommended_cadence_days?: number | null
+          relationship_context?: string | null
+          role?: string | null
+          tags?: string[] | null
+          tier?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      yana_ceo_goals: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          priority: number
+          progress_percent: number
+          quarter: string
+          status: string
+          success_metrics: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: number
+          progress_percent?: number
+          quarter?: string
+          status?: string
+          success_metrics?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          year?: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          priority?: number
+          progress_percent?: number
+          quarter?: string
+          status?: string
+          success_metrics?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      yana_ceo_tasks: {
+        Row: {
+          ai_draft: string | null
+          ai_research: string | null
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          goal_id: string | null
+          id: string
+          priority: number
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_draft?: string | null
+          ai_research?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          goal_id?: string | null
+          id?: string
+          priority?: number
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_draft?: string | null
+          ai_research?: string | null
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          goal_id?: string | null
+          id?: string
+          priority?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_ceo_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "yana_ceo_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yana_ceo_tasks_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "yana_ceo_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       yana_client_profiles: {
         Row: {
           anticipation_triggers: Json | null
