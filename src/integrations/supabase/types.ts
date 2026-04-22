@@ -6953,6 +6953,107 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_local_commands: {
+        Row: {
+          command_params: Json
+          command_type: string
+          completed_at: string | null
+          created_at: string
+          device_id: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          result: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          command_params?: Json
+          command_type: string
+          completed_at?: string | null
+          created_at?: string
+          device_id: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          command_params?: Json
+          command_type?: string
+          completed_at?: string | null
+          created_at?: string
+          device_id?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_local_commands_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "yana_local_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yana_local_devices: {
+        Row: {
+          allow_bash: boolean | null
+          allow_write: boolean | null
+          allowed_paths: string[] | null
+          created_at: string
+          device_name: string
+          device_token: string | null
+          id: string
+          last_seen_at: string | null
+          os_info: string | null
+          pairing_code: string | null
+          pairing_code_expires_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_bash?: boolean | null
+          allow_write?: boolean | null
+          allowed_paths?: string[] | null
+          created_at?: string
+          device_name?: string
+          device_token?: string | null
+          id?: string
+          last_seen_at?: string | null
+          os_info?: string | null
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_bash?: boolean | null
+          allow_write?: boolean | null
+          allowed_paths?: string[] | null
+          created_at?: string
+          device_name?: string
+          device_token?: string | null
+          id?: string
+          last_seen_at?: string | null
+          os_info?: string | null
+          pairing_code?: string | null
+          pairing_code_expires_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       yana_messages: {
         Row: {
           artifacts: Json | null
