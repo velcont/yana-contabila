@@ -652,6 +652,171 @@ async function executeTool(
         ((args.timeout_ms as number) ?? 30000) + 5000,
       );
 
+    // ============= CHIEF OF STAFF HANDLERS =============
+    case "ceo_morning_briefing": {
+      const today = new Date().toISOString().slice(0, 10);
+      const [goals, tasks, stale] = await Promise.all([
+        supabase.from("yana_ceo_goals").select("*").eq("user_id", userId).eq("status", "active").order("priority"),
+        supabase.from("yana_ceo_tasks").select("*").eq("user_id", userId).in("status", ["todo", "in_progress"]).order("priority").order("due_date"),
+        supabase.from("yana_ceo_contacts").select("id, full_name, role, company, last_interaction_at, recommended_cadence_days").eq("user_id", userId).eq("tier", 1).order("last_interaction_at", { ascending: true, nullsFirst: true }).limit(5),
+      ]);
+      const briefing = {
+        date: today,
+        active_goals: goals.data || [],
+        urgent_tasks: (tasks.data || []).filter((t: { due_date?: string; priority: number }) => t.priority === 1 || (t.due_date && t.due_date <= today)),
+        all_tasks_count: (tasks.data || []).length,
+        stale_contacts: stale.data || [],
+      };
+      if (args.save !== false) {
+        await supabase.from("yana_ceo_briefings").insert({
+          user_id: userId,
+          briefing_date: today,
+          content_markdown: JSON.stringify(briefing, null, 2),
+          goals_referenced: (goals.data || []).map((g: { id: string }) => g.id),
+          tasks_referenced: ((tasks.data || []) as { id: string }[]).slice(0, 10).map((t) => t.id),
+          contacts_referenced: (stale.data || []).map((c: { id: string }) => c.id),
+        });
+      }
+      return briefing;
+    }
+
+    case "ceo_manage_goals": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("yana_ceo_goals").select("*").eq("user_id", userId).order("priority").order("created_at", { ascending: false });
+        if (error) return { error: error.message };
+        return { goals: data || [] };
+      }
+      if (action === "create") {
+        if (!args.title) return { error: "title obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_goals").insert({
+          user_id: userId,
+          title: args.title,
+          description: args.description || null,
+          priority: args.priority || 2,
+          progress_percent: 0,
+          success_metrics: args.success_metrics || null,
+          category: args.category || null,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "update" || action === "achieve") {
+        if (!args.goal_id) return { error: "goal_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        if (action === "achieve") { update.status = "achieved"; update.progress_percent = 100; }
+        if (args.progress_percent !== undefined) update.progress_percent = args.progress_percent;
+        if (args.title) update.title = args.title;
+        if (args.description) update.description = args.description;
+        if (args.priority) update.priority = args.priority;
+        const { data, error } = await supabase.from("yana_ceo_goals").update(update).eq("id", args.goal_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "ceo_manage_contacts": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("yana_ceo_contacts").select("*").eq("user_id", userId).order("tier").order("last_interaction_at", { ascending: false, nullsFirst: false });
+        if (error) return { error: error.message };
+        return { contacts: data || [] };
+      }
+      if (action === "stale") {
+        const { data, error } = await supabase.from("yana_ceo_contacts").select("*").eq("user_id", userId).order("last_interaction_at", { ascending: true, nullsFirst: true }).limit(20);
+        if (error) return { error: error.message };
+        const now = Date.now();
+        const stale = (data || []).filter((c: { last_interaction_at?: string; recommended_cadence_days?: number }) => {
+          if (!c.last_interaction_at) return true;
+          const days = (now - new Date(c.last_interaction_at).getTime()) / 86400000;
+          return days > (c.recommended_cadence_days || 30);
+        });
+        return { stale_contacts: stale };
+      }
+      if (action === "create") {
+        if (!args.full_name) return { error: "full_name obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_contacts").insert({
+          user_id: userId,
+          full_name: args.full_name,
+          role: args.role || null,
+          company: args.company || null,
+          tier: args.tier || 3,
+          email: args.email || null,
+          phone: args.phone || null,
+          relationship_context: args.relationship_context || null,
+          recommended_cadence_days: args.recommended_cadence_days || 30,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "update") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["full_name", "role", "company", "tier", "email", "phone", "relationship_context", "recommended_cadence_days"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("yana_ceo_contacts").update(update).eq("id", args.contact_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      if (action === "log_interaction") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_contacts").update({ last_interaction_at: new Date().toISOString(), is_stale: false }).eq("id", args.contact_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { logged: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "ceo_manage_tasks": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("yana_ceo_tasks").select("*").eq("user_id", userId).order("status").order("priority").order("due_date");
+        if (error) return { error: error.message };
+        return { tasks: data || [] };
+      }
+      if (action === "create") {
+        if (!args.title) return { error: "title obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_tasks").insert({
+          user_id: userId,
+          title: args.title,
+          description: args.description || null,
+          priority: args.priority || 2,
+          due_date: args.due_date || null,
+          goal_id: args.goal_id || null,
+          contact_id: args.contact_id || null,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "complete") {
+        if (!args.task_id) return { error: "task_id obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_tasks").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", args.task_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { completed: data };
+      }
+      if (action === "update") {
+        if (!args.task_id) return { error: "task_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["title", "description", "priority", "status", "due_date", "goal_id", "contact_id"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("yana_ceo_tasks").update(update).eq("id", args.task_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "ceo_triage_inbox": {
+      // Necesită Local Device — folosește bash_exec pentru Apple Mail
+      const n = (args.last_n as number) || 20;
+      const script = `osascript -e 'tell application "Mail" to set msgList to messages of inbox\nrepeat with i from 1 to ${n}\ntry\nset msg to item i of msgList\nlog ((subject of msg) & "|||" & (sender of msg) & "|||" & (date received of msg as string))\nend try\nend repeat'`;
+      const result = await executeLocalCommand(userId, supabase, "bash_exec", { command: script, timeout_ms: 30000 }, 35000);
+      return { triage_raw: result, instruction: "Parsează rezultatul în 3 tier-uri și propune drafturi pentru Tier 1." };
+    }
+
     default:
       return { error: `Tool necunoscut: ${name}` };
   }
