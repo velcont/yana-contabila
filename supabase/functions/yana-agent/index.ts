@@ -12,6 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { YANA_CHIEF_OF_STAFF_PROMPT } from "../_shared/yana-chief-of-staff-prompt.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -228,6 +229,99 @@ TOOLS.push(
           timeout_ms: { type: "number", description: "Timeout în ms (default 30000)" },
         },
         required: ["command"],
+      },
+    },
+  },
+  // ============= CHIEF OF STAFF TOOLS =============
+  {
+    type: "function",
+    function: {
+      name: "ceo_morning_briefing",
+      description: "Generează briefing-ul de dimineață pentru CEO: obiective active, task-uri cu scadență, contacte stagnante, sumar prioritizat. Folosește când userul cere 'briefing', 'gm', 'ce am azi', 'good morning'.",
+      parameters: {
+        type: "object",
+        properties: {
+          save: { type: "boolean", description: "Salvează briefing-ul în istoric (default true)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_manage_goals",
+      description: "Gestionează obiectivele trimestriale ale CEO-ului: listare, creare, actualizare progres, marcare ca atins.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "update", "achieve"], description: "Acțiunea de executat" },
+          goal_id: { type: "string", description: "ID-ul obiectivului (necesar pentru update/achieve)" },
+          title: { type: "string", description: "Titlul obiectivului (pentru create)" },
+          description: { type: "string", description: "Descriere detaliată" },
+          priority: { type: "number", description: "1=top, 2=mediu, 3=secundar" },
+          progress_percent: { type: "number", description: "Progres 0-100 (pentru update)" },
+          success_metrics: { type: "string", description: "Cum măsori succesul" },
+          category: { type: "string", description: "Ex: Revenue, Product, Team, Personal" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_manage_contacts",
+      description: "Gestionează CRM-ul personal al CEO-ului: listare, creare, actualizare, identificare contacte stagnante (care n-au fost contactate de mult).",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "update", "stale", "log_interaction"], description: "Acțiunea" },
+          contact_id: { type: "string" },
+          full_name: { type: "string" },
+          role: { type: "string" },
+          company: { type: "string" },
+          tier: { type: "number", description: "1=esențial, 2=important, 3=ocazional" },
+          email: { type: "string" },
+          phone: { type: "string" },
+          relationship_context: { type: "string", description: "Context relațional: cum vă cunoașteți, ce e relevant" },
+          recommended_cadence_days: { type: "number", description: "La câte zile recomanzi contact (ex: 14 pentru tier 1)" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_manage_tasks",
+      description: "Gestionează task-urile executive: listare, creare, marcare ca terminate. Task-urile pot fi legate de obiective și contacte.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "complete", "update"], description: "Acțiunea" },
+          task_id: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "number" },
+          status: { type: "string", enum: ["todo", "in_progress", "waiting", "done", "cancelled"] },
+          due_date: { type: "string", description: "YYYY-MM-DD" },
+          goal_id: { type: "string", description: "ID obiectiv asociat (opțional)" },
+          contact_id: { type: "string", description: "ID contact asociat (opțional)" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_triage_inbox",
+      description: "Triază inbox-ul de email în 3 tier-uri (1=răspunde acum, 2=azi, 3=fyi). Necesită Local Device conectat. Se folosește local_bash_exec pentru a citi mail-urile (Mac Mail, Apple Mail).",
+      parameters: {
+        type: "object",
+        properties: {
+          last_n: { type: "number", description: "Câte emailuri să triezi (default 20)" },
+        },
       },
     },
   },
@@ -558,6 +652,171 @@ async function executeTool(
         ((args.timeout_ms as number) ?? 30000) + 5000,
       );
 
+    // ============= CHIEF OF STAFF HANDLERS =============
+    case "ceo_morning_briefing": {
+      const today = new Date().toISOString().slice(0, 10);
+      const [goals, tasks, stale] = await Promise.all([
+        supabase.from("yana_ceo_goals").select("*").eq("user_id", userId).eq("status", "active").order("priority"),
+        supabase.from("yana_ceo_tasks").select("*").eq("user_id", userId).in("status", ["todo", "in_progress"]).order("priority").order("due_date"),
+        supabase.from("yana_ceo_contacts").select("id, full_name, role, company, last_interaction_at, recommended_cadence_days").eq("user_id", userId).eq("tier", 1).order("last_interaction_at", { ascending: true, nullsFirst: true }).limit(5),
+      ]);
+      const briefing = {
+        date: today,
+        active_goals: goals.data || [],
+        urgent_tasks: (tasks.data || []).filter((t: { due_date?: string; priority: number }) => t.priority === 1 || (t.due_date && t.due_date <= today)),
+        all_tasks_count: (tasks.data || []).length,
+        stale_contacts: stale.data || [],
+      };
+      if (args.save !== false) {
+        await supabase.from("yana_ceo_briefings").insert({
+          user_id: userId,
+          briefing_date: today,
+          content_markdown: JSON.stringify(briefing, null, 2),
+          goals_referenced: (goals.data || []).map((g: { id: string }) => g.id),
+          tasks_referenced: ((tasks.data || []) as { id: string }[]).slice(0, 10).map((t) => t.id),
+          contacts_referenced: (stale.data || []).map((c: { id: string }) => c.id),
+        });
+      }
+      return briefing;
+    }
+
+    case "ceo_manage_goals": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("yana_ceo_goals").select("*").eq("user_id", userId).order("priority").order("created_at", { ascending: false });
+        if (error) return { error: error.message };
+        return { goals: data || [] };
+      }
+      if (action === "create") {
+        if (!args.title) return { error: "title obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_goals").insert({
+          user_id: userId,
+          title: args.title,
+          description: args.description || null,
+          priority: args.priority || 2,
+          progress_percent: 0,
+          success_metrics: args.success_metrics || null,
+          category: args.category || null,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "update" || action === "achieve") {
+        if (!args.goal_id) return { error: "goal_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        if (action === "achieve") { update.status = "achieved"; update.progress_percent = 100; }
+        if (args.progress_percent !== undefined) update.progress_percent = args.progress_percent;
+        if (args.title) update.title = args.title;
+        if (args.description) update.description = args.description;
+        if (args.priority) update.priority = args.priority;
+        const { data, error } = await supabase.from("yana_ceo_goals").update(update).eq("id", args.goal_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "ceo_manage_contacts": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("yana_ceo_contacts").select("*").eq("user_id", userId).order("tier").order("last_interaction_at", { ascending: false, nullsFirst: false });
+        if (error) return { error: error.message };
+        return { contacts: data || [] };
+      }
+      if (action === "stale") {
+        const { data, error } = await supabase.from("yana_ceo_contacts").select("*").eq("user_id", userId).order("last_interaction_at", { ascending: true, nullsFirst: true }).limit(20);
+        if (error) return { error: error.message };
+        const now = Date.now();
+        const stale = (data || []).filter((c: { last_interaction_at?: string; recommended_cadence_days?: number }) => {
+          if (!c.last_interaction_at) return true;
+          const days = (now - new Date(c.last_interaction_at).getTime()) / 86400000;
+          return days > (c.recommended_cadence_days || 30);
+        });
+        return { stale_contacts: stale };
+      }
+      if (action === "create") {
+        if (!args.full_name) return { error: "full_name obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_contacts").insert({
+          user_id: userId,
+          full_name: args.full_name,
+          role: args.role || null,
+          company: args.company || null,
+          tier: args.tier || 3,
+          email: args.email || null,
+          phone: args.phone || null,
+          relationship_context: args.relationship_context || null,
+          recommended_cadence_days: args.recommended_cadence_days || 30,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "update") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["full_name", "role", "company", "tier", "email", "phone", "relationship_context", "recommended_cadence_days"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("yana_ceo_contacts").update(update).eq("id", args.contact_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      if (action === "log_interaction") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_contacts").update({ last_interaction_at: new Date().toISOString(), is_stale: false }).eq("id", args.contact_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { logged: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "ceo_manage_tasks": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("yana_ceo_tasks").select("*").eq("user_id", userId).order("status").order("priority").order("due_date");
+        if (error) return { error: error.message };
+        return { tasks: data || [] };
+      }
+      if (action === "create") {
+        if (!args.title) return { error: "title obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_tasks").insert({
+          user_id: userId,
+          title: args.title,
+          description: args.description || null,
+          priority: args.priority || 2,
+          due_date: args.due_date || null,
+          goal_id: args.goal_id || null,
+          contact_id: args.contact_id || null,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "complete") {
+        if (!args.task_id) return { error: "task_id obligatoriu" };
+        const { data, error } = await supabase.from("yana_ceo_tasks").update({ status: "done", completed_at: new Date().toISOString() }).eq("id", args.task_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { completed: data };
+      }
+      if (action === "update") {
+        if (!args.task_id) return { error: "task_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["title", "description", "priority", "status", "due_date", "goal_id", "contact_id"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("yana_ceo_tasks").update(update).eq("id", args.task_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "ceo_triage_inbox": {
+      // Necesită Local Device — folosește bash_exec pentru Apple Mail
+      const n = (args.last_n as number) || 20;
+      const script = `osascript -e 'tell application "Mail" to set msgList to messages of inbox\nrepeat with i from 1 to ${n}\ntry\nset msg to item i of msgList\nlog ((subject of msg) & "|||" & (sender of msg) & "|||" & (date received of msg as string))\nend try\nend repeat'`;
+      const result = await executeLocalCommand(userId, supabase, "bash_exec", { command: script, timeout_ms: 30000 }, 35000);
+      return { triage_raw: result, instruction: "Parsează rezultatul în 3 tier-uri și propune drafturi pentru Tier 1." };
+    }
+
     default:
       return { error: `Tool necunoscut: ${name}` };
   }
@@ -579,6 +838,8 @@ REGULI:
 4. Răspunde în română, ton de companion executiv calm și competent.
 5. Maxim 5 pași de tool calling per răspuns.
 6. La final, dă un răspuns clar și acționabil — nu lista pașii executați (userul îi vede separat).`;
+
+const SYSTEM_PROMPT_FULL = SYSTEM_PROMPT + YANA_CHIEF_OF_STAFF_PROMPT;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -621,7 +882,7 @@ Deno.serve(async (req) => {
 
       try {
         const messages: Array<Record<string, unknown>> = [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: SYSTEM_PROMPT_FULL },
           ...conversation_history.slice(-10).map((m: { role: string; content: string }) => ({
             role: m.role, content: m.content,
           })),
