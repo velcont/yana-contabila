@@ -169,6 +169,70 @@ TOOLS.push(
   },
 );
 
+// ============= LOCAL DEVICE TOOLS (Mac/PC bridge) =============
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "local_fs_read",
+      description: "Citește un fișier de pe laptopul utilizatorului (prin agentul local conectat). Folosește pentru a inspecta cod, documente, configurări etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută a fișierului pe laptop (ex: /Users/me/Documents/file.txt)" },
+          max_bytes: { type: "number", description: "Limită opțională (default 200000)" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_fs_write",
+      description: "Scrie/înlocuiește conținutul unui fișier pe laptopul utilizatorului. Creează folderele intermediare dacă lipsesc.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută" },
+          content: { type: "string", description: "Conținutul nou complet" },
+        },
+        required: ["path", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_fs_list",
+      description: "Listează conținutul unui folder de pe laptop.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută a folderului" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_bash_exec",
+      description: "Execută o comandă bash pe laptopul utilizatorului. Folosește cu grijă: poate modifica/șterge fișiere, instala pachete, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: { type: "string", description: "Comanda completă (ex: 'ls -la ~/Desktop')" },
+          cwd: { type: "string", description: "Director de lucru opțional" },
+          timeout_ms: { type: "number", description: "Timeout în ms (default 30000)" },
+        },
+        required: ["command"],
+      },
+    },
+  },
+);
+
 // ============= LIVE CONNECTOR: auto-discover active agents as first-class tools =============
 
 /**
