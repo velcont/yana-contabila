@@ -528,6 +528,36 @@ async function executeTool(
       }
     }
 
+    case "local_fs_read":
+      return await executeLocalCommand(userId, supabase, "fs_read", {
+        path: args.path,
+        max_bytes: args.max_bytes ?? 200000,
+      });
+
+    case "local_fs_write":
+      return await executeLocalCommand(userId, supabase, "fs_write", {
+        path: args.path,
+        content: args.content,
+      });
+
+    case "local_fs_list":
+      return await executeLocalCommand(userId, supabase, "fs_list", {
+        path: args.path,
+      });
+
+    case "local_bash_exec":
+      return await executeLocalCommand(
+        userId,
+        supabase,
+        "bash_exec",
+        {
+          command: args.command,
+          cwd: args.cwd,
+          timeout_ms: args.timeout_ms ?? 30000,
+        },
+        ((args.timeout_ms as number) ?? 30000) + 5000,
+      );
+
     default:
       return { error: `Tool necunoscut: ${name}` };
   }
