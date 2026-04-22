@@ -232,6 +232,99 @@ TOOLS.push(
       },
     },
   },
+  // ============= CHIEF OF STAFF TOOLS =============
+  {
+    type: "function",
+    function: {
+      name: "ceo_morning_briefing",
+      description: "Generează briefing-ul de dimineață pentru CEO: obiective active, task-uri cu scadență, contacte stagnante, sumar prioritizat. Folosește când userul cere 'briefing', 'gm', 'ce am azi', 'good morning'.",
+      parameters: {
+        type: "object",
+        properties: {
+          save: { type: "boolean", description: "Salvează briefing-ul în istoric (default true)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_manage_goals",
+      description: "Gestionează obiectivele trimestriale ale CEO-ului: listare, creare, actualizare progres, marcare ca atins.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "update", "achieve"], description: "Acțiunea de executat" },
+          goal_id: { type: "string", description: "ID-ul obiectivului (necesar pentru update/achieve)" },
+          title: { type: "string", description: "Titlul obiectivului (pentru create)" },
+          description: { type: "string", description: "Descriere detaliată" },
+          priority: { type: "number", description: "1=top, 2=mediu, 3=secundar" },
+          progress_percent: { type: "number", description: "Progres 0-100 (pentru update)" },
+          success_metrics: { type: "string", description: "Cum măsori succesul" },
+          category: { type: "string", description: "Ex: Revenue, Product, Team, Personal" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_manage_contacts",
+      description: "Gestionează CRM-ul personal al CEO-ului: listare, creare, actualizare, identificare contacte stagnante (care n-au fost contactate de mult).",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "update", "stale", "log_interaction"], description: "Acțiunea" },
+          contact_id: { type: "string" },
+          full_name: { type: "string" },
+          role: { type: "string" },
+          company: { type: "string" },
+          tier: { type: "number", description: "1=esențial, 2=important, 3=ocazional" },
+          email: { type: "string" },
+          phone: { type: "string" },
+          relationship_context: { type: "string", description: "Context relațional: cum vă cunoașteți, ce e relevant" },
+          recommended_cadence_days: { type: "number", description: "La câte zile recomanzi contact (ex: 14 pentru tier 1)" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_manage_tasks",
+      description: "Gestionează task-urile executive: listare, creare, marcare ca terminate. Task-urile pot fi legate de obiective și contacte.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "complete", "update"], description: "Acțiunea" },
+          task_id: { type: "string" },
+          title: { type: "string" },
+          description: { type: "string" },
+          priority: { type: "number" },
+          status: { type: "string", enum: ["todo", "in_progress", "waiting", "done", "cancelled"] },
+          due_date: { type: "string", description: "YYYY-MM-DD" },
+          goal_id: { type: "string", description: "ID obiectiv asociat (opțional)" },
+          contact_id: { type: "string", description: "ID contact asociat (opțional)" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "ceo_triage_inbox",
+      description: "Triază inbox-ul de email în 3 tier-uri (1=răspunde acum, 2=azi, 3=fyi). Necesită Local Device conectat. Se folosește local_bash_exec pentru a citi mail-urile (Mac Mail, Apple Mail).",
+      parameters: {
+        type: "object",
+        properties: {
+          last_n: { type: "number", description: "Câte emailuri să triezi (default 20)" },
+        },
+      },
+    },
+  },
 );
 
 // ============= LIVE CONNECTOR: auto-discover active agents as first-class tools =============
