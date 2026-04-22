@@ -464,6 +464,18 @@ Deno.serve(async (req) => {
 
         send("thinking", { text: "Analizez cererea..." });
 
+        // LIVE CONNECTOR: discover active YANA-generated agents and expose them as tools
+        const dynamicAgentTools = await loadDynamicAgentTools(supabase);
+        const agentToolSlugMap = buildAgentToolSlugMap(dynamicAgentTools);
+        const cleanDynamicTools = dynamicAgentTools.map((t) => {
+          const { _slug: _omit, ...rest } = t as Record<string, unknown>;
+          return rest;
+        });
+        const allTools = [...TOOLS, ...cleanDynamicTools];
+        if (cleanDynamicTools.length > 0) {
+          send("thinking", { text: `${cleanDynamicTools.length} agenți specializați disponibili.` });
+        }
+
         const MAX_STEPS = 5;
         let finalText = "";
 
@@ -477,7 +489,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
               messages,
-              tools: TOOLS,
+              tools: allTools,
               tool_choice: "auto",
             }),
           });
@@ -518,7 +530,36 @@ Deno.serve(async (req) => {
               try { parsedArgs = JSON.parse(tc.function.arguments || "{}"); } catch { /* ignore */ }
 
               send("tool_call", { id: tc.id, name: fnName, args: parsedArgs });
-              const result = await executeTool(fnName, parsedArgs, user.id, supabase);
+
+              // LIVE CONNECTOR ROUTER: if it's a dynamic agent tool, delegate to yana-dynamic-agent
+              let result: unknown;
+              if (agentToolSlugMap[fnName]) {
+                const slug = agentToolSlugMap[fnName];
+                try {
+                  const dynResp = await fetch(`${supabaseUrl}/functions/v1/yana-dynamic-agent`, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${supabaseServiceKey}`,
+                      "x-yana-user-id": user.id,
+                    },
+                    body: JSON.stringify({
+                      agent_slug: slug,
+                      input: parsedArgs.input || JSON.stringify(parsedArgs),
+                      trigger_source: "live_connector",
+                      user_id: user.id,
+                    }),
+                  });
+                  result = dynResp.ok
+                    ? await dynResp.json()
+                    : { error: `dynamic-agent ${dynResp.status}`, detail: (await dynResp.text()).slice(0, 300) };
+                } catch (e) {
+                  result = { error: (e as Error).message };
+                }
+              } else {
+                result = await executeTool(fnName, parsedArgs, user.id, supabase);
+              }
+
               send("tool_result", { id: tc.id, name: fnName, result });
 
               return {
