@@ -169,6 +169,55 @@ TOOLS.push(
   },
 );
 
+// ============= LIVE CONNECTOR: auto-discover active agents as first-class tools =============
+
+/**
+ * Loads all active agents from yana_generated_agents and exposes each as a
+ * dedicated tool named `agent_<slug>`. The model sees them directly and can
+ * call them by name without needing to know the generic run_dynamic_agent.
+ */
+async function loadDynamicAgentTools(
+  supabase: ReturnType<typeof createClient>,
+): Promise<Array<Record<string, unknown>>> {
+  try {
+    const { data, error } = await supabase
+      .from("yana_generated_agents")
+      .select("agent_slug, display_name, description")
+      .eq("is_active", true)
+      .limit(40);
+    if (error || !data) return [];
+    return data.map((a: { agent_slug: string; display_name: string; description: string }) => ({
+      type: "function",
+      function: {
+        name: `agent_${a.agent_slug}`.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 64),
+        description: `[Agent specializat: ${a.display_name}] ${a.description}. Cheamă-l direct când cererea utilizatorului se potrivește scopului său.`,
+        parameters: {
+          type: "object",
+          properties: {
+            input: { type: "string", description: "Cererea/contextul transmis agentului specializat" },
+          },
+          required: ["input"],
+        },
+      },
+      _slug: a.agent_slug, // internal hint, stripped before sending
+    }));
+  } catch (e) {
+    console.warn("[live-connector] failed to load dynamic agents:", e);
+    return [];
+  }
+}
+
+// Map from generated tool-name back to agent slug (rebuilt each request)
+function buildAgentToolSlugMap(dynamicTools: Array<Record<string, unknown>>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const t of dynamicTools) {
+    const fn = (t.function as { name: string })?.name;
+    const slug = (t as { _slug?: string })._slug;
+    if (fn && slug) map[fn] = slug;
+  }
+  return map;
+}
+
 // ============= TOOL EXECUTORS =============
 
 async function executeTool(
