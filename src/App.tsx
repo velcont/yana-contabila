@@ -56,6 +56,7 @@ const Research = lazy(() => import("./pages/Research"));
 
 const PriceTracker = lazy(() => import("./pages/PriceTracker"));
 const SupplierAudit = lazy(() => import("./pages/SupplierAudit"));
+const LocalDevice = lazy(() => import("./pages/LocalDevice"));
 
 const queryClient = new QueryClient();
 
@@ -185,6 +186,7 @@ const App = () => {
                       <Route path="/install" element={<InstallPWA />} />
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
+                      <Route path="/yana/local-device" element={<PrivateRoute><LocalDevice /></PrivateRoute>} />
                       
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />

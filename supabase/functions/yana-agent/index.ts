@@ -169,6 +169,70 @@ TOOLS.push(
   },
 );
 
+// ============= LOCAL DEVICE TOOLS (Mac/PC bridge) =============
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "local_fs_read",
+      description: "Citește un fișier de pe laptopul utilizatorului (prin agentul local conectat). Folosește pentru a inspecta cod, documente, configurări etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută a fișierului pe laptop (ex: /Users/me/Documents/file.txt)" },
+          max_bytes: { type: "number", description: "Limită opțională (default 200000)" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_fs_write",
+      description: "Scrie/înlocuiește conținutul unui fișier pe laptopul utilizatorului. Creează folderele intermediare dacă lipsesc.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută" },
+          content: { type: "string", description: "Conținutul nou complet" },
+        },
+        required: ["path", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_fs_list",
+      description: "Listează conținutul unui folder de pe laptop.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută a folderului" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "local_bash_exec",
+      description: "Execută o comandă bash pe laptopul utilizatorului. Folosește cu grijă: poate modifica/șterge fișiere, instala pachete, etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: { type: "string", description: "Comanda completă (ex: 'ls -la ~/Desktop')" },
+          cwd: { type: "string", description: "Director de lucru opțional" },
+          timeout_ms: { type: "number", description: "Timeout în ms (default 30000)" },
+        },
+        required: ["command"],
+      },
+    },
+  },
+);
+
 // ============= LIVE CONNECTOR: auto-discover active agents as first-class tools =============
 
 /**
@@ -219,6 +283,78 @@ function buildAgentToolSlugMap(dynamicTools: Array<Record<string, unknown>>): Re
 }
 
 // ============= TOOL EXECUTORS =============
+
+/**
+ * Sends a command to the user's local device by inserting into yana_local_commands.
+ * The local agent (running on Mac) listens via Realtime, executes, and writes back result.
+ * We poll for the result with a timeout.
+ */
+async function executeLocalCommand(
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+  commandType: string,
+  params: Record<string, unknown>,
+  timeoutMs = 35000,
+): Promise<unknown> {
+  // Find active device for this user (most recent active)
+  const { data: device, error: devErr } = await supabase
+    .from("yana_local_devices")
+    .select("id, status, last_seen_at")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .order("last_seen_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (devErr) return { error: `DB error: ${devErr.message}` };
+  if (!device) {
+    return {
+      error: "Niciun laptop conectat. Roagă utilizatorul să acceseze /yana → Settings → Conectare laptop și să instaleze agentul local.",
+    };
+  }
+
+  // Stale check: if last_seen older than 60s, agent likely offline
+  if (device.last_seen_at) {
+    const ageMs = Date.now() - new Date(device.last_seen_at as string).getTime();
+    if (ageMs > 60_000) {
+      return { error: "Agentul local pare offline (heartbeat lipsă). Roagă utilizatorul să-l pornească: `npx yana-local-agent`" };
+    }
+  }
+
+  // Insert command
+  const { data: cmd, error: insErr } = await supabase
+    .from("yana_local_commands")
+    .insert({
+      device_id: device.id,
+      user_id: userId,
+      command_type: commandType,
+      command_params: params,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (insErr) return { error: `Insert failed: ${insErr.message}` };
+
+  // Poll for result
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 600));
+    const { data: row } = await supabase
+      .from("yana_local_commands")
+      .select("status, result, error, duration_ms")
+      .eq("id", cmd.id)
+      .maybeSingle();
+    if (row && (row.status === "completed" || row.status === "failed")) {
+      if (row.status === "failed") return { error: row.error || "Local execution failed" };
+      return { result: row.result, duration_ms: row.duration_ms };
+    }
+  }
+
+  // Timeout — mark as such
+  await supabase.from("yana_local_commands").update({ status: "timeout", error: "No response in 35s" }).eq("id", cmd.id);
+  return { error: "Timeout: agentul local nu a răspuns în 35s." };
+}
 
 async function executeTool(
   name: string,
@@ -391,6 +527,36 @@ async function executeTool(
         return { error: (e as Error).message };
       }
     }
+
+    case "local_fs_read":
+      return await executeLocalCommand(userId, supabase, "fs_read", {
+        path: args.path,
+        max_bytes: args.max_bytes ?? 200000,
+      });
+
+    case "local_fs_write":
+      return await executeLocalCommand(userId, supabase, "fs_write", {
+        path: args.path,
+        content: args.content,
+      });
+
+    case "local_fs_list":
+      return await executeLocalCommand(userId, supabase, "fs_list", {
+        path: args.path,
+      });
+
+    case "local_bash_exec":
+      return await executeLocalCommand(
+        userId,
+        supabase,
+        "bash_exec",
+        {
+          command: args.command,
+          cwd: args.cwd,
+          timeout_ms: args.timeout_ms ?? 30000,
+        },
+        ((args.timeout_ms as number) ?? 30000) + 5000,
+      );
 
     default:
       return { error: `Tool necunoscut: ${name}` };

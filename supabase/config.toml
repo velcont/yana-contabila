@@ -3,6 +3,15 @@ project_id = "ygfsuoloxzjpiulogrjz"
 [functions.validate-knowledge]
 verify_jwt = false
 
+[functions.yana-local-claim]
+verify_jwt = false
+
+[functions.yana-local-bridge]
+verify_jwt = false
+
+[functions.yana-local-pair]
+verify_jwt = true
+
 [functions.self-reflect]
 verify_jwt = false
 
