@@ -1,24 +1,25 @@
 import { X, Check } from 'lucide-react';
 
 const rows = [
-  { without: 'Sperăm că e profit', with: 'Știm exact cifra' },
-  { without: 'Decidem pe gut feeling', with: 'Decidem pe date' },
-  { without: 'Greșelile se repetă', with: 'Yana ține minte totul' },
-  { without: 'Nimeni nu te avertizează', with: 'Alerte înainte de criză' },
+  { without: 'CRM separat de cifre', with: 'CRM + cifre, același chat' },
+  { without: 'Click prin 7 ecrane', with: 'O frază — gata' },
+  { without: 'Pipedrive + contabil + Excel', with: 'YANA. Atât.' },
+  { without: 'Pipeline uitat săptămânal', with: 'YANA îți spune ce-i de făcut' },
+  { without: '600 RON/lună stack', with: '49 RON/lună YANA' },
 ];
 
 export const LandingBenefits = () => {
   return (
     <section className="space-y-5">
       <h2 className="text-xl sm:text-2xl font-bold text-center text-foreground">
-        Diferența e simplă
+        Stack vechi vs. YANA
       </h2>
 
       <div className="rounded-2xl border border-border/50 overflow-hidden">
         {/* Header */}
         <div className="grid grid-cols-2">
           <div className="bg-destructive/10 px-4 py-3 text-center">
-            <span className="text-xs font-bold tracking-widest uppercase text-destructive">Fără YANA</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-destructive">Stack clasic</span>
           </div>
           <div className="bg-primary/10 px-4 py-3 text-center">
             <span className="text-xs font-bold tracking-widest uppercase text-primary">Cu YANA</span>

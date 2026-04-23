@@ -635,6 +635,28 @@ function detectIntent(message: string, hasImage: boolean = false): RouteDecision
   }
 
   // =============================================================================
+  // ⚡ PRIORITY 0: CRM INTENTS — chat-first CRM via yana-agent tools
+  // =============================================================================
+  const crmPatterns = [
+    /(?:adaug[aă]|adauga|creeaz[aă]|creaza|înregistreaz[aă]|inregistreaza)\s+(?:o\s+)?(?:firm[aă]|companie|client(?:ul)?|lead|prospect|contact(?:ul)?|deal(?:ul)?|oportunitate|pipeline|negociere)/i,
+    /(?:mut[aă]|muta|trece|treci|avanseaz[aă]|avanseaza)\s+(?:deal|oportunitate|contract|lead).*(?:în|in|la|spre)\s+/i,
+    /(?:c[aâ]știgat|castigat|won|închis|inchis|pierdut|lost)\s+(?:deal(?:ul)?|contract(?:ul)?|oportunitate)/i,
+    /(?:cum\s+st[aă]|cum\s+sta|arat[aă]|arata|d[aă]-mi|dami|status)\s+(?:pipeline|deal-?uri|oportunit[aă][tț]i|portofoliu(?:l)?\s+de\s+v[aâ]nz[aă]ri|crm-?ul)/i,
+    /(?:logheaz[aă]|logheaza|noteaz[aă]|noteaza|am\s+sunat|am\s+vorbit|am\s+trimis\s+email|am\s+avut\s+(?:meeting|întâlnire|intalnire))/i,
+    /(?:ce\s+contacte|listeaz[aă]|listeaza|caut[aă]|cauta)\s+(?:firme|companii|clien[tț]i|contacte|leads?|deal-?uri)/i,
+    /pipeline\s+(?:luna|s[aă]pt[aă]m[aâ]na|de\s+v[aâ]nz[aă]ri)/i,
+  ];
+
+  if (crmPatterns.some(p => p.test(lowerMessage))) {
+    console.log(`[AI-Router] 💼 CRM INTENT DETECTED: "${message.substring(0, 60)}"`);
+    return {
+      route: 'yana-agent' as any,
+      payload: { message, crmIntent: true },
+      reason: 'CRM intent detected - routed to yana-agent CRM tools'
+    };
+  }
+
+  // =============================================================================
   // ⚡ PRIORITY 0: GRAPH / VISUALIZATION REQUESTS (MUST OVERRIDE ALL strategic detection)
   // =============================================================================
   const graphKeywords = ['grafic', 'grafice', 'chart', 'diagrama', 'diagramă', 'vizualiz', 'tabel', 'tabele'];
@@ -2137,6 +2159,88 @@ serve(async (req) => {
     // STANDARD ROUTES
     // =============================================================================
 
+
+    // =============================================================================
+    // SPECIAL ROUTE: YANA-AGENT (CRM tools, multi-step)
+    // Converts SSE stream from yana-agent into a single chat response.
+    // =============================================================================
+    if ((routeDecision.route as string) === 'yana-agent') {
+      console.log('[AI-Router] 💼 Handling yana-agent route (CRM/agent tools)');
+      try {
+        const agentResp = await fetch(`${supabaseUrl}/functions/v1/yana-agent`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader,
+            'x-called-from-router': 'true',
+          },
+          body: JSON.stringify({
+            message,
+            conversation_history: history || [],
+          }),
+        });
+
+        if (!agentResp.ok || !agentResp.body) {
+          throw new Error(`yana-agent ${agentResp.status}: ${await agentResp.text()}`);
+        }
+
+        // Parse SSE — collect tool_call events for transparency, capture final text
+        const reader = agentResp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalText = '';
+        const toolsUsed: string[] = [];
+        let errorMsg: string | null = null;
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+          for (const evt of events) {
+            const lines = evt.split('\n');
+            const eventLine = lines.find(l => l.startsWith('event: '));
+            const dataLine = lines.find(l => l.startsWith('data: '));
+            if (!eventLine || !dataLine) continue;
+            const eventName = eventLine.slice(7).trim();
+            let data: Record<string, unknown> = {};
+            try { data = JSON.parse(dataLine.slice(6)); } catch { /* ignore */ }
+            if (eventName === 'final') finalText = (data.text as string) || finalText;
+            else if (eventName === 'tool_call') toolsUsed.push((data.name as string) || 'tool');
+            else if (eventName === 'error') errorMsg = (data.message as string) || 'Agent error';
+          }
+        }
+
+        if (!finalText && errorMsg) {
+          finalText = `Nu am putut procesa cererea CRM: ${errorMsg}`;
+        }
+        if (!finalText) {
+          finalText = 'Am procesat cererea, dar nu am primit un răspuns final de la agent.';
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            response: finalText,
+            route: 'yana-agent',
+            toolsUsed,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (err) {
+        console.error('[AI-Router] yana-agent route failed:', err);
+        return new Response(
+          JSON.stringify({
+            success: true,
+            response: 'Am întâmpinat o problemă cu modulul CRM. Încearcă din nou sau deschide pagina /crm direct.',
+            route: 'yana-agent',
+            error: (err as Error).message,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Call the appropriate edge function
     // Use enhanced ANAF risk analysis with Claude AI

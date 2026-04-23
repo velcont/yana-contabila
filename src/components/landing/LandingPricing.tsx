@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
 
 const features = [
-  'Conversații nelimitate cu Yana',
-  '5 AI-uri premium incluse (GPT-5, Claude, Grok, Gemini, Perplexity)',
-  'Analiză balanță contabilă',
+  'CRM conversațional (firme, contacte, deal-uri, pipeline)',
+  'CFO virtual — analiză balanță & predicții',
+  'Conversații nelimitate cu YANA',
+  '5 AI-uri premium (GPT-5, Claude, Gemini, Perplexity, Grok)',
   'War Room — simulări strategice',
-  'Battle Plan — plan de acțiune',
   'Memorie completă — nu uită nimic',
-  'Predicții financiare AI',
+  'Alerte proactive înainte de criză',
 ];
 
 export const LandingPricing = () => {
@@ -25,11 +25,11 @@ export const LandingPricing = () => {
     <section className="space-y-5">
       <div className="text-center space-y-2">
         <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-          Cât te costă să NU știi?
+          CFO + CRM. Un singur preț.
         </h2>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          O decizie greșită = zeci de mii de RON.<br />
-          YANA = <strong className="text-foreground">49 RON/lună</strong>. Matematica e simplă.
+          Pipedrive + contabil + Excel = ~600 RON/lună.<br />
+          YANA = <strong className="text-foreground">49 RON/lună</strong>. Tot.
         </p>
       </div>
 

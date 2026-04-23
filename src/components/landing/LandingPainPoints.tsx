@@ -1,16 +1,17 @@
 import { X } from 'lucide-react';
 
 const pains = [
-  'Contabilul zice „totul e ok"',
-  'Tu simți că ceva nu e în regulă',
-  'Dar n-ai pe cine întreba',
+  'Pipedrive pentru clienți. 49€/lună.',
+  'Contabil pentru cifre. 500 RON/lună.',
+  'Excel pentru pipeline. Uitat săptămânal.',
+  'Tu — între 5 tab-uri deschise.',
 ];
 
 export const LandingPainPoints = () => {
   return (
     <section className="rounded-2xl bg-foreground text-background p-6 sm:p-8 space-y-5">
       <p className="text-xs font-bold tracking-widest uppercase text-destructive">
-        Lunea dimineață
+        Stack-ul tău actual
       </p>
 
       <div className="space-y-3">
@@ -24,10 +25,10 @@ export const LandingPainPoints = () => {
 
       <div className="pt-3 border-t border-background/20 space-y-1">
         <p className="text-base sm:text-lg font-bold">
-          Asta nu e anxietate.
+          5 tool-uri. 600 RON/lună.
         </p>
         <p className="text-base sm:text-lg font-bold text-primary">
-          E lipsa de informație.
+          Și tot tu faci munca de copy-paste.
         </p>
       </div>
     </section>

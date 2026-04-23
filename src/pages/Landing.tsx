@@ -19,6 +19,7 @@ const LandingSocialProof = lazy(() => import('@/components/landing/LandingSocial
 const LandingAIProviders = lazy(() => import('@/components/landing/LandingAIProviders').then(m => ({ default: m.LandingAIProviders })));
 const LandingOfficeAnnouncement = lazy(() => import('@/components/landing/LandingOfficeAnnouncement').then(m => ({ default: m.LandingOfficeAnnouncement })));
 const LandingFinalUltimatum = lazy(() => import('@/components/landing/LandingFinalUltimatum').then(m => ({ default: m.LandingFinalUltimatum })));
+const LandingChatDemo = lazy(() => import('@/components/landing/LandingChatDemo').then(m => ({ default: m.LandingChatDemo })));
 
 const SectionFallback = () => <div className="h-32 animate-pulse bg-muted/20 rounded-lg" />;
 
@@ -156,6 +157,7 @@ const Landing = () => {
 
           {/* ===== Below-fold lazy-loaded sections ===== */}
           <Suspense fallback={<SectionFallback />}>
+            <LandingChatDemo />
             <LandingPainPoints />
             <LandingSocialProof />
             <LandingBenefits />
