@@ -1,5 +1,14 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
+[functions.wa-webhook]
+verify_jwt = false
+
+[functions.wa-link-init]
+verify_jwt = false
+
+[functions.wa-link-verify]
+verify_jwt = false
+
 [functions.validate-knowledge]
 verify_jwt = false
 
