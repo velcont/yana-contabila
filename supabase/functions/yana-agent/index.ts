@@ -127,6 +127,33 @@ const TOOLS = [
   },
 ];
 
+// Google Calendar tool - real OAuth-based calendar of the user
+TOOLS.push({
+  type: "function",
+  function: {
+    name: "gcal_manage",
+    description: "Gestionează calendarul real Google al utilizatorului (dacă e conectat în Setări → Integrări). Folosește pentru: a vedea programul ('list_events'), a crea ('create_event'), modifica ('update_event') sau șterge ('delete_event') evenimente. Spre deosebire de create_calendar_event (care e doar intern), aceasta scrie direct în Google Calendar și e vizibilă pe telefon.",
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["list_events", "create_event", "update_event", "delete_event", "status"], description: "Acțiunea dorită" },
+        time_min: { type: "string", description: "ISO datetime - început interval (pentru list_events). Default: acum." },
+        time_max: { type: "string", description: "ISO datetime - sfârșit interval (pentru list_events). Default: +7 zile." },
+        max_results: { type: "number", description: "Max evenimente returnate (default 50)" },
+        summary: { type: "string", description: "Titlu eveniment (create/update)" },
+        description: { type: "string", description: "Descriere eveniment" },
+        location: { type: "string", description: "Locație" },
+        start: { type: "string", description: "ISO datetime sau YYYY-MM-DD dacă all_day=true" },
+        end: { type: "string", description: "ISO datetime sau YYYY-MM-DD dacă all_day=true" },
+        all_day: { type: "boolean", description: "true dacă e eveniment de toată ziua" },
+        attendees: { type: "array", items: { type: "string" }, description: "Lista emailuri participanți" },
+        event_id: { type: "string", description: "ID Google al evenimentului (update/delete)" },
+      },
+      required: ["action"],
+    },
+  },
+});
+
 // Inject dynamically generated agents as callable tools (run_dynamic_agent + spawn_agent)
 TOOLS.push(
   {
