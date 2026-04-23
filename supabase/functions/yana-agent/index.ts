@@ -325,6 +325,102 @@ TOOLS.push(
       },
     },
   },
+  // ============= CRM TOOLS (chat-first CRM) =============
+  {
+    type: "function",
+    function: {
+      name: "crm_manage_companies",
+      description: "Gestionează firmele/clienții din CRM: list, search, create, update. Folosește când userul spune 'adaugă firma X', 'caută clientul Y', 'actualizează SC ABC SRL', 'arată-mi firmele'.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "search", "create", "update", "get"], description: "Acțiunea" },
+          company_id: { type: "string" },
+          query: { type: "string", description: "Pentru search: text liber (nume, CUI)" },
+          name: { type: "string" },
+          cui: { type: "string" },
+          industry: { type: "string" },
+          website: { type: "string" },
+          phone: { type: "string" },
+          email: { type: "string" },
+          city: { type: "string" },
+          annual_revenue: { type: "number" },
+          notes: { type: "string" },
+          tags: { type: "array", items: { type: "string" } },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "crm_manage_contacts",
+      description: "Gestionează contactele/persoanele din CRM (legate de firme). Folosește pentru 'adaugă contactul Ion Popescu', 'caută contactul X', 'cine e CFO la firma Y'.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "search", "create", "update", "get"], description: "Acțiunea" },
+          contact_id: { type: "string" },
+          company_id: { type: "string", description: "ID firmă asociată (opțional)" },
+          query: { type: "string" },
+          first_name: { type: "string" },
+          last_name: { type: "string" },
+          email: { type: "string" },
+          phone: { type: "string" },
+          job_title: { type: "string" },
+          notes: { type: "string" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "crm_manage_deals",
+      description: "Gestionează oportunitățile de vânzare (deals): listare, creare, mutare între etape, marcare câștigat/pierdut. Folosește pentru 'creează deal de 50.000 RON cu firma X', 'mută deal-ul Y în Negociere', 'arată pipeline-ul'.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "pipeline", "create", "update", "move_stage", "win", "lose"], description: "Acțiunea" },
+          deal_id: { type: "string" },
+          company_id: { type: "string" },
+          contact_id: { type: "string" },
+          stage_name: { type: "string", description: "Nume etapă (ex: 'Negociere', 'Lead nou'). Folosit la create/move_stage." },
+          title: { type: "string" },
+          description: { type: "string" },
+          value: { type: "number" },
+          currency: { type: "string", description: "Default RON" },
+          expected_close_date: { type: "string", description: "YYYY-MM-DD" },
+          lost_reason: { type: "string" },
+        },
+        required: ["action"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "crm_log_activity",
+      description: "Înregistrează o activitate (apel, email, întâlnire, notă) în timeline-ul unui contact/firmă/deal. Folosește pentru 'am vorbit cu X', 'notează că am trimis ofertă', 'meeting setat pentru mâine la 10'.",
+      parameters: {
+        type: "object",
+        properties: {
+          activity_type: { type: "string", enum: ["call", "email", "meeting", "note", "task", "whatsapp", "sms", "other"] },
+          subject: { type: "string", description: "Titlu scurt al activității" },
+          description: { type: "string" },
+          contact_id: { type: "string" },
+          company_id: { type: "string" },
+          deal_id: { type: "string" },
+          scheduled_at: { type: "string", description: "ISO timestamp pentru viitor" },
+          completed: { type: "boolean", description: "True dacă activitatea s-a întâmplat deja" },
+          duration_minutes: { type: "number" },
+        },
+        required: ["activity_type", "subject"],
+      },
+    },
+  },
 );
 
 // ============= LIVE CONNECTOR: auto-discover active agents as first-class tools =============
@@ -815,6 +911,206 @@ async function executeTool(
       const script = `osascript -e 'tell application "Mail" to set msgList to messages of inbox\nrepeat with i from 1 to ${n}\ntry\nset msg to item i of msgList\nlog ((subject of msg) & "|||" & (sender of msg) & "|||" & (date received of msg as string))\nend try\nend repeat'`;
       const result = await executeLocalCommand(userId, supabase, "bash_exec", { command: script, timeout_ms: 30000 }, 35000);
       return { triage_raw: result, instruction: "Parsează rezultatul în 3 tier-uri și propune drafturi pentru Tier 1." };
+    }
+
+    // ============= CRM EXECUTORS =============
+    case "crm_manage_companies": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("crm_companies").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(50);
+        if (error) return { error: error.message };
+        return { companies: data || [] };
+      }
+      if (action === "search") {
+        const q = (args.query as string) || "";
+        const { data, error } = await supabase.from("crm_companies").select("*").eq("user_id", userId).or(`name.ilike.%${q}%,cui.ilike.%${q}%,email.ilike.%${q}%`).limit(20);
+        if (error) return { error: error.message };
+        return { companies: data || [] };
+      }
+      if (action === "get") {
+        if (!args.company_id) return { error: "company_id obligatoriu" };
+        const { data, error } = await supabase.from("crm_companies").select("*").eq("id", args.company_id).eq("user_id", userId).maybeSingle();
+        if (error) return { error: error.message };
+        return { company: data };
+      }
+      if (action === "create") {
+        if (!args.name) return { error: "name obligatoriu" };
+        const { data, error } = await supabase.from("crm_companies").insert({
+          user_id: userId,
+          name: args.name,
+          cui: args.cui || null,
+          industry: args.industry || null,
+          website: args.website || null,
+          phone: args.phone || null,
+          email: args.email || null,
+          city: args.city || null,
+          annual_revenue: args.annual_revenue || null,
+          notes: args.notes || null,
+          tags: args.tags || [],
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "update") {
+        if (!args.company_id) return { error: "company_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["name", "cui", "industry", "website", "phone", "email", "city", "annual_revenue", "notes", "tags"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("crm_companies").update(update).eq("id", args.company_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "crm_manage_contacts": {
+      const action = args.action as string;
+      if (action === "list") {
+        const { data, error } = await supabase.from("crm_contacts").select("*, crm_companies(name)").eq("user_id", userId).order("updated_at", { ascending: false }).limit(50);
+        if (error) return { error: error.message };
+        return { contacts: data || [] };
+      }
+      if (action === "search") {
+        const q = (args.query as string) || "";
+        const { data, error } = await supabase.from("crm_contacts").select("*, crm_companies(name)").eq("user_id", userId).or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%`).limit(20);
+        if (error) return { error: error.message };
+        return { contacts: data || [] };
+      }
+      if (action === "get") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const { data, error } = await supabase.from("crm_contacts").select("*, crm_companies(name)").eq("id", args.contact_id).eq("user_id", userId).maybeSingle();
+        if (error) return { error: error.message };
+        return { contact: data };
+      }
+      if (action === "create") {
+        if (!args.first_name) return { error: "first_name obligatoriu" };
+        const { data, error } = await supabase.from("crm_contacts").insert({
+          user_id: userId,
+          company_id: args.company_id || null,
+          first_name: args.first_name,
+          last_name: args.last_name || null,
+          email: args.email || null,
+          phone: args.phone || null,
+          job_title: args.job_title || null,
+          notes: args.notes || null,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "update") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["company_id", "first_name", "last_name", "email", "phone", "job_title", "notes"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("crm_contacts").update(update).eq("id", args.contact_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "crm_manage_deals": {
+      const action = args.action as string;
+      // Asigură pipeline default
+      const { data: pipelineId } = await supabase.rpc("ensure_default_crm_pipeline", { p_user_id: userId });
+      if (!pipelineId) return { error: "Nu am putut crea pipeline-ul default" };
+
+      if (action === "list") {
+        const { data, error } = await supabase.from("crm_deals").select("*, crm_companies(name), crm_pipeline_stages(name, color)").eq("user_id", userId).order("updated_at", { ascending: false }).limit(50);
+        if (error) return { error: error.message };
+        return { deals: data || [] };
+      }
+      if (action === "pipeline") {
+        const { data: stages } = await supabase.from("crm_pipeline_stages").select("*").eq("pipeline_id", pipelineId).eq("user_id", userId).order("display_order");
+        const { data: deals } = await supabase.from("crm_deals").select("*, crm_companies(name)").eq("user_id", userId).eq("pipeline_id", pipelineId).eq("status", "open").order("value", { ascending: false });
+        return { stages: stages || [], deals: deals || [] };
+      }
+      if (action === "create") {
+        if (!args.title) return { error: "title obligatoriu" };
+        // Determină stage
+        let stageId: string | null = null;
+        const stageName = (args.stage_name as string) || "Lead nou";
+        const { data: stage } = await supabase.from("crm_pipeline_stages").select("id").eq("pipeline_id", pipelineId).eq("user_id", userId).ilike("name", stageName).maybeSingle();
+        if (stage) stageId = stage.id;
+        if (!stageId) {
+          const { data: firstStage } = await supabase.from("crm_pipeline_stages").select("id").eq("pipeline_id", pipelineId).eq("user_id", userId).order("display_order").limit(1).maybeSingle();
+          stageId = firstStage?.id || null;
+        }
+        if (!stageId) return { error: "Nu există etape în pipeline" };
+
+        const { data, error } = await supabase.from("crm_deals").insert({
+          user_id: userId,
+          pipeline_id: pipelineId,
+          stage_id: stageId,
+          company_id: args.company_id || null,
+          contact_id: args.contact_id || null,
+          title: args.title,
+          description: args.description || null,
+          value: args.value || 0,
+          currency: args.currency || "RON",
+          expected_close_date: args.expected_close_date || null,
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "move_stage") {
+        if (!args.deal_id || !args.stage_name) return { error: "deal_id și stage_name obligatorii" };
+        const { data: stage } = await supabase.from("crm_pipeline_stages").select("id, is_won, is_lost").eq("pipeline_id", pipelineId).eq("user_id", userId).ilike("name", args.stage_name as string).maybeSingle();
+        if (!stage) return { error: `Etapa "${args.stage_name}" nu există` };
+        const update: Record<string, unknown> = { stage_id: stage.id };
+        if (stage.is_won) { update.status = "won"; update.actual_close_date = new Date().toISOString().split("T")[0]; }
+        if (stage.is_lost) { update.status = "lost"; update.actual_close_date = new Date().toISOString().split("T")[0]; }
+        const { data, error } = await supabase.from("crm_deals").update(update).eq("id", args.deal_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      if (action === "win") {
+        if (!args.deal_id) return { error: "deal_id obligatoriu" };
+        const { data: wonStage } = await supabase.from("crm_pipeline_stages").select("id").eq("pipeline_id", pipelineId).eq("user_id", userId).eq("is_won", true).maybeSingle();
+        const { data, error } = await supabase.from("crm_deals").update({ status: "won", stage_id: wonStage?.id, actual_close_date: new Date().toISOString().split("T")[0] }).eq("id", args.deal_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { won: data };
+      }
+      if (action === "lose") {
+        if (!args.deal_id) return { error: "deal_id obligatoriu" };
+        const { data: lostStage } = await supabase.from("crm_pipeline_stages").select("id").eq("pipeline_id", pipelineId).eq("user_id", userId).eq("is_lost", true).maybeSingle();
+        const { data, error } = await supabase.from("crm_deals").update({ status: "lost", stage_id: lostStage?.id, lost_reason: args.lost_reason || null, actual_close_date: new Date().toISOString().split("T")[0] }).eq("id", args.deal_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { lost: data };
+      }
+      if (action === "update") {
+        if (!args.deal_id) return { error: "deal_id obligatoriu" };
+        const update: Record<string, unknown> = {};
+        for (const k of ["title", "description", "value", "currency", "expected_close_date", "company_id", "contact_id"]) {
+          if (args[k] !== undefined) update[k] = args[k];
+        }
+        const { data, error } = await supabase.from("crm_deals").update(update).eq("id", args.deal_id).eq("user_id", userId).select().single();
+        if (error) return { error: error.message };
+        return { updated: data };
+      }
+      return { error: "action invalid" };
+    }
+
+    case "crm_log_activity": {
+      if (!args.activity_type || !args.subject) return { error: "activity_type și subject obligatorii" };
+      const completed = args.completed !== false; // default true (a se întâmplat deja)
+      const { data, error } = await supabase.from("crm_activities").insert({
+        user_id: userId,
+        activity_type: args.activity_type,
+        subject: args.subject,
+        description: args.description || null,
+        contact_id: args.contact_id || null,
+        company_id: args.company_id || null,
+        deal_id: args.deal_id || null,
+        scheduled_at: args.scheduled_at || null,
+        completed_at: completed ? new Date().toISOString() : null,
+        status: completed ? "completed" : "pending",
+        duration_minutes: args.duration_minutes || null,
+      }).select().single();
+      if (error) return { error: error.message };
+      return { logged: data };
     }
 
     default:
