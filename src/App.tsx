@@ -57,7 +57,6 @@ const Research = lazy(() => import("./pages/Research"));
 const PriceTracker = lazy(() => import("./pages/PriceTracker"));
 const SupplierAudit = lazy(() => import("./pages/SupplierAudit"));
 const LocalDevice = lazy(() => import("./pages/LocalDevice"));
-const WhatsAppBot = lazy(() => import("./pages/WhatsAppBot"));
 const ChiefOfStaff = lazy(() => import("./pages/ChiefOfStaff"));
 const CRM = lazy(() => import("./pages/CRM"));
 const EmailSettings = lazy(() => import("./pages/EmailSettings"));
@@ -192,7 +191,6 @@ const App = () => {
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
                       <Route path="/yana/local-device" element={<PrivateRoute><LocalDevice /></PrivateRoute>} />
-                      <Route path="/whatsapp-bot" element={<PrivateRoute><WhatsAppBot /></PrivateRoute>} />
                       <Route path="/yana/chief-of-staff" element={<PrivateRoute><ChiefOfStaff /></PrivateRoute>} />
                       <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
                       <Route path="/inbox" element={<PrivateRoute><Inbox /></PrivateRoute>} />
