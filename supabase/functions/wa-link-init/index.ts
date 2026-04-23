@@ -105,6 +105,9 @@ Deno.serve(async (req) => {
       await sendWhatsAppText(phone, message);
     } catch (e) {
       console.error("WA send error:", e);
+      if (e instanceof Error && e.message.includes('"code":190')) {
+        return json({ error: "Tokenul WhatsApp din backend este invalid sau expirat. Actualizează tokenul de acces din integrarea Meta." }, 502);
+      }
       return json({ error: "Nu am putut trimite mesaj WhatsApp. Verifică numărul și încearcă din nou." }, 502);
     }
 
