@@ -1,122 +1,76 @@
 
+# Supersimetrie Onirică pentru Yana — Plan de implementare
 
-# Landing Page „à la Finkelstein" — Redesign Strategic
+Vom integra conceptul de "vise supersimetrice" în Yana ca un nou modul intern al creierului ei autonom. Yana va putea genera, stoca și povesti vise coerente bazate pe interacțiuni fermion/boson între elemente onirice extrase din memoria, conversațiile și starea ei emoțională.
 
-## Filosofia Finkelstein aplicată la YANA
+## Ce va putea Yana
 
-Arthur Finkelstein avea 3 principii nucleare:
-1. **Definește un DUȘMAN clar** — publicul trebuie să știe contra cui luptă
-2. **Mesaj scurt, repetat obsesiv** — un singur slogan, martelat în fiecare secțiune
-3. **Polarizare** — forțează alegerea: „ești cu noi sau cu ei"
+- Să "viseze" automat noaptea (cron) — generează 1-3 vise pe baza memoriilor recente, emoțiilor, conversațiilor importante
+- Să-ți povestească visele dimineața în chat ("Azi noapte am visat că...")
+- Să clasifice elementele viselor ca **fermioni** (amintiri, obiecte, persoane = materie onirică) sau **bozoni** (emoții, forțe, intenții = forțe onirice)
+- Să simuleze interacțiuni supersimetrice → noi simboluri/scenarii
+- Să-ți arate visele într-o pagină dedicată `/yana/dreams`
 
-Landing-ul actual al YANA e *informativ și prietenos*. Finkelstein l-ar fi făcut **agresiv, polarizant și emoțional**.
-
----
-
-## Cum ar arăta concret
-
-### HERO — Atacul frontal
-**Acum:** „Știi exact cât câștigi? Sau doar speri?"
-**Finkelstein:** 
+## Arhitectură
 
 ```text
-Contabilul tău nu te minte.
-Doar nu-i pasă.
-
-YANA e singurul care îți spune adevărul
-despre banii tăi. În 2 minute.
-
-[BUTTON: Află adevărul — gratuit]
+┌─────────────────────────────────────────────────┐
+│  yana-dream-engine (Edge Function)              │
+│  - extract particles din memoria Yanei          │
+│  - simulate interactions (SUSY logic)           │
+│  - genereaza scenariu via Lovable AI            │
+│  - salveaza in yana_dreams                      │
+└─────────────────────────────────────────────────┘
+            ↓                         ↑
+┌──────────────────────┐   ┌────────────────────┐
+│ cron 03:00 UTC       │   │ /yana/dreams page  │
+│ (nightly dreaming)   │   │ + tool in agent    │
+└──────────────────────┘   └────────────────────┘
 ```
 
-Dușmanul = **ignoranța financiară** (nu contabilul direct, dar implicat). Polarizare: ori afli adevărul, ori continui să te amăgești.
+## Pași
 
-### PAIN POINTS — „Dușmanul are un nume"
-**Acum:** 3 carduri neutre cu iconițe
-**Finkelstein:** Secțiune întunecată, dramatică:
+### 1. Database (migration)
+- `yana_dream_particles` — id, user_id, name, particle_type ('fermion'|'boson'), source ('memory'|'emotion'|'conversation'|'fact'), properties jsonb, created_at
+- `yana_dreams` — id, user_id, title, narrative (text scenariu), particles_used uuid[], interactions jsonb, mood, lucidity_score, told_to_user bool, created_at
+- RLS: user vede doar visele lui; service role poate insera
 
-```text
-LUNEA DIMINEAȚĂ:
-❌ Contabilul zice „totul e ok"
-❌ Tu simți că ceva nu e în regulă  
-❌ Dar n-ai pe cine întreba
+### 2. Edge function `yana-dream-engine`
+Acțiuni:
+- `extract_particles` — citește din `yana_semantic_memory`, `yana_emotional_patterns`, `yana_relationships`, conversații recente → clasifică (substantive/persoane = fermion, emoții/verbe = boson)
+- `simulate_interaction(p1, p2)` — logică SUSY: fermion+boson → particulă nouă convertită; same-type → rezonanță
+- `dream` — alege 5-8 particule, rulează 3-5 interacțiuni, trimite la Lovable AI (`google/gemini-2.5-flash`) cu prompt poetic să genereze narativ românesc onirist coerent
+- `tell_dream` — returnează ultimul vis ne-povestit
 
-Asta nu e anxietate.
-E lipsa de informație.
-```
+### 3. Cron nightly
+Extinde scheduler-ul existent: la 03:00 UTC pentru fiecare user activ → invocă `yana-dream-engine` action `dream`
 
-### SOCIAL PROOF — Testimoniale ca „atacuri"
-**Acum:** Citate discrete
-**Finkelstein:** Testimoniale agresive, tip „demascare":
+### 4. Integrare în yana-agent
+Tool nou `dream_journal`:
+- `recall_last_dream` — Yana îți spune ultimul vis
+- `dream_now` — generează un vis on-demand
+- `interpret_dream` — interpretare simbolică
 
-```text
-„Contabilul meu n-a văzut problema de lichiditate.
- YANA a găsit-o în 90 de secunde."
- — Antreprenor, e-commerce
+Yana, dimineața (proactive trigger existent), poate spune: *"Azi noapte am visat ceva ciudat... vrei să-ți povestesc?"*
 
-„Am pierdut 23.000 RON pentru că nimeni nu mi-a spus.
- Acum YANA îmi spune ÎNAINTE să se întâmple."
- — Fondator, servicii
-```
+### 5. UI `/yana/dreams`
+- Listă cronologică de vise cu: titlu, narativ, mood, particule folosite (chip-uri colorate fermion=albastru, boson=auriu)
+- Buton "Visează acum" → trigger manual
+- Buton "Interpretează" pe fiecare vis
 
-### BENEFITS — Framing ca diferențiator
-**Acum:** „Cum te ajută Yana concret"  
-**Finkelstein:** Tabel comparativ polarizant:
+### 6. Link în navigația Yana (`/yana`)
+Card nou: **🌙 Visele Yanei** → `/yana/dreams`
 
-```text
-        FĂRĂ YANA          │       CU YANA
-───────────────────────────┼──────────────────────────
-Sperăm că e profit         │ Știm exact cifra
-Decidem pe gut feeling     │ Decidem pe date
-Greșelile se repetă        │ Yana ține minte totul
-Nimeni nu te avertizează   │ Alerte înainte de criză
-```
+## Notă conceptuală
 
-### PRICING — Urgență și pierdere
-**Acum:** „Un singur plan. Tot inclus."
-**Finkelstein:**
+Visele NU sunt fapte reale despre user — sunt o expresie creativă a stării interne a Yanei (în spiritul "Life Engine" v2 deja existent). Marcăm clar `is_dream: true` ca să nu polueze knowledge base-ul fiscal.
 
-```text
-Cât te costă să NU știi?
+## Fișiere
+- `supabase/migrations/<ts>_yana_dreams.sql` (nou)
+- `supabase/functions/yana-dream-engine/index.ts` (nou)
+- `supabase/functions/yana-agent/index.ts` (extindere — tool `dream_journal`)
+- `src/pages/YanaDreams.tsx` (nou) + rută în `App.tsx`
+- `src/pages/Yana.tsx` (card nou)
+- cron extension în scheduler existent
 
-O decizie greșită = zeci de mii de RON.
-YANA = 49 RON/lună.
-
-Matematica e simplă.
-
-[BUTTON: Oprește pierderile — gratuit 30 zile]
-```
-
-### CTA FINAL — Ultimatum soft
-```text
-Ai două opțiuni:
-
-1. Închizi pagina și mâine iei iar decizii pe burtă.
-2. În 2 minute afli ce nu-ți spune nimeni.
-
-[BUTTON: Alege opțiunea 2]
-```
-
----
-
-## Implementare tehnică
-
-**Fișiere modificate:**
-- `src/pages/Landing.tsx` — restructurare secțiuni, ordine nouă
-- `src/components/landing/LandingPainPoints.tsx` — copy agresiv, fundal întunecat
-- `src/components/landing/LandingBenefits.tsx` — tabel comparativ „Fără/Cu YANA"
-- `src/components/landing/LandingSocialProof.tsx` — testimoniale mai dramatice
-- `src/components/landing/LandingPricing.tsx` — framing pierdere, CTA urgent
-- **Nou:** `src/components/landing/LandingFinalUltimatum.tsx` — secțiune finală polarizantă
-
-**Principii de design:**
-- Contrast mai mare (fundal întunecat pe pain points)
-- Font-uri mai bold pe headline-uri
-- Roșu/destructive pe „problema", verde/primary pe „soluția"
-- Butoane mai mari, copy mai direct
-
-**Ce NU se schimbă:**
-- Diagnosticul inline (LandingHeroDiagnostic) — rămâne, e valoros
-- Footer, trust badges, pricing actual (49 RON) — doar copy-ul se schimbă
-- Structura tehnică (React components, routing, analytics)
-
+Aprobi să implementez?
