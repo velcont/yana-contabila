@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Bell, Shield, CreditCard, Brain, LogOut, RefreshCw, Plug } from 'lucide-react';
@@ -36,6 +36,8 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'profile';
 
   const handleSignOut = async () => {
     try {
@@ -97,7 +99,7 @@ const Settings = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue={initialTab} className="space-y-6">
           <TooltipProvider>
             <TabsList className="flex w-full overflow-x-auto gap-1 p-1 no-scrollbar sm:grid sm:grid-cols-6">
               <Tooltip>
