@@ -154,6 +154,26 @@ TOOLS.push({
   },
 });
 
+// Email sending tool - via Resend (sends from configured Velcont domain)
+TOOLS.push({
+  type: "function",
+  function: {
+    name: "send_email",
+    description: "Trimite un email REAL în numele utilizatorului, de pe adresa configurată Velcont (RESEND_FROM_EMAIL). Folosește pentru: răspunsuri la clienți, notificări, rapoarte, oferte. Confirmă DOAR DUPĂ ce ai conținutul clar și destinatarul corect. NU trimite emailuri spam sau bulk — un singur destinatar per apel.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Adresa destinatarului (email valid)" },
+        subject: { type: "string", description: "Subiectul emailului (max 200 caractere)" },
+        body: { type: "string", description: "Conținutul emailului în text simplu sau HTML simplu (paragrafe separate prin newlines). Semnează cu numele user-ului dacă îl știi." },
+        cc: { type: "array", items: { type: "string" }, description: "Adrese CC (opțional)" },
+        reply_to: { type: "string", description: "Reply-To address (opțional, default = adresa user-ului dacă există)" },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+});
+
 // Inject dynamically generated agents as callable tools (run_dynamic_agent + spawn_agent)
 TOOLS.push(
   {
@@ -780,6 +800,67 @@ async function executeTool(
           return { error: "Google Calendar nu este conectat. Spune-i utilizatorului să meargă la Setări → Integrări și să apese 'Conectează Google Calendar'." };
         }
         return { error: msg };
+      }
+    }
+
+    case "send_email": {
+      try {
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Yana <yana@velcont.com>";
+        if (!RESEND_API_KEY) {
+          return { error: "RESEND_API_KEY nu este configurat. Spune utilizatorului să configureze trimiterea de email." };
+        }
+        const to = String(args.to || "").trim();
+        const subject = String(args.subject || "").trim().slice(0, 200);
+        const body = String(args.body || "").trim();
+        if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { error: "Adresa destinatarului nu este validă" };
+        if (!subject) return { error: "Subiectul este obligatoriu" };
+        if (!body) return { error: "Conținutul emailului este obligatoriu" };
+
+        // Get user email for reply_to default
+        const { data: { user: userInfo } } = await supabase.auth.admin.getUserById(userId);
+        const replyTo = (args.reply_to as string) || userInfo?.email || undefined;
+
+        // Convert plain text body to HTML (preserve paragraphs)
+        const htmlBody = body.includes("<") && body.includes(">")
+          ? body
+          : body.split(/\n\n+/).map(p => `<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#333">${p.replace(/\n/g, "<br>")}</p>`).join("");
+
+        const payload: Record<string, unknown> = {
+          from: RESEND_FROM_EMAIL,
+          to: [to],
+          subject,
+          html: `<div style="max-width:600px">${htmlBody}</div>`,
+          text: body,
+        };
+        if (Array.isArray(args.cc) && args.cc.length) payload.cc = args.cc;
+        if (replyTo) payload.reply_to = replyTo;
+
+        const resp = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          return { error: `Resend a refuzat: ${resp.status} ${JSON.stringify(data)}` };
+        }
+
+        // Log in email_logs
+        await supabase.from("email_logs").insert({
+          email_type: "yana_agent",
+          recipient_email: to,
+          subject,
+          status: "sent",
+          metadata: { user_id: userId, message_id: data.id, reply_to: replyTo },
+        }).then(() => {}).catch(() => {});
+
+        return { success: true, message_id: data.id, message: `Email trimis către ${to}` };
+      } catch (e) {
+        return { error: (e as Error).message };
       }
     }
 
