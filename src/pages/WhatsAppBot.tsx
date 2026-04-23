@@ -66,7 +66,7 @@ export default function WhatsAppBot() {
     }
     setConfig(cfg as unknown as BotConfig);
     const { data: st } = await supabase.from("wa_bot_status").select("*").eq("user_id", user.id).maybeSingle();
-    setStatus(st as BotStatus);
+    setStatus(st as unknown as BotStatus);
     const { data: msgs } = await supabase.from("wa_bot_messages").select("*")
       .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
     setMessages((msgs as unknown as BotMessage[]) || []);
