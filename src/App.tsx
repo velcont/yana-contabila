@@ -44,6 +44,7 @@ const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const StrategicAdvisor = lazy(() => import("./pages/StrategicAdvisor"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Yana = lazy(() => import("./pages/Yana"));
+const YanaDreams = lazy(() => import("./pages/YanaDreams"));
 
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
@@ -192,6 +193,7 @@ const App = () => {
                       <Route path="/price-tracker" element={<PrivateRoute><PriceTracker /></PrivateRoute>} />
                       <Route path="/supplier-audit" element={<PrivateRoute><SupplierAudit /></PrivateRoute>} />
                       <Route path="/yana/local-device" element={<PrivateRoute><LocalDevice /></PrivateRoute>} />
+                     <Route path="/yana/dreams" element={<PrivateRoute><YanaDreams /></PrivateRoute>} />
                       <Route path="/whatsapp" element={<PrivateRoute><WhatsAppLink /></PrivateRoute>} />
                       <Route path="/yana/chief-of-staff" element={<PrivateRoute><ChiefOfStaff /></PrivateRoute>} />
                       <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />

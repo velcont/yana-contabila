@@ -9145,6 +9145,78 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_susy_dreams: {
+        Row: {
+          created_at: string
+          id: string
+          interactions: Json
+          interpretation: string | null
+          lucidity_score: number | null
+          mood: string | null
+          narrative: string
+          particles_used: Json
+          title: string
+          told_to_user: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interactions?: Json
+          interpretation?: string | null
+          lucidity_score?: number | null
+          mood?: string | null
+          narrative: string
+          particles_used?: Json
+          title: string
+          told_to_user?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interactions?: Json
+          interpretation?: string | null
+          lucidity_score?: number | null
+          mood?: string | null
+          narrative?: string
+          particles_used?: Json
+          title?: string
+          told_to_user?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      yana_susy_particles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          particle_type: Database["public"]["Enums"]["dream_particle_type"]
+          properties: Json
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          particle_type: Database["public"]["Enums"]["dream_particle_type"]
+          properties?: Json
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          particle_type?: Database["public"]["Enums"]["dream_particle_type"]
+          properties?: Json
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       yana_therapy_sessions: {
         Row: {
           breakthroughs: Json | null
@@ -9863,6 +9935,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user"
       council_role: "advisor" | "partner" | "accountant" | "observer"
+      dream_particle_type: "fermion" | "boson"
       subscription_type: "entrepreneur" | "accounting_firm"
       tax_type: "profit" | "micro" | "dividend" | "norma_venit"
     }
@@ -9994,6 +10067,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       council_role: ["advisor", "partner", "accountant", "observer"],
+      dream_particle_type: ["fermion", "boson"],
       subscription_type: ["entrepreneur", "accounting_firm"],
       tax_type: ["profit", "micro", "dividend", "norma_venit"],
     },
