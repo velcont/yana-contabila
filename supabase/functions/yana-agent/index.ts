@@ -616,7 +616,8 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>,
   userId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: ReturnType<typeof createClient>,
+  userAuthHeader: string,
 ): Promise<unknown> {
   console.log(`[Agent Tool] ${name}`, args);
 
@@ -625,8 +626,7 @@ async function executeTool(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseServiceKey}`,
-        "x-yana-user-id": userId,
+        "Authorization": userAuthHeader,
       },
       body: JSON.stringify(payload),
     });
