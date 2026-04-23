@@ -1,9 +1,15 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
-[functions.validate-knowledge]
+[functions.wa-webhook]
 verify_jwt = false
 
-[functions.wa-bot-api]
+[functions.wa-link-init]
+verify_jwt = false
+
+[functions.wa-link-verify]
+verify_jwt = false
+
+[functions.validate-knowledge]
 verify_jwt = false
 
 [functions.yana-local-claim]

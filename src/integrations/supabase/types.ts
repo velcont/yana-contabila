@@ -5940,132 +5940,81 @@ export type Database = {
         }
         Relationships: []
       }
-      wa_bot_config: {
+      wa_messages_log: {
         Row: {
-          anthropic_key_set: boolean
-          bot_token: string
-          cooldown_seconds: number
+          body: string | null
           created_at: string
-          enabled: boolean
-          id: string
-          keyword_rules: Json
-          max_tokens: number
-          model: string
-          respond_in_groups: boolean
-          system_prompt: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          anthropic_key_set?: boolean
-          bot_token?: string
-          cooldown_seconds?: number
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          keyword_rules?: Json
-          max_tokens?: number
-          model?: string
-          respond_in_groups?: boolean
-          system_prompt?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          anthropic_key_set?: boolean
-          bot_token?: string
-          cooldown_seconds?: number
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          keyword_rules?: Json
-          max_tokens?: number
-          model?: string
-          respond_in_groups?: boolean
-          system_prompt?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      wa_bot_messages: {
-        Row: {
-          contact_id: string
-          contact_name: string | null
-          created_at: string
+          direction: string
           error: string | null
           id: string
-          incoming_text: string
-          is_group: boolean
-          latency_ms: number | null
-          matched_keyword: string | null
-          reply_text: string | null
-          reply_type: string
-          tokens_used: number | null
-          user_id: string
+          phone_e164: string
+          status: string | null
+          user_id: string | null
+          wa_message_id: string | null
         }
         Insert: {
-          contact_id: string
-          contact_name?: string | null
+          body?: string | null
           created_at?: string
+          direction: string
           error?: string | null
           id?: string
-          incoming_text: string
-          is_group?: boolean
-          latency_ms?: number | null
-          matched_keyword?: string | null
-          reply_text?: string | null
-          reply_type?: string
-          tokens_used?: number | null
-          user_id: string
+          phone_e164: string
+          status?: string | null
+          user_id?: string | null
+          wa_message_id?: string | null
         }
         Update: {
-          contact_id?: string
-          contact_name?: string | null
+          body?: string | null
           created_at?: string
+          direction?: string
           error?: string | null
           id?: string
-          incoming_text?: string
-          is_group?: boolean
-          latency_ms?: number | null
-          matched_keyword?: string | null
-          reply_text?: string | null
-          reply_type?: string
-          tokens_used?: number | null
-          user_id?: string
+          phone_e164?: string
+          status?: string | null
+          user_id?: string | null
+          wa_message_id?: string | null
         }
         Relationships: []
       }
-      wa_bot_status: {
+      wa_user_links: {
         Row: {
-          device_info: string | null
-          is_online: boolean
-          last_error: string | null
-          last_heartbeat_at: string | null
-          total_messages_all_time: number
-          total_messages_today: number
+          created_at: string
+          id: string
+          last_message_at: string | null
+          otp_attempts: number
+          otp_code: string | null
+          otp_expires_at: string | null
+          phone_e164: string
           updated_at: string
           user_id: string
+          verified: boolean
+          verified_at: string | null
         }
         Insert: {
-          device_info?: string | null
-          is_online?: boolean
-          last_error?: string | null
-          last_heartbeat_at?: string | null
-          total_messages_all_time?: number
-          total_messages_today?: number
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          otp_attempts?: number
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          phone_e164: string
           updated_at?: string
           user_id: string
+          verified?: boolean
+          verified_at?: string | null
         }
         Update: {
-          device_info?: string | null
-          is_online?: boolean
-          last_error?: string | null
-          last_heartbeat_at?: string | null
-          total_messages_all_time?: number
-          total_messages_today?: number
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          otp_attempts?: number
+          otp_code?: string | null
+          otp_expires_at?: string | null
+          phone_e164?: string
           updated_at?: string
           user_id?: string
+          verified?: boolean
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -9697,10 +9646,6 @@ export type Database = {
           new_minutes_used: number
           success: boolean
         }[]
-      }
-      increment_wa_message_counters: {
-        Args: { p_user_id: string }
-        Returns: undefined
       }
       increment_yana_agent_stats: {
         Args: { p_agent_id: string; p_success: boolean }
