@@ -9698,6 +9698,10 @@ export type Database = {
           success: boolean
         }[]
       }
+      increment_wa_message_counters: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       increment_yana_agent_stats: {
         Args: { p_agent_id: string; p_success: boolean }
         Returns: undefined
