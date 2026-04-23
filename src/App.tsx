@@ -44,6 +44,7 @@ const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const StrategicAdvisor = lazy(() => import("./pages/StrategicAdvisor"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Yana = lazy(() => import("./pages/Yana"));
+const YanaDreams = lazy(() => import("./pages/YanaDreams"));
 
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
