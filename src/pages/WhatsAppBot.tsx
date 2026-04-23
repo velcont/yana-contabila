@@ -64,12 +64,12 @@ export default function WhatsAppBot() {
       if (error) { toast.error("Nu am putut crea configurația"); setLoading(false); return; }
       cfg = created;
     }
-    setConfig(cfg as BotConfig);
+    setConfig(cfg as unknown as BotConfig);
     const { data: st } = await supabase.from("wa_bot_status").select("*").eq("user_id", user.id).maybeSingle();
     setStatus(st as BotStatus);
     const { data: msgs } = await supabase.from("wa_bot_messages").select("*")
       .eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
-    setMessages((msgs as BotMessage[]) || []);
+    setMessages((msgs as unknown as BotMessage[]) || []);
     setLoading(false);
   };
 
