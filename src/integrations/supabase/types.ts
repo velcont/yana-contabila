@@ -2935,6 +2935,59 @@ export type Database = {
         }
         Relationships: []
       }
+      email_drafts: {
+        Row: {
+          account_id: string | null
+          bcc_addresses: string[]
+          body_html: string | null
+          body_text: string | null
+          cc_addresses: string[]
+          created_at: string
+          id: string
+          in_reply_to: string | null
+          subject: string | null
+          to_addresses: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          bcc_addresses?: string[]
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: string[]
+          created_at?: string
+          id?: string
+          in_reply_to?: string | null
+          subject?: string | null
+          to_addresses?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          bcc_addresses?: string[]
+          body_html?: string | null
+          body_text?: string | null
+          cc_addresses?: string[]
+          created_at?: string
+          id?: string
+          in_reply_to?: string | null
+          subject?: string | null
+          to_addresses?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_drafts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "user_email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           email_type: string
@@ -5365,6 +5418,75 @@ export type Database = {
           sent_at?: string | null
           trial_ends_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_email_accounts: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email_address: string
+          encrypted_password: string
+          encryption_iv: string
+          id: string
+          imap_host: string
+          imap_port: number
+          imap_use_ssl: boolean
+          is_default: boolean
+          last_sync_at: string | null
+          last_test_at: string | null
+          last_test_status: string | null
+          signature: string | null
+          smtp_host: string
+          smtp_port: number
+          smtp_use_ssl: boolean
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email_address: string
+          encrypted_password: string
+          encryption_iv: string
+          id?: string
+          imap_host: string
+          imap_port?: number
+          imap_use_ssl?: boolean
+          is_default?: boolean
+          last_sync_at?: string | null
+          last_test_at?: string | null
+          last_test_status?: string | null
+          signature?: string | null
+          smtp_host: string
+          smtp_port?: number
+          smtp_use_ssl?: boolean
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email_address?: string
+          encrypted_password?: string
+          encryption_iv?: string
+          id?: string
+          imap_host?: string
+          imap_port?: number
+          imap_use_ssl?: boolean
+          is_default?: boolean
+          last_sync_at?: string | null
+          last_test_at?: string | null
+          last_test_status?: string | null
+          signature?: string | null
+          smtp_host?: string
+          smtp_port?: number
+          smtp_use_ssl?: boolean
+          updated_at?: string
+          user_id?: string
+          username?: string
         }
         Relationships: []
       }
