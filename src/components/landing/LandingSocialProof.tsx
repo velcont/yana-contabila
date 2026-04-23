@@ -8,12 +8,12 @@ const stats = [
 
 const quotes = [
   {
-    text: '"Contabilul meu n-a văzut problema de lichiditate. YANA a găsit-o în 90 de secunde."',
-    author: 'Antreprenor, e-commerce',
+    text: '"Am scăpat de Pipedrive și de Excel-ul cu pipeline. Tot ce-am de făcut: să-i spun YANA-i pe chat."',
+    author: 'Fondator, agenție digitală',
   },
   {
-    text: '"Am pierdut 23.000 RON pentru că nimeni nu mi-a spus. Acum YANA îmi spune ÎNAINTE să se întâmple."',
-    author: 'Fondator, servicii IT',
+    text: '"Contabilul meu n-a văzut problema de lichiditate. YANA a găsit-o în 90 de secunde — și mi-a spus ce client să sun primul."',
+    author: 'Antreprenor, e-commerce',
   },
 ];
 
