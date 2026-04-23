@@ -620,6 +620,23 @@ async function executeTool(
 ): Promise<unknown> {
   console.log(`[Agent Tool] ${name}`, args);
 
+  const invokeEmailClient = async (payload: Record<string, unknown>) => {
+    const resp = await fetch(`${supabaseUrl}/functions/v1/email-client`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${supabaseServiceKey}`,
+        "x-yana-user-id": userId,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data?.error) {
+      return { error: data?.error || `email-client ${resp.status}` };
+    }
+    return data;
+  };
+
   switch (name) {
     case "search_companies": {
       const q = (args.query as string) || "";
