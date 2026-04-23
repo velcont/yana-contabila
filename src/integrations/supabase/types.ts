@@ -5535,6 +5535,117 @@ export type Database = {
         }
         Relationships: []
       }
+      user_google_calendar_events: {
+        Row: {
+          all_day: boolean
+          attendees: Json | null
+          calendar_id: string
+          created_at: string
+          description: string | null
+          end_time: string
+          google_event_id: string
+          html_link: string | null
+          id: string
+          location: string | null
+          meet_link: string | null
+          organizer: Json | null
+          raw_data: Json | null
+          reminder_sent: boolean
+          start_time: string
+          status: string | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_day?: boolean
+          attendees?: Json | null
+          calendar_id?: string
+          created_at?: string
+          description?: string | null
+          end_time: string
+          google_event_id: string
+          html_link?: string | null
+          id?: string
+          location?: string | null
+          meet_link?: string | null
+          organizer?: Json | null
+          raw_data?: Json | null
+          reminder_sent?: boolean
+          start_time: string
+          status?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_day?: boolean
+          attendees?: Json | null
+          calendar_id?: string
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          google_event_id?: string
+          html_link?: string | null
+          id?: string
+          location?: string | null
+          meet_link?: string | null
+          organizer?: Json | null
+          raw_data?: Json | null
+          reminder_sent?: boolean
+          start_time?: string
+          status?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_google_calendar_tokens: {
+        Row: {
+          access_token: string
+          calendar_email: string | null
+          created_at: string
+          expiry_at: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          refresh_token: string
+          scopes: string[] | null
+          token_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          calendar_email?: string | null
+          created_at?: string
+          expiry_at: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          refresh_token: string
+          scopes?: string[] | null
+          token_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          calendar_email?: string | null
+          created_at?: string
+          expiry_at?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          refresh_token?: string
+          scopes?: string[] | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_journey: {
         Row: {
           consecutive_return_days: number | null
