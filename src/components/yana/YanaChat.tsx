@@ -364,7 +364,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       if (agentMode) {
         try {
           yanaAgent.reset();
-          const finalText = await yanaAgent.run(content, historyForAI);
+          const finalText = await yanaAgent.run(content, historyForAI, fileData);
           // Capturăm pașii din state-ul curent al hook-ului prin setTimeout 0
           // (sau citim direct yanaAgent.steps - dar e closure-stale, deci facem snapshot)
           const stepsSnapshot: AgentStep[] = [...yanaAgent.steps];

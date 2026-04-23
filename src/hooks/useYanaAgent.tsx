@@ -15,7 +15,11 @@ interface UseYanaAgentReturn {
   steps: AgentStep[];
   finalText: string;
   error: string | null;
-  run: (message: string, history: Array<{ role: string; content: string }>) => Promise<string>;
+  run: (
+    message: string,
+    history: Array<{ role: string; content: string }>,
+    fileData?: { fileName: string; fileContent: string; fileType: string }
+  ) => Promise<string>;
   reset: () => void;
 }
 
@@ -35,7 +39,11 @@ export function useYanaAgent(): UseYanaAgentReturn {
   }, []);
 
   const run = useCallback(
-    async (message: string, history: Array<{ role: string; content: string }>): Promise<string> => {
+    async (
+      message: string,
+      history: Array<{ role: string; content: string }>,
+      fileData?: { fileName: string; fileContent: string; fileType: string }
+    ): Promise<string> => {
       setIsRunning(true);
       setSteps([]);
       setFinalText('');
@@ -55,7 +63,7 @@ export function useYanaAgent(): UseYanaAgentReturn {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ message, conversation_history: history }),
+          body: JSON.stringify({ message, conversation_history: history, fileData }),
           signal: controller.signal,
         });
 
