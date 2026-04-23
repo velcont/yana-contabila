@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAICredits } from '@/hooks/useAICredits';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
-import { Loader2, Menu, X, Settings, LogOut, Briefcase, Mail, MessageCircle } from 'lucide-react';
+import { Loader2, Menu, X, Settings, LogOut, Briefcase, Mail, MessageCircle, Moon } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
