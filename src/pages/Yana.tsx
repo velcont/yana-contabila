@@ -199,6 +199,12 @@ export default function Yana() {
                 <span className="hidden sm:inline text-xs font-medium">Inbox</span>
               </Button>
             </Link>
+            <Link to="/yana/dreams">
+              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Visele Yanei">
+                <Moon className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs font-medium">Vise</span>
+              </Button>
+            </Link>
             <Link to="/settings">
               <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation" title="Setări cont">
                 <Settings className="h-5 w-5" />
