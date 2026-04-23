@@ -2186,8 +2186,11 @@ export type Database = {
           cui: string | null
           email: string | null
           employee_count: number | null
+          enriched_at: string | null
+          enrichment_data: Json | null
           id: string
           industry: string | null
+          lead_score: number | null
           metadata: Json | null
           name: string
           notes: string | null
@@ -2207,8 +2210,11 @@ export type Database = {
           cui?: string | null
           email?: string | null
           employee_count?: number | null
+          enriched_at?: string | null
+          enrichment_data?: Json | null
           id?: string
           industry?: string | null
+          lead_score?: number | null
           metadata?: Json | null
           name: string
           notes?: string | null
@@ -2228,8 +2234,11 @@ export type Database = {
           cui?: string | null
           email?: string | null
           employee_count?: number | null
+          enriched_at?: string | null
+          enrichment_data?: Json | null
           id?: string
           industry?: string | null
+          lead_score?: number | null
           metadata?: Json | null
           name?: string
           notes?: string | null
@@ -2247,10 +2256,15 @@ export type Database = {
           company_id: string | null
           created_at: string
           email: string | null
+          enriched_at: string | null
+          enrichment_data: Json | null
           first_name: string
           id: string
           job_title: string | null
+          last_activity_at: string | null
           last_name: string | null
+          lead_score: number | null
+          lead_score_reasons: Json | null
           linkedin_url: string | null
           metadata: Json | null
           notes: string | null
@@ -2263,10 +2277,15 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           email?: string | null
+          enriched_at?: string | null
+          enrichment_data?: Json | null
           first_name: string
           id?: string
           job_title?: string | null
+          last_activity_at?: string | null
           last_name?: string | null
+          lead_score?: number | null
+          lead_score_reasons?: Json | null
           linkedin_url?: string | null
           metadata?: Json | null
           notes?: string | null
@@ -2279,10 +2298,15 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           email?: string | null
+          enriched_at?: string | null
+          enrichment_data?: Json | null
           first_name?: string
           id?: string
           job_title?: string | null
+          last_activity_at?: string | null
           last_name?: string | null
+          lead_score?: number | null
+          lead_score_reasons?: Json | null
           linkedin_url?: string | null
           metadata?: Json | null
           notes?: string | null
@@ -2300,6 +2324,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_currency_rates: {
+        Row: {
+          currency: string
+          rate_to_ron: number
+          updated_at: string
+        }
+        Insert: {
+          currency: string
+          rate_to_ron: number
+          updated_at?: string
+        }
+        Update: {
+          currency?: string
+          rate_to_ron?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_deals: {
         Row: {
@@ -2398,6 +2440,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_duplicate_groups: {
+        Row: {
+          contact_ids: string[]
+          created_at: string
+          id: string
+          match_key: string
+          match_type: string
+          resolved: boolean | null
+          resolved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_ids: string[]
+          created_at?: string
+          id?: string
+          match_key: string
+          match_type: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_ids?: string[]
+          created_at?: string
+          id?: string
+          match_key?: string
+          match_type?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_email_templates: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string
+          id: string
+          last_used_at: string | null
+          name: string
+          subject: string
+          updated_at: string
+          use_count: number | null
+          user_id: string
+          variables: string[] | null
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name: string
+          subject: string
+          updated_at?: string
+          use_count?: number | null
+          user_id: string
+          variables?: string[] | null
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          subject?: string
+          updated_at?: string
+          use_count?: number | null
+          user_id?: string
+          variables?: string[] | null
+        }
+        Relationships: []
       }
       crm_messages: {
         Row: {
@@ -9549,7 +9666,27 @@ export type Database = {
       cleanup_inactive_sessions: { Args: never; Returns: undefined }
       cleanup_old_data: { Args: never; Returns: undefined }
       cleanup_old_demo_rate_limits: { Args: never; Returns: undefined }
+      crm_forecast_revenue: {
+        Args: { p_user_id: string }
+        Returns: {
+          currency: string
+          deal_count: number
+          stage_name: string
+          total_value: number
+          weighted_value: number
+        }[]
+      }
+      crm_report_metrics: { Args: { p_user_id: string }; Returns: Json }
       deactivate_expired_subscriptions: { Args: never; Returns: undefined }
+      detect_contact_duplicates: {
+        Args: { p_user_id: string }
+        Returns: {
+          contact_ids: string[]
+          count: number
+          match_key: string
+          match_type: string
+        }[]
+      }
       detect_emotional_pattern: {
         Args: {
           p_emotional_state: string

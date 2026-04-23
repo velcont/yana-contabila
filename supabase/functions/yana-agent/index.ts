@@ -235,6 +235,53 @@ TOOLS.push(
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "crm_intelligence",
+      description: "CRM avansat: lead scoring AI, timeline activități, șabloane email, bulk update, îmbogățire contacte, forecast revenue, rapoarte (conversion rate / cycle time), detecție duplicate, conversie multi-currency, activity feed cross-workspace. Folosește când userul cere: 'scor lead', 'șablon email', 'duplicate', 'forecast', 'raport vânzări', 'curs valutar', 'feed activitate', 'îmbogățește contact', 'update X contacte la o dată'.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: {
+            type: "string",
+            enum: [
+              "score_lead", "score_all_leads", "top_leads",
+              "contact_timeline",
+              "list_templates", "create_template", "use_template", "delete_template",
+              "bulk_update_contacts", "bulk_tag_contacts",
+              "enrich_contact",
+              "forecast_revenue",
+              "report_metrics",
+              "find_duplicates", "merge_duplicates",
+              "convert_currency", "list_currency_rates",
+              "activity_feed"
+            ],
+            description: "Acțiunea CRM avansată"
+          },
+          contact_id: { type: "string" },
+          company_id: { type: "string" },
+          contact_ids: { type: "array", items: { type: "string" }, description: "IDs pentru bulk operations" },
+          updates: { type: "object", description: "Câmpuri de actualizat la bulk_update (ex: {tags: ['VIP'], job_title: 'CEO'})" },
+          tags: { type: "array", items: { type: "string" } },
+          template_id: { type: "string" },
+          template_name: { type: "string" },
+          template_subject: { type: "string" },
+          template_body: { type: "string" },
+          template_category: { type: "string" },
+          variables: { type: "object", description: "Pentru use_template: {nume: 'Ion', companie: 'X SRL'}" },
+          keep_id: { type: "string", description: "Pentru merge: ID contact păstrat (restul șterse)" },
+          merge_ids: { type: "array", items: { type: "string" }, description: "IDs de unit (vor fi șterse după merge)" },
+          amount: { type: "number" },
+          from_currency: { type: "string" },
+          to_currency: { type: "string", description: "Default RON" },
+          limit: { type: "number", description: "Default 20" },
+          days: { type: "number", description: "Pentru activity_feed: ultimele N zile (default 7)" }
+        },
+        required: ["action"]
+      }
+    }
+  },
 );
 
 // ============= LOCAL DEVICE TOOLS (Mac/PC bridge) =============
@@ -1398,6 +1445,249 @@ async function executeTool(
       }).select().single();
       if (error) return { error: error.message };
       return { logged: data };
+    }
+
+    case "crm_intelligence": {
+      const action = args.action as string;
+
+      // ===== LEAD SCORING =====
+      const computeScore = (c: Record<string, unknown>): { score: number; reasons: string[] } => {
+        let score = 0;
+        const reasons: string[] = [];
+        if (c.email) { score += 15; reasons.push("+15 email"); }
+        if (c.phone) { score += 10; reasons.push("+10 telefon"); }
+        if (c.job_title) {
+          const t = String(c.job_title).toLowerCase();
+          if (/(ceo|director|owner|fondator|founder|manager general|administrator)/.test(t)) {
+            score += 25; reasons.push("+25 decision maker");
+          } else if (/(cfo|cto|coo|vp|head)/.test(t)) {
+            score += 20; reasons.push("+20 C-level");
+          } else { score += 5; reasons.push("+5 job title"); }
+        }
+        if (c.linkedin_url) { score += 10; reasons.push("+10 LinkedIn"); }
+        if (c.company_id) { score += 15; reasons.push("+15 firmă asociată"); }
+        if (c.last_activity_at) {
+          const days = (Date.now() - new Date(c.last_activity_at as string).getTime()) / 86400000;
+          if (days < 7) { score += 20; reasons.push("+20 activitate recentă (<7z)"); }
+          else if (days < 30) { score += 10; reasons.push("+10 activitate recentă (<30z)"); }
+        }
+        const tags = (c.tags as string[]) || [];
+        if (tags.includes("VIP") || tags.includes("hot")) { score += 15; reasons.push("+15 tag VIP/hot"); }
+        return { score: Math.min(100, score), reasons };
+      };
+
+      if (action === "score_lead") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const { data: c, error } = await supabase.from("crm_contacts").select("*").eq("id", args.contact_id).eq("user_id", userId).maybeSingle();
+        if (error || !c) return { error: error?.message || "Contact negăsit" };
+        const { score, reasons } = computeScore(c);
+        await supabase.from("crm_contacts").update({ lead_score: score, lead_score_reasons: reasons }).eq("id", args.contact_id);
+        return { contact_id: args.contact_id, score, reasons };
+      }
+
+      if (action === "score_all_leads") {
+        const { data: contacts } = await supabase.from("crm_contacts").select("*").eq("user_id", userId);
+        if (!contacts) return { scored: 0 };
+        let scored = 0;
+        for (const c of contacts) {
+          const { score, reasons } = computeScore(c);
+          await supabase.from("crm_contacts").update({ lead_score: score, lead_score_reasons: reasons }).eq("id", c.id);
+          scored++;
+        }
+        return { scored, message: `${scored} contacte scorate` };
+      }
+
+      if (action === "top_leads") {
+        const limit = (args.limit as number) || 20;
+        const { data, error } = await supabase.from("crm_contacts")
+          .select("id, first_name, last_name, email, job_title, lead_score, lead_score_reasons, crm_companies(name)")
+          .eq("user_id", userId).order("lead_score", { ascending: false }).limit(limit);
+        if (error) return { error: error.message };
+        return { top_leads: data };
+      }
+
+      // ===== ACTIVITY TIMELINE =====
+      if (action === "contact_timeline") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const { data, error } = await supabase.from("crm_activities")
+          .select("*").eq("user_id", userId).eq("contact_id", args.contact_id)
+          .order("created_at", { ascending: false }).limit(50);
+        if (error) return { error: error.message };
+        return { timeline: data, count: data?.length || 0 };
+      }
+
+      // ===== EMAIL TEMPLATES =====
+      if (action === "list_templates") {
+        const { data, error } = await supabase.from("crm_email_templates").select("*").eq("user_id", userId).order("use_count", { ascending: false });
+        if (error) return { error: error.message };
+        return { templates: data };
+      }
+      if (action === "create_template") {
+        if (!args.template_name || !args.template_subject || !args.template_body) return { error: "name, subject, body obligatorii" };
+        const vars = String(args.template_body + " " + args.template_subject).match(/\{\{(\w+)\}\}/g)?.map(v => v.replace(/[{}]/g, "")) || [];
+        const { data, error } = await supabase.from("crm_email_templates").insert({
+          user_id: userId,
+          name: args.template_name,
+          subject: args.template_subject,
+          body: args.template_body,
+          category: args.template_category || "general",
+          variables: [...new Set(vars)],
+        }).select().single();
+        if (error) return { error: error.message };
+        return { created: data };
+      }
+      if (action === "use_template") {
+        if (!args.template_id) return { error: "template_id obligatoriu" };
+        const { data: tpl, error } = await supabase.from("crm_email_templates").select("*").eq("id", args.template_id).eq("user_id", userId).maybeSingle();
+        if (error || !tpl) return { error: error?.message || "Template negăsit" };
+        let subject = tpl.subject as string;
+        let body = tpl.body as string;
+        const vars = (args.variables as Record<string, string>) || {};
+        for (const [k, v] of Object.entries(vars)) {
+          const re = new RegExp(`\\{\\{${k}\\}\\}`, "g");
+          subject = subject.replace(re, String(v));
+          body = body.replace(re, String(v));
+        }
+        await supabase.from("crm_email_templates").update({ use_count: (tpl.use_count || 0) + 1, last_used_at: new Date().toISOString() }).eq("id", args.template_id);
+        return { subject, body, template_name: tpl.name };
+      }
+      if (action === "delete_template") {
+        if (!args.template_id) return { error: "template_id obligatoriu" };
+        const { error } = await supabase.from("crm_email_templates").delete().eq("id", args.template_id).eq("user_id", userId);
+        if (error) return { error: error.message };
+        return { deleted: true };
+      }
+
+      // ===== BULK ACTIONS =====
+      if (action === "bulk_update_contacts") {
+        const ids = (args.contact_ids as string[]) || [];
+        if (!ids.length || !args.updates) return { error: "contact_ids și updates obligatorii" };
+        const { data, error } = await supabase.from("crm_contacts").update(args.updates as Record<string, unknown>).in("id", ids).eq("user_id", userId).select("id");
+        if (error) return { error: error.message };
+        return { updated: data?.length || 0 };
+      }
+      if (action === "bulk_tag_contacts") {
+        const ids = (args.contact_ids as string[]) || [];
+        const newTags = (args.tags as string[]) || [];
+        if (!ids.length || !newTags.length) return { error: "contact_ids și tags obligatorii" };
+        const { data: existing } = await supabase.from("crm_contacts").select("id, tags").in("id", ids).eq("user_id", userId);
+        let count = 0;
+        for (const c of existing || []) {
+          const merged = [...new Set([...((c.tags as string[]) || []), ...newTags])];
+          await supabase.from("crm_contacts").update({ tags: merged }).eq("id", c.id);
+          count++;
+        }
+        return { tagged: count };
+      }
+
+      // ===== CONTACT ENRICHMENT =====
+      if (action === "enrich_contact") {
+        if (!args.contact_id) return { error: "contact_id obligatoriu" };
+        const { data: c } = await supabase.from("crm_contacts").select("*, crm_companies(name, website, cui)").eq("id", args.contact_id).eq("user_id", userId).maybeSingle();
+        if (!c) return { error: "Contact negăsit" };
+        const enrichment: Record<string, unknown> = {};
+        const updates: Record<string, unknown> = {};
+        // Heuristic: extract company from email domain
+        if (c.email && !c.company_id) {
+          const domain = String(c.email).split("@")[1];
+          if (domain && !/(gmail|yahoo|hotmail|outlook|icloud)\./.test(domain)) {
+            enrichment.suggested_company_domain = domain;
+            enrichment.suggested_website = `https://${domain}`;
+          }
+        }
+        // Infer LinkedIn URL from name
+        if (c.first_name && !c.linkedin_url) {
+          const slug = `${c.first_name}-${c.last_name || ""}`.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+          enrichment.suggested_linkedin = `https://www.linkedin.com/in/${slug}/`;
+        }
+        // Detect role seniority from title
+        if (c.job_title) {
+          const t = String(c.job_title).toLowerCase();
+          enrichment.seniority = /(ceo|owner|fondator|director general|administrator)/.test(t) ? "C-level"
+            : /(manager|lead|head)/.test(t) ? "Senior"
+            : "Standard";
+        }
+        updates.enrichment_data = enrichment;
+        updates.enriched_at = new Date().toISOString();
+        await supabase.from("crm_contacts").update(updates).eq("id", args.contact_id);
+        return { contact_id: args.contact_id, enrichment };
+      }
+
+      // ===== FORECAST =====
+      if (action === "forecast_revenue") {
+        const { data, error } = await supabase.rpc("crm_forecast_revenue", { p_user_id: userId });
+        if (error) return { error: error.message };
+        const total_weighted = (data || []).reduce((s: number, r: { weighted_value: number }) => s + Number(r.weighted_value || 0), 0);
+        const total_pipeline = (data || []).reduce((s: number, r: { total_value: number }) => s + Number(r.total_value || 0), 0);
+        return { stages: data, total_pipeline, forecast_weighted: Math.round(total_weighted) };
+      }
+
+      // ===== REPORTS =====
+      if (action === "report_metrics") {
+        const { data, error } = await supabase.rpc("crm_report_metrics", { p_user_id: userId });
+        if (error) return { error: error.message };
+        return { metrics: data };
+      }
+
+      // ===== DUPLICATES =====
+      if (action === "find_duplicates") {
+        const { data, error } = await supabase.rpc("detect_contact_duplicates", { p_user_id: userId });
+        if (error) return { error: error.message };
+        // Persist groups
+        for (const g of data || []) {
+          await supabase.from("crm_duplicate_groups").upsert({
+            user_id: userId,
+            match_type: g.match_type,
+            match_key: g.match_key,
+            contact_ids: g.contact_ids,
+            resolved: false,
+          }, { onConflict: "id" });
+        }
+        return { duplicate_groups: data, count: data?.length || 0 };
+      }
+      if (action === "merge_duplicates") {
+        if (!args.keep_id || !(args.merge_ids as string[])?.length) return { error: "keep_id și merge_ids obligatorii" };
+        const mergeIds = (args.merge_ids as string[]).filter(id => id !== args.keep_id);
+        // Re-link activities and deals to keep_id
+        await supabase.from("crm_activities").update({ contact_id: args.keep_id }).in("contact_id", mergeIds).eq("user_id", userId);
+        await supabase.from("crm_deals").update({ contact_id: args.keep_id }).in("contact_id", mergeIds).eq("user_id", userId);
+        const { error } = await supabase.from("crm_contacts").delete().in("id", mergeIds).eq("user_id", userId);
+        if (error) return { error: error.message };
+        await supabase.from("crm_duplicate_groups").update({ resolved: true, resolved_at: new Date().toISOString() }).contains("contact_ids", [args.keep_id]).eq("user_id", userId);
+        return { merged: mergeIds.length, kept: args.keep_id };
+      }
+
+      // ===== CURRENCY =====
+      if (action === "list_currency_rates") {
+        const { data } = await supabase.from("crm_currency_rates").select("*");
+        return { rates: data };
+      }
+      if (action === "convert_currency") {
+        const amount = args.amount as number;
+        const from = (args.from_currency as string) || "RON";
+        const to = (args.to_currency as string) || "RON";
+        if (typeof amount !== "number") return { error: "amount obligatoriu" };
+        const { data: rates } = await supabase.from("crm_currency_rates").select("*").in("currency", [from, to]);
+        const fromRate = rates?.find(r => r.currency === from)?.rate_to_ron || 1;
+        const toRate = rates?.find(r => r.currency === to)?.rate_to_ron || 1;
+        const ron = amount * Number(fromRate);
+        const converted = ron / Number(toRate);
+        return { amount, from, to, converted: Math.round(converted * 100) / 100, rate: fromRate / toRate };
+      }
+
+      // ===== ACTIVITY FEED =====
+      if (action === "activity_feed") {
+        const days = (args.days as number) || 7;
+        const since = new Date(Date.now() - days * 86400000).toISOString();
+        const { data, error } = await supabase.from("crm_activities")
+          .select("*, crm_contacts(first_name, last_name), crm_companies(name), crm_deals(title)")
+          .eq("user_id", userId).gte("created_at", since)
+          .order("created_at", { ascending: false }).limit(100);
+        if (error) return { error: error.message };
+        return { feed: data, count: data?.length || 0, since };
+      }
+
+      return { error: `Acțiune necunoscută: ${action}` };
     }
 
     default:
