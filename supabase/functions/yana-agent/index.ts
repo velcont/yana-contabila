@@ -697,6 +697,92 @@ async function executeTool(
       };
     }
 
+    case "gcal_manage": {
+      try {
+        const { gcalFetch, getServiceClient } = await import("../_shared/google-calendar.ts");
+        const action = args.action as string;
+
+        if (action === "status") {
+          const svc = getServiceClient();
+          const { data: tok } = await svc
+            .from("user_google_calendar_tokens")
+            .select("calendar_email, last_sync_at, is_active")
+            .eq("user_id", userId)
+            .maybeSingle();
+          return { connected: !!tok?.is_active, ...tok };
+        }
+
+        if (action === "list_events") {
+          const timeMin = (args.time_min as string) || new Date().toISOString();
+          const timeMax = (args.time_max as string) || new Date(Date.now() + 7 * 86400000).toISOString();
+          const params = new URLSearchParams({
+            timeMin, timeMax, singleEvents: "true", orderBy: "startTime",
+            maxResults: String(args.max_results || 50),
+          });
+          const data = await gcalFetch(userId, `/calendars/primary/events?${params.toString()}`);
+          // Returnez doar câmpurile esențiale pentru a economisi tokens
+          const events = (data.items || []).map((e: any) => ({
+            id: e.id,
+            summary: e.summary,
+            start: e.start?.dateTime || e.start?.date,
+            end: e.end?.dateTime || e.end?.date,
+            location: e.location,
+            description: e.description,
+            attendees: (e.attendees || []).map((a: any) => a.email),
+            meet_link: e.conferenceData?.entryPoints?.find((x: any) => x.entryPointType === "video")?.uri,
+            html_link: e.htmlLink,
+          }));
+          return { count: events.length, events };
+        }
+
+        if (action === "create_event") {
+          const allDay = !!args.all_day;
+          const event: any = {
+            summary: args.summary,
+            description: args.description,
+            location: args.location,
+            start: allDay ? { date: args.start } : { dateTime: args.start, timeZone: "Europe/Bucharest" },
+            end: allDay ? { date: args.end } : { dateTime: args.end, timeZone: "Europe/Bucharest" },
+          };
+          const attendees = args.attendees as string[] | undefined;
+          if (attendees?.length) event.attendees = attendees.map((e) => ({ email: e }));
+          const created = await gcalFetch(userId, `/calendars/primary/events`, {
+            method: "POST", body: JSON.stringify(event),
+          });
+          return { success: true, event_id: created.id, html_link: created.htmlLink, message: `Eveniment creat: "${args.summary}"` };
+        }
+
+        if (action === "update_event") {
+          if (!args.event_id) return { error: "event_id obligatoriu" };
+          const allDay = !!args.all_day;
+          const patch: any = {};
+          if (args.summary) patch.summary = args.summary;
+          if (args.description) patch.description = args.description;
+          if (args.location) patch.location = args.location;
+          if (args.start) patch.start = allDay ? { date: args.start } : { dateTime: args.start, timeZone: "Europe/Bucharest" };
+          if (args.end) patch.end = allDay ? { date: args.end } : { dateTime: args.end, timeZone: "Europe/Bucharest" };
+          const updated = await gcalFetch(userId, `/calendars/primary/events/${args.event_id}`, {
+            method: "PATCH", body: JSON.stringify(patch),
+          });
+          return { success: true, event_id: updated.id, message: "Eveniment actualizat" };
+        }
+
+        if (action === "delete_event") {
+          if (!args.event_id) return { error: "event_id obligatoriu" };
+          await gcalFetch(userId, `/calendars/primary/events/${args.event_id}`, { method: "DELETE" });
+          return { success: true, message: "Eveniment șters" };
+        }
+
+        return { error: `Acțiune necunoscută: ${action}` };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes("nu este conectat")) {
+          return { error: "Google Calendar nu este conectat. Spune-i utilizatorului să meargă la Setări → Integrări și să apese 'Conectează Google Calendar'." };
+        }
+        return { error: msg };
+      }
+    }
+
     case "spawn_agent": {
       const slug = String(args.display_name || "agent")
         .toLowerCase()
