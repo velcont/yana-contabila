@@ -839,19 +839,75 @@ async function executeTool(
       }
     }
 
+    case "email_manage": {
+      const action = String(args.action || "");
+      if (action === "status") {
+        const { data, error } = await supabase
+          .from("user_email_accounts")
+          .select("id, email_address, display_name, last_test_status, last_test_at, is_default")
+          .eq("user_id", userId)
+          .eq("is_default", true)
+          .maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { connected: false, message: "Nu există niciun cont email configurat în /email-settings." };
+        return { connected: true, account: data };
+      }
+
+      if (action === "list_folders") {
+        return await invokeEmailClient({ action: "list_folders" });
+      }
+
+      if (action === "list_messages") {
+        return await invokeEmailClient({
+          action: "list_messages",
+          folder: (args.folder as string) || "INBOX",
+          limit: Math.min(Number(args.limit || 10), 20),
+          search: args.search || undefined,
+        });
+      }
+
+      if (action === "get_message") {
+        if (!args.uid) return { error: "uid obligatoriu" };
+        return await invokeEmailClient({
+          action: "get_message",
+          folder: (args.folder as string) || "INBOX",
+          uid: Number(args.uid),
+        });
+      }
+
+      return { error: `Acțiune email necunoscută: ${action}` };
+    }
+
     case "send_email": {
       try {
-        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-        const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Yana <yana@velcont.com>";
-        if (!RESEND_API_KEY) {
-          return { error: "RESEND_API_KEY nu este configurat. Spune utilizatorului să configureze trimiterea de email." };
-        }
         const to = String(args.to || "").trim();
         const subject = String(args.subject || "").trim().slice(0, 200);
         const body = String(args.body || "").trim();
         if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { error: "Adresa destinatarului nu este validă" };
         if (!subject) return { error: "Subiectul este obligatoriu" };
         if (!body) return { error: "Conținutul emailului este obligatoriu" };
+
+        const localSend = await invokeEmailClient({
+          action: "send_message",
+          to: [to],
+          cc: Array.isArray(args.cc) ? args.cc : undefined,
+          subject,
+          body_text: body,
+        });
+        if (!(localSend as { error?: string }).error) {
+          return {
+            success: true,
+            provider: "imap_smtp",
+            message_id: (localSend as { messageId?: string }).messageId,
+            message: `Email trimis către ${to} din contul configurat al utilizatorului`,
+          };
+        }
+
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Yana <yana@velcont.com>";
+        if (!RESEND_API_KEY) {
+          return { error: (localSend as { error?: string }).error || "Trimiterea de email nu este configurată." };
+        }
 
         // Get user email for reply_to default
         const { data: { user: userInfo } } = await supabase.auth.admin.getUserById(userId);
