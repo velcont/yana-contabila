@@ -13,6 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { YANA_CHIEF_OF_STAFF_PROMPT } from "../_shared/yana-chief-of-staff-prompt.ts";
+import { parseExcelWithXLSX } from "../_shared/balance-parser.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1447,7 +1448,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { message, conversation_history = [] } = await req.json();
+  const { message, conversation_history = [], fileData } = await req.json();
   if (!message) {
     return new Response(JSON.stringify({ error: "Missing message" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -1463,12 +1464,49 @@ Deno.serve(async (req) => {
       };
 
       try {
+        // 📎 Parse uploaded file (xlsx/xls/csv/txt) and attach as context
+        let fileContextBlock = "";
+        if (fileData && fileData.fileName && fileData.fileContent) {
+          try {
+            const name = String(fileData.fileName || "").toLowerCase();
+            const ext = name.split(".").pop() || "";
+            let extracted = "";
+            if (ext === "xlsx" || ext === "xls") {
+              extracted = await parseExcelWithXLSX(fileData.fileContent);
+            } else if (ext === "csv" || ext === "txt" || ext === "md" || ext === "json") {
+              // fileContent is base64 (data URL or raw); decode to UTF-8
+              const raw = String(fileData.fileContent).includes(",")
+                ? String(fileData.fileContent).split(",")[1]
+                : String(fileData.fileContent);
+              try {
+                const bytes = Uint8Array.from(atob(raw), (c) => c.charCodeAt(0));
+                extracted = new TextDecoder("utf-8").decode(bytes);
+              } catch {
+                extracted = raw;
+              }
+            } else {
+              extracted = `[Fișier ${fileData.fileName} (${fileData.fileType || ext}) — format binar; nu pot extrage text aici. Rezumă pe baza numelui sau cere conversie.]`;
+            }
+            // Truncate to keep prompt size sane
+            const MAX = 60000;
+            if (extracted.length > MAX) {
+              extracted = extracted.slice(0, MAX) + `\n\n[...trunchiat la ${MAX} caractere din ${extracted.length}]`;
+            }
+            fileContextBlock = `\n\n📎 FIȘIER ATAȘAT: ${fileData.fileName}\n--- CONȚINUT EXTRAS ---\n${extracted}\n--- SFÂRȘIT FIȘIER ---\n`;
+            send("thinking", { text: `Am citit fișierul ${fileData.fileName} (${extracted.length} caractere extrase).` });
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            fileContextBlock = `\n\n📎 [Nu am putut parsa fișierul ${fileData.fileName}: ${msg}]\n`;
+            send("thinking", { text: `Eroare la citirea fișierului: ${msg}` });
+          }
+        }
+
         const messages: Array<Record<string, unknown>> = [
           { role: "system", content: SYSTEM_PROMPT_FULL },
           ...conversation_history.slice(-10).map((m: { role: string; content: string }) => ({
             role: m.role, content: m.content,
           })),
-          { role: "user", content: message },
+          { role: "user", content: fileContextBlock ? `${message}${fileContextBlock}` : message },
         ];
 
         send("thinking", { text: "Analizez cererea..." });
