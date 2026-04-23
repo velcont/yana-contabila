@@ -13,20 +13,20 @@ export const LandingFinalUltimatum = () => {
   return (
     <section className="rounded-2xl bg-foreground text-background p-6 sm:p-8 space-y-6 text-center">
       <h2 className="text-xl sm:text-2xl font-bold">
-        Ai două opțiuni:
+        Două opțiuni:
       </h2>
 
       <div className="space-y-4 max-w-sm mx-auto text-left">
         <div className="flex items-start gap-3">
           <span className="text-2xl font-bold text-muted-foreground/50">1.</span>
           <p className="text-sm sm:text-base leading-relaxed pt-1">
-            Închizi pagina și mâine iei iar decizii pe burtă.
+            Plătești 5 abonamente, deschizi 5 tab-uri, faci copy-paste.
           </p>
         </div>
         <div className="flex items-start gap-3">
           <span className="text-2xl font-bold text-primary">2.</span>
           <p className="text-sm sm:text-base leading-relaxed pt-1 font-medium">
-            În 2 minute afli ce nu-ți spune nimeni.
+            Vorbești cu YANA. Ea face restul.
           </p>
         </div>
       </div>
