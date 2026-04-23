@@ -159,7 +159,7 @@ TOOLS.push({
   type: "function",
   function: {
     name: "send_email",
-    description: "Trimite un email REAL în numele utilizatorului, de pe adresa configurată Velcont (RESEND_FROM_EMAIL). Folosește pentru: răspunsuri la clienți, notificări, rapoarte, oferte. Confirmă DOAR DUPĂ ce ai conținutul clar și destinatarul corect. NU trimite emailuri spam sau bulk — un singur destinatar per apel.",
+    description: "Trimite un email REAL în numele utilizatorului. Dacă userul are configurat contul IMAP/SMTP în /email-settings, trimite din acel cont; altfel poate folosi fallback-ul configurat al platformei. Folosește pentru: răspunsuri la clienți, notificări, rapoarte, oferte. Confirmă DOAR DUPĂ ce ai conținutul clar și destinatarul corect. NU trimite emailuri spam sau bulk — un singur destinatar per apel.",
     parameters: {
       type: "object",
       properties: {
@@ -170,6 +170,25 @@ TOOLS.push({
         reply_to: { type: "string", description: "Reply-To address (opțional, default = adresa user-ului dacă există)" },
       },
       required: ["to", "subject", "body"],
+    },
+  },
+});
+
+TOOLS.push({
+  type: "function",
+  function: {
+    name: "email_manage",
+    description: "Citește inbox-ul REAL al utilizatorului din contul configurat în /email-settings. Poate verifica statusul conexiunii, lista foldere, lista emailurile recente, căuta în inbox și deschide un email anume.",
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["status", "list_folders", "list_messages", "get_message"], description: "Acțiunea dorită" },
+        folder: { type: "string", description: "Folder IMAP, default INBOX" },
+        limit: { type: "number", description: "Număr maxim de emailuri returnate (default 10, max 20)" },
+        search: { type: "string", description: "Cuvânt cheie pentru subiect/body/from" },
+        uid: { type: "number", description: "UID-ul emailului pentru get_message" },
+      },
+      required: ["action"],
     },
   },
 });
@@ -597,9 +616,26 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>,
   userId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: ReturnType<typeof createClient>,
+  userAuthHeader: string,
 ): Promise<unknown> {
   console.log(`[Agent Tool] ${name}`, args);
+
+  const invokeEmailClient = async (payload: Record<string, unknown>) => {
+    const resp = await fetch(`${supabaseUrl}/functions/v1/email-client`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": userAuthHeader,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data?.error) {
+      return { error: data?.error || `email-client ${resp.status}` };
+    }
+    return data;
+  };
 
   switch (name) {
     case "search_companies": {
@@ -803,19 +839,75 @@ async function executeTool(
       }
     }
 
+    case "email_manage": {
+      const action = String(args.action || "");
+      if (action === "status") {
+        const { data, error } = await supabase
+          .from("user_email_accounts")
+          .select("id, email_address, display_name, last_test_status, last_test_at, is_default")
+          .eq("user_id", userId)
+          .eq("is_default", true)
+          .maybeSingle();
+        if (error) return { error: error.message };
+        if (!data) return { connected: false, message: "Nu există niciun cont email configurat în /email-settings." };
+        return { connected: true, account: data };
+      }
+
+      if (action === "list_folders") {
+        return await invokeEmailClient({ action: "list_folders" });
+      }
+
+      if (action === "list_messages") {
+        return await invokeEmailClient({
+          action: "list_messages",
+          folder: (args.folder as string) || "INBOX",
+          limit: Math.min(Number(args.limit || 10), 20),
+          search: args.search || undefined,
+        });
+      }
+
+      if (action === "get_message") {
+        if (!args.uid) return { error: "uid obligatoriu" };
+        return await invokeEmailClient({
+          action: "get_message",
+          folder: (args.folder as string) || "INBOX",
+          uid: Number(args.uid),
+        });
+      }
+
+      return { error: `Acțiune email necunoscută: ${action}` };
+    }
+
     case "send_email": {
       try {
-        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-        const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Yana <yana@velcont.com>";
-        if (!RESEND_API_KEY) {
-          return { error: "RESEND_API_KEY nu este configurat. Spune utilizatorului să configureze trimiterea de email." };
-        }
         const to = String(args.to || "").trim();
         const subject = String(args.subject || "").trim().slice(0, 200);
         const body = String(args.body || "").trim();
         if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { error: "Adresa destinatarului nu este validă" };
         if (!subject) return { error: "Subiectul este obligatoriu" };
         if (!body) return { error: "Conținutul emailului este obligatoriu" };
+
+        const localSend = await invokeEmailClient({
+          action: "send_message",
+          to: [to],
+          cc: Array.isArray(args.cc) ? args.cc : undefined,
+          subject,
+          body_text: body,
+        });
+        if (!(localSend as { error?: string }).error) {
+          return {
+            success: true,
+            provider: "imap_smtp",
+            message_id: (localSend as { messageId?: string }).messageId,
+            message: `Email trimis către ${to} din contul configurat al utilizatorului`,
+          };
+        }
+
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Yana <yana@velcont.com>";
+        if (!RESEND_API_KEY) {
+          return { error: (localSend as { error?: string }).error || "Trimiterea de email nu este configurată." };
+        }
 
         // Get user email for reply_to default
         const { data: { user: userInfo } } = await supabase.auth.admin.getUserById(userId);
@@ -1474,7 +1566,7 @@ Deno.serve(async (req) => {
                   result = { error: (e as Error).message };
                 }
               } else {
-                result = await executeTool(fnName, parsedArgs, user.id, supabase);
+                result = await executeTool(fnName, parsedArgs, user.id, supabase, authHeader);
               }
 
               send("tool_result", { id: tc.id, name: fnName, result });
