@@ -8,9 +8,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN")!;
-const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
-const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN")!;
+const VERIFY_TOKEN = Deno.env.get("WHATSAPP_VERIFY_TOKEN")?.trim() ?? "";
+const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")?.trim() ?? "";
+const TOKEN = (Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "")
+  .trim()
+  .replace(/[;\s]+$/g, "");
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
