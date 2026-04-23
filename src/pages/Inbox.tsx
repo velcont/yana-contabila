@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,13 @@ type Msg = { uid: number; subject: string; from: { name?: string; address: strin
 export default function Inbox() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const initialMessageLoadedRef = useRef(false);
   const [hasAccount, setHasAccount] = useState<boolean | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folder, setFolder] = useState('INBOX');
   const [messages, setMessages] = useState<Msg[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [loadingSelected, setLoadingSelected] = useState(false);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<any | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -47,6 +49,8 @@ export default function Inbox() {
   const loadMessages = async (f: string, q?: string) => {
     setLoadingMsgs(true);
     setFolder(f);
+    setSelected(null);
+    initialMessageLoadedRef.current = false;
     const { data, error } = await supabase.functions.invoke('email-client', { body: { action: 'list_messages', folder: f, limit: 30, search: q } });
     setLoadingMsgs(false);
     if (error || (data as any)?.error) { toast({ title: 'Eroare', description: (data as any)?.error || error?.message, variant: 'destructive' }); return; }
@@ -54,11 +58,20 @@ export default function Inbox() {
   };
 
   const openMessage = async (uid: number) => {
+    setLoadingSelected(true);
     const { data, error } = await supabase.functions.invoke('email-client', { body: { action: 'get_message', folder, uid } });
+    setLoadingSelected(false);
     if (error || (data as any)?.error) { toast({ title: 'Eroare', description: (data as any)?.error || error?.message, variant: 'destructive' }); return; }
     setSelected(data);
     setMessages((m) => m.map((x) => x.uid === uid ? { ...x, unread: false } : x));
   };
+
+  useEffect(() => {
+    if (loadingMsgs || loadingSelected || messages.length === 0 || initialMessageLoadedRef.current) return;
+
+    initialMessageLoadedRef.current = true;
+    void openMessage(messages[0].uid);
+  }, [messages, loadingMsgs, loadingSelected]);
 
   const removeMessage = async (uid: number) => {
     const { error } = await supabase.functions.invoke('email-client', { body: { action: 'delete_message', folder, uid } });
@@ -158,7 +171,11 @@ export default function Inbox() {
 
         {/* Preview */}
         <section className="flex-1 overflow-auto">
-          {selected ? (
+          {loadingSelected ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Se încarcă mesajul...
+            </div>
+          ) : selected ? (
             <Card className="m-4 p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
@@ -173,7 +190,7 @@ export default function Inbox() {
               </div>
             </Card>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Selectează un mesaj</div>
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Alege un mesaj din listă</div>
           )}
         </section>
       </div>
