@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAICredits } from '@/hooks/useAICredits';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
-import { Loader2, Menu, X, Settings, LogOut } from 'lucide-react';
+import { Loader2, Menu, X, Settings, LogOut, Briefcase } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
@@ -181,6 +181,12 @@ export default function Yana() {
             </Button>
             <MiniCreditsIndicator />
             <ThemeToggle />
+            <Link to="/crm">
+              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="CRM">
+                <Briefcase className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs font-medium">CRM</span>
+              </Button>
+            </Link>
             <Link to="/settings">
               <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation" title="Setări cont">
                 <Settings className="h-5 w-5" />
