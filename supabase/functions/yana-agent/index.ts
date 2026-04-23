@@ -235,6 +235,53 @@ TOOLS.push(
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "crm_intelligence",
+      description: "CRM avansat: lead scoring AI, timeline activități, șabloane email, bulk update, îmbogățire contacte, forecast revenue, rapoarte (conversion rate / cycle time), detecție duplicate, conversie multi-currency, activity feed cross-workspace. Folosește când userul cere: 'scor lead', 'șablon email', 'duplicate', 'forecast', 'raport vânzări', 'curs valutar', 'feed activitate', 'îmbogățește contact', 'update X contacte la o dată'.",
+      parameters: {
+        type: "object",
+        properties: {
+          action: {
+            type: "string",
+            enum: [
+              "score_lead", "score_all_leads", "top_leads",
+              "contact_timeline",
+              "list_templates", "create_template", "use_template", "delete_template",
+              "bulk_update_contacts", "bulk_tag_contacts",
+              "enrich_contact",
+              "forecast_revenue",
+              "report_metrics",
+              "find_duplicates", "merge_duplicates",
+              "convert_currency", "list_currency_rates",
+              "activity_feed"
+            ],
+            description: "Acțiunea CRM avansată"
+          },
+          contact_id: { type: "string" },
+          company_id: { type: "string" },
+          contact_ids: { type: "array", items: { type: "string" }, description: "IDs pentru bulk operations" },
+          updates: { type: "object", description: "Câmpuri de actualizat la bulk_update (ex: {tags: ['VIP'], job_title: 'CEO'})" },
+          tags: { type: "array", items: { type: "string" } },
+          template_id: { type: "string" },
+          template_name: { type: "string" },
+          template_subject: { type: "string" },
+          template_body: { type: "string" },
+          template_category: { type: "string" },
+          variables: { type: "object", description: "Pentru use_template: {nume: 'Ion', companie: 'X SRL'}" },
+          keep_id: { type: "string", description: "Pentru merge: ID contact păstrat (restul șterse)" },
+          merge_ids: { type: "array", items: { type: "string" }, description: "IDs de unit (vor fi șterse după merge)" },
+          amount: { type: "number" },
+          from_currency: { type: "string" },
+          to_currency: { type: "string", description: "Default RON" },
+          limit: { type: "number", description: "Default 20" },
+          days: { type: "number", description: "Pentru activity_feed: ultimele N zile (default 7)" }
+        },
+        required: ["action"]
+      }
+    }
+  },
 );
 
 // ============= LOCAL DEVICE TOOLS (Mac/PC bridge) =============
