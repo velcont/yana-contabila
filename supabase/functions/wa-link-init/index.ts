@@ -6,8 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
-const TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN")!;
+const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")?.trim() ?? "";
+const TOKEN = (Deno.env.get("WHATSAPP_ACCESS_TOKEN") ?? "")
+  .trim()
+  .replace(/[;\s]+$/g, "");
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -66,7 +68,7 @@ Deno.serve(async (req) => {
     const phone = normalizePhone(String(body.phone || ""));
     if (!phone) return json({ error: "Număr invalid. Folosește format internațional, ex: +40712345678" }, 400);
 
-    if (!PHONE_ID || !TOKEN) return json({ error: "WhatsApp nu este configurat (lipsesc secretele)" }, 500);
+  if (!PHONE_ID || !TOKEN) return json({ error: "WhatsApp nu este configurat (lipsesc secretele)" }, 500);
 
     // Check dacă numărul e deja verificat de alt user
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
