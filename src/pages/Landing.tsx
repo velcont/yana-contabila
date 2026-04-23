@@ -7,7 +7,7 @@ import { ExitIntentPopup } from '@/components/ExitIntentPopup';
 import { useLandingTracking } from '@/hooks/useLandingTracking';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
 import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
-import { LandingHeroDiagnostic } from '@/components/landing/LandingHeroDiagnostic';
+import { LandingCFOCRMHero } from '@/components/landing/LandingCFOCRMHero';
 import { Users } from 'lucide-react';
 
 // Lazy-load below-fold sections to improve LCP on mobile
@@ -145,26 +145,14 @@ const Landing = () => {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
         <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
-          {/* ===== HERO — Atacul frontal ===== */}
-          <section className="text-center space-y-5 pt-2 sm:pt-10">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-              Contabilul tău nu te minte.
-              <span className="block text-primary mt-1">Doar nu-i pasă.</span>
-            </h1>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-              YANA e singurul care îți spune adevărul
-              despre banii tăi. <strong className="text-foreground">În 2 minute.</strong>
-            </p>
+          {/* ===== HERO — CFO + CRM într-un singur chat ===== */}
+          <LandingCFOCRMHero />
 
-            {/* Single primary CTA — Inline Diagnostic (instant value) */}
-            <LandingHeroDiagnostic />
-
-            {/* Inline social proof */}
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Users className="w-4 h-4 text-primary" />
-              <span><strong className="text-foreground">177+</strong> antreprenori folosesc YANA</span>
-            </div>
-          </section>
+          {/* Inline social proof */}
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground -mt-4">
+            <Users className="w-4 h-4 text-primary" />
+            <span><strong className="text-foreground">177+</strong> antreprenori folosesc YANA</span>
+          </div>
 
           {/* ===== Below-fold lazy-loaded sections ===== */}
           <Suspense fallback={<SectionFallback />}>
