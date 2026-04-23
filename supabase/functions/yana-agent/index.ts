@@ -154,6 +154,26 @@ TOOLS.push({
   },
 });
 
+// Email sending tool - via Resend (sends from configured Velcont domain)
+TOOLS.push({
+  type: "function",
+  function: {
+    name: "send_email",
+    description: "Trimite un email REAL în numele utilizatorului, de pe adresa configurată Velcont (RESEND_FROM_EMAIL). Folosește pentru: răspunsuri la clienți, notificări, rapoarte, oferte. Confirmă DOAR DUPĂ ce ai conținutul clar și destinatarul corect. NU trimite emailuri spam sau bulk — un singur destinatar per apel.",
+    parameters: {
+      type: "object",
+      properties: {
+        to: { type: "string", description: "Adresa destinatarului (email valid)" },
+        subject: { type: "string", description: "Subiectul emailului (max 200 caractere)" },
+        body: { type: "string", description: "Conținutul emailului în text simplu sau HTML simplu (paragrafe separate prin newlines). Semnează cu numele user-ului dacă îl știi." },
+        cc: { type: "array", items: { type: "string" }, description: "Adrese CC (opțional)" },
+        reply_to: { type: "string", description: "Reply-To address (opțional, default = adresa user-ului dacă există)" },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+});
+
 // Inject dynamically generated agents as callable tools (run_dynamic_agent + spawn_agent)
 TOOLS.push(
   {
