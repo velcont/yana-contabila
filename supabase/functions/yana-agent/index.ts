@@ -159,7 +159,7 @@ TOOLS.push({
   type: "function",
   function: {
     name: "send_email",
-    description: "Trimite un email REAL în numele utilizatorului, de pe adresa configurată Velcont (RESEND_FROM_EMAIL). Folosește pentru: răspunsuri la clienți, notificări, rapoarte, oferte. Confirmă DOAR DUPĂ ce ai conținutul clar și destinatarul corect. NU trimite emailuri spam sau bulk — un singur destinatar per apel.",
+    description: "Trimite un email REAL în numele utilizatorului. Dacă userul are configurat contul IMAP/SMTP în /email-settings, trimite din acel cont; altfel poate folosi fallback-ul configurat al platformei. Folosește pentru: răspunsuri la clienți, notificări, rapoarte, oferte. Confirmă DOAR DUPĂ ce ai conținutul clar și destinatarul corect. NU trimite emailuri spam sau bulk — un singur destinatar per apel.",
     parameters: {
       type: "object",
       properties: {
@@ -170,6 +170,25 @@ TOOLS.push({
         reply_to: { type: "string", description: "Reply-To address (opțional, default = adresa user-ului dacă există)" },
       },
       required: ["to", "subject", "body"],
+    },
+  },
+});
+
+TOOLS.push({
+  type: "function",
+  function: {
+    name: "email_manage",
+    description: "Citește inbox-ul REAL al utilizatorului din contul configurat în /email-settings. Poate verifica statusul conexiunii, lista foldere, lista emailurile recente, căuta în inbox și deschide un email anume.",
+    parameters: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["status", "list_folders", "list_messages", "get_message"], description: "Acțiunea dorită" },
+        folder: { type: "string", description: "Folder IMAP, default INBOX" },
+        limit: { type: "number", description: "Număr maxim de emailuri returnate (default 10, max 20)" },
+        search: { type: "string", description: "Cuvânt cheie pentru subiect/body/from" },
+        uid: { type: "number", description: "UID-ul emailului pentru get_message" },
+      },
+      required: ["action"],
     },
   },
 });
