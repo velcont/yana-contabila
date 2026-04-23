@@ -635,6 +635,28 @@ function detectIntent(message: string, hasImage: boolean = false): RouteDecision
   }
 
   // =============================================================================
+  // ⚡ PRIORITY 0: CRM INTENTS — chat-first CRM via yana-agent tools
+  // =============================================================================
+  const crmPatterns = [
+    /(?:adaug[aă]|adauga|creeaz[aă]|creaza|înregistreaz[aă]|inregistreaza)\s+(?:o\s+)?(?:firm[aă]|companie|client(?:ul)?|lead|prospect|contact(?:ul)?|deal(?:ul)?|oportunitate|pipeline|negociere)/i,
+    /(?:mut[aă]|muta|trece|treci|avanseaz[aă]|avanseaza)\s+(?:deal|oportunitate|contract|lead).*(?:în|in|la|spre)\s+/i,
+    /(?:c[aâ]știgat|castigat|won|închis|inchis|pierdut|lost)\s+(?:deal(?:ul)?|contract(?:ul)?|oportunitate)/i,
+    /(?:cum\s+st[aă]|cum\s+sta|arat[aă]|arata|d[aă]-mi|dami|status)\s+(?:pipeline|deal-?uri|oportunit[aă][tț]i|portofoliu(?:l)?\s+de\s+v[aâ]nz[aă]ri|crm-?ul)/i,
+    /(?:logheaz[aă]|logheaza|noteaz[aă]|noteaza|am\s+sunat|am\s+vorbit|am\s+trimis\s+email|am\s+avut\s+(?:meeting|întâlnire|intalnire))/i,
+    /(?:ce\s+contacte|listeaz[aă]|listeaza|caut[aă]|cauta)\s+(?:firme|companii|clien[tț]i|contacte|leads?|deal-?uri)/i,
+    /pipeline\s+(?:luna|s[aă]pt[aă]m[aâ]na|de\s+v[aâ]nz[aă]ri)/i,
+  ];
+
+  if (crmPatterns.some(p => p.test(lowerMessage))) {
+    console.log(`[AI-Router] 💼 CRM INTENT DETECTED: "${message.substring(0, 60)}"`);
+    return {
+      route: 'yana-agent' as any,
+      payload: { message, crmIntent: true },
+      reason: 'CRM intent detected - routed to yana-agent CRM tools'
+    };
+  }
+
+  // =============================================================================
   // ⚡ PRIORITY 0: GRAPH / VISUALIZATION REQUESTS (MUST OVERRIDE ALL strategic detection)
   // =============================================================================
   const graphKeywords = ['grafic', 'grafice', 'chart', 'diagrama', 'diagramă', 'vizualiz', 'tabel', 'tabele'];
