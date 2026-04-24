@@ -340,13 +340,34 @@ export default function YanaControl() {
                       {v.success ? <Check className="h-4 w-4 text-green-500 shrink-0" /> : <X className="h-4 w-4 text-destructive shrink-0" />}
                       <span className="truncate">{v.action_name}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{new Date(v.verified_at).toLocaleTimeString("ro-RO")}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => explain("verification", v.id, v.action_name)}>
+                        <HelpCircle className="h-3 w-3 mr-1" />De ce?
+                      </Button>
+                      <span className="text-xs text-muted-foreground">{new Date(v.verified_at).toLocaleTimeString("ro-RO")}</span>
+                    </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={explainOpen} onOpenChange={setExplainOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-primary" /> De ce am decis asta</DialogTitle>
+              <DialogDescription className="truncate">{explainTitle}</DialogDescription>
+            </DialogHeader>
+            {explainLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
+                <Loader2 className="h-4 w-4 animate-spin" /> Yana se gândește...
+              </div>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{explainText}</p>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
