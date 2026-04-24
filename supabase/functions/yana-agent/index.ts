@@ -304,6 +304,36 @@ TOOLS.push(
       },
     },
   },
+);
+
+// ============= EMAIL TOOL (business outbound) =============
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "send_email_with_attachment",
+      description: "Trimite un email business (cu sau fără atașament) către un destinatar exact. Folosește când userul cere explicit 'trimite la X email-ul Y cu textul Z'. Păstrează SUBIECTUL și TEXTUL exact cum le-a dictat userul, nu reformula. La prima încercare cu un destinatar nou, cere confirmare în răspunsul tău (lasă confirmed=false). După ce userul confirmă cu 'da/trimite/ok', reapelează cu confirmed=true. Pentru destinatari de încredere (ex: raportari@velcont.com salvat anterior), poți seta confirmed=true direct.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Adresa email destinatar (ex: raportari@velcont.com)" },
+          subject: { type: "string", description: "Subiectul exact dictat de user" },
+          body: { type: "string", description: "Textul exact dictat de user (fără reformulări)" },
+          attachment_source: {
+            type: "string",
+            enum: ["chat_attachment", "none"],
+            description: "chat_attachment = folosește fișierul pe care userul l-a urcat în mesajul curent; none = email fără atașament",
+          },
+          confirmed: { type: "boolean", description: "true doar dacă userul a confirmat explicit trimiterea SAU destinatarul e în lista de încredere" },
+          add_to_trusted: { type: "boolean", description: "Setează true dacă userul a spus să nu mai ceri confirmare pentru acest destinatar pe viitor" },
+        },
+        required: ["to", "subject", "body", "attachment_source", "confirmed"],
+      },
+    },
+  },
+);
+
+TOOLS.push(
   {
     type: "function",
     function: {
@@ -669,6 +699,7 @@ async function executeTool(
   userId: string,
   supabase: ReturnType<typeof createClient>,
   userAuthHeader: string,
+  fileData?: { fileName?: string; fileContent?: string; fileType?: string } | null,
 ): Promise<unknown> {
   console.log(`[Agent Tool] ${name}`, args);
 
@@ -707,7 +738,7 @@ async function executeTool(
   }
 
   const startedAt = Date.now();
-  const result = await executeToolInner(name, args, userId, supabase, userAuthHeader);
+  const result = await executeToolInner(name, args, userId, supabase, userAuthHeader, fileData);
 
   // Fire-and-forget verification for side-effect tools
   if (sideEffect) {
@@ -756,6 +787,7 @@ async function executeToolInner(
   userId: string,
   supabase: ReturnType<typeof createClient>,
   userAuthHeader: string,
+  fileData?: { fileName?: string; fileContent?: string; fileType?: string } | null,
 ): Promise<unknown> {
 
   const invokeEmailClient = async (payload: Record<string, unknown>) => {
@@ -1896,6 +1928,98 @@ async function executeToolInner(
       return { error: `Acțiune necunoscută: ${action}` };
     }
 
+    case "send_email_with_attachment": {
+      const to = String(args.to || "").trim().toLowerCase();
+      const subject = String(args.subject || "").trim();
+      const body = String(args.body || "");
+      const attachmentSource = String(args.attachment_source || "none");
+      const confirmed = Boolean(args.confirmed);
+      const addToTrusted = Boolean(args.add_to_trusted);
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+        return { error: "Adresa email destinatar invalidă." };
+      }
+      if (!subject || !body) {
+        return { error: "Subiectul și textul sunt obligatorii." };
+      }
+
+      // Check trusted recipients
+      const { data: trusted } = await supabase
+        .from("email_trusted_recipients")
+        .select("id, label")
+        .eq("user_id", userId)
+        .eq("email", to)
+        .maybeSingle();
+
+      const isTrusted = !!trusted;
+
+      // Confirmation gate
+      if (!confirmed && !isTrusted) {
+        return {
+          requires_confirmation: true,
+          to,
+          subject,
+          body_preview: body.slice(0, 200),
+          attachment: attachmentSource === "chat_attachment" ? (fileData?.fileName || "(fișier urcat în chat)") : null,
+          message: `Pregătit pentru trimitere: "${subject}" către ${to}${attachmentSource === "chat_attachment" && fileData?.fileName ? ` cu atașamentul ${fileData.fileName}` : ""}. Cere confirmare userului în răspuns; după 'da', reapelează cu confirmed=true.`,
+        };
+      }
+
+      // Build attachment from chat upload (if requested)
+      let attachmentPayload: { filename: string; content_base64: string; content_type?: string } | undefined;
+      if (attachmentSource === "chat_attachment") {
+        if (!fileData?.fileName || !fileData?.fileContent) {
+          return { error: "Userul a cerut atașament din chat dar nu a urcat niciun fișier în mesajul curent." };
+        }
+        const raw = String(fileData.fileContent);
+        const base64 = raw.includes(",") ? raw.split(",")[1] : raw;
+        attachmentPayload = {
+          filename: fileData.fileName,
+          content_base64: base64,
+          content_type: fileData.fileType,
+        };
+      }
+
+      // Send via send-business-email
+      const sendResp = await fetch(`${supabaseUrl}/functions/v1/send-business-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": userAuthHeader,
+        },
+        body: JSON.stringify({
+          to,
+          subject,
+          body,
+          attachment: attachmentPayload,
+          triggered_via: "yana_agent",
+        }),
+      });
+      const sendData = await sendResp.json().catch(() => ({}));
+      if (!sendResp.ok) {
+        return { error: sendData?.error || `send-business-email ${sendResp.status}`, details: sendData };
+      }
+
+      // Save to trusted if requested
+      if (addToTrusted && !isTrusted) {
+        await supabase
+          .from("email_trusted_recipients")
+          .insert({ user_id: userId, email: to })
+          .select()
+          .maybeSingle();
+      }
+
+      return {
+        success: true,
+        to,
+        subject,
+        attachment: attachmentPayload?.filename || null,
+        message_id: sendData.message_id,
+        trusted: isTrusted || addToTrusted,
+        message: `Email trimis cu succes la ${to}${attachmentPayload ? ` cu atașamentul ${attachmentPayload.filename}` : ""}.`,
+      };
+    }
+
     default:
       return { error: `Tool necunoscut: ${name}` };
   }
@@ -2100,7 +2224,7 @@ Deno.serve(async (req) => {
                   result = { error: (e as Error).message };
                 }
               } else {
-                result = await executeTool(fnName, parsedArgs, user.id, supabase, authHeader);
+                result = await executeTool(fnName, parsedArgs, user.id, supabase, authHeader, fileData);
               }
 
               send("tool_result", { id: tc.id, name: fnName, result });
