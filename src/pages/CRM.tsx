@@ -209,6 +209,13 @@ const CRM = () => {
             <span className="hidden sm:inline">Vorbește cu YANA</span>
             <span className="sm:hidden">Chat</span>
           </Button>
+          <label>
+            <input type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) importBusinessCard(f); e.target.value = ""; }} />
+            <Button asChild variant="outline" size="sm" className="gap-2 ml-2" disabled={importingCard}>
+              <span>{importingCard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}<span className="hidden sm:inline">Card vizită</span></span>
+            </Button>
+          </label>
         </div>
       </header>
 
