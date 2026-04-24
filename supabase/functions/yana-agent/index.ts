@@ -699,6 +699,7 @@ async function executeTool(
   userId: string,
   supabase: ReturnType<typeof createClient>,
   userAuthHeader: string,
+  fileData?: { fileName?: string; fileContent?: string; fileType?: string } | null,
 ): Promise<unknown> {
   console.log(`[Agent Tool] ${name}`, args);
 
@@ -737,7 +738,7 @@ async function executeTool(
   }
 
   const startedAt = Date.now();
-  const result = await executeToolInner(name, args, userId, supabase, userAuthHeader);
+  const result = await executeToolInner(name, args, userId, supabase, userAuthHeader, fileData);
 
   // Fire-and-forget verification for side-effect tools
   if (sideEffect) {
@@ -786,6 +787,7 @@ async function executeToolInner(
   userId: string,
   supabase: ReturnType<typeof createClient>,
   userAuthHeader: string,
+  fileData?: { fileName?: string; fileContent?: string; fileType?: string } | null,
 ): Promise<unknown> {
 
   const invokeEmailClient = async (payload: Record<string, unknown>) => {
