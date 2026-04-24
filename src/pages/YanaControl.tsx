@@ -319,6 +319,9 @@ export default function YanaControl() {
                       </div>
                     )}
                     <p className="text-xs italic text-muted-foreground">De ce: {s.reasoning}</p>
+                    <Button size="sm" variant="ghost" onClick={() => explain("simulation", s.id, s.question)}>
+                      <HelpCircle className="h-4 w-4 mr-1" />Explică-mi mai mult
+                    </Button>
                   </CardContent>
                 </Card>
               );
