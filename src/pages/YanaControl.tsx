@@ -68,6 +68,10 @@ export default function YanaControl() {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [simQuestion, setSimQuestion] = useState("");
   const [simulating, setSimulating] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explainLoading, setExplainLoading] = useState(false);
+  const [explainText, setExplainText] = useState("");
+  const [explainTitle, setExplainTitle] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -144,6 +148,25 @@ export default function YanaControl() {
       toast({ title: "Eroare", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSimulating(false);
+    }
+  };
+
+  const explain = async (source: string, recordId: string, title: string) => {
+    if (!user) return;
+    setExplainTitle(title);
+    setExplainText("");
+    setExplainOpen(true);
+    setExplainLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("yana-decision-explainer", {
+        body: { source, record_id: recordId, user_id: user.id },
+      });
+      if (error) throw error;
+      setExplainText(data?.explanation || "Nu am putut genera o explicație.");
+    } catch (e) {
+      setExplainText("Eroare: " + (e as Error).message);
+    } finally {
+      setExplainLoading(false);
     }
   };
 
