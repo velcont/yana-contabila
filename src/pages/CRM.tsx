@@ -130,6 +130,63 @@ const CRM = () => {
     loadAdvanced();
   }
 
+  async function openTimeline(contact: Contact) {
+    if (!user) return;
+    setTimelineContact(contact);
+    setTimelineOpen(true);
+    setTimelineLoading(true);
+    setTimelineItems([]);
+    try {
+      const { data, error } = await supabase.from("crm_activities")
+        .select("id, activity_type, subject, description, created_at, completed_at, status")
+        .eq("user_id", user.id).eq("contact_id", contact.id)
+        .order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      setTimelineItems((data || []) as TimelineItem[]);
+    } catch (e) {
+      toast.error("Nu am putut încărca timeline-ul");
+      console.error(e);
+    } finally {
+      setTimelineLoading(false);
+    }
+  }
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function importBusinessCard(file: File) {
+    if (!user) return;
+    setImportingCard(true);
+    toast.loading("Yana citește cartea de vizită...", { id: "card" });
+    try {
+      const dataUrl = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke("yana-agent", {
+        body: {
+          message: "Importă această carte de vizită în CRM.",
+          conversation_history: [],
+          force_tool: {
+            name: "crm_intelligence",
+            args: { action: "import_business_card", image_base64: dataUrl, auto_create: true },
+          },
+        },
+      });
+      if (error) throw error;
+      // The agent will respond conversationally; we just refresh data.
+      toast.success("Card procesat — verifică Contacte", { id: "card" });
+      loadAll();
+    } catch (e) {
+      toast.error("Eroare la import: " + (e as Error).message, { id: "card" });
+    } finally {
+      setImportingCard(false);
+    }
+  }
+
   const totalPipelineValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
   const dealsByStage = (stageId: string) => deals.filter(d => d.stage_id === stageId);
 
