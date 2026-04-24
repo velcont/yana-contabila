@@ -12,6 +12,8 @@ import { ArrowLeft, Brain, Sparkles, Target, ShieldCheck, Activity, Loader2, Che
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { HelpCircle } from "lucide-react";
 
 interface AutonomySettings {
   autonomy_level: number;
@@ -66,6 +68,10 @@ export default function YanaControl() {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [simQuestion, setSimQuestion] = useState("");
   const [simulating, setSimulating] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explainLoading, setExplainLoading] = useState(false);
+  const [explainText, setExplainText] = useState("");
+  const [explainTitle, setExplainTitle] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -142,6 +148,25 @@ export default function YanaControl() {
       toast({ title: "Eroare", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSimulating(false);
+    }
+  };
+
+  const explain = async (source: string, recordId: string, title: string) => {
+    if (!user) return;
+    setExplainTitle(title);
+    setExplainText("");
+    setExplainOpen(true);
+    setExplainLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("yana-decision-explainer", {
+        body: { source, record_id: recordId, user_id: user.id },
+      });
+      if (error) throw error;
+      setExplainText(data?.explanation || "Nu am putut genera o explicație.");
+    } catch (e) {
+      setExplainText("Eroare: " + (e as Error).message);
+    } finally {
+      setExplainLoading(false);
     }
   };
 
@@ -236,6 +261,9 @@ export default function YanaControl() {
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="ghost" onClick={() => explain("risk_decision", p.id, `${p.action_type}`)}>
+                      <HelpCircle className="h-4 w-4 mr-1" />De ce?
+                    </Button>
                     <Button size="sm" variant="default" onClick={() => decidePending(p.id, "approved")}><Check className="h-4 w-4" /></Button>
                     <Button size="sm" variant="outline" onClick={() => decidePending(p.id, "rejected")}><X className="h-4 w-4" /></Button>
                   </div>
@@ -291,6 +319,9 @@ export default function YanaControl() {
                       </div>
                     )}
                     <p className="text-xs italic text-muted-foreground">De ce: {s.reasoning}</p>
+                    <Button size="sm" variant="ghost" onClick={() => explain("simulation", s.id, s.question)}>
+                      <HelpCircle className="h-4 w-4 mr-1" />Explică-mi mai mult
+                    </Button>
                   </CardContent>
                 </Card>
               );
@@ -309,13 +340,34 @@ export default function YanaControl() {
                       {v.success ? <Check className="h-4 w-4 text-green-500 shrink-0" /> : <X className="h-4 w-4 text-destructive shrink-0" />}
                       <span className="truncate">{v.action_name}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{new Date(v.verified_at).toLocaleTimeString("ro-RO")}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => explain("verification", v.id, v.action_name)}>
+                        <HelpCircle className="h-3 w-3 mr-1" />De ce?
+                      </Button>
+                      <span className="text-xs text-muted-foreground">{new Date(v.verified_at).toLocaleTimeString("ro-RO")}</span>
+                    </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={explainOpen} onOpenChange={setExplainOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-primary" /> De ce am decis asta</DialogTitle>
+              <DialogDescription className="truncate">{explainTitle}</DialogDescription>
+            </DialogHeader>
+            {explainLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
+                <Loader2 className="h-4 w-4 animate-spin" /> Yana se gândește...
+              </div>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{explainText}</p>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
