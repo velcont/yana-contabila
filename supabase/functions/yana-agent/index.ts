@@ -333,23 +333,7 @@ TOOLS.push(
   },
 );
 
-// Re-open original local tools registration that follows below
 TOOLS.push(
-  {
-    type: "function",
-    function: {
-      name: "local_fs_read_PLACEHOLDER_DO_NOT_USE",
-      description: "Citește un fișier de pe laptopul utilizatorului (prin agentul local conectat). Folosește pentru a inspecta cod, documente, configurări etc.",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "Calea absolută a fișierului pe laptop (ex: /Users/me/Documents/file.txt)" },
-          max_bytes: { type: "number", description: "Limită opțională (default 200000)" },
-        },
-        required: ["path"],
-      },
-    },
-  },
   {
     type: "function",
     function: {
