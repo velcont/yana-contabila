@@ -340,6 +340,9 @@ const CRM = () => {
                         {c.email && <span className="truncate">• {c.email}</span>}
                       </div>
                     </div>
+                    <Button size="sm" variant="ghost" className="gap-1 shrink-0" onClick={() => openTimeline(c)}>
+                      <Clock className="w-3 h-3" />Timeline
+                    </Button>
                   </CardContent>
                 </Card>
               ))
