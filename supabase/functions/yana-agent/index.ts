@@ -2224,7 +2224,7 @@ Deno.serve(async (req) => {
                   result = { error: (e as Error).message };
                 }
               } else {
-                result = await executeTool(fnName, parsedArgs, user.id, supabase, authHeader);
+                result = await executeTool(fnName, parsedArgs, user.id, supabase, authHeader, fileData);
               }
 
               send("tool_result", { id: tc.id, name: fnName, result });
