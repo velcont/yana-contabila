@@ -669,6 +669,92 @@ async function executeTool(
 ): Promise<unknown> {
   console.log(`[Agent Tool] ${name}`, args);
 
+  // AUTONOMY GATE — block side-effect tools when risk exceeds user tolerance
+  const sideEffect = classifySideEffect(name);
+  if (sideEffect) {
+    try {
+      const gateResp = await fetch(`${supabaseUrl}/functions/v1/yana-autonomy-gate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({
+          user_id: userId,
+          action_type: name,
+          action_category: sideEffect.category,
+          amount_cents: sideEffect.estimateAmount(args),
+          context: { tool: name, args_preview: JSON.stringify(args).slice(0, 400) },
+        }),
+      });
+      if (gateResp.ok) {
+        const gate = await gateResp.json() as { decision: string; reason: string; risk_score: number; pending_id?: string };
+        if (gate.decision !== "auto_execute") {
+          console.log(`[Agent Gate] ${name} → ${gate.decision}: ${gate.reason}`);
+          return {
+            blocked_by_autonomy_gate: true,
+            decision: gate.decision,
+            reason: gate.reason,
+            risk_score: gate.risk_score,
+            pending_id: gate.pending_id,
+            message: `Acțiunea "${name}" necesită confirmarea ta în Control Center (/yana/control). Motiv: ${gate.reason}`,
+          };
+        }
+      }
+    } catch (e) {
+      console.warn("[Agent Gate] error, allowing action:", (e as Error).message);
+    }
+  }
+
+  const startedAt = Date.now();
+  const result = await executeToolInner(name, args, userId, supabase, userAuthHeader);
+
+  // Fire-and-forget verification for side-effect tools
+  if (sideEffect) {
+    fetch(`${supabaseUrl}/functions/v1/yana-action-verifier`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+      body: JSON.stringify({
+        user_id: userId,
+        action_id: crypto.randomUUID(),
+        action_name: name,
+        agent_name: "yana-agent",
+        result: { ...(typeof result === "object" && result ? result : { value: result }), latency_ms: Date.now() - startedAt },
+      }),
+    }).catch(() => { /* best effort */ });
+  }
+
+  return result;
+}
+
+// ---- Side-effect classification for the autonomy gate ----
+interface SideEffectInfo {
+  category: "financial" | "communication" | "planning" | "research" | "data_write";
+  estimateAmount: (args: Record<string, unknown>) => number;
+}
+const SIDE_EFFECT_TOOLS: Record<string, SideEffectInfo> = {
+  send_email: { category: "communication", estimateAmount: () => 0 },
+  send_email_external: { category: "communication", estimateAmount: () => 0 },
+  create_invoice: { category: "financial", estimateAmount: (a) => Math.round(Number(a.total_cents ?? a.amount_cents ?? (Number(a.amount ?? 0) * 100)) || 0) },
+  make_payment: { category: "financial", estimateAmount: (a) => Math.round(Number(a.amount_cents ?? (Number(a.amount ?? 0) * 100)) || 0) },
+  create_task: { category: "planning", estimateAmount: () => 0 },
+  create_calendar_event: { category: "planning", estimateAmount: () => 0 },
+  delete_record: { category: "data_write", estimateAmount: () => 0 },
+};
+function classifySideEffect(name: string): SideEffectInfo | null {
+  if (SIDE_EFFECT_TOOLS[name]) return SIDE_EFFECT_TOOLS[name];
+  const n = name.toLowerCase();
+  if (n.startsWith("send_") || n.includes("email")) return { category: "communication", estimateAmount: () => 0 };
+  if (n.includes("invoice") || n.includes("payment") || n.includes("efactura")) return { category: "financial", estimateAmount: () => 0 };
+  if (n.startsWith("create_") || n.startsWith("update_") || n.startsWith("delete_")) return { category: "data_write", estimateAmount: () => 0 };
+  return null;
+}
+
+async function executeToolInner(
+  name: string,
+  args: Record<string, unknown>,
+  userId: string,
+  supabase: ReturnType<typeof createClient>,
+  userAuthHeader: string,
+): Promise<unknown> {
+
   const invokeEmailClient = async (payload: Record<string, unknown>) => {
     const resp = await fetch(`${supabaseUrl}/functions/v1/email-client`, {
       method: "POST",
