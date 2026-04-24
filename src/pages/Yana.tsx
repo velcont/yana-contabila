@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAICredits } from '@/hooks/useAICredits';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
-import { Loader2, Menu, X, Settings, LogOut, Briefcase, Mail, MessageCircle, Moon } from 'lucide-react';
+import { Loader2, Menu, X, Settings, LogOut, Briefcase, Mail, MessageCircle, Moon, ShieldCheck } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
@@ -203,6 +203,12 @@ export default function Yana() {
               <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Visele Yanei">
                 <Moon className="h-4 w-4" />
                 <span className="hidden sm:inline text-xs font-medium">Vise</span>
+              </Button>
+            </Link>
+            <Link to="/yana/control">
+              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Control Center">
+                <ShieldCheck className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs font-medium">Control</span>
               </Button>
             </Link>
             <Link to="/settings">

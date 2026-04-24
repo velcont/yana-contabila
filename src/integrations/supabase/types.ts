@@ -6366,6 +6366,45 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_action_verifications: {
+        Row: {
+          action_id: string
+          action_name: string
+          agent_name: string | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          retry_count: number
+          success: boolean
+          user_id: string
+          verified_at: string
+        }
+        Insert: {
+          action_id: string
+          action_name: string
+          agent_name?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          retry_count?: number
+          success?: boolean
+          user_id: string
+          verified_at?: string
+        }
+        Update: {
+          action_id?: string
+          action_name?: string
+          agent_name?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          retry_count?: number
+          success?: boolean
+          user_id?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
       yana_agent_executions: {
         Row: {
           agent_id: string
@@ -6461,6 +6500,42 @@ export type Database = {
           parent_trace_id?: string | null
           tokens_used?: number | null
           trace_id?: string
+        }
+        Relationships: []
+      }
+      yana_autonomy_settings: {
+        Row: {
+          autonomy_level: number
+          categories: Json
+          created_at: string
+          default_tone: string
+          id: string
+          max_auto_spend_cents: number
+          require_confirm_for: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          autonomy_level?: number
+          categories?: Json
+          created_at?: string
+          default_tone?: string
+          id?: string
+          max_auto_spend_cents?: number
+          require_confirm_for?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          autonomy_level?: number
+          categories?: Json
+          created_at?: string
+          default_tone?: string
+          id?: string
+          max_auto_spend_cents?: number
+          require_confirm_for?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -7659,6 +7734,7 @@ export type Database = {
       yana_intentions: {
         Row: {
           achieved_at: string | null
+          auto_execute: boolean | null
           company_id: string | null
           created_at: string | null
           expires_at: string | null
@@ -7667,11 +7743,15 @@ export type Database = {
           intention_hash: string | null
           intention_type: string
           last_evaluated_at: string | null
+          next_action_at: string | null
+          parent_goal_id: string | null
           priority: number | null
           progress_notes: Json | null
+          progress_pct: number | null
           progress_percent: number | null
           reason: string | null
           status: string | null
+          sub_tasks: Json | null
           success_criteria: string | null
           triggered_by: string | null
           updated_at: string | null
@@ -7679,6 +7759,7 @@ export type Database = {
         }
         Insert: {
           achieved_at?: string | null
+          auto_execute?: boolean | null
           company_id?: string | null
           created_at?: string | null
           expires_at?: string | null
@@ -7687,11 +7768,15 @@ export type Database = {
           intention_hash?: string | null
           intention_type: string
           last_evaluated_at?: string | null
+          next_action_at?: string | null
+          parent_goal_id?: string | null
           priority?: number | null
           progress_notes?: Json | null
+          progress_pct?: number | null
           progress_percent?: number | null
           reason?: string | null
           status?: string | null
+          sub_tasks?: Json | null
           success_criteria?: string | null
           triggered_by?: string | null
           updated_at?: string | null
@@ -7699,6 +7784,7 @@ export type Database = {
         }
         Update: {
           achieved_at?: string | null
+          auto_execute?: boolean | null
           company_id?: string | null
           created_at?: string | null
           expires_at?: string | null
@@ -7707,17 +7793,29 @@ export type Database = {
           intention_hash?: string | null
           intention_type?: string
           last_evaluated_at?: string | null
+          next_action_at?: string | null
+          parent_goal_id?: string | null
           priority?: number | null
           progress_notes?: Json | null
+          progress_pct?: number | null
           progress_percent?: number | null
           reason?: string | null
           status?: string | null
+          sub_tasks?: Json | null
           success_criteria?: string | null
           triggered_by?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "yana_intentions_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "yana_intentions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       yana_journal: {
         Row: {
@@ -8815,6 +8913,48 @@ export type Database = {
           },
         ]
       }
+      yana_risk_decisions: {
+        Row: {
+          action_category: string
+          action_type: string
+          amount_cents: number | null
+          auto_executed: boolean
+          context: Json | null
+          created_at: string
+          decided_at: string | null
+          id: string
+          risk_score: number
+          user_decision: string | null
+          user_id: string
+        }
+        Insert: {
+          action_category: string
+          action_type: string
+          amount_cents?: number | null
+          auto_executed?: boolean
+          context?: Json | null
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          risk_score?: number
+          user_decision?: string | null
+          user_id: string
+        }
+        Update: {
+          action_category?: string
+          action_type?: string
+          amount_cents?: number | null
+          auto_executed?: boolean
+          context?: Json | null
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          risk_score?: number
+          user_decision?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       yana_satisfaction_metrics: {
         Row: {
           category: string | null
@@ -9061,6 +9201,45 @@ export type Database = {
           user_id?: string
           valid_from?: string | null
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      yana_simulations: {
+        Row: {
+          chosen_scenario_index: number | null
+          context: Json
+          created_at: string
+          horizon_days: number
+          id: string
+          outcome_recorded: Json | null
+          question: string
+          reasoning: string | null
+          scenarios: Json
+          user_id: string
+        }
+        Insert: {
+          chosen_scenario_index?: number | null
+          context?: Json
+          created_at?: string
+          horizon_days?: number
+          id?: string
+          outcome_recorded?: Json | null
+          question: string
+          reasoning?: string | null
+          scenarios?: Json
+          user_id: string
+        }
+        Update: {
+          chosen_scenario_index?: number | null
+          context?: Json
+          created_at?: string
+          horizon_days?: number
+          id?: string
+          outcome_recorded?: Json | null
+          question?: string
+          reasoning?: string | null
+          scenarios?: Json
+          user_id?: string
         }
         Relationships: []
       }
@@ -9805,6 +9984,26 @@ export type Database = {
           usage_percent: number
           user_id: string
         }[]
+      }
+      get_or_create_autonomy_settings: {
+        Args: { p_user_id: string }
+        Returns: {
+          autonomy_level: number
+          categories: Json
+          created_at: string
+          default_tone: string
+          id: string
+          max_auto_spend_cents: number
+          require_confirm_for: Json
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "yana_autonomy_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_user_credits_report: {
         Args: { p_user_id: string }
