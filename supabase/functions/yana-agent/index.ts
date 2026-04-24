@@ -277,7 +277,9 @@ TOOLS.push(
           from_currency: { type: "string" },
           to_currency: { type: "string", description: "Default RON" },
           limit: { type: "number", description: "Default 20" },
-          days: { type: "number", description: "Pentru activity_feed: ultimele N zile (default 7)" }
+          days: { type: "number", description: "Pentru activity_feed: ultimele N zile (default 7)" },
+          image_base64: { type: "string", description: "Pentru import_business_card: imaginea cărții de vizită (base64 sau data URL). OCR cu Gemini Vision, extrage nume/email/telefon/firmă și creează contact." },
+          auto_create: { type: "boolean", description: "Pentru import_business_card: dacă true (default), creează direct contactul; dacă false, doar întoarce datele extrase." }
         },
         required: ["action"]
       }
