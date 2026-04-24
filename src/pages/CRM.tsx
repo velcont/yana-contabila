@@ -170,14 +170,10 @@ const CRM = () => {
         body: {
           message: "Importă această carte de vizită în CRM.",
           conversation_history: [],
-          force_tool: {
-            name: "crm_intelligence",
-            args: { action: "import_business_card", image_base64: dataUrl, auto_create: true },
-          },
+          fileData: { type: "image", dataUrl, hint: "business_card_for_crm_import" },
         },
       });
       if (error) throw error;
-      // The agent will respond conversationally; we just refresh data.
       toast.success("Card procesat — verifică Contacte", { id: "card" });
       loadAll();
     } catch (e) {
