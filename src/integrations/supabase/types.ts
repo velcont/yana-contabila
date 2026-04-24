@@ -3180,6 +3180,30 @@ export type Database = {
         }
         Relationships: []
       }
+      email_trusted_recipients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          label: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          label?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          label?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorite_analyses: {
         Row: {
           analysis_id: string
@@ -4274,6 +4298,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      outbound_emails: {
+        Row: {
+          attachment_name: string | null
+          attachment_size_bytes: number | null
+          body: string
+          created_at: string
+          error_message: string | null
+          id: string
+          provider: string
+          provider_message_id: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+          triggered_via: string | null
+          user_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_size_bytes?: number | null
+          body: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider?: string
+          provider_message_id?: string | null
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          triggered_via?: string | null
+          user_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_size_bytes?: number | null
+          body?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider?: string
+          provider_message_id?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          triggered_via?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       outreach_leads: {
         Row: {
