@@ -12,6 +12,8 @@ import { ArrowLeft, Brain, Sparkles, Target, ShieldCheck, Activity, Loader2, Che
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { HelpCircle } from "lucide-react";
 
 interface AutonomySettings {
   autonomy_level: number;
