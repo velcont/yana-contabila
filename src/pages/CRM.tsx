@@ -37,6 +37,11 @@ const CRM = () => {
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [advancedLoading, setAdvancedLoading] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineContact, setTimelineContact] = useState<Contact | null>(null);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [importingCard, setImportingCard] = useState(false);
 
   useEffect(() => {
     document.title = "CRM YANA — Pipeline conversational AI";
