@@ -304,6 +304,52 @@ TOOLS.push(
       },
     },
   },
+);
+
+// ============= EMAIL TOOL (business outbound) =============
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "send_email_with_attachment",
+      description: "Trimite un email business (cu sau fără atașament) către un destinatar exact. Folosește când userul cere explicit 'trimite la X email-ul Y cu textul Z'. Păstrează SUBIECTUL și TEXTUL exact cum le-a dictat userul, nu reformula. La prima încercare cu un destinatar nou, cere confirmare în răspunsul tău (lasă confirmed=false). După ce userul confirmă cu 'da/trimite/ok', reapelează cu confirmed=true. Pentru destinatari de încredere (ex: raportari@velcont.com salvat anterior), poți seta confirmed=true direct.",
+      parameters: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Adresa email destinatar (ex: raportari@velcont.com)" },
+          subject: { type: "string", description: "Subiectul exact dictat de user" },
+          body: { type: "string", description: "Textul exact dictat de user (fără reformulări)" },
+          attachment_source: {
+            type: "string",
+            enum: ["chat_attachment", "none"],
+            description: "chat_attachment = folosește fișierul pe care userul l-a urcat în mesajul curent; none = email fără atașament",
+          },
+          confirmed: { type: "boolean", description: "true doar dacă userul a confirmat explicit trimiterea SAU destinatarul e în lista de încredere" },
+          add_to_trusted: { type: "boolean", description: "Setează true dacă userul a spus să nu mai ceri confirmare pentru acest destinatar pe viitor" },
+        },
+        required: ["to", "subject", "body", "attachment_source", "confirmed"],
+      },
+    },
+  },
+);
+
+// Re-open original local tools registration that follows below
+TOOLS.push(
+  {
+    type: "function",
+    function: {
+      name: "local_fs_read_PLACEHOLDER_DO_NOT_USE",
+      description: "Citește un fișier de pe laptopul utilizatorului (prin agentul local conectat). Folosește pentru a inspecta cod, documente, configurări etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Calea absolută a fișierului pe laptop (ex: /Users/me/Documents/file.txt)" },
+          max_bytes: { type: "number", description: "Limită opțională (default 200000)" },
+        },
+        required: ["path"],
+      },
+    },
+  },
   {
     type: "function",
     function: {
