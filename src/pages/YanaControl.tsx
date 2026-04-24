@@ -261,6 +261,9 @@ export default function YanaControl() {
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="ghost" onClick={() => explain("risk_decision", p.id, `${p.action_type}`)}>
+                      <HelpCircle className="h-4 w-4 mr-1" />De ce?
+                    </Button>
                     <Button size="sm" variant="default" onClick={() => decidePending(p.id, "approved")}><Check className="h-4 w-4" /></Button>
                     <Button size="sm" variant="outline" onClick={() => decidePending(p.id, "rejected")}><X className="h-4 w-4" /></Button>
                   </div>
