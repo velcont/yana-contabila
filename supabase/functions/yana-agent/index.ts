@@ -239,7 +239,7 @@ TOOLS.push(
     type: "function",
     function: {
       name: "crm_intelligence",
-      description: "CRM avansat: lead scoring AI, timeline activități, șabloane email, bulk update, îmbogățire contacte, forecast revenue, rapoarte (conversion rate / cycle time), detecție duplicate, conversie multi-currency, activity feed cross-workspace. Folosește când userul cere: 'scor lead', 'șablon email', 'duplicate', 'forecast', 'raport vânzări', 'curs valutar', 'feed activitate', 'îmbogățește contact', 'update X contacte la o dată'.",
+      description: "CRM avansat: lead scoring AI, timeline activități, șabloane email, bulk update, îmbogățire contacte, forecast revenue, rapoarte (conversion rate / cycle time), detecție duplicate, conversie multi-currency, activity feed cross-workspace, import card de vizită prin OCR (Gemini Vision). Folosește când userul cere: 'scor lead', 'șablon email', 'duplicate', 'forecast', 'raport vânzări', 'curs valutar', 'feed activitate', 'îmbogățește contact', 'update X contacte la o dată', sau încarcă o poză cu o carte de vizită.",
       parameters: {
         type: "object",
         properties: {
@@ -255,7 +255,8 @@ TOOLS.push(
               "report_metrics",
               "find_duplicates", "merge_duplicates",
               "convert_currency", "list_currency_rates",
-              "activity_feed"
+              "activity_feed",
+              "import_business_card"
             ],
             description: "Acțiunea CRM avansată"
           },
