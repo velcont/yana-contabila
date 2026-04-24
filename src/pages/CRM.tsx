@@ -20,6 +20,7 @@ interface Template { id: string; name: string; subject: string; body: string; ca
 interface ForecastStage { stage_name: string; deal_count: number; total_value: number; weighted_value: number; currency: string; }
 interface DuplicateGroup { match_type: string; match_key: string; contact_ids: string[]; count: number; }
 interface ActivityFeedItem { id: string; activity_type: string; subject: string; created_at: string; crm_contacts?: { first_name: string; last_name?: string } | null; crm_companies?: { name: string } | null; crm_deals?: { title: string } | null; }
+interface TimelineItem { id: string; activity_type: string; subject: string; description?: string | null; created_at: string; completed_at?: string | null; status?: string | null; }
 
 const CRM = () => {
   const navigate = useNavigate();
