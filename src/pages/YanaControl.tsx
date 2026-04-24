@@ -109,7 +109,7 @@ export default function YanaControl() {
     if (!user) return;
     const { data } = await supabase.from("yana_simulations").select("*")
       .eq("user_id", user.id).order("created_at", { ascending: false }).limit(10);
-    setSimulations((data || []) as Simulation[]);
+    setSimulations((data || []) as unknown as Simulation[]);
   };
 
   const updateSettings = async (next: Partial<AutonomySettings>) => {
