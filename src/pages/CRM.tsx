@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Building2, Users, TrendingUp, Activity, MessageSquare, Plus, Flame, Mail, Copy, BarChart3, Target } from "lucide-react";
+import { Loader2, Building2, Users, TrendingUp, Activity, MessageSquare, Plus, Flame, Mail, Copy, BarChart3, Target, Camera, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { YanaHomeButton } from "@/components/YanaHomeButton";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ interface Template { id: string; name: string; subject: string; body: string; ca
 interface ForecastStage { stage_name: string; deal_count: number; total_value: number; weighted_value: number; currency: string; }
 interface DuplicateGroup { match_type: string; match_key: string; contact_ids: string[]; count: number; }
 interface ActivityFeedItem { id: string; activity_type: string; subject: string; created_at: string; crm_contacts?: { first_name: string; last_name?: string } | null; crm_companies?: { name: string } | null; crm_deals?: { title: string } | null; }
+interface TimelineItem { id: string; activity_type: string; subject: string; description?: string | null; created_at: string; completed_at?: string | null; status?: string | null; }
 
 const CRM = () => {
   const navigate = useNavigate();
@@ -35,6 +37,11 @@ const CRM = () => {
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [advancedLoading, setAdvancedLoading] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineContact, setTimelineContact] = useState<Contact | null>(null);
+  const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [importingCard, setImportingCard] = useState(false);
 
   useEffect(() => {
     document.title = "CRM YANA — Pipeline conversational AI";
@@ -123,6 +130,59 @@ const CRM = () => {
     loadAdvanced();
   }
 
+  async function openTimeline(contact: Contact) {
+    if (!user) return;
+    setTimelineContact(contact);
+    setTimelineOpen(true);
+    setTimelineLoading(true);
+    setTimelineItems([]);
+    try {
+      const { data, error } = await supabase.from("crm_activities")
+        .select("id, activity_type, subject, description, created_at, completed_at, status")
+        .eq("user_id", user.id).eq("contact_id", contact.id)
+        .order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      setTimelineItems((data || []) as TimelineItem[]);
+    } catch (e) {
+      toast.error("Nu am putut încărca timeline-ul");
+      console.error(e);
+    } finally {
+      setTimelineLoading(false);
+    }
+  }
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  async function importBusinessCard(file: File) {
+    if (!user) return;
+    setImportingCard(true);
+    toast.loading("Yana citește cartea de vizită...", { id: "card" });
+    try {
+      const dataUrl = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke("yana-agent", {
+        body: {
+          message: "Importă această carte de vizită în CRM.",
+          conversation_history: [],
+          fileData: { type: "image", dataUrl, hint: "business_card_for_crm_import" },
+        },
+      });
+      if (error) throw error;
+      toast.success("Card procesat — verifică Contacte", { id: "card" });
+      loadAll();
+    } catch (e) {
+      toast.error("Eroare la import: " + (e as Error).message, { id: "card" });
+    } finally {
+      setImportingCard(false);
+    }
+  }
+
   const totalPipelineValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
   const dealsByStage = (stageId: string) => deals.filter(d => d.stage_id === stageId);
 
@@ -149,6 +209,13 @@ const CRM = () => {
             <span className="hidden sm:inline">Vorbește cu YANA</span>
             <span className="sm:hidden">Chat</span>
           </Button>
+          <label>
+            <input type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) importBusinessCard(f); e.target.value = ""; }} />
+            <Button asChild variant="outline" size="sm" className="gap-2 ml-2" disabled={importingCard}>
+              <span>{importingCard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}<span className="hidden sm:inline">Card vizită</span></span>
+            </Button>
+          </label>
         </div>
       </header>
 
@@ -273,6 +340,9 @@ const CRM = () => {
                         {c.email && <span className="truncate">• {c.email}</span>}
                       </div>
                     </div>
+                    <Button size="sm" variant="ghost" className="gap-1 shrink-0" onClick={() => openTimeline(c)}>
+                      <Clock className="w-3 h-3" />Timeline
+                    </Button>
                   </CardContent>
                 </Card>
               ))

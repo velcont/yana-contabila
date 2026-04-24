@@ -239,7 +239,7 @@ TOOLS.push(
     type: "function",
     function: {
       name: "crm_intelligence",
-      description: "CRM avansat: lead scoring AI, timeline activități, șabloane email, bulk update, îmbogățire contacte, forecast revenue, rapoarte (conversion rate / cycle time), detecție duplicate, conversie multi-currency, activity feed cross-workspace. Folosește când userul cere: 'scor lead', 'șablon email', 'duplicate', 'forecast', 'raport vânzări', 'curs valutar', 'feed activitate', 'îmbogățește contact', 'update X contacte la o dată'.",
+      description: "CRM avansat: lead scoring AI, timeline activități, șabloane email, bulk update, îmbogățire contacte, forecast revenue, rapoarte (conversion rate / cycle time), detecție duplicate, conversie multi-currency, activity feed cross-workspace, import card de vizită prin OCR (Gemini Vision). Folosește când userul cere: 'scor lead', 'șablon email', 'duplicate', 'forecast', 'raport vânzări', 'curs valutar', 'feed activitate', 'îmbogățește contact', 'update X contacte la o dată', sau încarcă o poză cu o carte de vizită.",
       parameters: {
         type: "object",
         properties: {
@@ -255,7 +255,8 @@ TOOLS.push(
               "report_metrics",
               "find_duplicates", "merge_duplicates",
               "convert_currency", "list_currency_rates",
-              "activity_feed"
+              "activity_feed",
+              "import_business_card"
             ],
             description: "Acțiunea CRM avansată"
           },
@@ -276,7 +277,9 @@ TOOLS.push(
           from_currency: { type: "string" },
           to_currency: { type: "string", description: "Default RON" },
           limit: { type: "number", description: "Default 20" },
-          days: { type: "number", description: "Pentru activity_feed: ultimele N zile (default 7)" }
+          days: { type: "number", description: "Pentru activity_feed: ultimele N zile (default 7)" },
+          image_base64: { type: "string", description: "Pentru import_business_card: imaginea cărții de vizită (base64 sau data URL). OCR cu Gemini Vision, extrage nume/email/telefon/firmă și creează contact." },
+          auto_create: { type: "boolean", description: "Pentru import_business_card: dacă true (default), creează direct contactul; dacă false, doar întoarce datele extrase." }
         },
         required: ["action"]
       }
@@ -1771,6 +1774,123 @@ async function executeToolInner(
           .order("created_at", { ascending: false }).limit(100);
         if (error) return { error: error.message };
         return { feed: data, count: data?.length || 0, since };
+      }
+
+      // ===== VISION IMPORT BUSINESS CARD =====
+      if (action === "import_business_card") {
+        const img = args.image_base64 as string | undefined;
+        if (!img) return { error: "image_base64 obligatoriu (data URL sau base64 brut)" };
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (!LOVABLE_API_KEY) return { error: "LOVABLE_API_KEY missing" };
+        const dataUrl = img.startsWith("data:") ? img : `data:image/jpeg;base64,${img}`;
+
+        const visionRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: "Ești un OCR specializat pe cărți de vizită românești. Extragi informații de contact și le returnezi STRICT prin tool calling, fără text liber.",
+              },
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: "Extrage toate datele de contact din această carte de vizită. Dacă un câmp lipsește, omite-l." },
+                  { type: "image_url", image_url: { url: dataUrl } },
+                ],
+              },
+            ],
+            tools: [{
+              type: "function",
+              function: {
+                name: "extract_business_card",
+                description: "Returnează datele extrase",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    first_name: { type: "string" },
+                    last_name: { type: "string" },
+                    email: { type: "string" },
+                    phone: { type: "string" },
+                    job_title: { type: "string" },
+                    company_name: { type: "string" },
+                    company_website: { type: "string" },
+                    company_address: { type: "string" },
+                    linkedin_url: { type: "string" },
+                    notes: { type: "string", description: "Orice info suplimentară (CUI, slogan etc.)" },
+                  },
+                  additionalProperties: false,
+                },
+              },
+            }],
+            tool_choice: { type: "function", function: { name: "extract_business_card" } },
+          }),
+        });
+
+        if (!visionRes.ok) {
+          const t = await visionRes.text();
+          console.error("[business_card] vision error", visionRes.status, t);
+          if (visionRes.status === 429) return { error: "Rate limit AI. Încearcă din nou în câteva secunde." };
+          if (visionRes.status === 402) return { error: "Credite AI epuizate." };
+          return { error: "OCR vision a eșuat" };
+        }
+
+        const visionJson = await visionRes.json();
+        const toolCall = visionJson?.choices?.[0]?.message?.tool_calls?.[0];
+        const argsStr = toolCall?.function?.arguments;
+        if (!argsStr) return { error: "Nu am putut extrage date din imagine" };
+        let extracted: Record<string, string>;
+        try { extracted = JSON.parse(argsStr); } catch { return { error: "Răspuns vision invalid" }; }
+
+        const autoCreate = args.auto_create !== false;
+        if (!autoCreate) return { extracted, created: false };
+
+        // Find or create company
+        let companyId: string | null = null;
+        if (extracted.company_name) {
+          const { data: existing } = await supabase.from("crm_companies")
+            .select("id").eq("user_id", userId).ilike("name", extracted.company_name).maybeSingle();
+          if (existing) {
+            companyId = existing.id;
+          } else {
+            const { data: newCo } = await supabase.from("crm_companies").insert({
+              user_id: userId,
+              name: extracted.company_name,
+              website: extracted.company_website || null,
+              metadata: extracted.company_address ? { address: extracted.company_address } : {},
+            }).select("id").single();
+            companyId = newCo?.id || null;
+          }
+        }
+
+        // Check duplicate by email/phone
+        if (extracted.email || extracted.phone) {
+          const dupQuery = supabase.from("crm_contacts").select("id").eq("user_id", userId);
+          if (extracted.email) dupQuery.eq("email", extracted.email);
+          else if (extracted.phone) dupQuery.eq("phone", extracted.phone);
+          const { data: dup } = await dupQuery.maybeSingle();
+          if (dup) return { extracted, duplicate_of: dup.id, created: false, message: "Contact existent — folosește merge sau update" };
+        }
+
+        const { data: contact, error: cErr } = await supabase.from("crm_contacts").insert({
+          user_id: userId,
+          first_name: extracted.first_name || "Necunoscut",
+          last_name: extracted.last_name || null,
+          email: extracted.email || null,
+          phone: extracted.phone || null,
+          job_title: extracted.job_title || null,
+          linkedin_url: extracted.linkedin_url || null,
+          notes: extracted.notes || null,
+          company_id: companyId,
+          tags: ["business-card"],
+          enriched_at: new Date().toISOString(),
+          enrichment_data: { source: "business_card_ocr", raw: extracted },
+        }).select().single();
+        if (cErr) return { error: cErr.message };
+
+        return { extracted, created: true, contact, company_id: companyId };
       }
 
       return { error: `Acțiune necunoscută: ${action}` };
