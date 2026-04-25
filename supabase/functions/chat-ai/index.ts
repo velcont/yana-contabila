@@ -2187,12 +2187,6 @@ const ChatAIRequestSchema = z.object({
   companyMismatchWarning: z.string().max(1000).optional().nullable(),
   // 🆕 MEMORIE INTRA-SESIUNE: Valori financiare menționate de utilizator în conversație
   userMentionedFacts: z.record(z.string()).optional().nullable(),
-  // 🆕 IMAGE DATA: Pentru analiza multimodală a capturilor de ecran
-  imageData: z.object({
-    base64: z.string(),
-    fileName: z.string(),
-    mimeType: z.string().optional()
-  }).optional().nullable(),
   // 🆕 CONSCIOUSNESS: Context de conștiință pentru personalizare
   consciousnessContext: z.object({
     success: z.boolean().optional(),

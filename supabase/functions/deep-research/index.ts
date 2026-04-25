@@ -293,7 +293,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[deep-research] Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Research failed" }),
+      JSON.stringify({ error: (error as Error).message || "Research failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

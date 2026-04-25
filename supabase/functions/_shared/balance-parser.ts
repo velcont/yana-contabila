@@ -48,7 +48,7 @@ export async function parseExcelWithXLSX(excelBase64: string): Promise<string> {
     }
 
     // v2.2.0: Try multiple parse strategies for .xls compatibility
-    const parseStrategies = [
+    const parseStrategies: any[] = [
       { type: 'array', cellDates: false, cellNF: false, cellText: false, raw: true },
       { type: 'array', cellDates: false, cellNF: true, cellText: true, raw: false },
       { type: 'array' },

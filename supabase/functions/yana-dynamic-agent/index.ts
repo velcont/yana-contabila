@@ -76,7 +76,8 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>,
   userId: string,
-  supabase: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
 ): Promise<unknown> {
   switch (name) {
     case "search_companies": {
