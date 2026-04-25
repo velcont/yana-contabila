@@ -237,6 +237,17 @@ async function actionGetMessage(acct: any, folder: string, uid: number) {
 
 async function actionSend(acct: any, payload: any) {
   const smtp = buildSmtp(acct);
+  // Build attachments (denomailer-compatible via nodemailer)
+  const attachments = Array.isArray(payload.attachments)
+    ? payload.attachments
+        .filter((a: any) => a && a.filename && a.content_base64)
+        .map((a: any) => ({
+          filename: String(a.filename),
+          content: Uint8Array.from(atob(String(a.content_base64).includes(',') ? String(a.content_base64).split(',')[1] : String(a.content_base64)), c => c.charCodeAt(0)),
+          contentType: a.content_type || undefined,
+        }))
+    : undefined;
+
   const info = await smtp.sendMail({
     from: acct.display_name ? `"${acct.display_name}" <${acct.email_address}>` : acct.email_address,
     to: payload.to,
@@ -247,6 +258,7 @@ async function actionSend(acct: any, payload: any) {
     html: payload.body_html,
     inReplyTo: payload.in_reply_to,
     references: payload.references,
+    attachments,
   });
 
   // Try append to Sent folder
