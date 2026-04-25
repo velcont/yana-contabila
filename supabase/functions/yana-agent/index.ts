@@ -1980,24 +1980,73 @@ async function executeToolInner(
         };
       }
 
-      // Send via send-business-email
-      const sendResp = await fetch(`${supabaseUrl}/functions/v1/send-business-email`, {
+      // PRIMARY: Send via user's own SMTP (office@velcont.com) through email-client
+      let usedFallback = false;
+      let sendData: any = {};
+      let senderEmail = "";
+
+      const smtpResp = await fetch(`${supabaseUrl}/functions/v1/email-client`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": userAuthHeader,
         },
         body: JSON.stringify({
+          action: "send_message",
           to,
           subject,
-          body,
-          attachment: attachmentPayload,
-          triggered_via: "yana_agent",
+          body_text: body,
+          attachments: attachmentPayload ? [attachmentPayload] : undefined,
         }),
       });
-      const sendData = await sendResp.json().catch(() => ({}));
-      if (!sendResp.ok) {
-        return { error: sendData?.error || `send-business-email ${sendResp.status}`, details: sendData };
+      const smtpData = await smtpResp.json().catch(() => ({}));
+
+      if (smtpResp.ok && smtpData?.ok) {
+        sendData = { message_id: smtpData.messageId, channel: "smtp_user_account" };
+        // Get sender email for log
+        const { data: acct } = await supabase
+          .from("user_email_accounts")
+          .select("email_address")
+          .eq("user_id", userId)
+          .eq("is_default", true)
+          .maybeSingle();
+        senderEmail = acct?.email_address || "";
+        // Log to outbound_emails
+        await supabase.from("outbound_emails").insert({
+          user_id: userId,
+          recipient_email: to,
+          subject,
+          body,
+          attachment_name: attachmentPayload?.filename ?? null,
+          status: "sent",
+          provider_message_id: smtpData.messageId ?? null,
+          sent_at: new Date().toISOString(),
+          triggered_via: "yana_agent_smtp",
+        });
+      } else {
+        // FALLBACK: Resend via send-business-email
+        usedFallback = true;
+        const fbResp = await fetch(`${supabaseUrl}/functions/v1/send-business-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": userAuthHeader,
+          },
+          body: JSON.stringify({
+            to, subject, body,
+            attachment: attachmentPayload,
+            triggered_via: "yana_agent_fallback",
+          }),
+        });
+        const fbData = await fbResp.json().catch(() => ({}));
+        if (!fbResp.ok) {
+          return {
+            error: `Trimitere eșuată pe ambele canale. SMTP: ${smtpData?.error || smtpResp.status}. Fallback Resend: ${fbData?.error || fbResp.status}`,
+            smtp_error: smtpData?.error,
+            fallback_error: fbData?.error,
+          };
+        }
+        sendData = { ...fbData, channel: "resend_fallback" };
       }
 
       // Save to trusted if requested
@@ -2016,7 +2065,11 @@ async function executeToolInner(
         attachment: attachmentPayload?.filename || null,
         message_id: sendData.message_id,
         trusted: isTrusted || addToTrusted,
-        message: `Email trimis cu succes la ${to}${attachmentPayload ? ` cu atașamentul ${attachmentPayload.filename}` : ""}.`,
+        sent_from: usedFallback ? "yana@yana-contabila.velcont.com (BACKUP — SMTP-ul tău a picat, verifică /email-settings)" : (senderEmail || "contul tău SMTP"),
+        used_fallback: usedFallback,
+        message: usedFallback
+          ? `⚠️ Email trimis prin sistemul backup (Resend) la ${to}. SMTP-ul tău office@velcont.com a picat — verifică /email-settings. Atașament: ${attachmentPayload?.filename || "fără"}.`
+          : `✅ Email trimis cu succes din contul tău (${senderEmail}) la ${to}${attachmentPayload ? ` cu atașamentul ${attachmentPayload.filename}` : ""}. Apare în Sent-ul tău Velcont.`,
       };
     }
 
