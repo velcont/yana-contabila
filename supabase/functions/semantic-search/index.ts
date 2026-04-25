@@ -194,7 +194,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[semantic-search] Error:", error);
-    return new Response(JSON.stringify({ error: error.message || "Internal error" }), {
+    return new Response(JSON.stringify({ error: (error as Error).message || "Internal error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

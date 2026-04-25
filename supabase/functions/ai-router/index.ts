@@ -1614,7 +1614,7 @@ serve(async (req) => {
         );
       } catch (docErr) {
         console.error('[AI-Router] ❌ Document generation error:', docErr);
-        const errorResponse = `❌ Nu am putut genera documentul. Eroare: ${docErr.message}\n\nÎncearcă din nou sau reformulează cererea.`;
+        const errorResponse = `❌ Nu am putut genera documentul. Eroare: ${(docErr as Error).message}\n\nÎncearcă din nou sau reformulează cererea.`;
         
         await supabase.from('yana_messages').insert({
           conversation_id: conversationId,
@@ -1809,7 +1809,7 @@ serve(async (req) => {
         );
       } catch (supplierErr) {
         console.error('[AI-Router] ❌ Supplier analysis error:', supplierErr);
-        const errorResponse = `❌ Nu am putut analiza furnizorul. Eroare: ${supplierErr.message}\n\nÎncearcă din nou cu mai multe detalii (nume, CUI, produs).`;
+        const errorResponse = `❌ Nu am putut analiza furnizorul. Eroare: ${(supplierErr as Error).message}\n\nÎncearcă din nou cu mai multe detalii (nume, CUI, produs).`;
         
         await supabase.from('yana_messages').insert({
           conversation_id: conversationId,
@@ -1901,7 +1901,7 @@ serve(async (req) => {
         );
       } catch (priceErr) {
         console.error('[AI-Router] ❌ Price search error:', priceErr);
-        const errorResponse = `❌ Nu am putut căuta prețuri momentan. Eroare: ${priceErr.message}\n\nPoți încerca din pagina **Price Tracker** (din meniul lateral) sau reformulează cererea.`;
+        const errorResponse = `❌ Nu am putut căuta prețuri momentan. Eroare: ${(priceErr as Error).message}\n\nPoți încerca din pagina **Price Tracker** (din meniul lateral) sau reformulează cererea.`;
         
         await supabase.from('yana_messages').insert({
           conversation_id: conversationId,
@@ -2848,7 +2848,7 @@ serve(async (req) => {
               "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
             },
             body: JSON.stringify({
-              userId,
+              userId: user.id,
               conversationId,
               question: message,
               answer: result.response || result.answer || "",
@@ -2879,8 +2879,8 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               userId: user.id,
-              conversationId: body.conversationId,
-              userMessage: body.message,
+              conversationId,
+              userMessage: message,
               assistantResponse: result.response || result.answer || "",
             }),
           });
