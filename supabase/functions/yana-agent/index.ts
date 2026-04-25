@@ -2137,6 +2137,103 @@ Deno.serve(async (req) => {
       };
 
       try {
+        // ============= QUICK COMMAND: "R: ..." / "R+: ..." (text rewriter bypass) =============
+        // R:  → corectare gramaticală + ton prietenos (păstrează intenția)
+        // R+: → reformulare completă (mai clar, mai cald, mai profesional)
+        const rewriteMatch = String(message).match(/^\s*(R\+|R)\s*:\s*([\s\S]+)$/i);
+        if (rewriteMatch) {
+          const mode = rewriteMatch[1].toUpperCase(); // "R" or "R+"
+          const sourceText = rewriteMatch[2].trim();
+          const isFullRewrite = mode === "R+";
+
+          send("thinking", {
+            text: isFullRewrite
+              ? "Reformulez textul complet..."
+              : "Corectez gramatica și fac textul mai prietenos...",
+          });
+
+          const rewriterSystem = isFullRewrite
+            ? `Ești un editor expert în limba română. Reformulezi textul utilizatorului ca să fie:
+- mai clar și mai natural
+- ton mai cald și mai prietenos (dar profesional)
+- fluență mai bună, fără să schimbi intenția sau faptele
+
+REGULI STRICTE:
+- Returnează DOAR textul reformulat, fără introducere, fără explicații, fără ghilimele.
+- Păstrează limba originală (dacă userul a scris în română, răspunzi în română).
+- Nu adăuga informații noi care nu erau în original.
+- Nu folosi formule pompoase ("Cu deosebită considerație", etc.) decât dacă originalul le avea.`
+            : `Ești un corector expert în limba română. Corectezi textul utilizatorului:
+- gramatică, ortografie, diacritice (ă, â, î, ș, ț), punctuație
+- topică firească (ordinea cuvintelor să sune natural)
+- ton ușor mai prietenos și mai plăcut de citit
+
+REGULI STRICTE:
+- Păstrează cât mai mult din formularea originală — doar curăță, nu rescrie.
+- Returnează DOAR textul corectat, fără introducere, fără explicații, fără ghilimele.
+- Păstrează limba originală.
+- Nu adăuga informații noi.`;
+
+          try {
+            const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  { role: "system", content: rewriterSystem },
+                  { role: "user", content: sourceText },
+                ],
+              }),
+            });
+
+            if (!aiResp.ok) {
+              const status = aiResp.status;
+              let errMsg = `Eroare AI ${status}`;
+              if (status === 429) errMsg = "Prea multe cereri. Încearcă din nou în câteva secunde.";
+              else if (status === 402) errMsg = "Credite AI epuizate. Adaugă credite din Settings → Workspace → Usage.";
+              send("error", { message: errMsg });
+              send("done", {});
+              controller.close();
+              return;
+            }
+
+            const aiData = await aiResp.json();
+            const corrected = aiData.choices?.[0]?.message?.content?.trim() || sourceText;
+
+            send("final", { text: corrected });
+            send("done", {});
+            controller.close();
+
+            // Best-effort cost logging (fire-and-forget, non-blocking)
+            const inTok = aiData.usage?.prompt_tokens || 0;
+            const outTok = aiData.usage?.completion_tokens || 0;
+            if (inTok > 0 || outTok > 0) {
+              const costCents = Math.ceil((inTok * 0.00001875 + outTok * 0.000075) * 100);
+              supabase.from("ai_usage").insert({
+                user_id: user.id,
+                endpoint: `yana-agent:rewrite:${mode}`,
+                model: "google/gemini-2.5-flash",
+                month_year: new Date().toISOString().slice(0, 7),
+                input_tokens: inTok,
+                output_tokens: outTok,
+                total_tokens: inTok + outTok,
+                estimated_cost_cents: costCents,
+                success: true,
+              }).then(() => {}, () => {});
+            }
+            return;
+          } catch (e) {
+            send("error", { message: `Nu am putut corecta textul: ${(e as Error).message}` });
+            send("done", {});
+            controller.close();
+            return;
+          }
+        }
+
         // 📎 Parse uploaded file (xlsx/xls/csv/txt) and attach as context
         let fileContextBlock = "";
         if (fileData && fileData.fileName && fileData.fileContent) {
