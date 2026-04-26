@@ -68,17 +68,22 @@ export default function Prospect() {
   }, [activeTab]);
 
   const runScraper = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ title: "Trebuie să fii autentificat", variant: "destructive" });
+      return;
+    }
     setRunning(true);
     toast({ title: "Pornesc scraper-ul ONRC...", description: "Poate dura 1-2 minute." });
     const { data, error } = await supabase.functions.invoke("prospect-onrc-scraper", {
-      body: { days_back: 7, max_companies: 15 },
+      body: { user_id: user.id, target_count: 15 },
     });
     setRunning(false);
     if (error) {
       toast({ title: "Eroare scraper", description: error.message, variant: "destructive" });
       return;
     }
-    const r = (data as { results?: { inserted?: number; no_email?: number; errors?: number } })?.results;
+    const r = data as { inserted?: number; no_email?: number; errors?: number } | null;
     toast({
       title: "Scraper finalizat",
       description: `${r?.inserted ?? 0} lead-uri noi cu email, ${r?.no_email ?? 0} fără email.`,
