@@ -4586,6 +4586,99 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_leads: {
+        Row: {
+          caen_code: string | null
+          caen_description: string | null
+          city: string | null
+          company_name: string
+          county: string | null
+          created_at: string
+          cui: string | null
+          email: string | null
+          email_confidence: string | null
+          email_source: string | null
+          follow_up_body: string | null
+          follow_up_due_at: string | null
+          follow_up_sent_at: string | null
+          follow_up_subject: string | null
+          id: string
+          initial_email_body: string | null
+          initial_email_subject: string | null
+          notes: string | null
+          raw_email_search_data: Json | null
+          raw_onrc_data: Json | null
+          registration_date: string | null
+          registration_number: string | null
+          reviewed_at: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          caen_code?: string | null
+          caen_description?: string | null
+          city?: string | null
+          company_name: string
+          county?: string | null
+          created_at?: string
+          cui?: string | null
+          email?: string | null
+          email_confidence?: string | null
+          email_source?: string | null
+          follow_up_body?: string | null
+          follow_up_due_at?: string | null
+          follow_up_sent_at?: string | null
+          follow_up_subject?: string | null
+          id?: string
+          initial_email_body?: string | null
+          initial_email_subject?: string | null
+          notes?: string | null
+          raw_email_search_data?: Json | null
+          raw_onrc_data?: Json | null
+          registration_date?: string | null
+          registration_number?: string | null
+          reviewed_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          caen_code?: string | null
+          caen_description?: string | null
+          city?: string | null
+          company_name?: string
+          county?: string | null
+          created_at?: string
+          cui?: string | null
+          email?: string | null
+          email_confidence?: string | null
+          email_source?: string | null
+          follow_up_body?: string | null
+          follow_up_due_at?: string | null
+          follow_up_sent_at?: string | null
+          follow_up_subject?: string | null
+          id?: string
+          initial_email_body?: string | null
+          initial_email_subject?: string | null
+          notes?: string | null
+          raw_email_search_data?: Json | null
+          raw_onrc_data?: Json | null
+          registration_date?: string | null
+          registration_number?: string | null
+          reviewed_at?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       rapoarte_metadata: {
         Row: {
           capital_lucru: number | null
