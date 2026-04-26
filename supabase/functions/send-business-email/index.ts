@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { corsHeaders } from "../_shared/cors.ts";
+import { getValidAccessToken } from "../_shared/google-calendar.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -34,10 +35,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    if (!RESEND_API_KEY) {
-      return json({ error: "RESEND_API_KEY not configured" }, 500);
-    }
-
     // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json({ error: "Missing Authorization" }, 401);
@@ -54,6 +51,101 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid input", details: parsed.error.flatten() }, 400);
     }
     const { to, subject, body, attachment, reply_to, triggered_via } = parsed.data;
+
+    // ─── Preferință 1: trimite prin Gmail-ul userului dacă a conectat Google ───
+    let gmailToken: { accessToken: string; calendarEmail: string | null } | null = null;
+    try {
+      gmailToken = await getValidAccessToken(userId);
+    } catch {
+      gmailToken = null; // userul nu are Google conectat
+    }
+
+    if (gmailToken && !attachment) {
+      // Gmail send (fără atașamente — pentru atașamente folosim Resend mai jos)
+      const fromEmail = gmailToken.calendarEmail || userEmail;
+      if (!fromEmail) return json({ error: "Nu pot determina expeditorul" }, 400);
+
+      const { data: logRow } = await supabase
+        .from("outbound_emails")
+        .insert({
+          user_id: userId,
+          recipient_email: to,
+          subject,
+          body,
+          status: "pending",
+          triggered_via: triggered_via || "yana_agent_gmail",
+        })
+        .select("id")
+        .single();
+      const logId = logRow?.id;
+
+      const rfc = [
+        `From: ${fromEmail}`,
+        `To: ${to}`,
+        reply_to ? `Reply-To: ${reply_to}` : `Reply-To: ${fromEmail}`,
+        `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+        "MIME-Version: 1.0",
+        'Content-Type: text/plain; charset="UTF-8"',
+        "Content-Transfer-Encoding: 8bit",
+        "",
+        body,
+      ].join("\r\n");
+
+      const bytes = new TextEncoder().encode(rfc);
+      let bin = "";
+      for (const b of bytes) bin += String.fromCharCode(b);
+      const raw = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+      const gmailRes = await fetch(
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${gmailToken.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ raw }),
+        },
+      );
+      const gmailJson = await gmailRes.json().catch(() => ({}));
+
+      if (gmailRes.ok) {
+        if (logId) {
+          await supabase
+            .from("outbound_emails")
+            .update({
+              status: "sent",
+              provider_message_id: (gmailJson as { id?: string }).id ?? null,
+              sent_at: new Date().toISOString(),
+            })
+            .eq("id", logId);
+        }
+        return json({
+          success: true,
+          provider: "gmail",
+          from: fromEmail,
+          message_id: (gmailJson as { id?: string }).id,
+          log_id: logId,
+        });
+      }
+
+      console.warn("[send-business-email] Gmail failed, fallback to Resend:", gmailRes.status, gmailJson);
+      if (logId) {
+        await supabase
+          .from("outbound_emails")
+          .update({ status: "failed", error_message: `gmail:${gmailRes.status}` })
+          .eq("id", logId);
+      }
+      // continuă cu Resend dacă există cheie
+    }
+
+    // ─── Fallback: Resend ───
+    if (!RESEND_API_KEY) {
+      return json({
+        error: "Niciun expeditor disponibil",
+        hint: "Conectează Google (Gmail) din Setări sau configurează RESEND_API_KEY",
+      }, 412);
+    }
 
     // Pre-log as pending
     const { data: logRow } = await supabase
