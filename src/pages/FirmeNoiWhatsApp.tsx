@@ -28,14 +28,7 @@ interface Firma {
 
 const buildMessage = (f: Firma) => {
   const numeScurt = f.nume.replace(/\s+(SRL|SA|PFA|II)\.?$/i, "").trim();
-  return `Bună! Văd că ${numeScurt} e proaspăt înființată. Felicitări! 🎉
-
-Ai deja contabil? Avem ceva interesant pentru SRL-uri noi 👇
-
-Velcont — contabilitate digitalizată cu AI (YANA)
-👉 https://yana-contabila.lovable.app
-
-Răspunde "info" dacă vrei detalii.`;
+  return `Bună! Felicitări pentru ${numeScurt}! 🎉 Ai deja contabil? Avem ceva interesant pentru SRL-uri noi: contabilitate digitalizată cu AI. Detalii: yana-contabila.lovable.app`;
 };
 
 export default function FirmeNoiWhatsApp() {
@@ -83,8 +76,17 @@ export default function FirmeNoiWhatsApp() {
     const phone = (f.mobil || f.telefon || "").replace(/[^\d+]/g, "");
     if (!phone) { toast.error("Fără număr de telefon"); return; }
     const msg = encodeURIComponent(buildMessage(f));
-    const url = `https://wa.me/${phone.replace("+", "")}?text=${msg}`;
-    window.open(url, "_blank");
+    const cleanPhone = phone.replace("+", "");
+    // Folosim wa.me direct (nu api.whatsapp.com care e blocat în iframe)
+    const url = `https://wa.me/${cleanPhone}?text=${msg}`;
+    // window.open cu noopener evită redirectul către api.whatsapp.com
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    if (!win) {
+      // Fallback: copiază linkul în clipboard dacă popup-ul e blocat
+      await navigator.clipboard.writeText(url);
+      toast.error("Popup blocat. Link copiat în clipboard — lipește-l într-un tab nou.");
+      return;
+    }
 
     await supabase.from("firme_noi_whatsapp").update({
       status: "contactat",
