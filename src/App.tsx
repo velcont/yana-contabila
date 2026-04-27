@@ -46,6 +46,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Yana = lazy(() => import("./pages/Yana"));
 const YanaDreams = lazy(() => import("./pages/YanaDreams"));
 const YanaControl = lazy(() => import("./pages/YanaControl"));
+const FirmeNoiWhatsApp = lazy(() => import("./pages/FirmeNoiWhatsApp"));
 
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
@@ -197,6 +198,7 @@ const App = () => {
                       <Route path="/yana/local-device" element={<PrivateRoute><LocalDevice /></PrivateRoute>} />
                      <Route path="/yana/dreams" element={<PrivateRoute><YanaDreams /></PrivateRoute>} />
                      <Route path="/yana/control" element={<PrivateRoute><YanaControl /></PrivateRoute>} />
+                     <Route path="/admin/firme-noi-whatsapp" element={<PrivateRoute><FirmeNoiWhatsApp /></PrivateRoute>} />
                       <Route path="/whatsapp" element={<PrivateRoute><WhatsAppLink /></PrivateRoute>} />
                       <Route path="/yana/chief-of-staff" element={<PrivateRoute><ChiefOfStaff /></PrivateRoute>} />
                       <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
