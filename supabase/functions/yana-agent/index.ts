@@ -883,19 +883,34 @@ async function executeToolInner(
     }
 
     case "web_research": {
-      // Folosește edge function existentă deep-research
+      // Apel direct la Perplexity (deep-research necesită JWT user, nu service key)
       try {
-        const resp = await fetch(`${supabaseUrl}/functions/v1/deep-research`, {
+        const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
+        if (!perplexityKey) return { error: "PERPLEXITY_API_KEY nu este configurat" };
+        const resp = await fetch("https://api.perplexity.ai/chat/completions", {
           method: "POST",
           headers: {
+            "Authorization": `Bearer ${perplexityKey}`,
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseServiceKey}`,
           },
-          body: JSON.stringify({ query: args.query, maxIterations: 1 }),
+          body: JSON.stringify({
+            model: "sonar-pro",
+            messages: [
+              { role: "system", content: "Ești expert fiscal/contabil român. Răspunde concis, factual, cu surse oficiale (ANAF, CECCAR, legislatie.just.ro). Pentru monografii contabile dă conturi exacte (debit/credit) conform OMFP 1802/2014." },
+              { role: "user", content: args.query },
+            ],
+            temperature: 0.2,
+            max_tokens: 2000,
+          }),
         });
-        if (!resp.ok) return { error: `Research failed: ${resp.status}` };
-        const result = await resp.json();
-        return { summary: result.summary || result.answer || "Fără rezultate", sources: result.sources?.slice(0, 3) };
+        if (!resp.ok) {
+          const errText = await resp.text();
+          return { error: `Perplexity ${resp.status}: ${errText.slice(0, 200)}` };
+        }
+        const data = await resp.json();
+        const summary = data.choices?.[0]?.message?.content || "Fără rezultate";
+        const sources = (data.citations || []).slice(0, 5);
+        return { summary, sources };
       } catch (e) {
         return { error: (e as Error).message };
       }
