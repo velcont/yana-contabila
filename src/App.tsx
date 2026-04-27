@@ -46,6 +46,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Yana = lazy(() => import("./pages/Yana"));
 const YanaDreams = lazy(() => import("./pages/YanaDreams"));
 const YanaControl = lazy(() => import("./pages/YanaControl"));
+const FirmeNoiWhatsApp = lazy(() => import("./pages/FirmeNoiWhatsApp"));
 
 const InstallPWA = lazy(() => import("./pages/InstallPWA"));
 const GenerateLiteratureReview = lazy(() => import("./pages/GenerateLiteratureReview"));
