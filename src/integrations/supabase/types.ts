@@ -3242,6 +3242,66 @@ export type Database = {
           },
         ]
       }
+      firme_noi_whatsapp: {
+        Row: {
+          adresa: string | null
+          caen: string | null
+          created_at: string
+          cui: string
+          data_infiintarii: string | null
+          descriere_caen: string | null
+          id: string
+          judet: string | null
+          localitate: string | null
+          mobil: string | null
+          notes: string | null
+          nr_inmatriculare: string | null
+          nume: string
+          status: string
+          telefon: string | null
+          updated_at: string
+          whatsapp_sent_at: string | null
+        }
+        Insert: {
+          adresa?: string | null
+          caen?: string | null
+          created_at?: string
+          cui: string
+          data_infiintarii?: string | null
+          descriere_caen?: string | null
+          id?: string
+          judet?: string | null
+          localitate?: string | null
+          mobil?: string | null
+          notes?: string | null
+          nr_inmatriculare?: string | null
+          nume: string
+          status?: string
+          telefon?: string | null
+          updated_at?: string
+          whatsapp_sent_at?: string | null
+        }
+        Update: {
+          adresa?: string | null
+          caen?: string | null
+          created_at?: string
+          cui?: string
+          data_infiintarii?: string | null
+          descriere_caen?: string | null
+          id?: string
+          judet?: string | null
+          localitate?: string | null
+          mobil?: string | null
+          notes?: string | null
+          nr_inmatriculare?: string | null
+          nume?: string
+          status?: string
+          telefon?: string | null
+          updated_at?: string
+          whatsapp_sent_at?: string | null
+        }
+        Relationships: []
+      }
       fiscal_deadlines: {
         Row: {
           accountant_id: string
