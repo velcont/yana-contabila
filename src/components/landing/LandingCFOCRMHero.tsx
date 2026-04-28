@@ -1,13 +1,26 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
-import { MessageSquare, TrendingUp, Users, Sparkles } from 'lucide-react';
+import { MessageSquare, Sparkles, ArrowRight } from 'lucide-react';
+
+interface LandingCFOCRMHeroProps {
+  /** Called when user taps a chip — opens DemoChat with the prompt pre-filled. */
+  onTryPrompt?: (prompt: string) => void;
+}
+
+const CHIPS: Array<{ label: string; prompt: string }> = [
+  { label: 'Câți bani îmi rămân după impozite?', prompt: 'Câți bani îmi rămân după impozite dacă scot 10.000 RON ca dividend?' },
+  { label: 'Cum stă pipeline-ul meu?', prompt: 'Cum stă pipeline-ul meu de vânzări luna asta?' },
+  { label: 'Analizează-mi balanța', prompt: 'Vreau să-mi analizezi balanța contabilă. Ce trebuie să fac?' },
+];
 
 /**
- * Hero CFO+CRM — repoziționare YANA ca primul CRM conversational AI din România,
- * combinat cu rolul de CFO virtual (analiza balanței).
+ * Hero — versiune optimizată pentru bounce rate.
+ * - 1 promisiune clară (beneficiu, nu feature)
+ * - 3 chips clickabile (interacțiune instantă)
+ * - 1 CTA dominant
  */
-export const LandingCFOCRMHero = () => {
+export const LandingCFOCRMHero = ({ onTryPrompt }: LandingCFOCRMHeroProps) => {
   const navigate = useNavigate();
 
   const handlePrimary = () => {
@@ -15,35 +28,55 @@ export const LandingCFOCRMHero = () => {
     navigate('/auth?redirect=/yana');
   };
 
+  const handleChip = (chip: { label: string; prompt: string }) => {
+    analytics.landingCtaClick('chip', `hero_${chip.label.slice(0, 30)}`);
+    if (onTryPrompt) {
+      onTryPrompt(chip.prompt);
+    } else {
+      navigate('/auth?redirect=/yana');
+    }
+  };
+
   return (
-    <section className="space-y-6 pt-2 sm:pt-8 text-center">
+    <section className="space-y-5 pt-2 sm:pt-8 text-center">
       {/* Badge */}
       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
         <Sparkles className="w-3.5 h-3.5 text-primary" />
         <span className="text-xs font-semibold text-primary">Primul CRM conversațional AI din România</span>
       </div>
 
-      {/* H1 */}
-      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-        CFO + CRM
-        <span className="block text-primary mt-1">într-un singur chat.</span>
+      {/* H1 — beneficiu, nu feature */}
+      <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight">
+        Cifrele tale,{' '}
+        <span className="text-primary">explicate ca de un CFO.</span>
+        <span className="block text-foreground/70 text-2xl sm:text-3xl md:text-4xl mt-2 font-semibold">
+          Clienții tăi, gestionați prin chat.
+        </span>
       </h1>
 
-      <p className="text-base sm:text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-        Vorbești cu YANA. Ea îți analizează cifrele,
-        gestionează clienții și pipeline-ul.{' '}
-        <strong className="text-foreground">Niciun click în plus.</strong>
+      <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
+        Întreabă YANA orice. Răspunsul vine în 5 secunde.
       </p>
 
-      {/* Mini-demo de comenzi */}
-      <div className="space-y-2 max-w-md mx-auto text-left">
-        <ChatExample text='"Adaugă SC Alpha SRL ca lead, deal 50.000 RON pentru consultanță."' />
-        <ChatExample text='"Cum stă pipeline-ul luna asta?"' />
-        <ChatExample text='"Analizează balanța din decembrie."' />
+      {/* Chips interactive — utilizatorul atinge ceva în 2 secunde */}
+      <div className="space-y-2 max-w-md mx-auto pt-1">
+        <p className="text-xs text-muted-foreground/80 font-medium">Încearcă acum, fără cont:</p>
+        <div className="space-y-2">
+          {CHIPS.map((chip) => (
+            <button
+              key={chip.label}
+              onClick={() => handleChip(chip)}
+              className="w-full text-left rounded-xl bg-card border border-border/40 px-4 py-3 text-sm text-foreground hover:bg-muted/50 hover:border-primary/40 transition-all flex items-center justify-between gap-3 group min-h-[48px]"
+            >
+              <span className="flex-1">{chip.label}</span>
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* CTA */}
-      <div className="space-y-2 pt-2">
+      {/* CTA secundar — pentru cei care vor cont direct */}
+      <div className="space-y-2 pt-3">
         <Button
           size="lg"
           onClick={handlePrimary}
@@ -54,27 +87,6 @@ export const LandingCFOCRMHero = () => {
         </Button>
         <p className="text-xs text-muted-foreground">Fără card. Fără setări complicate.</p>
       </div>
-
-      {/* Mini bullets */}
-      <div className="grid grid-cols-3 gap-3 max-w-md mx-auto pt-4">
-        <Feature icon={MessageSquare} label="Chat-first" />
-        <Feature icon={TrendingUp} label="CFO virtual" />
-        <Feature icon={Users} label="CRM integrat" />
-      </div>
     </section>
   );
 };
-
-const ChatExample = ({ text }: { text: string }) => (
-  <div className="rounded-xl bg-muted/50 border border-border/40 px-4 py-2.5 text-sm text-foreground/80">
-    <span className="text-primary mr-1">›</span>
-    <span className="italic">{text}</span>
-  </div>
-);
-
-const Feature = ({ icon: Icon, label }: { icon: typeof MessageSquare; label: string }) => (
-  <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-card border border-border/40">
-    <Icon className="w-5 h-5 text-primary" />
-    <span className="text-xs font-medium text-foreground">{label}</span>
-  </div>
-);
