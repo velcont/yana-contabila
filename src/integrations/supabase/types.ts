@@ -2265,11 +2265,13 @@ export type Database = {
           last_name: string | null
           lead_score: number | null
           lead_score_reasons: Json | null
+          lead_source_id: string | null
           linkedin_url: string | null
           metadata: Json | null
           notes: string | null
           phone: string | null
           tags: string[] | null
+          territory_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2286,11 +2288,13 @@ export type Database = {
           last_name?: string | null
           lead_score?: number | null
           lead_score_reasons?: Json | null
+          lead_source_id?: string | null
           linkedin_url?: string | null
           metadata?: Json | null
           notes?: string | null
           phone?: string | null
           tags?: string[] | null
+          territory_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2307,11 +2311,13 @@ export type Database = {
           last_name?: string | null
           lead_score?: number | null
           lead_score_reasons?: Json | null
+          lead_source_id?: string | null
           linkedin_url?: string | null
           metadata?: Json | null
           notes?: string | null
           phone?: string | null
           tags?: string[] | null
+          territory_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2321,6 +2327,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_lead_source_id_fkey"
+            columns: ["lead_source_id"]
+            isOneToOne: false
+            referencedRelation: "crm_lead_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_territory_id_fkey"
+            columns: ["territory_id"]
+            isOneToOne: false
+            referencedRelation: "crm_territories"
             referencedColumns: ["id"]
           },
         ]
@@ -2353,7 +2373,9 @@ export type Database = {
           description: string | null
           expected_close_date: string | null
           id: string
+          lead_source_id: string | null
           lost_reason: string | null
+          lost_reason_id: string | null
           metadata: Json | null
           pipeline_id: string
           probability: number | null
@@ -2361,6 +2383,7 @@ export type Database = {
           stage_id: string
           status: string
           tags: string[] | null
+          territory_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -2375,7 +2398,9 @@ export type Database = {
           description?: string | null
           expected_close_date?: string | null
           id?: string
+          lead_source_id?: string | null
           lost_reason?: string | null
+          lost_reason_id?: string | null
           metadata?: Json | null
           pipeline_id: string
           probability?: number | null
@@ -2383,6 +2408,7 @@ export type Database = {
           stage_id: string
           status?: string
           tags?: string[] | null
+          territory_id?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -2397,7 +2423,9 @@ export type Database = {
           description?: string | null
           expected_close_date?: string | null
           id?: string
+          lead_source_id?: string | null
           lost_reason?: string | null
+          lost_reason_id?: string | null
           metadata?: Json | null
           pipeline_id?: string
           probability?: number | null
@@ -2405,6 +2433,7 @@ export type Database = {
           stage_id?: string
           status?: string
           tags?: string[] | null
+          territory_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -2426,6 +2455,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_deals_lead_source_id_fkey"
+            columns: ["lead_source_id"]
+            isOneToOne: false
+            referencedRelation: "crm_lead_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_lost_reason_id_fkey"
+            columns: ["lost_reason_id"]
+            isOneToOne: false
+            referencedRelation: "crm_lost_reasons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "crm_deals_pipeline_id_fkey"
             columns: ["pipeline_id"]
             isOneToOne: false
@@ -2437,6 +2480,13 @@ export type Database = {
             columns: ["stage_id"]
             isOneToOne: false
             referencedRelation: "crm_pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_territory_id_fkey"
+            columns: ["territory_id"]
+            isOneToOne: false
+            referencedRelation: "crm_territories"
             referencedColumns: ["id"]
           },
         ]
@@ -2513,6 +2563,72 @@ export type Database = {
           use_count?: number | null
           user_id?: string
           variables?: string[] | null
+        }
+        Relationships: []
+      }
+      crm_lead_sources: {
+        Row: {
+          color: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_lost_reasons: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2647,6 +2763,39 @@ export type Database = {
           display_order?: number
           id?: string
           is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      crm_territories: {
+        Row: {
+          code: string | null
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
           name?: string
           updated_at?: string
           user_id?: string
@@ -10173,6 +10322,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      ensure_default_crm_lookups: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       ensure_default_crm_pipeline: {
         Args: { p_user_id: string }
