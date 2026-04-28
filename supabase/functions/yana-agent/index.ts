@@ -541,6 +541,9 @@ TOOLS.push(
           currency: { type: "string", description: "Default RON" },
           expected_close_date: { type: "string", description: "YYYY-MM-DD" },
           lost_reason: { type: "string" },
+          lead_source_name: { type: "string", description: "Sursa lead-ului (ex: 'Website', 'LinkedIn', 'Recomandare'). Se rezolvă automat la ID." },
+          territory_name: { type: "string", description: "Teritoriu (ex: 'București-Ilfov', 'Transilvania'). Se rezolvă automat." },
+          lost_reason_name: { type: "string", description: "Motiv standardizat pentru pierdere (ex: 'Preț prea mare', 'Ales concurența'). Folosit la lose pentru raportare." },
         },
         required: ["action"],
       },
@@ -1486,6 +1489,15 @@ async function executeToolInner(
       // Asigură pipeline default
       const { data: pipelineId } = await supabase.rpc("ensure_default_crm_pipeline", { p_user_id: userId });
       if (!pipelineId) return { error: "Nu am putut crea pipeline-ul default" };
+      // Asigură lookups default (lead sources, territories, lost reasons)
+      await supabase.rpc("ensure_default_crm_lookups", { p_user_id: userId });
+
+      // Helper: rezolvă nume → id pentru lookup tables
+      const resolveLookup = async (table: string, name?: string): Promise<string | null> => {
+        if (!name) return null;
+        const { data } = await supabase.from(table).select("id").eq("user_id", userId).ilike("name", name).maybeSingle();
+        return data?.id || null;
+      };
 
       if (action === "list") {
         const { data, error } = await supabase.from("crm_deals").select("*, crm_companies(name), crm_pipeline_stages(name, color)").eq("user_id", userId).order("updated_at", { ascending: false }).limit(50);
@@ -1510,6 +1522,9 @@ async function executeToolInner(
         }
         if (!stageId) return { error: "Nu există etape în pipeline" };
 
+        const lead_source_id = await resolveLookup("crm_lead_sources", args.lead_source_name as string | undefined);
+        const territory_id = await resolveLookup("crm_territories", args.territory_name as string | undefined);
+
         const { data, error } = await supabase.from("crm_deals").insert({
           user_id: userId,
           pipeline_id: pipelineId,
@@ -1521,6 +1536,8 @@ async function executeToolInner(
           value: args.value || 0,
           currency: args.currency || "RON",
           expected_close_date: args.expected_close_date || null,
+          lead_source_id,
+          territory_id,
         }).select().single();
         if (error) return { error: error.message };
         return { created: data };
@@ -1546,7 +1563,14 @@ async function executeToolInner(
       if (action === "lose") {
         if (!args.deal_id) return { error: "deal_id obligatoriu" };
         const { data: lostStage } = await supabase.from("crm_pipeline_stages").select("id").eq("pipeline_id", pipelineId).eq("user_id", userId).eq("is_lost", true).maybeSingle();
-        const { data, error } = await supabase.from("crm_deals").update({ status: "lost", stage_id: lostStage?.id, lost_reason: args.lost_reason || null, actual_close_date: new Date().toISOString().split("T")[0] }).eq("id", args.deal_id).eq("user_id", userId).select().single();
+        const lost_reason_id = await resolveLookup("crm_lost_reasons", args.lost_reason_name as string | undefined);
+        const { data, error } = await supabase.from("crm_deals").update({
+          status: "lost",
+          stage_id: lostStage?.id,
+          lost_reason: args.lost_reason || null,
+          lost_reason_id,
+          actual_close_date: new Date().toISOString().split("T")[0],
+        }).eq("id", args.deal_id).eq("user_id", userId).select().single();
         if (error) return { error: error.message };
         return { lost: data };
       }
@@ -1555,6 +1579,15 @@ async function executeToolInner(
         const update: Record<string, unknown> = {};
         for (const k of ["title", "description", "value", "currency", "expected_close_date", "company_id", "contact_id"]) {
           if (args[k] !== undefined) update[k] = args[k];
+        }
+        if (args.lead_source_name !== undefined) {
+          update.lead_source_id = await resolveLookup("crm_lead_sources", args.lead_source_name as string);
+        }
+        if (args.territory_name !== undefined) {
+          update.territory_id = await resolveLookup("crm_territories", args.territory_name as string);
+        }
+        if (args.lost_reason_name !== undefined) {
+          update.lost_reason_id = await resolveLookup("crm_lost_reasons", args.lost_reason_name as string);
         }
         const { data, error } = await supabase.from("crm_deals").update(update).eq("id", args.deal_id).eq("user_id", userId).select().single();
         if (error) return { error: error.message };
