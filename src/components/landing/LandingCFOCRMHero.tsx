@@ -29,7 +29,7 @@ export const LandingCFOCRMHero = ({ onTryPrompt }: LandingCFOCRMHeroProps) => {
   };
 
   const handleChip = (chip: { label: string; prompt: string }) => {
-    analytics.landingCtaClick('chip', `hero_${chip.label.slice(0, 30)}`);
+    analytics.landingCtaClick('demo', `hero_chip_${chip.label.slice(0, 30)}`);
     if (onTryPrompt) {
       onTryPrompt(chip.prompt);
     } else {
