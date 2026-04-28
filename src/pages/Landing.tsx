@@ -27,6 +27,17 @@ const Landing = () => {
   const navigate = useNavigate();
   const [showDemo, setShowDemo] = useState(false);
   const [showDiagnostic, setShowDiagnostic] = useState(false);
+  const [demoInitialPrompt, setDemoInitialPrompt] = useState<string | undefined>(undefined);
+
+  const openDemoWithPrompt = (prompt: string) => {
+    setDemoInitialPrompt(prompt);
+    setShowDemo(true);
+  };
+
+  const closeDemo = () => {
+    setShowDemo(false);
+    setDemoInitialPrompt(undefined);
+  };
 
   useEffect(() => {
     analytics.pageView('landing');
@@ -125,7 +136,7 @@ const Landing = () => {
 
   return (
     <>
-      <DemoChat isOpen={showDemo} onClose={() => setShowDemo(false)} onOpenDiagnostic={() => { setShowDemo(false); setShowDiagnostic(true); }} />
+      <DemoChat isOpen={showDemo} onClose={closeDemo} onOpenDiagnostic={() => { closeDemo(); setShowDiagnostic(true); }} initialPrompt={demoInitialPrompt} />
       <BusinessDiagnostic isOpen={showDiagnostic} onClose={() => setShowDiagnostic(false)} onOpenDemo={() => { setShowDiagnostic(false); setShowDemo(true); }} />
       <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />
       <LandingStickyMobileCTA />
@@ -147,7 +158,7 @@ const Landing = () => {
         <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
           {/* ===== HERO — CFO + CRM într-un singur chat ===== */}
-          <LandingCFOCRMHero />
+          <LandingCFOCRMHero onTryPrompt={openDemoWithPrompt} />
 
           {/* Inline social proof */}
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground -mt-4">
@@ -158,8 +169,8 @@ const Landing = () => {
           {/* ===== Below-fold lazy-loaded sections ===== */}
           <Suspense fallback={<SectionFallback />}>
             <LandingChatDemo />
-            <LandingPainPoints />
             <LandingSocialProof />
+            <LandingPainPoints />
             <LandingBenefits />
             <LandingOfficeAnnouncement />
             <LandingHowItWorks />
