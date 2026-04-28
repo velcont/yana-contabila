@@ -16,6 +16,7 @@ interface DemoChatProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenDiagnostic?: () => void;
+  initialPrompt?: string;
 }
 
 const STORAGE_KEY = 'yana_demo_messages';
@@ -23,7 +24,7 @@ const COUNT_KEY = 'yana_demo_count';
 const MAX_QUESTIONS = 10;
 const NUDGE_AT = 7;
 
-export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) => {
+export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic, initialPrompt }: DemoChatProps) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<DemoMessage[]>([]);
   const [input, setInput] = useState('');
@@ -86,6 +87,14 @@ export const DemoChat = ({ isOpen, onClose, onOpenDiagnostic }: DemoChatProps) =
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
+
+  // Pre-fill input when an initialPrompt is provided (chip click on landing)
+  useEffect(() => {
+    if (isOpen && initialPrompt) {
+      setInput(initialPrompt);
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  }, [isOpen, initialPrompt]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading || questionCount >= MAX_QUESTIONS) return;
