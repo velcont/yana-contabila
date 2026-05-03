@@ -1,130 +1,170 @@
+## Samanta Voice Receptionist — Sprint 1
 
-# Plan: Landing fix (bounce 91% → target <70%) + continuare CRM
+**Scope**: Voice inbound only (Twilio + ElevenLabs Samanta) + Dashboard `/samanta`. WhatsApp via Aria pe 0731377793 (în afara acestui sprint).
 
-Atacăm în ordine: **întâi landing-ul** (impact direct pe trafic), **apoi cele 3 module CRM** (SLA, email tracking, lookup tables).
-
----
-
-## Partea 1 — Landing quick wins (mobile-first, ~30-45 min)
-
-### Diagnostic concret
-- 87% trafic e **mobil** (655 din 751)
-- 91% intră pe `/` și pleacă imediat (doar 3 ajung pe `/yana`)
-- Sursă principală: **YouTube (55)**, Facebook (13), Instagram (5) — vin din social, atenție 2-3 secunde
-- Hero-ul actual cere efort: 3 exemple de citit + 3 bullets + CTA. Pe mobil = scroll mort
-
-### Obiective
-1. **Scurtez hero-ul** la o singură promisiune + un singur CTA dominant
-2. **Adaug interacțiune instantă** — nu doar text de citit, ci ceva pe care vizitatorul îl atinge în 2 secunde
-3. **Bounce-killer**: dacă vizitatorul scrollează măcar puțin, vede deja "wow moment"
-
-### Modificări concrete
-
-**1. `LandingCFOCRMHero.tsx` — refactor**
-- Scot cele 3 `ChatExample` statice (text mort, ocupă spațiu, nu convertesc)
-- Scot cele 3 `Feature` bullets (chat-first / CFO / CRM) — redundante cu titlul
-- H1 mai punchy, focus pe **beneficiu**, nu pe ce e produsul:
-  - Nou: "Cifrele tale, **explicate ca de un CFO.** Clienții tăi, **gestionați prin chat.**"
-- Adaug **3 chips clickabile** (în loc de exemple statice) care deschid direct demo-ul cu întrebarea pre-completată:
-  - "Câți bani îmi rămân după impozite?"
-  - "Cum stă pipeline-ul meu?"
-  - "Analizează-mi balanța"
-- Mai jos hero: counter live ("177+ antreprenori, 12 azi") — deja există parțial
-
-**2. Hook nou: deschidere demo cu prompt pre-completat**
-- `LandingCFOCRMHero` primește `onTryPrompt: (prompt: string) => void` din `Landing.tsx`
-- `Landing.tsx` deschide `DemoChat` cu prompt-ul deja scris în input — utilizatorul doar apasă Send
-- Asta convertește mult mai bine decât "Click pe CTA → Auth → /yana"
-
-**3. `LandingChatDemo.tsx` — animat în loc de static**
-- Acum e un bloc static de text care se citește în 30s. Pe mobil = nimeni nu îl citește.
-- Îl fac **auto-typing** (mesajele apar progresiv, ca un chat real care se întâmplă acum)
-- Folosesc `useEffect` cu `setInterval`, fără librării noi
-- Loop-uiește la final pentru a menține atenția
-
-**4. `LandingStickyMobileCTA.tsx` — îmbunătățire mică**
-- Acum apare doar după 50px scroll. Îl fac vizibil de la 200px (după hero), ca să nu sufoce hero-ul
-- Adaug un text mic sub buton: "30 zile gratuit · fără card"
-- Buton cu **icon mesaj** ca să sugereze conversație
-
-**5. Reordonare secțiuni** (`Landing.tsx`)
-- Mut `LandingChatDemo` (animat) **imediat după hero** (deja e acolo, ok)
-- Mut `LandingSocialProof` **imediat după chat demo** (acum e după PainPoints) — social proof devreme = trust devreme
-- `LandingPainPoints` rămâne pentru cei care scrollează mai jos
-
-### Tracking
-- Adaug `analytics.landingCtaClick('chip', 'hero_<prompt>')` pe fiecare chip
-- Adaug `analytics.landingCtaClick('demo_typed', 'auto_demo')` când chat demo termină de typit
-- Așa pot măsura în 3-4 zile dacă chip-urile convertesc mai bine decât CTA-ul standard
-
-### Ce NU schimb (acum)
-- Stack-ul SEO/JSON-LD (e ok)
-- Pricing, AIProviders, Pain Points (sunt below-fold, nu afectează bounce)
-- ExitIntentPopup (deja există)
-- Diagnosticul în 5 pași (rămâne accesibil din ExitIntent și sticky)
-
-### Risc & rollback
-- Toate schimbările sunt în 4 fișiere existente, fără DB. Rollback ușor printr-un revert
-- Nu sparg nimic din restul aplicației (componente self-contained)
+**Decizii confirmate:**
+- Calea A: forwarding de pe GSM-ul actual către număr Twilio nou
+- 24/7 răspuns (controlabil din UI după)
+- Limbă: doar română
+- Agent ElevenLabs existent: `agent_0701kqqhjszgfras171457cctcjy`
 
 ---
 
-## Partea 2 — Continuare CRM (3 module)
+## Ce construiesc, în ordine
 
-După ce landing-ul e live, trec direct la cele 3 module aprobate anterior. Le livrez în ordinea recomandată (cea mai mică complexitate prima):
+### 1. Conectori & secrete
+- Conectez **ElevenLabs** ca connector Lovable Cloud (te prompt-uiește pentru API key)
+- Verific Twilio (deja conectat conform memory)
+- Adaug secret `SAMANTA_WEBHOOK_TOKEN` (random, validează webhook-urile noastre)
 
-### Etapa A — Lookup tables (cel mai sigur, ~150 LOC)
-1. Migration: tabele `crm_lead_sources`, `crm_territories`, `crm_lost_reasons` cu RLS per user
-2. Funcție `ensure_default_crm_lookups(user_id)` care seedează valori implicite
-3. FK columns: `lead_source_id`, `territory_id` pe `crm_deals` și `crm_contacts`; `lost_reason_id` pe `crm_deals`
-4. UI: dropdown în formularul de deal (`CRM.tsx` / componenta de edit deal)
-5. Hook `useCrmLookups()` pentru fetch o singură dată
+### 2. Schema DB (migration)
+```text
+samanta_settings
+  user_id (PK, FK auth.users)
+  active boolean default true
+  schedule jsonb           -- {mode: '24_7' | 'window', windows: [...]}
+  voice_id text default 'agent_0701kqqhjszgfras171457cctcjy'
+  twilio_phone_number text -- numărul cumpărat
+  forward_to_user_phone text -- GSM-ul tău (pentru "Preia tu")
+  escalation_keywords text[] default '{urgent,anaf,amenda,control,procuror,executor}'
+  language text default 'ro'
+  greeting text            -- "Bună, sunt Samanta, asistenta lui [nume]..."
+  created_at, updated_at
 
-### Etapa B — SLA tracking (~250 LOC)
-1. Migration: `crm_sla_policies` (per pipeline stage: max ore până la first response, max zile până la close)
-2. Pe `crm_deals` adaug: `first_response_at`, `response_due_at`, `sla_breached`, `sla_warning_at`
-3. Trigger SQL care calculează `response_due_at` la INSERT bazat pe stage-ul curent
-4. UI: badge vizual pe card-ul de deal în Kanban (verde/galben/roșu)
-5. Edge function cron `crm-sla-checker` (rulează la 15 min): marchează `sla_breached=true`
-6. Decizie utilizator deja luată: **alertă vizuală în UI**, dar opțional pot adăuga și mesaj proactiv din partea YANA în chat (pe baza memoriei `proactive-initiative-tone-standard`)
+samanta_calls
+  id, user_id (FK)
+  twilio_call_sid text unique
+  from_number text
+  to_number text
+  direction text default 'inbound'
+  contact_id uuid nullable -- lookup CRM după from_number
+  started_at, ended_at, duration_seconds
+  status text              -- 'in_progress' | 'completed' | 'failed' | 'taken_over'
+  transcript jsonb         -- [{role, text, ts}]
+  summary text             -- generat post-call
+  escalation_needed boolean
+  recording_url text nullable
+  created_at
 
-### Etapa C — Email tracking (~300 LOC, cel mai complex)
-1. Migration: `crm_email_events` (open, click, bounce) + `crm_email_sends` (id mesaj, deal_id, contact_id)
-2. Edge function `crm-email-tracker` — endpoint public care primește `?id=xxx&event=open`, returnează 1x1 PNG
-3. Edge function `crm-send-email` — wrapper Resend care:
-   - Substituie variabile (`{{contact.first_name}}`, `{{deal.value}}`)
-   - Injectează tracking pixel + rewrites linkuri prin `crm-email-tracker?event=click`
-   - Logă `crm_email_sends`
-4. UI: pe deal-ul deschis, secțiune "Email activity" cu istoric open/click
-5. Memoria existentă `email-placeholder-prevention-rules` — adaug validare strictă că nu rămân `[...]` brackets în template-uri
+samanta_callbacks
+  id, user_id (FK), call_id (FK samanta_calls)
+  contact_name text, contact_phone text
+  scheduled_for timestamptz
+  reason text
+  status text default 'pending' -- 'pending' | 'done' | 'cancelled'
+  created_at
 
-### Comunicare cu utilizatorul după fiecare etapă
-- După fiecare etapă opresc și raportez ce e live
-- Așa nu se acumulează bug-uri care se mască reciproc
+samanta_blocked_numbers
+  user_id, phone_number, reason, created_at
+  PK (user_id, phone_number)
+```
+Toate cu RLS strict pe `user_id = auth.uid()`. Trigger pentru `updated_at`.
+
+### 3. Edge functions (4 noi)
+
+**`samanta-voice-incoming`** (`verify_jwt = false`)
+- Primește webhook Twilio Voice când sună cineva
+- Validează `X-Twilio-Signature`
+- Caută settings după `to_number` → user_id
+- Verifică program activ + apelant blocat
+- Caută contact în CRM după `from_number` (preload context)
+- Inserează rând `samanta_calls` cu status `in_progress`
+- Returnează TwiML cu `<Connect><ConversationRelay>` către ElevenLabs
+- Pasează în `customParameters` user_id, call_id, contact_context, greeting personalizat
+
+**`samanta-voice-status`** (`verify_jwt = false`)
+- Webhook Twilio status callback (ringing/answered/completed)
+- Update `samanta_calls.status`, `ended_at`, `duration_seconds`
+
+**`samanta-call-completed`** (`verify_jwt = false`)
+- Webhook ElevenLabs post-call (transcript + audio)
+- Validează HMAC ElevenLabs signature
+- Salvează `transcript` + `recording_url`
+- Cheamă `chat-ai` cu prompt: "Generează rezumat 2-3 propoziții + flag escalation + extrage callback dacă promis"
+- Update `samanta_calls.summary`, `escalation_needed`
+- Dacă promisiune callback → INSERT `samanta_callbacks`
+- INSERT mesaj sistem în conversația YANA activă a userului: `📞 Te-a sunat ${nume} (${telefon}). ${rezumat}` cu link la transcript
+- Dacă escalation → trimite push/email instant
+
+**`samanta-toggle`** (`verify_jwt = true`)
+- Endpoint pentru on/off rapid + update settings din UI
+- Schimbă `active`, `schedule`, `escalation_keywords`
+
+### 4. UI — pagina `/samanta`
+Single page, urmează stilul existent (sidebar, dark, conversational). Tabs:
+
+**Tab "Live"**
+- Toggle mare ON/OFF "Samanta răspunde acum"
+- Card "Apel în desfășurare" (realtime via Supabase channel pe `samanta_calls`)
+- Buton "Preia tu" → cheamă `samanta-takeover` (forward live la GSM)
+
+**Tab "Istoric"**
+- Listă apeluri (from_number, contact name dacă identificat, durată, summary)
+- Click → expandă transcript + player audio
+- Filtre: doar escaladate, doar callback-uri promise
+
+**Tab "Setări"**
+- Greeting personalizat (textarea) — preview cu TTS test
+- Program (24/7 / window picker)
+- Cuvinte trigger escaladare (chip input)
+- Numere blocate (chip input)
+- Numărul Twilio activ (read-only, cu instrucțiuni forward `**61*${number}#`)
+
+**Tab "Callbacks"**
+- Promisiuni de revenire pe care Samanta le-a făcut
+- Marchează "Sunat" / "Anulat"
+- Notificare push când e momentul
+
+### 5. Integrare în chat YANA
+- Mesaje sistem `samanta_call_summary` apar în istoric (component nou `SamantaCallCard.tsx`) cu emoji 📞, durată, sumar, buton "Vezi transcript"
+- Realtime: când vine un apel, în chat apare card live
+- Tool nou în `yana-agent`: `samanta_get_recent_calls(limit)` — pentru întrebări gen "ce apeluri am avut azi?"
+
+### 6. Sidebar
+Adaug item "📞 Samanta" sub "CRM" (ordine confirmată din memory).
 
 ---
 
-## Detalii tehnice
+## Ce ai de făcut TU în paralel cu mine
 
-**Fișiere modificate (Partea 1):**
-- `src/components/landing/LandingCFOCRMHero.tsx` — refactor hero
-- `src/components/landing/LandingChatDemo.tsx` — auto-typing
-- `src/components/landing/LandingStickyMobileCTA.tsx` — threshold + subtext
-- `src/pages/Landing.tsx` — reordonare secțiuni + handler prompt pre-completat
-- `src/components/demo/DemoChat.tsx` — accept prop `initialPrompt` (verific dacă există deja)
-
-**Fișiere noi (Partea 2):**
-- 3 migrations SQL
-- 3 hooks React (`useCrmLookups`, `useCrmSla`, `useCrmEmailEvents`)
-- 3 edge functions (`crm-sla-checker`, `crm-email-tracker`, `crm-send-email`)
-- Update componente existente CRM pentru afișare badge SLA și dropdown lookups
-
-**Fără breaking changes**: toate FK-urile noi sunt nullable, toate tabelele noi sunt aditive.
+1. **Twilio Console** — cumperi un număr românesc:
+   - Console → Phone Numbers → Buy a Number → Country: Romania → Capabilities: Voice ✓
+   - Cost: ~5€/lună
+   - **NU configura webhook-ul încă** — îți dau eu URL-urile după deploy
+2. **ElevenLabs** — verifici că agentul `agent_0701kqqhjszgfras171457cctcjy` are:
+   - Voice română setat
+   - System prompt placeholder (îl suprascriem dinamic per apel)
+3. **GSM forwarding** — îl activezi DOAR după ce testăm că Samanta răspunde corect pe numărul Twilio direct. Codul: `**61*${numar_twilio}#` apel. Dezactivare: `##61#`.
 
 ---
 
-## Așteptări realiste
+## Ordine de implementare (4 pași testabili)
 
-- Landing fix nu rezolvă bounce-ul instant — e un test. Dau drumul, monitorizez 3-5 zile, ajustez
-- Target realist: **bounce 91% → 70-75%** în prima săptămână (industria SaaS B2B = 60-75%)
-- Dacă nu se mișcă în 5 zile, semnalul real e că **traficul YouTube nu e calificat** și trebuie schimbat mesajul în videoclipuri, nu pe site
+1. **Setup**: connector ElevenLabs + migration DB + secret
+2. **Edge functions voice** + deploy + testare directă pe numărul Twilio (apel real, eu verific log-uri)
+3. **Dashboard `/samanta`** cu toate tabs + integrare sidebar
+4. **Integrare chat YANA**: card live + summary în istoric + tool agent
+
+Fiecare pas e testabil independent. La final test end-to-end: tu suni numărul Twilio → vorbești cu Samanta → în chat-ul tău YANA apare rezumatul în <30s.
+
+---
+
+## Estimare cost recurent
+- Twilio număr: ~5€/lună
+- Twilio voice inbound: ~0.0085€/min (~2€/lună la 100 apeluri × 2 min)
+- ElevenLabs Conversational: ~0.08€/min (~16€/lună)
+- **Total: ~23€/lună la trafic mediu**
+
+---
+
+## Note tehnice / riscuri
+
+- ElevenLabs ConversationRelay (Twilio media stream) e GA din 2024 — folosim direct, fără bridge custom
+- Webhook signing: Twilio (`X-Twilio-Signature`) + ElevenLabs (`ElevenLabs-Signature`) — ambele validate strict
+- Realtime UI: enable `samanta_calls` în `supabase_realtime` publication
+- "Preia tu" v1 = forward live (Twilio `<Dial>`); v2 (sprint următor) = cobor în WebRTC browser direct
+- Nu salvăm audio mai vechi de 30 zile (cron) — privacy + cost storage
+
+---
+
+Confirmă "merge" și încep cu pasul 1 (connector + DB + secret).
