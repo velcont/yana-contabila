@@ -5005,6 +5005,185 @@ export type Database = {
         }
         Relationships: []
       }
+      samanta_blocked_numbers: {
+        Row: {
+          created_at: string
+          phone_number: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          phone_number: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          phone_number?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      samanta_callbacks: {
+        Row: {
+          call_id: string | null
+          contact_name: string | null
+          contact_phone: string
+          created_at: string
+          id: string
+          reason: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          contact_name?: string | null
+          contact_phone: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          call_id?: string | null
+          contact_name?: string | null
+          contact_phone?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "samanta_callbacks_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "samanta_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      samanta_calls: {
+        Row: {
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          direction: string
+          duration_seconds: number | null
+          elevenlabs_conversation_id: string | null
+          ended_at: string | null
+          escalation_needed: boolean
+          from_number: string
+          id: string
+          recording_url: string | null
+          started_at: string
+          status: string
+          summary: string | null
+          to_number: string
+          transcript: Json | null
+          twilio_call_sid: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          elevenlabs_conversation_id?: string | null
+          ended_at?: string | null
+          escalation_needed?: boolean
+          from_number: string
+          id?: string
+          recording_url?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          to_number: string
+          transcript?: Json | null
+          twilio_call_sid?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          direction?: string
+          duration_seconds?: number | null
+          elevenlabs_conversation_id?: string | null
+          ended_at?: string | null
+          escalation_needed?: boolean
+          from_number?: string
+          id?: string
+          recording_url?: string | null
+          started_at?: string
+          status?: string
+          summary?: string | null
+          to_number?: string
+          transcript?: Json | null
+          twilio_call_sid?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      samanta_settings: {
+        Row: {
+          active: boolean
+          company_name: string | null
+          created_at: string
+          escalation_keywords: string[]
+          forward_to_user_phone: string | null
+          greeting: string | null
+          language: string
+          schedule: Json
+          twilio_phone_number: string | null
+          updated_at: string
+          user_full_name: string | null
+          user_id: string
+          voice_agent_id: string
+        }
+        Insert: {
+          active?: boolean
+          company_name?: string | null
+          created_at?: string
+          escalation_keywords?: string[]
+          forward_to_user_phone?: string | null
+          greeting?: string | null
+          language?: string
+          schedule?: Json
+          twilio_phone_number?: string | null
+          updated_at?: string
+          user_full_name?: string | null
+          user_id: string
+          voice_agent_id?: string
+        }
+        Update: {
+          active?: boolean
+          company_name?: string | null
+          created_at?: string
+          escalation_keywords?: string[]
+          forward_to_user_phone?: string | null
+          greeting?: string | null
+          language?: string
+          schedule?: Json
+          twilio_phone_number?: string | null
+          updated_at?: string
+          user_full_name?: string | null
+          user_id?: string
+          voice_agent_id?: string
+        }
+        Relationships: []
+      }
       saved_strategies: {
         Row: {
           action_items: Json | null
