@@ -67,6 +67,7 @@ const EmailSettings = lazy(() => import("./pages/EmailSettings"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const Prospect = lazy(() => import("./pages/Prospect"));
 const Samanta = lazy(() => import("./pages/Samanta"));
+const SamantaLive = lazy(() => import("./pages/SamantaLive"));
 
 const queryClient = new QueryClient();
 
