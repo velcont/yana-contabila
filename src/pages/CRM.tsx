@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { YanaHomeButton } from "@/components/YanaHomeButton";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ContactDossierDialog } from "@/components/crm/ContactDossierDialog";
 
 interface Company { id: string; name: string; cui?: string | null; industry?: string | null; city?: string | null; annual_revenue?: number | null; }
 interface Contact { id: string; first_name: string; last_name?: string | null; email?: string | null; phone?: string | null; job_title?: string | null; crm_companies?: { name: string } | null; }
@@ -42,6 +43,8 @@ const CRM = () => {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [importingCard, setImportingCard] = useState(false);
+  const [dossierContact, setDossierContact] = useState<Contact | null>(null);
+  const [dossierOpen, setDossierOpen] = useState(false);
 
   useEffect(() => {
     document.title = "CRM YANA — Pipeline conversational AI";
@@ -343,6 +346,9 @@ const CRM = () => {
                     <Button size="sm" variant="ghost" className="gap-1 shrink-0" onClick={() => openTimeline(c)}>
                       <Clock className="w-3 h-3" />Timeline
                     </Button>
+                    <Button size="sm" variant="outline" className="gap-1 shrink-0" onClick={() => { setDossierContact(c); setDossierOpen(true); }}>
+                      📁 Dosar
+                    </Button>
                   </CardContent>
                 </Card>
               ))
@@ -504,6 +510,12 @@ const CRM = () => {
           </TabsContent>
         </Tabs>
       </main>
+      <ContactDossierDialog
+        contact={dossierContact as any}
+        open={dossierOpen}
+        onOpenChange={setDossierOpen}
+        onSaved={loadAll}
+      />
     </div>
   );
 };

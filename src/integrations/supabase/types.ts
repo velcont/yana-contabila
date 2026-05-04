@@ -2251,14 +2251,63 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_contact_notes: {
+        Row: {
+          category: string
+          contact_id: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          metadata: Json
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          contact_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          metadata?: Json
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          contact_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          metadata?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_contacts: {
         Row: {
+          birthday: string | null
           company_id: string | null
           created_at: string
           email: string | null
           enriched_at: string | null
           enrichment_data: Json | null
           first_name: string
+          fiscal_params: Json
           id: string
           job_title: string | null
           last_activity_at: string | null
@@ -2269,6 +2318,7 @@ export type Database = {
           linkedin_url: string | null
           metadata: Json | null
           notes: string | null
+          personal_info: Json
           phone: string | null
           tags: string[] | null
           territory_id: string | null
@@ -2276,12 +2326,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          birthday?: string | null
           company_id?: string | null
           created_at?: string
           email?: string | null
           enriched_at?: string | null
           enrichment_data?: Json | null
           first_name: string
+          fiscal_params?: Json
           id?: string
           job_title?: string | null
           last_activity_at?: string | null
@@ -2292,6 +2344,7 @@ export type Database = {
           linkedin_url?: string | null
           metadata?: Json | null
           notes?: string | null
+          personal_info?: Json
           phone?: string | null
           tags?: string[] | null
           territory_id?: string | null
@@ -2299,12 +2352,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          birthday?: string | null
           company_id?: string | null
           created_at?: string
           email?: string | null
           enriched_at?: string | null
           enrichment_data?: Json | null
           first_name?: string
+          fiscal_params?: Json
           id?: string
           job_title?: string | null
           last_activity_at?: string | null
@@ -2315,6 +2370,7 @@ export type Database = {
           linkedin_url?: string | null
           metadata?: Json | null
           notes?: string | null
+          personal_info?: Json
           phone?: string | null
           tags?: string[] | null
           territory_id?: string | null
