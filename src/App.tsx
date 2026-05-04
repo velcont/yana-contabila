@@ -208,6 +208,7 @@ const App = () => {
                       <Route path="/email-settings" element={<PrivateRoute><EmailSettings /></PrivateRoute>} />
                       <Route path="/prospect" element={<PrivateRoute><Prospect /></PrivateRoute>} />
                       <Route path="/samanta" element={<PrivateRoute><Samanta /></PrivateRoute>} />
+                      <Route path="/samanta/live" element={<PrivateRoute><SamantaLive /></PrivateRoute>} />
                       
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
