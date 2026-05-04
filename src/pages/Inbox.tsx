@@ -7,17 +7,35 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Inbox as InboxIcon, Send, Search, RefreshCw, Settings, ArrowLeft, Trash2, Mail, MailOpen } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Inbox as InboxIcon, Send, Search, RefreshCw, Settings, ArrowLeft, Trash2, Mail, MailOpen, Phone, PhoneIncoming, AlertTriangle, PhoneOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 type Folder = { path: string; name: string; specialUse: string | null };
 type Msg = { uid: number; subject: string; from: { name?: string; address: string } | null; date: string | null; unread: boolean };
+type Call = {
+  id: string;
+  from_number: string;
+  to_number: string;
+  contact_name: string | null;
+  started_at: string | null;
+  created_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  status: string;
+  summary: string | null;
+  escalation_needed: boolean;
+  transcript: any;
+  recording_url: string | null;
+};
 
 export default function Inbox() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const initialMessageLoadedRef = useRef(false);
+  const [tab, setTab] = useState<'calls' | 'email'>('calls');
   const [hasAccount, setHasAccount] = useState<boolean | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [folder, setFolder] = useState('INBOX');
@@ -29,16 +47,44 @@ export default function Inbox() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [compose, setCompose] = useState({ to: '', subject: '', body: '' });
   const [sending, setSending] = useState(false);
+  const [calls, setCalls] = useState<Call[]>([]);
+  const [loadingCalls, setLoadingCalls] = useState(false);
+  const [selectedCall, setSelectedCall] = useState<Call | null>(null);
+  const [unreadCalls, setUnreadCalls] = useState(0);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('user_email_accounts').select('id').eq('is_default', true).maybeSingle();
-      if (!data) { setHasAccount(false); return; }
-      setHasAccount(true);
-      await loadFolders();
-      await loadMessages('INBOX');
+      setHasAccount(!!data);
+      if (data) {
+        await loadFolders();
+        await loadMessages('INBOX');
+      }
+      await loadCalls();
     })();
+    // Realtime subscription for new calls
+    const channel = supabase
+      .channel('samanta_calls_inbox')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'samanta_calls' }, () => {
+        loadCalls();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const loadCalls = async () => {
+    setLoadingCalls(true);
+    const { data, error } = await supabase
+      .from('samanta_calls')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    setLoadingCalls(false);
+    if (error) { toast({ title: 'Eroare la încărcare apeluri', description: error.message, variant: 'destructive' }); return; }
+    const list = (data || []) as Call[];
+    setCalls(list);
+    setUnreadCalls(list.filter(c => c.status === 'in_progress' || c.escalation_needed).length);
+  };
 
   const loadFolders = async () => {
     const { data, error } = await supabase.functions.invoke('email-client', { body: { action: 'list_folders' } });
