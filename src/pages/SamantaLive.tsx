@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useConversation } from "@elevenlabs/react";
+import { useConversation, ConversationProvider } from "@elevenlabs/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Mic, MicOff, Loader2, Phone, PhoneOff } from "lucide-react";
@@ -10,7 +10,7 @@ const AGENT_ID = "agent_0701kqqhjszgfras171457cctcjy";
 
 type ChatLine = { role: "user" | "agent"; text: string; ts: number };
 
-export default function SamantaLive() {
+function SamantaLiveInner() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [starting, setStarting] = useState(false);
