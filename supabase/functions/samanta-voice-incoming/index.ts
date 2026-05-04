@@ -177,33 +177,58 @@ Deno.serve(async (req) => {
       `\nINFO: Acest apel vine de la ${from} către ${to}.`,
     ].filter(Boolean).join("\n");
 
-    // Build TwiML with ConversationRelay → ElevenLabs
-    // ConversationRelay uses ElevenLabs' WebSocket bridge for Twilio
+    // Register the Twilio call with ElevenLabs and return their TwiML directly.
+    // This is the supported bridge for Twilio-owned numbers; Twilio ConversationRelay
+    // expects our own websocket protocol server and closes immediately otherwise.
     const elevenAgentId = settings.voice_agent_id;
+    const elevenLabsApiKey = Deno.env.get("ELEVENLABS_API_KEY");
+    if (!elevenLabsApiKey) {
+      console.error("[samanta-voice-incoming] ELEVENLABS_API_KEY missing");
+      return rejectTwiml("elevenlabs missing");
+    }
 
-    // ElevenLabs Twilio personalization webhook will pick these custom params via metadata
-    // We pass dynamic context as URL query so ElevenLabs personalization endpoint can read them
-    const wsUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${encodeURIComponent(elevenAgentId)}`;
+    const elevenResponse = await fetch("https://api.elevenlabs.io/v1/convai/twilio/register-call", {
+      method: "POST",
+      headers: {
+        "xi-api-key": elevenLabsApiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        agent_id: elevenAgentId,
+        from_number: from,
+        to_number: to,
+        direction: "inbound",
+        conversation_initiation_client_data: {
+          conversation_config_override: {
+            agent: {
+              prompt: { prompt: systemPrompt },
+              first_message: greeting,
+              language: "ro",
+            },
+          },
+          dynamic_variables: {
+            user_id: settings.user_id,
+            call_id: callId,
+            caller_name: contactName || "Necunoscut",
+            caller_phone: from,
+            company_name: company,
+          },
+          user_id: settings.user_id,
+        },
+      }),
+    });
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <ConversationRelay
-      url="${wsUrl}"
-      welcomeGreeting="${escapeXml(greeting)}"
-      language="ro-RO"
-      ttsLanguage="ro-RO"
-      transcriptionLanguage="ro-RO">
-      <Parameter name="user_id" value="${escapeXml(settings.user_id)}"/>
-      <Parameter name="call_id" value="${escapeXml(callId)}"/>
-      <Parameter name="caller_name" value="${escapeXml(contactName || 'Necunoscut')}"/>
-      <Parameter name="caller_phone" value="${escapeXml(from)}"/>
-      <Parameter name="system_prompt" value="${escapeXml(systemPrompt)}"/>
-    </ConversationRelay>
-  </Connect>
-</Response>`;
+    const twiml = await elevenResponse.text();
+    if (!elevenResponse.ok || !twiml.trim().startsWith("<")) {
+      console.error("[samanta-voice-incoming] ElevenLabs register-call failed", {
+        status: elevenResponse.status,
+        body: twiml.slice(0, 800),
+      });
+      return rejectTwiml("elevenlabs register failed");
+    }
 
-    return new Response(xml, { headers: xmlHeaders });
+    console.log("[samanta-voice-incoming] ElevenLabs TwiML registered", { callSid, callId });
+    return new Response(twiml, { headers: xmlHeaders });
   } catch (e) {
     console.error("[samanta-voice-incoming] error", e);
     return rejectTwiml("error");
