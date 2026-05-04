@@ -187,6 +187,12 @@ export default function Yana() {
                 <span className="hidden sm:inline text-xs font-medium">CRM</span>
               </Button>
             </Link>
+            <Link to="/samanta">
+              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Samanta — recepționera vocală">
+                <Phone className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs font-medium">Samanta</span>
+              </Button>
+            </Link>
             <Link to="/whatsapp">
               <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="WhatsApp Bot">
                 <MessageCircle className="h-4 w-4" />
