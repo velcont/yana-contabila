@@ -1,5 +1,17 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
+[functions.samanta-voice-incoming]
+verify_jwt = false
+
+[functions.samanta-voice-status]
+verify_jwt = false
+
+[functions.samanta-call-completed]
+verify_jwt = false
+
+[functions.samanta-settings]
+verify_jwt = true
+
 [functions.wa-webhook]
 verify_jwt = false
 
