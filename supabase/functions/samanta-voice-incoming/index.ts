@@ -9,6 +9,8 @@ const xmlHeaders = {
   "Access-Control-Allow-Origin": "*",
 };
 
+const SAMANTA_VOICE_ID = Deno.env.get("SAMANTA_VOICE_ID") || "GRHbHyXbUO8nF4YexVTa";
+
 function escapeXml(s: string): string {
   return (s || "")
     .replace(/&/g, "&amp;")
@@ -25,14 +27,56 @@ function rejectTwiml(reason: string): Response {
 
 function gatherTwiml(message: string, callId: string): Response {
   const actionUrl = `${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=gather&call_id=${encodeURIComponent(callId)}`;
+  const audioUrl = `${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=tts&text=${encodeURIComponent(message)}`;
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech" language="ro-RO" speechTimeout="auto" timeout="6" action="${escapeXml(actionUrl)}" method="POST">
-    <Say language="ro-RO">${escapeXml(message)}</Say>
+    <Play>${escapeXml(audioUrl)}</Play>
   </Gather>
-  <Say language="ro-RO">Nu v-am auzit. Vă rog să reveniți cu un apel. O zi bună.</Say>
+  <Play>${escapeXml(`${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=tts&text=${encodeURIComponent("Nu v-am auzit. Vă rog să reveniți cu un apel. O zi bună.")}`)}</Play>
 </Response>`;
   return new Response(xml, { headers: xmlHeaders });
+}
+
+async function elevenLabsTts(text: string): Promise<Response> {
+  const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
+  if (!apiKey) return new Response("ELEVENLABS_API_KEY missing", { status: 500 });
+
+  const safeText = text.trim().slice(0, 900) || "Bună ziua.";
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${SAMANTA_VOICE_ID}?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: safeText,
+        model_id: "eleven_turbo_v2_5",
+        voice_settings: {
+          stability: 0.42,
+          similarity_boost: 0.82,
+          style: 0.35,
+          use_speaker_boost: true,
+          speed: 0.98,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    console.error("[samanta-voice-incoming] ElevenLabs TTS failed", response.status, await response.text());
+    return new Response("TTS failed", { status: 500 });
+  }
+
+  return new Response(await response.arrayBuffer(), {
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
 }
 
 async function generateSamantaReply(systemPrompt: string, callerText: string): Promise<string> {
