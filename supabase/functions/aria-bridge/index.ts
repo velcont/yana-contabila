@@ -41,23 +41,26 @@ async function ensureLogTable() {
 async function getRecentMessages(phone: string, limit = 8) {
   const { data, error } = await supabase
     .from("wa_messages_log")
-    .select("direction, content, created_at")
-    .eq("phone", phone)
+    .select("direction, body, created_at")
+    .eq("phone_e164", phone)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) {
     console.warn("[aria-bridge] getRecentMessages err", error.message);
     return [];
   }
-  return (data || []).reverse();
+  return (data || []).reverse().map((m: any) => ({
+    direction: m.direction as "in" | "out",
+    content: m.body as string,
+  }));
 }
 
-async function logMessage(phone: string, direction: "in" | "out", content: string, contactName?: string) {
+async function logMessage(phone: string, direction: "in" | "out", content: string, _contactName?: string) {
   const { error } = await supabase.from("wa_messages_log").insert({
-    phone,
+    phone_e164: phone,
     direction,
-    content,
-    contact_name: contactName ?? null,
+    body: content,
+    status: "ok",
     user_id: WHATSAPP_OWNER_USER_ID,
   });
   if (error) console.warn("[aria-bridge] logMessage err", error.message);
