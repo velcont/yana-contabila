@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") || "Samanta (YANA) <onboarding@resend.dev>";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -137,6 +139,85 @@ Deno.serve(async (req) => {
         reason: result.callback.reason || null,
         status: "pending",
       });
+    }
+
+    // === Notificare push (in-app) ===
+    try {
+      const fromNumber = call?.from_number || "necunoscut";
+      const callerName = call?.contact_name || fromNumber;
+      const isUrgent = !!result.escalation_needed;
+      const title = isUrgent
+        ? `🚨 Apel URGENT de la ${callerName}`
+        : `📞 Apel nou de la ${callerName}`;
+      await supabase.from("user_notifications").insert({
+        user_id: finalUserId,
+        type: "samanta_call",
+        title,
+        message: result.summary || "Samanta a preluat un apel. Vezi transcriptul în Inbox.",
+        priority: isUrgent ? "critical" : "medium",
+        metadata: {
+          call_id: callId,
+          from_number: fromNumber,
+          escalation_needed: isUrgent,
+          action_url: "/inbox",
+        },
+      });
+    } catch (e) {
+      console.error("[samanta-call-completed] notification insert failed", e);
+    }
+
+    // === Email automat ===
+    try {
+      if (RESEND_API_KEY) {
+        const { data: userRes } = await supabase.auth.admin.getUserById(finalUserId);
+        const userEmail = userRes?.user?.email;
+        if (userEmail) {
+          const fromNumber = call?.from_number || "necunoscut";
+          const callerName = call?.contact_name || fromNumber;
+          const isUrgent = !!result.escalation_needed;
+          const transcriptHtml = (transcript || [])
+            .map((m: any) => {
+              const who = m.role === "user" ? "Apelant" : "Samanta";
+              const text = (m.message || m.text || "").replace(/</g, "&lt;");
+              return `<p style="margin:4px 0"><strong>${who}:</strong> ${text}</p>`;
+            })
+            .join("");
+          const subject = isUrgent
+            ? `🚨 URGENT — Apel Samanta de la ${callerName}`
+            : `📞 Apel nou Samanta — ${callerName}`;
+          const html = `
+            <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#fff">
+              <h2 style="color:${isUrgent ? "#dc2626" : "#0f172a"};margin:0 0 12px">${subject}</h2>
+              <p style="color:#475569"><strong>De la:</strong> ${callerName} (${fromNumber})</p>
+              <p style="color:#475569"><strong>Când:</strong> ${new Date().toLocaleString("ro-RO")}</p>
+              <h3 style="margin:20px 0 8px">Rezumat</h3>
+              <p style="color:#0f172a;background:#f1f5f9;padding:12px;border-radius:8px">${result.summary || "—"}</p>
+              <h3 style="margin:20px 0 8px">Transcript</h3>
+              <div style="background:#f8fafc;padding:12px;border-radius:8px;color:#0f172a;font-size:14px">${transcriptHtml || "<em>Fără transcript</em>"}</div>
+              <p style="margin-top:24px">
+                <a href="https://yana-contabila.velcont.com/inbox"
+                   style="background:#0f172a;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block">
+                  Deschide Inbox
+                </a>
+              </p>
+            </div>`;
+          const r = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${RESEND_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ from: FROM_EMAIL, to: [userEmail], subject, html }),
+          });
+          if (!r.ok) {
+            console.error("[samanta-call-completed] resend failed", r.status, await r.text());
+          }
+        }
+      } else {
+        console.warn("[samanta-call-completed] RESEND_API_KEY missing, skipping email");
+      }
+    } catch (e) {
+      console.error("[samanta-call-completed] email send failed", e);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
