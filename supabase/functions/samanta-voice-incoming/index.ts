@@ -9,6 +9,8 @@ const xmlHeaders = {
   "Access-Control-Allow-Origin": "*",
 };
 
+const SAMANTA_VOICE_ID = Deno.env.get("SAMANTA_VOICE_ID") || "GRHbHyXbUO8nF4YexVTa";
+
 function escapeXml(s: string): string {
   return (s || "")
     .replace(/&/g, "&amp;")
@@ -25,17 +27,59 @@ function rejectTwiml(reason: string): Response {
 
 function gatherTwiml(message: string, callId: string): Response {
   const actionUrl = `${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=gather&call_id=${encodeURIComponent(callId)}`;
+  const audioUrl = `${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=tts&text=${encodeURIComponent(message)}`;
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech" language="ro-RO" speechTimeout="auto" timeout="6" action="${escapeXml(actionUrl)}" method="POST">
-    <Say language="ro-RO">${escapeXml(message)}</Say>
+    <Play>${escapeXml(audioUrl)}</Play>
   </Gather>
-  <Say language="ro-RO">Nu v-am auzit. Vă rog să reveniți cu un apel. O zi bună.</Say>
+  <Play>${escapeXml(`${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=tts&text=${encodeURIComponent("Nu v-am auzit. Vă rog să reveniți cu un apel. O zi bună.")}`)}</Play>
 </Response>`;
   return new Response(xml, { headers: xmlHeaders });
 }
 
-async function generateSamantaReply(systemPrompt: string, callerText: string): Promise<string> {
+async function elevenLabsTts(text: string): Promise<Response> {
+  const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
+  if (!apiKey) return new Response("ELEVENLABS_API_KEY missing", { status: 500 });
+
+  const safeText = text.trim().slice(0, 900) || "Bună ziua.";
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${SAMANTA_VOICE_ID}?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: safeText,
+        model_id: "eleven_turbo_v2_5",
+        voice_settings: {
+          stability: 0.42,
+          similarity_boost: 0.82,
+          style: 0.35,
+          use_speaker_boost: true,
+          speed: 0.98,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    console.error("[samanta-voice-incoming] ElevenLabs TTS failed", response.status, await response.text());
+    return new Response("TTS failed", { status: 500 });
+  }
+
+  return new Response(await response.arrayBuffer(), {
+    headers: {
+      "Content-Type": "audio/mpeg",
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
+
+async function generateSamantaReply(systemPrompt: string, callerText: string, transcript: any[] = []): Promise<string> {
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!lovableApiKey) return "Am notat mesajul dumneavoastră. Îl transmit mai departe și veți fi contactat înapoi.";
 
@@ -48,11 +92,11 @@ async function generateSamantaReply(systemPrompt: string, callerText: string): P
     body: JSON.stringify({
       model: "google/gemini-2.5-flash-lite",
       messages: [
-        { role: "system", content: `${systemPrompt}\nRăspunde pentru telefon: maxim 2 propoziții scurte. Dacă mesajul este încheiat, spune că ai notat și încheie politicos.` },
-        { role: "user", content: callerText },
+        { role: "system", content: `${systemPrompt}\nEști într-un apel telefonic real. Răspunde direct la întrebare, nu repeta salutul după prima replică. Dacă întreabă ce face Nicolae/Velcont, explică: servicii de contabilitate, consultanță fiscală, salarizare, declarații și suport pentru firme. Pune o întrebare scurtă de clarificare la final. Maxim 2 propoziții.` },
+        { role: "user", content: `Istoric apel: ${JSON.stringify(transcript.slice(-6))}\nUltima replică apelant: ${callerText}` },
       ],
-      temperature: 0.25,
-      max_tokens: 120,
+      temperature: 0.35,
+      max_tokens: 160,
     }),
   });
 
@@ -99,6 +143,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: xmlHeaders });
 
   try {
+    const url = new URL(req.url);
+    if (req.method === "GET" && url.searchParams.get("mode") === "tts") {
+      return await elevenLabsTts(url.searchParams.get("text") || "Bună ziua.");
+    }
+
     const formData = await req.formData();
     const callSid = String(formData.get("CallSid") || "");
     const from = String(formData.get("From") || "");
@@ -110,7 +159,6 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const url = new URL(req.url);
     if (url.searchParams.get("mode") === "gather") {
       const callId = url.searchParams.get("call_id") || "";
       const speech = String(formData.get("SpeechResult") || "").trim();
@@ -139,8 +187,8 @@ Deno.serve(async (req) => {
 
       const userName = settings.user_full_name || "Nicolae";
       const company = settings.company_name || "Velcont";
-      const systemPrompt = `Ești Samanta, recepționera și asistenta executivă a lui ${userName} de la ${company}. Vorbești exclusiv în română, calm și profesionist. Preiei mesajul, identifici cine sună și ce dorește. Nu dai sfaturi fiscale concrete; promiți doar că transmiți mesajul și va reveni cineva.`;
-      const reply = await generateSamantaReply(systemPrompt, speech);
+      const systemPrompt = `Ești Samanta, recepționera și asistenta executivă a lui ${userName} de la ${company}. Vorbești exclusiv în română, calm, natural și profesionist. ${company} este un cabinet de contabilitate: contabilitate lunară, consultanță fiscală generală, salarizare, declarații fiscale, suport pentru antreprenori și firme. Preiei mesajul, identifici cine sună și ce dorește. Nu dai sfaturi fiscale concrete și nu promiți termene/prețuri exacte; spui că transmiți mesajul și revine cineva.`;
+      const reply = await generateSamantaReply(systemPrompt, speech, currentTranscript);
       const assistantEntry = { role: "samanta", text: reply, at: new Date().toISOString() };
       await supabase
         .from("samanta_calls")
