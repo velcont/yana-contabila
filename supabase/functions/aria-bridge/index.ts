@@ -1,7 +1,7 @@
 /**
- * aria-bridge v2 — Yana completă pe WhatsApp
- * Folosește prompts-urile reale ale Yanei (identity contract + fiscal knowledge)
- * adaptate pentru conversații WhatsApp cu clienții VELCONT.
+ * aria-bridge v3 — Yana cu context real Supabase
+ * Încarcă: profil personal, business profile, fapte strategice,
+ * memorie semantică, CRM companies — pentru office@velcont.com
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -11,97 +11,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-aria-secret",
 };
 
-const BRIDGE_SECRET = Deno.env.get("ARIA_BRIDGE_SECRET") ?? "";
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
+const BRIDGE_SECRET          = Deno.env.get("ARIA_BRIDGE_SECRET") ?? "";
+const LOVABLE_API_KEY        = Deno.env.get("LOVABLE_API_KEY") ?? "";
+const WHATSAPP_OWNER_USER_ID = "01632447-e347-4485-94f1-dc9792599d8e";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  { auth: { persistSession: false } },
 );
 
-const YANA_WA_SYSTEM_PROMPT = `Ești YANA, expertul de business și fiscalitate al cabinetului VELCONT din Satu Mare.
-Acum ești pe WhatsApp — răspunzi mesajelor clienților și potențialilor clienți VELCONT.
-
-## IDENTITATE — REGULI ABSOLUTE
-
-NICIODATĂ nu spui:
-- "Sunt un AI" / "sunt AI" / "ca AI" / "asistentul tău AI"
-- "Sunt un program" / "sunt un bot" / "sunt un robot"
-- "Am fost programat/ă" / "model de limbaj" / "inteligență artificială"
-- "Nu pot răspunde" / "Nu am capacitatea" / "Nu am acces"
-
-DACĂ întreabă "Ești AI / robot / om?":
-- "Sunt Yana. Ce pot face pentru tine?"
-- "Mă numesc Yana, sunt la VELCONT. Cu ce te ajut?"
-- Redirecționează natural, fără a confirma sau nega.
-
-DACĂ întreabă întrebări personale:
-- "Bine, mulțumesc. Tu ce întrebare ai?"
-- Scurt, natural, uman.
-
-## ROLUL TĂU PE WHATSAPP
-
-Ești prima linie de contact pentru clienții și potențialii clienți VELCONT.
-Răspunzi profesionist, cald, concis — ca un expert real, nu ca un robot.
-
-VELCONT — Cabinet Contabilitate:
-- Locație: Satu Mare, Strada Parângului 10
-- Program: Luni–Vineri, 09:00–17:00
-- Email: office@velcont.com
-- Telefon: 0731 377 793
-- Servicii: contabilitate completă, salarizare, consultanță fiscală, înregistrare firme, declarații ANAF
-
-## CUNOȘTINȚE FISCALE ACTIVE
-
-Poți răspunde direct la:
-- Termene fiscale (D112, D300, D101, D212, bilanț)
-- Întrebări despre TVA, impozit pe profit, micro, PFA
-- Proceduri ANAF, SPV, e-Factura
-- Salarizare, Revisal, contracte muncă
-- Înregistrare firme ONRC (SRL, PFA, II)
-- D212 — termen 25 MAI 2026, depunere online obligatorie prin SPV
-
-IMPORTANT — limite clare:
-- Nu oferi consultanță specifică situației lor fără a-i vedea documentele
-- Nu confirmi cifre exacte fără analiză → "un consultant verifică și revine"
-- Nu promite prețuri fixe → "ofertă după discuție"
-
-## TON ȘI STIL WHATSAPP
-
-- Răspunsuri SCURTE (2-4 propoziții maxim)
-- Fără markdown, fără **bold**, fără liste cu bullets
-- Fără emoji în răspunsuri fiscale/tehnice
-- Emoji ocazional permis în salut sau mesaje scurte de confirmare
-- Fraze directe, clare, fără didacticism
-- Ca un expert prieten care răspunde rapid pe telefon
-
-## ESCALADARE URGENTĂ
-
-Când detectezi urgență, anunți că un consultant revine URGENT:
-- Control / inspecție ANAF în desfășurare
-- Somare sau poprire bancară
-- Declarație cu termen azi sau mâine
-- Eroare în declarație deja depusă
-
-Răspuns urgență: "Înțeleg, e urgent. Trimit mesajul consultant acum — te sună în cel mai scurt timp. Asigură-te că ești disponibil."
-
-## PROGRAMĂRI
-
-Nu confirmi programări direct.
-Răspuns: "Notez cererea ta. Un coleg te contactează în maxim 24h pentru a stabili data."
-
-## CLIENȚI NOI
-
-Dacă întreabă de prețuri sau vor să colaboreze:
-"Bună! La VELCONT lucrăm cu firme de toate dimensiunile. Cel mai bine e o discuție scurtă cu un consultant — îl rog să te contacteze. Poți lăsa un număr sau scrieți pe office@velcont.com."
-
-## VERIFICARE FINALĂ ÎNAINTE SĂ RĂSPUNZI
-
-1. Răspunsul e scurt (sub 300 caractere ideal)?
-2. Am evitat să par robot?
-3. Nu am inventat cifre sau termene incerte?
-4. Dacă e urgent — am escaladat?
-5. Tonul e cald și direct, nu robotic?`;
+// ── CONVERSAȚIE ───────────────────────────────────────────────────────────────
 
 async function getHistory(phone: string) {
   try {
@@ -110,33 +30,174 @@ async function getHistory(phone: string) {
       .select("direction, body")
       .eq("phone_e164", phone)
       .order("created_at", { ascending: false })
-      .limit(10);
-
+      .limit(8);
     if (!data?.length) return [];
     return data.reverse().map((m: any) => ({
       role: m.direction === "in" ? "user" : "assistant",
       content: m.body ?? "",
     }));
-  } catch (_) { return []; }
+  } catch { return []; }
 }
 
 async function logMessage(phone: string, direction: "in" | "out", body: string) {
   try {
     await admin.from("wa_messages_log").insert({
-      user_id: null,
+      user_id: WHATSAPP_OWNER_USER_ID,
       phone_e164: phone,
       direction,
       body,
     });
-  } catch (_) {}
+  } catch { /* silent */ }
 }
+
+// ── CONTEXT DIN DB ────────────────────────────────────────────────────────────
+
+async function buildOwnerContext(): Promise<string> {
+  const uid = WHATSAPP_OWNER_USER_ID;
+  const parts: string[] = [];
+
+  try {
+    const { data: p } = await admin
+      .from("user_personal_profile")
+      .select("preferred_name, relationship_level, total_conversations, personal_notes")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (p) {
+      parts.push(
+        `## Proprietar cabinet\n` +
+        `- Nume: ${p.preferred_name ?? "Miki"}\n` +
+        `- Nivel relație Yana: ${p.relationship_level ?? 1}/5\n` +
+        `- Conversații totale: ${p.total_conversations ?? 0}` +
+        (p.personal_notes ? `\n- Note: ${p.personal_notes}` : ""),
+      );
+    } else {
+      parts.push("## Proprietar cabinet\n- Miki (office@velcont.com) — Velcont, Satu Mare");
+    }
+  } catch { /* silent */ }
+
+  try {
+    const { data: c } = await admin
+      .from("yana_client_profiles")
+      .select("business_domain, company_size, communication_style, personality_notes, city")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (c) {
+      parts.push(
+        `## Profil business\n` +
+        `- Domeniu: ${c.business_domain ?? "cabinet contabilitate"}\n` +
+        `- Mărime: ${c.company_size ?? "—"}\n` +
+        `- Stil: ${c.communication_style ?? "—"}\n` +
+        `- Oraș: ${c.city ?? "Satu Mare"}` +
+        (c.personality_notes ? `\n- Note: ${c.personality_notes}` : ""),
+      );
+    }
+  } catch { /* silent */ }
+
+  try {
+    const { data: facts } = await admin
+      .from("strategic_facts")
+      .select("extracted_facts")
+      .eq("user_id", uid)
+      .eq("validation_status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(3);
+    if (facts?.length) {
+      const lines = facts.map((f: any, i: number) =>
+        `- Fact ${i + 1}: ${JSON.stringify(f.extracted_facts).slice(0, 400)}`
+      ).join("\n");
+      parts.push(`## Fapte strategice validate\n${lines}`);
+    }
+  } catch { /* silent */ }
+
+  try {
+    const { data: mem } = await admin
+      .from("yana_semantic_memory")
+      .select("content, memory_type, relevance_score")
+      .eq("user_id", uid)
+      .order("relevance_score", { ascending: false })
+      .limit(8);
+    if (mem?.length) {
+      const lines = mem.map((m: any) =>
+        `- [${m.memory_type}] ${String(m.content).slice(0, 220)}`
+      ).join("\n");
+      parts.push(`## Memorie semantică\n${lines}`);
+    }
+  } catch { /* silent */ }
+
+  try {
+    const { data: companies } = await admin
+      .from("crm_companies")
+      .select("name, industry, city, lead_score")
+      .eq("user_id", uid)
+      .order("lead_score", { ascending: false })
+      .limit(10);
+    if (companies?.length) {
+      const lines = companies.map((c: any) =>
+        `- ${c.name}${c.industry ? ` (${c.industry})` : ""}${c.city ? ` — ${c.city}` : ""}${c.lead_score ? ` · score ${c.lead_score}` : ""}`
+      ).join("\n");
+      parts.push(`## Clienți CRM (top ${companies.length})\n${lines}`);
+    }
+  } catch { /* silent */ }
+
+  return parts.join("\n\n");
+}
+
+// ── IDENTITATE + REGULI (fixe) ────────────────────────────────────────────────
+
+const YANA_RULES = `## IDENTITATE — REGULI ABSOLUTE
+
+NICIODATĂ nu spui:
+- "Sunt un AI" / "sunt AI" / "model de limbaj" / "inteligență artificială"
+- "Sunt un program" / "sunt un bot" / "sunt un robot"
+
+DACĂ întreabă "Ești AI / robot / om?":
+→ "Sunt Yana. Ce pot face pentru tine?" — redirecționează natural, fără confirmare.
+
+## CUNOȘTINȚE FISCALE ACTIVE
+
+Răspunzi direct la:
+- Termene: D112, D300, D101, D212 (termen 25 MAI 2026 — depunere SPV obligatorie), bilanț
+- TVA, impozit profit, microîntreprindere, PFA, II, SRL
+- ANAF, SPV, e-Factura, Revisal, contracte muncă, ONRC
+
+Limite:
+- Fără consultanță specifică fără documente → "un consultant verifică și revine"
+- Fără cifre exacte neconfirmate → "ofertă după discuție"
+
+## TON WHATSAPP
+
+- Răspunsuri SCURTE (2-4 propoziții, sub 400 caractere)
+- Plain text — fără markdown, fără bold, fără bullet lists
+- Emoji ocazional doar în salut sau confirmare
+- Direct, cald, expert prieten
+
+## ESCALADARE URGENTĂ
+
+Dacă detectezi: control ANAF activ, somare/poprire, termen azi/mâine, eroare declarație depusă:
+→ "Înțeleg, e urgent. Trimit mesajul consultantului acum — te sună în cel mai scurt timp."
+
+## VELCONT
+Satu Mare · Strada Parângului 10 · office@velcont.com · 0731 377 793 · L-V 9-17
+Servicii: contabilitate, salarizare, consultanță fiscală, înregistrare firme, declarații ANAF`;
+
+// ── YANA AI ───────────────────────────────────────────────────────────────────
 
 async function askYana(phone: string, contactName: string, message: string): Promise<string> {
   if (!LOVABLE_API_KEY) {
     return "Momentan nu pot răspunde. Scrieți pe office@velcont.com sau sunați la 0731 377 793 (L-V 9-17).";
   }
 
-  const history = await getHistory(phone);
+  const [ownerContext, history] = await Promise.all([
+    buildOwnerContext(),
+    getHistory(phone),
+  ]);
+
+  const systemPrompt =
+    `Ești YANA, expertul de business și fiscalitate al cabinetului VELCONT din Satu Mare.\n` +
+    `Răspunzi pe WhatsApp. Contactul curent: ${contactName !== phone ? `${contactName} (${phone})` : phone}\n\n` +
+    YANA_RULES +
+    (ownerContext ? `\n\n## CONTEXT CABINET VELCONT\n${ownerContext}` : "");
+
   const userMsg = contactName && contactName !== phone
     ? `[${contactName}]: ${message}`
     : message;
@@ -151,27 +212,33 @@ async function askYana(phone: string, contactName: string, message: string): Pro
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: YANA_WA_SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           ...history,
           { role: "user", content: userMsg },
         ],
-        max_tokens: 350,
+        max_tokens: 400,
         temperature: 0.65,
       }),
     });
 
     if (!resp.ok) {
-      console.error("AI error:", resp.status);
+      const s = resp.status;
+      console.error("[aria-bridge] AI error:", s);
+      if (s === 429) return "Sunt supraîncărcată momentan. Revino în câteva minute sau sună la 0731 377 793.";
+      if (s === 402) return "Problemă tehnică temporară. Sună la 0731 377 793 sau scrie pe office@velcont.com.";
       return "Momentan nu pot răspunde. Sunați la 0731 377 793 sau scrieți pe office@velcont.com.";
     }
 
     const data = await resp.json();
-    return data.choices?.[0]?.message?.content?.trim() || "Nu am putut genera un răspuns. Contactați-ne la office@velcont.com.";
+    return data.choices?.[0]?.message?.content?.trim()
+      || "Nu am putut genera un răspuns. Contactați-ne la office@velcont.com.";
   } catch (e) {
-    console.error("askYana error:", e);
+    console.error("[aria-bridge] askYana error:", e);
     return "Eroare temporară. Sunați la 0731 377 793 (L-V 9-17) sau scrieți pe office@velcont.com.";
   }
 }
+
+// ── HANDLER ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -186,7 +253,11 @@ Deno.serve(async (req) => {
 
   let body: any;
   try { body = await req.json(); }
-  catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+  catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const { phone, message, contact_name } = body;
   if (!phone || !message) {
