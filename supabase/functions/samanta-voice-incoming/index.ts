@@ -23,6 +23,44 @@ function rejectTwiml(reason: string): Response {
   return new Response(xml, { headers: xmlHeaders });
 }
 
+function gatherTwiml(message: string, callId: string): Response {
+  const actionUrl = `${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=gather&call_id=${encodeURIComponent(callId)}`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="speech" language="ro-RO" speechTimeout="auto" timeout="6" action="${escapeXml(actionUrl)}" method="POST">
+    <Say language="ro-RO">${escapeXml(message)}</Say>
+  </Gather>
+  <Say language="ro-RO">Nu v-am auzit. Vă rog să reveniți cu un apel. O zi bună.</Say>
+</Response>`;
+  return new Response(xml, { headers: xmlHeaders });
+}
+
+async function generateSamantaReply(systemPrompt: string, callerText: string): Promise<string> {
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovableApiKey) return "Am notat mesajul dumneavoastră. Îl transmit mai departe și veți fi contactat înapoi.";
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        { role: "system", content: `${systemPrompt}\nRăspunde pentru telefon: maxim 2 propoziții scurte. Dacă mesajul este încheiat, spune că ai notat și încheie politicos.` },
+        { role: "user", content: callerText },
+      ],
+      temperature: 0.25,
+      max_tokens: 120,
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI gateway failed ${response.status}: ${await response.text()}`);
+  const data = await response.json();
+  return String(data?.choices?.[0]?.message?.content || "Am notat. Vă mulțumesc pentru apel.").replace(/[<>]/g, "").slice(0, 600);
+}
+
 function isWithinSchedule(schedule: any): boolean {
   try {
     if (!schedule || schedule.mode === "24_7") return true;
@@ -71,6 +109,46 @@ Deno.serve(async (req) => {
     if (!callSid || !to) return rejectTwiml("missing params");
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    const url = new URL(req.url);
+    if (url.searchParams.get("mode") === "gather") {
+      const callId = url.searchParams.get("call_id") || "";
+      const speech = String(formData.get("SpeechResult") || "").trim();
+      if (!callId) return rejectTwiml("missing call id");
+
+      const { data: call } = await supabase
+        .from("samanta_calls")
+        .select("id, user_id, transcript, from_number, to_number")
+        .eq("id", callId)
+        .maybeSingle();
+      if (!call) return rejectTwiml("call not found");
+
+      const { data: settings } = await supabase
+        .from("samanta_settings")
+        .select("*")
+        .eq("user_id", call.user_id)
+        .maybeSingle();
+      if (!settings) return rejectTwiml("settings not found");
+
+      const currentTranscript = Array.isArray(call.transcript) ? call.transcript : [];
+      const userEntry = { role: "caller", text: speech || "[tăcere]", at: new Date().toISOString() };
+      if (!speech) {
+        await supabase.from("samanta_calls").update({ transcript: [...currentTranscript, userEntry] }).eq("id", callId);
+        return gatherTwiml("Nu v-am auzit clar. Îmi puteți spune, vă rog, cu ce vă ajut?", callId);
+      }
+
+      const userName = settings.user_full_name || "Nicolae";
+      const company = settings.company_name || "Velcont";
+      const systemPrompt = `Ești Samanta, recepționera și asistenta executivă a lui ${userName} de la ${company}. Vorbești exclusiv în română, calm și profesionist. Preiei mesajul, identifici cine sună și ce dorește. Nu dai sfaturi fiscale concrete; promiți doar că transmiți mesajul și va reveni cineva.`;
+      const reply = await generateSamantaReply(systemPrompt, speech);
+      const assistantEntry = { role: "samanta", text: reply, at: new Date().toISOString() };
+      await supabase
+        .from("samanta_calls")
+        .update({ transcript: [...currentTranscript, userEntry, assistantEntry] })
+        .eq("id", callId);
+
+      return gatherTwiml(reply, callId);
+    }
 
     // Find user by Twilio number
     const { data: settings } = await supabase
@@ -177,58 +255,8 @@ Deno.serve(async (req) => {
       `\nINFO: Acest apel vine de la ${from} către ${to}.`,
     ].filter(Boolean).join("\n");
 
-    // Register the Twilio call with ElevenLabs and return their TwiML directly.
-    // This is the supported bridge for Twilio-owned numbers; Twilio ConversationRelay
-    // expects our own websocket protocol server and closes immediately otherwise.
-    const elevenAgentId = settings.voice_agent_id;
-    const elevenLabsApiKey = Deno.env.get("ELEVENLABS_API_KEY");
-    if (!elevenLabsApiKey) {
-      console.error("[samanta-voice-incoming] ELEVENLABS_API_KEY missing");
-      return rejectTwiml("elevenlabs missing");
-    }
-
-    const elevenResponse = await fetch("https://api.elevenlabs.io/v1/convai/twilio/register-call", {
-      method: "POST",
-      headers: {
-        "xi-api-key": elevenLabsApiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        agent_id: elevenAgentId,
-        from_number: from,
-        to_number: to,
-        direction: "inbound",
-        conversation_initiation_client_data: {
-          conversation_config_override: {
-            agent: {
-              prompt: { prompt: systemPrompt },
-              first_message: greeting,
-              language: "ro",
-            },
-          },
-          dynamic_variables: {
-            user_id: settings.user_id,
-            call_id: callId,
-            caller_name: contactName || "Necunoscut",
-            caller_phone: from,
-            company_name: company,
-          },
-          user_id: settings.user_id,
-        },
-      }),
-    });
-
-    const twiml = await elevenResponse.text();
-    if (!elevenResponse.ok || !twiml.trim().startsWith("<")) {
-      console.error("[samanta-voice-incoming] ElevenLabs register-call failed", {
-        status: elevenResponse.status,
-        body: twiml.slice(0, 800),
-      });
-      return rejectTwiml("elevenlabs register failed");
-    }
-
-    console.log("[samanta-voice-incoming] ElevenLabs TwiML registered", { callSid, callId });
-    return new Response(twiml, { headers: xmlHeaders });
+    console.log("[samanta-voice-incoming] Twilio Gather fallback active", { callSid, callId });
+    return gatherTwiml(greeting, callId);
   } catch (e) {
     console.error("[samanta-voice-incoming] error", e);
     return rejectTwiml("error");
