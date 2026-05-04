@@ -143,6 +143,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: xmlHeaders });
 
   try {
+    const url = new URL(req.url);
+    if (req.method === "GET" && url.searchParams.get("mode") === "tts") {
+      return await elevenLabsTts(url.searchParams.get("text") || "Bună ziua.");
+    }
+
     const formData = await req.formData();
     const callSid = String(formData.get("CallSid") || "");
     const from = String(formData.get("From") || "");
@@ -154,7 +159,6 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    const url = new URL(req.url);
     if (url.searchParams.get("mode") === "gather") {
       const callId = url.searchParams.get("call_id") || "";
       const speech = String(formData.get("SpeechResult") || "").trim();
