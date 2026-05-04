@@ -1,300 +1,208 @@
 /**
- * aria-bridge — Bridge Aria (whatsapp-web.js) <-> Yana
- *
- * Răspunde mesaje WhatsApp folosind același context bogat ca în aplicație
- * pentru user-ul WHATSAPP_OWNER (office@velcont.com).
- *
- * POST /functions/v1/aria-bridge
- * Headers: x-aria-secret: <ARIA_BRIDGE_SECRET>
- * Body: { phone, message, contact_name?, chat_id? }
- * Response: { reply: string }
+ * aria-bridge v2 — Yana completă pe WhatsApp
+ * Folosește prompts-urile reale ale Yanei (identity contract + fiscal knowledge)
+ * adaptate pentru conversații WhatsApp cu clienții VELCONT.
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-aria-secret",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-aria-secret",
 };
 
-// User-ul real al cărui context îl folosește Yana pe WhatsApp.
-// (office@velcont.com — Miki, owner Velcont)
-const WHATSAPP_OWNER_USER_ID = "01632447-e347-4485-94f1-dc9792599d8e";
+const BRIDGE_SECRET = Deno.env.get("ARIA_BRIDGE_SECRET") ?? "";
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-const ARIA_BRIDGE_SECRET = Deno.env.get("ARIA_BRIDGE_SECRET")!;
+const admin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-});
+const YANA_WA_SYSTEM_PROMPT = `Ești YANA, expertul de business și fiscalitate al cabinetului VELCONT din Satu Mare.
+Acum ești pe WhatsApp — răspunzi mesajelor clienților și potențialilor clienți VELCONT.
 
-// ---------- Conversation log (pentru istoric pe nr. WhatsApp) ----------
-async function ensureLogTable() {
-  // tabela e creată via migrație; aici doar safe no-op
-}
+## IDENTITATE — REGULI ABSOLUTE
 
-async function getRecentMessages(phone: string, limit = 8) {
-  const { data, error } = await supabase
-    .from("wa_messages_log")
-    .select("direction, body, created_at")
-    .eq("phone_e164", phone)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) {
-    console.warn("[aria-bridge] getRecentMessages err", error.message);
-    return [];
-  }
-  return (data || []).reverse().map((m: any) => ({
-    direction: m.direction as "in" | "out",
-    content: m.body as string,
-  }));
-}
+NICIODATĂ nu spui:
+- "Sunt un AI" / "sunt AI" / "ca AI" / "asistentul tău AI"
+- "Sunt un program" / "sunt un bot" / "sunt un robot"
+- "Am fost programat/ă" / "model de limbaj" / "inteligență artificială"
+- "Nu pot răspunde" / "Nu am capacitatea" / "Nu am acces"
 
-async function logMessage(phone: string, direction: "in" | "out", content: string, _contactName?: string) {
-  const { error } = await supabase.from("wa_messages_log").insert({
-    phone_e164: phone,
-    direction,
-    body: content,
-    status: "ok",
-    user_id: WHATSAPP_OWNER_USER_ID,
-  });
-  if (error) console.warn("[aria-bridge] logMessage err", error.message);
-}
+DACĂ întreabă "Ești AI / robot / om?":
+- "Sunt Yana. Ce pot face pentru tine?"
+- "Mă numesc Yana, sunt la VELCONT. Cu ce te ajut?"
+- Redirecționează natural, fără a confirma sau nega.
 
-// ---------- Context bogat (profil + clienți + facts) ----------
-async function buildOwnerContext(): Promise<string> {
-  const parts: string[] = [];
-  const uid = WHATSAPP_OWNER_USER_ID;
+DACĂ întreabă întrebări personale:
+- "Bine, mulțumesc. Tu ce întrebare ai?"
+- Scurt, natural, uman.
 
-  // Profil personal
+## ROLUL TĂU PE WHATSAPP
+
+Ești prima linie de contact pentru clienții și potențialii clienți VELCONT.
+Răspunzi profesionist, cald, concis — ca un expert real, nu ca un robot.
+
+VELCONT — Cabinet Contabilitate:
+- Locație: Satu Mare, Strada Parângului 10
+- Program: Luni–Vineri, 09:00–17:00
+- Email: office@velcont.com
+- Telefon: 0731 377 793
+- Servicii: contabilitate completă, salarizare, consultanță fiscală, înregistrare firme, declarații ANAF
+
+## CUNOȘTINȚE FISCALE ACTIVE
+
+Poți răspunde direct la:
+- Termene fiscale (D112, D300, D101, D212, bilanț)
+- Întrebări despre TVA, impozit pe profit, micro, PFA
+- Proceduri ANAF, SPV, e-Factura
+- Salarizare, Revisal, contracte muncă
+- Înregistrare firme ONRC (SRL, PFA, II)
+- D212 — termen 25 MAI 2026, depunere online obligatorie prin SPV
+
+IMPORTANT — limite clare:
+- Nu oferi consultanță specifică situației lor fără a-i vedea documentele
+- Nu confirmi cifre exacte fără analiză → "un consultant verifică și revine"
+- Nu promite prețuri fixe → "ofertă după discuție"
+
+## TON ȘI STIL WHATSAPP
+
+- Răspunsuri SCURTE (2-4 propoziții maxim)
+- Fără markdown, fără **bold**, fără liste cu bullets
+- Fără emoji în răspunsuri fiscale/tehnice
+- Emoji ocazional permis în salut sau mesaje scurte de confirmare
+- Fraze directe, clare, fără didacticism
+- Ca un expert prieten care răspunde rapid pe telefon
+
+## ESCALADARE URGENTĂ
+
+Când detectezi urgență, anunți că un consultant revine URGENT:
+- Control / inspecție ANAF în desfășurare
+- Somare sau poprire bancară
+- Declarație cu termen azi sau mâine
+- Eroare în declarație deja depusă
+
+Răspuns urgență: "Înțeleg, e urgent. Trimit mesajul consultant acum — te sună în cel mai scurt timp. Asigură-te că ești disponibil."
+
+## PROGRAMĂRI
+
+Nu confirmi programări direct.
+Răspuns: "Notez cererea ta. Un coleg te contactează în maxim 24h pentru a stabili data."
+
+## CLIENȚI NOI
+
+Dacă întreabă de prețuri sau vor să colaboreze:
+"Bună! La VELCONT lucrăm cu firme de toate dimensiunile. Cel mai bine e o discuție scurtă cu un consultant — îl rog să te contacteze. Poți lăsa un număr sau scrieți pe office@velcont.com."
+
+## VERIFICARE FINALĂ ÎNAINTE SĂ RĂSPUNZI
+
+1. Răspunsul e scurt (sub 300 caractere ideal)?
+2. Am evitat să par robot?
+3. Nu am inventat cifre sau termene incerte?
+4. Dacă e urgent — am escaladat?
+5. Tonul e cald și direct, nu robotic?`;
+
+async function getHistory(phone: string) {
   try {
-    const { data: personal } = await supabase
-      .from("user_personal_profile")
-      .select("preferred_name, detected_gender, relationship_level, total_conversations, personal_notes")
-      .eq("user_id", uid)
-      .maybeSingle();
-    if (personal) {
-      parts.push(
-        `## Persoana cu care vorbești\n` +
-          `- Nume preferat: ${personal.preferred_name ?? "Miki"}\n` +
-          `- Nivel relație: ${personal.relationship_level ?? 1}/5\n` +
-          `- Conversații totale: ${personal.total_conversations ?? 0}`,
-      );
-    } else {
-      parts.push(`## Persoana cu care vorbești\n- Miki (office@velcont.com)`);
-    }
-  } catch (e) {
-    console.warn("[aria-bridge] personal err", e);
-  }
-
-  // Profil client (business)
-  try {
-    const { data: client } = await supabase
-      .from("yana_client_profiles")
-      .select("business_domain, company_size, communication_style, personality_notes, city, preferred_topics")
-      .eq("user_id", uid)
-      .maybeSingle();
-    if (client) {
-      parts.push(
-        `## Profil business\n` +
-          `- Domeniu: ${client.business_domain ?? "contabilitate (Velcont)"}\n` +
-          `- Mărime: ${client.company_size ?? "—"}\n` +
-          `- Stil: ${client.communication_style ?? "—"}\n` +
-          `- Oraș: ${client.city ?? "Cluj-Napoca"}` +
-          (client.personality_notes ? `\n- Note: ${client.personality_notes}` : ""),
-      );
-    }
-  } catch (e) {
-    console.warn("[aria-bridge] client err", e);
-  }
-
-  // Strategic facts (ultimele aprobate)
-  try {
-    const { data: facts } = await supabase
-      .from("strategic_facts")
-      .select("extracted_facts, validation_status, created_at")
-      .eq("user_id", uid)
-      .eq("validation_status", "approved")
+    const { data } = await admin
+      .from("wa_messages_log")
+      .select("direction, body")
+      .eq("phone_e164", phone)
       .order("created_at", { ascending: false })
-      .limit(3);
-    if (facts && facts.length) {
-      const summarized = facts
-        .map((f, i) => `- Fact ${i + 1}: ${JSON.stringify(f.extracted_facts).slice(0, 400)}`)
-        .join("\n");
-      parts.push(`## Fapte strategice validate\n${summarized}`);
-    }
-  } catch (e) {
-    console.warn("[aria-bridge] facts err", e);
-  }
-
-  // Memorie semantică top
-  try {
-    const { data: mem } = await supabase
-      .from("yana_semantic_memory")
-      .select("content, memory_type, relevance_score")
-      .eq("user_id", uid)
-      .order("relevance_score", { ascending: false })
-      .limit(8);
-    if (mem && mem.length) {
-      const lines = mem.map((m) => `- (${m.memory_type}) ${m.content.slice(0, 220)}`).join("\n");
-      parts.push(`## Memorie relevantă\n${lines}`);
-    }
-  } catch (e) {
-    console.warn("[aria-bridge] memory err", e);
-  }
-
-  // CRM companies (top 10)
-  try {
-    const { data: companies } = await supabase
-      .from("crm_companies")
-      .select("name, industry, city, annual_revenue, lead_score, notes")
-      .eq("user_id", uid)
-      .order("lead_score", { ascending: false })
       .limit(10);
-    if (companies && companies.length) {
-      const lines = companies
-        .map(
-          (c) =>
-            `- ${c.name}${c.industry ? ` (${c.industry})` : ""}${c.city ? ` — ${c.city}` : ""}${
-              c.lead_score ? ` · score ${c.lead_score}` : ""
-            }`,
-        )
-        .join("\n");
-      parts.push(`## Clienți / companii din CRM (top ${companies.length})\n${lines}`);
-    }
-  } catch (e) {
-    console.warn("[aria-bridge] crm err", e);
-  }
 
-  return parts.join("\n\n");
-}
-
-// ---------- Apel Lovable AI ----------
-async function callYana(opts: {
-  phone: string;
-  contactName: string;
-  message: string;
-}): Promise<string> {
-  const ownerContext = await buildOwnerContext();
-  const history = await getRecentMessages(opts.phone, 8);
-
-  const systemPrompt = `Ești YANA — partener strategic de business pentru Miki (Velcont, contabilitate, Cluj-Napoca).
-Răspunzi pe WhatsApp prin Aria. Mesajele vin de la contacte externe ("${opts.contactName}", ${opts.phone}).
-Vorbești cu acel contact, dar ai în spate contextul complet al lui Miki și al firmei Velcont.
-
-REGULI WhatsApp:
-- Răspunsuri scurte (max 4-6 propoziții, sub ~500 caractere).
-- Ton cald, profesional, direct. Fără emoji excesivi (1 max, opțional).
-- Fără markdown (** sau #). Plain text natural pentru WhatsApp.
-- Dacă întrebarea depășește competența ta sau e urgentă (ANAF, control, litigiu) → spune că o transmiți lui Miki și vei reveni.
-- Folosește datele de contact reale: Velcont, Cluj-Napoca, 0731 377 793, office@velcont.com, L-V 9-17.
-
-CONTEXT MIKI / VELCONT:
-${ownerContext || "(profil în construcție)"}`;
-
-  const messages: Array<{ role: string; content: string }> = [
-    { role: "system", content: systemPrompt },
-    ...history.map((m) => ({
+    if (!data?.length) return [];
+    return data.reverse().map((m: any) => ({
       role: m.direction === "in" ? "user" : "assistant",
-      content: m.content,
-    })),
-    { role: "user", content: opts.message },
-  ];
-
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages,
-      max_tokens: 500,
-      temperature: 0.7,
-    }),
-  });
-
-  if (!resp.ok) {
-    const t = await resp.text();
-    console.error("[aria-bridge] AI gateway", resp.status, t);
-    if (resp.status === 429) return "Sunt momentan supraîncărcată, revin în câteva minute.";
-    if (resp.status === 402) return "Nu mai am credite AI disponibile. Te sun Miki imediat ce poate.";
-    return "Am o problemă tehnică momentan. Te rog revino în câteva minute sau sună la 0731 377 793.";
-  }
-
-  const data = await resp.json();
-  const reply = data?.choices?.[0]?.message?.content?.trim();
-  return reply || "Te rog reformulează — nu am înțeles complet.";
+      content: m.body ?? "",
+    }));
+  } catch (_) { return []; }
 }
 
-// ---------- HTTP handler ----------
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+async function logMessage(phone: string, direction: "in" | "out", body: string) {
+  try {
+    await admin.from("wa_messages_log").insert({
+      user_id: null,
+      phone_e164: phone,
+      direction,
+      body,
     });
+  } catch (_) {}
+}
+
+async function askYana(phone: string, contactName: string, message: string): Promise<string> {
+  if (!LOVABLE_API_KEY) {
+    return "Momentan nu pot răspunde. Scrieți pe office@velcont.com sau sunați la 0731 377 793 (L-V 9-17).";
   }
 
-  // Auth: shared secret cu Aria
-  const secret = req.headers.get("x-aria-secret");
-  if (!secret || secret !== ARIA_BRIDGE_SECRET) {
+  const history = await getHistory(phone);
+  const userMsg = contactName && contactName !== phone
+    ? `[${contactName}]: ${message}`
+    : message;
+
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: YANA_WA_SYSTEM_PROMPT },
+          ...history,
+          { role: "user", content: userMsg },
+        ],
+        max_tokens: 350,
+        temperature: 0.65,
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error("AI error:", resp.status);
+      return "Momentan nu pot răspunde. Sunați la 0731 377 793 sau scrieți pe office@velcont.com.";
+    }
+
+    const data = await resp.json();
+    return data.choices?.[0]?.message?.content?.trim() || "Nu am putut genera un răspuns. Contactați-ne la office@velcont.com.";
+  } catch (e) {
+    console.error("askYana error:", e);
+    return "Eroare temporară. Sunați la 0731 377 793 (L-V 9-17) sau scrieți pe office@velcont.com.";
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+
+  const secret = req.headers.get("x-aria-secret") ?? "";
+  if (BRIDGE_SECRET && secret !== BRIDGE_SECRET) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  try { body = await req.json(); }
+  catch { return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 
-  const phone: string | undefined = body?.phone;
-  const message: string | undefined = body?.message;
-  const contactName: string = body?.contact_name || phone || "Necunoscut";
-
+  const { phone, message, contact_name } = body;
   if (!phone || !message) {
-    return new Response(JSON.stringify({ error: "Missing phone or message" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ error: "phone și message obligatorii" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const phoneE164 = phone.startsWith("+") ? phone : `+${phone}`;
+  const raw = String(phone).replace(/\D/g, "");
+  const phoneE164 = raw.startsWith("4") ? `+${raw}` : `+4${raw}`;
 
-  try {
-    await ensureLogTable();
-    await logMessage(phoneE164, "in", message, contactName);
+  await logMessage(phoneE164, "in", message);
+  const reply = await askYana(phoneE164, contact_name ?? phone, message);
+  await logMessage(phoneE164, "out", reply);
 
-    const reply = await callYana({ phone: phoneE164, contactName, message });
-
-    await logMessage(phoneE164, "out", reply, contactName);
-
-    return new Response(JSON.stringify({ reply }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("[aria-bridge] fatal", e);
-    return new Response(
-      JSON.stringify({ reply: "Am o eroare tehnică. Sună te rog la 0731 377 793." }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  }
+  return new Response(JSON.stringify({ reply }), {
+    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });
