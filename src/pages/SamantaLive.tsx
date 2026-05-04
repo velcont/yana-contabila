@@ -63,7 +63,7 @@ export default function SamantaLive() {
   useEffect(() => {
     return () => {
       // cleanup pe unmount
-      conversation.endSession().catch(() => {});
+      try { void conversation.endSession(); } catch { /* noop */ }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
