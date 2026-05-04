@@ -156,3 +156,11 @@ function SamantaLiveInner() {
     </div>
   );
 }
+
+export default function SamantaLive() {
+  return (
+    <ConversationProvider>
+      <SamantaLiveInner />
+    </ConversationProvider>
+  );
+}
