@@ -110,6 +110,46 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    const url = new URL(req.url);
+    if (url.searchParams.get("mode") === "gather") {
+      const callId = url.searchParams.get("call_id") || "";
+      const speech = String(formData.get("SpeechResult") || "").trim();
+      if (!callId) return rejectTwiml("missing call id");
+
+      const { data: call } = await supabase
+        .from("samanta_calls")
+        .select("id, user_id, transcript, from_number, to_number")
+        .eq("id", callId)
+        .maybeSingle();
+      if (!call) return rejectTwiml("call not found");
+
+      const { data: settings } = await supabase
+        .from("samanta_settings")
+        .select("*")
+        .eq("user_id", call.user_id)
+        .maybeSingle();
+      if (!settings) return rejectTwiml("settings not found");
+
+      const currentTranscript = Array.isArray(call.transcript) ? call.transcript : [];
+      const userEntry = { role: "caller", text: speech || "[tăcere]", at: new Date().toISOString() };
+      if (!speech) {
+        await supabase.from("samanta_calls").update({ transcript: [...currentTranscript, userEntry] }).eq("id", callId);
+        return gatherTwiml("Nu v-am auzit clar. Îmi puteți spune, vă rog, cu ce vă ajut?", callId);
+      }
+
+      const userName = settings.user_full_name || "Nicolae";
+      const company = settings.company_name || "Velcont";
+      const systemPrompt = `Ești Samanta, recepționera și asistenta executivă a lui ${userName} de la ${company}. Vorbești exclusiv în română, calm și profesionist. Preiei mesajul, identifici cine sună și ce dorește. Nu dai sfaturi fiscale concrete; promiți doar că transmiți mesajul și va reveni cineva.`;
+      const reply = await generateSamantaReply(systemPrompt, speech);
+      const assistantEntry = { role: "samanta", text: reply, at: new Date().toISOString() };
+      await supabase
+        .from("samanta_calls")
+        .update({ transcript: [...currentTranscript, userEntry, assistantEntry] })
+        .eq("id", callId);
+
+      return gatherTwiml(reply, callId);
+    }
+
     // Find user by Twilio number
     const { data: settings } = await supabase
       .from("samanta_settings")
