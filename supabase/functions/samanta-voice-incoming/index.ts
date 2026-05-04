@@ -79,7 +79,7 @@ async function elevenLabsTts(text: string): Promise<Response> {
   });
 }
 
-async function generateSamantaReply(systemPrompt: string, callerText: string): Promise<string> {
+async function generateSamantaReply(systemPrompt: string, callerText: string, transcript: any[] = []): Promise<string> {
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!lovableApiKey) return "Am notat mesajul dumneavoastră. Îl transmit mai departe și veți fi contactat înapoi.";
 
@@ -92,11 +92,11 @@ async function generateSamantaReply(systemPrompt: string, callerText: string): P
     body: JSON.stringify({
       model: "google/gemini-2.5-flash-lite",
       messages: [
-        { role: "system", content: `${systemPrompt}\nRăspunde pentru telefon: maxim 2 propoziții scurte. Dacă mesajul este încheiat, spune că ai notat și încheie politicos.` },
-        { role: "user", content: callerText },
+        { role: "system", content: `${systemPrompt}\nEști într-un apel telefonic real. Răspunde direct la întrebare, nu repeta salutul după prima replică. Dacă întreabă ce face Nicolae/Velcont, explică: servicii de contabilitate, consultanță fiscală, salarizare, declarații și suport pentru firme. Pune o întrebare scurtă de clarificare la final. Maxim 2 propoziții.` },
+        { role: "user", content: `Istoric apel: ${JSON.stringify(transcript.slice(-6))}\nUltima replică apelant: ${callerText}` },
       ],
-      temperature: 0.25,
-      max_tokens: 120,
+      temperature: 0.35,
+      max_tokens: 160,
     }),
   });
 
@@ -187,8 +187,8 @@ Deno.serve(async (req) => {
 
       const userName = settings.user_full_name || "Nicolae";
       const company = settings.company_name || "Velcont";
-      const systemPrompt = `Ești Samanta, recepționera și asistenta executivă a lui ${userName} de la ${company}. Vorbești exclusiv în română, calm și profesionist. Preiei mesajul, identifici cine sună și ce dorește. Nu dai sfaturi fiscale concrete; promiți doar că transmiți mesajul și va reveni cineva.`;
-      const reply = await generateSamantaReply(systemPrompt, speech);
+      const systemPrompt = `Ești Samanta, recepționera și asistenta executivă a lui ${userName} de la ${company}. Vorbești exclusiv în română, calm, natural și profesionist. ${company} este un cabinet de contabilitate: contabilitate lunară, consultanță fiscală generală, salarizare, declarații fiscale, suport pentru antreprenori și firme. Preiei mesajul, identifici cine sună și ce dorește. Nu dai sfaturi fiscale concrete și nu promiți termene/prețuri exacte; spui că transmiți mesajul și revine cineva.`;
+      const reply = await generateSamantaReply(systemPrompt, speech, currentTranscript);
       const assistantEntry = { role: "samanta", text: reply, at: new Date().toISOString() };
       await supabase
         .from("samanta_calls")
