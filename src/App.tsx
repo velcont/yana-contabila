@@ -66,6 +66,7 @@ const CRM = lazy(() => import("./pages/CRM"));
 const EmailSettings = lazy(() => import("./pages/EmailSettings"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const Prospect = lazy(() => import("./pages/Prospect"));
+const Samanta = lazy(() => import("./pages/Samanta"));
 
 const queryClient = new QueryClient();
 
@@ -205,6 +206,7 @@ const App = () => {
                       <Route path="/inbox" element={<PrivateRoute><Inbox /></PrivateRoute>} />
                       <Route path="/email-settings" element={<PrivateRoute><EmailSettings /></PrivateRoute>} />
                       <Route path="/prospect" element={<PrivateRoute><Prospect /></PrivateRoute>} />
+                      <Route path="/samanta" element={<PrivateRoute><Samanta /></PrivateRoute>} />
                       
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<NotFound />} />
