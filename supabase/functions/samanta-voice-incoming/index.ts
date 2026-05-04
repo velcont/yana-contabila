@@ -23,6 +23,44 @@ function rejectTwiml(reason: string): Response {
   return new Response(xml, { headers: xmlHeaders });
 }
 
+function gatherTwiml(message: string, callId: string): Response {
+  const actionUrl = `${SUPABASE_URL}/functions/v1/samanta-voice-incoming?mode=gather&call_id=${encodeURIComponent(callId)}`;
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="speech" language="ro-RO" speechTimeout="auto" timeout="6" action="${escapeXml(actionUrl)}" method="POST">
+    <Say language="ro-RO">${escapeXml(message)}</Say>
+  </Gather>
+  <Say language="ro-RO">Nu v-am auzit. Vă rog să reveniți cu un apel. O zi bună.</Say>
+</Response>`;
+  return new Response(xml, { headers: xmlHeaders });
+}
+
+async function generateSamantaReply(systemPrompt: string, callerText: string): Promise<string> {
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovableApiKey) return "Am notat mesajul dumneavoastră. Îl transmit mai departe și veți fi contactat înapoi.";
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        { role: "system", content: `${systemPrompt}\nRăspunde pentru telefon: maxim 2 propoziții scurte. Dacă mesajul este încheiat, spune că ai notat și încheie politicos.` },
+        { role: "user", content: callerText },
+      ],
+      temperature: 0.25,
+      max_tokens: 120,
+    }),
+  });
+
+  if (!response.ok) throw new Error(`AI gateway failed ${response.status}: ${await response.text()}`);
+  const data = await response.json();
+  return String(data?.choices?.[0]?.message?.content || "Am notat. Vă mulțumesc pentru apel.").replace(/[<>]/g, "").slice(0, 600);
+}
+
 function isWithinSchedule(schedule: any): boolean {
   try {
     if (!schedule || schedule.mode === "24_7") return true;
