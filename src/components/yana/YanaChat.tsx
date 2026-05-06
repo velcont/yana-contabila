@@ -753,7 +753,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       setIsLoading(false);
       isSendingRef.current = false;
     }
-  }, [conversationId, user, onConversationCreated]);
+  }, [conversationId, user, onConversationCreated, rememberedFile, agentMode, yanaAgent]);
 
   const handleStrategySubmit = useCallback(async (profile: import('@/config/aiStrategyData').BusinessProfile) => {
     if (!user) return;
