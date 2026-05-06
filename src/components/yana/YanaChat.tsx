@@ -68,6 +68,13 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  // 🆕 FILE MEMORY: ține minte ultimul fișier încărcat per conversație,
+  // ca să poată fi reutilizat în mesajele următoare (ex: "trimite-l pe email").
+  const [rememberedFile, setRememberedFile] = useState<{
+    fileName: string;
+    fileContent: string;
+    fileType: string;
+  } | null>(null);
   const [activeContext, setActiveContext] = useState<{ companyName?: string; balanceId?: string } | null>(null);
   const [balanceContext, setBalanceContext] = useState<unknown>(null); // Memoria balanței pentru conversație
   const [userName, setUserName] = useState<string>('');
@@ -273,8 +280,15 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
   };
 
   const sendMessage = useCallback(async (content: string, fileData?: { fileName: string; fileContent: string; fileType: string }) => {
-    if (!content.trim() && !fileData) return;
+    // 🆕 FILE MEMORY: dacă utilizatorul nu a atașat un fișier nou, refolosește-l pe ultimul din sesiune
+    const effectiveFileData = fileData ?? rememberedFile ?? undefined;
+    if (!content.trim() && !effectiveFileData) return;
     if (!user) return;
+
+    // Memorează fișierul nou pentru mesajele următoare din aceeași conversație
+    if (fileData) {
+      setRememberedFile(fileData);
+    }
 
     setIsLoading(true);
     setInput('');
@@ -321,7 +335,9 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
         role: 'user',
-        content: fileData ? `📎 ${fileData.fileName}\n\n${content}` : content,
+        content: effectiveFileData
+          ? `📎 ${effectiveFileData.fileName}${fileData ? '' : ' (din sesiune)'}\n\n${content}`
+          : content,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, userMessage]);
@@ -364,7 +380,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       if (agentMode) {
         try {
           yanaAgent.reset();
-          const finalText = await yanaAgent.run(content, historyForAI, fileData);
+          const finalText = await yanaAgent.run(content, historyForAI, effectiveFileData);
           // Capturăm pașii din state-ul curent al hook-ului prin setTimeout 0
           // (sau citim direct yanaAgent.steps - dar e closure-stale, deci facem snapshot)
           const stepsSnapshot: AgentStep[] = [...yanaAgent.steps];
@@ -398,7 +414,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         body: {
           message: content,
           conversationId: convId,
-          fileData,
+          fileData: effectiveFileData,
           history: historyForAI,
           balanceContext: effectiveBalanceContext || undefined,
         },
@@ -737,7 +753,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       setIsLoading(false);
       isSendingRef.current = false;
     }
-  }, [conversationId, user, onConversationCreated]);
+  }, [conversationId, user, onConversationCreated, rememberedFile, agentMode, yanaAgent]);
 
   const handleStrategySubmit = useCallback(async (profile: import('@/config/aiStrategyData').BusinessProfile) => {
     if (!user) return;
@@ -1013,6 +1029,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       setWelcomeMessageShown(false);
       setActiveContext(null);
       setBalanceContext(null);
+      setRememberedFile(null);
     }
   }, [conversationId, resetKey]);
 
@@ -1305,6 +1322,23 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               </div>
             )}
           </div>
+          {/* 🆕 FILE MEMORY: indicator pentru fișierul reținut din sesiune */}
+          {rememberedFile && (
+            <div className="flex items-center justify-between gap-2 mb-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border text-xs">
+              <span className="truncate text-muted-foreground">
+                📎 Fișier activ: <span className="font-medium text-foreground">{rememberedFile.fileName}</span>
+                <span className="ml-1 opacity-70">— va fi inclus la următorul mesaj</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setRememberedFile(null)}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+                title="Uită fișierul"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"
