@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
       gmailToken = null; // userul nu are Google conectat
     }
 
-    if (gmailToken && !attachment) {
-      // Gmail send (fără atașamente — pentru atașamente folosim Resend mai jos)
+    if (gmailToken) {
+      // Gmail send — suportă și atașamente prin MIME multipart/mixed
       const fromEmail = gmailToken.calendarEmail || userEmail;
       if (!fromEmail) return json({ error: "Nu pot determina expeditorul" }, 400);
 
@@ -72,6 +72,10 @@ Deno.serve(async (req) => {
           recipient_email: to,
           subject,
           body,
+          attachment_name: attachment?.filename ?? null,
+          attachment_size_bytes: attachment
+            ? Math.floor((attachment.content_base64.length * 3) / 4)
+            : null,
           status: "pending",
           triggered_via: triggered_via || "yana_agent_gmail",
         })
@@ -79,17 +83,52 @@ Deno.serve(async (req) => {
         .single();
       const logId = logRow?.id;
 
-      const rfc = [
+      const subjectEnc = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`;
+      const headersBase = [
         `From: ${fromEmail}`,
         `To: ${to}`,
         reply_to ? `Reply-To: ${reply_to}` : `Reply-To: ${fromEmail}`,
-        `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
+        `Subject: ${subjectEnc}`,
         "MIME-Version: 1.0",
-        'Content-Type: text/plain; charset="UTF-8"',
-        "Content-Transfer-Encoding: 8bit",
-        "",
-        body,
-      ].join("\r\n");
+      ];
+
+      let rfc: string;
+      if (attachment) {
+        const boundary = `=_yana_${crypto.randomUUID().replace(/-/g, "")}`;
+        const ctype = attachment.content_type || "application/octet-stream";
+        // Split base64 in 76-char lines
+        const b64 = attachment.content_base64.replace(/\r?\n/g, "");
+        const wrapped = b64.match(/.{1,76}/g)?.join("\r\n") || b64;
+        const filenameEnc = `=?UTF-8?B?${btoa(unescape(encodeURIComponent(attachment.filename)))}?=`;
+        rfc = [
+          ...headersBase,
+          `Content-Type: multipart/mixed; boundary="${boundary}"`,
+          "",
+          `--${boundary}`,
+          'Content-Type: text/plain; charset="UTF-8"',
+          "Content-Transfer-Encoding: 8bit",
+          "",
+          body,
+          "",
+          `--${boundary}`,
+          `Content-Type: ${ctype}; name="${filenameEnc}"`,
+          `Content-Disposition: attachment; filename="${filenameEnc}"`,
+          "Content-Transfer-Encoding: base64",
+          "",
+          wrapped,
+          "",
+          `--${boundary}--`,
+          "",
+        ].join("\r\n");
+      } else {
+        rfc = [
+          ...headersBase,
+          'Content-Type: text/plain; charset="UTF-8"',
+          "Content-Transfer-Encoding: 8bit",
+          "",
+          body,
+        ].join("\r\n");
+      }
 
       const bytes = new TextEncoder().encode(rfc);
       let bin = "";
