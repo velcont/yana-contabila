@@ -68,6 +68,13 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  // 🆕 FILE MEMORY: ține minte ultimul fișier încărcat per conversație,
+  // ca să poată fi reutilizat în mesajele următoare (ex: "trimite-l pe email").
+  const [rememberedFile, setRememberedFile] = useState<{
+    fileName: string;
+    fileContent: string;
+    fileType: string;
+  } | null>(null);
   const [activeContext, setActiveContext] = useState<{ companyName?: string; balanceId?: string } | null>(null);
   const [balanceContext, setBalanceContext] = useState<unknown>(null); // Memoria balanței pentru conversație
   const [userName, setUserName] = useState<string>('');
