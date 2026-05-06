@@ -1322,6 +1322,23 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               </div>
             )}
           </div>
+          {/* 🆕 FILE MEMORY: indicator pentru fișierul reținut din sesiune */}
+          {rememberedFile && (
+            <div className="flex items-center justify-between gap-2 mb-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border text-xs">
+              <span className="truncate text-muted-foreground">
+                📎 Fișier activ: <span className="font-medium text-foreground">{rememberedFile.fileName}</span>
+                <span className="ml-1 opacity-70">— va fi inclus la următorul mesaj</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setRememberedFile(null)}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+                title="Uită fișierul"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"
