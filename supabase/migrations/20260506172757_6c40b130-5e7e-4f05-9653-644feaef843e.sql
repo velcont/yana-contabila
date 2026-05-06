@@ -1,0 +1,1 @@
+UPDATE public.yana_self_proposals SET status = 'rejected' WHERE status IN ('pending_test', 'shadow_testing', 'in_progress');
