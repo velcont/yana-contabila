@@ -1029,6 +1029,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       setWelcomeMessageShown(false);
       setActiveContext(null);
       setBalanceContext(null);
+      setRememberedFile(null);
     }
   }, [conversationId, resetKey]);
 
