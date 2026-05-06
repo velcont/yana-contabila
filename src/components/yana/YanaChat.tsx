@@ -280,8 +280,15 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
   };
 
   const sendMessage = useCallback(async (content: string, fileData?: { fileName: string; fileContent: string; fileType: string }) => {
-    if (!content.trim() && !fileData) return;
+    // 🆕 FILE MEMORY: dacă utilizatorul nu a atașat un fișier nou, refolosește-l pe ultimul din sesiune
+    const effectiveFileData = fileData ?? rememberedFile ?? undefined;
+    if (!content.trim() && !effectiveFileData) return;
     if (!user) return;
+
+    // Memorează fișierul nou pentru mesajele următoare din aceeași conversație
+    if (fileData) {
+      setRememberedFile(fileData);
+    }
 
     setIsLoading(true);
     setInput('');
@@ -328,7 +335,9 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
         role: 'user',
-        content: fileData ? `📎 ${fileData.fileName}\n\n${content}` : content,
+        content: effectiveFileData
+          ? `📎 ${effectiveFileData.fileName}${fileData ? '' : ' (din sesiune)'}\n\n${content}`
+          : content,
         created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, userMessage]);
@@ -371,7 +380,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       if (agentMode) {
         try {
           yanaAgent.reset();
-          const finalText = await yanaAgent.run(content, historyForAI, fileData);
+          const finalText = await yanaAgent.run(content, historyForAI, effectiveFileData);
           // Capturăm pașii din state-ul curent al hook-ului prin setTimeout 0
           // (sau citim direct yanaAgent.steps - dar e closure-stale, deci facem snapshot)
           const stepsSnapshot: AgentStep[] = [...yanaAgent.steps];
@@ -405,7 +414,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
         body: {
           message: content,
           conversationId: convId,
-          fileData,
+          fileData: effectiveFileData,
           history: historyForAI,
           balanceContext: effectiveBalanceContext || undefined,
         },
