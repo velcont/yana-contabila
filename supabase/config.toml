@@ -305,3 +305,6 @@ verify_jwt = false
 
 [functions.prospect-onrc-scraper]
 verify_jwt = true
+
+[functions.gmail-auto-responder]
+verify_jwt = false
