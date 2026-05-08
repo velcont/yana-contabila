@@ -64,6 +64,7 @@ const WhatsAppLink = lazy(() => import("./pages/WhatsAppLink"));
 const ChiefOfStaff = lazy(() => import("./pages/ChiefOfStaff"));
 const CRM = lazy(() => import("./pages/CRM"));
 const EmailSettings = lazy(() => import("./pages/EmailSettings"));
+const GmailResponder = lazy(() => import("./pages/GmailResponder"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const Prospect = lazy(() => import("./pages/Prospect"));
 const Samanta = lazy(() => import("./pages/Samanta"));
@@ -206,6 +207,7 @@ const App = () => {
                       <Route path="/crm" element={<PrivateRoute><CRM /></PrivateRoute>} />
                       <Route path="/inbox" element={<PrivateRoute><Inbox /></PrivateRoute>} />
                       <Route path="/email-settings" element={<PrivateRoute><EmailSettings /></PrivateRoute>} />
+                      <Route path="/gmail-responder" element={<PrivateRoute><GmailResponder /></PrivateRoute>} />
                       <Route path="/prospect" element={<PrivateRoute><Prospect /></PrivateRoute>} />
                       <Route path="/samanta" element={<PrivateRoute><Samanta /></PrivateRoute>} />
                       <Route path="/samanta/live" element={<PrivateRoute><SamantaLive /></PrivateRoute>} />
