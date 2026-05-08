@@ -3647,6 +3647,129 @@ export type Database = {
         }
         Relationships: []
       }
+      gmail_responder_examples: {
+        Row: {
+          created_at: string
+          final_response: string
+          id: string
+          original_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          final_response: string
+          id?: string
+          original_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          final_response?: string
+          id?: string
+          original_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gmail_responder_log: {
+        Row: {
+          created_at: string
+          email_message_id: string | null
+          error_message: string | null
+          from_address: string | null
+          generated_draft: string | null
+          gmail_draft_id: string | null
+          id: string
+          snippet: string | null
+          status: string
+          subject: string | null
+          thread_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_message_id?: string | null
+          error_message?: string | null
+          from_address?: string | null
+          generated_draft?: string | null
+          gmail_draft_id?: string | null
+          id?: string
+          snippet?: string | null
+          status: string
+          subject?: string | null
+          thread_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_message_id?: string | null
+          error_message?: string | null
+          from_address?: string | null
+          generated_draft?: string | null
+          gmail_draft_id?: string | null
+          id?: string
+          snippet?: string | null
+          status?: string
+          subject?: string | null
+          thread_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gmail_responder_settings: {
+        Row: {
+          blacklist: string[]
+          created_at: string
+          enabled: boolean
+          frequency_minutes: number
+          id: string
+          last_history_id: string | null
+          last_run_at: string | null
+          mark_as_read: boolean
+          mode: string
+          scope: string
+          signature: string | null
+          system_prompt: string
+          updated_at: string
+          user_id: string
+          whitelist: string[]
+        }
+        Insert: {
+          blacklist?: string[]
+          created_at?: string
+          enabled?: boolean
+          frequency_minutes?: number
+          id?: string
+          last_history_id?: string | null
+          last_run_at?: string | null
+          mark_as_read?: boolean
+          mode?: string
+          scope?: string
+          signature?: string | null
+          system_prompt?: string
+          updated_at?: string
+          user_id: string
+          whitelist?: string[]
+        }
+        Update: {
+          blacklist?: string[]
+          created_at?: string
+          enabled?: boolean
+          frequency_minutes?: number
+          id?: string
+          last_history_id?: string | null
+          last_run_at?: string | null
+          mark_as_read?: boolean
+          mode?: string
+          scope?: string
+          signature?: string | null
+          system_prompt?: string
+          updated_at?: string
+          user_id?: string
+          whitelist?: string[]
+        }
+        Relationships: []
+      }
       grant_opportunities: {
         Row: {
           created_at: string
