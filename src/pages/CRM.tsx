@@ -335,6 +335,77 @@ const CRM = () => {
             )}
           </TabsContent>
 
+          {/* ALERTE PROACTIVE */}
+          <TabsContent value="alerts" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">YANA monitorizează pipeline-ul și-ți semnalează ce cere atenție acum.</p>
+
+            <div>
+              <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                Deal-uri în pericol ({staleDeals.length})
+              </h3>
+              {staleDeals.length === 0 ? (
+                <Card className="border-dashed border-success/30"><CardContent className="p-4 text-center text-xs text-muted-foreground">✅ Niciun deal cu termen depășit.</CardContent></Card>
+              ) : staleDeals.slice(0, 10).map(d => (
+                <Card key={d.id} className="mb-2 border-destructive/30">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{d.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {d.crm_companies?.name || "—"} • termen {d.expected_close_date && new Date(d.expected_close_date).toLocaleDateString("ro-RO")}
+                      </p>
+                    </div>
+                    <Badge variant="destructive" className="shrink-0">{d.value.toLocaleString("ro-RO")} {d.currency}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <Flame className="w-4 h-4 text-amber-500" />
+                Lead-uri fierbinți necontactate ({hotUncontacted.length})
+              </h3>
+              {hotUncontacted.length === 0 ? (
+                <Card className="border-dashed"><CardContent className="p-4 text-center text-xs text-muted-foreground">Nimic urgent. Toate lead-urile fierbinți au fost atinse.</CardContent></Card>
+              ) : hotUncontacted.slice(0, 10).map(l => (
+                <Card key={l.id} className="mb-2 border-amber-500/30">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{l.first_name} {l.last_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{l.crm_companies?.name || l.email || l.job_title || "—"}</p>
+                    </div>
+                    <Badge className="bg-amber-500 text-white shrink-0">scor {l.lead_score}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4 text-muted-foreground" />
+                Risc de churn — fără contact 30+ zile ({churnRisk.length})
+              </h3>
+              {churnRisk.length === 0 ? (
+                <Card className="border-dashed"><CardContent className="p-4 text-center text-xs text-muted-foreground">Toți clienții activi au interacționat recent.</CardContent></Card>
+              ) : churnRisk.slice(0, 10).map(c => (
+                <Card key={c.id} className="mb-2">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{c.first_name} {c.last_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {c.crm_companies?.name || c.email || "—"} • ultima activitate {new Date(lastActivityByContact[c.id]).toLocaleDateString("ro-RO")}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setChatOpen(true)} className="shrink-0 gap-1">
+                      <Sparkles className="w-3 h-3" />Follow-up
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
           {/* Companies */}
           <TabsContent value="companies" className="mt-4 space-y-2">
             {companies.length === 0 ? (
@@ -541,6 +612,18 @@ const CRM = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Floating chat FAB — interfață conversațională centrală */}
+      <Button
+        onClick={() => setChatOpen(true)}
+        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-primary to-accent hover:scale-105 transition-transform p-0"
+        aria-label="Deschide chat YANA în CRM"
+      >
+        <Bot className="w-6 h-6" />
+      </Button>
+
+      <CRMChatPanel open={chatOpen} onOpenChange={setChatOpen} onMutation={loadAll} />
+
       <ContactDossierDialog
         contact={dossierContact as any}
         open={dossierOpen}
