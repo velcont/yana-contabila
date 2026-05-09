@@ -6,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Building2, Users, TrendingUp, Activity, MessageSquare, Plus, Flame, Mail, Copy, BarChart3, Target, Camera, Clock } from "lucide-react";
+import { AlertTriangle, Sparkles, Bot } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { YanaHomeButton } from "@/components/YanaHomeButton";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ContactDossierDialog } from "@/components/crm/ContactDossierDialog";
+import { CRMChatPanel } from "@/components/crm/CRMChatPanel";
 
 interface Company { id: string; name: string; cui?: string | null; industry?: string | null; city?: string | null; annual_revenue?: number | null; }
 interface Contact { id: string; first_name: string; last_name?: string | null; email?: string | null; phone?: string | null; job_title?: string | null; crm_companies?: { name: string } | null; }
@@ -45,6 +47,8 @@ const CRM = () => {
   const [importingCard, setImportingCard] = useState(false);
   const [dossierContact, setDossierContact] = useState<Contact | null>(null);
   const [dossierOpen, setDossierOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [lastActivityByContact, setLastActivityByContact] = useState<Record<string, string>>({});
 
   useEffect(() => {
     document.title = "CRM YANA — Pipeline conversational AI";
@@ -101,6 +105,13 @@ const CRM = () => {
       setReportMetrics((rm.data || null) as Record<string, number> | null);
       setDuplicates((dups.data || []) as DuplicateGroup[]);
       setActivityFeed((feed.data || []) as ActivityFeedItem[]);
+      // Index ultima activitate per contact pentru alerte/sentiment
+      const map: Record<string, string> = {};
+      (feed.data || []).forEach((a: any) => {
+        const cid = a.contact_id;
+        if (cid && !map[cid]) map[cid] = a.created_at;
+      });
+      setLastActivityByContact(map);
     } catch (e) { console.error(e); }
     finally { setAdvancedLoading(false); }
   }
@@ -189,6 +200,20 @@ const CRM = () => {
   const totalPipelineValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
   const dealsByStage = (stageId: string) => deals.filter(d => d.stage_id === stageId);
 
+  // === ALERTE PROACTIVE ===
+  const now = Date.now();
+  const staleDeals = deals.filter(d => {
+    if (!d.expected_close_date) return false;
+    return new Date(d.expected_close_date).getTime() < now;
+  });
+  const hotUncontacted = topLeads.filter(l => l.lead_score >= 60 && !lastActivityByContact[l.id]);
+  const churnRisk = contacts.filter(c => {
+    const last = lastActivityByContact[c.id];
+    if (!last) return false;
+    return now - new Date(last).getTime() > 30 * 86400000;
+  });
+  const totalAlerts = staleDeals.length + hotUncontacted.length + churnRisk.length;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -246,8 +271,14 @@ const CRM = () => {
         </div>
 
         <Tabs defaultValue="pipeline" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-9">
             <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+            <TabsTrigger value="alerts" className="relative">
+              <AlertTriangle className="w-3 h-3 mr-1" />Alerte
+              {totalAlerts > 0 && (
+                <span className="ml-1 text-[10px] bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5">{totalAlerts}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="companies">Firme</TabsTrigger>
             <TabsTrigger value="contacts">Contacte</TabsTrigger>
             <TabsTrigger value="leads"><Flame className="w-3 h-3 mr-1" />Scor</TabsTrigger>
