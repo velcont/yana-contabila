@@ -6,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2, Building2, Users, TrendingUp, Activity, MessageSquare, Plus, Flame, Mail, Copy, BarChart3, Target, Camera, Clock } from "lucide-react";
+import { AlertTriangle, Sparkles, Bot } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { YanaHomeButton } from "@/components/YanaHomeButton";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ContactDossierDialog } from "@/components/crm/ContactDossierDialog";
+import { CRMChatPanel } from "@/components/crm/CRMChatPanel";
 
 interface Company { id: string; name: string; cui?: string | null; industry?: string | null; city?: string | null; annual_revenue?: number | null; }
 interface Contact { id: string; first_name: string; last_name?: string | null; email?: string | null; phone?: string | null; job_title?: string | null; crm_companies?: { name: string } | null; }
@@ -45,6 +47,8 @@ const CRM = () => {
   const [importingCard, setImportingCard] = useState(false);
   const [dossierContact, setDossierContact] = useState<Contact | null>(null);
   const [dossierOpen, setDossierOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [lastActivityByContact, setLastActivityByContact] = useState<Record<string, string>>({});
 
   useEffect(() => {
     document.title = "CRM YANA — Pipeline conversational AI";
@@ -101,6 +105,13 @@ const CRM = () => {
       setReportMetrics((rm.data || null) as Record<string, number> | null);
       setDuplicates((dups.data || []) as DuplicateGroup[]);
       setActivityFeed((feed.data || []) as ActivityFeedItem[]);
+      // Index ultima activitate per contact pentru alerte/sentiment
+      const map: Record<string, string> = {};
+      (feed.data || []).forEach((a: any) => {
+        const cid = a.contact_id;
+        if (cid && !map[cid]) map[cid] = a.created_at;
+      });
+      setLastActivityByContact(map);
     } catch (e) { console.error(e); }
     finally { setAdvancedLoading(false); }
   }
@@ -189,6 +200,20 @@ const CRM = () => {
   const totalPipelineValue = deals.reduce((sum, d) => sum + (d.value || 0), 0);
   const dealsByStage = (stageId: string) => deals.filter(d => d.stage_id === stageId);
 
+  // === ALERTE PROACTIVE ===
+  const now = Date.now();
+  const staleDeals = deals.filter(d => {
+    if (!d.expected_close_date) return false;
+    return new Date(d.expected_close_date).getTime() < now;
+  });
+  const hotUncontacted = topLeads.filter(l => l.lead_score >= 60 && !lastActivityByContact[l.id]);
+  const churnRisk = contacts.filter(c => {
+    const last = lastActivityByContact[c.id];
+    if (!last) return false;
+    return now - new Date(last).getTime() > 30 * 86400000;
+  });
+  const totalAlerts = staleDeals.length + hotUncontacted.length + churnRisk.length;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -246,8 +271,14 @@ const CRM = () => {
         </div>
 
         <Tabs defaultValue="pipeline" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-9">
             <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+            <TabsTrigger value="alerts" className="relative">
+              <AlertTriangle className="w-3 h-3 mr-1" />Alerte
+              {totalAlerts > 0 && (
+                <span className="ml-1 text-[10px] bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5">{totalAlerts}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="companies">Firme</TabsTrigger>
             <TabsTrigger value="contacts">Contacte</TabsTrigger>
             <TabsTrigger value="leads"><Flame className="w-3 h-3 mr-1" />Scor</TabsTrigger>
@@ -302,6 +333,77 @@ const CRM = () => {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* ALERTE PROACTIVE */}
+          <TabsContent value="alerts" className="mt-4 space-y-4">
+            <p className="text-sm text-muted-foreground">YANA monitorizează pipeline-ul și-ți semnalează ce cere atenție acum.</p>
+
+            <div>
+              <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                Deal-uri în pericol ({staleDeals.length})
+              </h3>
+              {staleDeals.length === 0 ? (
+                <Card className="border-dashed border-success/30"><CardContent className="p-4 text-center text-xs text-muted-foreground">✅ Niciun deal cu termen depășit.</CardContent></Card>
+              ) : staleDeals.slice(0, 10).map(d => (
+                <Card key={d.id} className="mb-2 border-destructive/30">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{d.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {d.crm_companies?.name || "—"} • termen {d.expected_close_date && new Date(d.expected_close_date).toLocaleDateString("ro-RO")}
+                      </p>
+                    </div>
+                    <Badge variant="destructive" className="shrink-0">{d.value.toLocaleString("ro-RO")} {d.currency}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <Flame className="w-4 h-4 text-amber-500" />
+                Lead-uri fierbinți necontactate ({hotUncontacted.length})
+              </h3>
+              {hotUncontacted.length === 0 ? (
+                <Card className="border-dashed"><CardContent className="p-4 text-center text-xs text-muted-foreground">Nimic urgent. Toate lead-urile fierbinți au fost atinse.</CardContent></Card>
+              ) : hotUncontacted.slice(0, 10).map(l => (
+                <Card key={l.id} className="mb-2 border-amber-500/30">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{l.first_name} {l.last_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{l.crm_companies?.name || l.email || l.job_title || "—"}</p>
+                    </div>
+                    <Badge className="bg-amber-500 text-white shrink-0">scor {l.lead_score}</Badge>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                <Activity className="w-4 h-4 text-muted-foreground" />
+                Risc de churn — fără contact 30+ zile ({churnRisk.length})
+              </h3>
+              {churnRisk.length === 0 ? (
+                <Card className="border-dashed"><CardContent className="p-4 text-center text-xs text-muted-foreground">Toți clienții activi au interacționat recent.</CardContent></Card>
+              ) : churnRisk.slice(0, 10).map(c => (
+                <Card key={c.id} className="mb-2">
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{c.first_name} {c.last_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {c.crm_companies?.name || c.email || "—"} • ultima activitate {new Date(lastActivityByContact[c.id]).toLocaleDateString("ro-RO")}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setChatOpen(true)} className="shrink-0 gap-1">
+                      <Sparkles className="w-3 h-3" />Follow-up
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
           {/* Companies */}
@@ -510,6 +612,18 @@ const CRM = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Floating chat FAB — interfață conversațională centrală */}
+      <Button
+        onClick={() => setChatOpen(true)}
+        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-2xl bg-gradient-to-br from-primary to-accent hover:scale-105 transition-transform p-0"
+        aria-label="Deschide chat YANA în CRM"
+      >
+        <Bot className="w-6 h-6" />
+      </Button>
+
+      <CRMChatPanel open={chatOpen} onOpenChange={setChatOpen} onMutation={loadAll} />
+
       <ContactDossierDialog
         contact={dossierContact as any}
         open={dossierOpen}
