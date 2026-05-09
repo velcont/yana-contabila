@@ -4,6 +4,7 @@ import { GraduationCap, BookOpen, Layers, Brain, Heart, ArrowLeft } from "lucide
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Footer } from "@/components/Footer";
+import { BibliographyVerifier } from "@/components/doctorate/BibliographyVerifier";
 
 const Research = () => {
   const navigate = useNavigate();
@@ -163,6 +164,11 @@ const Research = () => {
             </ol>
           </CardContent>
         </Card>
+
+        <h2 className="text-2xl font-bold mb-4">Verificator anti-halucinație</h2>
+        <div className="mb-8">
+          <BibliographyVerifier />
+        </div>
       </div>
       <Footer />
     </div>
