@@ -2173,7 +2173,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { message, conversation_history = [], fileData } = await req.json();
+  const { message, conversation_history = [], fileData, context_hint } = await req.json();
   if (!message) {
     return new Response(JSON.stringify({ error: "Missing message" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
