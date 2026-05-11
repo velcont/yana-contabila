@@ -151,9 +151,16 @@ export default function FirmeNoi() {
   const addToCRM = async (c: NewCompany) => {
     if (!user) return;
     try {
-      await supabase.rpc("ensure_default_crm_pipeline", { p_user_id: user.id });
-      const { data: pipeline } = await supabase.from("crm_pipelines").select("id").eq("user_id", user.id).eq("is_default", true).single();
-      const { data: stage } = await supabase.from("crm_pipeline_stages").select("id").eq("pipeline_id", pipeline!.id).order("display_order").limit(1).single();
+      const { data: pipelineId, error: pErr } = await supabase.rpc("ensure_default_crm_pipeline", { p_user_id: user.id });
+      if (pErr || !pipelineId) throw pErr ?? new Error("Nu am putut crea pipeline-ul CRM");
+      const { data: stage, error: sErr } = await supabase
+        .from("crm_pipeline_stages")
+        .select("id")
+        .eq("pipeline_id", pipelineId as string)
+        .order("display_order")
+        .limit(1)
+        .maybeSingle();
+      if (sErr || !stage) throw sErr ?? new Error("Nu am găsit etapele pipeline-ului CRM");
 
       const { data: comp, error: ce } = await supabase.from("crm_companies").insert({
         user_id: user.id,
@@ -169,8 +176,8 @@ export default function FirmeNoi() {
 
       const { data: deal, error: de } = await supabase.from("crm_deals").insert({
         user_id: user.id,
-        pipeline_id: pipeline!.id,
-        stage_id: stage!.id,
+        pipeline_id: pipelineId as string,
+        stage_id: stage.id,
         company_id: comp.id,
         title: `Lead: ${c.nume}`,
       }).select().single();
