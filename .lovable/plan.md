@@ -1,99 +1,111 @@
-## Părerea mea pe scurt
+## Modul "Firme Nou Înființate" — pagină `/firme-noi`
 
-Viziunea ta este solidă și se potrivește perfect cu direcția YANA ("nu un chatbot, un AI pentru business"). Ai dreptate la 3 puncte critice care în /crm-ul actual sunt **subdezvoltate**:
+Modul separat (cu hook spre CRM-ul existent), alimentat săptămânal cu fișierul `MF_FirmeNoi*.xlsx` (4080 rânduri, 15 coloane: CUI, NrInmatriculare, Nume, Județ, Localitate, Tip, Adresa, Nr, Telefon, Mobil, Fax, DataInfiintarii, DataActualizarii, CAEN, DescriereCAENRo).
 
-1. **Layout copilot real** — acum chatul e doar un drawer lateral (`CRMChatPanel`) declanșat de un buton. Nu e "comanda centrală". Restul ecranului rămâne tab-uri clasice (Pipeline, Firme, Contacte, Scor, Forecast, Rapoarte, Templates, Duplicate, Alerte) — exact opusul filozofiei pe care o descrii.
-2. **Generative UI în răspunsuri** — `CRMChatPanel` afișează doar text simplu (`whitespace-pre-wrap`). Nu există mini-tabele, KPI cards, timeline-uri sau butoane de acțiune sub mesajul AI.
-3. **Approval flow + explainability** — acțiunile YANA se execută direct prin `yana-agent`, fără confirmare vizuală în chat și fără "pe ce date m-am bazat".
+### Reguli de acces (foarte stricte)
 
-Restul (interogare NL, scoring, alerte proactive, forecast, business card OCR, dossier contact) **există deja** și funcționează — deci nu rescriem CRM-ul, doar îl reorganizăm vizual și îmbogățim stratul de chat.
+- **Vizualizare permisă doar pentru:**
+  - useri în perioada de gratuitate activă (`trial_ends_at > now()`), SAU
+  - useri cu abonament activ 49 RON (`subscription_status = 'active'` și `subscription_ends_at > now() OR NULL`), SAU
+  - useri cu `has_free_access = true`, SAU
+  - admini.
+- **Restul userilor:** văd doar empty-state cu CTA → `/pricing`.
+- **Strict NO download / NO export:**
+  - fără buton "Descarcă xlsx/CSV"
+  - fără endpoint care întoarce fișierul brut
+  - bucket-ul cu xlsx-ul original e privat, fără policy de SELECT pentru useri (doar admin via service role)
+  - paginare server-side (50/page) — niciodată nu se livrează tot setul de 4080 rânduri într-un singur răspuns
+  - rate limit pe edge function de listare: max 200 rânduri pe minut per user, ca să descurajeze scraping
+  - frontend: dezactivăm select-text + context menu pe celulele cu telefon/CUI (descurajare, nu blocare absolută)
 
-## Plan de implementare
+### 1. Bază de date (migration nouă)
 
-### Etapa 1 — Layout copilot (3 coloane)
+**`new_companies_batches`** — un rând per upload săptămânal
+- `file_name`, `period_start`, `period_end` (parsate din numele fișierului `2026-05-03-2026-05-09`)
+- `uploaded_by` (admin), `total_rows`, `inserted_rows`, `duplicate_rows`
 
-Refactor `src/pages/CRM.tsx` într-un shell nou:
+**`new_companies`** — firmele propriu-zise
+- toate cele 15 coloane + `batch_id`, `data_infiintarii` (date real, conversie din serial Excel)
+- `cui` UNIQUE → la re-upload, ON CONFLICT DO NOTHING (deduplicare CUI)
+- index pe `judet`, `caen`, `data_infiintarii`
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Header: YANA / CRM · [Card vizită] [Vorbește cu YANA full]  │
-├──────────────┬──────────────────────────┬───────────────────┤
-│ LEFT NAV     │ CHAT CENTRAL (primary)   │ CONTEXT PANEL     │
-│ • Pipeline   │                          │ Client/deal curent│
-│ • Contacte   │ Mesaje + generative UI   │ • KPI             │
-│ • Firme      │ + slash-commands         │ • Timeline        │
-│ • Alerte (n) │ + sugestii prompt        │ • Documente       │
-│ • Forecast   │ + voice                  │ • Recomandări AI  │
-│ • Rapoarte   │                          │ • Risk signals    │
-└──────────────┴──────────────────────────┴───────────────────┘
-```
+**`new_company_outreach`** — tracking ofertă per user × firmă
+- `user_id`, `new_company_id`, `status` (`viewed`, `email_generated`, `copied`, `added_to_crm`)
+- `crm_company_id`, `crm_deal_id` (când e împins în CRM)
+- UNIQUE (user_id, new_company_id)
 
-- Pe desktop (≥1024px): 3 coloane (240px / 1fr / 360px).
-- Pe mobil/tabletă: chat full-width, left nav devine sheet (hamburger), context panel devine bottom-sheet sau tab "Context".
-- Tab-urile vechi (Companies/Contacts/Leads/Forecast/Reports/Templates/Duplicates) devin **vizualizări** declanșate fie din left-nav, fie inline în răspunsul YANA (ex.: "arată-mi pipeline" → pipeline kanban în chat).
+**RLS:**
+- helper SECURITY DEFINER `has_firme_noi_access(uid uuid) returns boolean`:
+  - admin OR (trial activ) OR (subscription_status='active' și nu expirat) OR has_free_access
+- `new_companies` SELECT: doar dacă `has_firme_noi_access(auth.uid())`
+- INSERT/DELETE pe `new_companies`/`new_companies_batches`: doar admin
+- `new_company_outreach`: user vede/scrie doar rândurile lui
 
-### Etapa 2 — Generative UI în răspunsurile YANA
+**Storage bucket** `firme-noi-uploads` (privat, **fără** policy SELECT pentru useri normali) — păstrează xlsx-ul original doar pentru admin.
 
-Extind `CRMChatPanel.tsx` (sau îl spargem în `CRMCopilot/` cu sub-componente):
+### 2. Edge function `import-new-companies` (admin only)
 
-- **Renderer pentru `MessageResponse`**: parsează blocuri marker în răspunsul `yana-agent`:
-  - `[CRM_TABLE]{...}[/CRM_TABLE]` → tabel compact (top 10 leads, deals în risc)
-  - `[CRM_KPI]{...}[/CRM_KPI]` → cards cu valoare + delta + sursă
-  - `[CRM_TIMELINE]{...}[/CRM_TIMELINE]` → timeline activități
-  - `[CRM_DRAFT_EMAIL]{...}[/CRM_DRAFT_EMAIL]` → card cu draft + butoane "Editează / Trimite / Salvează template"
-  - `[CRM_ACTION_CARD]{...}[/CRM_ACTION_CARD]` → buton de confirmare pentru acțiuni mutante (creează task, schimbă stage, programează demo)
-- **Action bar sub fiecare mesaj AI**: "Salvează în CRM", "Creează task", "Deschide fișa", "Copiază".
-- **Surse / explainability**: footer mic "Bazat pe: 12 contacte · 3 deals · activitate ultimele 30 zile".
+- Input: `{ batch_id, file_path }`
+- Verifică `has_role(uid, 'admin')`; refuză restul
+- Descarcă xlsx din storage cu service role, parse cu `xlsx`
+- Convertește serial Excel → ISO pentru `DataInfiintarii`/`DataActualizarii`
+- Bulk insert în chunk-uri de 500, cu `onConflict: 'cui', ignoreDuplicates: true`
+- Update `new_companies_batches` cu inserted/duplicate counts
 
-### Etapa 3 — Approval flow (human-in-the-loop)
+### 3. Edge function `generate-prospect-email`
 
-Reutilizez convenția existentă (`ActionConfirmationCard` din memorie — `mem://features/action-confirmation-human-in-the-loop`):
+- Input: `{ new_company_id, sender_profile?: { name, business, offer } }`
+- Verifică `has_firme_noi_access`; altfel 403
+- Lovable AI (`google/gemini-2.5-flash`) — ofertă scurtă RO, fără placeholder-uri `[...]`, personalizată cu CAEN-ul firmei
+- Returnează `{ subject, body }`
+- Insert în `new_company_outreach` cu status `email_generated`
 
-- Toate intențiile mutante venite de la `yana-agent` (creează deal, mută stage, trimite email, șterge contact) se renderează ca `ActionCard` cu state: `pending` → `confirmed` → `executed`.
-- Audit trail: scriu fiecare acțiune confirmată în `crm_activities` cu `activity_type='ai_action'`.
+### 4. UI nou — `src/pages/FirmeNoi.tsx`
 
-### Etapa 4 — Composer inteligent
+**Top bar:**
+- Buton "Încarcă fișier" (vizibil doar admin) → dialog drag&drop xlsx → `import-new-companies`
+- Selector batch (ultimele 8 săptămâni), badge `nou` pe ultimul
 
-Upgrade input-ul din `CRMChatPanel`:
+**Filtre (sticky, mobile-first):**
+- Search nume / CUI
+- Județ (dropdown)
+- CAEN (multi-select cu căutare)
+- Data înființării (range)
+- Toggle "Doar cu telefon/mobil"
+- Toggle "Ascunde firmele deja adăugate în CRM-ul meu"
 
-- **Slash commands**: `/contact`, `/deal`, `/task`, `/email`, `/forecast`, `/dup` cu autocomplete.
-- **@-mentions** pentru obiecte CRM: `@Alpha SRL`, `@Ion Popescu` — căutare live în `crm_companies` / `crm_contacts`, injectează `entity_id` în context.
-- **Sugestii prompt** dinamice bazate pe alertele curente (deja calculate: `staleDeals`, `hotUncontacted`, `churnRisk`).
+**Listă paginată (50/page, server-side, fără buton de export):**
+- Card per firmă: Nume + CUI, Județ + Localitate, CAEN + descriere, Data înființării, telefoane (📞 / 📱)
+- Două butoane:
+  - **"Generează ofertă"** → drawer cu emailul AI + 📋 Copy + "Marchează ca trimis"
+  - **"Adaugă în CRM"** → creează `crm_companies` + `crm_deals` (stage "Lead nou" via `ensure_default_crm_pipeline`) + actualizează `new_company_outreach` + toast cu link `/crm`
 
-### Etapa 5 — Context panel reactiv
+**Empty-state pentru cei fără acces** (verificat și în UI, nu doar în RLS):
+- Card mare: "Lista firmelor noi înființate (4080+ în această săptămână) este disponibilă pe planul Strategic 49 RON/lună sau în perioada de probă gratuită."
+- CTA "Activează YANA Strategic" → `/pricing`.
 
-Componentă nouă `CRMContextPanel.tsx`:
+### 5. Integrare CRM
 
-- Se actualizează când YANA menționează un contact/deal (sau când userul îl selectează din left-nav).
-- Afișează: header (nume, owner, stadiu, valoare), tabs mici (Activitate / Documente / Emailuri / Recomandări).
-- Reutilizează `ContactDossierDialog` ca sursă de date — îl spargem în hook `useContactDossier(id)` ca să meargă și inline.
+- Reutilizează schema CRM (`crm_companies`, `crm_deals`, `crm_pipeline_stages`)
+- Apelează `ensure_default_crm_pipeline(user_id)` pentru pipeline default
+- Stadiu inițial = primul stage (display_order=0) — "Lead nou"
+- Marchează `crm_companies.metadata = { source: 'firme_noi', new_company_id }` pentru filtre ulterioare
 
-### Etapa 6 — Backend (minim)
+### 6. Navigație
 
-Edge function `yana-agent` rămâne sursa de adevăr; nu o rescriem. Doar:
+- Link nou în `AppSidebar` între CRM și ChiefOfStaff: 🏢 "Firme noi"
+- Banner subtil în `/crm`: "Ai 4080 firme noi de prospectat → Firme noi" când există batch din ultimele 7 zile
 
-- Adăugăm un `context_hint: "crm_copilot"` care îi spune să formateze răspunsul cu marker-ele `[CRM_*]` când userul cere date structurate.
-- Tool-uri noi (dacă lipsesc — verificăm înainte): `crm.searchContacts`, `crm.getDealTimeline`, `crm.draftEmail`, `crm.proposeAction` (ultima nu execută, doar întoarce un `ActionCard` JSON).
+### 7. Out of scope (iterații viitoare)
 
-## Detalii tehnice
+- Trimitere email automat din platformă (Resend) — momentan doar copy/paste
+- Bulk import în CRM
+- WhatsApp (wa.me) — date Mobil deja stocate, ușor de adăugat
+- Cron care citește dintr-un email/folder
 
-- Fișiere noi:
-  - `src/pages/CRM.tsx` — refactor în layout 3 coloane
-  - `src/components/crm/copilot/CRMLeftNav.tsx`
-  - `src/components/crm/copilot/CRMChatStream.tsx` (înlocuiește/extinde `CRMChatPanel`)
-  - `src/components/crm/copilot/CRMContextPanel.tsx`
-  - `src/components/crm/copilot/blocks/` — `KpiBlock.tsx`, `TableBlock.tsx`, `TimelineBlock.tsx`, `DraftEmailBlock.tsx`, `ActionCardBlock.tsx`
-  - `src/components/crm/copilot/SlashCommandMenu.tsx`
-- Drawer-ul existent `CRMChatPanel` rămâne disponibil temporar pentru fallback mobil, apoi îl scoatem.
-- Markdown rendering: reutilizăm `MarkdownRenderer` din `src/components/chat/`.
-- Nimic nu se șterge din funcționalitatea curentă — tab-urile vechi devin "vizualizări" accesibile din left-nav, deci nu pierdem nimic din pipeline/forecast/rapoarte.
+### Detalii tehnice
 
-## Ce las pe **etapa 2** (după ce confirmi MVP-ul)
-
-- Realtime collaboration (mai mulți useri pe același deal).
-- Voice agent dedicat (Realtime API) — acum avem doar speech-to-text via `webkitSpeechRecognition`.
-- Conectori ERP/facturare în context panel (ai SAGA + e-Factura deja, le-am putea afișa lângă deal).
-
-## Întrebare înainte să încep
-
-Vrei să încep cu **toată Etapa 1 + 2 (layout + generative UI blocks)** într-un singur pas, sau preferi să livrez incremental — întâi layoutul cu chatul existent mutat în centru, apoi blocks-urile?
+- Conversie Excel serial → ISO: `new Date(Date.UTC(1899, 11, 30) + serial * 86400000)`
+- Limită upload xlsx admin: 25 MB
+- Filtru CAEN: caută pe cod numeric, afișează `DescriereCAENRo`
+- Fără export, fără endpoint care livrează tot setul deodată — întotdeauna paginare 50/page cu rate limit
