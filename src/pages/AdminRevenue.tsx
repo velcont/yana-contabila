@@ -33,7 +33,7 @@ const formatRON = (n: number) => new Intl.NumberFormat("ro-RO", { style: "curren
 
 export default function AdminRevenue() {
   const navigate = useNavigate();
-  const { isAdmin, loading: roleLoading } = useUserRole();
+  const { isAdmin, isLoading: roleLoading } = useUserRole();
   const [stats, setStats] = useState<RevenueStats | null>(null);
   const [loading, setLoading] = useState(true);
 
