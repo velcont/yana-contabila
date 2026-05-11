@@ -31,7 +31,7 @@ import { toast } from "sonner";
 import { ContactDossierDialog } from "@/components/crm/ContactDossierDialog";
 import { CRMChatStream } from "@/components/crm/copilot/CRMChatStream";
 import { CRMLeftNav, type CRMView } from "@/components/crm/copilot/CRMLeftNav";
-import { CRMContextPanel } from "@/components/crm/copilot/CRMContextPanel";
+import { CRMContextPanel, type ContextSummary } from "@/components/crm/copilot/CRMContextPanel";
 
 interface Company { id: string; name: string; cui?: string | null; industry?: string | null; city?: string | null; annual_revenue?: number | null; }
 interface Contact { id: string; first_name: string; last_name?: string | null; email?: string | null; phone?: string | null; job_title?: string | null; crm_companies?: { name: string } | null; }
@@ -665,19 +665,7 @@ function EmptyView({ message, onAsk }: { message: string; onAsk: (q: string) => 
   );
 }
 
-function CRMContextPanelMobile(props: React.ComponentProps<typeof CRMContextPanel>) {
-  // Same content but always rendered (the desktop one is hidden under lg)
-  return (
-    <div className="block">
-      <div className="lg:hidden">
-        <CRMContextPanelInline {...props} />
-      </div>
-    </div>
-  );
-}
-
-// Reuse aside content as inline component for mobile sheet
-function CRMContextPanelInline({ summary, onAsk }: React.ComponentProps<typeof CRMContextPanel>) {
+function CRMContextPanelMobile({ summary, onAsk }: { summary: ContextSummary; onAsk: (q: string) => void }) {
   const totalAlerts = summary.staleDeals + summary.hotUncontacted + summary.churnRisk;
   return (
     <div className="p-3 space-y-4">
