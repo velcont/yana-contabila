@@ -7,17 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Loader2,
-  Building2,
-  Users,
-  TrendingUp,
   Activity,
   MessageSquare,
   Plus,
   Flame,
-  Mail,
-  Copy,
-  BarChart3,
-  Target,
   Camera,
   Clock,
   Menu,
