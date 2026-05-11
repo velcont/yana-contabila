@@ -2339,8 +2339,16 @@ serve(async (req) => {
     
     if (accessError) {
       console.error(`[chat-ai][${requestId}] Access check error:`, accessError);
-      // În caz de eroare la verificare, permitem accesul pentru a nu bloca utilizatorii
-      console.log(`[chat-ai][${requestId}] FALLBACK: Allowing access due to verification error`);
+      // 🔒 SECURITY FIX: La eroare de verificare → BLOCĂM accesul (fail-closed).
+      // Anterior făceam fail-open ceea ce permitea bypass al monetizării.
+      return new Response(
+        JSON.stringify({
+          error: 'Nu am putut verifica accesul tău. Te rugăm reîncearcă în câteva momente.',
+          needsUpgrade: false,
+          accessType: 'verification_error'
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } else if (accessCheck && accessCheck.length > 0 && !accessCheck[0].can_proceed) {
       console.warn(`[chat-ai][${requestId}] ACCESS DENIED: ${accessCheck[0].message}`);
       console.log(`[chat-ai][${requestId}] Access type: ${accessCheck[0].access_type}`);

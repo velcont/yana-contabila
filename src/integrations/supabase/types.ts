@@ -10953,6 +10953,10 @@ export type Database = {
         Args: { p_agent_id: string; p_success: boolean }
         Returns: undefined
       }
+      is_subscription_currently_valid: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       link_orphan_analyses_to_companies: {
         Args: { p_user_id: string }
         Returns: {

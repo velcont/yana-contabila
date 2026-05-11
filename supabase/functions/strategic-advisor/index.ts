@@ -1162,50 +1162,48 @@ serve(async (req) => {
     // PROTECȚIE FINANCIARĂ - NU ȘTERGE!
     // ========================================
 
-    // Verify subscription status and AI credits
+    // 🔒 SECURITY FIX: Folosim verify_ai_access ca să avem o singură sursă de adevăr
+    // (verifică expirare reală + stripe_subscription_id, nu doar status='active').
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("subscription_type, subscription_status, has_free_access, trial_credit_remaining, ai_credits")
+      .select("subscription_type, trial_credit_remaining, ai_credits")
       .eq("id", user.id)
       .single();
 
-    const { data: isAdmin } = await supabaseClient.rpc("has_role", {
-      _user_id: user.id,
-      _role: "admin"
+    const { data: accessCheck, error: accessError } = await supabaseClient.rpc("verify_ai_access", {
+      p_user_id: user.id,
+      p_endpoint: "strategic-advisor"
     });
 
-    const hasActiveSubscription = 
-      profile?.subscription_status === "active" || 
-      profile?.subscription_status === "trialing";
-    
-    const creditRemaining = profile?.trial_credit_remaining || 0;
+    if (accessError) {
+      console.error("[STRATEGIC-ADVISOR] Access verification error:", accessError);
+      return new Response(
+        JSON.stringify({ error: "Nu am putut verifica accesul tău. Te rugăm reîncearcă." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // Allow access for:
-    // 1. Admins
-    // 2. Users with active paid subscription
-    // 3. Users with trial credit remaining
-    const hasAccess = isAdmin || 
-                     hasActiveSubscription || 
-                     creditRemaining > 0;
+    const accessRow = Array.isArray(accessCheck) && accessCheck.length > 0 ? accessCheck[0] : null;
+    const isAdmin = accessRow?.access_type === "admin";
+    const hasAccess = !!accessRow?.can_proceed;
 
     console.log("[STRATEGIC-ADVISOR] Access check:", {
       userId: user.id,
-      isAdmin,
-      subscriptionType: profile?.subscription_type,
-      subscriptionStatus: profile?.subscription_status,
-      creditRemaining,
-      hasActiveSubscription,
-      finalAccess: hasAccess
+      accessType: accessRow?.access_type,
+      hasAccess,
+      remainingCents: accessRow?.remaining_cents
     });
 
     if (!hasAccess) {
       return new Response(
-        JSON.stringify({ 
-          error: "Credit de test epuizat. Te rog activează un abonament plătit pentru a continua." 
+        JSON.stringify({
+          error: accessRow?.message || "Activează un abonament plătit pentru a continua.",
+          needsUpgrade: true,
+          accessType: accessRow?.access_type
         }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
