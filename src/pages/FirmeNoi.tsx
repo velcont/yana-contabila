@@ -161,9 +161,9 @@ export default function FirmeNoi() {
         cui: c.cui,
         phone: c.telefon ?? c.mobil,
         city: c.localitate,
-        county: c.judet,
+        address: c.judet,
         industry: c.descriere_caen,
-        metadata: { source: "firme_noi", new_company_id: c.id, caen: c.caen },
+        metadata: { source: "firme_noi", new_company_id: c.id, caen: c.caen, judet: c.judet },
       }).select().single();
       if (ce) throw ce;
 
