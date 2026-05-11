@@ -10898,6 +10898,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_revenue_stats: { Args: never; Returns: Json }
       get_user_credits_report: {
         Args: { p_user_id: string }
         Returns: {
