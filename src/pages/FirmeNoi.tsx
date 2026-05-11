@@ -81,11 +81,16 @@ export default function FirmeNoi() {
 
   useEffect(() => {
     if (!hasAccess) return;
-    supabase.from("new_companies").select("judet").not("judet", "is", null).limit(2000)
-      .then(({ data }) => {
-        const uniq = Array.from(new Set((data ?? []).map((r: any) => r.judet))).sort();
-        setJudete(uniq);
-      });
+    (supabase.rpc as any)("get_distinct_judete_new_companies").then(({ data, error }: any) => {
+      if (error) {
+        console.error("[FirmeNoi] get_distinct_judete error:", error);
+        return;
+      }
+      const uniq = Array.from(
+        new Set((data ?? []).map((r: any) => (r.judet ?? "").trim()).filter(Boolean))
+      ).sort((a: any, b: any) => a.localeCompare(b, "ro"));
+      setJudete(uniq as string[]);
+    });
   }, [hasAccess]);
 
   const load = async () => {
