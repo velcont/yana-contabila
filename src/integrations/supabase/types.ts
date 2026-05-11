@@ -10866,6 +10866,12 @@ export type Database = {
           was_helpful: boolean
         }[]
       }
+      get_distinct_judete_new_companies: {
+        Args: never
+        Returns: {
+          judet: string
+        }[]
+      }
       get_monthly_ai_usage: {
         Args: { p_month_year?: string; p_user_id?: string }
         Returns: {
