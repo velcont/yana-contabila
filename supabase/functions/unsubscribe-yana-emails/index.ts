@@ -164,25 +164,31 @@ serve(async (req: Request): Promise<Response> => {
       });
     }
 
+    // Token este OBLIGATORIU pentru a preveni dezabonarea arbitrară prin enumerarea user_id
+    if (!token) {
+      return new Response(getErrorPage("Link de dezabonare invalid - lipsește token-ul de validare."), {
+        status: 400,
+        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validare: verifică dacă token-ul (initiative_id) există și aparține user-ului
-    if (token) {
-      const { data: initiative } = await supabase
-        .from('yana_initiatives')
-        .select('user_id')
-        .eq('id', token)
-        .single();
+    // Validare obligatorie: token-ul (initiative_id) trebuie să existe și să aparțină user-ului
+    const { data: initiative } = await supabase
+      .from('yana_initiatives')
+      .select('user_id')
+      .eq('id', token)
+      .single();
 
-      if (!initiative || initiative.user_id !== userId) {
-        console.log(`[unsubscribe-yana-emails] Invalid token for user ${userId}`);
-        return new Response(getErrorPage("Link de dezabonare invalid sau expirat."), {
-          status: 400,
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
-        });
-      }
+    if (!initiative || initiative.user_id !== userId) {
+      console.log(`[unsubscribe-yana-emails] Invalid token for user ${userId}`);
+      return new Response(getErrorPage("Link de dezabonare invalid sau expirat."), {
+        status: 400,
+        headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+      });
     }
 
     // Actualizează profilul
