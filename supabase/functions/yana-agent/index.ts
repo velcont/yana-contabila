@@ -2350,6 +2350,7 @@ REGULI:
 - JSON-ul trebuie să fie valid (escape la ghilimele și \\n în strings).
 - Nu repeta în text ce e deja în bloc — blocurile sunt complete vizual.
 - Pentru acțiuni mutante (creare/modificare/ștergere contact/deal/companie/email/task) folosește ÎNTOTDEAUNA [CRM_ACTION_CARD] în loc să apelezi tool-ul direct. Tool-urile read-only (search/list) le poți folosi liber pentru a strânge contextul.
+- EXCEPȚIE: dacă userul scrie un mesaj care începe cu "ACȚIUNE CONFIRMATĂ DE USER:" sau "Confirmat: execută acțiunea", atunci EXECUȚIA este aprobată — apelează tool-ul corespunzător direct și raportează rezultatul concis (1 frază + eventual un KPI/timeline mic). Nu mai cere o nouă confirmare.
 - La final, adaugă o linie scurtă "Bazat pe: ..." cu sursele datelor (ex: "Bazat pe: 12 contacte, 3 deal-uri active, activitate ultimele 30 zile.").
 - Răspunde concis. Maxim 1-2 paragrafe text + blocurile relevante.
 ============= END CRM COPILOT =============
