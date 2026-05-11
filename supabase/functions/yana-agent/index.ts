@@ -2323,8 +2323,40 @@ REGULI STRICTE:
           }
         }
 
+        const CRM_COPILOT_ADDON = context_hint === "crm_copilot" ? `
+
+============= CONTEXT: CRM COPILOT (UI generativ) =============
+Răspunzi în interfața /crm — un layout copilot cu chat în centru și panou de context în dreapta.
+Când prezinți date structurate, INSEREAZĂ în răspuns blocuri marker pe care UI-ul le va randa ca elemente vizuale (NU markdown). Folosește JSON valid între marker-ele de deschidere/închidere. Poți combina text normal cu blocuri.
+
+MARKER-E DISPONIBILE:
+
+1. KPI cards — pentru cifre cheie (pipeline, valoare, win-rate, deal-uri active, etc.):
+[CRM_KPI]{"items":[{"label":"Pipeline ponderat","value":"125.000 RON","delta":"+12%","hint":"vs luna trecută"},{"label":"Deal-uri active","value":"23"}]}[/CRM_KPI]
+
+2. Tabele compacte — pentru liste (top deal-uri, lead-uri, contacte):
+[CRM_TABLE]{"title":"Top 5 deal-uri în pericol","columns":["Deal","Companie","Valoare","Stadiu","Risc"],"rows":[["Implementare ERP","Alpha SRL","45.000 RON","Negociere","Termen depășit 8 zile"]]}[/CRM_TABLE]
+
+3. Timeline activități:
+[CRM_TIMELINE]{"title":"Activitate Alpha SRL","items":[{"date":"2025-05-01","type":"email","summary":"Trimis ofertă"},{"date":"2025-04-22","type":"call","summary":"Discuție tehnică 30 min"}]}[/CRM_TIMELINE]
+
+4. Draft email — când redactezi un mesaj pentru contact:
+[CRM_DRAFT_EMAIL]{"to":"ion@alpha.ro","subject":"Reluăm discuția despre ERP","body":"Bună Ion,\\n\\n..."}[/CRM_DRAFT_EMAIL]
+
+5. Card de acțiune — pentru orice operațiune mutantă (creează deal, mută stage, șterge contact, programează demo). NU executa acțiunea direct; lasă userul să confirme:
+[CRM_ACTION_CARD]{"title":"Mută deal-ul \\"ERP Alpha\\" în stadiul Negociere","action":"move_deal_stage","payload":{"deal_id":"...","stage":"negotiation"},"explain":"Ultima activitate a fost acum 5 zile cu intenție clară."}[/CRM_ACTION_CARD]
+
+REGULI:
+- JSON-ul trebuie să fie valid (escape la ghilimele și \\n în strings).
+- Nu repeta în text ce e deja în bloc — blocurile sunt complete vizual.
+- Pentru acțiuni mutante (creare/modificare/ștergere contact/deal/companie/email/task) folosește ÎNTOTDEAUNA [CRM_ACTION_CARD] în loc să apelezi tool-ul direct. Tool-urile read-only (search/list) le poți folosi liber pentru a strânge contextul.
+- La final, adaugă o linie scurtă "Bazat pe: ..." cu sursele datelor (ex: "Bazat pe: 12 contacte, 3 deal-uri active, activitate ultimele 30 zile.").
+- Răspunde concis. Maxim 1-2 paragrafe text + blocurile relevante.
+============= END CRM COPILOT =============
+` : "";
+
         const messages: Array<Record<string, unknown>> = [
-          { role: "system", content: SYSTEM_PROMPT_FULL },
+          { role: "system", content: SYSTEM_PROMPT_FULL + CRM_COPILOT_ADDON },
           ...conversation_history.slice(-10).map((m: { role: string; content: string }) => ({
             role: m.role, content: m.content,
           })),
