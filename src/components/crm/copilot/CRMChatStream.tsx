@@ -67,18 +67,48 @@ export function CRMChatStream({ suggestions, onMutation, onContextHint }: CRMCha
     setMessages(next);
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("yana-agent", {
-        body: {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Nu ești autentificat");
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yana-agent`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
           message: t,
           conversation_history: next.slice(-12).map((m) => ({ role: m.role, content: m.content })),
           context_hint: "crm_copilot",
-        },
+        }),
       });
-      if (error) throw error;
-      const reply =
-        (data && (data.reply || data.message || data.text)) ||
-        "Am procesat cererea. Verifică panoul din dreapta pentru schimbări.";
-      const replyStr = String(reply);
+      if (!resp.ok || !resp.body) throw new Error(`Agent eroare: ${resp.status}`);
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let final = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || "";
+        for (const evt of events) {
+          if (!evt.trim()) continue;
+          let eventName = "";
+          let dataStr = "";
+          for (const line of evt.split("\n")) {
+            if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+            else if (line.startsWith("data: ")) dataStr = line.slice(6);
+          }
+          if (eventName === "final") {
+            try { final = String(JSON.parse(dataStr).text || ""); } catch { /* ignore */ }
+          } else if (eventName === "error") {
+            try { final = "Eroare: " + (JSON.parse(dataStr).message || ""); } catch { /* ignore */ }
+          }
+        }
+      }
+      const replyStr = final || "Am procesat cererea.";
       setMessages((m) => [...m, { role: "assistant", content: replyStr }]);
       onMutation?.();
       onContextHint?.({ text: replyStr });
