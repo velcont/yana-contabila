@@ -192,7 +192,7 @@ export function CRMChatStream({ suggestions, onMutation, onContextHint }: CRMCha
                       send(`Salvează acest email ca template în CRM: subiect "${d.subject}", body:\n\n${d.body}`);
                     }}
                     onConfirmAction={async (a: ActionCardData) => {
-                      send(`Confirmat: execută acțiunea ${a.action} (${a.title}). Payload: ${JSON.stringify(a.payload || {})}`);
+                      send(`ACȚIUNE CONFIRMATĂ DE USER: ${a.title}\nacțiune: ${a.action}\npayload: ${JSON.stringify(a.payload || {})}\n\nExecută acum și raportează rezultatul concis.`);
                     }}
                     onCancelAction={(a) => toast(`Acțiunea "${a.title}" a fost anulată.`)}
                   />
