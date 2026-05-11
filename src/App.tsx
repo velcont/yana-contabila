@@ -27,6 +27,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Admin = lazy(() => import("./pages/Admin"));
+const AdminRevenue = lazy(() => import("./pages/AdminRevenue"));
 const UpdatesManager = lazy(() => import("./pages/UpdatesManager"));
 const MarketingMaterials = lazy(() => import("./pages/MarketingMaterials"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -171,6 +172,7 @@ const App = () => {
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
                       <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
+                      <Route path="/admin/revenue" element={<PrivateRoute><AdminRevenue /></PrivateRoute>} />
                       <Route path="/admin/platform-costs" element={<PrivateRoute><PlatformCosts /></PrivateRoute>} />
                       <Route path="/marketing-materials" element={<PrivateRoute><MarketingMaterials /></PrivateRoute>} />
                       <Route path="/updates" element={<PrivateRoute><UpdatesManager /></PrivateRoute>} />
