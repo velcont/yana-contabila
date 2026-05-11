@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search, Lightbulb, TrendingUp, Euro } from 'lucide-react';
+import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search, Lightbulb, TrendingUp, Euro, Building2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SuggestionChipsProps {
   onSendMessage: (message: string) => void;
@@ -15,6 +16,14 @@ const DEFAULT_CHIPS = [
     message: 'Arată-mi lista de acțiuni pe care le am de făcut. Ce e urgent, ce e overdue, și cu ce mă poți ajuta?',
     accent: 'border-emerald-500/30 hover:bg-emerald-500/10',
     iconColor: 'text-emerald-500',
+  },
+  {
+    label: 'Firme noi înființate',
+    icon: Building2,
+    message: '',
+    accent: 'border-pink-500/30 hover:bg-pink-500/10',
+    iconColor: 'text-pink-500',
+    link: '/firme-noi',
   },
   {
     label: 'War Room',
@@ -122,6 +131,7 @@ const POST_ANALYSIS_CHIPS = [
 
 export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysis }: SuggestionChipsProps) {
   const chips = postAnalysis ? POST_ANALYSIS_CHIPS : DEFAULT_CHIPS;
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-wrap gap-2 py-2">
@@ -136,6 +146,8 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
             onClick={() => {
               if ('isUpload' in chip && chip.isUpload) {
                 onUpload();
+              } else if ('link' in chip && chip.link) {
+                navigate(chip.link);
               } else {
                 onSendMessage(chip.message);
               }
