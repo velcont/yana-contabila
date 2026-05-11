@@ -4598,6 +4598,160 @@ export type Database = {
         }
         Relationships: []
       }
+      new_companies: {
+        Row: {
+          adresa: string | null
+          batch_id: string | null
+          caen: string | null
+          created_at: string
+          cui: string
+          data_actualizarii: string | null
+          data_infiintarii: string | null
+          descriere_caen: string | null
+          fax: string | null
+          id: string
+          judet: string | null
+          localitate: string | null
+          mobil: string | null
+          nr: string | null
+          nr_inmatriculare: string | null
+          nume: string
+          telefon: string | null
+          tip: string | null
+        }
+        Insert: {
+          adresa?: string | null
+          batch_id?: string | null
+          caen?: string | null
+          created_at?: string
+          cui: string
+          data_actualizarii?: string | null
+          data_infiintarii?: string | null
+          descriere_caen?: string | null
+          fax?: string | null
+          id?: string
+          judet?: string | null
+          localitate?: string | null
+          mobil?: string | null
+          nr?: string | null
+          nr_inmatriculare?: string | null
+          nume: string
+          telefon?: string | null
+          tip?: string | null
+        }
+        Update: {
+          adresa?: string | null
+          batch_id?: string | null
+          caen?: string | null
+          created_at?: string
+          cui?: string
+          data_actualizarii?: string | null
+          data_infiintarii?: string | null
+          descriere_caen?: string | null
+          fax?: string | null
+          id?: string
+          judet?: string | null
+          localitate?: string | null
+          mobil?: string | null
+          nr?: string | null
+          nr_inmatriculare?: string | null
+          nume?: string
+          telefon?: string | null
+          tip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_companies_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "new_companies_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      new_companies_batches: {
+        Row: {
+          created_at: string
+          duplicate_rows: number | null
+          file_name: string
+          id: string
+          inserted_rows: number | null
+          period_end: string | null
+          period_start: string | null
+          total_rows: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          duplicate_rows?: number | null
+          file_name: string
+          id?: string
+          inserted_rows?: number | null
+          period_end?: string | null
+          period_start?: string | null
+          total_rows?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          duplicate_rows?: number | null
+          file_name?: string
+          id?: string
+          inserted_rows?: number | null
+          period_end?: string | null
+          period_start?: string | null
+          total_rows?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      new_company_outreach: {
+        Row: {
+          created_at: string
+          crm_company_id: string | null
+          crm_deal_id: string | null
+          email_body: string | null
+          email_subject: string | null
+          id: string
+          new_company_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crm_company_id?: string | null
+          crm_deal_id?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          new_company_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crm_company_id?: string | null
+          crm_deal_id?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          new_company_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_company_outreach_new_company_id_fkey"
+            columns: ["new_company_id"]
+            isOneToOne: false
+            referencedRelation: "new_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_processes: {
         Row: {
           accountant_id: string
@@ -10775,6 +10929,7 @@ export type Database = {
           trial_credits_cents: number
         }[]
       }
+      has_firme_noi_access: { Args: { _uid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
