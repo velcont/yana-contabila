@@ -14,7 +14,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Search, Upload, Sparkles, Plus, Phone, Smartphone, Lock, Copy, CheckCircle2 } from "lucide-react";
+import { Loader2, Search, Upload, Sparkles, Plus, Phone, Smartphone, Lock, Copy, CheckCircle2, Building2, MapPin, Mail, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 interface NewCompany {
@@ -269,34 +269,72 @@ export default function FirmeNoi() {
       ) : companies.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">Nicio firmă găsită cu filtrele selectate.</Card>
       ) : (
-        <div className="grid gap-3" onContextMenu={(e) => e.preventDefault()}>
-          {companies.map((c) => (
-            <Card key={c.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold truncate">{c.nume}</h3>
-                  <Badge variant="outline">CUI {c.cui}</Badge>
-                  {c.data_infiintarii && <Badge variant="secondary">{c.data_infiintarii}</Badge>}
+        <div className="grid gap-3 md:grid-cols-2" onContextMenu={(e) => e.preventDefault()}>
+          {companies.map((c) => {
+            // Generate a stable accent color from CUI
+            const accents = [
+              "from-blue-500/20 to-cyan-500/10 border-blue-500/30",
+              "from-pink-500/20 to-rose-500/10 border-pink-500/30",
+              "from-emerald-500/20 to-teal-500/10 border-emerald-500/30",
+              "from-amber-500/20 to-orange-500/10 border-amber-500/30",
+              "from-violet-500/20 to-purple-500/10 border-violet-500/30",
+            ];
+            const idx = Math.abs(c.cui.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0)) % accents.length;
+            const accent = accents[idx];
+            return (
+              <Card key={c.id} className="group relative overflow-hidden p-4 hover:shadow-lg transition-all hover:-translate-y-0.5">
+                <div className={`absolute inset-0 bg-gradient-to-br ${accent} opacity-40 pointer-events-none`} />
+                <div className="relative flex gap-3">
+                  <div className={`shrink-0 w-14 h-14 rounded-xl bg-gradient-to-br ${accent} border flex items-center justify-center`}>
+                    <Building2 className="w-7 h-7 text-foreground/80" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold leading-tight truncate">{c.nume}</h3>
+                      {c.caen && (
+                        <Badge variant="outline" className="shrink-0 bg-background/60 backdrop-blur text-xs">
+                          CAEN {c.caen}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="space-y-0.5 text-xs text-muted-foreground">
+                      {(c.judet || c.localitate) && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{[c.localitate, c.judet].filter(Boolean).join(", ")}</span>
+                        </div>
+                      )}
+                      {(c.telefon || c.mobil) && (
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{c.telefon || c.mobil}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 flex-wrap pt-0.5">
+                        <span className="flex items-center gap-1"><Badge variant="secondary" className="text-[10px] px-1.5 py-0">CUI {c.cui}</Badge></span>
+                        {c.data_infiintarii && (
+                          <span className="flex items-center gap-1 text-[11px]">
+                            <Calendar className="w-3 h-3" />{c.data_infiintarii}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {c.descriere_caen && (
+                      <p className="text-xs text-muted-foreground/80 line-clamp-1 italic">{c.descriere_caen}</p>
+                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button size="sm" variant="outline" className="bg-background/60 backdrop-blur flex-1" onClick={() => generateEmail(c)}>
+                        <Sparkles className="w-3 h-3 mr-1" /> Ofertă AI
+                      </Button>
+                      <Button size="sm" className="flex-1" onClick={() => addToCRM(c)}>
+                        <Plus className="w-3 h-3 mr-1" /> CRM
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {c.judet ? `${c.judet}` : ""}{c.localitate ? ` · ${c.localitate}` : ""}
-                  {c.caen && <> · CAEN {c.caen} {c.descriere_caen ? `— ${c.descriere_caen}` : ""}</>}
-                </div>
-                <div className="flex gap-3 mt-2 text-sm">
-                  {c.telefon && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{c.telefon}</span>}
-                  {c.mobil && <span className="flex items-center gap-1"><Smartphone className="w-3 h-3" />{c.mobil}</span>}
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button size="sm" variant="outline" onClick={() => generateEmail(c)}>
-                  <Sparkles className="w-3 h-3 mr-1" /> Ofertă
-                </Button>
-                <Button size="sm" onClick={() => addToCRM(c)}>
-                  <Plus className="w-3 h-3 mr-1" /> CRM
-                </Button>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
