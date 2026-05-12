@@ -17,16 +17,39 @@ export interface FooterOptions {
 }
 
 /**
+ * Generează un token deterministic HMAC-SHA256 pentru dezabonare,
+ * folosit când nu există un initiative_id (ex: briefing zilnic).
+ * Cheia este SUPABASE_SERVICE_ROLE_KEY (privată, accesibilă doar în edge functions).
+ */
+export async function signUnsubscribeToken(userId: string): Promise<string> {
+  const secret = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(`unsub:${userId}`));
+  const hex = Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  return `hmac:${hex}`;
+}
+
+/**
  * Generează footer HTML conform standardelor anti-spam:
  * - Numele și adresa expeditorului (fizică)
  * - Motiv pentru care primește emailul
  * - Link de dezabonare cu un singur click
  * - Link de management preferințe
  */
-export function renderEmailFooter(opts: FooterOptions): string {
+export async function renderEmailFooter(opts: FooterOptions): Promise<string> {
   const { userId, unsubscribeToken, emailTypeLabel } = opts;
 
-  const tokenParam = unsubscribeToken ? `&token=${unsubscribeToken}` : '';
+  const token = unsubscribeToken || await signUnsubscribeToken(userId);
+  const tokenParam = `&token=${encodeURIComponent(token)}`;
   const unsubscribeUrl = `${SUPABASE_URL}/functions/v1/unsubscribe-yana-emails?user_id=${userId}${tokenParam}`;
   const preferencesUrl = `${APP_URL}/settings?tab=notifications`;
 

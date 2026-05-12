@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { signUnsubscribeToken } from "../_shared/email-footer.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -151,7 +152,8 @@ Scrie un email scurt de check-in săptămânal.`
 
         const appUrl = 'https://yana-contabila.velcont.com/yana';
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${profile.id}`;
+        const unsubToken = await signUnsubscribeToken(profile.id);
+        const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${profile.id}&token=${encodeURIComponent(unsubToken)}`;
         const preferencesUrl = 'https://yana-contabila.velcont.com/settings?tab=notifications';
 
         emailBatch.push({

@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
     <p style="text-align: center;">
       <a href="https://yana-contabila.velcont.com/yana" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Deschide YANA →</a>
     </p>
-    ${renderEmailFooter({ userId: user.id, emailTypeLabel: 'Rezumatul de seară' })}
+    ${await renderEmailFooter({ userId: user.id, emailTypeLabel: 'Rezumatul de seară' })}
   </div>
 </body>
 </html>`;
