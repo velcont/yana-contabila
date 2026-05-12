@@ -108,7 +108,7 @@ export const WeatherClock = () => {
 
   return (
     <div
-      className="fixed top-3 right-3 z-40 flex items-center gap-3 rounded-full border border-border/50 bg-background/70 px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur-md hidden md:flex"
+      className="fixed top-14 right-3 z-40 flex items-center gap-3 rounded-full border border-border/50 bg-background/70 px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur-md hidden md:flex"
       title={weather ? `${weather.city} • ${weather.temp}°C` : "Vremea"}
     >
       <div className="flex flex-col leading-tight">
