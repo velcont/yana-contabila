@@ -20,6 +20,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkForNewVersion, performVersionRefresh, saveCurrentVersion } from "@/utils/versionRefresh";
 import { usePresenceTracking } from "@/hooks/usePresenceTracking";
 import { useVersionUpdateToast } from "@/hooks/useVersionUpdateToast";
+import { WeatherClock } from "@/components/WeatherClock";
+import { NewsTicker } from "@/components/NewsTicker";
 
 // Lazy load all route components for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -105,6 +107,18 @@ const PresenceTracker = () => {
   return null;
 };
 
+// Afișează ceasul/vremea + ticker de știri doar pentru utilizatori autentificați
+const GlobalChrome = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <>
+      <WeatherClock />
+      <NewsTicker />
+    </>
+  );
+};
+
 // Wrapper pentru toast update - trebuie să fie în context providers
 const VersionUpdateToast = () => {
   useVersionUpdateToast();
@@ -162,6 +176,7 @@ const App = () => {
                     <TutorialProvider>
                     <PresenceTracker />
                     <VersionUpdateToast />
+                    <GlobalChrome />
                     <Suspense fallback={<LoadingFallback />}>
                       <Routes>
                       <Route path="/" element={<Landing />} />
