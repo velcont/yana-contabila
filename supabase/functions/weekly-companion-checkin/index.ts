@@ -151,7 +151,8 @@ Scrie un email scurt de check-in săptămânal.`
 
         const appUrl = 'https://yana-contabila.velcont.com/yana';
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${profile.id}`;
+        const unsubToken = await signUnsubscribeToken(profile.id);
+        const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${profile.id}&token=${encodeURIComponent(unsubToken)}`;
         const preferencesUrl = 'https://yana-contabila.velcont.com/settings?tab=notifications';
 
         emailBatch.push({
