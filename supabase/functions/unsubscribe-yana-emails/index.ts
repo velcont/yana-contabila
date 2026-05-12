@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { signUnsubscribeToken } from "../_shared/email-footer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -176,14 +177,22 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validare obligatorie: token-ul (initiative_id) trebuie să existe și să aparțină user-ului
-    const { data: initiative } = await supabase
-      .from('yana_initiatives')
-      .select('user_id')
-      .eq('id', token)
-      .single();
+    // Validare token: acceptă (a) HMAC deterministic semnat cu service role key
+    // sau (b) un initiative_id existent care aparține user-ului.
+    let validToken = false;
+    if (token.startsWith('hmac:')) {
+      const expected = await signUnsubscribeToken(userId);
+      validToken = token === expected;
+    } else {
+      const { data: initiative } = await supabase
+        .from('yana_initiatives')
+        .select('user_id')
+        .eq('id', token)
+        .maybeSingle();
+      validToken = !!initiative && initiative.user_id === userId;
+    }
 
-    if (!initiative || initiative.user_id !== userId) {
+    if (!validToken) {
       console.log(`[unsubscribe-yana-emails] Invalid token for user ${userId}`);
       return new Response(getErrorPage("Link de dezabonare invalid sau expirat."), {
         status: 400,
