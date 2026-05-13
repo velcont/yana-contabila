@@ -858,29 +858,49 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey, proj
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input);
+      handleSendClick();
     }
   };
 
+  // Atașează fișierele în zona de input, fără să trimită automat.
+  // Utilizatorul scrie ce vrea (ex: "cum înregistrez această speță") și apoi apasă Send.
   const handleFileUpload = async (files: import('./DocumentUploader').UploadedFile[]) => {
     setShowUploader(false);
+    setPendingFiles(prev => [...prev, ...files]);
+    // Focus pe textarea ca utilizatorul să poată tasta imediat
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  };
+
+  // Trimite mesajul curent + eventualele fișiere atașate
+  const handleSendClick = async () => {
+    if (isLoading) return;
+    const text = input.trim();
+    const files = pendingFiles;
+
+    if (files.length === 0) {
+      sendMessage(text);
+      return;
+    }
+
+    // Avem fișiere atașate — golim starea înainte ca să nu se retrimită
+    setPendingFiles([]);
+    setInput('');
+
     if (files.length === 1) {
-      // Single file - send as before
-      await sendMessage(`Analizează documentul: ${files[0].file.name}`, {
+      const message = text || `Analizează documentul: ${files[0].file.name}`;
+      await sendMessage(message, {
         fileName: files[0].file.name,
         fileContent: files[0].content,
         fileType: files[0].file.type,
       });
     } else {
-      // Multiple files - send sequentially so AI gets context for each
       const fileNames = files.map(f => f.file.name).join(', ');
-      // Send first file with summary message
-      await sendMessage(`Analizează ${files.length} documente: ${fileNames}`, {
+      const firstMessage = text || `Analizează ${files.length} documente: ${fileNames}`;
+      await sendMessage(firstMessage, {
         fileName: files[0].file.name,
         fileContent: files[0].content,
         fileType: files[0].file.type,
       });
-      // Send remaining files
       for (let i = 1; i < files.length; i++) {
         await sendMessage(`Analizează documentul: ${files[i].file.name}`, {
           fileName: files[i].file.name,
