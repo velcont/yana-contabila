@@ -48,6 +48,21 @@ export default function Yana() {
     const saved = localStorage.getItem('yana_last_conversation_id');
     return saved || null;
   });
+
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('yana_active_project_id');
+    return saved || null;
+  });
+
+  const handleSelectProject = (id: string | null) => {
+    setActiveProjectId(id);
+    if (id) localStorage.setItem('yana_active_project_id', id);
+    else localStorage.removeItem('yana_active_project_id');
+    // Clear active conversation when switching projects
+    setActiveConversationId(null);
+    setResetKey(k => k + 1);
+    localStorage.removeItem('yana_last_conversation_id');
+  };
   
   // Track Yana page view once when loaded
   useEffect(() => {
@@ -135,6 +150,8 @@ export default function Yana() {
           onNewConversation={handleNewConversation}
           onClose={() => setSidebarOpen(false)}
           isMobile={isMobile}
+          activeProjectId={activeProjectId}
+          onSelectProject={handleSelectProject}
         />
       </aside>
 
@@ -261,6 +278,7 @@ export default function Yana() {
           conversationId={activeConversationId}
           onConversationCreated={setActiveConversationId}
           resetKey={resetKey}
+          projectId={activeProjectId}
         />
       </main>
     </div>

@@ -7848,6 +7848,7 @@ export type Database = {
           created_at: string
           id: string
           metadata: Json | null
+          project_id: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -7857,6 +7858,7 @@ export type Database = {
           created_at?: string
           id?: string
           metadata?: Json | null
+          project_id?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -7866,6 +7868,7 @@ export type Database = {
           created_at?: string
           id?: string
           metadata?: Json | null
+          project_id?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
@@ -7876,6 +7879,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "yana_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "yana_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -9440,6 +9450,103 @@ export type Database = {
           user_segment?: string | null
         }
         Relationships: []
+      }
+      yana_project_files: {
+        Row: {
+          created_at: string
+          extracted_text: string | null
+          file_name: string
+          id: string
+          mime_type: string | null
+          project_id: string
+          size_bytes: number | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          project_id: string
+          size_bytes?: number | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          project_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "yana_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yana_projects: {
+        Row: {
+          color: string | null
+          company_id: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          icon: string | null
+          id: string
+          instructions: string | null
+          is_archived: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          instructions?: string | null
+          is_archived?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          instructions?: string | null
+          is_archived?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       yana_prompt_evolution: {
         Row: {

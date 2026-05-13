@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard, Pencil, Check, Brain, Building2, Users } from 'lucide-react';
+import { Plus, Search, MessageSquare, Trash2, X, Settings, CreditCard, Pencil, Check, Brain, Building2, Users, Folder, ChevronRight, ChevronDown, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { ProjectDialog } from './ProjectDialog';
 
 interface Conversation {
   id: string;
@@ -16,6 +17,14 @@ interface Conversation {
   created_at: string;
   updated_at: string;
   metadata: { companyName?: string } | null;
+  project_id: string | null;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
 }
 
 interface ConversationSidebarProps {
@@ -24,6 +33,8 @@ interface ConversationSidebarProps {
   onNewConversation: () => void;
   onClose: () => void;
   isMobile?: boolean;
+  activeProjectId: string | null;
+  onSelectProject: (id: string | null) => void;
 }
 
 export function ConversationSidebar({
@@ -32,9 +43,15 @@ export function ConversationSidebar({
   onNewConversation,
   onClose,
   isMobile,
+  activeProjectId,
+  onSelectProject,
 }: ConversationSidebarProps) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsExpanded, setProjectsExpanded] = useState(true);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,6 +81,23 @@ export function ConversationSidebar({
 
     fetchConversations();
 
+    const fetchProjects = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('yana_projects')
+        .select('id, name, color, icon')
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+        .order('updated_at', { ascending: false });
+      setProjects(data || []);
+    };
+    fetchProjects();
+
+    const projChannel = supabase
+      .channel('yana_projects_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'yana_projects', filter: `user_id=eq.${user?.id}` }, () => fetchProjects())
+      .subscribe();
+
     // Subscribe to real-time updates
     const channel = supabase
       .channel('yana_conversations_changes')
@@ -83,6 +117,7 @@ export function ConversationSidebar({
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(projChannel);
     };
   }, [user]);
 
@@ -142,7 +177,12 @@ export function ConversationSidebar({
     }
   };
 
-  const filteredConversations = conversations.filter(c =>
+  // Filter by active project (null = show only conversations without project)
+  const projectScopedConversations = activeProjectId === null
+    ? conversations.filter(c => !c.project_id)
+    : conversations.filter(c => c.project_id === activeProjectId);
+
+  const filteredConversations = projectScopedConversations.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.metadata?.companyName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -204,6 +244,63 @@ export function ConversationSidebar({
           <Plus className="h-4 w-4" />
           Conversație nouă
         </Button>
+      </div>
+
+      {/* Projects */}
+      <div className="px-2 pt-3 pb-1">
+        <div className="flex items-center justify-between px-2 mb-1">
+          <button
+            onClick={() => setProjectsExpanded(p => !p)}
+            className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
+            {projectsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            PROIECTE
+          </button>
+          <button
+            onClick={() => { setEditingProjectId(null); setProjectDialogOpen(true); }}
+            className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-accent"
+            title="Proiect nou"
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        {projectsExpanded && (
+          <div className="space-y-0.5">
+            <button
+              onClick={() => onSelectProject(null)}
+              className={cn(
+                'w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors',
+                activeProjectId === null ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-accent/50'
+              )}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              <span className="flex-1 text-left">Toate conversațiile</span>
+            </button>
+            {projects.map(p => (
+              <div
+                key={p.id}
+                className={cn(
+                  'group w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer',
+                  activeProjectId === p.id ? 'bg-accent text-foreground' : 'text-foreground/80 hover:bg-accent/50'
+                )}
+                onClick={() => onSelectProject(p.id)}
+              >
+                <Folder className="h-3.5 w-3.5 shrink-0" style={{ color: p.color || undefined }} />
+                <span className="flex-1 text-left truncate">{p.name}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditingProjectId(p.id); setProjectDialogOpen(true); }}
+                  className="opacity-0 group-hover:opacity-100 hover:text-foreground"
+                  title="Editează proiect"
+                >
+                  <Settings className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {projects.length === 0 && (
+              <p className="px-3 py-1.5 text-xs text-muted-foreground italic">Niciun proiect încă</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Search */}
@@ -347,6 +444,13 @@ export function ConversationSidebar({
           </Button>
         </Link>
       </div>
+
+      <ProjectDialog
+        open={projectDialogOpen}
+        onOpenChange={setProjectDialogOpen}
+        projectId={editingProjectId}
+        onSaved={(id) => onSelectProject(id)}
+      />
     </div>
   );
 }
