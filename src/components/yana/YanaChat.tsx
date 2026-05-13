@@ -58,9 +58,10 @@ interface YanaChatProps {
   conversationId: string | null;
   onConversationCreated: (id: string) => void;
   resetKey?: number;
+  projectId?: string | null;
 }
 
-export function YanaChat({ conversationId, onConversationCreated, resetKey }: YanaChatProps) {
+export function YanaChat({ conversationId, onConversationCreated, resetKey, projectId }: YanaChatProps) {
   const { user } = useAuth();
   const { hasCredits, hasFreeAccess, isLoading: creditsLoading } = useAICredits();
   const { accessType, loading: subLoading } = useSubscription();
@@ -271,6 +272,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey }: Ya
       .insert({
         user_id: user!.id,
         title: 'Conversație nouă',
+        project_id: projectId ?? null,
       })
       .select('id')
       .single();
