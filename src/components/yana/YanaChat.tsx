@@ -1363,6 +1363,28 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               </button>
             </div>
           )}
+          {/* Fișiere atașate dar netrimise — utilizatorul poate scrie un mesaj înainte de Send */}
+          {pendingFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2 px-1">
+              {pendingFiles.map((f, idx) => (
+                <div
+                  key={`${f.file.name}-${idx}`}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/70 border border-border text-xs max-w-full"
+                >
+                  <span className="text-base shrink-0">📎</span>
+                  <span className="truncate font-medium text-foreground max-w-[200px]">{f.file.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== idx))}
+                    className="text-muted-foreground hover:text-foreground shrink-0"
+                    title="Elimină fișierul"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="relative flex items-end gap-2">
             <Button
               variant="ghost"
@@ -1380,7 +1402,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Întreabă orice despre afacerea ta..."
+              placeholder={pendingFiles.length > 0 ? "Scrie ce vrei să fac cu fișierul (ex: cum înregistrez această speță?)..." : "Întreabă orice despre afacerea ta..."}
               className="min-h-[44px] max-h-32 resize-none bg-background border-border text-sm sm:text-base"
               disabled={isLoading}
             />
@@ -1388,8 +1410,8 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
             <Button
               size="icon"
               className="shrink-0 h-11 w-11 sm:h-10 sm:w-10 rounded-full touch-action-manipulation"
-              onClick={() => sendMessage(input)}
-              disabled={isLoading || !input.trim()}
+              onClick={handleSendClick}
+              disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
             >
               <Send className="h-4 w-4" />
             </Button>
