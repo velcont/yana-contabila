@@ -69,6 +69,8 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey, proj
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  // Fișiere atașate dar încă netrimise — utilizatorul poate scrie un mesaj înainte de Send
+  const [pendingFiles, setPendingFiles] = useState<import('./DocumentUploader').UploadedFile[]>([]);
   // 🆕 FILE MEMORY: ține minte ultimul fișier încărcat per conversație,
   // ca să poată fi reutilizat în mesajele următoare (ex: "trimite-l pe email").
   const [rememberedFile, setRememberedFile] = useState<{
