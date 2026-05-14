@@ -7842,6 +7842,48 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_conversation_evaluations: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          dimensions: Json
+          evaluator_model: string
+          gap_topic: string | null
+          id: string
+          improvement_suggestion: string | null
+          message_id: string | null
+          score: number
+          user_id: string | null
+          weakness_summary: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          dimensions?: Json
+          evaluator_model?: string
+          gap_topic?: string | null
+          id?: string
+          improvement_suggestion?: string | null
+          message_id?: string | null
+          score: number
+          user_id?: string | null
+          weakness_summary?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          dimensions?: Json
+          evaluator_model?: string
+          gap_topic?: string | null
+          id?: string
+          improvement_suggestion?: string | null
+          message_id?: string | null
+          score?: number
+          user_id?: string | null
+          weakness_summary?: string | null
+        }
+        Relationships: []
+      }
       yana_conversations: {
         Row: {
           company_id: string | null
@@ -9160,6 +9202,107 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_meta_prompt_versions: {
+        Row: {
+          created_at: string
+          generated_by: string
+          generation_rationale: string | null
+          id: string
+          is_active: boolean
+          parent_version_id: string | null
+          promoted_at: string | null
+          prompt_key: string
+          prompt_text: string
+          shadow_samples: number
+          shadow_score: number | null
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          generated_by?: string
+          generation_rationale?: string | null
+          id?: string
+          is_active?: boolean
+          parent_version_id?: string | null
+          promoted_at?: string | null
+          prompt_key?: string
+          prompt_text: string
+          shadow_samples?: number
+          shadow_score?: number | null
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          generated_by?: string
+          generation_rationale?: string | null
+          id?: string
+          is_active?: boolean
+          parent_version_id?: string | null
+          promoted_at?: string | null
+          prompt_key?: string
+          prompt_text?: string
+          shadow_samples?: number
+          shadow_score?: number | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yana_meta_prompt_versions_parent_version_id_fkey"
+            columns: ["parent_version_id"]
+            isOneToOne: false
+            referencedRelation: "yana_meta_prompt_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yana_model_routing_stats: {
+        Row: {
+          avg_cost_cents: number | null
+          avg_latency_ms: number | null
+          avg_score: number | null
+          id: string
+          is_recommended: boolean
+          last_updated: string
+          model: string
+          query_category: string
+          scored_calls: number
+          total_calls: number
+          total_cost_cents: number
+          total_latency_ms: number
+          total_score: number
+        }
+        Insert: {
+          avg_cost_cents?: number | null
+          avg_latency_ms?: number | null
+          avg_score?: number | null
+          id?: string
+          is_recommended?: boolean
+          last_updated?: string
+          model: string
+          query_category: string
+          scored_calls?: number
+          total_calls?: number
+          total_cost_cents?: number
+          total_latency_ms?: number
+          total_score?: number
+        }
+        Update: {
+          avg_cost_cents?: number | null
+          avg_latency_ms?: number | null
+          avg_score?: number | null
+          id?: string
+          is_recommended?: boolean
+          last_updated?: string
+          model?: string
+          query_category?: string
+          scored_calls?: number
+          total_calls?: number
+          total_cost_cents?: number
+          total_latency_ms?: number
+          total_score?: number
+        }
+        Relationships: []
+      }
       yana_observations: {
         Row: {
           action_taken: string | null
@@ -9593,6 +9736,51 @@ export type Database = {
           prompt_section?: string
           triggered_by?: string | null
           version_number?: number
+        }
+        Relationships: []
+      }
+      yana_prompt_variants: {
+        Row: {
+          avg_score: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_control: boolean
+          prompt_text: string
+          total_score: number
+          total_uses: number
+          traffic_weight: number
+          updated_at: string
+          variant_key: string
+          variant_name: string
+        }
+        Insert: {
+          avg_score?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_control?: boolean
+          prompt_text: string
+          total_score?: number
+          total_uses?: number
+          traffic_weight?: number
+          updated_at?: string
+          variant_key: string
+          variant_name: string
+        }
+        Update: {
+          avg_score?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_control?: boolean
+          prompt_text?: string
+          total_score?: number
+          total_uses?: number
+          traffic_weight?: number
+          updated_at?: string
+          variant_key?: string
+          variant_name?: string
         }
         Relationships: []
       }
