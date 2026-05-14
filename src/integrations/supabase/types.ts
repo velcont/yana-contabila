@@ -10229,6 +10229,45 @@ export type Database = {
         }
         Relationships: []
       }
+      yana_self_mod_settings: {
+        Row: {
+          allow_config_changes: boolean
+          allow_db_migrations: boolean
+          allowed_scopes: string[]
+          error_rate_multiplier: number
+          forbidden_paths: string[]
+          id: number
+          kill_switch: boolean
+          max_per_day: number
+          monitor_window_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          allow_config_changes?: boolean
+          allow_db_migrations?: boolean
+          allowed_scopes?: string[]
+          error_rate_multiplier?: number
+          forbidden_paths?: string[]
+          id?: number
+          kill_switch?: boolean
+          max_per_day?: number
+          monitor_window_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          allow_config_changes?: boolean
+          allow_db_migrations?: boolean
+          allowed_scopes?: string[]
+          error_rate_multiplier?: number
+          forbidden_paths?: string[]
+          id?: number
+          kill_switch?: boolean
+          max_per_day?: number
+          monitor_window_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       yana_self_model: {
         Row: {
           capabilities: Json
@@ -10268,6 +10307,69 @@ export type Database = {
           self_intentions?: Json | null
           updated_at?: string
           world_awareness?: Json
+        }
+        Relationships: []
+      }
+      yana_self_modifications: {
+        Row: {
+          branch_name: string | null
+          build_status: string | null
+          created_at: string
+          diff_summary: string | null
+          error_rate_baseline: number | null
+          error_rate_post: number | null
+          files_changed: Json
+          id: string
+          merged_at: string | null
+          monitored_until: string | null
+          notes: string | null
+          pr_number: number | null
+          pr_url: string | null
+          rationale: string
+          rolled_back_pr: number | null
+          status: string
+          trigger_ref: string | null
+          trigger_source: string
+        }
+        Insert: {
+          branch_name?: string | null
+          build_status?: string | null
+          created_at?: string
+          diff_summary?: string | null
+          error_rate_baseline?: number | null
+          error_rate_post?: number | null
+          files_changed?: Json
+          id?: string
+          merged_at?: string | null
+          monitored_until?: string | null
+          notes?: string | null
+          pr_number?: number | null
+          pr_url?: string | null
+          rationale: string
+          rolled_back_pr?: number | null
+          status?: string
+          trigger_ref?: string | null
+          trigger_source: string
+        }
+        Update: {
+          branch_name?: string | null
+          build_status?: string | null
+          created_at?: string
+          diff_summary?: string | null
+          error_rate_baseline?: number | null
+          error_rate_post?: number | null
+          files_changed?: Json
+          id?: string
+          merged_at?: string | null
+          monitored_until?: string | null
+          notes?: string | null
+          pr_number?: number | null
+          pr_url?: string | null
+          rationale?: string
+          rolled_back_pr?: number | null
+          status?: string
+          trigger_ref?: string | null
+          trigger_source?: string
         }
         Relationships: []
       }
