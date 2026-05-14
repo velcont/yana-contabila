@@ -165,6 +165,7 @@ const Contact = () => {
 
       <MiniFooter />
     </div>
+    </>
   );
 };
 
