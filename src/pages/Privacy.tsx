@@ -3,12 +3,18 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import MiniFooter from '@/components/MiniFooter';
+import { SEO } from '@/components/seo/SEO';
 
 const Privacy = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Politica de confidențialitate YANA – GDPR și date"
+        description="Cum colectează, folosește și protejează YANA datele tale personale și de business. Conform GDPR."
+        path="/privacy"
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button 
           variant="ghost" 

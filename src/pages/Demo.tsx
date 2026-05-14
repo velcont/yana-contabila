@@ -16,6 +16,7 @@ import { AIPredictions } from '@/components/AIPredictions';
 import { ResilienceAnalysis } from '@/components/ResilienceAnalysis';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import { SEO } from '@/components/seo/SEO';
 
 // Lazy load Recharts components
 const AnalyticsCharts = lazy(() => import('@/components/AnalyticsCharts'));
@@ -258,6 +259,11 @@ const Demo = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <SEO
+        title="Demo YANA – Vezi CFO + CRM AI în acțiune"
+        description="Demo interactiv YANA cu date fictive: analiză balanță, predicții AI, alerte proactive și CRM conversațional."
+        path="/demo"
+      />
       {/* Demo Banner */}
       <div className="mb-6 p-4 bg-primary/10 border-2 border-primary/30 rounded-lg">
         <div className="flex items-center justify-between">
