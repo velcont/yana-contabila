@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logError } from '@/utils/sentry';
 import MiniFooter from '@/components/MiniFooter';
 import { analytics } from '@/utils/analytics';
+import { SEO } from '@/components/seo/SEO';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -548,6 +549,11 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-3 md:p-4">
+      <SEO
+        title="Autentificare YANA – Intră în contul tău CFO + CRM AI"
+        description="Conectează-te sau creează cont YANA pentru CFO virtual și CRM conversațional. 30 zile gratuit, fără card."
+        path="/auth"
+      />
       {/* Marketplace Entry Banner */}
       {isMarketplaceEntry && (
         <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white py-2 md:py-3 px-3 md:px-4 text-center shadow-lg z-50">
