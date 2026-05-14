@@ -1,0 +1,20 @@
+# YANA
+
+> CFO virtual + CRM conversațional AI pentru antreprenori din România. Analiză balanțe, pipeline clienți, deciziile fiscale — totul printr-un singur chat.
+
+YANA este o platformă SaaS care combină un CFO AI și un CRM conversațional. Antreprenorii încarcă balanțe contabile (SAGA, Saga MS, formate XLSX), primesc analize financiare, alerte fiscale (TVA, dividende, plafoane micro), și gestionează clienți și pipeline-uri prin conversație naturală în limba română.
+
+## Pages
+
+- [Acasă](/): Prezentare generală YANA, hero conversațional și diagnostic rapid de business.
+- [Landing](/landing): Pagina de marketing principală — beneficii, demo și call-to-action.
+- [Demo](/demo): Demo interactiv fără autentificare, 10 întrebări gratuite pentru a testa Yana.
+- [Pricing](/pricing): Tariful unic YANA Strategic — 49 RON/lună (TVA inclus), 30 zile gratuit.
+- [Autentificare](/auth): Conectare și înregistrare cont (email + Google sign-in).
+- [Contact](/contact): Date de contact Velcont (compania din spatele YANA).
+
+## Optional
+
+- [Termeni și condiții](/terms): Termenii contractuali pentru utilizarea YANA.
+- [Politica de confidențialitate](/privacy): GDPR și prelucrarea datelor personale.
+- [Resetare parolă](/reset-password): Recuperare cont prin email.
