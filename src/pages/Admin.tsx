@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 const AcademicThesisAssistant = lazy(() => import("@/components/AcademicThesisAssistant"));
 const AuditLogs = lazy(() => import("@/components/AuditLogs").then(m => ({ default: m.AuditLogs })));
 const SelfDevelopmentTab = lazy(() => import("@/components/admin/SelfDevelopmentTab").then(m => ({ default: m.SelfDevelopmentTab })));
+const SelfModifierPanel = lazy(() => import("@/components/admin/SelfModifierPanel").then(m => ({ default: m.SelfModifierPanel })));
 const StorageManager = lazy(() => import("@/components/StorageManager").then(m => ({ default: m.StorageManager })));
 const StrategicConversationsViewer = lazy(() => import("@/components/StrategicConversationsViewer").then(m => ({ default: m.StrategicConversationsViewer })));
 const IntellectualPropertyCertificate = lazy(() => import("@/components/IntellectualPropertyCertificate").then(m => ({ default: m.IntellectualPropertyCertificate })));
@@ -987,7 +988,10 @@ const Admin = () => {
 
           <TabsContent value="self-development">
             <Suspense fallback={<TabContentLoader />}>
-              <SelfDevelopmentTab />
+              <div className="space-y-6">
+                <SelfModifierPanel />
+                <SelfDevelopmentTab />
+              </div>
             </Suspense>
           </TabsContent>
         </Tabs>
