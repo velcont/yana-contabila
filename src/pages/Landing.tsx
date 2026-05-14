@@ -8,6 +8,7 @@ import { useLandingTracking } from '@/hooks/useLandingTracking';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
 import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
 import { LandingCFOCRMHero } from '@/components/landing/LandingCFOCRMHero';
+import { SEO } from '@/components/seo/SEO';
 import { Users } from 'lucide-react';
 
 // Lazy-load below-fold sections to improve LCP on mobile
@@ -136,6 +137,11 @@ const Landing = () => {
 
   return (
     <>
+      <SEO
+        title="YANA – CFO + CRM conversațional AI pentru antreprenori"
+        description="YANA combină CFO virtual și CRM într-un singur chat AI. Pipeline, clienți, balanțe — totul prin conversație. 30 zile gratuit."
+        path="/landing"
+      />
       <DemoChat isOpen={showDemo} onClose={closeDemo} onOpenDiagnostic={() => { closeDemo(); setShowDiagnostic(true); }} initialPrompt={demoInitialPrompt} />
       <BusinessDiagnostic isOpen={showDiagnostic} onClose={() => setShowDiagnostic(false)} onOpenDemo={() => { setShowDiagnostic(false); setShowDemo(true); }} />
       <ExitIntentPopup onOpenDemo={() => setShowDemo(true)} />

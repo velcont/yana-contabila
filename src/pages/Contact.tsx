@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, MessageCircle, Building2, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MiniFooter from '@/components/MiniFooter';
+import { SEO } from '@/components/seo/SEO';
 
 const Contact = () => {
   const navigate = useNavigate();
@@ -20,6 +21,22 @@ const Contact = () => {
   };
 
   return (
+    <>
+    <SEO
+      title="Contact YANA – Email, WhatsApp și suport antreprenori"
+      description="Contactează echipa YANA pe email office@velcont.com sau WhatsApp +40 731 377 793. Suport pentru analize financiare și CRM AI."
+      path="/contact"
+      jsonLd={{
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        "name": "YANA by Velcont",
+        "url": "https://yana-contabila.lovable.app/contact",
+        "email": "office@velcont.com",
+        "telephone": "+40731377793",
+        "openingHours": "Mo-Fr 09:00-18:00",
+        "areaServed": "RO"
+      }}
+    />
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         {/* Header */}
@@ -148,6 +165,7 @@ const Contact = () => {
 
       <MiniFooter />
     </div>
+    </>
   );
 };
 

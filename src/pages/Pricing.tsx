@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import MiniFooter from '@/components/MiniFooter';
+import { SEO } from '@/components/seo/SEO';
 import { 
   Check, 
   Shield, 
@@ -20,6 +21,26 @@ const Pricing = () => {
   const navigate = useNavigate();
 
   return (
+    <>
+    <SEO
+      title="Prețuri YANA Strategic – 49 RON/lună, CFO + CRM AI"
+      description="YANA Strategic: 49 RON/lună (TVA inclus), 20 credite AI incluse. CFO virtual și CRM într-un singur chat conversațional."
+      path="/pricing"
+      jsonLd={{
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "YANA Strategic",
+        "description": "CFO + CRM conversațional AI pentru antreprenori. Analiză strategică, plan de acțiune și 20 credite AI incluse.",
+        "brand": { "@type": "Brand", "name": "YANA" },
+        "offers": {
+          "@type": "Offer",
+          "price": "49",
+          "priceCurrency": "RON",
+          "availability": "https://schema.org/InStock",
+          "url": "https://yana-contabila.lovable.app/pricing"
+        }
+      }}
+    />
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
@@ -260,6 +281,7 @@ const Pricing = () => {
 
       <MiniFooter />
     </div>
+    </>
   );
 };
 
