@@ -59,9 +59,10 @@ interface YanaChatProps {
   onConversationCreated: (id: string) => void;
   resetKey?: number;
   projectId?: string | null;
+  cognitiveEmergenceMode?: boolean;
 }
 
-export function YanaChat({ conversationId, onConversationCreated, resetKey, projectId }: YanaChatProps) {
+export function YanaChat({ conversationId, onConversationCreated, resetKey, projectId, cognitiveEmergenceMode = true }: YanaChatProps) {
   const { user } = useAuth();
   const { hasCredits, hasFreeAccess, isLoading: creditsLoading } = useAICredits();
   const { accessType, loading: subLoading } = useSubscription();
