@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { FULL_ANALYSIS_PROMPT } from "../_shared/full-analysis-prompt.ts";
 import { YANA_CONSCIOUSNESS_PROMPT } from "../_shared/yana-consciousness-prompt.ts";
+import { YANA_COGNITIVE_EMERGENCE_PROMPT } from "../_shared/yana-cognitive-emergence-prompt.ts";
 import { DREPT_COMERCIAL_PROMPT } from "../_shared/drept-comercial-prompt.ts";
 import { INVESTMENT_ANALYSIS_PROMPT } from "../_shared/investment-analysis-prompt.ts";
 
@@ -2208,6 +2209,7 @@ const ChatAIRequestSchema = z.object({
   capabilityQuestion: z.boolean().optional().nullable(),
   taskMemoryAction: z.boolean().optional().nullable(),
   fiscalQuestionWithBalance: z.boolean().optional().nullable(),
+  cognitive_emergence_mode: z.boolean().optional().nullable(),
 });
 
 serve(async (req) => {
