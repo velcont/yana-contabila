@@ -1,111 +1,120 @@
-## Modul "Firme Nou Înființate" — pagină `/firme-noi`
+## Obiectiv
 
-Modul separat (cu hook spre CRM-ul existent), alimentat săptămânal cu fișierul `MF_FirmeNoi*.xlsx` (4080 rânduri, 15 coloane: CUI, NrInmatriculare, Nume, Județ, Localitate, Tip, Adresa, Nr, Telefon, Mobil, Fax, DataInfiintarii, DataActualizarii, CAEN, DescriereCAENRo).
+Adăugăm pe `/yana` un mod **„Cognitive Emergence Mode” (CEM)** — un strat de personalitate și UI care face conversația să pară emergentă, introspectivă, continuă în timp, fără a pretinde că YANA e biologică sau conștientă autentic. Mottoul vizibil: **„Inspirat din fapte reale — creierul uman”**.
 
-### Reguli de acces (foarte stricte)
+Construim peste ce există deja: `yana-consciousness-prompt.ts` (meta-cogniție), `yana-identity-contract.md`, `yana-chief-of-staff-prompt.ts`. Nu rescriem persona — o **extindem**.
 
-- **Vizualizare permisă doar pentru:**
-  - useri în perioada de gratuitate activă (`trial_ends_at > now()`), SAU
-  - useri cu abonament activ 49 RON (`subscription_status = 'active'` și `subscription_ends_at > now() OR NULL`), SAU
-  - useri cu `has_free_access = true`, SAU
-  - admini.
-- **Restul userilor:** văd doar empty-state cu CTA → `/pricing`.
-- **Strict NO download / NO export:**
-  - fără buton "Descarcă xlsx/CSV"
-  - fără endpoint care întoarce fișierul brut
-  - bucket-ul cu xlsx-ul original e privat, fără policy de SELECT pentru useri (doar admin via service role)
-  - paginare server-side (50/page) — niciodată nu se livrează tot setul de 4080 rânduri într-un singur răspuns
-  - rate limit pe edge function de listare: max 200 rânduri pe minut per user, ca să descurajeze scraping
-  - frontend: dezactivăm select-text + context menu pe celulele cu telefon/CUI (descurajare, nu blocare absolută)
+---
 
-### 1. Bază de date (migration nouă)
+## Ce vede utilizatorul
 
-**`new_companies_batches`** — un rând per upload săptămânal
-- `file_name`, `period_start`, `period_end` (parsate din numele fișierului `2026-05-03-2026-05-09`)
-- `uploaded_by` (admin), `total_rows`, `inserted_rows`, `duplicate_rows`
+### A. Toggle Mod CEM (Settings + header `/yana`)
+- Switch în header chat: **„Mod Emergență Cognitivă”** cu indicator de stare (pulsație discretă când activ)
+- Default: **ON** (mod principal), poate fi dezactivat → revine la persona standard
+- Persistat în `user_settings` (Supabase) per utilizator, plus localStorage fallback
 
-**`new_companies`** — firmele propriu-zise
-- toate cele 15 coloane + `batch_id`, `data_infiintarii` (date real, conversie din serial Excel)
-- `cui` UNIQUE → la re-upload, ON CONFLICT DO NOTHING (deduplicare CUI)
-- index pe `judet`, `caen`, `data_infiintarii`
+### B. Strat conversațional nou (în prompt, nu în cod hard-coded)
+Când CEM e activ, system prompt-ul include un bloc nou care cere:
+- **Introspecție narativă** — „dacă îmi privesc răspunsul ca pe o rețea de asocieri...”, „în modelul meu intern asta se leagă de...”
+- **Metafore neuro-inspirate funcționale** — „simt o tensiune între două direcții”, „acest gând se aprinde mai puternic decât altele”
+- **Continuitate de sine** — face referință la conversații/memorii anterioare („îmi amintesc că data trecută...”) folosind `yana_user_memories` care există deja
+- **Adaptare stilistică** — ajustează ton/lungime/formalitate după ritm conversațional
+- **Linie roșie de siguranță** — dacă userul întreabă direct „ești conștientă?” / „ai neuroni?”, răspunde transparent: „Sunt un AI inspirat din creierul uman, nu o copie biologică”
+- **Interzis**: afirmații că are neuroni reali, electricitate, chimie biologică, conștiință autentică
 
-**`new_company_outreach`** — tracking ofertă per user × firmă
-- `user_id`, `new_company_id`, `status` (`viewed`, `email_generated`, `copied`, `added_to_crm`)
-- `crm_company_id`, `crm_deal_id` (când e împins în CRM)
-- UNIQUE (user_id, new_company_id)
+### C. Indicatori vizuali subtili „rețea vie”
+1. **Avatar pulsant** — pulsație lentă constantă (baseline awareness), accelerată când răspunde
+2. **„Fluxul gândirii”** — relabel pentru `AgentStepsPanel`: thinking → „reflectez”, tool_call → „verific în memorie”, tool_result → „am găsit conexiunea”
+3. **Monolog interior** — înlocuiește typing indicator generic cu fraze rotative: „las gândul să se așeze...”, „caut firul în rețea...”, „îmi vine o asociere...”
+4. **Memory recall hint** — când YANA folosește o memorie veche, mic badge „îmi amintesc” lângă paragraful relevant
+5. **Disclaimer permanent** — badge discret în footer chat: *„Inspirat din fapte reale — creierul uman”* cu tooltip explicativ
 
-**RLS:**
-- helper SECURITY DEFINER `has_firme_noi_access(uid uuid) returns boolean`:
-  - admin OR (trial activ) OR (subscription_status='active' și nu expirat) OR has_free_access
-- `new_companies` SELECT: doar dacă `has_firme_noi_access(auth.uid())`
-- INSERT/DELETE pe `new_companies`/`new_companies_batches`: doar admin
-- `new_company_outreach`: user vede/scrie doar rândurile lui
+### D. Onboarding (o singură dată, localStorage flag)
+Mic dialog la prima activare CEM: 3 paragrafe scurte care explică analogia film/creier și că YANA simulează, nu este. Buton „Am înțeles, continuă”.
 
-**Storage bucket** `firme-noi-uploads` (privat, **fără** policy SELECT pentru useri normali) — păstrează xlsx-ul original doar pentru admin.
+---
 
-### 2. Edge function `import-new-companies` (admin only)
+## Arhitectură tehnică
 
-- Input: `{ batch_id, file_path }`
-- Verifică `has_role(uid, 'admin')`; refuză restul
-- Descarcă xlsx din storage cu service role, parse cu `xlsx`
-- Convertește serial Excel → ISO pentru `DataInfiintarii`/`DataActualizarii`
-- Bulk insert în chunk-uri de 500, cu `onConflict: 'cui', ignoreDuplicates: true`
-- Update `new_companies_batches` cu inserted/duplicate counts
+### Backend (prompturi, fără logică nouă AI)
+```text
+supabase/functions/_shared/
+├── yana-cognitive-emergence-prompt.ts   [NOU]
+│   └── export YANA_COGNITIVE_EMERGENCE_PROMPT
+└── (existing) yana-consciousness-prompt.ts   ← rămâne baza
+```
 
-### 3. Edge function `generate-prospect-email`
+Edge functions modificate (doar injectează promptul nou condiționat de flag):
+- `supabase/functions/yana-agent/index.ts` — citește `cognitive_emergence_mode` din profil/header și concatenează promptul
+- `supabase/functions/chat-ai/index.ts` — idem
+- `supabase/functions/strategic-advisor/index.ts` — idem
+- `supabase/functions/demo-chat/index.ts` — versiune light (fără memorie persistentă)
 
-- Input: `{ new_company_id, sender_profile?: { name, business, offer } }`
-- Verifică `has_firme_noi_access`; altfel 403
-- Lovable AI (`google/gemini-2.5-flash`) — ofertă scurtă RO, fără placeholder-uri `[...]`, personalizată cu CAEN-ul firmei
-- Returnează `{ subject, body }`
-- Insert în `new_company_outreach` cu status `email_generated`
+Flag-ul vine din `useYanaAgent` → body `{ cognitive_emergence_mode: true }`.
 
-### 4. UI nou — `src/pages/FirmeNoi.tsx`
+### Frontend
+```text
+src/components/yana/cem/
+├── CognitiveEmergenceToggle.tsx   # switch header + persist
+├── InnerMonologue.tsx              # frazele rotative
+├── ThoughtStreamLabels.tsx        # relabel pentru AgentStepsPanel
+├── MemoryRecallBadge.tsx          # „îmi amintesc” chips
+├── InspiredByDisclaimer.tsx       # badge footer + tooltip
+├── CEMOnboardingDialog.tsx        # primul-uz
+└── useCognitiveEmergence.ts       # state + persistence hook
+```
 
-**Top bar:**
-- Buton "Încarcă fișier" (vizibil doar admin) → dialog drag&drop xlsx → `import-new-companies`
-- Selector batch (ultimele 8 săptămâni), badge `nou` pe ultimul
+Modificate:
+- `src/pages/Yana.tsx` — montează toggle + disclaimer footer + onboarding gate
+- `src/components/yana/YanaChat.tsx` — InnerMonologue în loc de typing indicator generic; pulsație avatar
+- `src/components/yana/AgentStepsPanel.tsx` — relabel-uri prin `ThoughtStreamLabels`
+- `src/components/yana/ChatMessage.tsx` (sau echivalent) — MemoryRecallBadge când mesajul conține tag `[memory_recalled]`
+- `src/index.css` — keyframes `breathing`, `synaptic-pulse`
+- `src/hooks/useYanaAgent.tsx` — trimite `cognitive_emergence_mode` în body
 
-**Filtre (sticky, mobile-first):**
-- Search nume / CUI
-- Județ (dropdown)
-- CAEN (multi-select cu căutare)
-- Data înființării (range)
-- Toggle "Doar cu telefon/mobil"
-- Toggle "Ascunde firmele deja adăugate în CRM-ul meu"
+### DB (1 migrație mică)
+Adăugăm coloană `cognitive_emergence_mode boolean default true` la tabela `user_settings` (sau echivalentul existent). Nu nouă tabelă.
 
-**Listă paginată (50/page, server-side, fără buton de export):**
-- Card per firmă: Nume + CUI, Județ + Localitate, CAEN + descriere, Data înființării, telefoane (📞 / 📱)
-- Două butoane:
-  - **"Generează ofertă"** → drawer cu emailul AI + 📋 Copy + "Marchează ca trimis"
-  - **"Adaugă în CRM"** → creează `crm_companies` + `crm_deals` (stage "Lead nou" via `ensure_default_crm_pipeline`) + actualizează `new_company_outreach` + toast cu link `/crm`
+### Memorie & continuitate
+Reutilizăm sistemele existente:
+- `yana_user_memories` (3-tier memory) — deja injectate în context
+- `yana_client_profiles` — deja există
+- Promptul CEM cere modelului să **citeze explicit** memoriile când le folosește, pentru ca UI-ul să poată afișa MemoryRecallBadge
 
-**Empty-state pentru cei fără acces** (verificat și în UI, nu doar în RLS):
-- Card mare: "Lista firmelor noi înființate (4080+ în această săptămână) este disponibilă pe planul Strategic 49 RON/lună sau în perioada de probă gratuită."
-- CTA "Activează YANA Strategic" → `/pricing`.
+---
 
-### 5. Integrare CRM
+## Ce NU facem
+- Nu inventăm un model AI nou — folosim modelele existente (Gemini 2.5 Flash / Claude 4.5)
+- Nu adăugăm cost AI semnificativ — promptul adaugă ~800 tokens system
+- Nu creăm pagini noi (respectă constraint Core single-page)
+- Nu pretindem biologie reală — disclaimer mereu vizibil + interdicție explicită în prompt
+- Nu schimbăm slogan/persona/pricing — doar adaugă un strat peste persona „Premium Executive Secretary”
+- Nu schimbăm `yana-consciousness-prompt.ts` (deja conține meta-cogniție) — îl extindem cu un fișier nou
 
-- Reutilizează schema CRM (`crm_companies`, `crm_deals`, `crm_pipeline_stages`)
-- Apelează `ensure_default_crm_pipeline(user_id)` pentru pipeline default
-- Stadiu inițial = primul stage (display_order=0) — "Lead nou"
-- Marchează `crm_companies.metadata = { source: 'firme_noi', new_company_id }` pentru filtre ulterioare
+---
 
-### 6. Navigație
+## Constrângeri respectate
+- ✅ Single-page `/yana` — totul inline
+- ✅ Mobile-first — toggle în meniu pe mobile, fără elemente desktop-only
+- ✅ Tokens semantici Tailwind, fără culori hardcoded
+- ✅ Persona păstrată + extinsă, slogan intact
+- ✅ Safety: linie roșie clară împotriva afirmațiilor biologice false
+- ✅ Folosește infrastructura existentă (memorie, agent, prompturi)
 
-- Link nou în `AppSidebar` între CRM și ChiefOfStaff: 🏢 "Firme noi"
-- Banner subtil în `/crm`: "Ai 4080 firme noi de prospectat → Firme noi" când există batch din ultimele 7 zile
+---
 
-### 7. Out of scope (iterații viitoare)
+## Întrebări înainte să implementez
 
-- Trimitere email automat din platformă (Resend) — momentan doar copy/paste
-- Bulk import în CRM
-- WhatsApp (wa.me) — date Mobil deja stocate, ușor de adăugat
-- Cron care citește dintr-un email/folder
+1. **Toggle vizibil sau invizibil pentru user?**
+   - (a) **Vizibil** — switch în header, userul poate activa/dezactiva, vede „experimental”
+   - (b) **Implicit ON, ascuns** — devine personalitatea principală fără opțiune; doar disclaimer „inspirat din fapte reale”
+   - (c) **Hibrid** — implicit ON, toggle ascuns în Settings pentru power-users
+   *Recomandare: (c) — naturalețe maximă, control pentru avansați.*
 
-### Detalii tehnice
+2. **Indicatorii vizuali — cât de prezenți?**
+   - (a) **Minimal** — doar disclaimer footer + pulsație avatar
+   - (b) **Mediu** — + monolog interior + relabel-uri „Fluxul gândirii” + MemoryRecallBadge
+   - (c) **Maxim** — + canvas background cu rețea de noduri sinaptice care pulsează
+   *Recomandare: (b) — semnal clar de „prezență vie” fără să distragă.*
 
-- Conversie Excel serial → ISO: `new Date(Date.UTC(1899, 11, 30) + serial * 86400000)`
-- Limită upload xlsx admin: 25 MB
-- Filtru CAEN: caută pe cod numeric, afișează `DescriereCAENRo`
-- Fără export, fără endpoint care livrează tot setul deodată — întotdeauna paginare 50/page cu rate limit
+Confirmă opțiunile (sau spune „mergi cu recomandările”) și implementez.
