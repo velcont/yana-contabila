@@ -423,6 +423,7 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey, proj
           fileData: effectiveFileData,
           history: historyForAI,
           balanceContext: effectiveBalanceContext || undefined,
+          cognitive_emergence_mode: cognitiveEmergenceMode,
         },
       });
 
