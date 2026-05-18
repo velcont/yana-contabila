@@ -20,6 +20,7 @@ import { generatePremiumWordReport } from '@/utils/generatePremiumWordReport';
 import { Link } from 'react-router-dom';
 import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
 import { TypingIndicator } from '@/components/TypingIndicator';
+import { InnerMonologue } from '@/components/yana/cem/InnerMonologue';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
@@ -1275,10 +1276,14 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
             {agentMode && yanaAgent.isRunning && yanaAgent.steps.length > 0 && (
               <AgentStepsPanel steps={yanaAgent.steps} isRunning={true} defaultOpen={showAgentProcess} />
             )}
-            <TypingIndicator 
-              variant={activeContext?.companyName ? 'analyzing' : 'thinking'} 
-              showProgress={true}
-            />
+            {cognitiveEmergenceMode ? (
+              <InnerMonologue />
+            ) : (
+              <TypingIndicator 
+                variant={activeContext?.companyName ? 'analyzing' : 'thinking'} 
+                showProgress={true}
+              />
+            )}
           </div>
         )}
 
