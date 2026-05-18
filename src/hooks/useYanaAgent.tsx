@@ -18,7 +18,8 @@ interface UseYanaAgentReturn {
   run: (
     message: string,
     history: Array<{ role: string; content: string }>,
-    fileData?: { fileName: string; fileContent: string; fileType: string }
+    fileData?: { fileName: string; fileContent: string; fileType: string },
+    options?: { cognitive_emergence_mode?: boolean }
   ) => Promise<string>;
   reset: () => void;
 }
@@ -42,7 +43,8 @@ export function useYanaAgent(): UseYanaAgentReturn {
     async (
       message: string,
       history: Array<{ role: string; content: string }>,
-      fileData?: { fileName: string; fileContent: string; fileType: string }
+      fileData?: { fileName: string; fileContent: string; fileType: string },
+      options?: { cognitive_emergence_mode?: boolean }
     ): Promise<string> => {
       setIsRunning(true);
       setSteps([]);
@@ -63,7 +65,12 @@ export function useYanaAgent(): UseYanaAgentReturn {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ message, conversation_history: history, fileData }),
+          body: JSON.stringify({
+            message,
+            conversation_history: history,
+            fileData,
+            cognitive_emergence_mode: options?.cognitive_emergence_mode ?? true,
+          }),
           signal: controller.signal,
         });
 

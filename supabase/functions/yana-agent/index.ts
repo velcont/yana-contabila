@@ -13,6 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { YANA_CHIEF_OF_STAFF_PROMPT } from "../_shared/yana-chief-of-staff-prompt.ts";
+import { YANA_COGNITIVE_EMERGENCE_PROMPT } from "../_shared/yana-cognitive-emergence-prompt.ts";
 import { parseExcelWithXLSX } from "../_shared/balance-parser.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -2173,7 +2174,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { message, conversation_history = [], fileData, context_hint } = await req.json();
+  const { message, conversation_history = [], fileData, context_hint, cognitive_emergence_mode = true } = await req.json();
   if (!message) {
     return new Response(JSON.stringify({ error: "Missing message" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -2356,8 +2357,9 @@ REGULI:
 ============= END CRM COPILOT =============
 ` : "";
 
+        const cemAddon = cognitive_emergence_mode ? YANA_COGNITIVE_EMERGENCE_PROMPT : "";
         const messages: Array<Record<string, unknown>> = [
-          { role: "system", content: SYSTEM_PROMPT_FULL + CRM_COPILOT_ADDON },
+          { role: "system", content: SYSTEM_PROMPT_FULL + CRM_COPILOT_ADDON + cemAddon },
           ...conversation_history.slice(-10).map((m: { role: string; content: string }) => ({
             role: m.role, content: m.content,
           })),

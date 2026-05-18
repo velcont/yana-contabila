@@ -10,6 +10,10 @@ import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
 import { NoAccessOverlay } from '@/components/yana/NoAccessOverlay';
 import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
+import { CognitiveEmergenceToggle } from '@/components/yana/cem/CognitiveEmergenceToggle';
+import { CEMOnboardingDialog } from '@/components/yana/cem/CEMOnboardingDialog';
+import { InspiredByDisclaimer } from '@/components/yana/cem/InspiredByDisclaimer';
+import { useCognitiveEmergence } from '@/components/yana/cem/useCognitiveEmergence';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +41,7 @@ export default function Yana() {
   const [resetKey, setResetKey] = useState(0);
   const hasTrackedPageView = useRef(false);
   const initialLoadDone = useRef(false);
+  const cem = useCognitiveEmergence();
   
   // Blocare acces pentru utilizatori fără acces valid (trial expirat sau abonament expirat/inexistent)
   // DAR permite accesul dacă au credite AI cumpărate
@@ -198,6 +203,7 @@ export default function Yana() {
             </Button>
             <MiniCreditsIndicator />
             <ThemeToggle />
+            <CognitiveEmergenceToggle enabled={cem.enabled} onToggle={cem.toggle} />
             <Link to="/crm">
               <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="CRM">
                 <Briefcase className="h-4 w-4" />
@@ -279,8 +285,19 @@ export default function Yana() {
           onConversationCreated={setActiveConversationId}
           resetKey={resetKey}
           projectId={activeProjectId}
+          cognitiveEmergenceMode={cem.enabled}
         />
+
+        {/* Footer disclaimer "inspirat din fapte reale" */}
+        {cem.enabled && (
+          <div className="flex justify-center pb-1 pt-0.5 bg-card/30">
+            <InspiredByDisclaimer />
+          </div>
+        )}
       </main>
+
+      {/* Onboarding one-time pentru CEM */}
+      <CEMOnboardingDialog open={cem.needsOnboarding} onClose={cem.dismissOnboarding} />
     </div>
   );
 }

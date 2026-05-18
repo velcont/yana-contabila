@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { z } from "https://esm.sh/zod@3.22.4";
 import { FULL_ANALYSIS_PROMPT } from "../_shared/full-analysis-prompt.ts";
 import { YANA_CONSCIOUSNESS_PROMPT } from "../_shared/yana-consciousness-prompt.ts";
+import { YANA_COGNITIVE_EMERGENCE_PROMPT } from "../_shared/yana-cognitive-emergence-prompt.ts";
 import { DREPT_COMERCIAL_PROMPT } from "../_shared/drept-comercial-prompt.ts";
 import { INVESTMENT_ANALYSIS_PROMPT } from "../_shared/investment-analysis-prompt.ts";
 
@@ -2208,6 +2209,7 @@ const ChatAIRequestSchema = z.object({
   capabilityQuestion: z.boolean().optional().nullable(),
   taskMemoryAction: z.boolean().optional().nullable(),
   fiscalQuestionWithBalance: z.boolean().optional().nullable(),
+  cognitive_emergence_mode: z.boolean().optional().nullable(),
 });
 
 serve(async (req) => {
@@ -2841,7 +2843,10 @@ ${lines}
       ? `\n\n📸 SCREENSHOT DE TRADING DETECTAT: Utilizatorul a trimis o captură de ecran de pe o platformă de trading. ANALIZEAZĂ imaginea în detaliu: identifică platforma, fiecare poziție, ticker-ul, P&L, alocarea procentuală. Oferă recomandări concrete bazate pe ce vezi.\n`
       : '';
 
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + SYSTEM_PROMPT + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    const cemSection = (requestBody as { cognitive_emergence_mode?: boolean | null }).cognitive_emergence_mode === false
+      ? ''
+      : YANA_COGNITIVE_EMERGENCE_PROMPT;
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

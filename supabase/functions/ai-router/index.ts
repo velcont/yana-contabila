@@ -2249,6 +2249,12 @@ serve(async (req) => {
       : routeDecision.route;
     const targetUrl = `${supabaseUrl}/functions/v1/${effectiveRoute}`;
     
+    // Forward cognitive_emergence_mode flag to downstream functions (chat-ai, strategic-advisor, etc.)
+    const cemFlag = (requestData as Record<string, unknown>).cognitive_emergence_mode;
+    const forwardedPayload = cemFlag !== undefined
+      ? { ...(routeDecision.payload as Record<string, unknown>), cognitive_emergence_mode: cemFlag }
+      : routeDecision.payload;
+
     response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
@@ -2256,7 +2262,7 @@ serve(async (req) => {
         'Authorization': authHeader,
         'x-called-from-router': 'true',
       },
-      body: JSON.stringify(routeDecision.payload),
+      body: JSON.stringify(forwardedPayload),
     });
 
     if (!response.ok) {
