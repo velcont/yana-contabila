@@ -63,15 +63,26 @@ Deno.serve(async (req) => {
     // Get top open gaps with relevant discoveries (process max 2 per run to stay under 150s timeout)
     const slotsAvailable = maxConcurrent - (activeProposals || 0);
     const batchSize = Math.min(slotsAvailable, 2);
-    const { data: gaps } = await supabase
+    // Pick gaps that are not resolved AND don't have a healthy proposal (pending/shadow/deployed).
+    // This lets us retry gaps where previous proposals were rejected or rolled_back.
+    const { data: activeProps } = await supabase
+      .from("yana_self_proposals")
+      .select("id")
+      .in("status", ["pending_test", "shadow_testing", "deployed"]);
+    const blockedIds = (activeProps || []).map((p: any) => p.id);
+    let gapsQuery = supabase
       .from("yana_capability_gaps")
-      .select("id, gap_type, topic, description, evidence, impact_score")
-      .eq("status", "open")
+      .select("id, gap_type, topic, description, evidence, impact_score, resolved_by_proposal_id")
+      .in("status", ["open", "in_progress"])
       .order("impact_score", { ascending: false })
-      .limit(batchSize);
+      .limit(batchSize * 4);
+    const { data: candidates } = await gapsQuery;
+    const gaps = (candidates || [])
+      .filter((g: any) => !g.resolved_by_proposal_id || !blockedIds.includes(g.resolved_by_proposal_id))
+      .slice(0, batchSize);
 
     if (!gaps || gaps.length === 0) {
-      return new Response(JSON.stringify({ skipped: "No open gaps to address" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: "Nicio lacună deschisă fără propunere. Rulează diagnoza pentru a detecta lacune noi, sau resetează lacunele blocate." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const proposalsCreated = [];
