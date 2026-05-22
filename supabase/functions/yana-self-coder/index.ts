@@ -66,12 +66,13 @@ Deno.serve(async (req) => {
     const { data: gaps } = await supabase
       .from("yana_capability_gaps")
       .select("id, gap_type, topic, description, evidence, impact_score")
-      .eq("status", "open")
+      .in("status", ["open", "in_progress"])
+      .is("resolved_by_proposal_id", null)
       .order("impact_score", { ascending: false })
       .limit(batchSize);
 
     if (!gaps || gaps.length === 0) {
-      return new Response(JSON.stringify({ skipped: "No open gaps to address" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: "Nicio lacună deschisă fără propunere. Rulează diagnoza pentru a detecta lacune noi, sau resetează lacunele blocate." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const proposalsCreated = [];
