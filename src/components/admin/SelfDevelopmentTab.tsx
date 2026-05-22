@@ -38,7 +38,27 @@ export const SelfDevelopmentTab = () => {
     const { data, error } = await supabase.functions.invoke(fn, { body: {} });
     setRunning(null);
     if (error) toast.error(`${label} eșuat: ${error.message}`);
-    else { toast.success(`${label} rulat cu succes`); console.log(`[${fn}]`, data); load(); }
+    else {
+      const d: any = data || {};
+      if (d.skipped) toast.warning(`${label}: ${d.skipped}`);
+      else if (d.error) toast.error(`${label}: ${d.error}`);
+      else {
+        const summary = d.proposals_created ?? d.proposalsCreated ?? d.created ?? d.gaps_found ?? d.discoveries_added ?? d.tested;
+        toast.success(`${label} rulat${summary !== undefined ? ` — ${summary} rezultate` : ''}`);
+      }
+      console.log(`[${fn}]`, data);
+      load();
+    }
+  };
+
+  const resetStuckGaps = async () => {
+    const { error, count } = await supabase
+      .from('yana_capability_gaps')
+      .update({ status: 'open', resolved_by_proposal_id: null }, { count: 'exact' })
+      .eq('status', 'in_progress')
+      .is('resolved_by_proposal_id', null);
+    if (error) toast.error(`Reset eșuat: ${error.message}`);
+    else { toast.success(`${count ?? 0} lacune resetate la "open"`); load(); }
   };
 
   const statusColor = (s: string) => {
