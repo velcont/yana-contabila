@@ -6,6 +6,7 @@ import { YANA_CONSCIOUSNESS_PROMPT } from "../_shared/yana-consciousness-prompt.
 import { YANA_COGNITIVE_EMERGENCE_PROMPT } from "../_shared/yana-cognitive-emergence-prompt.ts";
 import { DREPT_COMERCIAL_PROMPT } from "../_shared/drept-comercial-prompt.ts";
 import { INVESTMENT_ANALYSIS_PROMPT } from "../_shared/investment-analysis-prompt.ts";
+import { FISCAL_GROUND_TRUTH_2026 } from "../_shared/fiscal-ground-truth-2026.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
