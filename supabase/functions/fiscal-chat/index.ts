@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { z } from "https://esm.sh/zod@3.22.4";
+import { FISCAL_GROUND_TRUTH_2026 } from "../_shared/fiscal-ground-truth-2026.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -544,7 +545,7 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: FISCAL_SYSTEM_PROMPT
+              content: FISCAL_SYSTEM_PROMPT + FISCAL_GROUND_TRUTH_2026
             },
             ...messagesArray // ✅ Include tot istoricul conversației pentru context
           ],

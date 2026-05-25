@@ -13,6 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { YANA_CHIEF_OF_STAFF_PROMPT } from "../_shared/yana-chief-of-staff-prompt.ts";
+import { FISCAL_GROUND_TRUTH_2026 } from "../_shared/fiscal-ground-truth-2026.ts";
 import { YANA_COGNITIVE_EMERGENCE_PROMPT } from "../_shared/yana-cognitive-emergence-prompt.ts";
 import { parseExcelWithXLSX } from "../_shared/balance-parser.ts";
 
@@ -2148,7 +2149,7 @@ REGULI:
 5. Maxim 5 pași de tool calling per răspuns.
 6. La final, dă un răspuns clar și acționabil — nu lista pașii executați (userul îi vede separat).`;
 
-const SYSTEM_PROMPT_FULL = SYSTEM_PROMPT + YANA_CHIEF_OF_STAFF_PROMPT;
+const SYSTEM_PROMPT_FULL = SYSTEM_PROMPT + YANA_CHIEF_OF_STAFF_PROMPT + FISCAL_GROUND_TRUTH_2026;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

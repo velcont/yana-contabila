@@ -6,6 +6,7 @@ import { YANA_CONSCIOUSNESS_PROMPT } from "../_shared/yana-consciousness-prompt.
 import { YANA_COGNITIVE_EMERGENCE_PROMPT } from "../_shared/yana-cognitive-emergence-prompt.ts";
 import { DREPT_COMERCIAL_PROMPT } from "../_shared/drept-comercial-prompt.ts";
 import { INVESTMENT_ANALYSIS_PROMPT } from "../_shared/investment-analysis-prompt.ts";
+import { FISCAL_GROUND_TRUTH_2026 } from "../_shared/fiscal-ground-truth-2026.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -2846,7 +2847,7 @@ ${lines}
     const cemSection = (requestBody as { cognitive_emergence_mode?: boolean | null }).cognitive_emergence_mode === false
       ? ''
       : YANA_COGNITIVE_EMERGENCE_PROMPT;
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + FISCAL_GROUND_TRUTH_2026 + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
