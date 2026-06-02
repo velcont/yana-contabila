@@ -1,5 +1,8 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
+[functions.facebook-daily-post]
+verify_jwt = false
+
 [functions.samanta-voice-incoming]
 verify_jwt = false
 
