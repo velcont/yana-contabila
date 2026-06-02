@@ -68,6 +68,20 @@ Deno.serve(async (req) => {
     if (!FB_TOKEN || !FB_PAGE_ID) throw new Error('FACEBOOK_PAGE_ACCESS_TOKEN sau FACEBOOK_PAGE_ID lipsesc');
     if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY lipsește');
 
+    const url = new URL(req.url);
+    if (url.searchParams.get('debug') === '1') {
+      const tokenSample = `${FB_TOKEN.slice(0, 12)}...${FB_TOKEN.slice(-8)}`;
+      const tokenLen = FB_TOKEN.length;
+      const hasWeird = /[^\x20-\x7E]/.test(FB_TOKEN);
+      const meRes = await fetch(`https://graph.facebook.com/v21.0/me?access_token=${encodeURIComponent(FB_TOKEN)}`);
+      const me = await meRes.json();
+      const dbgRes = await fetch(`https://graph.facebook.com/v21.0/debug_token?input_token=${encodeURIComponent(FB_TOKEN)}&access_token=${encodeURIComponent(FB_TOKEN)}`);
+      const dbg = await dbgRes.json();
+      return new Response(JSON.stringify({ tokenLen, tokenSample, hasNonAscii: hasWeird, pageId: FB_PAGE_ID, me, debug_token: dbg }, null, 2), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const message = await generatePost();
     const fbResult = await postToFacebook(message);
 
