@@ -39,6 +39,116 @@ Reguli:
 - Trigger keywords trebuie să fie specifice (nu "tva" generic, ci "tva servicii ue")
 - System prompt în limba română`;
 
+// ============================================================
+// CODE PATCH MODE (opt-in via yana_self_mod_settings.enable_code_patches)
+// Generates a SMALL modification to an existing source file and stores it as a
+// `code_patch` proposal awaiting human approval. The actual GitHub PR is opened
+// later by yana-code-patch-promoter -> yana-self-modifier (both gated again).
+// ============================================================
+
+const PATCH_PICK_PROMPT = `Ești YANA Code-Patcher. Pe baza unui gap de capacitate, alegi UN SINGUR fișier existent de modificat printr-o schimbare MICĂ și sigură (ex: ajustare la un system prompt, o validare, un mesaj, un câmp).
+Poți modifica DOAR fișiere care încep cu unul dintre aceste prefixe (scopuri permise): {SCOPES}
+Reguli STRICTE:
+- Alege un fișier EXISTENT și relevant pentru gap.
+- Schimbare minimă — fără refactor mare, fără ștergeri masive.
+- NU atinge logică de plată/securitate decât dacă e strict necesar.
+Răspuns JSON valid: {"target_path":"...","change_summary":"ce și de ce, concret"} SAU {"skip":true,"reason":"..."}`;
+
+const PATCH_WRITE_PROMPT = `Ești YANA Code-Patcher. Primești conținutul COMPLET al unui fișier și o instrucțiune de modificare mică.
+Returnezi conținutul COMPLET al fișierului DUPĂ modificare — identic cu originalul peste tot în afară de schimbarea cerută.
+Răspuns JSON valid: {"new_content":"<întreg fișierul modificat>","summary":"rezumat 1 frază"}. Fără text în afara JSON.`;
+
+async function callPatchLLM(messages: Array<Record<string, string>>): Promise<any | null> {
+  try {
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "openai/gpt-5-mini", messages, response_format: { type: "json_object" } }),
+    });
+    if (!r.ok) { console.warn("[self-coder] patch LLM failed", r.status); return null; }
+    const data = await r.json();
+    return JSON.parse(data.choices?.[0]?.message?.content || "{}");
+  } catch (e) { console.warn("[self-coder] patch LLM error", e); return null; }
+}
+
+async function readViaModifier(path: string): Promise<{ content?: string; sha?: string; error?: string }> {
+  try {
+    const r = await fetch(`${supabaseUrl}/functions/v1/yana-self-modifier?action=read`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${supabaseServiceKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    return await r.json();
+  } catch (e) { return { error: String(e) }; }
+}
+
+// Mirror (conservatively) the modifier's path rules so we don't even propose a
+// patch the modifier would reject. self-coder limits itself to allowed_scopes and
+// never touches migrations/config — those require explicit modifier flags.
+function patchPathAllowed(path: string, modSettings: any): boolean {
+  for (const f of (modSettings.forbidden_paths || [])) {
+    if (path.startsWith(f)) return false;
+  }
+  if (path.startsWith("supabase/migrations/")) return false;
+  const configFiles = ["vite.config.ts", "tailwind.config.ts", "package.json", "tsconfig.json", "index.html"];
+  if (configFiles.some((c) => path === c || path.endsWith("/" + c))) return false;
+  return (modSettings.allowed_scopes || []).some((s: string) => path.startsWith(s));
+}
+
+async function tryGenerateCodePatch(supabase: any, gap: any, modSettings: any): Promise<Record<string, unknown>> {
+  const scopes = (modSettings.allowed_scopes || []).join(", ");
+
+  // Step 1: choose a target file + describe the change.
+  const pick = await callPatchLLM([
+    { role: "system", content: PATCH_PICK_PROMPT.replace("{SCOPES}", scopes) },
+    { role: "user", content: `GAP:\nTip: ${gap.gap_type}\nTopic: ${gap.topic}\nDescriere: ${gap.description}` },
+  ]);
+  if (!pick || pick.skip || !pick.target_path) return { skipped: pick?.reason || "no target chosen" };
+
+  const targetPath = String(pick.target_path).trim();
+  if (!patchPathAllowed(targetPath, modSettings)) return { skipped: `path not allowed: ${targetPath}` };
+
+  // Step 2: read the current file content.
+  const current = await readViaModifier(targetPath);
+  if (current.error || typeof current.content !== "string") {
+    return { skipped: `cannot read ${targetPath}: ${current.error || "no content"}` };
+  }
+  if (current.content.length > 24000) return { skipped: `file too large for safe patch (${current.content.length} chars)` };
+
+  // Step 3: produce the full modified file.
+  const patched = await callPatchLLM([
+    { role: "system", content: PATCH_WRITE_PROMPT },
+    { role: "user", content: `FIȘIER: ${targetPath}\nINSTRUCȚIUNE: ${pick.change_summary}\n\nCONȚINUT ACTUAL:\n\`\`\`\n${current.content}\n\`\`\`` },
+  ]);
+  if (!patched || typeof patched.new_content !== "string") return { skipped: "no new_content produced" };
+  if (patched.new_content.trim() === current.content.trim()) return { skipped: "patch produced no change" };
+
+  // Store as a proposal awaiting human approval (status: proposed_patch).
+  const { data: proposal, error } = await supabase
+    .from("yana_self_proposals")
+    .insert({
+      proposal_type: "code_patch",
+      title: `Patch: ${targetPath.split("/").pop()} — ${gap.topic}`.slice(0, 200),
+      rationale: (pick.change_summary || `Patch pentru gap "${gap.topic}".`).slice(0, 1000),
+      target_gap_ids: [gap.id],
+      generated_code: patched.new_content,
+      generated_config: {
+        kind: "code_patch",
+        target_path: targetPath,
+        new_content: patched.new_content,
+        summary: patched.summary || pick.change_summary,
+        gap_id: gap.id,
+      },
+      estimated_impact: gap.impact_score ? Math.min(1, Number(gap.impact_score) / 5) : 0.4,
+      status: "proposed_patch",
+      created_by: "yana-self-coder",
+    })
+    .select("id")
+    .single();
+  if (error) return { skipped: "insert error: " + error.message };
+  return { id: proposal.id, target_path: targetPath, summary: patched.summary || pick.change_summary };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const startTime = Date.now();
@@ -50,6 +160,46 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ skipped: "self-development disabled" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // === CODE PATCH PASS (independent + opt-in) ===
+    // Runs at most once per invocation and only when explicitly enabled. Decoupled
+    // from the agent-spec flow so it isn't starved when agent slots are full.
+    let patchResult: Record<string, unknown> | null = null;
+    try {
+      const { data: modSettings } = await supabase
+        .from("yana_self_mod_settings")
+        .select("enable_code_patches, allowed_scopes, forbidden_paths")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (modSettings?.enable_code_patches) {
+        // Never stack patches: only generate when none are pending/in-flight.
+        const { count: openPatches } = await supabase
+          .from("yana_self_proposals")
+          .select("*", { count: "exact", head: true })
+          .eq("proposal_type", "code_patch")
+          .in("status", ["proposed_patch", "approved_patch", "promoting"]);
+
+        if ((openPatches || 0) > 0) {
+          patchResult = { skipped: "a code patch is already pending/in-flight" };
+        } else {
+          const { data: topGaps } = await supabase
+            .from("yana_capability_gaps")
+            .select("id, gap_type, topic, description, impact_score")
+            .in("status", ["open", "in_progress"])
+            .order("impact_score", { ascending: false })
+            .limit(1);
+          if (topGaps && topGaps[0]) {
+            patchResult = await tryGenerateCodePatch(supabase, topGaps[0], modSettings);
+          } else {
+            patchResult = { skipped: "no open gaps for a code patch" };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[self-coder] code patch pass error", e);
+      patchResult = { error: String(e) };
+    }
+
     // Check concurrent proposals cap
     const { count: activeProposals } = await supabase
       .from("yana_self_proposals")
@@ -57,7 +207,7 @@ Deno.serve(async (req) => {
       .in("status", ["pending_test", "shadow_testing"]);
     const maxConcurrent = settings?.max_concurrent_proposals || 3;
     if ((activeProposals || 0) >= maxConcurrent) {
-      return new Response(JSON.stringify({ skipped: `Max concurrent proposals (${maxConcurrent}) reached` }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: `Max concurrent proposals (${maxConcurrent}) reached`, code_patch: patchResult }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Get top open gaps with relevant discoveries (process max 2 per run to stay under 150s timeout)
@@ -82,7 +232,7 @@ Deno.serve(async (req) => {
       .slice(0, batchSize);
 
     if (!gaps || gaps.length === 0) {
-      return new Response(JSON.stringify({ skipped: "Nicio lacună deschisă fără propunere. Rulează diagnoza pentru a detecta lacune noi, sau resetează lacunele blocate." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: "Nicio lacună deschisă fără propunere. Rulează diagnoza pentru a detecta lacune noi, sau resetează lacunele blocate.", code_patch: patchResult }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const proposalsCreated = [];
@@ -190,6 +340,7 @@ Propune UN agent specializat care rezolvă acest gap. JSON valid.`;
       proposals_created: proposalsCreated.length,
       proposals: proposalsCreated,
       cost_cents: totalCostCents,
+      code_patch: patchResult,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error: any) {
     console.error("[yana-self-coder] Error:", error);

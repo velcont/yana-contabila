@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
       .from("yana_self_proposals")
       .select("id, title, generated_config, target_gap_ids")
       .eq("status", "pending_test")
+      .eq("proposal_type", "new_agent") // code_patch proposals go through the patch promoter, never shadow-testing
       .limit(5);
 
     // Compute baseline success rate (across all existing agents in last 7d)

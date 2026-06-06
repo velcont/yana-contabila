@@ -10234,6 +10234,9 @@ export type Database = {
           allow_config_changes: boolean
           allow_db_migrations: boolean
           allowed_scopes: string[]
+          code_patch_max_per_run: number
+          code_patch_require_approval: boolean
+          enable_code_patches: boolean
           error_rate_multiplier: number
           forbidden_paths: string[]
           id: number
@@ -10246,6 +10249,9 @@ export type Database = {
           allow_config_changes?: boolean
           allow_db_migrations?: boolean
           allowed_scopes?: string[]
+          code_patch_max_per_run?: number
+          code_patch_require_approval?: boolean
+          enable_code_patches?: boolean
           error_rate_multiplier?: number
           forbidden_paths?: string[]
           id?: number
@@ -10258,6 +10264,9 @@ export type Database = {
           allow_config_changes?: boolean
           allow_db_migrations?: boolean
           allowed_scopes?: string[]
+          code_patch_max_per_run?: number
+          code_patch_require_approval?: boolean
+          enable_code_patches?: boolean
           error_rate_multiplier?: number
           forbidden_paths?: string[]
           id?: number
