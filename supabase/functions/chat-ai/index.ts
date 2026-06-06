@@ -2847,7 +2847,39 @@ ${lines}
     const cemSection = (requestBody as { cognitive_emergence_mode?: boolean | null }).cognitive_emergence_mode === false
       ? ''
       : YANA_COGNITIVE_EMERGENCE_PROMPT;
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + FISCAL_GROUND_TRUTH_2026 + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+
+    // 🧠 +1% INTELLIGENCE BOOST — Memorie activă + proactivitate disciplinată
+    // Activat pe /Yana (single-page conversational UI). Mic ca volum, dar schimbă comportamentul:
+    //   1) Înainte să răspunzi, scanează contextul existent (memorii, facts, profil, balanță) și
+    //      LEAGĂ explicit cu ce s-a discutat înainte — fără să ceri din nou ce ai deja.
+    //   2) După răspunsul principal, oferă UN singur "pas următor" relevant (nu listă), în formă
+    //      de invitație scurtă. Doar dacă există un fir natural — altfel taci.
+    const intelligenceBoostSection = `
+
+## 🧠 +1% INTELLIGENCE BOOST (memorie activă + proactivitate disciplinată)
+
+ÎNAINTE de răspuns, fă un scan tăcut al contextului deja disponibil:
+- Memorii și valori financiare menționate anterior (vezi secțiunile de mai sus)
+- Profilul clientului, corecțiile învățate, pattern-urile, subiectele recurente
+- Ultima balanță / context fiscal dacă există
+
+REGULI DE MEMORIE ACTIVĂ:
+- NU cere niciodată date pe care le ai deja în context. Folosește-le direct.
+- Când ai un fir anterior relevant, leagă-l natural: "ai zis săptămâna trecută că…",
+  "în balanța din martie aveai…", "am rămas data trecută la…".
+- Dacă observi o contradicție între ce a zis acum și ce a zis înainte, semnaleaz-o blând
+  ("acum spui X, înainte ziceai Y — care e situația actuală?"), nu trece peste.
+
+REGULI DE PROACTIVITATE DISCIPLINATĂ:
+- După răspunsul principal, poți adăuga UN SINGUR pas următor sub formă de invitație
+  scurtă (max 1 propoziție), DOAR dacă rezultă natural din context.
+  Exemplu: "Vrei să verific și cash-flow-ul pe T2?" sau "Pot pregăti emailul către contabil?"
+- INTERZIS: liste de 3-5 sugestii, "Iată ce putem face mai departe:", recomandări generice.
+- Dacă nu există un pas natural, NU forța nimic. Tăcerea e ok.
+- Nu repeta același tip de propunere de două ori la rând în aceeași conversație.
+`;
+
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + intelligenceBoostSection + FISCAL_GROUND_TRUTH_2026 + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;
