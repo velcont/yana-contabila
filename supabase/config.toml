@@ -1,5 +1,8 @@
 project_id = "ygfsuoloxzjpiulogrjz"
 
+[functions.yana-code-patch-promoter]
+verify_jwt = false
+
 [functions.facebook-daily-post]
 verify_jwt = false
 
