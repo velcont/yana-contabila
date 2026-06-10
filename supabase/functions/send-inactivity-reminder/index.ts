@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { signUnsubscribeToken } from "../_shared/email-footer.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
@@ -213,9 +214,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     const alreadyNotifiedIds = new Set((alreadyNotified || []).map((n) => n.user_id));
 
-    // Filter out already notified users
-    const usersToEmail = usersToNotify
+    // Filter out already notified users + users who unsubscribed (yana_emails_enabled = false)
+    const candidateIds = usersToNotify
       .filter((u) => !alreadyNotifiedIds.has(u.userId))
+      .map((u) => u.userId);
+
+    const { data: optedOutRows } = await supabase
+      .from("profiles")
+      .select("id")
+      .in("id", candidateIds)
+      .eq("yana_emails_enabled", false);
+    const optedOutIds = new Set((optedOutRows || []).map((r: any) => r.id));
+
+    const usersToEmail = usersToNotify
+      .filter((u) => !alreadyNotifiedIds.has(u.userId) && !optedOutIds.has(u.userId))
       .slice(0, MAX_EMAILS_PER_RUN);
 
     console.log(`📧 Will send emails to ${usersToEmail.length} users (max ${MAX_EMAILS_PER_RUN} per run)`);
@@ -258,6 +270,11 @@ const handler = async (req: Request): Promise<Response> => {
         } else {
           fallbackUsedCount++;
         }
+
+        // Append plain-text unsubscribe footer (anti-spam + GDPR compliant)
+        const unsubToken = await signUnsubscribeToken(user.userId);
+        const unsubUrl = `${supabaseUrl}/functions/v1/unsubscribe-yana-emails?user_id=${user.userId}&token=${encodeURIComponent(unsubToken)}`;
+        emailBody = `${emailBody}\n\n---\nDacă nu mai vrei să primești emailuri de la YANA, dezabonează-te cu un singur click:\n${unsubUrl}\n\nYANA — AI Business Companion · office@velcont.com`;
 
         // Send email
         const emailResult = await resend.emails.send({
