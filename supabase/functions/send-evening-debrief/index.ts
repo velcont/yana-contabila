@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     // Get active users who opted in for evening debrief
     const { data: users, error: usersError } = await supabase
       .from('profiles')
-      .select('id, email, full_name, subscription_status, has_free_access')
+      .select('id, email, full_name, subscription_status, has_free_access, yana_emails_enabled')
       .or('subscription_status.eq.active,has_free_access.eq.true')
       .not('email', 'is', null);
 
@@ -40,6 +40,12 @@ Deno.serve(async (req) => {
 
     for (const user of users || []) {
       try {
+        // Respect global unsubscribe flag
+        if (user.yana_emails_enabled === false) {
+          results.push({ email: user.email, status: 'skipped_unsubscribed' });
+          continue;
+        }
+
         // Check if user has evening debrief enabled
         const { data: profile } = await supabase
           .from('yana_client_profiles')
