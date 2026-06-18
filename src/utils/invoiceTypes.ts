@@ -76,9 +76,11 @@ export const RO_UNIT_CODES = [
 
 // Romanian VAT rates
 export const RO_VAT_RATES = [
-  { rate: 19, label: 'TVA 19% (standard)' },
-  { rate: 9, label: 'TVA 9% (redus)' },
-  { rate: 5, label: 'TVA 5% (redus special)' },
+  { rate: 21, label: 'TVA 21% (standard)' },
+  { rate: 11, label: 'TVA 11% (redus)' },
+  { rate: 9, label: 'TVA 9% (locuințe, tranzitoriu pana 31.07.2026)' },
+  { rate: 19, label: 'TVA 19% (istoric/storno)' },
+  { rate: 5, label: 'TVA 5% (istoric)' },
   { rate: 0, label: 'TVA 0% (scutit/neimpozabil)' },
 ] as const;
 
@@ -92,7 +94,7 @@ export function newLineItem(): InvoiceLineItem {
     quantity: 1,
     unitPrice: 0,
     unitCode: 'BUC',
-    vatRate: 19,
+    vatRate: 21,
   };
 }
 
