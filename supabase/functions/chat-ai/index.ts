@@ -769,7 +769,7 @@ https://youtu.be/ZtkqiPIIhAw
 **CUM ÎNCEPEM COLABORAREA (DOI PAȘI):**
 1. Vizionați video-ul de prezentare: https://youtu.be/ZtkqiPIIhAw
 2. Programați evaluarea inițială (1 EUR taxă simbolică): 
-   https://api.leadconnectorhq.com/widget/booking/7355vpWtqN56kZEbOU4N
+   https://samanta.velcont.com/abonament
 
 **DE CE EVALUAREA INIȚIALĂ?**
 - Selectare atentă a clienților pentru compatibilitate profesională
