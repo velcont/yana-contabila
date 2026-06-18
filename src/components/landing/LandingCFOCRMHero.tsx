@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { analytics } from '@/utils/analytics';
-import { MessageSquare, ArrowRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface LandingCFOCRMHeroProps {
@@ -9,33 +8,24 @@ interface LandingCFOCRMHeroProps {
   onTryPrompt?: (prompt: string) => void;
 }
 
-const HERO_CHIP = {
-  label: 'Câți bani îmi rămân după impozite?',
-  prompt: 'Câți bani îmi rămân după impozite dacă scot 10.000 RON ca dividend?',
-};
-
-// Mini-demo animat în hero — vede vizitatorul Facebook în <2s ce face YANA
-const DEMO_USER = 'Câți bani îmi rămân după impozite?';
-const DEMO_YANA = 'Din 10.000 RON dividend îți rămân 9.200 RON. Impozit 8% = 800 RON. Vrei să simulez și salariu?';
+// Mini-demo în hero — vizitatorul vede în <2s exact ce face YANA
+const DEMO_USER = 'Câți bani îmi rămân după taxe luna asta?';
+const DEMO_YANA = 'Rămâi cu 14.200 RON net. Recomand să pui 2.000 deoparte pentru dividende.';
 
 /**
- * Hero — optimizat agresiv pentru bounce rate (Facebook mobile traffic).
- * - H1 scurt (4 cuvinte) — citibil în 1s
- * - Demo chat animat ÎN hero (deasupra fold-ului) — wow în 2s
- * - 1 chip dominant — interacțiune instantă
- * - CTA cu beneficiu concret
+ * Hero mobil — redesign pentru a reduce bounce rate (95% → target <60%).
+ * - Headline = slogan oficial (clarifică INSTANT ce e YANA)
+ * - Subline = CFO + CRM + Secretar într-un chat
+ * - Demo chat static (fără să sară layout-ul) cu un exemplu concret de valoare
+ * - UN SINGUR CTA dominant — "Oprește pierderile — 30 zile gratuit"
  */
 export const LandingCFOCRMHero = ({ onTryPrompt }: LandingCFOCRMHeroProps) => {
   const navigate = useNavigate();
-  const [showUser, setShowUser] = useState(false);
-  const [typing, setTyping] = useState(false);
   const [showYana, setShowYana] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setShowUser(true), 400);
-    const t2 = setTimeout(() => setTyping(true), 1200);
-    const t3 = setTimeout(() => { setTyping(false); setShowYana(true); }, 2400);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t = setTimeout(() => setShowYana(true), 700);
+    return () => clearTimeout(t);
   }, []);
 
   const handlePrimary = () => {
@@ -43,78 +33,66 @@ export const LandingCFOCRMHero = ({ onTryPrompt }: LandingCFOCRMHeroProps) => {
     navigate('/auth?redirect=/yana');
   };
 
-  const handleChip = () => {
-    analytics.landingCtaClick('demo', 'hero_chip_main');
+  const handleDemoTap = () => {
+    analytics.landingCtaClick('demo', 'hero_chat_preview');
     if (onTryPrompt) {
-      onTryPrompt(HERO_CHIP.prompt);
+      onTryPrompt(DEMO_USER);
     } else {
       navigate('/auth?redirect=/yana');
     }
   };
 
   return (
-    <section className="space-y-4 pt-1 sm:pt-6 text-center">
-      {/* H1 — 4 cuvinte. Visibil instant pe orice mobil. */}
-      <h1 className="text-4xl sm:text-5xl font-bold leading-[1.05] tracking-tight">
-        AI-ul care{' '}
-        <span className="text-primary">înțelege business.</span>
-      </h1>
-
-      <p className="text-sm sm:text-base text-muted-foreground max-w-md mx-auto">
-        Întreabă orice. Primești răspuns în 5 secunde.
-      </p>
-
-      {/* Mini-demo chat animat — wow factor în primele 2s, fără scroll */}
-      <div className="rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm p-3 max-w-md mx-auto text-left space-y-2.5 min-h-[180px] shadow-lg">
-        {showUser && (
-          <div className="flex items-start gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
-            <div className="w-6 h-6 rounded-full bg-foreground/10 flex items-center justify-center text-[10px] font-bold flex-shrink-0">Tu</div>
-            <p className="text-sm bg-muted/40 rounded-lg px-3 py-2 flex-1">{DEMO_USER}</p>
-          </div>
-        )}
-        {typing && (
-          <div className="flex items-start gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-[10px] font-bold flex-shrink-0">Y</div>
-            <div className="bg-primary/10 rounded-lg px-3 py-2.5 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          </div>
-        )}
-        {showYana && (
-          <div className="flex items-start gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-[10px] font-bold flex-shrink-0">Y</div>
-            <p className="text-sm bg-primary/10 text-foreground rounded-lg px-3 py-2 flex-1 leading-relaxed">{DEMO_YANA}</p>
-          </div>
-        )}
-        {!showUser && (
-          <div className="h-[140px] flex items-center justify-center text-xs text-muted-foreground/50">
-            …
-          </div>
-        )}
+    <section className="space-y-7 pt-2 sm:pt-6 text-center">
+      {/* Headline — slogan oficial, citibil în 1s */}
+      <div className="space-y-4">
+        <h1 className="text-[28px] sm:text-4xl font-extrabold text-foreground leading-[1.15] tracking-tight">
+          YANA nu este un chatbot.
+          <br />
+          <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            Este un AI pentru business.
+          </span>
+        </h1>
+        <p className="text-base text-muted-foreground leading-relaxed max-w-[300px] mx-auto">
+          CFO + CRM + Secretar Executiv.
+          <br />
+          Totul într-un singur chat.
+        </p>
       </div>
 
-      {/* 1 chip dominant — răspuns la "vreau să încerc" */}
+      {/* Mock chat preview — exemplu concret de valoare, tap = demo */}
       <button
-        onClick={handleChip}
-        className="w-full max-w-md mx-auto flex items-center justify-between gap-3 rounded-xl bg-card border-2 border-primary/30 px-4 py-3.5 text-sm font-medium text-foreground hover:border-primary hover:bg-primary/5 transition-all min-h-[52px] group"
+        onClick={handleDemoTap}
+        className="w-full text-left bg-card/50 border border-border/50 rounded-2xl p-4 space-y-3 shadow-2xl active:scale-[0.99] transition-transform"
+        aria-label="Încearcă demo"
       >
-        <span className="flex-1 text-left">Încearcă tu — întreabă orice</span>
-        <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+        <div className="flex items-end gap-2 max-w-[85%]">
+          <p className="bg-muted/60 text-foreground rounded-2xl rounded-bl-none px-3 py-2 text-sm flex-1">
+            {DEMO_USER}
+          </p>
+        </div>
+        <div className="flex items-end gap-2 justify-end">
+          <p className="bg-primary text-primary-foreground rounded-2xl rounded-br-none px-3 py-2 text-sm font-medium flex-1">
+            {showYana ? DEMO_YANA : '…'}
+          </p>
+          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0 shadow-lg shadow-primary/30">
+            Y
+          </div>
+        </div>
       </button>
 
-      {/* CTA principal — beneficiu concret, nu "30 zile" generic */}
-      <div className="space-y-1.5 pt-1">
+      {/* UN SINGUR CTA dominant — fără competiție vizuală */}
+      <div className="space-y-2">
         <Button
           size="lg"
           onClick={handlePrimary}
-          className="w-full max-w-md text-base py-6 min-h-[56px] gap-2 shadow-lg"
+          className="w-full text-base font-bold py-6 min-h-[56px] shadow-xl shadow-primary/25"
         >
-          <MessageSquare className="w-5 h-5" />
-          Cont gratuit — răspuns în 5 secunde
+          Oprește pierderile — 30 zile gratuit
         </Button>
-        <p className="text-xs text-muted-foreground">Fără card. 30 zile gratuit.</p>
+        <p className="text-xs text-muted-foreground font-medium">
+          49 RON/lună după test • Fără card
+        </p>
       </div>
     </section>
   );
