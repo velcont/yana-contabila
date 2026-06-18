@@ -96,7 +96,7 @@ Suspendare activitate: max 3 ani, se înregistrează la ONRC, obligații fiscale
 - PFA: fără personalitate juridică, max 3 salariați, răspundere nelimitată, impozit 10% (norma/real), CAS+CASS obligatorii
 - II: fără personalitate juridică, salariați nelimitați, răspundere cu patrimoniul de afectațiune
 - IF: min 2 membri familie, coproprietate bunuri
-- SRL: personalitate juridică, salariați nelimitați, răspundere limitată, impozit micro 1%/3% sau profit 16%, dividende 8%
+- SRL: personalitate juridică, salariați nelimitați, răspundere limitată, impozit micro 1% (2026; cota de 3% eliminată) sau profit 16%, dividende 16%
 
 ## INSOLVENȚA (Legea 85/2014)
 - Procedura generală: reorganizare + faliment

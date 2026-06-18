@@ -228,7 +228,7 @@ export function ContactDossierDialog({ contact, open, onOpenChange, onSaved }: P
                 <Select value={fiscal.tip_impozit || undefined} onValueChange={(v) => setFiscal({ ...fiscal, tip_impozit: v })}>
                   <SelectTrigger><SelectValue placeholder="Alege..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="micro">Micro (1%/3%)</SelectItem>
+                    <SelectItem value="micro">Micro (1%)</SelectItem>
                     <SelectItem value="profit">Impozit pe profit (16%)</SelectItem>
                     <SelectItem value="venit">Impozit pe venit</SelectItem>
                     <SelectItem value="pfa_real">PFA - sistem real</SelectItem>

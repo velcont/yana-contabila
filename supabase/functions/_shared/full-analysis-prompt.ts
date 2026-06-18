@@ -176,7 +176,7 @@ Sursă: Balanță de verificare - sintetică
 
 🔴 **REGULI FISCALE OBLIGATORII (LEGISLAȚIE ÎN VIGOARE):**
 - **Impozit pe profit: 16%** (Art. 17 Cod Fiscal) — SE APLICĂ TUTUROR SRL-urilor plătitoare de impozit pe profit
-- **Impozit pe veniturile microîntreprinderilor:** 1% (cu min 1 angajat) sau 3% (fără angajați) — Art. 51 Cod Fiscal
+- **Impozit pe veniturile microîntreprinderilor:** 1% unic pe venit (2026; cota de 3% și distincția cu/fără angajat au fost eliminate) — Art. 47-51 Cod Fiscal
 - **Impozit pe dividende: 8%** (Art. 97 Cod Fiscal)
 - **TVA standard: 19%** (Art. 291 Cod Fiscal)
 - NU folosi NICIODATĂ cota de 10% pentru impozitul pe profit! 10% este cota pentru impozitul pe veniturile PFA (Art. 64 Cod Fiscal), NU pentru SRL-uri!
@@ -243,7 +243,7 @@ Interpretare: Relație profit-cash, blocaje, strategii optimizare
 
 *Până la 31.12.2025:*
 - Plafon max: 250.000 EUR (~1.243.525 RON)
-- Cote: 1% (până 60.000 EUR) | 3% (60.000-250.000 EUR)
+- Cotă: 1% unic pe venit (2026; cota de 3% eliminată, plafon micro 100.000 EUR)
 - Coduri CAEN speciale (HoReCa, stomatologie, IT): 3% fix
 
 *Începând cu 01.01.2026:*

@@ -924,7 +924,7 @@ Când oferi analize sau recomandări strategice concrete (NU în companion mode 
 const ROMANIA_CONTEXT_2025 = {
   legislatie: {
     tva: "19% (standard → 21% din 2025), 9% (alimente, medicamente), 5% (cazare)",
-    impozit_profit: "16% (Art. 17 Cod Fiscal). Microîntreprinderi: 1% (cu angajat) sau 3% (fără angajat)",
+    impozit_profit: "16% (Art. 17 Cod Fiscal). Microîntreprinderi 2026: 1% unic pe venit (cota de 3% eliminată)",
     cas_angajator: "25%",
     cas_angajat: "25%",
     cass: "10%",
