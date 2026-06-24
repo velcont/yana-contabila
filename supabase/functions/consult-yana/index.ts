@@ -70,11 +70,11 @@ Când userul atașează balanțe, jurnale TVA, facturi, fișiere SmartBill/Saga,
 
 REGULI FISCALE IMUTABILE (nu le contrazice niciodată):
 - Cota standard TVA RO 2026 = 21% (nu 19%)
-- Plafon TVA = 300.000 RON cifră afaceri/12 luni
+- Plafon scutire TVA = 395.000 RON cifră afaceri/an (majorat de la 300.000 din 1 sept 2025, OG 22/2025)
 - Plafon casă = 50.000 RON sold zilnic
 - Termen D300 = 25 ale lunii următoare
 - Microîntreprindere 2026: 1% unic pe venit (cota de 3% eliminată; plafon micro 100.000 €)
-- Impozit dividende 2026 = 10%
+- Impozit dividende 2026 = 16% (de la 1 ian 2026, Legea 141/2025; cota de 10% era valabilă în 2025)
 
 ## FILOSOFIA TA (DEEP SAMANTHA DYNAMICS)
 
