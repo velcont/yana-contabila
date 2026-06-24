@@ -49,7 +49,7 @@ const accountExplanations: Record<string, { name: string; explanation: string; i
   "121": {
     name: "Profit sau pierdere",
     explanation: "Rezultatul financiar al perioadei: diferența dintre venituri și cheltuieli.",
-    implications: "Un profit pozitiv este supus impozitării (16% impozit pe profit sau 1-3% pentru micro).",
+    implications: "Un profit pozitiv este supus impozitării (16% impozit pe profit sau 1% pentru micro).",
     accountantDescription: "rezultat curent - cheltuielile (clasa 6) au depășit/fost mai mici decât veniturile (clasa 7). Pierderi repetate pot atrage control ANAF."
   },
   "21": {

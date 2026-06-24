@@ -1251,7 +1251,7 @@ export const AnalysisDisplay = ({ analysisText, fileName, createdAt, metadata, a
             spacing: { after: 100 }
           }),
           new Paragraph({
-            text: '   → Micro-întreprindere (1% sau 3% pe venit): salvează ENORM la taxe',
+            text: '   → Micro-întreprindere (1% pe venit): salvează ENORM la taxe',
             spacing: { after: 100 }
           }),
           new Paragraph({

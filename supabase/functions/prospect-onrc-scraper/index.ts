@@ -144,7 +144,7 @@ După perioada de test, tarifele sunt printre cele mai mici din piață:
 Vedeți cum lucrez în acest video scurt: https://youtu.be/ZtkqiPIIhAw
 
 Dacă vă interesează, programați o evaluare inițială aici (1 EUR garanție):
-https://api.leadconnectorhq.com/widget/booking/7355vpWtqN56kZEbOU4N
+https://samanta.velcont.com/abonament
 
 Sau scrieți-mi direct la office@velcont.com.
 

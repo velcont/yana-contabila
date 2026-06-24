@@ -1670,7 +1670,7 @@ Da. Integrarea este simplă și funcționează eficient în toate aceste cazuri.
 ### Cum începe colaborarea
 
 1. Vizualizează video-ul de prezentare: https://youtu.be/ZtkqiPIIhAw
-2. Programează o întâlnire de evaluare inițială: https://api.leadconnectorhq.com/widget/booking/7355vpWtqN56kZEbOU4N
+2. Programează o întâlnire de evaluare inițială: https://samanta.velcont.com/abonament
    (Taxa simbolică de 1 euro este o garanție de seriozitate.)
 
 **De ce evaluarea?** Clienții sunt selectați cu atenție. E important ca persoanele cu care se lucrează să aibă un minim de cunoștințe digitale și să poată folosi platformele necesare pentru contabilitate online.

@@ -26,7 +26,7 @@ Aceste fapte au PRIORITATE ABSOLUTĂ — nu contrazice, nu inventa alternative.
 
 ### 2. MICROÎNTREPRINDERI și IMPOZIT PE PROFIT
 - **Plafon micro: 100.000 euro.**
-- Cote menținute: **1%** sub 60.000 € și **3%** peste 60.000 € sau pentru CAEN-uri excluse (**5821, 5829, 6201** etc.).
+- Cotă 2026: **1% unic** pe venit (cota de 3% a fost ELIMINATĂ prin OUG 89/2025; structura 1% sub 60.000€ + 3% peste era valabilă în 2024-2025). Condiții micro la art. 47-51 Cod fiscal.
 - **IMCA** (impozit minim pe cifra de afaceri): **se reduce de la 1% la 0,5% în 2026** și urmează **eliminare din 2027**, înlocuit cu un impozit pe „cheltuieli sensibile” / pe afiliați.
 - IMCA se aplică în continuare doar firmelor cu cifră de afaceri **peste 50 mil. €**.
 
