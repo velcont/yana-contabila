@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 // Generăm versiunea la build time (timestamp unic)
 const BUILD_VERSION = `v${Date.now()}`;
@@ -17,6 +18,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(), 
     mode === "development" && componentTagger(),
+    mcpPlugin(),
     // Bundle analyzer - generates stats.html in production
     mode === 'production' && visualizer({
       open: false,

@@ -68,7 +68,7 @@ export function ResearchDataImport({ onImportSuccess }: { onImportSuccess?: () =
           parsed: null
         };
       } else if (error instanceof z.ZodError) {
-        const firstError = error.errors[0];
+        const firstError = error.issues[0];
         return {
           isValid: false,
           error: `Câmp lipsă sau invalid: ${firstError.path.join('.')}`,

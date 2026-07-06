@@ -252,7 +252,7 @@ export async function extractFromText<T>(
           data: parsed as T,
           processingTimeMs: performance.now() - startTime,
           extractionType: type,
-          validationErrors: validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+          validationErrors: validation.error.issues.map(e => `${e.path.join('.')}: ${e.message}`),
         };
       }
       return {
