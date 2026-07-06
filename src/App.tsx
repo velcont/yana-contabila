@@ -70,6 +70,7 @@ const CRM = lazy(() => import("./pages/CRM"));
 const EmailSettings = lazy(() => import("./pages/EmailSettings"));
 const GmailResponder = lazy(() => import("./pages/GmailResponder"));
 const Inbox = lazy(() => import("./pages/Inbox"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 const Prospect = lazy(() => import("./pages/Prospect"));
 const Samanta = lazy(() => import("./pages/Samanta"));
 const SamantaLive = lazy(() => import("./pages/SamantaLive"));
