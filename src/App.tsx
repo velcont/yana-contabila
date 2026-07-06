@@ -185,6 +185,7 @@ const App = () => {
                       <Route path="/demo" element={<Demo />} />
                       <Route path="/auth" element={<Auth />} />
                       <Route path="/reset-password" element={<Auth />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/analytics" element={<PrivateRoute><Analytics /></PrivateRoute>} />
                       <Route path="/admin" element={<PrivateRoute><Admin /></PrivateRoute>} />
