@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
+import { YanaAmbientPresence } from '@/components/yana/YanaAmbientPresence';
 import { NoAccessOverlay } from '@/components/yana/NoAccessOverlay';
 import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
 import { CognitiveEmergenceToggle } from '@/components/yana/cem/CognitiveEmergenceToggle';
@@ -137,13 +138,15 @@ export default function Yana() {
 
   return (
     <div className="flex h-dvh min-h-screen bg-background relative">
+      {/* Futuristic ambient backdrop — Conștiință Ambientală */}
+      <YanaAmbientPresence state="idle" />
       {/* Access Overlay - blochează utilizatorii fără acces valid */}
       {hasNoValidAccess && <NoAccessOverlay accessType={accessType} />}
       {/* Sidebar */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out',
-          'bg-card border-r border-border',
+          'bg-card/70 backdrop-blur-xl border-r border-border/60',
           'lg:relative lg:translate-x-0 lg:w-72',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
