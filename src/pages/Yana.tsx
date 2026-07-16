@@ -137,7 +137,7 @@ export default function Yana() {
   }
 
   return (
-    <div className="flex h-dvh min-h-screen bg-background relative">
+    <div className="flex h-dvh min-h-screen relative bg-background/40">
       {/* Futuristic ambient backdrop — Conștiință Ambientală */}
       <YanaAmbientPresence state="idle" />
       {/* Access Overlay - blochează utilizatorii fără acces valid */}
