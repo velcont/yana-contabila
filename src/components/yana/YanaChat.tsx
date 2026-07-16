@@ -1072,6 +1072,13 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {/* 👁️ Vision Mode — floating widget (screen/camera → YANA observations) */}
+      <YanaVisionMode
+        onObservation={(text) => {
+          sendMessage(`👁️ (Vision) Uite ce văd pe ecran: ${text}`);
+        }}
+      />
+
       {/* Context Indicator */}
       {activeContext?.companyName && (
         <ContextIndicator
