@@ -12,6 +12,7 @@ import { ArrowLeft, Brain, Sparkles, Target, ShieldCheck, Activity, Loader2, Che
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
 
@@ -19,6 +20,8 @@ interface AutonomySettings {
   autonomy_level: number;
   max_auto_spend_cents: number;
   categories: Record<string, number>;
+  kill_switch?: boolean;
+  notify_post_execute?: boolean;
 }
 
 interface RiskDecision {
