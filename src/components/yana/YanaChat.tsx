@@ -291,6 +291,13 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey, proj
     if (!content.trim() && !effectiveFileData) return;
     if (!user) return;
 
+    // 💗 Affective memory tagger — fire-and-forget, non-blocking
+    if (content.trim().length >= 10) {
+      supabase.functions.invoke('yana-emotional-tagger', {
+        body: { userMessage: content.slice(0, 800) },
+      }).catch((err) => console.warn('[YanaChat] emotional-tagger failed (non-blocking):', err));
+    }
+
     // Memorează fișierul nou pentru mesajele următoare din aceeași conversație
     if (fileData) {
       setRememberedFile(fileData);
