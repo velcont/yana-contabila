@@ -49,7 +49,7 @@ export function LandingWowMoment() {
       setResult(null);
       setLoading(true);
       setStepIndex(0);
-      analytics.landingCtaClick("wow_upload", file.name.slice(-30));
+      analytics.landingCtaClick("primary", "wow_upload");
 
       // Animate steps while request runs
       const stepTimer = setInterval(() => {
@@ -277,7 +277,7 @@ export function LandingWowMoment() {
               variant="secondary"
               className="w-full font-semibold"
               onClick={() => {
-                analytics.landingCtaClick("wow_signup", "post_analysis");
+                analytics.landingCtaClick("primary", "wow_signup");
                 navigate("/auth?redirect=/yana");
               }}
             >
