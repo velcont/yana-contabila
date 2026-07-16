@@ -8,6 +8,7 @@ import { useLandingTracking } from '@/hooks/useLandingTracking';
 import { BusinessDiagnostic } from '@/components/demo/BusinessDiagnostic';
 import { LandingStickyMobileCTA } from '@/components/landing/LandingStickyMobileCTA';
 import { LandingCFOCRMHero } from '@/components/landing/LandingCFOCRMHero';
+import { LandingWowMoment } from '@/components/landing/LandingWowMoment';
 import { SEO } from '@/components/seo/SEO';
 import { Users } from 'lucide-react';
 
@@ -163,6 +164,9 @@ const Landing = () => {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
         <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
+          {/* ===== WOW MOMENT — upload balanță → dashboard instant ===== */}
+          <LandingWowMoment />
+
           {/* ===== HERO — CFO + CRM într-un singur chat ===== */}
           <LandingCFOCRMHero onTryPrompt={openDemoWithPrompt} />
 
