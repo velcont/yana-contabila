@@ -7399,7 +7399,9 @@ export type Database = {
           created_at: string
           default_tone: string
           id: string
+          kill_switch: boolean
           max_auto_spend_cents: number
+          notify_post_execute: boolean
           require_confirm_for: Json
           updated_at: string
           user_id: string
@@ -7410,7 +7412,9 @@ export type Database = {
           created_at?: string
           default_tone?: string
           id?: string
+          kill_switch?: boolean
           max_auto_spend_cents?: number
+          notify_post_execute?: boolean
           require_confirm_for?: Json
           updated_at?: string
           user_id: string
@@ -7421,7 +7425,9 @@ export type Database = {
           created_at?: string
           default_tone?: string
           id?: string
+          kill_switch?: boolean
           max_auto_spend_cents?: number
+          notify_post_execute?: boolean
           require_confirm_for?: Json
           updated_at?: string
           user_id?: string
@@ -11298,7 +11304,9 @@ export type Database = {
           created_at: string
           default_tone: string
           id: string
+          kill_switch: boolean
           max_auto_spend_cents: number
+          notify_post_execute: boolean
           require_confirm_for: Json
           updated_at: string
           user_id: string

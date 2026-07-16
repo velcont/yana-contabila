@@ -12,6 +12,7 @@ import { ArrowLeft, Brain, Sparkles, Target, ShieldCheck, Activity, Loader2, Che
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { HelpCircle } from "lucide-react";
 
@@ -19,6 +20,8 @@ interface AutonomySettings {
   autonomy_level: number;
   max_auto_spend_cents: number;
   categories: Record<string, number>;
+  kill_switch?: boolean;
+  notify_post_execute?: boolean;
 }
 
 interface RiskDecision {
@@ -203,6 +206,28 @@ export default function YanaControl() {
           <CardContent className="space-y-6">
             {settings && (
               <>
+                <div className={`rounded-lg border p-4 flex items-center justify-between gap-4 ${settings.kill_switch ? "border-destructive bg-destructive/5" : ""}`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className={`h-4 w-4 ${settings.kill_switch ? "text-destructive" : "text-muted-foreground"}`} />
+                      <span className="font-medium text-sm">Kill-switch global</span>
+                      {settings.kill_switch && <Badge variant="destructive">ACTIV</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Când e activ, YANA cere confirmare pentru orice acțiune (sarcini, calendar, note, emailuri, plăți).
+                    </p>
+                  </div>
+                  <Switch checked={!!settings.kill_switch} onCheckedChange={(v) => updateSettings({ kill_switch: v })} />
+                </div>
+                <div className="rounded-lg border p-4 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <span className="font-medium text-sm">Notificare după fiecare acțiune automată</span>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Primești o notificare (cu opțiune Undo unde e posibil) după fiecare execuție autonomă.
+                    </p>
+                  </div>
+                  <Switch checked={settings.notify_post_execute !== false} onCheckedChange={(v) => updateSettings({ notify_post_execute: v })} />
+                </div>
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Autonomie globală</span>

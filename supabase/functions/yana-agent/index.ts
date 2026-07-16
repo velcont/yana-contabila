@@ -758,6 +758,51 @@ async function executeTool(
         result: { ...(typeof result === "object" && result ? result : { value: result }), latency_ms: Date.now() - startedAt },
       }),
     }).catch(() => { /* best effort */ });
+
+    // Post-factum notification with Undo metadata (best-effort, respects notify_post_execute)
+    (async () => {
+      try {
+        const r = (result || {}) as Record<string, unknown>;
+        if (r.blocked_by_autonomy_gate || r.error) return;
+        const { data: st } = await supabase
+          .from("yana_autonomy_settings")
+          .select("notify_post_execute")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (st && st.notify_post_execute === false) return;
+
+        // Map tool result → undo target (table + id)
+        let undo: { table: string; id: string } | null = null;
+        if (name === "create_task" && r.task_id) undo = { table: "accountant_tasks", id: String(r.task_id) };
+        else if (name === "create_calendar_event" && r.event_id) undo = { table: "calendar_events", id: String(r.event_id) };
+
+        const labels: Record<string, string> = {
+          create_task: "Sarcină creată automat",
+          create_calendar_event: "Eveniment programat automat",
+          save_note: "Notă salvată automat",
+        };
+        const title = labels[name] || `Acțiune automată: ${name}`;
+        const message = String(r.message || `Yana a executat "${name}" în numele tău.`);
+
+        await supabase.from("user_notifications").insert({
+          user_id: userId,
+          type: "yana_auto_action",
+          title,
+          message,
+          priority: "low",
+          metadata: {
+            source: "yana-agent",
+            tool: name,
+            category: sideEffect.category,
+            args_preview: JSON.stringify(args).slice(0, 300),
+            undo,
+            executed_at: new Date().toISOString(),
+          },
+        });
+      } catch (e) {
+        console.warn("[Agent Notify] post-execute notif failed:", (e as Error).message);
+      }
+    })();
   }
 
   return result;
