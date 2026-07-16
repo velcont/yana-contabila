@@ -2753,6 +2753,48 @@ ${daysSinceLastInteraction >= 7 ? '💡 Au trecut câteva zile - poți face o sc
     // =============================================================================
     // END SAMANTHA DYNAMICS
     // =============================================================================
+
+    // =============================================================================
+    // 💗 AFFECTIVE MEMORY — user_emotional_context injection (last 5 sessions)
+    // Makes YANA proactively remember emotional states, not just facts.
+    // =============================================================================
+    let affectiveMemorySection = '';
+    try {
+      const { data: emoRows } = await supabaseAdmin
+        .from('user_emotional_context')
+        .select('session_date, detected_mood, mood_score, main_topic, topic_summary, unresolved_issue, next_step_suggested')
+        .eq('user_id', userId)
+        .order('session_date', { ascending: false })
+        .limit(5);
+
+      const rows = (emoRows || []).filter((r: any) => r.detected_mood && r.detected_mood !== 'neutral');
+
+      if (rows.length >= 2) {
+        const last = rows[0] as any;
+        const daysSince = Math.floor(
+          (Date.now() - new Date(last.session_date).getTime()) / 86_400_000
+        );
+        const heavyMoods = ['stressed', 'worried', 'frustrated', 'anxious', 'sad'];
+        const shouldReopen = heavyMoods.includes((last.detected_mood || '').toLowerCase()) && daysSince >= 3;
+
+        affectiveMemorySection = `\n\n## 💗 MEMORIE AFECTIVĂ (stări emoționale recente ale utilizatorului)\n`;
+        rows.forEach((r: any) => {
+          affectiveMemorySection += `- ${r.session_date}: **${r.detected_mood}**${r.mood_score ? ` (${r.mood_score}/10)` : ''}${r.main_topic ? ` — ${r.main_topic}` : ''}${r.unresolved_issue ? ' ⚠️ nerezolvat' : ''}\n`;
+        });
+
+        if (shouldReopen && last.main_topic) {
+          affectiveMemorySection += `\n**REGULĂ:** Acum ${daysSince} zile utilizatorul era ${last.detected_mood} legat de "${last.main_topic}". Dacă e naturală deschiderea, întreabă: "Acum ${daysSince} zile erai ${last.detected_mood} cu ${last.main_topic}. Cum a evoluat?"\n`;
+        } else {
+          affectiveMemorySection += `\n**REGULĂ:** Când e natural, arată că ții minte tonul emoțional anterior (nu doar faptele). Ex: "Data trecută păreai mai apăsat/optimist decât acum."\n`;
+        }
+        console.log(`[chat-ai][${requestId}] Affective memory injected: ${rows.length} non-neutral moods, reopen=${shouldReopen}`);
+      }
+    } catch (err) {
+      console.warn(`[chat-ai][${requestId}] Affective memory injection failed (non-blocking):`, err);
+    }
+    // =============================================================================
+    // END AFFECTIVE MEMORY
+    // =============================================================================
     
     // =============================================================================
     // CLIENT PROFILE INJECTION - Adaptare limbaj + anticipare + feedback loop
@@ -2879,7 +2921,7 @@ REGULI DE PROACTIVITATE DISCIPLINATĂ:
 - Nu repeta același tip de propunere de două ori la rând în aceeași conversație.
 `;
 
-    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + intelligenceBoostSection + FISCAL_GROUND_TRUTH_2026 + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
+    let adaptedPrompt = conversationConsistencyPrompt + consciousnessSection + contextualIntelligenceSection + explorationMemorySection + cuiVerificationSection + companyMismatchSection + userFactsSection + memorySection + tieredMemorySection + relationshipMemory + affectiveMemorySection + clientProfileSection + YANA_CONSCIOUSNESS_PROMPT + cemSection + SYSTEM_PROMPT + intelligenceBoostSection + FISCAL_GROUND_TRUTH_2026 + DREPT_COMERCIAL_PROMPT + investmentSection + investmentImageReminder + knowledgeContext + balanceDataSection + `\n\n⏰ DATA CURENTĂ: ${roNow}\nREGULĂ CRITICĂ: Orice perioadă <= ${roNow} este DIN TRECUT. NU spune niciodată că 'ianuarie 2025 – martie 2025' este în viitor. Dacă utilizatorul oferă un interval, consideră-l valid dacă capătul intervalului este <= data curentă. Dacă nu e clar, FOLOSEȘTE TOOLS pentru a verifica analizele disponibile, nu răspunde din presupuneri.`;
     
     if (summaryType === 'short') {
       adaptedPrompt += `\n\n🎯 MOD SUMARIZARE SCURTĂ:\n- Răspunde în maxim 100 cuvinte\n- Doar insight-urile CHEIE\n- Fără introduceri sau detalii suplimentare\n- Format: 3-5 bullet points concentrați\n- Accentuează doar ce e URGENT/CRITIC`;

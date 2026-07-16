@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { InnerMonologue } from '@/components/yana/cem/InnerMonologue';
+import { YanaVisionMode } from '@/components/yana/YanaVisionMode';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
@@ -290,6 +291,13 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey, proj
     const effectiveFileData = fileData ?? rememberedFile ?? undefined;
     if (!content.trim() && !effectiveFileData) return;
     if (!user) return;
+
+    // 💗 Affective memory tagger — fire-and-forget, non-blocking
+    if (content.trim().length >= 10) {
+      supabase.functions.invoke('yana-emotional-tagger', {
+        body: { userMessage: content.slice(0, 800) },
+      }).catch((err) => console.warn('[YanaChat] emotional-tagger failed (non-blocking):', err));
+    }
 
     // Memorează fișierul nou pentru mesajele următoare din aceeași conversație
     if (fileData) {
@@ -1064,6 +1072,13 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
+      {/* 👁️ Vision Mode — floating widget (screen/camera → YANA observations) */}
+      <YanaVisionMode
+        onObservation={(text) => {
+          sendMessage(`👁️ (Vision) Uite ce văd pe ecran: ${text}`);
+        }}
+      />
+
       {/* Context Indicator */}
       {activeContext?.companyName && (
         <ContextIndicator
