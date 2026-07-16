@@ -21,6 +21,7 @@ import { Link } from 'react-router-dom';
 import { ProactiveInitiativeCard } from './ProactiveInitiativeCard';
 import { TypingIndicator } from '@/components/TypingIndicator';
 import { InnerMonologue } from '@/components/yana/cem/InnerMonologue';
+import { YanaVisionMode } from '@/components/yana/YanaVisionMode';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
