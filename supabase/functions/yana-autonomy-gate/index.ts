@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
       max_auto_spend_cents: number;
       categories: Record<string, number>;
       require_confirm_for: string[];
+      kill_switch?: boolean;
     };
 
     const riskScore = calculateRiskScore(body);
@@ -67,7 +68,10 @@ Deno.serve(async (req) => {
     let reason = "Sub pragul de risc, autonomy level permite execuția.";
 
     // Hard rules
-    if (s.require_confirm_for.some(p => body.action_type.includes(p))) {
+    if (s.kill_switch) {
+      decision = "require_confirmation";
+      reason = "Kill-switch global activ: toate acțiunile autonome sunt oprite.";
+    } else if (s.require_confirm_for.some(p => body.action_type.includes(p))) {
       decision = "require_confirmation";
       reason = `Tipul de acțiune "${body.action_type}" necesită confirmare obligatorie.`;
     } else if (amount > s.max_auto_spend_cents) {
