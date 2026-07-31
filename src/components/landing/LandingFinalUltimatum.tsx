@@ -18,7 +18,7 @@ export const LandingFinalUltimatum = () => {
 
       <div className="space-y-4 max-w-sm mx-auto text-left">
         <div className="flex items-start gap-3">
-          <span className="text-2xl font-bold text-muted-foreground/50">1.</span>
+          <span className="text-2xl font-bold text-muted-foreground">1.</span>
           <p className="text-sm sm:text-base leading-relaxed pt-1">
             Plătești 5 abonamente, deschizi 5 tab-uri, faci copy-paste.
           </p>
