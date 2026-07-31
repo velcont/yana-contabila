@@ -215,7 +215,18 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Critical above-the-fold paint: gives the browser an immediate LCP candidate
+           while the app bundle loads. React replaces it on mount. -->
+      <div style="max-width:36rem;margin:0 auto;padding:3rem 1.25rem;text-align:center;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif">
+        <h1 style="font-size:1.75rem;line-height:1.2;font-weight:700;margin:0 0 .75rem;color:#f5f7fa">
+          Aruncă balanța ta aici.<br /><span style="color:#7c9cff">Vezi diagnosticul instant.</span>
+        </h1>
+        <p style="font-size:.875rem;margin:0;color:#a9b2c3">
+          Fără cont. Fără card. Doar un fișier .xlsx și YANA îți spune unde stai financiar.
+        </p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
