@@ -35,11 +35,11 @@ export const LandingAIProviders = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-sm font-semibold text-foreground">{p.name}</span>
-                <span className="text-xs text-muted-foreground/60">{p.company}</span>
+                <span className="text-xs text-muted-foreground">{p.company}</span>
               </div>
               <p className="text-xs text-muted-foreground">{p.role}</p>
             </div>
-            <span className="text-xs text-muted-foreground/50 line-through flex-shrink-0">
+            <span className="text-xs text-muted-foreground line-through flex-shrink-0">
               {p.cost}
             </span>
           </div>
@@ -51,7 +51,7 @@ export const LandingAIProviders = () => {
           <span className="text-sm text-muted-foreground line-through">500+ RON/lună separat</span>
           <span className="text-lg font-bold text-primary">→ 49 RON/lună cu YANA</span>
         </div>
-        <p className="text-xs text-muted-foreground/70">
+        <p className="text-xs text-muted-foreground">
           Toate modelele AI lucrează împreună pentru afacerea ta
         </p>
       </div>
