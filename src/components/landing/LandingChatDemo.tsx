@@ -99,7 +99,7 @@ export const LandingChatDemo = () => {
         )}
         {yanaTyping && <TypingIndicator />}
         {!hasStarted && (
-          <div className="px-4 py-6 text-center text-xs text-muted-foreground/70">
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
             scroll pentru a vedea YANA în acțiune…
           </div>
         )}

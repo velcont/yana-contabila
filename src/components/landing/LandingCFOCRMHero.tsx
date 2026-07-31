@@ -46,13 +46,13 @@ export const LandingCFOCRMHero = ({ onTryPrompt }: LandingCFOCRMHeroProps) => {
     <section className="space-y-7 pt-2 sm:pt-6 text-center">
       {/* Headline — slogan oficial, citibil în 1s */}
       <div className="space-y-4">
-        <h1 className="text-[28px] sm:text-4xl font-extrabold text-foreground leading-[1.15] tracking-tight">
+        <h2 className="text-[28px] sm:text-4xl font-extrabold text-foreground leading-[1.15] tracking-tight">
           YANA nu este un chatbot.
           <br />
           <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             Este un AI pentru business.
           </span>
-        </h1>
+        </h2>
         <p className="text-base text-muted-foreground leading-relaxed max-w-[300px] mx-auto">
           CFO + CRM + Secretar Executiv.
           <br />
