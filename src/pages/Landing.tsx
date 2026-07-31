@@ -141,7 +141,7 @@ const Landing = () => {
       <SEO
         title="YANA – CFO + CRM conversațional AI pentru antreprenori"
         description="YANA combină CFO virtual și CRM într-un singur chat AI. Pipeline, clienți, balanțe — totul prin conversație. 30 zile gratuit."
-        path="/landing"
+        path="/"
       />
       <DemoChat isOpen={showDemo} onClose={closeDemo} onOpenDiagnostic={() => { closeDemo(); setShowDiagnostic(true); }} initialPrompt={demoInitialPrompt} />
       <BusinessDiagnostic isOpen={showDiagnostic} onClose={() => setShowDiagnostic(false)} onOpenDemo={() => { setShowDiagnostic(false); setShowDemo(true); }} />
@@ -161,7 +161,7 @@ const Landing = () => {
         </div>
       </header>
 
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
+      <main className="min-h-screen bg-gradient-to-b from-background to-muted/20 px-5 py-6 sm:p-4">
         <div className="max-w-xl mx-auto space-y-10 sm:space-y-14">
         
           {/* ===== WOW MOMENT — upload balanță → dashboard instant ===== */}
@@ -208,16 +208,16 @@ const Landing = () => {
               <Link to="/terms" className="hover:text-primary transition-colors">
                 Termeni și condiții
               </Link>
-              <span className="text-muted-foreground/30">•</span>
+              <span className="text-muted-foreground" aria-hidden="true">•</span>
               <Link to="/privacy" className="hover:text-primary transition-colors">
                 Confidențialitate
               </Link>
-              <span className="text-muted-foreground/30">•</span>
+              <span className="text-muted-foreground" aria-hidden="true">•</span>
               <Link to="/contact" className="hover:text-primary transition-colors">
                 Contact
               </Link>
             </div>
-            <div className="text-xs text-muted-foreground/60 text-center">
+            <div className="text-xs text-muted-foreground text-center">
               <a href="mailto:office@velcont.com" className="hover:text-primary transition-colors">
                 office@velcont.com
               </a>
@@ -227,7 +227,7 @@ const Landing = () => {
           </div>
 
         </div>
-      </div>
+      </main>
     </>
   );
 };
