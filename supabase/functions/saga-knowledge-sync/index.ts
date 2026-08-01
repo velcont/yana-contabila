@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const lastModified = !force && lastRows?.[0]?.metadata?.post_modified
       ? String(lastRows[0].metadata.post_modified)
-      : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 19);
+      : new Date(Date.now() - (force ? 730 : 30) * 24 * 3600 * 1000).toISOString().slice(0, 19);
 
     console.log('[saga-knowledge-sync] last modified cursor:', lastModified);
 
