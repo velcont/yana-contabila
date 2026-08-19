@@ -5,6 +5,7 @@ import { Brain, TrendingUp, MessageSquare, Star, Lightbulb, Target, Zap } from '
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { YanaBehaviorLearningFeed } from '@/components/YanaBehaviorLearningFeed';
 
 interface AILearningDashboardProps {
   companyId?: string;
@@ -371,6 +372,8 @@ export function AILearningDashboard({ companyId }: AILearningDashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      <YanaBehaviorLearningFeed />
     </div>
   );
 }
