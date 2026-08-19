@@ -49,18 +49,50 @@ interface Candidate {
   videoId: string;
   title: string;
   channel: string;
+  description: string;
 }
 
-/** Cauta pe YouTube si extrage id-urile videoclipurilor din pagina de rezultate. */
+/** Cauta pe YouTube prin Data API v3 (cu fallback pe pagina de rezultate). */
 async function searchYouTube(query: string, limit: number): Promise<Candidate[]> {
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9,ro;q=0.8" },
+  const key = Deno.env.get("YOUTUBE_API_KEY");
+  if (key) {
+    const url =
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true` +
+      `&maxResults=${limit}&relevanceLanguage=en&q=${encodeURIComponent(query)}&key=${key}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if (res.ok) {
+      const data = await res.json();
+      const ids: string[] = (data.items || []).map((i: { id: { videoId: string } }) => i.id?.videoId).filter(Boolean);
+      if (ids.length) {
+        const detRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids.join(",")}&key=${key}`,
+          { signal: AbortSignal.timeout(20000) }
+        );
+        if (detRes.ok) {
+          const det = await detRes.json();
+          return (det.items || []).map((v: {
+            id: string;
+            snippet: { title: string; channelTitle: string; description: string };
+          }) => ({
+            videoId: v.id,
+            title: v.snippet.title,
+            channel: v.snippet.channelTitle,
+            description: v.snippet.description || "",
+          }));
+        }
+      }
+      return [];
+    }
+    console.error("[behavior-sync] YouTube API", res.status, await res.text());
+  }
+
+  // Fallback: pagina publica de rezultate (fara descriere).
+  const res = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, {
+    headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
     signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) throw new Error(`youtube search [${res.status}]`);
   const html = await res.text();
-
   const seen = new Set<string>();
   const out: Candidate[] = [];
   const re = /"videoRenderer":\{"videoId":"([a-zA-Z0-9_-]{11})"([\s\S]{0,4000}?)"trackingParams"/g;
@@ -69,67 +101,64 @@ async function searchYouTube(query: string, limit: number): Promise<Candidate[]>
     const videoId = m[1];
     if (seen.has(videoId)) continue;
     seen.add(videoId);
-    const block = m[2];
-    const rawTitle = block.match(/"title":\{"runs":\[\{"text":"(.*?)"\}/)?.[1];
-    const rawChannel = block.match(/"(?:ownerText|longBylineText)":\{"runs":\[\{"text":"(.*?)"/)?.[1];
+    const rawTitle = m[2].match(/"title":\{"runs":\[\{"text":"(.*?)"\}/)?.[1];
+    const rawChannel = m[2].match(/"(?:ownerText|longBylineText)":\{"runs":\[\{"text":"(.*?)"/)?.[1];
     if (!rawTitle) continue;
     try {
       out.push({
         videoId,
         title: JSON.parse(`"${rawTitle}"`),
         channel: rawChannel ? JSON.parse(`"${rawChannel}"`) : "YouTube",
+        description: "",
       });
-    } catch { /* titlu cu escape invalid — sarim */ }
+    } catch { /* escape invalid */ }
   }
   return out;
 }
 
-/** Extrage transcriptul (subtitrarile) unui video. Returneaza text brut, folosit doar temporar. */
-async function fetchTranscript(videoId: string): Promise<string | null> {
+/**
+ * Documenteaza continutul materialului folosind surse publice (Perplexity),
+ * fara sa descarce sau sa stocheze inregistrarea/transcriptul.
+ */
+async function researchMaterial(c: Candidate, theme: string): Promise<string> {
+  const key = Deno.env.get("PERPLEXITY_API_KEY");
+  if (!key) return "";
   try {
-    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
-      signal: AbortSignal.timeout(20000),
+    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Esti documentarist. Descrii pe scurt, factual, ideile principale sustinute intr-un material educativ, folosind surse publice. Daca nu gasesti informatii despre acel material, descrie ideile consacrate din domeniul respectiv. Maxim 250 de cuvinte, in engleza sau romana.",
+          },
+          {
+            role: "user",
+            content: `Material YouTube: "${c.title}" (canal: ${c.channel}, ${`https://www.youtube.com/watch?v=${c.videoId}`}).\nDomeniu: ${theme}.\nDescriere oficiala: ${c.description.slice(0, 1500)}\n\nCare sunt ideile principale despre comportamentul uman din acest material?`,
+          },
+        ],
+        max_tokens: 700,
+        temperature: 0.2,
+      }),
+      signal: AbortSignal.timeout(45000),
     });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const tracksRaw = html.match(/"captionTracks":(\[.*?\])/)?.[1];
-    if (!tracksRaw) return null;
-    const tracks = JSON.parse(tracksRaw) as Array<{ baseUrl: string; languageCode: string }>;
-    const track =
-      tracks.find((t) => t.languageCode === "ro") ||
-      tracks.find((t) => t.languageCode === "en") ||
-      tracks[0];
-    if (!track?.baseUrl) return null;
-
-    const xmlRes = await fetch(track.baseUrl, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(20000) });
-    if (!xmlRes.ok) return null;
-    const xml = await xmlRes.text();
-    const text = [...xml.matchAll(/<text[^>]*>([\s\S]*?)<\/text>/g)]
-      .map((mm) =>
-        mm[1]
-          .replace(/&amp;#39;/g, "'")
-          .replace(/&amp;quot;/g, '"')
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/<[^>]*>/g, " ")
-          .trim()
-      )
-      .filter(Boolean)
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return text.length > 500 ? text : null;
-  } catch (_e) {
-    return null;
+    if (!res.ok) {
+      console.error("[behavior-sync] perplexity", res.status, await res.text());
+      return "";
+    }
+    const data = await res.json();
+    return (data.choices?.[0]?.message?.content || "").trim();
+  } catch (e) {
+    console.error("[behavior-sync] perplexity exception", e);
+    return "";
   }
 }
 
 const SYSTEM_PROMPT = `Esti YANA — un AI care invata despre comportamentul uman ca sa poata intelege mai bine antreprenorii cu care discuta.
-Primesti transcriptul unui material educativ (prelegere, podcast, discurs).
+Primesti descrierea si documentarea unui material educativ (prelegere, podcast, discurs).
 
 Scrie in ROMANA, cu cuvintele TALE, o sinteza scurta (maxim 200 de cuvinte), structurata:
 **Ideea centrala** (1-2 propozitii)
@@ -137,8 +166,8 @@ Scrie in ROMANA, cu cuvintele TALE, o sinteza scurta (maxim 200 de cuvinte), str
 **Cum aplic in discutiile cu antreprenori** (2-3 aplicatii concrete: cum ascult, cum formulez, ce evit)
 
 REGULI STRICTE:
-- NU reproduce fraze din transcript. Reformuleaza integral, ca notite proprii.
-- NU inventa cifre, studii sau autori care nu apar in material.
+- NU reproduce fraze din material. Scrie notite proprii, complet reformulate.
+- NU inventa cifre, studii sau autori care nu apar in documentare.
 - Daca materialul e irelevant pentru comportament uman (marketing pur, stiri, muzica, clickbait), raspunde exact: IRELEVANT`;
 
 Deno.serve(async (req) => {
