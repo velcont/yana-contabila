@@ -217,11 +217,9 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (existing) { skipped++; continue; }
 
-        const transcript = await fetchTranscript(c.videoId);
-        if (!transcript) { skipped++; continue; }
-
-        // Trimitem doar un fragment reprezentativ, suficient pentru sinteza.
-        const excerpt = transcript.slice(0, 14000);
+        const research = await researchMaterial(c, t.theme);
+        const material = `${c.description.slice(0, 2500)}\n\n${research}`.trim();
+        if (material.length < 200) { skipped++; continue; }
         const videoUrl = `https://www.youtube.com/watch?v=${c.videoId}`;
 
         let insight = "";
@@ -233,7 +231,7 @@ Deno.serve(async (req) => {
               model: "google/gemini-2.5-flash",
               messages: [
                 { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: `Tema: ${t.theme}\nTitlu: ${c.title}\nCanal: ${c.channel}\n\nTranscript:\n${excerpt}` },
+                { role: "user", content: `Tema: ${t.theme}\nTitlu: ${c.title}\nCanal: ${c.channel}\nLink: ${videoUrl}\n\nDocumentare:\n${material}` },
               ],
             }),
           });
