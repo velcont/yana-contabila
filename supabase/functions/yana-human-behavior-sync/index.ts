@@ -53,7 +53,7 @@ interface Candidate {
 
 /** Cauta pe YouTube si extrage id-urile videoclipurilor din pagina de rezultate. */
 async function searchYouTube(query: string, limit: number): Promise<Candidate[]> {
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=EgIQAQ%253D%253D`;
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
   const res = await fetch(url, {
     headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9,ro;q=0.8" },
     signal: AbortSignal.timeout(20000),
@@ -63,18 +63,23 @@ async function searchYouTube(query: string, limit: number): Promise<Candidate[]>
 
   const seen = new Set<string>();
   const out: Candidate[] = [];
-  const re =
-    /"videoRenderer":\{"videoId":"([a-zA-Z0-9_-]{11})"[\s\S]{0,1200}?"title":\{"runs":\[\{"text":"(.*?)"\}[\s\S]{0,2000}?"ownerText":\{"runs":\[\{"text":"(.*?)"/g;
+  const re = /"videoRenderer":\{"videoId":"([a-zA-Z0-9_-]{11})"([\s\S]{0,4000}?)"trackingParams"/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null && out.length < limit) {
-    const [, videoId, rawTitle, rawChannel] = m;
+    const videoId = m[1];
     if (seen.has(videoId)) continue;
     seen.add(videoId);
-    out.push({
-      videoId,
-      title: JSON.parse(`"${rawTitle}"`),
-      channel: JSON.parse(`"${rawChannel}"`),
-    });
+    const block = m[2];
+    const rawTitle = block.match(/"title":\{"runs":\[\{"text":"(.*?)"\}/)?.[1];
+    const rawChannel = block.match(/"(?:ownerText|longBylineText)":\{"runs":\[\{"text":"(.*?)"/)?.[1];
+    if (!rawTitle) continue;
+    try {
+      out.push({
+        videoId,
+        title: JSON.parse(`"${rawTitle}"`),
+        channel: rawChannel ? JSON.parse(`"${rawChannel}"`) : "YouTube",
+      });
+    } catch { /* titlu cu escape invalid — sarim */ }
   }
   return out;
 }
