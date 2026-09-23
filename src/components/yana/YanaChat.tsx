@@ -1298,7 +1298,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
             />
           )}
           {/* Toggle-uri Mod Agent + Vezi proces — minimaliste */}
-          <div className="flex items-center gap-3 px-1 pb-1.5 text-[11px]">
+          <div className="flex items-center justify-end gap-3 px-1 pb-1 text-[10px] opacity-70 hover:opacity-100 transition-opacity">
             <div className="flex items-center gap-1.5">
               <Switch id="agent-mode" checked={agentMode} onCheckedChange={toggleAgentMode} className="scale-90" />
               <Label htmlFor="agent-mode" className="cursor-pointer text-muted-foreground select-none">
