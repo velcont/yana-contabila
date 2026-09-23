@@ -17,7 +17,7 @@ interface Chip {
   iconClassName?: string;
 }
 
-const DEFAULT_CHIPS = [
+const DEFAULT_CHIPS: Chip[] = [
   {
     label: 'Ce am de făcut?',
     icon: Lightbulb,
@@ -60,7 +60,7 @@ const DEFAULT_CHIPS = [
   },
 ];
 
-const POST_ANALYSIS_CHIPS = [
+const POST_ANALYSIS_CHIPS: Chip[] = [
   {
     label: 'Raport PDF',
     icon: BarChart3,
