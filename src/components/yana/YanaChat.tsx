@@ -25,8 +25,6 @@ import { YanaVisionMode } from '@/components/yana/YanaVisionMode';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
-import { OfficeFeatureAnnouncement } from './OfficeFeatureAnnouncement';
-import { GoogleCalendarAnnouncement } from './GoogleCalendarAnnouncement';
 import { useYanaAgent, type AgentStep } from '@/hooks/useYanaAgent';
 import { AgentStepsPanel } from './AgentStepsPanel';
 import { Switch } from '@/components/ui/switch';
