@@ -148,13 +148,15 @@ export default function Yana() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out',
+          'fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out overflow-hidden',
           'bg-sidebar border-r border-sidebar-border',
-          'lg:relative lg:translate-x-0 lg:w-64',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          'lg:relative lg:translate-x-0',
+          sidebarOpen ? 'translate-x-0 lg:w-64' : '-translate-x-full lg:w-0 lg:border-r-0'
         )}
         style={{ width: isMobile ? 'clamp(240px, 85vw, 288px)' : undefined }}
+        aria-hidden={!sidebarOpen}
       >
+        <div className="h-full lg:w-64">
         <ConversationSidebar
           activeConversationId={activeConversationId}
           onSelectConversation={handleSelectConversation}
@@ -164,6 +166,7 @@ export default function Yana() {
           activeProjectId={activeProjectId}
           onSelectProject={handleSelectProject}
         />
+        </div>
       </aside>
 
       {/* Overlay for mobile */}
@@ -177,15 +180,17 @@ export default function Yana() {
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header - Reorganizat pentru mobil */}
-        <header className="h-16 flex items-center justify-between px-3 sm:px-6 border-b border-border bg-background/95 backdrop-blur-md">
+        <header className="h-14 sm:h-16 shrink-0 flex items-center justify-between px-2 sm:px-6 border-b border-border bg-background/95 backdrop-blur-md pt-[env(safe-area-inset-top)]">
           <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="h-11 w-11 sm:h-10 sm:w-10 lg:hidden touch-action-manipulation"
+              className="h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation"
+              aria-label={sidebarOpen ? 'Ascunde conversațiile' : 'Arată conversațiile'}
+              title={sidebarOpen ? 'Ascunde conversațiile' : 'Arată conversațiile'}
             >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {sidebarOpen ? (isMobile ? <X className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />) : (isMobile ? <Menu className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />)}
             </Button>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-md border border-primary/70 flex items-center justify-center">
