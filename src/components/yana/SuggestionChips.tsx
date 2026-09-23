@@ -82,7 +82,7 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
   const chips = postAnalysis ? POST_ANALYSIS_CHIPS : DEFAULT_CHIPS;
 
   return (
-    <div className="flex flex-wrap gap-2 py-2">
+    <div className="flex gap-2 py-2 overflow-x-auto flex-nowrap sm:flex-wrap -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x">
       {chips.map((chip) => {
         const Icon = chip.icon;
         return (
@@ -90,7 +90,7 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
             key={chip.label}
             variant="outline"
             size="sm"
-            className={`h-8 px-3 text-xs text-muted-foreground border-border bg-transparent hover:text-primary hover:border-primary/40 hover:bg-accent/50 gap-1.5 touch-action-manipulation ${chip.className || ''}`}
+            className={`h-9 sm:h-8 px-3 shrink-0 snap-start whitespace-nowrap text-xs text-muted-foreground border-border bg-transparent hover:text-primary hover:border-primary/40 hover:bg-accent/50 gap-1.5 touch-action-manipulation ${chip.className || ''}`}
             onClick={() => {
               if ('isUpload' in chip && chip.isUpload) {
                 onUpload();
