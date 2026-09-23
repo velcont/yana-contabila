@@ -1079,7 +1079,7 @@ Spune-mi ce te frământă.`;
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
-        className={cn("flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "flex flex-col justify-center pb-2 space-y-0")}
+        className={cn("flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "grid place-content-center gap-4 pb-2")}
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
         {/* Proactive Initiative Card - displayed before messages */}
@@ -1261,7 +1261,7 @@ Spune-mi ce te frământă.`;
       )}
 
       {/* Input Area - stil ChatGPT simplificat */}
-      <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-[max(4rem,env(safe-area-inset-bottom))]">
+      <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-[max(5rem,env(safe-area-inset-bottom))]">
         <div className="w-full max-w-3xl mx-auto">
           {/* Subtle notification când nu are credite - exclude utilizatorii în trial */}
           {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (
