@@ -1023,21 +1023,9 @@ Spune-mi ce te frământă.`;
     
     // Returning user gets a warm, curious message (Samantha-style)
     if (userName) {
-      return `Salut, ${userName}! Mă bucur să te văd din nou. 😊
-
-🔄 Actualizează pagina pentru ultima versiune:
-Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
-Mobil: Trage în jos pentru refresh
-
-Gata? Hai să începem! Cu ce te pot ajuta azi?`;
+      return `Salut, ${userName}! Cu ce te pot ajuta azi?`;
     }
-    return `Salut! Mă bucur că ai revenit. 😊
-
-🔄 Actualizează pagina pentru ultima versiune:
-Desktop: Ctrl+Shift+R (Win) · Cmd+Shift+R (Mac)
-Mobil: Trage în jos pentru refresh
-
-Gata? Hai să începem! Cu ce te pot ajuta?`;
+    return `Salut! Cu ce te pot ajuta azi?`;
   };
 
   // Add automatic welcome message for new conversations (as assistant message)
