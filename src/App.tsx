@@ -109,9 +109,12 @@ const PresenceTracker = () => {
 };
 
 // Afișează ceasul/vremea + ticker de știri doar pentru utilizatori autentificați
+// Ascunde pe /yana pentru o experiență de chat minimalistă, fără distrageri
 const GlobalChrome = () => {
   const { user } = useAuth();
+  const location = useLocation();
   if (!user) return null;
+  if (location.pathname.startsWith('/yana')) return null;
   return (
     <>
       <WeatherClock />

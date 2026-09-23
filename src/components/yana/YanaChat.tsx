@@ -25,8 +25,6 @@ import { YanaVisionMode } from '@/components/yana/YanaVisionMode';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
 import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
-import { OfficeFeatureAnnouncement } from './OfficeFeatureAnnouncement';
-import { GoogleCalendarAnnouncement } from './GoogleCalendarAnnouncement';
 import { useYanaAgent, type AgentStep } from '@/hooks/useYanaAgent';
 import { AgentStepsPanel } from './AgentStepsPanel';
 import { Switch } from '@/components/ui/switch';
@@ -1087,9 +1085,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
         />
       )}
 
-      {/* Office Feature Announcement */}
-      <OfficeFeatureAnnouncement />
-      <GoogleCalendarAnnouncement />
+      {/* Feature announcements — ascunse pentru design minimalist */}
 
       {/* Messages Area */}
       <div 
@@ -1353,18 +1349,18 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               postAnalysis={!!balanceContext}
             />
           )}
-          {/* 🆕 Toggle-uri Mod Agent + Vezi proces */}
-          <div className="flex items-center gap-4 px-1 pb-2 text-xs">
-            <div className="flex items-center gap-2">
-              <Switch id="agent-mode" checked={agentMode} onCheckedChange={toggleAgentMode} />
-              <Label htmlFor="agent-mode" className="cursor-pointer text-muted-foreground">
-                🤖 Mod Agent {agentMode && <span className="text-primary">(autonom)</span>}
+          {/* Toggle-uri Mod Agent + Vezi proces — minimaliste */}
+          <div className="flex items-center gap-3 px-1 pb-1.5 text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <Switch id="agent-mode" checked={agentMode} onCheckedChange={toggleAgentMode} className="scale-90" />
+              <Label htmlFor="agent-mode" className="cursor-pointer text-muted-foreground select-none">
+                Mod Agent{agentMode && <span className="text-primary ml-1">activ</span>}
               </Label>
             </div>
             {agentMode && (
-              <div className="flex items-center gap-2">
-                <Switch id="show-process" checked={showAgentProcess} onCheckedChange={toggleShowProcess} />
-                <Label htmlFor="show-process" className="cursor-pointer text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Switch id="show-process" checked={showAgentProcess} onCheckedChange={toggleShowProcess} className="scale-90" />
+                <Label htmlFor="show-process" className="cursor-pointer text-muted-foreground select-none">
                   Vezi procesul
                 </Label>
               </div>
