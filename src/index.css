@@ -667,3 +667,9 @@ All colors MUST be HSL.
 
 /* Light-mode: soften the void so it doesn't wash out the chat */
 html:not(.dark) .yana-ambient { opacity: 0.5; }
+
+/* Velcont typography + breathing room */
+.yana-velcont { font-family: "DM Sans", system-ui, sans-serif; }
+.yana-velcont h1, .yana-velcont h2, .yana-velcont h3 { font-family: "Space Grotesk", system-ui, sans-serif; letter-spacing: -0.01em; }
+.yana-velcont .is-user, .yana-velcont .is-assistant { line-height: 1.7; }
+.yana-velcont [role="dialog"] { --primary: 47 76% 57%; --ring: 47 76% 57%; }
