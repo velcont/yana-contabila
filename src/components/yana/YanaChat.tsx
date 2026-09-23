@@ -1091,7 +1091,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
-        className={cn("flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "flex flex-col justify-center")}
+        className={cn("flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "flex flex-col justify-end pb-12")}
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
         {/* Proactive Initiative Card - displayed before messages */}
