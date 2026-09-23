@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles, ShieldAlert, Brain } from 'lucide-react';
+import { Send, Plus, Search, ThumbsUp, ThumbsDown, ChevronUp, Sparkles } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
 import { Message as AIMessage, MessageContent } from '@/components/ai-elements/message';
@@ -1221,64 +1221,6 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                 </div>
               )}
               
-              {/* Quick Actions - shown after welcome message only */}
-              {message.id === 'welcome-auto' && (
-                <div className="flex flex-wrap gap-2 pt-4 mt-3 border-t border-border/30">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 text-xs touch-action-manipulation"
-                    onClick={() => setShowUploader(true)}
-                  >
-                    <BarChart3 className="h-4 w-4 mr-1.5" />
-                    Analiză financiară
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 text-xs touch-action-manipulation"
-                    onClick={() => {
-                      setInput('Dă-mi un sfat strategic pentru a crește profitul companiei mele');
-                      textareaRef.current?.focus();
-                    }}
-                  >
-                    <Lightbulb className="h-4 w-4 mr-1.5" />
-                    Sfat strategic
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 text-xs touch-action-manipulation"
-                    onClick={() => {
-                      setInput('Am o întrebare despre TVA și deduceri fiscale');
-                      textareaRef.current?.focus();
-                    }}
-                  >
-                    <Scale className="h-4 w-4 mr-1.5" />
-                    Întrebare fiscală
-                  </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     className="h-9 px-3 text-xs touch-action-manipulation border-amber-500/30 hover:bg-amber-500/10"
-                     onClick={() => {
-                       sendMessage('Care e riscul meu de control ANAF pe baza balanței?');
-                     }}
-                   >
-                     <ShieldAlert className="h-4 w-4 mr-1.5 text-amber-500" />
-                     Risc ANAF
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     className="h-9 px-3 text-xs touch-action-manipulation border-blue-500/30 hover:bg-blue-500/10"
-                     onClick={handleStartStrategy}
-                   >
-                     <Brain className="h-4 w-4 mr-1.5 text-blue-500" />
-                     Strategie AI
-                   </Button>
-                </div>
-              )}
             </MessageContent>
 
             {message.role === 'user' && (
