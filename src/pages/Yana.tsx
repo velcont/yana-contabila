@@ -8,7 +8,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
 import { ConversationSidebar } from '@/components/yana/ConversationSidebar';
-import { YanaAmbientPresence } from '@/components/yana/YanaAmbientPresence';
 import { NoAccessOverlay } from '@/components/yana/NoAccessOverlay';
 import { MiniCreditsIndicator } from '@/components/yana/MiniCreditsIndicator';
 import { CognitiveEmergenceToggle } from '@/components/yana/cem/CognitiveEmergenceToggle';
@@ -143,17 +142,15 @@ export default function Yana() {
   }
 
   return (
-    <div className="flex h-dvh min-h-screen relative bg-background/40">
-      {/* Futuristic ambient backdrop — Conștiință Ambientală */}
-      <YanaAmbientPresence state="idle" />
+    <div className="yana-velcont flex h-dvh min-h-screen relative overflow-hidden bg-background text-foreground">
       {/* Access Overlay - blochează utilizatorii fără acces valid */}
       {hasNoValidAccess && <NoAccessOverlay accessType={accessType} />}
       {/* Sidebar */}
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out',
-          'bg-card/70 backdrop-blur-xl border-r border-border/60',
-          'lg:relative lg:translate-x-0 lg:w-72',
+          'bg-sidebar border-r border-sidebar-border',
+          'lg:relative lg:translate-x-0 lg:w-64',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
         style={{ width: isMobile ? 'clamp(240px, 85vw, 288px)' : undefined }}
@@ -172,7 +169,7 @@ export default function Yana() {
       {/* Overlay for mobile */}
       {sidebarOpen && isMobile && (
         <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-background/90 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -180,7 +177,7 @@ export default function Yana() {
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header - Reorganizat pentru mobil */}
-        <header className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-card/50 backdrop-blur-sm">
+        <header className="h-16 flex items-center justify-between px-3 sm:px-6 border-b border-border bg-background/95 backdrop-blur-md">
           <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
@@ -191,12 +188,12 @@ export default function Yana() {
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">Y</span>
+              <div className="h-8 w-8 rounded-md border border-primary/70 flex items-center justify-center">
+                <span className="text-primary font-semibold italic text-sm">Y</span>
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="font-semibold text-foreground text-sm leading-tight">Yana</span>
-                <span className="text-[10px] text-muted-foreground leading-tight">Nu e un chatbot. E un AI pentru business.</span>
+                 <span className="font-semibold text-foreground text-sm leading-tight uppercase">YANA</span>
+                 <span className="text-[10px] uppercase text-muted-foreground leading-tight">AI pentru business</span>
               </div>
             </div>
           </div>
@@ -206,7 +203,7 @@ export default function Yana() {
             <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-9 sm:w-9 touch-action-manipulation" title="Mai multe">
+                 <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation text-muted-foreground hover:text-foreground" title="Mai multe" aria-label="Mai multe opțiuni">
                   <MoreHorizontal className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -250,7 +247,7 @@ export default function Yana() {
             </DropdownMenu>
             <CognitiveEmergenceToggle enabled={cem.enabled} onToggle={cem.toggle} />
             <Link to="/settings">
-              <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation" title="Setări cont">
+               <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation text-muted-foreground hover:text-foreground" title="Setări cont" aria-label="Setări cont">
                 <Settings className="h-4 w-4" />
               </Button>
             </Link>
@@ -293,7 +290,7 @@ export default function Yana() {
 
         {/* Footer disclaimer "inspirat din fapte reale" */}
         {cem.enabled && (
-          <div className="flex justify-center pb-1 pt-0.5 bg-card/30">
+           <div className="flex justify-center pb-1 pt-0.5 bg-background">
             <InspiredByDisclaimer />
           </div>
         )}

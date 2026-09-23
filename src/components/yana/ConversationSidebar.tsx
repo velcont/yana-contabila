@@ -218,11 +218,14 @@ export function ConversationSidebar({
   const groupedConversations = groupConversations();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-foreground">Conversații</h2>
+          <div>
+            <h2 className="font-semibold text-foreground tracking-wide">YANA</h2>
+            <p className="text-[10px] uppercase text-muted-foreground">Conversații</p>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -238,8 +241,7 @@ export function ConversationSidebar({
             onNewConversation();
             if (isMobile) onClose();
           }}
-          className="w-full justify-start gap-2"
-          variant="outline"
+          className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           Conversație nouă
@@ -311,7 +313,7 @@ export function ConversationSidebar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Caută conversații..."
-            className="pl-9 bg-background"
+            className="pl-9 bg-card border-border focus-visible:ring-primary"
           />
         </div>
       </div>
@@ -342,9 +344,9 @@ export function ConversationSidebar({
                         key={conv.id}
                         onClick={() => editingId !== conv.id && onSelectConversation(conv.id)}
                         className={cn(
-                          'w-full group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors cursor-pointer',
-                          'hover:bg-accent/50',
-                          activeConversationId === conv.id && 'bg-accent'
+                           'w-full group flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors cursor-pointer',
+                           'hover:bg-sidebar-accent',
+                           activeConversationId === conv.id && 'bg-sidebar-accent text-sidebar-accent-foreground'
                         )}
                       >
                         <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -412,7 +414,7 @@ export function ConversationSidebar({
       </ScrollArea>
 
       {/* Footer with quick links */}
-      <div className="p-3 border-t border-border space-y-1">
+      <div className="hidden">
         <Link to="/firme-noi" className="w-full">
           <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
             <Building2 className="h-4 w-4" />

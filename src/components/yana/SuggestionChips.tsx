@@ -56,15 +56,15 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-wrap gap-1.5 py-1">
+    <div className="flex flex-wrap gap-2 py-2">
       {chips.map((chip) => {
         const Icon = chip.icon;
         return (
           <Button
             key={chip.label}
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-1.5 touch-action-manipulation"
+            className="h-8 px-3 text-xs text-muted-foreground border-border bg-transparent hover:text-primary hover:border-primary/40 hover:bg-accent/50 gap-1.5 touch-action-manipulation"
             onClick={() => {
               if ('isUpload' in chip && chip.isUpload) {
                 onUpload();

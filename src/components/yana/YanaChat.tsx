@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Send, Plus, Search, Lightbulb, ThumbsUp, ThumbsDown, ChevronUp, BarChart3, Scale, Sparkles, ShieldAlert, Brain } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Message as AIMessage, MessageContent } from '@/components/ai-elements/message';
+import { PromptInput, PromptInputButton, PromptInputFooter, PromptInputSubmit, PromptInputTextarea, PromptInputTools } from '@/components/ai-elements/prompt-input';
 import { DocumentUploader } from './DocumentUploader';
 import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
@@ -1069,7 +1070,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
   }, [conversationId, resetKey]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0 bg-background">
       {/* 👁️ Vision Mode — floating widget (screen/camera → YANA observations) */}
       <YanaVisionMode
         onObservation={(text) => {
@@ -1090,7 +1091,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       {/* Messages Area */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth"
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
         {/* Proactive Initiative Card - displayed before messages */}
@@ -1122,25 +1123,30 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
         )}
 
         {messages.map((message) => (
-          <div
+          <AIMessage
             key={message.id}
+            from={message.role}
             className={cn(
-              'flex gap-3 max-w-3xl mx-auto',
-              message.role === 'user' ? 'justify-end' : 'justify-start'
+              'max-w-2xl mx-auto',
+              message.role === 'user' ? 'items-end' : 'items-start'
             )}
           >
             {message.role === 'assistant' && (
-              <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs">Y</span>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="h-7 w-7 shrink-0 rounded-md border border-primary/60 flex items-center justify-center">
+                  <span className="text-primary font-semibold italic text-[10px]">Y</span>
+                </div>
+                <span className="text-[10px] font-semibold uppercase text-muted-foreground">YANA AI</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-success" title="Online" />
               </div>
             )}
             
-            <div
+            <MessageContent
               className={cn(
-                'rounded-2xl px-4 py-3 max-w-[80%]',
+                'max-w-[88%] leading-relaxed',
                 message.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
+                  ? 'border border-border bg-secondary px-4 py-3 text-secondary-foreground'
+                  : 'bg-transparent p-0 text-foreground'
               )}
             >
               {/* 🆕 Agent steps panel — afișat dacă mesajul are pași și showAgentProcess e ON */}
@@ -1273,7 +1279,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                    </Button>
                 </div>
               )}
-            </div>
+            </MessageContent>
 
             {message.role === 'user' && (
               <div className="h-8 w-8 shrink-0 rounded-full bg-secondary flex items-center justify-center">
@@ -1282,7 +1288,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
                 </span>
               </div>
             )}
-          </div>
+          </AIMessage>
         ))}
 
         {isLoading && (
@@ -1325,8 +1331,8 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       )}
 
       {/* Input Area - stil ChatGPT simplificat */}
-      <div className="border-t border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4 pb-safe">
-        <div className="max-w-3xl mx-auto">
+      <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-safe">
+        <div className="max-w-2xl mx-auto">
           {/* Subtle notification când nu are credite - exclude utilizatorii în trial */}
           {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (
             <div className="mb-3 p-3 bg-muted/50 border border-border/50 rounded-lg flex items-center justify-between gap-3">
@@ -1405,37 +1411,45 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               ))}
             </div>
           )}
-          <div className="relative flex items-end gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation"
-              onClick={() => setShowUploader(true)}
-              disabled={isLoading}
-              title="Încarcă document"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-            
-            <Textarea
+          <PromptInput
+            onSubmit={(message, event) => {
+              event.preventDefault();
+              if (message.text.trim() || input.trim() || pendingFiles.length > 0) handleSendClick();
+            }}
+            className="rounded-lg border-border bg-card shadow-none focus-within:border-primary/50"
+          >
+            <PromptInputTextarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={pendingFiles.length > 0 ? "Scrie ce vrei să fac cu fișierul (ex: cum înregistrez această speță?)..." : "Întreabă orice despre afacerea ta..."}
-              className="min-h-[44px] max-h-32 resize-none bg-background border-border text-sm sm:text-base"
+              className="min-h-[52px] max-h-32 px-4 pt-3 text-sm placeholder:text-muted-foreground"
               disabled={isLoading}
             />
-            
-            <Button
-              size="icon"
-              className="shrink-0 h-11 w-11 sm:h-10 sm:w-10 rounded-full touch-action-manipulation"
-              onClick={handleSendClick}
-              disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputButton
+                  type="button"
+                  onClick={() => setShowUploader(true)}
+                  disabled={isLoading}
+                  tooltip="Încarcă document"
+                  aria-label="Încarcă document"
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  <Plus className="h-4 w-4" />
+                </PromptInputButton>
+              </PromptInputTools>
+              <PromptInputSubmit
+                status={isLoading ? 'submitted' : 'ready'}
+                disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
+                aria-label="Trimite mesajul"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Send className="h-4 w-4" />
+              </PromptInputSubmit>
+            </PromptInputFooter>
+          </PromptInput>
           
           {/* Footer ascuns pe mobil */}
           <div className="hidden sm:flex items-center justify-center gap-2 mt-2 flex-wrap">
