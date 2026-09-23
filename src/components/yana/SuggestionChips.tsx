@@ -1,131 +1,53 @@
 import { Button } from '@/components/ui/button';
-import { Shield, Swords, BarChart3, Brain, FileUp, FileText, Mail, Search, Lightbulb, TrendingUp, Euro, Building2 } from 'lucide-react';
+import { Brain, BarChart3, Lightbulb, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface SuggestionChipsProps {
   onSendMessage: (message: string) => void;
   onUpload: () => void;
   disabled?: boolean;
-  postAnalysis?: boolean; // Show document generation chips after balance analysis
+  postAnalysis?: boolean;
 }
 
 const DEFAULT_CHIPS = [
   {
     label: 'Ce am de făcut?',
-    icon: FileUp,
-    message: 'Arată-mi lista de acțiuni pe care le am de făcut. Ce e urgent, ce e overdue, și cu ce mă poți ajuta?',
-    accent: 'border-emerald-500/30 hover:bg-emerald-500/10',
-    iconColor: 'text-emerald-500',
+    icon: Lightbulb,
+    message: 'Arată-mi lista de acțiuni pe care le am de făcut. Ce e urgent, ce e overdue?',
   },
   {
-    label: 'Firme noi înființate',
-    icon: Building2,
+    label: 'Analizează balanța',
+    icon: BarChart3,
+    isUpload: true,
     message: '',
-    accent: 'border-pink-500/30 hover:bg-pink-500/10',
-    iconColor: 'text-pink-500',
-    link: '/firme-noi',
   },
   {
     label: 'War Room',
     icon: Shield,
     message: 'Vreau să simulez un scenariu de criză cu War Room. Ce riscuri ar trebui să iau în calcul?',
-    accent: 'border-red-500/30 hover:bg-red-500/10',
-    iconColor: 'text-red-500',
-  },
-  {
-    label: 'Battle Plan',
-    icon: Swords,
-    message: 'Generează-mi un Battle Plan strategic pentru următoarele 90 de zile.',
-    accent: 'border-amber-500/30 hover:bg-amber-500/10',
-    iconColor: 'text-amber-500',
-  },
-  {
-    label: 'Analizează balanța',
-    icon: BarChart3,
-    message: '',
-    accent: 'border-blue-500/30 hover:bg-blue-500/10',
-    iconColor: 'text-blue-500',
-    isUpload: true,
-  },
-  {
-    label: 'Audit Furnizor',
-    icon: Search,
-    message: 'Vreau să verific un furnizor. Caută-mi informații despre reputația și prețurile lui.',
-    accent: 'border-orange-500/30 hover:bg-orange-500/10',
-    iconColor: 'text-orange-500',
-  },
-  {
-    label: 'Ce să fac azi?',
-    icon: Lightbulb,
-    message: 'Ce ar trebui să fac azi? Care sunt cele mai importante acțiuni pe care trebuie să le fac acum?',
-    accent: 'border-yellow-500/30 hover:bg-yellow-500/10',
-    iconColor: 'text-yellow-500',
-  },
-  {
-    label: 'Cash Flow Forecast',
-    icon: TrendingUp,
-    message: 'Arată-mi o previziune a cash flow-ului pe următoarele 30/60/90 de zile.',
-    accent: 'border-cyan-500/30 hover:bg-cyan-500/10',
-    iconColor: 'text-cyan-500',
-  },
-  {
-    label: 'Analiză Investiții',
-    icon: TrendingUp,
-    message: 'Vreau sfaturi de investiții. Ce acțiuni, ETF-uri sau strategii îmi recomanzi pentru profilul meu de risc? Cum funcționează taxarea în România?',
-    accent: 'border-indigo-500/30 hover:bg-indigo-500/10',
-    iconColor: 'text-indigo-500',
-  },
-  {
-    label: 'Fonduri Europene',
-    icon: Euro,
-    message: 'Ce fonduri europene nerambursabile sunt disponibile acum pentru industria mea?',
-    accent: 'border-green-500/30 hover:bg-green-500/10',
-    iconColor: 'text-green-500',
   },
   {
     label: 'Strategie AI',
     icon: Brain,
     message: 'Vreau o analiză strategică AI pentru afacerea mea.',
-    accent: 'border-purple-500/30 hover:bg-purple-500/10',
-    iconColor: 'text-purple-500',
   },
 ];
 
 const POST_ANALYSIS_CHIPS = [
   {
-    label: 'Raport Word',
-    icon: FileText,
-    message: 'Generează-mi un raport Word detaliat cu analiza completă a balanței.',
-    accent: 'border-blue-500/30 hover:bg-blue-500/10',
-    iconColor: 'text-blue-500',
-  },
-  {
     label: 'Raport PDF',
-    icon: FileText,
-    message: 'Generează-mi un raport PDF cu analiza financiară completă.',
-    accent: 'border-red-500/30 hover:bg-red-500/10',
-    iconColor: 'text-red-500',
-  },
-  {
-    label: 'Excel situație',
     icon: BarChart3,
-    message: 'Generează un Excel structurat cu situația financiară: venituri, cheltuieli, profit, și indicatori cheie.',
-    accent: 'border-green-500/30 hover:bg-green-500/10',
-    iconColor: 'text-green-500',
-  },
-  {
-    label: 'Trimite pe email',
-    icon: Mail,
-    message: 'Trimite-mi pe email un raport PDF cu analiza completă a balanței.',
-    accent: 'border-purple-500/30 hover:bg-purple-500/10',
-    iconColor: 'text-purple-500',
+    message: 'Generează-mi un raport PDF cu analiza financiară completă.',
   },
   {
     label: 'Risc ANAF',
     icon: Shield,
     message: 'Calculează riscul de control ANAF pe baza datelor din balanță.',
-    accent: 'border-amber-500/30 hover:bg-amber-500/10',
-    iconColor: 'text-amber-500',
+  },
+  {
+    label: 'Strategie AI',
+    icon: Brain,
+    message: 'Vreau o analiză strategică AI pentru afacerea mea.',
   },
 ];
 
@@ -134,15 +56,15 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-wrap gap-2 py-2">
+    <div className="flex flex-wrap gap-1.5 py-1">
       {chips.map((chip) => {
         const Icon = chip.icon;
         return (
           <Button
             key={chip.label}
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={`h-8 px-3 text-xs gap-1.5 touch-action-manipulation ${chip.accent}`}
+            className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-1.5 touch-action-manipulation"
             onClick={() => {
               if ('isUpload' in chip && chip.isUpload) {
                 onUpload();
@@ -154,7 +76,7 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
             }}
             disabled={disabled}
           >
-            <Icon className={`h-3.5 w-3.5 ${chip.iconColor}`} />
+            <Icon className="h-3.5 w-3.5" />
             {chip.label}
           </Button>
         );
