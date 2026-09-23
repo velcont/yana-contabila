@@ -247,6 +247,39 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 30 12% 96%;
     --sidebar-border: 30 12% 18%;
   }
+
+  /* YANA workspace — visual identity aligned with Velcont */
+  .yana-velcont {
+    --background: 120 7% 3%;
+    --foreground: 45 14% 92%;
+    --card: 90 4% 7%;
+    --card-foreground: 45 14% 92%;
+    --popover: 90 4% 8%;
+    --popover-foreground: 45 14% 92%;
+    --primary: 47 76% 57%;
+    --primary-foreground: 120 7% 4%;
+    --secondary: 90 3% 12%;
+    --secondary-foreground: 45 12% 88%;
+    --muted: 90 3% 11%;
+    --muted-foreground: 60 4% 57%;
+    --accent: 47 38% 16%;
+    --accent-foreground: 47 76% 67%;
+    --border: 54 8% 16%;
+    --input: 54 8% 18%;
+    --ring: 47 76% 57%;
+    --sidebar-background: 120 5% 4%;
+    --sidebar-foreground: 45 14% 92%;
+    --sidebar-primary: 47 76% 57%;
+    --sidebar-primary-foreground: 120 7% 4%;
+    --sidebar-accent: 54 10% 11%;
+    --sidebar-accent-foreground: 45 14% 92%;
+    --sidebar-border: 54 8% 14%;
+    --sidebar-ring: 47 76% 57%;
+    --success: 142 58% 48%;
+    --success-foreground: 140 30% 7%;
+    --radius: 0.5rem;
+    color-scheme: dark;
+  }
 }
 
 @layer base {
