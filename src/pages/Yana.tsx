@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useAICredits } from '@/hooks/useAICredits';
 import { Navigate, Link, useNavigate } from 'react-router-dom';
-import { Loader2, Menu, X, Settings, LogOut, Briefcase, Mail, MessageCircle, Moon, ShieldCheck, Phone, Building2 } from 'lucide-react';
+import { Loader2, Menu, X, Settings, LogOut, Briefcase, Mail, MessageCircle, Moon, ShieldCheck, Phone, Building2, MoreHorizontal } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { YanaChat } from '@/components/yana/YanaChat';
@@ -30,6 +30,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Yana() {
   const { user, loading, signOut } = useAuth();
