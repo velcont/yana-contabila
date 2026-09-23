@@ -205,7 +205,7 @@ export default function Yana() {
           
           <div className="flex items-center gap-1 sm:gap-1.5">
             <MiniCreditsIndicator />
-            <ThemeToggle />
+            <CognitiveEmergenceToggle enabled={cem.enabled} onToggle={cem.toggle} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                  <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation text-muted-foreground hover:text-foreground" title="Mai multe" aria-label="Mai multe opțiuni">
@@ -213,6 +213,16 @@ export default function Yana() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="flex items-center gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" /> Setări cont
+                  </Link>
+                </DropdownMenuItem>
+                <div className="flex items-center justify-between px-2 py-1 text-sm">
+                  <span>Temă</span>
+                  <ThemeToggle />
+                </div>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/crm" className="flex items-center gap-2 cursor-pointer">
                     <Briefcase className="h-4 w-4" /> CRM
@@ -250,12 +260,6 @@ export default function Yana() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <CognitiveEmergenceToggle enabled={cem.enabled} onToggle={cem.toggle} />
-            <Link to="/settings">
-               <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation text-muted-foreground hover:text-foreground" title="Setări cont" aria-label="Setări cont">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </Link>
             
             <AlertDialog>
               <AlertDialogTrigger asChild>
