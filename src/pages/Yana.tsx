@@ -292,7 +292,10 @@ export default function Yana() {
         {/* Chat Component */}
         <YanaChat
           conversationId={activeConversationId}
-          onConversationCreated={setActiveConversationId}
+          onConversationCreated={(id: string) => {
+            setActiveConversationId(id);
+            if (id) localStorage.setItem('yana_last_conversation_id', id);
+          }}
           resetKey={resetKey}
           projectId={activeProjectId}
           cognitiveEmergenceMode={cem.enabled}
