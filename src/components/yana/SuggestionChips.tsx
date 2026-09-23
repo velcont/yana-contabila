@@ -1,11 +1,20 @@
 import { Button } from '@/components/ui/button';
-import { Brain, BarChart3, Lightbulb, Shield, ShieldAlert, Sparkles, Scale } from 'lucide-react';
+import { Brain, BarChart3, Lightbulb, Shield, ShieldAlert, Sparkles, Scale, LucideIcon } from 'lucide-react';
 
 interface SuggestionChipsProps {
   onSendMessage: (message: string) => void;
   onUpload: () => void;
   disabled?: boolean;
   postAnalysis?: boolean;
+}
+
+interface Chip {
+  label: string;
+  icon: LucideIcon;
+  message: string;
+  isUpload?: boolean;
+  className?: string;
+  iconClassName?: string;
 }
 
 const DEFAULT_CHIPS = [
