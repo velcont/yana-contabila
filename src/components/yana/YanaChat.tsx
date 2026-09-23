@@ -1089,9 +1089,9 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       {/* Feature announcements — ascunse pentru design minimalist */}
 
       {/* Messages Area */}
-      <div 
+      <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth"
+        className={cn("flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "flex flex-col justify-end pb-2 space-y-0")}
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
         {/* Proactive Initiative Card - displayed before messages */}
@@ -1273,7 +1273,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
       )}
 
       {/* Input Area - stil ChatGPT simplificat */}
-      <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-safe">
+      <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
         <div className="w-full max-w-3xl mx-auto">
           {/* Subtle notification când nu are credite - exclude utilizatorii în trial */}
           {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (

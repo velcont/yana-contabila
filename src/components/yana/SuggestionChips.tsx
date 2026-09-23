@@ -82,7 +82,7 @@ export function SuggestionChips({ onSendMessage, onUpload, disabled, postAnalysi
   const chips = postAnalysis ? POST_ANALYSIS_CHIPS : DEFAULT_CHIPS;
 
   return (
-    <div className="flex gap-2 py-2 overflow-x-auto flex-nowrap justify-start lg:justify-center -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]">
+    <div className="flex flex-wrap gap-2 py-2 justify-center">
       {chips.map((chip) => {
         const Icon = chip.icon;
         return (
