@@ -201,63 +201,57 @@ export default function Yana() {
             </div>
           </div>
           
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden lg:flex"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? 'Ascunde istoric' : 'Afișează istoric'}
-            </Button>
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <MiniCreditsIndicator />
             <ThemeToggle />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-9 sm:w-9 touch-action-manipulation" title="Mai multe">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link to="/crm" className="flex items-center gap-2 cursor-pointer">
+                    <Briefcase className="h-4 w-4" /> CRM
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/firme-noi" className="flex items-center gap-2 cursor-pointer">
+                    <Building2 className="h-4 w-4" /> Firme noi
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/samanta" className="flex items-center gap-2 cursor-pointer">
+                    <Phone className="h-4 w-4" /> Samanta
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/whatsapp" className="flex items-center gap-2 cursor-pointer">
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/inbox" className="flex items-center gap-2 cursor-pointer">
+                    <Mail className="h-4 w-4" /> Inbox
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/yana/dreams" className="flex items-center gap-2 cursor-pointer">
+                    <Moon className="h-4 w-4" /> Vise YANA
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/yana/control" className="flex items-center gap-2 cursor-pointer">
+                    <ShieldCheck className="h-4 w-4" /> Control Center
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <CognitiveEmergenceToggle enabled={cem.enabled} onToggle={cem.toggle} />
-            <Link to="/crm">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="CRM">
-                <Briefcase className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">CRM</span>
-              </Button>
-            </Link>
-            <Link to="/firme-noi">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation text-pink-500 hover:text-pink-400 hover:bg-pink-500/10" title="Firme noi înființate">
-                <Building2 className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">Firme noi</span>
-              </Button>
-            </Link>
-            <Link to="/samanta">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Samanta — recepționera vocală">
-                <Phone className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">Samanta</span>
-              </Button>
-            </Link>
-            <Link to="/whatsapp">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="WhatsApp Bot">
-                <MessageCircle className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">WhatsApp</span>
-              </Button>
-            </Link>
-            <Link to="/inbox">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Inbox email">
-                <Mail className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">Inbox</span>
-              </Button>
-            </Link>
-            <Link to="/yana/dreams">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Visele Yanei">
-                <Moon className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">Vise</span>
-              </Button>
-            </Link>
-            <Link to="/yana/control">
-              <Button variant="ghost" size="sm" className="gap-1.5 h-11 sm:h-10 touch-action-manipulation" title="Control Center">
-                <ShieldCheck className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs font-medium">Control</span>
-              </Button>
-            </Link>
             <Link to="/settings">
-              <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-10 sm:w-10 touch-action-manipulation" title="Setări cont">
-                <Settings className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation" title="Setări cont">
+                <Settings className="h-4.5 w-4.5" />
               </Button>
             </Link>
             
@@ -266,10 +260,10 @@ export default function Yana() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-11 w-11 sm:h-10 sm:w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 touch-action-manipulation" 
+                  className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 touch-action-manipulation" 
                   title="Deconectare"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4.5 w-4.5" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
