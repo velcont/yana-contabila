@@ -1274,7 +1274,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
 
       {/* Input Area - stil ChatGPT simplificat */}
       <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-safe">
-        <div className="max-w-2xl mx-auto">
+        <div className="w-full max-w-3xl mx-auto">
           {/* Subtle notification când nu are credite - exclude utilizatorii în trial */}
           {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (
             <div className="mb-3 p-3 bg-muted/50 border border-border/50 rounded-lg flex items-center justify-between gap-3">
@@ -1366,7 +1366,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={pendingFiles.length > 0 ? "Scrie ce vrei să fac cu fișierul (ex: cum înregistrez această speță?)..." : "Întreabă orice despre afacerea ta..."}
-              className="min-h-[52px] max-h-32 px-4 pt-3 text-sm placeholder:text-muted-foreground"
+              className="min-h-[40px] max-h-32 px-4 py-2.5 text-sm placeholder:text-muted-foreground"
               disabled={isLoading}
             />
             <PromptInputFooter>
@@ -1394,7 +1394,7 @@ Gata? Hai să începem! Cu ce te pot ajuta?`;
           </PromptInput>
           
           {/* Footer ascuns pe mobil */}
-          <div className="hidden sm:flex items-center justify-center gap-2 mt-2 flex-wrap">
+          <div className="relative z-0 hidden sm:flex items-center justify-center gap-2 mt-3 flex-wrap">
             <p className="text-xs text-muted-foreground">
               Yana poate face greșeli. Verifică informațiile importante.
             </p>
