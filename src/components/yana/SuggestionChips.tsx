@@ -55,8 +55,8 @@ const DEFAULT_CHIPS: Chip[] = [
     label: 'Strategie AI',
     icon: Brain,
     message: 'Vreau o analiză strategică AI pentru afacerea mea.',
-    className: 'border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-500/40',
-    iconClassName: 'text-blue-500',
+    className: 'border-primary/30 hover:bg-primary/10 hover:border-primary/40',
+    iconClassName: 'text-primary',
   },
 ];
 

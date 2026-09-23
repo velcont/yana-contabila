@@ -335,16 +335,16 @@ export function ConversationSidebar({
               
               return (
                 <div key={group}>
-                  <h3 className="text-xs font-medium text-muted-foreground px-3 py-2">
+                  <h3 className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80 px-3 pt-4 pb-2">
                     {group}
                   </h3>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {convs.map(conv => (
                       <div
                         key={conv.id}
                         onClick={() => editingId !== conv.id && onSelectConversation(conv.id)}
                         className={cn(
-                           'w-full group flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors cursor-pointer',
+                           'w-full group flex items-center gap-3 px-3 py-2.5 rounded-md text-left transition-colors cursor-pointer',
                            'hover:bg-sidebar-accent',
                            activeConversationId === conv.id && 'bg-sidebar-accent text-sidebar-accent-foreground'
                         )}
@@ -371,7 +371,7 @@ export function ConversationSidebar({
                             {editingId !== conv.id && (
                               <button
                                 onClick={(e) => startEditing(conv, e)}
-                                className="hover:text-foreground transition-colors p-0.5 -m-0.5 rounded"
+                                className="opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-foreground transition-opacity p-0.5 -m-0.5 rounded"
                                 title="Redenumește"
                               >
                                 <Pencil className="h-3 w-3" />
