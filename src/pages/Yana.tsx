@@ -251,7 +251,7 @@ export default function Yana() {
             <CognitiveEmergenceToggle enabled={cem.enabled} onToggle={cem.toggle} />
             <Link to="/settings">
               <Button variant="ghost" size="icon" className="h-9 w-9 touch-action-manipulation" title="Setări cont">
-                <Settings className="h-4.5 w-4.5" />
+                <Settings className="h-4 w-4" />
               </Button>
             </Link>
             
@@ -263,7 +263,7 @@ export default function Yana() {
                   className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 touch-action-manipulation" 
                   title="Deconectare"
                 >
-                  <LogOut className="h-4.5 w-4.5" />
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
