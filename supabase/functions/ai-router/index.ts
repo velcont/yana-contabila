@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.3.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { extractBalanceFromPdf } from "../_shared/pdf-balance-extractor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1203,7 +1204,25 @@ serve(async (req) => {
 
     // If file data is provided, route based on file type
     if (fileData && fileData.fileContent) {
-      const docType = detectDocumentType(fileData.fileName);
+      let docType = detectDocumentType(fileData.fileName);
+
+      // 📄 PDF balance → extract to xlsx and reuse the Excel balance pipeline
+      if (docType === 'pdf') {
+        const looksLikeBalance = /balan[tț]|balance|sold|rulaj/i.test(fileData.fileName) || /balan[tț]/i.test(message || '');
+        try {
+          const pdfBal = await extractBalanceFromPdf(fileData.fileName, fileData.fileContent);
+          if (pdfBal) {
+            console.log(`[AI-Router] 📄→📊 PDF balance extracted: ${pdfBal.accountsCount} accounts (${pdfBal.company})`);
+            fileData.fileContent = pdfBal.excelBase64;
+            fileData.fileName = fileData.fileName.replace(/\.pdf$/i, '') + ' balanta.xlsx';
+            docType = 'balance_excel';
+          } else {
+            console.log(`[AI-Router] PDF is not a trial balance (looksLikeBalance=${looksLikeBalance})`);
+          }
+        } catch (e) {
+          console.error('[AI-Router] PDF balance extraction failed:', e);
+        }
+      }
       
       if (docType === 'balance_excel') {
         // 🆕 Detectare automată format SAGA
