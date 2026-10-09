@@ -390,7 +390,8 @@ export function YanaChat({ conversationId, onConversationCreated, resetKey, proj
 
       // 🆕 AGENT MODE — Multi-step autonomous agent with tool calling
       // Cheamă yana-agent în loc de ai-router când modul agent e activ
-      if (agentMode) {
+      const isSpreadsheetUpload = !!fileData?.fileName && /\.(xlsx|xls)$/i.test(String(fileData.fileName));
+      if (agentMode && !isSpreadsheetUpload) {
         try {
           yanaAgent.reset();
           const finalText = await yanaAgent.run(content, historyForAI, effectiveFileData, {
