@@ -11,6 +11,7 @@ export interface PdfBalanceResult {
   company: string;
   cui: string;
   accountsCount: number;
+  period: string;
 }
 
 const SCHEMA = {
@@ -144,5 +145,5 @@ export async function extractBalanceFromPdf(fileName: string, rawBase64: string)
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Balanta");
   const excelBase64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
-  return { excelBase64, company: parsed.company || "", cui: parsed.cui || "", accountsCount: parsed.accounts.length };
+  return { excelBase64, company: parsed.company || "", cui: parsed.cui || "", accountsCount: parsed.accounts.length, period: parsed.period || "" };
 }

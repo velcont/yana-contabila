@@ -1214,7 +1214,11 @@ serve(async (req) => {
           if (pdfBal) {
             console.log(`[AI-Router] 📄→📊 PDF balance extracted: ${pdfBal.accountsCount} accounts (${pdfBal.company})`);
             fileData.fileContent = pdfBal.excelBase64;
-            fileData.fileName = fileData.fileName.replace(/\.pdf$/i, '') + ' balanta.xlsx';
+            const dates = [...(pdfBal.period || '').matchAll(/(\d{1,2})[.\/-](\d{4})/g)];
+            const last = dates[dates.length - 1];
+            const per = last ? `${last[1].padStart(2, '0')}-${last[2]}` : '';
+            const base = fileData.fileName.replace(/\.pdf$/i, '');
+            fileData.fileName = per && !/\d{4}/.test(base) ? `Balanta ${per} - ${base}.xlsx` : `${/balan/i.test(base) ? base : 'Balanta ' + base}.xlsx`;
             docType = 'balance_excel';
           } else {
             console.log(`[AI-Router] PDF is not a trial balance (looksLikeBalance=${looksLikeBalance})`);
