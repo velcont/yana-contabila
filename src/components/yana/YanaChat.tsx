@@ -3,16 +3,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAICredits } from '@/hooks/useAICredits';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Send, Plus, Search, ThumbsUp, ThumbsDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Send, Plus, Search, ThumbsUp, ThumbsDown, ChevronUp, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { saveFeedback } from '@/lib/ai/conversational-memory';
 import { Button } from '@/components/ui/button';
-import { Message as AIMessage, MessageContent } from '@/components/ai-elements/message';
+import { Message as AIMessage, MessageContent, MessageResponse, MessageActions, MessageAction } from '@/components/ai-elements/message';
 import { PromptInput, PromptInputButton, PromptInputFooter, PromptInputSubmit, PromptInputTextarea, PromptInputTools } from '@/components/ai-elements/prompt-input';
 import { DocumentUploader } from './DocumentUploader';
 import { ArtifactRenderer } from './ArtifactRenderer';
 import { ContextIndicator } from './ContextIndicator';
 import { SourcesDisplay } from './SourcesDisplay';
-import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { cn } from '@/lib/utils';
 import { isTradingAnalysisQuery, buildTradingAnalysis } from '@/utils/trading/buildAnalysis';
 import { quickDiagnostic } from '@/utils/cfoHealthScoring';
@@ -24,12 +23,10 @@ import { TypingIndicator } from '@/components/TypingIndicator';
 import { InnerMonologue } from '@/components/yana/cem/InnerMonologue';
 import { YanaVisionMode } from '@/components/yana/YanaVisionMode';
 import { OnboardingFlow, type OnboardingAnswers } from './OnboardingFlow';
-import { SuggestionChips } from './SuggestionChips';
 import { ActionItemsPanel } from './ActionItemsPanel';
 import { useYanaAgent, type AgentStep } from '@/hooks/useYanaAgent';
 import { AgentStepsPanel } from './AgentStepsPanel';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
 
 interface Message {
   id: string;
@@ -1080,7 +1077,7 @@ Spune-mi ce te frământă.`;
       {/* Messages Area */}
       <div
         ref={messagesContainerRef}
-        className={cn("flex-1 overflow-y-auto px-4 py-8 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "grid place-content-center gap-4 pb-2")}
+        className={cn("flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-6 space-y-8 scroll-smooth", messages.length <= 1 && !isLoading && "grid place-content-center gap-4 pb-2")}
         onScroll={(e) => setScrollPosition(e.currentTarget.scrollTop)}
       >
         {/* Proactive Initiative Card - displayed before messages */}
@@ -1116,26 +1113,16 @@ Spune-mi ce te frământă.`;
             key={message.id}
             from={message.role}
             className={cn(
-              'max-w-2xl mx-auto',
+              'w-full max-w-3xl mx-auto gap-2',
               message.role === 'user' ? 'items-end' : 'items-start'
             )}
           >
-            {message.role === 'assistant' && (
-              <div className="mb-1 flex items-center gap-2">
-                <div className="h-7 w-7 shrink-0 rounded-md border border-primary/60 flex items-center justify-center">
-                  <span className="text-primary font-semibold italic text-[10px]">Y</span>
-                </div>
-                <span className="text-[10px] font-semibold uppercase text-muted-foreground">YANA AI</span>
-                <span className="h-1.5 w-1.5 rounded-full bg-success" title="Online" />
-              </div>
-            )}
-            
             <MessageContent
               className={cn(
-                'max-w-[88%] leading-relaxed',
+                'leading-7 text-base',
                 message.role === 'user'
-                  ? 'border border-border bg-secondary px-4 py-3 text-secondary-foreground'
-                  : 'bg-transparent p-0 text-foreground'
+                  ? 'max-w-[85%] border-0 bg-secondary px-4 py-3 text-secondary-foreground'
+                  : 'w-full max-w-full overflow-visible bg-transparent p-0 text-foreground'
               )}
             >
               {/* 🆕 Agent steps panel — afișat dacă mesajul are pași și showAgentProcess e ON */}
@@ -1144,7 +1131,7 @@ Spune-mi ce te frământă.`;
               )}
               {/* Render content - Markdown for assistant, plain text for user */}
               {message.role === 'assistant' ? (
-                <MarkdownRenderer content={message.content} className="text-left" />
+                <MessageResponse className="text-left text-base leading-7 break-words">{message.content}</MessageResponse>
               ) : (
                 <p className="whitespace-pre-wrap text-sm">{message.content}</p>
               )}
@@ -1184,25 +1171,22 @@ Spune-mi ce te frământă.`;
 
               {/* Feedback buttons for assistant messages */}
               {message.role === 'assistant' && message.aiConversationId && !feedbackGiven[message.id] && (
-                <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/30">
-                  <span className="text-xs text-muted-foreground mr-2">Util?</span>
-                  <button
+                <MessageActions className="mt-2 text-muted-foreground">
+                  <MessageAction
                     onClick={() => handleFeedback(message.id, true)}
-                    className="p-1.5 hover:bg-green-500/20 rounded-md transition-colors"
-                    title="Răspuns util"
+                    tooltip="Răspuns util"
                     aria-label="Marchează răspunsul ca util"
                   >
-                    <ThumbsUp className="h-3.5 w-3.5 text-muted-foreground hover:text-green-500" />
-                  </button>
-                  <button
+                    <ThumbsUp className="h-3.5 w-3.5" />
+                  </MessageAction>
+                  <MessageAction
                     onClick={() => handleFeedback(message.id, false)}
-                    className="p-1.5 hover:bg-red-500/20 rounded-md transition-colors"
-                    title="Răspuns nu a fost util"
+                    tooltip="Răspuns nu a fost util"
                     aria-label="Marchează răspunsul ca neutil"
                   >
-                    <ThumbsDown className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500" />
-                  </button>
-                </div>
+                    <ThumbsDown className="h-3.5 w-3.5" />
+                  </MessageAction>
+                </MessageActions>
               )}
               {message.role === 'assistant' && feedbackGiven[message.id] && (
                 <div className="flex items-center gap-1 mt-3 pt-2 text-xs text-muted-foreground border-t border-border/30">
@@ -1212,13 +1196,6 @@ Spune-mi ce te frământă.`;
               
             </MessageContent>
 
-            {message.role === 'user' && (
-              <div className="h-8 w-8 shrink-0 rounded-full bg-secondary flex items-center justify-center">
-                <span className="text-secondary-foreground font-medium text-xs">
-                  {userName?.[0]?.toUpperCase() || 'U'}
-                </span>
-              </div>
-            )}
           </AIMessage>
         ))}
 
@@ -1262,7 +1239,7 @@ Spune-mi ce te frământă.`;
       )}
 
       {/* Input Area - stil ChatGPT simplificat */}
-      <div className="border-t border-border bg-background/95 backdrop-blur-md p-3 sm:px-6 sm:py-4 pb-[max(5rem,env(safe-area-inset-bottom))]">
+      <div className="shrink-0 bg-background px-4 pt-3 sm:px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="w-full max-w-3xl mx-auto">
           {/* Subtle notification când nu are credite - exclude utilizatorii în trial */}
           {!hasCredits && !hasFreeAccess && accessType !== 'trial' && !creditsLoading && !subLoading && (
@@ -1277,32 +1254,6 @@ Spune-mi ce te frământă.`;
               </Link>
             </div>
           )}
-          {/* Suggestion Chips - visible when no onboarding is in progress */}
-          {!onboardingNeeded && (
-            <SuggestionChips
-              onSendMessage={(msg) => sendMessage(msg)}
-              onUpload={() => setShowUploader(true)}
-              disabled={isLoading}
-              postAnalysis={!!balanceContext}
-            />
-          )}
-          {/* Toggle-uri Mod Agent + Vezi proces — minimaliste */}
-          <div className="flex items-center justify-end gap-3 px-1 pb-1 text-[10px] opacity-70 hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-1.5">
-              <Switch id="agent-mode" checked={agentMode} onCheckedChange={toggleAgentMode} className="scale-90" />
-              <Label htmlFor="agent-mode" className="cursor-pointer text-muted-foreground select-none">
-                Mod Agent{agentMode && <span className="text-primary ml-1">activ</span>}
-              </Label>
-            </div>
-            {agentMode && (
-              <div className="flex items-center gap-1.5">
-                <Switch id="show-process" checked={showAgentProcess} onCheckedChange={toggleShowProcess} className="scale-90" />
-                <Label htmlFor="show-process" className="cursor-pointer text-muted-foreground select-none">
-                  Vezi procesul
-                </Label>
-              </div>
-            )}
-          </div>
           {/* 🆕 FILE MEMORY: indicator pentru fișierul reținut din sesiune */}
           {rememberedFile && (
             <div className="flex items-center justify-between gap-2 mb-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border text-xs">
@@ -1355,7 +1306,7 @@ Spune-mi ce te frământă.`;
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={pendingFiles.length > 0 ? "Scrie ce vrei să fac cu fișierul (ex: cum înregistrez această speță?)..." : "Întreabă orice despre afacerea ta..."}
-              className="min-h-[40px] max-h-32 px-4 py-2.5 text-sm placeholder:text-muted-foreground"
+              className="min-h-[48px] max-h-32 px-4 py-3 text-base placeholder:text-muted-foreground"
               disabled={isLoading}
             />
             <PromptInputFooter>
@@ -1370,6 +1321,21 @@ Spune-mi ce te frământă.`;
                 >
                   <Plus className="h-4 w-4" />
                 </PromptInputButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <PromptInputButton type="button" tooltip="Opțiuni conversație" aria-label="Opțiuni conversație" className="text-muted-foreground">
+                      <SlidersHorizontal className="h-4 w-4" />
+                    </PromptInputButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="top">
+                    <DropdownMenuCheckboxItem checked={agentMode} onCheckedChange={toggleAgentMode}>
+                      Mod Agent
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem checked={showAgentProcess} onCheckedChange={toggleShowProcess} disabled={!agentMode}>
+                      Vezi procesul
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </PromptInputTools>
               <PromptInputSubmit
                 status={isLoading ? 'submitted' : 'ready'}
