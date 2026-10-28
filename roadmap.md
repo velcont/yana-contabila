@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Remove chat suggestions and simplify the conversation surface in ChatGPT style
-- [ ] Verify the authenticated conversation and compact composer
+- [x] Remove chat suggestions and simplify the conversation surface in ChatGPT style
+- [x] Verify the authenticated conversation and compact composer
 
 - [x] Redesign `/yana` with a cleaner, more intuitive minimalist layout
 - [x] Match YANA to the real colors and visual style of www.velcont.com
