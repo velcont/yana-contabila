@@ -62,14 +62,22 @@ serve(async (req) => {
       );
     }
 
-    // Update rate limit counter
+    // Update rate limit counter (only the current window row)
     if (rateLimitData) {
       await supabaseClient
         .from('api_rate_limits')
         .update({ request_count: rateLimitData.request_count + 1 })
         .eq('user_id', user.id)
-        .eq('endpoint', 'check-subscription');
+        .eq('endpoint', 'check-subscription')
+        .eq('window_start', rateLimitData.window_start);
     } else {
+      // Remove this user's expired windows so the table stays small
+      await supabaseClient
+        .from('api_rate_limits')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('endpoint', 'check-subscription')
+        .lt('window_start', new Date(Date.now() - rateLimitWindow * 1000).toISOString());
       await supabaseClient
         .from('api_rate_limits')
         .insert({
